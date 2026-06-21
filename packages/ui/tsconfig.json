@@ -11,7 +11,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": false,
-    "types": ["react", "react-dom"]
+    "types": ["react", "react-dom", "node", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "**/*.stories.tsx"]
