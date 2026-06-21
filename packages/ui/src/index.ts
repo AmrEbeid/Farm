@@ -38,4 +38,6 @@ export { Switch } from "./components/Switch";
 export type { SwitchProps } from "./components/Switch";
 export { DateField } from "./components/DateField";
 export type { DateFieldProps, DateFieldSize } from "./components/DateField";
+export { FormRow, Label, Help, FieldError } from "./components/FormRow";
+export type { FormRowProps, LabelProps, HelpProps, FieldErrorProps } from "./components/FormRow";
 export * from "./theme";
