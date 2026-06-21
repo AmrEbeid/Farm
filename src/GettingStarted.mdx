@@ -1,0 +1,52 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Foundations/Getting Started" />
+
+# Getting Started
+
+`@farm-os/ui` is the Arabic-RTL-first design system for Farm OS (نظام تشغيل المزارع). Get a component on screen in four steps.
+
+## 1. Install
+
+The package is private and scoped under `@farm-os`. With your environment pointed at the private registry:
+
+```bash
+npm install @farm-os/ui
+```
+
+`react` and `react-dom` (`>=18`) are peer dependencies — your app provides them.
+
+## 2. Import the stylesheet once
+
+Import it a single time at your app root. It carries the two-tier token system every component reads from.
+
+```tsx
+import "@farm-os/ui/styles.css";
+```
+
+## 3. Wrap your app in `ThemeProvider`
+
+`ThemeProvider` applies the theme via scope attributes + CSS variables — no re-render on change, SSR-safe.
+
+```tsx
+import { ThemeProvider } from "@farm-os/ui";
+
+<ThemeProvider scheme="light" density="comfortable">
+  <App />
+</ThemeProvider>
+```
+
+## 4. Render a component
+
+```tsx
+import { Button, KpiCard } from "@farm-os/ui";
+
+<KpiCard label="الإنتاج اليومي" value="١٢٤ كجم" />
+<Button variant="primary">حفظ</Button>
+```
+
+The library is **presentational only** — it ships no strings and no i18n. Your app passes all text and owns translation; both RTL and LTR are supported.
+
+## Next
+
+Theme the whole tree — `scheme`, `density`, `radius`, and a white-label `brand` color all compose freely. See **Foundations → Theming**.
