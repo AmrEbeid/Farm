@@ -80,3 +80,19 @@
 .fos-tabs { display:flex; gap:var(--space-1); border-bottom:1px solid var(--line); flex-wrap:wrap; }
 .fos-tabs__tab { background:none; border:none; padding:9px 14px; font-family:inherit; font-size:var(--text-sm); font-weight:var(--weight-bold); color:var(--ink-muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
 .fos-tabs__tab--active { color:var(--brand-hover); border-color:var(--brand); }
+
+/* ---- IconButton ---- */
+.fos-iconbtn { display:inline-flex; align-items:center; justify-content:center; flex:none;
+  border:none; border-radius:var(--radius-control); cursor:pointer; font-family:inherit;
+  transition:background var(--dur-fast) var(--ease), opacity var(--dur-fast); }
+.fos-iconbtn:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+.fos-iconbtn--md { inline-size:var(--control-h); block-size:var(--control-h); font-size:var(--text-md); }
+.fos-iconbtn--sm { inline-size:30px; block-size:30px; font-size:var(--text-sm); }
+.fos-iconbtn--primary { background:var(--brand); color:var(--brand-contrast); }
+.fos-iconbtn--primary:hover:not(:disabled) { background:var(--brand-hover); }
+.fos-iconbtn--ghost { background:var(--surface); border:1px solid var(--line); color:var(--ink); }
+.fos-iconbtn--ghost:hover:not(:disabled) { background:var(--surface-sunken); }
+.fos-iconbtn--danger { background:var(--surface); border:1px solid color-mix(in srgb, var(--danger-fg) 35%, var(--surface)); color:var(--danger-fg); }
+.fos-iconbtn--danger:hover:not(:disabled) { background:var(--danger-bg); }
+.fos-iconbtn:disabled { opacity:.4; cursor:not-allowed; }
+.fos-iconbtn__spinner { inline-size:13px; block-size:13px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:fos-spin .7s linear infinite; }
