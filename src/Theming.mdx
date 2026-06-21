@@ -1,0 +1,18 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Foundations/Theming" />
+
+# Theming
+
+Wrap your app in `ThemeProvider`. It applies the theme via scope attributes + CSS variables — no re-render on change, SSR-safe.
+
+```tsx
+import { ThemeProvider } from "@farm-os/ui";
+import "@farm-os/ui/styles.css";
+
+<ThemeProvider scheme="dark" density="compact" brand="#2f7d49">
+  <App />
+</ThemeProvider>
+```
+
+**Dimensions:** `scheme` (light/dark) · `density` (comfortable/compact) · `radius` (sharp/default/rounded) · `brand` (one hex → derived `--brand*`). Components reference only role tokens, so all four compose freely.

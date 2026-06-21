@@ -1,0 +1,34 @@
+/* Tier-2 role tokens — what components reference. These FLIP per theme. */
+:root {
+  --brand: var(--green-600); --brand-hover: var(--green-700); --brand-contrast:#ffffff;
+  --surface: var(--gray-0); --surface-raised: var(--gray-0); --surface-sunken: var(--gray-50);
+  --ink: var(--gray-900); --ink-muted: var(--gray-600); --line: var(--gray-100);
+  --focus-ring: var(--green-600);
+  --success-bg:#e3f3e9; --success-fg: var(--green-600);
+  --warning-bg: var(--amber-100); --warning-fg: var(--amber-500);
+  --danger-bg: var(--red-100); --danger-fg: var(--red-500);
+  --info-bg: var(--blue-100); --info-fg: var(--blue-500);
+  --neutral-bg:#eef1ef; --neutral-fg: var(--gray-600);
+  --accent-bg: var(--purple-100); --accent-fg: var(--purple-500);
+  --shadow-card: var(--shadow-2);
+}
+[data-theme="dark"] {
+  --brand: var(--green-500); --brand-hover: var(--green-300); --brand-contrast:#0c1f12;
+  --surface: var(--gray-900); --surface-raised:#202d24; --surface-sunken:#0e1812;
+  --ink: var(--gray-50); --ink-muted: var(--gray-400); --line:#2c3a31;
+  --focus-ring: var(--green-300);
+  --success-bg:#15301f; --success-fg:#6bbf86;
+  --warning-bg:#3a2a10; --warning-fg:#e6a948;
+  --danger-bg:#3a1714; --danger-fg:#e07a6a;
+  --info-bg:#13243a; --info-fg:#6fa8dc;
+  --neutral-bg:#243029; --neutral-fg: var(--gray-400);
+  --accent-bg:#2a2140; --accent-fg:#b39ddb;
+  --shadow-card:0 1px 3px rgba(0,0,0,.4),0 4px 18px rgba(0,0,0,.3);
+}
+/* Density (comfortable default) */
+:root { --control-h:38px; --control-pad-x:var(--space-4); --gap:var(--space-4); --card-pad:var(--space-4); }
+[data-density="compact"] { --control-h:30px; --control-pad-x:var(--space-3); --gap:var(--space-3); --card-pad:var(--space-3); }
+/* Radius scale (default) */
+:root { --radius-control:var(--radius-1); --radius-card:var(--radius-3); }
+[data-radius="sharp"] { --radius-control:var(--radius-0); --radius-card:var(--radius-0); }
+[data-radius="rounded"] { --radius-control:var(--radius-2); --radius-card:var(--radius-pill); }
