@@ -22,4 +22,6 @@ export { IconButton } from "./components/IconButton";
 export type { IconButtonProps, IconButtonVariant, IconButtonSize } from "./components/IconButton";
 export { Input } from "./components/Input";
 export type { InputProps, InputSize } from "./components/Input";
+export { Textarea } from "./components/Textarea";
+export type { TextareaProps } from "./components/Textarea";
 export * from "./theme";

@@ -107,3 +107,13 @@
 .fos-input:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
 .fos-input[aria-invalid="true"] { border-color:var(--danger-fg); }
 .fos-input:disabled { opacity:.5; cursor:not-allowed; background:var(--surface-sunken); }
+
+/* ---- Textarea ---- */
+.fos-textarea { inline-size:100%; border:1px solid var(--line); border-radius:var(--radius-control);
+  background:var(--surface); color:var(--ink); font-family:inherit; font-size:var(--text-sm);
+  line-height:var(--leading); padding-block:var(--space-2); padding-inline:var(--control-pad-x);
+  resize:vertical; min-block-size:var(--control-h); transition:border-color var(--dur-fast) var(--ease); }
+.fos-textarea::placeholder { color:var(--ink-muted); }
+.fos-textarea:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
+.fos-textarea[aria-invalid="true"] { border-color:var(--danger-fg); }
+.fos-textarea:disabled { opacity:.5; cursor:not-allowed; background:var(--surface-sunken); }
