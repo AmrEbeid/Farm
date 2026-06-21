@@ -117,3 +117,17 @@
 .fos-textarea:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
 .fos-textarea[aria-invalid="true"] { border-color:var(--danger-fg); }
 .fos-textarea:disabled { opacity:.5; cursor:not-allowed; background:var(--surface-sunken); }
+
+/* ---- NumberField ---- */
+.fos-numfield { display:inline-flex; align-items:center; gap:var(--space-1);
+  border:1px solid var(--line); border-radius:var(--radius-control); background:var(--surface);
+  padding-inline:var(--space-1); }
+.fos-numfield:focus-within { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
+.fos-numfield[data-disabled] { opacity:.5; }
+.fos-numfield__input { inline-size:5ch; border:none; background:transparent; color:var(--ink);
+  font-family:inherit; font-size:var(--text-sm); text-align:center; font-variant-numeric:tabular-nums;
+  block-size:var(--control-h); -moz-appearance:textfield; }
+.fos-numfield__input::-webkit-outer-spin-button,
+.fos-numfield__input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+.fos-numfield__input:focus-visible { outline:none; }
+.fos-numfield[aria-invalid="true"], .fos-numfield:has(.fos-numfield__input[aria-invalid="true"]) { border-color:var(--danger-fg); }

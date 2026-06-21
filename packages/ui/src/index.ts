@@ -24,4 +24,6 @@ export { Input } from "./components/Input";
 export type { InputProps, InputSize } from "./components/Input";
 export { Textarea } from "./components/Textarea";
 export type { TextareaProps } from "./components/Textarea";
+export { NumberField } from "./components/NumberField";
+export type { NumberFieldProps } from "./components/NumberField";
 export * from "./theme";
