@@ -23,7 +23,7 @@
     "*.css"
   ],
   "scripts": {
-    "build": "tsup && npm run build:css",
+    "build": "npm run tokens:purity && tsup && npm run build:css",
     "build:css": "node scripts/bundle-css.mjs",
     "dev": "tsup --watch",
     "storybook": "storybook dev -p 6006 --no-open",
