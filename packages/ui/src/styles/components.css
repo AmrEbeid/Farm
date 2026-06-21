@@ -202,3 +202,14 @@
 .fos-switch[data-checked] .fos-switch__thumb { transform:translateX(calc(-1 * (40px - 17px - 6px))); }
 .fos-switch:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
 .fos-switch:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ---- DateField ---- */
+.fos-datefield { inline-size:100%; border:1px solid var(--line); border-radius:var(--radius-control);
+  background:var(--surface); color:var(--ink); font-family:inherit; font-size:var(--text-sm);
+  padding-inline:var(--control-pad-x); transition:border-color var(--dur-fast) var(--ease); }
+.fos-datefield--md { block-size:var(--control-h); }
+.fos-datefield--sm { block-size:30px; font-size:var(--text-xs); }
+.fos-datefield:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
+.fos-datefield[aria-invalid="true"] { border-color:var(--danger-fg); }
+.fos-datefield:disabled { opacity:.5; cursor:not-allowed; background:var(--surface-sunken); }
+.fos-datefield::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.6; }

@@ -36,4 +36,6 @@ export { RadioGroup } from "./components/Radio";
 export type { RadioGroupProps, RadioOption } from "./components/Radio";
 export { Switch } from "./components/Switch";
 export type { SwitchProps } from "./components/Switch";
+export { DateField } from "./components/DateField";
+export type { DateFieldProps, DateFieldSize } from "./components/DateField";
 export * from "./theme";
