@@ -32,4 +32,6 @@ export { Combobox } from "./components/Combobox";
 export type { ComboboxProps, ComboboxOption } from "./components/Combobox";
 export { Checkbox } from "./components/Checkbox";
 export type { CheckboxProps } from "./components/Checkbox";
+export { RadioGroup } from "./components/Radio";
+export type { RadioGroupProps, RadioOption } from "./components/Radio";
 export * from "./theme";
