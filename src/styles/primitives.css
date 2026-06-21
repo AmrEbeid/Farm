@@ -21,6 +21,8 @@
   /* type */
   --text-xs:11px; --text-sm:12.5px; --text-base:14px; --text-md:16px;
   --text-lg:18px; --text-xl:22px; --text-2xl:26px; --text-3xl:34px;
+  --weight-regular:400; --weight-semibold:600; --weight-bold:700; --weight-extrabold:800;
+  --leading:1.6;
   /* elevation / z / motion */
   --shadow-1:0 1px 3px rgba(20,54,31,.07); --shadow-2:0 1px 3px rgba(20,54,31,.07),0 4px 18px rgba(20,54,31,.06); --shadow-3:0 24px 70px rgba(0,0,0,.35);
   --z-base:0; --z-sticky:30; --z-drawer:120; --z-modal:100; --z-toast:300;
