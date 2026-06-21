@@ -96,3 +96,14 @@
 .fos-iconbtn--danger:hover:not(:disabled) { background:var(--danger-bg); }
 .fos-iconbtn:disabled { opacity:.4; cursor:not-allowed; }
 .fos-iconbtn__spinner { inline-size:13px; block-size:13px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:fos-spin .7s linear infinite; }
+
+/* ---- Input ---- */
+.fos-input { inline-size:100%; border:1px solid var(--line); border-radius:var(--radius-control);
+  background:var(--surface); color:var(--ink); font-family:inherit; font-size:var(--text-sm);
+  padding-inline:var(--control-pad-x); transition:border-color var(--dur-fast) var(--ease); }
+.fos-input--md { block-size:var(--control-h); }
+.fos-input--sm { block-size:30px; font-size:var(--text-xs); }
+.fos-input::placeholder { color:var(--ink-muted); }
+.fos-input:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
+.fos-input[aria-invalid="true"] { border-color:var(--danger-fg); }
+.fos-input:disabled { opacity:.5; cursor:not-allowed; background:var(--surface-sunken); }

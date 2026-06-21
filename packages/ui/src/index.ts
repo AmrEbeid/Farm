@@ -20,4 +20,6 @@ export { Tabs } from "./components/Tabs";
 export type { TabsProps, TabItem } from "./components/Tabs";
 export { IconButton } from "./components/IconButton";
 export type { IconButtonProps, IconButtonVariant, IconButtonSize } from "./components/IconButton";
+export { Input } from "./components/Input";
+export type { InputProps, InputSize } from "./components/Input";
 export * from "./theme";
