@@ -1,0 +1,14 @@
+{
+  "projectId": "115ae675-68f4-438b-8d03-6e83752aace3",
+  "pkg": "@farm-os/ui",
+  "globalName": "FarmOsUi",
+  "shape": "storybook",
+  "storybookConfigDir": ".storybook",
+  "storybookStatic": ".design-sync/sb-reference",
+  "entry": "dist/index.js",
+  "buildCmd": "npm run build",
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "KpiCard": { "cardMode": "column" }
+  }
+}

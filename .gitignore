@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+storybook-static/
+
+# design-sync: build artifacts & scratch (durable config/notes/conventions ARE committed)
+ds-bundle/
+.ds-sync/
+.design-sync/sb-reference/
+.design-sync/learnings/
+.design-sync/.cache/
+.design-sync/node_modules
+
+# logs / os
+*.log
+.DS_Store
