@@ -1,0 +1,23 @@
+/* Tier-2 role tokens — what components reference. These FLIP per theme. */
+:root {
+  --brand: var(--green-600); --brand-hover: var(--green-700); --brand-contrast:#ffffff;
+  --surface: var(--gray-0); --surface-raised: var(--gray-0); --surface-sunken: var(--gray-50);
+  --ink: var(--gray-900); --ink-muted: var(--gray-600); --line: var(--gray-100);
+  --focus-ring: var(--green-600);
+  --success-bg:#e3f3e9; --success-fg: var(--green-600);
+  --warning-bg: var(--amber-100); --warning-fg: var(--amber-500);
+  --danger-bg: var(--red-100); --danger-fg: var(--red-500);
+  --info-bg: var(--blue-100); --info-fg: var(--blue-500);
+  --shadow-card: var(--shadow-2);
+}
+[data-theme="dark"] {
+  --brand: var(--green-500); --brand-hover: var(--green-300); --brand-contrast:#0c1f12;
+  --surface: var(--gray-900); --surface-raised:#202d24; --surface-sunken:#0e1812;
+  --ink: var(--gray-50); --ink-muted: var(--gray-400); --line:#2c3a31;
+  --focus-ring: var(--green-300);
+  --success-bg:#15301f; --success-fg:#6bbf86;
+  --warning-bg:#3a2a10; --warning-fg:#e6a948;
+  --danger-bg:#3a1714; --danger-fg:#e07a6a;
+  --info-bg:#13243a; --info-fg:#6fa8dc;
+  --shadow-card:0 1px 3px rgba(0,0,0,.4),0 4px 18px rgba(0,0,0,.3);
+}
