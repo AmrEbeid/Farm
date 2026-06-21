@@ -21,3 +21,10 @@
   --info-bg:#13243a; --info-fg:#6fa8dc;
   --shadow-card:0 1px 3px rgba(0,0,0,.4),0 4px 18px rgba(0,0,0,.3);
 }
+/* Density (comfortable default) */
+:root { --control-h:38px; --control-pad-x:var(--space-4); --gap:var(--space-4); --card-pad:var(--space-4); }
+[data-density="compact"] { --control-h:30px; --control-pad-x:var(--space-3); --gap:var(--space-3); --card-pad:var(--space-3); }
+/* Radius scale (default) */
+:root { --radius-control:var(--radius-1); --radius-card:var(--radius-3); }
+[data-radius="sharp"] { --radius-control:var(--radius-0); --radius-card:var(--radius-0); }
+[data-radius="rounded"] { --radius-control:var(--radius-2); --radius-card:var(--radius-pill); }
