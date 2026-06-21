@@ -28,4 +28,6 @@ export { NumberField } from "./components/NumberField";
 export type { NumberFieldProps } from "./components/NumberField";
 export { Select } from "./components/Select";
 export type { SelectProps, SelectOption, SelectSize } from "./components/Select";
+export { Combobox } from "./components/Combobox";
+export type { ComboboxProps, ComboboxOption } from "./components/Combobox";
 export * from "./theme";
