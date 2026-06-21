@@ -5,13 +5,13 @@ node_modules/
 dist/
 storybook-static/
 
-# design-sync build artifacts
+# design-sync: build artifacts & scratch (durable config/notes/conventions ARE committed)
 ds-bundle/
 .ds-sync/
 .design-sync/sb-reference/
 .design-sync/learnings/
 .design-sync/.cache/
-.design-sync/node_modules/
+.design-sync/node_modules
 
 # logs / os
 *.log

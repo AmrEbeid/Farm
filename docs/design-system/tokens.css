@@ -1,0 +1,80 @@
+/* ============================================================
+   Farm OS — Design Tokens (single source of truth)
+   نظام تشغيل المزارع — رموز التصميم
+   Replaces the drifted --g7 / --green-700 / .t-d / .t-dng variants
+   across the prototypes. Import this once; reference tokens only.
+   ============================================================ */
+:root {
+  /* ---- Brand: greens (date-palm) ---- */
+  --color-green-900: #11301b;   /* sidebar top, deepest */
+  --color-green-800: #1c4d2c;
+  --color-green-700: #236138;   /* primary text-on-light, headings */
+  --color-green-600: #2f7d49;   /* primary action */
+  --color-green-500: #3d9960;   /* primary hover / chart series */
+  --color-green-100: #e6f3ea;   /* tint / selected bg */
+
+  /* ---- Accent: gold (dates / harvest / highlights) ---- */
+  --color-gold:       #c8922a;
+  --color-gold-light: #f4e6c8;
+
+  /* ---- Semantic (status) ---- */
+  --color-success: #2f7d49;
+  --color-warning: #e08a1e;
+  --color-danger:  #c0392b;
+  --color-info:    #2b6cb0;
+  --color-accent:  #7e57c2;     /* purple — special/extra */
+
+  /* ---- Neutrals / surfaces ---- */
+  --color-bg:      #f3f6f3;
+  --color-surface: #ffffff;
+  --color-ink:     #18241d;     /* primary text */
+  --color-muted:   #6b7d72;     /* secondary text */
+  --color-line:    #e3e9e4;     /* borders / dividers */
+
+  /* ---- Status pairs (tag/alert bg + fg) — derived, do not hardcode ---- */
+  --status-ok-bg:      #e3f3e9; --status-ok-fg:      var(--color-success);
+  --status-warning-bg: #fceedb; --status-warning-fg: var(--color-warning);
+  --status-danger-bg:  #fbe5e2; --status-danger-fg:  var(--color-danger);
+  --status-info-bg:    #e4eef8; --status-info-fg:    var(--color-info);
+  --status-neutral-bg: #eef1ef; --status-neutral-fg: var(--color-muted);
+  --status-accent-bg:  #efe7fa; --status-accent-fg:  var(--color-accent);
+
+  /* ---- Typography ---- */
+  --font-family: "IBM Plex Arabic", "Segoe UI", Tahoma, system-ui, sans-serif; /* Arabic-safe */
+  --text-xs:   11px;   /* meta, captions, table sub */
+  --text-sm:   12.5px; /* body-secondary, table cells, buttons */
+  --text-base: 14px;   /* body */
+  --text-md:   16px;   /* section titles */
+  --text-lg:   18px;   /* page title / modal title */
+  --text-xl:   22px;   /* KPI value */
+  --text-2xl:  26px;   /* big number / dashboard hero */
+  --text-3xl:  34px;   /* cover / display */
+  --leading:   1.6;
+  --weight-regular: 400; --weight-semibold: 600; --weight-bold: 700; --weight-extrabold: 800;
+  --numeral-tabular: tabular-nums; /* apply to financial figures */
+
+  /* ---- Spacing scale (4px base) ---- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+
+  /* ---- Radius ---- */
+  --radius-sm: 8px;   --radius-md: 11px;  --radius-lg: 14px;
+  --radius-xl: 18px;  --radius-pill: 20px; --radius-round: 50%;
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 3px rgba(20,54,31,.07);
+  --shadow-md: 0 1px 3px rgba(20,54,31,.07), 0 4px 18px rgba(20,54,31,.06);
+  --shadow-lg: 0 24px 70px rgba(0,0,0,.35);
+
+  /* ---- Motion ---- */
+  --dur-fast: .12s; --dur: .2s; --dur-slow: .25s;
+  --ease: cubic-bezier(.2,.7,.3,1);
+
+  /* ---- Layout ---- */
+  --sidebar-w: 255px;
+  --content-max: 1340px;
+  --tap-min: 44px; /* mobile minimum touch target */
+}
+
+/* RTL-first: the app root is dir="rtl"; use logical properties everywhere
+   (margin-inline, inset-inline-start) so an LTR/English build flips for free. */
