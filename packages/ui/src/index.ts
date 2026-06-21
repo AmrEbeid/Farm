@@ -30,4 +30,6 @@ export { Select } from "./components/Select";
 export type { SelectProps, SelectOption, SelectSize } from "./components/Select";
 export { Combobox } from "./components/Combobox";
 export type { ComboboxProps, ComboboxOption } from "./components/Combobox";
+export { Checkbox } from "./components/Checkbox";
+export type { CheckboxProps } from "./components/Checkbox";
 export * from "./theme";
