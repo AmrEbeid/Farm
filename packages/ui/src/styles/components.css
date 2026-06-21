@@ -190,3 +190,15 @@
 .fos-radio__input:checked + .fos-radio__dot { border-color:var(--brand); }
 .fos-radio__input:checked + .fos-radio__dot::after { transform:scale(1); }
 .fos-radio__input:focus-visible + .fos-radio__dot { outline:2px solid var(--focus-ring); outline-offset:2px; }
+
+/* ---- Switch ---- */
+.fos-switch { inline-size:40px; block-size:23px; flex:none; border:1px solid var(--line);
+  border-radius:var(--radius-pill); background:var(--surface-sunken); cursor:pointer; padding:2px;
+  display:inline-flex; align-items:center; transition:background var(--dur-fast) var(--ease); }
+.fos-switch__thumb { inline-size:17px; block-size:17px; border-radius:var(--radius-pill);
+  background:var(--surface); box-shadow:var(--shadow-1);
+  transition:transform var(--dur-fast) var(--ease); }
+.fos-switch[data-checked] { background:var(--brand); border-color:var(--brand); }
+.fos-switch[data-checked] .fos-switch__thumb { transform:translateX(calc(-1 * (40px - 17px - 6px))); }
+.fos-switch:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+.fos-switch:disabled { opacity:.5; cursor:not-allowed; }

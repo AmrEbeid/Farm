@@ -34,4 +34,6 @@ export { Checkbox } from "./components/Checkbox";
 export type { CheckboxProps } from "./components/Checkbox";
 export { RadioGroup } from "./components/Radio";
 export type { RadioGroupProps, RadioOption } from "./components/Radio";
+export { Switch } from "./components/Switch";
+export type { SwitchProps } from "./components/Switch";
 export * from "./theme";
