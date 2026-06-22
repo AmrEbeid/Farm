@@ -78,4 +78,6 @@ export { RoleSwitcher } from "./components/RoleSwitcher";
 export type { RoleSwitcherProps, RoleOption } from "./components/RoleSwitcher";
 export { AppShell } from "./components/AppShell";
 export type { AppShellProps } from "./components/AppShell";
+export { useChartTokens } from "./components/useChartTokens";
+export type { ChartTokens } from "./components/useChartTokens";
 export * from "./theme";

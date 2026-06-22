@@ -36,7 +36,8 @@
   },
   "peerDependencies": {
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "recharts": ">=2"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^8.6.14",
@@ -52,6 +53,7 @@
     "jsdom": "^29.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
     "storybook": "^8.6.14",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",
