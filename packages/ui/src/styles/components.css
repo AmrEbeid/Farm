@@ -382,3 +382,78 @@
 .fos-toast__close:hover { background:var(--surface-sunken); color:var(--ink); }
 .fos-toast__close:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
 @keyframes fos-toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+/* ---- SidebarNav / NavItem ---- */
+.fos-sidebarnav { display:block; }
+.fos-sidebarnav__list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-1); }
+.fos-navitem { display:flex; align-items:center; gap:var(--space-2); padding:9px var(--space-3); border-radius:var(--radius-control);
+  font-size:var(--text-sm); font-weight:var(--weight-semibold); color:var(--ink-muted); text-decoration:none;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast); }
+.fos-navitem:hover { background:var(--surface-sunken); color:var(--ink); }
+.fos-navitem:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+.fos-navitem--active { background:color-mix(in srgb, var(--brand) 14%, var(--surface)); color:var(--brand-hover); font-weight:var(--weight-bold); }
+.fos-navitem__icon { width:20px; display:inline-grid; place-items:center; font-size:15px; flex:none; }
+.fos-navitem__label { flex:1 1 auto; }
+
+/* ---- Breadcrumbs ---- */
+.fos-breadcrumbs__list { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); }
+.fos-breadcrumbs__item { display:inline-flex; align-items:center; gap:var(--space-2); font-size:var(--text-xs); }
+.fos-breadcrumbs__link { color:var(--ink-muted); text-decoration:none; font-weight:var(--weight-semibold); }
+.fos-breadcrumbs__link:hover { color:var(--brand-hover); text-decoration:underline; }
+.fos-breadcrumbs__link:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; border-radius:var(--radius-control); }
+.fos-breadcrumbs__current { color:var(--ink); font-weight:var(--weight-bold); }
+.fos-breadcrumbs__sep { color:var(--ink-muted); }
+
+/* ---- SearchInput ---- */
+.fos-search { display:inline-flex; align-items:center; gap:var(--space-2); position:relative;
+  border:1px solid var(--line); border-radius:var(--radius-control); background:var(--surface);
+  padding-inline:var(--control-pad-x); min-height:var(--control-h); }
+.fos-search:focus-within { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
+.fos-search__label { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.fos-search__icon { color:var(--ink-muted); font-size:15px; flex:none; }
+.fos-search__input { flex:1 1 auto; border:none; outline:none; background:transparent; color:var(--ink);
+  font-family:inherit; font-size:var(--text-sm); min-width:0; padding-block:7px; }
+.fos-search__input::placeholder { color:var(--ink-muted); }
+
+/* ---- RoleSwitcher ---- */
+.fos-roleswitcher { display:inline-flex; align-items:center; }
+.fos-roleswitcher__label { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.fos-roleswitcher__select { appearance:none; border:1px solid var(--line); border-radius:var(--radius-control);
+  background:var(--surface); color:var(--ink); font-family:inherit; font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  min-height:var(--control-h); padding-inline:var(--control-pad-x); cursor:pointer; }
+.fos-roleswitcher__select:hover { border-color:var(--brand); }
+.fos-roleswitcher__select:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
+
+/* ---- AppShell ---- */
+.fos-appshell { display:grid; min-height:100vh; background:var(--surface-sunken); color:var(--ink);
+  grid-template-columns:240px 1fr; grid-template-rows:auto 1fr;
+  grid-template-areas:"topbar topbar" "sidebar main"; }
+.fos-appshell__topbar { grid-area:topbar; position:sticky; inset-block-start:0; z-index:var(--z-sticky);
+  display:flex; align-items:center; gap:var(--space-3); padding-inline:var(--space-4); padding-block:var(--space-2);
+  min-height:var(--control-h); background:var(--surface-raised); border-block-end:1px solid var(--line); box-shadow:var(--shadow-1); }
+.fos-appshell__menu-btn { display:none; align-items:center; justify-content:center; min-width:var(--control-h); min-height:var(--control-h);
+  border:1px solid var(--line); border-radius:var(--radius-control); background:var(--surface); color:var(--ink); font-size:16px; cursor:pointer; }
+.fos-appshell__menu-btn:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+.fos-appshell__brand { font-weight:var(--weight-extrabold); font-size:var(--text-md); display:flex; align-items:center; gap:var(--space-2); }
+.fos-appshell__topbar-content { margin-inline-start:auto; display:flex; align-items:center; gap:var(--space-3); }
+.fos-appshell__sidebar { grid-area:sidebar; background:var(--surface-raised); border-inline-end:1px solid var(--line);
+  padding:var(--card-pad); overflow-y:auto; }
+.fos-appshell__overlay { grid-area:1 / 1 / -1 / -1; background:color-mix(in srgb, var(--ink) 45%, transparent); z-index:var(--z-drawer); }
+.fos-appshell__overlay[hidden] { display:none; }
+.fos-appshell__main { grid-area:main; padding:var(--space-6); overflow:auto; }
+
+/* Mobile: sidebar becomes an off-canvas drawer on the inline-start edge. */
+@media (max-width:48rem) {
+  .fos-appshell { grid-template-columns:1fr; grid-template-areas:"topbar" "main"; }
+  .fos-appshell__menu-btn { display:inline-flex; }
+  .fos-appshell__sidebar { position:fixed; inset-block:0; inset-inline-start:0; inline-size:min(80vw,300px);
+    z-index:var(--z-drawer); transform:translateX(-100%); transition:transform var(--dur) var(--ease); }
+  .fos-appshell__sidebar[data-open] { transform:translateX(0); }
+  /* RTL: the drawer slides in from the inline-start (right) edge. */
+  [dir="rtl"] .fos-appshell__sidebar { inset-inline-start:auto; inset-inline-end:0; transform:translateX(100%); }
+  [dir="rtl"] .fos-appshell__sidebar[data-open] { transform:translateX(0); }
+}
+@media (min-width:48.01rem) {
+  /* Overlay is a no-op on desktop even if state is "open". */
+  .fos-appshell__overlay { display:none; }
+}
