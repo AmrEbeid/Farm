@@ -86,4 +86,6 @@ export { LineChart } from "./components/LineChart";
 export type { LineChartProps } from "./components/LineChart";
 export { DoughnutChart } from "./components/DoughnutChart";
 export type { DoughnutChartProps, DoughnutDatum } from "./components/DoughnutChart";
+export { LoopStepper } from "./components/LoopStepper";
+export type { LoopStepperProps, LoopStep, LoopStepState } from "./components/LoopStepper";
 export * from "./theme";
