@@ -4,21 +4,21 @@
 
 A themeable, accessible, token-driven React component library for building Farm OS — a multi-tenant SaaS for date-palm and fruit farms across Egypt and MENA.
 
-> **Status:** private, `0.1.0`, built to a public-quality bar but shipped privately first. The API still moves while we reach `1.0` (publish-ready). See [Status & license](#status--license).
+> **Status:** `1.0.0`, publish-ready (full v1 catalog, a11y-clean, token-pure, typed, green CI). Published to a **private** GitHub Packages registry under the `@amrebeid` scope. See [Status & license](#status--license).
 
 ---
 
 ## Install
 
-The package is private and scoped under `@farm-os`. Once your environment is pointed at the private registry, install it like any scoped package:
+Scoped under `@amrebeid` on GitHub Packages (private). With an `.npmrc` pointing the scope at the registry and a `read:packages` token (see [CONTRIBUTING.md](../../CONTRIBUTING.md)):
 
 ```bash
 npm install @amrebeid/ui
 ```
 
-> Registry configuration (the `.npmrc` entry that resolves the `@farm-os` scope to the private registry) ships with the publish setup. Until then, `@amrebeid/ui` is consumed from within this workspace.
+> Within this monorepo, the app at `apps/farm-os` consumes it via the workspace (no registry needed).
 
-`react` and `react-dom` (`>=18`) are peer dependencies — your app provides them.
+`react` and `react-dom` (`>=18`, incl. React 19) and `recharts` (`>=2`, for the chart wrappers) are peer dependencies — your app provides them.
 
 ---
 
@@ -69,28 +69,18 @@ See the **Foundations → Theming** and **Foundations → Getting Started** page
 
 ## Components
 
-Currently shipped (`0.1.0`):
+The full **v1 catalog** is shipped (`1.0.0`):
 
 | Group | Components |
 |---|---|
-| **Forms** | `Button`, `Field` |
-| **Data display** | `Tag`, `KpiCard`, `Progress`, `Card` |
-| **Feedback** | `Alert` |
-| **Navigation** | `Tabs` |
-| **Domain (Farm OS)** | `VerdictBanner` |
+| **Forms** | `Button`, `IconButton`, `Field`, `Input`, `Textarea`, `NumberField`, `Select`, `Combobox`, `Checkbox`, `RadioGroup`, `Switch`, `DateField`, `FormRow` |
+| **Data display** | `Tag`, `Card`, `KpiCard`, `Progress`, `Stat`, `DataTable`, `Timeline`, `DescriptionList`, `Avatar`, `Tooltip`, `Pagination`, `EmptyState`, `Skeleton` |
+| **Feedback / overlays** | `Alert`, `Toast` + `Toaster` + `useToast`, `Modal`, `Drawer`, `ConfirmDialog` |
+| **Navigation / shell** | `Tabs`, `AppShell`, `SidebarNav`, `Breadcrumbs`, `RoleSwitcher`, `SearchInput` |
+| **Charts** (theme-aware Recharts wrappers) | `BarChart`, `LineChart`, `DoughnutChart`, `useChartTokens` |
+| **Domain (Farm OS)** | `VerdictBanner`, `LoopStepper`, `PhaseCard`, `StatusPill`, `PalmGrid`, `FileTimeline`, `ApprovalChain` |
 
-Each export ships with its prop types (e.g. `ButtonProps`, `ButtonVariant`, `ButtonSize`, `TagTone`, `AlertTone`, `ProgressTone`, `VerdictTone`, `TabItem`). The theme API (`ThemeProvider`, `useTheme`, `brandVars`, and the `ThemeScheme` / `Density` / `Radius` types) is re-exported from the package root.
-
-### Roadmap
-
-These nine are the foundation; the full **v1 catalog** is planned and tracked in `docs/superpowers/plans/`:
-
-- **Forms** — IconButton, Input/Textarea/NumberField, Select, Combobox, Checkbox, Radio, Switch, DateField, FormRow.
-- **Data display** — Stat, DataTable, Timeline, DescriptionList, Avatar, Tooltip, Pagination, EmptyState, Skeleton.
-- **Feedback / overlays** — Toast + Toaster, Modal/Dialog, Drawer/Sheet, ConfirmDialog.
-- **Navigation / shell** — AppShell, SidebarNav/NavItem, Breadcrumbs, RoleSwitcher, SearchInput.
-- **Charts** — theme-aware Bar / Line / Doughnut wrappers.
-- **Domain (Farm OS)** — LoopStepper, PhaseCard, PalmGrid/PalmCell, FileTimeline, ApprovalChain, StatusPill.
+Each export ships with its prop types (e.g. `ButtonProps`, `ButtonVariant`, `TagTone`, `AlertTone`). The theme API (`ThemeProvider`, `useTheme`, `brandVars`, and the `ThemeScheme` / `Density` / `Radius` types) is re-exported from the package root. **Recharts** is a peer dependency (used by the chart wrappers). Every component is token-pure, a11y-tested (jest-axe), and RTL-first; 176 tests pass under green CI.
 
 ---
 
@@ -140,6 +130,6 @@ A component is done only when it passes the publish-ready gate:
 
 ## Status & license
 
-- **Private** — `UNLICENSED`, not published publicly.
-- **`0.x`** while the API is still moving; **`1.0` is the publish-ready milestone** (full v1 catalog, a11y-clean, token-pure, typed, documented).
-- Built to a **public-quality bar** so nothing blocks going public later, but shipped to a private registry first.
+- **`UNLICENSED`** — published to a **private** registry (GitHub Packages, `@amrebeid` scope), not public.
+- **`1.0.0`** — the publish-ready milestone is reached: full v1 catalog, a11y-clean, token-pure, typed, documented, green CI. Versioned with Changesets.
+- Built to a **public-quality bar** so nothing blocks going public later.

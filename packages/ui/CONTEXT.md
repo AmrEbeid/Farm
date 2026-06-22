@@ -61,7 +61,7 @@ A component/PR is done only when all pass (see ADR-0003, spec §6):
 
 ## Repo map
 
-- `src/components/` — the components; 9 shipped (Button, Tag, Card, KpiCard, Alert, Progress, Field, VerdictBanner, Tabs), rest are the v1 gap.
+- `src/components/` — the full v1 catalog (~40 components): forms, data-display, feedback/overlays, navigation/shell, Recharts chart wrappers, and Farm OS domain components.
 - `src/theme/` — `ThemeProvider.tsx`, `brand.ts`, `index.ts` barrel; the white-label engine + `useTheme`.
 - `src/styles/` — `primitives.css` (Tier-1), `theme.css` (Tier-2 + density/radius), `components.css` (`fos-*` rules), `index.css` (import order).
 - `src/index.ts` — public barrel (components + `./theme`); `src/Theming.mdx` — Storybook theming doc.
@@ -70,6 +70,6 @@ A component/PR is done only when all pass (see ADR-0003, spec §6):
 - `docs/superpowers/{specs,plans}/` — the design spec and the phased implementation plans.
 - `.storybook/` — `main.ts` + `preview.ts` (theme/density/dir toolbar globals wrapping every story).
 
-## Roadmap pointer
+## Status
 
-**Phase 1 (theming foundation) shipped** — two-tier tokens, `ThemeProvider`, purity gate, 9 components retrofitted token-pure. The remaining plans in `docs/superpowers/plans/` cover the v1 catalog and publish: forms, data-display, feedback/overlay, navigation/shell, charts, domain components, and packaging/CI/publish (1.0). See spec §4 for the full catalog.
+**v1.0 shipped.** All 8 plans in `docs/superpowers/plans/` executed: theming foundation + the full component catalog (forms, data-display, feedback/overlay, navigation/shell, charts, domain) + packaging/CI/publish. Green GitHub Actions CI; 176 tests; Changesets + GitHub Packages publish config (scope `@amrebeid`). Consumed by the Farm OS app at `../../apps/farm-os`.

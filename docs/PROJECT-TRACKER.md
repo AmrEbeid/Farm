@@ -1,16 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-21 by Claude (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-22 by Claude (for Owner: Amr Ebeid)
 
 ## Current focus
-Governance scaffolded under the AI Project Operating System v3. Research/strategy, full product docs (00–10), and the **design system** are done: the `@amrebeid/ui` component library is built and **synced live to Claude Design** ("Farm OS UI"). Product build is at **Phase 0 (security/data cleanup) → MVP-0 pilot**. The Farm OS *application* code is not built yet; the component library (its UI layer) is.
+One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` + `docs/`). The **design system** (`@amrebeid/ui` v1.0, ~40 components, green CI) and the **Farm OS MVP-0 app** are both **BUILT** — `apps/farm-os` runs the full wedge loop end-to-end against local Supabase (Playwright e2e passing), merged to `main`. **What's left is not more building — it's gates:** the independent security review (RLS/grants/engine), pilot validation (H1–H4), legacy **Stage 0** secret remediation, and a cloud deploy. The MVP-0 build is *engineering-complete on a local DB* — not deployed, validated, or reviewed.
 
 ## Stages (risk-tiered; see MASTER-PLAN.md §4 for full plan)
 | Stage | Title | Type | Risk | Status | Notes |
 |---|---|---|---|---|---|
 | R | Research & strategy | Research | Low | **Done** | 4 cited streams; white-space confirmed (docs 01) |
 | D | Designs / prototypes | Documentation | Low | **Done** | `ebeid-farm-os-demo.html`, `farm-os-prototype.html`, `farm-os-full-demo.html` (mocks) |
-| DS | Design system + component library | Execution | Low/Med | **Done** | `farm-os-ui` (9 components, builds + Storybook); synced live to Claude Design ("Farm OS UI", `115ae675…`) |
-| 0 | Security remediation & data cleanup | Execution+Apply | **Critical/High** | **Active — do first** | Rotate exposed key, purge secret, reconcile counts, split drawings |
-| **MVP-0** | **Proof-of-value pilot (1 reference tenant)** | Execution | **Low/Med** | **Spec ready — [06](06-MVP-0-BUILD-SPEC.md)** | 14 screens, table subset, the wedge loop; validates H1–H4 before full MVP |
+| DS | Design system + component library | Execution | Low/Med | **Done (v1.0)** | `@amrebeid/ui` ~40 components, white-label theming, token-purity gate, Changesets, **green CI**. (Catalog expanded beyond the 9 synced to Claude Design — re-sync pending.) |
+| 0 | Security remediation & data cleanup | Execution+Apply | **Critical/High** | **OPEN — still required** | Legacy system: rotate exposed key, purge old-repo history, scrub Gmail/password, reconcile counts. Untouched by the new build. |
+| **MVP-0** | **Proof-of-value pilot (1 reference tenant)** | Execution | **Low/Med** | **BUILT (local) — pending review+validation** | `apps/farm-os`: all 14 screens, wedge loop e2e passing, 36 pgTAP + 11 Vitest. Plan: `docs/superpowers/plans/2026-06-21-farm-os-mvp0.md`. Local DB only; needs security review + pilot validation + deploy. |
 | 1 | SaaS foundation (orgs/RLS/roles/audit) | Execution | **High** | Todo | RLS is the tenant isolation gate |
 | 2 | Farm structure + palm registry import | Execution | Medium | Todo | Import real Nov-2025 registry |
 | 3 | Activity/event model + operations | Execution | Medium | Todo | asset+event+quantity spine |
@@ -34,6 +34,8 @@ Status legend: Todo / Active / Blocked / In review / Done
 - [ ] Code complete · tests pass · RLS verified · Arabic-RTL · mobile · audit events · no secrets · Owner reviewed · reviewer approved (High/Critical) · tracker/spec/session updated · rollback documented
 
 ## Open gates / decisions needed
+- [ ] **Independent security review of the MVP-0 build** — RLS policies + the migration-0009 `service_role`/client grants + the stock-coverage engine math (PROJECT-RULES High-risk; before real data / deploy) — owner: Amr
+- [ ] **Cloud infra decision** — provision a dedicated (non-Zeal-org) Supabase project + Vercel for deploy; wire real phone-OTP auth (currently email/password + local Supabase) — owner: Amr
 - [ ] **Owner sign-off on canonical palm count** (registry says 4,380/299) — owner: Amr
 - [ ] **Approve Stage 0 security remediation** (key rotation + history purge) — owner: Amr
 - [ ] **Confirm 4-vs-5 sector labels** and enterprise/crop list — owner: Amr
