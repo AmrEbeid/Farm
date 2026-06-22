@@ -27,18 +27,14 @@ jobs:
           node-version-file: packages/ui/.nvmrc
           cache: npm
 
-      - name: Install (workspace root)
-        run: npm ci
-
-      - name: Install runner's rolldown native binding
-        # npm ci keeps the correct lockfile hoisting but skips the Linux optional
-        # native binding absent from the macOS-generated lockfile (npm/cli#4828).
-        # Install it explicitly, pinned to the resolved rolldown version.
-        working-directory: packages/ui
-        run: |
-          RV=$(node -p "require('rolldown/package.json').version")
-          echo "rolldown@$RV — installing @rolldown/binding-linux-x64-gnu@$RV"
-          npm install --no-save --no-audit --no-fund "@rolldown/binding-linux-x64-gnu@$RV"
+      - name: Install (fresh, nested)
+        # The macOS-generated lockfile omits Linux-only optional native bindings
+        # used by vitest (rolldown), tsup/Storybook (rollup), esbuild, etc.
+        # (npm/cli#4828). Dropping the lockfile forces a fresh platform-correct
+        # resolve that installs them; --install-strategy=nested keeps each package's
+        # deps colocated so cross-package resolution (e.g. jest-dom -> vitest)
+        # doesn't break under workspace hoisting.
+        run: rm -f package-lock.json && npm install --install-strategy=nested --no-audit --no-fund
 
       - name: Typecheck
         run: npm run typecheck --workspace @amrebeid/ui

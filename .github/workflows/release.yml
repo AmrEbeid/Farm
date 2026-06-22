@@ -31,14 +31,8 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@amrebeid"
 
-      - name: Install (workspace root)
-        run: npm ci
-
-      - name: Install runner's rolldown native binding (npm/cli#4828)
-        working-directory: packages/ui
-        run: |
-          RV=$(node -p "require('rolldown/package.json').version")
-          npm install --no-save --no-audit --no-fund "@rolldown/binding-linux-x64-gnu@$RV"
+      - name: Install (fresh, nested — resolves Linux optional native deps; npm/cli#4828)
+        run: rm -f package-lock.json && npm install --install-strategy=nested --no-audit --no-fund
 
       - name: Create release PR or publish
         uses: changesets/action@v1
