@@ -517,3 +517,15 @@
 .fos-phase--ok { border-inline-start-color:var(--success-fg); } .fos-phase--ok .fos-phase__dot { background:var(--success-fg); } .fos-phase--ok .fos-phase__status { background:var(--success-bg); color:var(--success-fg); }
 .fos-phase--warning { border-inline-start-color:var(--warning-fg); } .fos-phase--warning .fos-phase__dot { background:var(--warning-fg); } .fos-phase--warning .fos-phase__status { background:var(--warning-bg); color:var(--warning-fg); }
 .fos-phase--danger { border-inline-start-color:var(--danger-fg); } .fos-phase--danger .fos-phase__dot { background:var(--danger-fg); } .fos-phase--danger .fos-phase__status { background:var(--danger-bg); color:var(--danger-fg); }
+
+/* ---- StatusPill (domain — Farm-OS status set) ---- */
+.fos-pill { display:inline-flex; align-items:center; gap:var(--space-1); font-size:var(--text-xs);
+  font-weight:var(--weight-bold); padding-block:3px; padding-inline:9px; border-radius:var(--radius-pill);
+  white-space:nowrap; }
+.fos-pill__dot { width:7px; height:7px; flex:none; border-radius:50%; background:currentColor; }
+.fos-pill--draft { background:var(--neutral-bg); color:var(--neutral-fg); }
+.fos-pill--scheduled { background:var(--info-bg); color:var(--info-fg); }
+.fos-pill--active { background:var(--accent-bg); color:var(--accent-fg); }
+.fos-pill--done { background:var(--success-bg); color:var(--success-fg); }
+.fos-pill--warning { background:var(--warning-bg); color:var(--warning-fg); }
+.fos-pill--blocked { background:var(--danger-bg); color:var(--danger-fg); }

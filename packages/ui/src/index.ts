@@ -90,4 +90,6 @@ export { LoopStepper } from "./components/LoopStepper";
 export type { LoopStepperProps, LoopStep, LoopStepState } from "./components/LoopStepper";
 export { PhaseCard } from "./components/PhaseCard";
 export type { PhaseCardProps, PhaseTone, PhaseMetaRow } from "./components/PhaseCard";
+export { StatusPill } from "./components/StatusPill";
+export type { StatusPillProps, PillStatus } from "./components/StatusPill";
 export * from "./theme";
