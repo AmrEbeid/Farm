@@ -28,9 +28,11 @@ jobs:
           cache: npm
 
       - name: Install (workspace root)
-        # npm install (not ci): resolves platform-specific optional native deps
-        # (e.g. vitest's @rolldown/binding-*) that a cross-platform lockfile omits.
-        run: npm install --no-audit --no-fund
+        # The committed lockfile is generated on macOS and omits Linux-only
+        # optional native deps (vitest's @rolldown/binding-linux-x64-gnu).
+        # Per npm/cli#4828, removing the lockfile forces a fresh, platform-correct
+        # resolution on the runner so the native binding installs.
+        run: rm -f package-lock.json && npm install --no-audit --no-fund
 
       - name: Typecheck
         run: npm run typecheck --workspace @amrebeid/ui

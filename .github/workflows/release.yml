@@ -32,7 +32,7 @@ jobs:
           scope: "@amrebeid"
 
       - name: Install (workspace root)
-        run: npm install --no-audit --no-fund
+        run: rm -f package-lock.json && npm install --no-audit --no-fund
 
       - name: Create release PR or publish
         uses: changesets/action@v1
