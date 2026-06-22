@@ -1,0 +1,107 @@
+import { createClient } from "@/lib/supabase/server";
+import { requireMembership } from "@/lib/auth";
+import { VerdictBanner, KpiCard, Card } from "@/components/ui";
+import { PabChart } from "@/components/charts";
+import { CreatePrButton } from "@/components/CreatePrButton";
+import { num } from "@/lib/money";
+
+interface Coverage {
+  item_id: string;
+  available: number;
+  safety_stock: number;
+  lead_time_days: number;
+  reorder_point: number;
+  coverage_days: number | null;
+  stockout_date: string | null;
+  pab: number[];
+  first_shortage_period: number | null;
+  shortage: boolean;
+  shortfall: number;
+  recommend_qty: number;
+  order_by: string | null;
+  message_ar: string;
+}
+
+export default async function CoveragePage({
+  params,
+}: {
+  params: Promise<{ itemId: string }>;
+}) {
+  const { itemId } = await params;
+  await requireMembership();
+  const sb = await createClient();
+
+  const { data: item } = await sb
+    .from("inventory_items")
+    .select("name, unit")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  const { data, error } = await sb.rpc("fn_stock_coverage", {
+    p_item: itemId,
+    p_location: "main",
+    p_horizon_weeks: 8,
+  });
+
+  if (error || !data) {
+    return (
+      <div className="p-6">
+        <VerdictBanner tone="warning">تعذّر حساب التغطية: {error?.message}</VerdictBanner>
+      </div>
+    );
+  }
+
+  const c = data as unknown as Coverage;
+  const unit = item?.unit ?? "kg";
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <header>
+        <h1 className="text-2xl font-bold">تغطية المخزون — {item?.name ?? "صنف"}</h1>
+        <p style={{ color: "var(--ink-muted)" }}>محرّك التغطية (fn_stock_coverage)</p>
+      </header>
+
+      <VerdictBanner tone={c.shortage ? "danger" : "ok"}>{c.message_ar}</VerdictBanner>
+
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="المتاح" value={num(c.available)} unit={unit} />
+        <KpiCard
+          label="أيام التغطية"
+          value={c.coverage_days == null ? "∞" : num(c.coverage_days, 1)}
+          delta={`المهلة ${c.lead_time_days} يوم`}
+          deltaDirection={c.shortage ? "down" : "none"}
+        />
+        <KpiCard label="نقطة إعادة الطلب" value={num(c.reorder_point)} unit={unit} />
+        <KpiCard
+          label="الكمية الموصى بها"
+          value={num(c.recommend_qty)}
+          unit={unit}
+          deltaDirection={c.recommend_qty > 0 ? "up" : "none"}
+        />
+      </section>
+
+      <Card title="الرصيد المتوقع عبر الأسابيع">
+        <PabChart series={c.pab} firstShortage={c.first_shortage_period} />
+        {c.stockout_date && (
+          <p className="mt-2 text-sm" style={{ color: "var(--ink-muted)" }}>
+            تاريخ نفاد المخزون المتوقع: {new Date(c.stockout_date).toLocaleDateString("ar-EG")}
+          </p>
+        )}
+      </Card>
+
+      {c.shortage && (
+        <Card title="الإجراء الموصى به">
+          <p className="mb-3">
+            نقص قدره {num(c.shortfall)} {unit}. ننصح بطلب {num(c.recommend_qty)} {unit} اليوم
+            {c.order_by ? ` (آخر موعد للطلب: ${c.order_by})` : ""}.
+          </p>
+          <CreatePrButton
+            itemId={itemId}
+            recommendQty={c.recommend_qty}
+            reserveQty={500}
+          />
+        </Card>
+      )}
+    </div>
+  );
+}
