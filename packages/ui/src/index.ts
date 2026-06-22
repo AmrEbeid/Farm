@@ -82,4 +82,6 @@ export { useChartTokens } from "./components/useChartTokens";
 export type { ChartTokens } from "./components/useChartTokens";
 export { BarChart } from "./components/BarChart";
 export type { BarChartProps, ChartSeries } from "./components/BarChart";
+export { LineChart } from "./components/LineChart";
+export type { LineChartProps } from "./components/LineChart";
 export * from "./theme";
