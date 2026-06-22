@@ -47,3 +47,13 @@ create trigger audit_expense
 create trigger audit_movement
   after insert or update or delete on public.inventory_movements
   for each row execute function public.fn_audit('inventory_movement');
+
+-- ---------------------------------------------------------------------------
+-- Harden audit_log immutability (AP-4). RLS with no UPDATE/DELETE policy only
+-- *filters* those statements to zero rows silently; it does not raise. To make
+-- tampering a hard error (and immutable in the literal sense), REVOKE the
+-- UPDATE/DELETE/TRUNCATE grants from the client roles. The fn_audit trigger is
+-- SECURITY DEFINER (runs as the owner) so it can still INSERT. INSERT is also
+-- revoked from clients so the ONLY writer is the trigger — clients can only SELECT.
+-- ---------------------------------------------------------------------------
+revoke insert, update, delete, truncate on public.audit_log from authenticated, anon;
