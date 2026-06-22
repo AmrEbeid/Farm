@@ -27,14 +27,21 @@ jobs:
           node-version-file: packages/ui/.nvmrc
           cache: npm
 
-      - name: Install (fresh, nested)
-        # The macOS-generated lockfile omits Linux-only optional native bindings
-        # used by vitest (rolldown), tsup/Storybook (rollup), esbuild, etc.
-        # (npm/cli#4828). Dropping the lockfile forces a fresh platform-correct
-        # resolve that installs them; --install-strategy=nested keeps each package's
-        # deps colocated so cross-package resolution (e.g. jest-dom -> vitest)
-        # doesn't break under workspace hoisting.
-        run: rm -f package-lock.json && npm install --install-strategy=nested --no-audit --no-fund
+      - name: Install (workspace root)
+        run: npm ci
+
+      - name: Install Linux native bindings (npm/cli#4828)
+        # npm ci preserves the lockfile's correct hoisting + type resolution, but
+        # skips Linux optional native binaries absent from the macOS lockfile.
+        # Install each, pinned to the resolved version of its parent package:
+        # rolldown (vitest), rollup (tsup d.ts + Storybook/Vite), esbuild (tsup/Vite).
+        working-directory: packages/ui
+        run: |
+          for spec in "rolldown:@rolldown/binding-linux-x64-gnu" "rollup:@rollup/rollup-linux-x64-gnu" "esbuild:@esbuild/linux-x64"; do
+            mod="${spec%%:*}"; pkg="${spec#*:}"
+            v=$(node -p "try{require('${mod}/package.json').version}catch(e){''}")
+            if [ -n "$v" ]; then echo "installing ${pkg}@${v}"; npm install --no-save --no-audit --no-fund "${pkg}@${v}"; else echo "skip ${pkg} (${mod} not resolved)"; fi
+          done
 
       - name: Typecheck
         run: npm run typecheck --workspace @amrebeid/ui
