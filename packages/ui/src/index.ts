@@ -40,4 +40,6 @@ export { DateField } from "./components/DateField";
 export type { DateFieldProps, DateFieldSize } from "./components/DateField";
 export { FormRow, Label, Help, FieldError } from "./components/FormRow";
 export type { FormRowProps, LabelProps, HelpProps, FieldErrorProps } from "./components/FormRow";
+export { Stat } from "./components/Stat";
+export type { StatProps, StatTrend } from "./components/Stat";
 export * from "./theme";
