@@ -58,4 +58,6 @@ export { EmptyState } from "./components/EmptyState";
 export type { EmptyStateProps } from "./components/EmptyState";
 export { Skeleton } from "./components/Skeleton";
 export type { SkeletonProps, SkeletonShape } from "./components/Skeleton";
+export { Modal, Dialog } from "./components/Modal";
+export type { ModalProps, ModalSize } from "./components/Modal";
 export * from "./theme";
