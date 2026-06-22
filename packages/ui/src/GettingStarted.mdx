@@ -4,14 +4,14 @@ import { Meta } from "@storybook/blocks";
 
 # Getting Started
 
-`@farm-os/ui` is the Arabic-RTL-first design system for Farm OS (نظام تشغيل المزارع). Get a component on screen in four steps.
+`@amrebeid/ui` is the Arabic-RTL-first design system for Farm OS (نظام تشغيل المزارع). Get a component on screen in four steps.
 
 ## 1. Install
 
 The package is private and scoped under `@farm-os`. With your environment pointed at the private registry:
 
 ```bash
-npm install @farm-os/ui
+npm install @amrebeid/ui
 ```
 
 `react` and `react-dom` (`>=18`) are peer dependencies — your app provides them.
@@ -21,7 +21,7 @@ npm install @farm-os/ui
 Import it a single time at your app root. It carries the two-tier token system every component reads from.
 
 ```tsx
-import "@farm-os/ui/styles.css";
+import "@amrebeid/ui/styles.css";
 ```
 
 ## 3. Wrap your app in `ThemeProvider`
@@ -29,7 +29,7 @@ import "@farm-os/ui/styles.css";
 `ThemeProvider` applies the theme via scope attributes + CSS variables — no re-render on change, SSR-safe.
 
 ```tsx
-import { ThemeProvider } from "@farm-os/ui";
+import { ThemeProvider } from "@amrebeid/ui";
 
 <ThemeProvider scheme="light" density="comfortable">
   <App />
@@ -39,7 +39,7 @@ import { ThemeProvider } from "@farm-os/ui";
 ## 4. Render a component
 
 ```tsx
-import { Button, KpiCard } from "@farm-os/ui";
+import { Button, KpiCard } from "@amrebeid/ui";
 
 <KpiCard label="الإنتاج اليومي" value="١٢٤ كجم" />
 <Button variant="primary">حفظ</Button>

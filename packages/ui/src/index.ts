@@ -1,5 +1,5 @@
 // Farm OS — UI component library (نظام تشغيل المزارع)
-// Import the stylesheet once in your app: import "@farm-os/ui/styles.css"
+// Import the stylesheet once in your app: import "@amrebeid/ui/styles.css"
 export { Button } from "./components/Button";
 export type { ButtonProps, ButtonVariant, ButtonSize } from "./components/Button";
 export { Tag } from "./components/Tag";

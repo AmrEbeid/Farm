@@ -10,7 +10,7 @@ This spec is **Sub-project B, scoped to MVP-0 only** — the proof-of-value wedg
 - **H3** — the farm/palm file is something the owner/engineer opens repeatedly.
 - **H4** — an owner confirms willingness to pay a setup fee after seeing it.
 
-B **consumes `@farm-os/ui` (Sub-project A)** — the publish-ready, white-label, RTL component library — as its presentation layer; A owns components and theming, B owns screens, data, auth, and workflows (A's spec §1). The library is presentational only and ships no strings, so **B owns all Arabic copy, i18n, and `dir`**.
+B **consumes `@amrebeid/ui` (Sub-project A)** — the publish-ready, white-label, RTL component library — as its presentation layer; A owns components and theming, B owns screens, data, auth, and workflows (A's spec §1). The library is presentational only and ships no strings, so **B owns all Arabic copy, i18n, and `dir`**.
 
 **Explicitly deferred to later specs:** the full product — MASTER-PLAN Stages 1–11 in their complete form, plus Stage M (real-data migration) and Stage P (production deploy). MVP-0 cherry-picks the thin slice of Stages 1–6 needed for the loop and stubs/skips the rest. This is a **non-production pilot** (no real money, no customer deploy, reference tenant only; 06 §1). Per the OS, this spec defines **WHAT, not authorization to start** — each stage is Owner-gated separately.
 
@@ -22,8 +22,8 @@ Pulled from 03-architecture (header + §1–2) and A's design spec.
 | App framework | **Next.js (App Router) + TypeScript** — RSC for reads, Server Actions / Route Handlers for writes |
 | Backend / DB | **Supabase**: Postgres (+ PostGIS), **Auth (phone OTP)**, Storage, Realtime, Edge Functions, **RLS** |
 | Tenancy model | Single shared schema, **`org_id` on every tenant table**, **RLS deny-by-default**, membership-table isolation via `auth.user_org_ids()` |
-| Styling | **Tailwind, RTL-first** + `@farm-os/ui` CSS-variable theme tokens (logical CSS, `dir="rtl"`) |
-| Component library | **`@farm-os/ui`** (Sub-project A) — AppShell, DataTable, KpiCard, VerdictBanner, LoopStepper, charts wrappers, etc. |
+| Styling | **Tailwind, RTL-first** + `@amrebeid/ui` CSS-variable theme tokens (logical CSS, `dir="rtl"`) |
+| Component library | **`@amrebeid/ui`** (Sub-project A) — AppShell, DataTable, KpiCard, VerdictBanner, LoopStepper, charts wrappers, etc. |
 | Charts | **Recharts** (per 03 architecture diagram) via A's theme-aware chart wrappers |
 | Hosting | **Vercel** |
 | Field capture | **PWA, offline-first for drafts** (IndexedDB queue); approvals/financial posting are online-only |
@@ -105,9 +105,9 @@ create policy tenant_all on farm_event for all to authenticated
 RBAC uses `authorize('permission')` security-definer fn so policies call `authorize('pr.approve')` rather than hard-coding roles.
 
 ## 5. The 14 MVP-0 screens
-The full v1 catalogue is in 07-SCREEN-MAP; MVP-0 ships only these 14 (06 §2). `@farm-os/ui` component names per A's catalog (A spec §4). Roles: O=owner, M=manager, E=engineer, A=accountant, S=storekeeper, V=supervisor.
+The full v1 catalogue is in 07-SCREEN-MAP; MVP-0 ships only these 14 (06 §2). `@amrebeid/ui` component names per A's catalog (A spec §4). Roles: O=owner, M=manager, E=engineer, A=accountant, S=storekeeper, V=supervisor.
 
-| # | Screen | Purpose | Role(s) | `@farm-os/ui` components |
+| # | Screen | Purpose | Role(s) | `@amrebeid/ui` components |
 |---|---|---|---|---|
 | 1 | **Login + Role** | phone-OTP auth (stub OK in pilot), org pick, role badge | all | Field, Input/NumberField, Button, Tag (role badge), AppShell (post-auth) |
 | 2 | **Owner Dashboard (lite)** | profit-to-date, pending PR approvals, stock risks, alerts | O | AppShell, KpiCard, Stat, Alert, DataTable, Bar/Line chart wrappers |
@@ -170,7 +170,7 @@ The seed data deliberately reproduces this shortage so the demo is real, not moc
 - **Separation of duties is absolute (author ≠ approver):** only `owner` can approve a budget-breaching PR, enforced at the RLS/`authorize` layer not the UI (AP-1); the PR author cannot self-approve (AP-2); approvals are idempotent and reject stale versions (AP-3); every approve/reject/edit writes an immutable `audit_log` row (AP-4).
 
 ## 9. Non-functional requirements
-- **Arabic-RTL-first** — RTL layout, فدان/قيراط, قطاع/حوشة/خط/نخلة; not an afterthought. `@farm-os/ui` is RTL-capable; B supplies all copy.
+- **Arabic-RTL-first** — RTL layout, فدان/قيراط, قطاع/حوشة/خط/نخلة; not an afterthought. `@amrebeid/ui` is RTL-capable; B supplies all copy.
 - **Offline-first PWA for field capture** — drafts (operation reports, issues, photos, stock requests, inspections) saved locally (IndexedDB) with a "pending sync" badge; sync on reconnect (OF-1). **Online required** for approvals, final stock posting, financial posting, permission changes (OF-2). No full offline *sync* in MVP-0 — drafts only.
 - **Audit-on-write immutability** — every state change writes `audit_log`; the table has no UPDATE/DELETE policy. Approved financial-style records are corrected via reversing entries, never silently edited (FC-1/FC-2 — applies to PR/budget commitments in MVP-0).
 - **Attachments** — Supabase Storage, path `{org_id}/{entity}/{uuid}`, signed URLs (TTL ~15 min), compress on upload, max 10 MB, jpg/png/webp/pdf only (AT-1/AT-2).
@@ -190,7 +190,7 @@ Do **not** build in MVP-0 (06 §8, 02 §7–8): full accounting (expenses/sales/
 
 ## 12. Decisions log
 - **2026-06-21** — MVP-0 scoped as the proof-of-value wedge on one reference tenant (Ebeid), validating H1–H4; not the full ERP. (06 §1)
-- **2026-06-21** — B consumes `@farm-os/ui` (Sub-project A) as presentation layer; B owns all Arabic copy/i18n/`dir` (library is presentational, ships no strings). (A spec §1, §4)
+- **2026-06-21** — B consumes `@amrebeid/ui` (Sub-project A) as presentation layer; B owns all Arabic copy/i18n/`dir` (library is presentational, ships no strings). (A spec §1, §4)
 - **2026-06-18** — Stock-coverage engine built as an **in-DB Postgres function** (not app-layer) so API + future AI RPC reuse it; safety stock starts fixed-days, upgrades to `Z·σ·√L` when data allows. (SPEC-0001)
 - **2026-06-18** — Asset+Event+Quantity spine with `status` lifecycle adopted as the data model; to be locked as **ADR-0001** once Stage 0 closes. (03 §3, MASTER-PLAN §9)
 - **2026-06-18** — Tenancy via membership-table RLS + `auth.user_org_ids()` (not JWT-only `org_id`, which breaks multi-org consultants and delays revocation). (03 §2)

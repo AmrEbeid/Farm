@@ -1,7 +1,7 @@
 # 0002 — White-label via CSS-variable cascade
 
 - **Status:** Accepted — 2026-06-21
-- **Context project:** `@farm-os/ui` theming foundation (spec §3)
+- **Context project:** `@amrebeid/ui` theming foundation (spec §3)
 
 ## Context
 

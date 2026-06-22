@@ -1,4 +1,4 @@
-# @farm-os/ui
+# @amrebeid/ui
 
 **An Arabic-RTL-first design system for Farm OS — نظام تشغيل المزارع.**
 
@@ -13,10 +13,10 @@ A themeable, accessible, token-driven React component library for building Farm 
 The package is private and scoped under `@farm-os`. Once your environment is pointed at the private registry, install it like any scoped package:
 
 ```bash
-npm install @farm-os/ui
+npm install @amrebeid/ui
 ```
 
-> Registry configuration (the `.npmrc` entry that resolves the `@farm-os` scope to the private registry) ships with the publish setup. Until then, `@farm-os/ui` is consumed from within this workspace.
+> Registry configuration (the `.npmrc` entry that resolves the `@farm-os` scope to the private registry) ships with the publish setup. Until then, `@amrebeid/ui` is consumed from within this workspace.
 
 `react` and `react-dom` (`>=18`) are peer dependencies — your app provides them.
 
@@ -27,8 +27,8 @@ npm install @farm-os/ui
 Import the stylesheet **once** at your app root, wrap your tree in `ThemeProvider`, and render components.
 
 ```tsx
-import "@farm-os/ui/styles.css";
-import { ThemeProvider, Button, KpiCard } from "@farm-os/ui";
+import "@amrebeid/ui/styles.css";
+import { ThemeProvider, Button, KpiCard } from "@amrebeid/ui";
 
 export function App() {
   return (

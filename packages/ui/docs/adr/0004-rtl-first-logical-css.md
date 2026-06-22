@@ -1,7 +1,7 @@
 # 0004 — RTL-first logical CSS, presentational-only boundary
 
 - **Status:** Accepted — 2026-06-21
-- **Context project:** `@farm-os/ui` catalog conventions (spec §4 boundaries)
+- **Context project:** `@amrebeid/ui` catalog conventions (spec §4 boundaries)
 
 ## Context
 

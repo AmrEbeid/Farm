@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Wire `@farm-os/ui` for versioned, gated, private publishing — Changesets for versioning + CHANGELOG, GitHub Actions CI that red-gates merges, GitHub Packages (scope `@farm-os`) as the private registry with a documented npm-private alternative, a `prepublishOnly` build/typecheck/test gate, and a verified consumer-facing package surface (`.` + `./styles.css`, ESM+CJS+d.ts, `sideEffects`). Stay `0.x` and `private:true` until the final task cuts the publish-ready 1.0.
+**Goal:** Wire `@amrebeid/ui` for versioned, gated, private publishing — Changesets for versioning + CHANGELOG, GitHub Actions CI that red-gates merges, GitHub Packages (scope `@farm-os`) as the private registry with a documented npm-private alternative, a `prepublishOnly` build/typecheck/test gate, and a verified consumer-facing package surface (`.` + `./styles.css`, ESM+CJS+d.ts, `sideEffects`). Stay `0.x` and `private:true` until the final task cuts the publish-ready 1.0.
 
 **Architecture:** This phase is **infrastructure, not React components**, so TDD is adapted: each task writes real config files and is "tested" by running a concrete verification command with an expected result (not a Vitest unit test). The pieces layer up: Changesets gives versioning + CHANGELOG; two GitHub Actions workflows (`ci.yml` runs the full quality gate on PR/push; `release.yml` versions + publishes on `main` via `changesets/action`); `.npmrc` + `publishConfig` point publishing at GitHub Packages; `prepublishOnly` re-runs the gate locally before any `npm publish`; `npm pack --dry-run` is the oracle that the published tarball contains only `dist/` (incl. `styles.css`). The final task flips `private` off, sets `version` to `1.0.0`, and documents cutting 1.0.
 
@@ -429,7 +429,7 @@ Expected: `all export targets present`; then `exports + sideEffects ok`. (This i
 - [ ] **Step 3: Create `CONTRIBUTING.md`**
 
 ```markdown
-# Contributing to @farm-os/ui
+# Contributing to @amrebeid/ui
 
 ## Adding a changeset (required for any user-facing change)
 
@@ -479,7 +479,7 @@ Consumers add an `.npmrc` with the scope route and a read token:
 //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
 
-then `npm i @farm-os/ui` with `NODE_AUTH_TOKEN` set to a `read:packages` token.
+then `npm i @amrebeid/ui` with `NODE_AUTH_TOKEN` set to a `read:packages` token.
 
 ### Alternative: npm private registry
 
@@ -498,7 +498,7 @@ the repo already lives in the `@farm-os` GitHub org.
 
 1. Land a changeset that bumps to `1.0.0`.
 2. Set `"private": false` in `package.json`.
-3. Merge the "Version Packages" PR — `release.yml` then publishes `@farm-os/ui@1.0.0`
+3. Merge the "Version Packages" PR — `release.yml` then publishes `@amrebeid/ui@1.0.0`
    to GitHub Packages via `prepublishOnly` (typecheck + test + build) gate.
 ```
 
@@ -517,7 +517,7 @@ git commit -m "docs(release): contributing guide — changesets, registry, npm-p
 - Modify: `package.json` (`private`, `version`)
 
 **Interfaces:**
-- Consumes: every prior task (Changesets, both workflows, `.npmrc`/`publishConfig`, `prepublishOnly`, verified surface). Produces: a publishable `@farm-os/ui@1.0.0` whose first real publish is driven by `release.yml`. This task is the documented `0.x → 1.0` / `private → publishable` cutover.
+- Consumes: every prior task (Changesets, both workflows, `.npmrc`/`publishConfig`, `prepublishOnly`, verified surface). Produces: a publishable `@amrebeid/ui@1.0.0` whose first real publish is driven by `release.yml`. This task is the documented `0.x → 1.0` / `private → publishable` cutover.
 
 > **Gate:** Only run this task once the full v1 catalog + theming are in and CI is green on `main`. Until then leave `package.json` at `0.x` / `private:true`.
 
@@ -542,7 +542,7 @@ Run:
 npm run prepublishOnly
 npm pack --dry-run
 ```
-Expected: `prepublishOnly` exits 0 (typecheck + test + build green); `npm pack --dry-run` lists `@farm-os/ui@1.0.0` with only `dist/` contents incl. `styles.css`. **Do not** run a real `npm publish` locally — publishing is `release.yml`'s job on `main`.
+Expected: `prepublishOnly` exits 0 (typecheck + test + build green); `npm pack --dry-run` lists `@amrebeid/ui@1.0.0` with only `dist/` contents incl. `styles.css`. **Do not** run a real `npm publish` locally — publishing is `release.yml`'s job on `main`.
 
 - [ ] **Step 4: Operator prerequisites (out-of-band, document only)**
 
@@ -555,7 +555,7 @@ Note for the operator (NOT automated — needs repo access):
 
 ```bash
 git add package.json .changeset
-git commit -m "chore(release): cut 1.0 — flip @farm-os/ui to publishable"
+git commit -m "chore(release): cut 1.0 — flip @amrebeid/ui to publishable"
 ```
 
 ---
