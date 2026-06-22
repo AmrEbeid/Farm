@@ -74,4 +74,6 @@ export { Breadcrumbs } from "./components/Breadcrumbs";
 export type { BreadcrumbsProps, Crumb } from "./components/Breadcrumbs";
 export { SearchInput } from "./components/SearchInput";
 export type { SearchInputProps } from "./components/SearchInput";
+export { RoleSwitcher } from "./components/RoleSwitcher";
+export type { RoleSwitcherProps, RoleOption } from "./components/RoleSwitcher";
 export * from "./theme";

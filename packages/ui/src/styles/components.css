@@ -414,3 +414,12 @@
 .fos-search__input { flex:1 1 auto; border:none; outline:none; background:transparent; color:var(--ink);
   font-family:inherit; font-size:var(--text-sm); min-width:0; padding-block:7px; }
 .fos-search__input::placeholder { color:var(--ink-muted); }
+
+/* ---- RoleSwitcher ---- */
+.fos-roleswitcher { display:inline-flex; align-items:center; }
+.fos-roleswitcher__label { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.fos-roleswitcher__select { appearance:none; border:1px solid var(--line); border-radius:var(--radius-control);
+  background:var(--surface); color:var(--ink); font-family:inherit; font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  min-height:var(--control-h); padding-inline:var(--control-pad-x); cursor:pointer; }
+.fos-roleswitcher__select:hover { border-color:var(--brand); }
+.fos-roleswitcher__select:focus-visible { outline:2px solid var(--focus-ring); outline-offset:1px; border-color:var(--brand); }
