@@ -46,4 +46,6 @@ export { DataTable } from "./components/DataTable";
 export type { DataTableProps, DataTableColumn, SortState, SortDirection } from "./components/DataTable";
 export { Timeline } from "./components/Timeline";
 export type { TimelineProps, TimelineItem, TimelineTone } from "./components/Timeline";
+export { DescriptionList } from "./components/DescriptionList";
+export type { DescriptionListProps, DescriptionItem } from "./components/DescriptionList";
 export * from "./theme";
