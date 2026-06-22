@@ -37,11 +37,15 @@ jobs:
         # rolldown (vitest), rollup (tsup d.ts + Storybook/Vite), esbuild (tsup/Vite).
         working-directory: packages/ui
         run: |
+          pkgs=""
           for spec in "rolldown:@rolldown/binding-linux-x64-gnu" "rollup:@rollup/rollup-linux-x64-gnu" "esbuild:@esbuild/linux-x64"; do
             mod="${spec%%:*}"; pkg="${spec#*:}"
             v=$(node -p "try{require('${mod}/package.json').version}catch(e){''}")
-            if [ -n "$v" ]; then echo "installing ${pkg}@${v}"; npm install --no-save --no-audit --no-fund "${pkg}@${v}"; else echo "skip ${pkg} (${mod} not resolved)"; fi
+            if [ -n "$v" ]; then pkgs="${pkgs} ${pkg}@${v}"; fi
           done
+          echo "installing:${pkgs}"
+          # Single install so none of the prior --no-save additions get pruned as extraneous.
+          npm install --no-save --no-audit --no-fund ${pkgs}
 
       - name: Typecheck
         run: npm run typecheck --workspace @amrebeid/ui

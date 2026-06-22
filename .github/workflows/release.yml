@@ -37,11 +37,13 @@ jobs:
       - name: Install Linux native bindings (npm/cli#4828)
         working-directory: packages/ui
         run: |
+          pkgs=""
           for spec in "rolldown:@rolldown/binding-linux-x64-gnu" "rollup:@rollup/rollup-linux-x64-gnu" "esbuild:@esbuild/linux-x64"; do
             mod="${spec%%:*}"; pkg="${spec#*:}"
             v=$(node -p "try{require('${mod}/package.json').version}catch(e){''}")
-            if [ -n "$v" ]; then npm install --no-save --no-audit --no-fund "${pkg}@${v}"; fi
+            if [ -n "$v" ]; then pkgs="${pkgs} ${pkg}@${v}"; fi
           done
+          npm install --no-save --no-audit --no-fund ${pkgs}
 
       - name: Create release PR or publish
         uses: changesets/action@v1
