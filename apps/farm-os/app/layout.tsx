@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "@amrebeid/ui/styles.css";
 import "./globals.css";
-import { ThemeProvider } from "@amrebeid/ui";
+import { ThemeProvider } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "نظام تشغيل المزارع",

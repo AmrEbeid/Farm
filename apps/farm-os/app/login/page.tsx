@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Input, Alert } from "@amrebeid/ui";
+import { Button, Field, Input, Alert } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 
 type Stage = "phone" | "otp";

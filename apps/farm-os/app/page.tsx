@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, KpiCard } from "@amrebeid/ui";
+import { Button, KpiCard } from "@/components/ui";
 
 export default function Home() {
   return (

@@ -7,7 +7,7 @@ import {
   StatusPill,
   Alert,
   type NavItemData,
-} from "@amrebeid/ui";
+} from "@/components/ui";
 
 const NAV_ITEMS: NavItemData[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: "🏠", href: "/dashboard" },
