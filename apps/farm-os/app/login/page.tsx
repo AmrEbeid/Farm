@@ -1,51 +1,61 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Input, Alert } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Button, Field, Input, Alert, Tag } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 
-type Stage = "phone" | "otp";
+const DEMO_ACCOUNTS = [
+  { role: "المالك", email: "owner@ebeid.test" },
+  { role: "مدير المزرعة", email: "manager@ebeid.test" },
+  { role: "أمين المخزن", email: "storekeeper@ebeid.test" },
+  { role: "مشرف ميداني", email: "supervisor@ebeid.test" },
+];
+const DEMO_PASSWORD = "farm-os-pilot";
 
 export default function LoginPage() {
-  const [stage, setStage] = useState<Stage>("phone");
-  const [phone, setPhone] = useState("");
-  const [token, setToken] = useState("");
+  const router = useRouter();
+  const [email, setEmail] = useState("owner@ebeid.test");
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [message, setMessage] = useState<string | null>(null);
+  const [tone, setTone] = useState<"info" | "danger" | "ok">("info");
   const [pending, setPending] = useState(false);
 
-  async function sendOtp(e: React.FormEvent) {
-    e.preventDefault();
+  async function signIn(e?: React.FormEvent) {
+    e?.preventDefault();
     setPending(true);
     setMessage(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOtp({ phone });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setMessage(error.message);
+        setTone("danger");
+        setMessage(error.message + " — جرّب «تفعيل حسابات العرض» أولاً.");
       } else {
-        setStage("otp");
+        router.push("/dashboard");
+        router.refresh();
       }
     } catch {
-      setMessage("تعذّر الاتصال بالخادم. حاول مرة أخرى.");
+      setTone("danger");
+      setMessage("تعذّر الاتصال بالخادم.");
     } finally {
       setPending(false);
     }
   }
 
-  async function verifyOtp(e: React.FormEvent) {
-    e.preventDefault();
+  async function enableDemo() {
     setPending(true);
     setMessage(null);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.verifyOtp({
-        phone,
-        token,
-        type: "sms",
-      });
-      setMessage(error ? error.message : "تم تسجيل الدخول.");
-    } catch {
-      setMessage("تعذّر التحقق من الرمز. حاول مرة أخرى.");
+      const res = await fetch("/api/dev/seed-auth", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        setTone("ok");
+        setMessage("تم تفعيل حسابات العرض. اختر دورًا للدخول.");
+      } else {
+        setTone("danger");
+        setMessage(data.error ?? "فشل التفعيل");
+      }
     } finally {
       setPending(false);
     }
@@ -58,53 +68,61 @@ export default function LoginPage() {
         <p style={{ color: "var(--ink-muted)" }}>نظام تشغيل المزارع — مزارع عبيد</p>
       </header>
 
-      {message && <Alert tone="info" title={message} />}
+      {message && <Alert tone={tone} title={message} />}
 
-      {stage === "phone" ? (
-        <form onSubmit={sendOtp} className="flex flex-col gap-4">
-          <Field label="رقم الهاتف" id="phone">
-            <Input
-              id="phone"
-              type="tel"
-              dir="ltr"
-              placeholder="+201234567890"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-            />
-          </Field>
-          <Button type="submit" variant="primary" loading={pending}>
-            إرسال رمز التحقق
+      <form onSubmit={signIn} className="flex flex-col gap-4">
+        <Field label="البريد الإلكتروني" id="email">
+          <Input
+            id="email"
+            type="email"
+            dir="ltr"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Field>
+        <Field label="كلمة المرور" id="password">
+          <Input
+            id="password"
+            type="password"
+            dir="ltr"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </Field>
+        <Button type="submit" variant="primary" loading={pending}>
+          دخول
+        </Button>
+      </form>
+
+      <div className="flex flex-col gap-3 border-t pt-4" style={{ borderColor: "var(--line)" }}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium">حسابات العرض</span>
+          <Button type="button" variant="ghost" size="sm" onClick={enableDemo} loading={pending}>
+            تفعيل حسابات العرض
           </Button>
-        </form>
-      ) : (
-        <form onSubmit={verifyOtp} className="flex flex-col gap-4">
-          <Field label="رمز التحقق" id="otp">
-            <Input
-              id="otp"
-              inputMode="numeric"
-              dir="ltr"
-              placeholder="123456"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              required
-            />
-          </Field>
-          <Button type="submit" variant="primary" loading={pending}>
-            دخول
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setStage("phone");
-              setMessage(null);
-            }}
-          >
-            تغيير رقم الهاتف
-          </Button>
-        </form>
-      )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {DEMO_ACCOUNTS.map((a) => (
+            <button
+              key={a.email}
+              type="button"
+              onClick={() => {
+                setEmail(a.email);
+                setPassword(DEMO_PASSWORD);
+              }}
+              className="cursor-pointer"
+            >
+              <Tag tone={email === a.email ? "accent" : "neutral"}>{a.role}</Tag>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
+          الدخول عبر الهاتف (OTP) متاح في الإصدار التجريبي عبر مزوّد الرسائل؛ في
+          البيئة المحلية استخدم حسابات العرض أعلاه.
+        </p>
+      </div>
     </main>
   );
 }
