@@ -31,20 +31,22 @@ jobs:
         run: npm ci
 
       - name: Install Linux native bindings (npm/cli#4828)
-        # npm ci preserves the lockfile's correct hoisting + type resolution, but
-        # skips Linux optional native binaries absent from the macOS lockfile.
-        # Install each, pinned to the resolved version of its parent package:
-        # rolldown (vitest), rollup (tsup d.ts + Storybook/Vite), esbuild (tsup/Vite).
-        working-directory: packages/ui
+        # npm ci preserves the single hoisted React (the lib declares ^18 but the
+        # monorepo overrides to 19; the clean lockfile tree dedupes to one copy) and
+        # the correct hoisting, but skips Linux optional native binaries absent from
+        # the macOS lockfile. Resolve each binding's version from the packages/ui
+        # context (where rolldown/rollup/esbuild are reachable) but INSTALL FROM ROOT:
+        # installing from packages/ui re-resolves and nests a 2nd React there, which
+        # breaks context-based tests (ToastProvider/useToast). One install so none get
+        # pruned as extraneous.
         run: |
           pkgs=""
           for spec in "rolldown:@rolldown/binding-linux-x64-gnu" "rollup:@rollup/rollup-linux-x64-gnu" "esbuild:@esbuild/linux-x64"; do
             mod="${spec%%:*}"; pkg="${spec#*:}"
-            v=$(node -p "try{require('${mod}/package.json').version}catch(e){''}")
+            v=$(cd packages/ui && node -p "try{require('${mod}/package.json').version}catch(e){''}")
             if [ -n "$v" ]; then pkgs="${pkgs} ${pkg}@${v}"; fi
           done
           echo "installing:${pkgs}"
-          # Single install so none of the prior --no-save additions get pruned as extraneous.
           npm install --no-save --no-audit --no-fund ${pkgs}
 
       - name: Typecheck

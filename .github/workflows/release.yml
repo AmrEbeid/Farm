@@ -35,12 +35,13 @@ jobs:
         run: npm ci
 
       - name: Install Linux native bindings (npm/cli#4828)
-        working-directory: packages/ui
+        # Resolve versions from packages/ui but install from ROOT (installing from
+        # packages/ui nests a 2nd React and breaks context-based tests).
         run: |
           pkgs=""
           for spec in "rolldown:@rolldown/binding-linux-x64-gnu" "rollup:@rollup/rollup-linux-x64-gnu" "esbuild:@esbuild/linux-x64"; do
             mod="${spec%%:*}"; pkg="${spec#*:}"
-            v=$(node -p "try{require('${mod}/package.json').version}catch(e){''}")
+            v=$(cd packages/ui && node -p "try{require('${mod}/package.json').version}catch(e){''}")
             if [ -n "$v" ]; then pkgs="${pkgs} ${pkg}@${v}"; fi
           done
           npm install --no-save --no-audit --no-fund ${pkgs}
