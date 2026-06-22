@@ -76,4 +76,6 @@ export { SearchInput } from "./components/SearchInput";
 export type { SearchInputProps } from "./components/SearchInput";
 export { RoleSwitcher } from "./components/RoleSwitcher";
 export type { RoleSwitcherProps, RoleOption } from "./components/RoleSwitcher";
+export { AppShell } from "./components/AppShell";
+export type { AppShellProps } from "./components/AppShell";
 export * from "./theme";
