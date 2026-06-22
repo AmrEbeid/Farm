@@ -4,7 +4,8 @@
   "private": true,
   "description": "Farm OS monorepo — @amrebeid/ui design system (packages/ui) + product docs (docs/)",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "changeset": "changeset",
