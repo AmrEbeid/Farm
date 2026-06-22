@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Decisions behind `@farm-os/ui`, grounded in `docs/superpowers/specs/2026-06-21-farm-os-ui-publish-ready-design.md`. See `../../CONTEXT.md` for the domain/architecture overview.
+Decisions behind `@amrebeid/ui`, grounded in `docs/superpowers/specs/2026-06-21-farm-os-ui-publish-ready-design.md`. See `../../CONTEXT.md` for the domain/architecture overview.
 
 - [0001 — Two-tier token system](0001-two-tier-token-system.md) — primitives vs. role tokens; components reference only role tokens.
 - [0002 — White-label via CSS-variable cascade](0002-white-label-via-css-variable-cascade.md) — `ThemeProvider` scope attrs + inline brand vars; no-React escape hatch; SSR-safe; instant flip.

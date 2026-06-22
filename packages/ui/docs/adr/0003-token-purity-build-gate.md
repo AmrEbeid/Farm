@@ -1,7 +1,7 @@
 # 0003 — Token-purity build gate
 
 - **Status:** Accepted — 2026-06-21
-- **Context project:** `@farm-os/ui` theming foundation (spec §3, §6)
+- **Context project:** `@amrebeid/ui` theming foundation (spec §3, §6)
 
 ## Context
 

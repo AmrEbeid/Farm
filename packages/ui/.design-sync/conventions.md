@@ -3,7 +3,7 @@
 Arabic-RTL-first component library for a farm operating system. Build screens by composing the exported React components; style your own layout glue with the design tokens (CSS variables). Numbers and labels in examples are Arabic on purpose — keep that.
 
 ## Setup & wrapping
-- **No provider/wrapper is required.** Components are styled purely by the stylesheet. Import it once at the app root: `import "@farm-os/ui/styles.css";`. Without that import, components render unstyled.
+- **No provider/wrapper is required.** Components are styled purely by the stylesheet. Import it once at the app root: `import "@amrebeid/ui/styles.css";`. Without that import, components render unstyled.
 - Set direction on the app root: `<html dir="rtl" lang="ar">` (the library is RTL-first; it also works LTR if you set `dir="ltr"`).
 - Components are presentational and controlled — e.g. `Tabs` takes `value` + `onChange`; you own state.
 
@@ -26,8 +26,8 @@ Arabic-RTL-first component library for a farm operating system. Build screens by
 
 ## One idiomatic snippet
 ```tsx
-import { KpiCard, VerdictBanner, Button } from "@farm-os/ui";
-import "@farm-os/ui/styles.css";
+import { KpiCard, VerdictBanner, Button } from "@amrebeid/ui";
+import "@amrebeid/ui/styles.css";
 
 export function StockCoverage() {
   return (

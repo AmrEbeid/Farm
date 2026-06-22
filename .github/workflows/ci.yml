@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: typecheck · tokens · test · build · storybook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/ui/.nvmrc
+          cache: npm
+
+      - name: Install (workspace root)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck --workspace @amrebeid/ui
+
+      - name: Token presence
+        run: npm run tokens:present --workspace @amrebeid/ui
+
+      - name: Token purity
+        run: npm run tokens:purity --workspace @amrebeid/ui
+
+      - name: Unit + a11y tests
+        run: npm test --workspace @amrebeid/ui
+
+      - name: Build (ESM + CJS + d.ts + styles.css)
+        run: npm run build --workspace @amrebeid/ui
+
+      - name: Build Storybook
+        run: npm run build-storybook --workspace @amrebeid/ui

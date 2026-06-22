@@ -1,6 +1,6 @@
 {
   "projectId": "115ae675-68f4-438b-8d03-6e83752aace3",
-  "pkg": "@farm-os/ui",
+  "pkg": "@amrebeid/ui",
   "globalName": "FarmOsUi",
   "shape": "storybook",
   "storybookConfigDir": ".storybook",

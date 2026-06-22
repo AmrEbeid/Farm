@@ -1,7 +1,7 @@
 # 0005 — Charts as thin themed wrappers
 
 - **Status:** Accepted — 2026-06-21
-- **Context project:** `@farm-os/ui` catalog (spec §4, §7)
+- **Context project:** `@amrebeid/ui` catalog (spec §4, §7)
 
 ## Context
 

@@ -1,11 +1,11 @@
-# CONTEXT — `@farm-os/ui`
+# CONTEXT — `@amrebeid/ui`
 
 > Domain & architecture context for engineers and AI agents navigating this repo.
 > For the *why* behind the big calls, see the ADRs in `docs/adr/`.
 
 ## What this is
 
-`@farm-os/ui` (نظام تشغيل المزارع) is the **design system / component library** for **Farm OS** — a generic, multi-tenant SaaS for date-palm and fruit farms in Egypt/MENA. It is **Arabic-RTL-first** and **presentational only**: components carry structure, styling, state, and a11y, but **no user-facing strings and no i18n** — the consuming app passes all text and owns translation.
+`@amrebeid/ui` (نظام تشغيل المزارع) is the **design system / component library** for **Farm OS** — a generic, multi-tenant SaaS for date-palm and fruit farms in Egypt/MENA. It is **Arabic-RTL-first** and **presentational only**: components carry structure, styling, state, and a11y, but **no user-facing strings and no i18n** — the consuming app passes all text and owns translation.
 
 Farm OS itself (screens, data, auth, workflows) is a *separate* sub-project built on top of this library. Ebeid Farm is dummy/seed/demo data, **not** the customer; nothing here is tenant-specific. This package is built to a **public-quality bar but shipped privately first** (see ADR-0006).
 

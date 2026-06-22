@@ -2,8 +2,16 @@
   "name": "farm",
   "version": "0.0.0",
   "private": true,
-  "description": "Farm OS monorepo — @farm-os/ui design system (packages/ui) + product docs (docs/)",
+  "description": "Farm OS monorepo — @amrebeid/ui design system (packages/ui) + product docs (docs/)",
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0"
+  }
 }

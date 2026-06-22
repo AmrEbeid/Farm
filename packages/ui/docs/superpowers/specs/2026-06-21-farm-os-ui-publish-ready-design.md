@@ -1,10 +1,10 @@
-# Design — Make `@farm-os/ui` publish-ready (Sub-project A)
+# Design — Make `@amrebeid/ui` publish-ready (Sub-project A)
 *Date: 2026-06-21 · Status: Approved (brainstorm) → ready for implementation plan · Owner: Amr Ebeid*
 
 ## 1. Context & decomposition
 Farm OS is a **generic, multi-tenant SaaS** for date-palm and fruit farms in Egypt/MENA. **Ebeid Farm is dummy/seed data** used to develop and demo the product — not the customer. The work splits into two sub-projects built in sequence:
 
-- **Sub-project A (this spec)** — make `@farm-os/ui` publish-ready: stabilize the API, fill the component catalog, add full theming, docs, versioning, and a publish path.
+- **Sub-project A (this spec)** — make `@amrebeid/ui` publish-ready: stabilize the API, fill the component catalog, add full theming, docs, versioning, and a publish path.
 - **Sub-project B (later)** — build the Farm OS application (screens, data, auth, workflows) on top of A. Its own spec → plan → build cycle.
 
 A is scoped against B's documented needs (PRD + screen map in `../../../farm-os-docs/`) so we publish the *right* components, not a vacuum design system.
@@ -61,7 +61,7 @@ Built to the screen map (`farm-os-docs/07-SCREEN-MAP.md`). **9 exist; the rest a
 - **Charts are thin themed wrappers**, not a charting engine — they bind a chart lib to our tokens so dark/brand themes apply.
 
 ## 5. Packaging & publish
-- **Repo:** keep `@farm-os/ui` standalone now, **structured to drop into a monorepo later** (`packages/ui` + `apps/farm-os`). No restructure today.
+- **Repo:** keep `@amrebeid/ui` standalone now, **structured to drop into a monorepo later** (`packages/ui` + `apps/farm-os`). No restructure today.
 - **Exports:** `.` (components + `ThemeProvider`), `./styles.css`; tree-shakeable ESM + CJS + `.d.ts` (tsup). `sideEffects` flags CSS.
 - **Build:** tsup for JS/types; the two-tier token CSS (primitives + role tokens + theme blocks) compiles into the single `styles.css`.
 - **Versioning:** **Changesets** (auto CHANGELOG + bumps). Stay 0.x while the API moves; **cut 1.0 as the publish-ready milestone**.

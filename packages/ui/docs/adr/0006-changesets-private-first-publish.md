@@ -1,7 +1,7 @@
 # 0006 — Changesets + private-first publish
 
 - **Status:** Accepted — 2026-06-21
-- **Context project:** `@farm-os/ui` packaging & publish (spec §5, §6)
+- **Context project:** `@amrebeid/ui` packaging & publish (spec §5, §6)
 
 ## Context
 

@@ -1,7 +1,7 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-21 by Claude (for Owner: Amr Ebeid)
 
 ## Current focus
-Governance scaffolded under the AI Project Operating System v3. Research/strategy, full product docs (00–10), and the **design system** are done: the `@farm-os/ui` component library is built and **synced live to Claude Design** ("Farm OS UI"). Product build is at **Phase 0 (security/data cleanup) → MVP-0 pilot**. The Farm OS *application* code is not built yet; the component library (its UI layer) is.
+Governance scaffolded under the AI Project Operating System v3. Research/strategy, full product docs (00–10), and the **design system** are done: the `@amrebeid/ui` component library is built and **synced live to Claude Design** ("Farm OS UI"). Product build is at **Phase 0 (security/data cleanup) → MVP-0 pilot**. The Farm OS *application* code is not built yet; the component library (its UI layer) is.
 
 ## Stages (risk-tiered; see MASTER-PLAN.md §4 for full plan)
 | Stage | Title | Type | Risk | Status | Notes |
