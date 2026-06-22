@@ -28,11 +28,17 @@ jobs:
           cache: npm
 
       - name: Install (workspace root)
-        # npm ci gives the correct, lockfile-consistent hoisting. It skips Linux
-        # optional native deps not present when the macOS lockfile was generated
-        # (npm/cli#4828: vitest's @rolldown/binding-linux-x64-gnu), so a follow-up
-        # full `npm install` fetches the runner's platform optionals into the tree.
-        run: npm ci && npm install --no-audit --no-fund
+        run: npm ci
+
+      - name: Install runner's rolldown native binding
+        # npm ci keeps the correct lockfile hoisting but skips the Linux optional
+        # native binding absent from the macOS-generated lockfile (npm/cli#4828).
+        # Install it explicitly, pinned to the resolved rolldown version.
+        working-directory: packages/ui
+        run: |
+          RV=$(node -p "require('rolldown/package.json').version")
+          echo "rolldown@$RV — installing @rolldown/binding-linux-x64-gnu@$RV"
+          npm install --no-save --no-audit --no-fund "@rolldown/binding-linux-x64-gnu@$RV"
 
       - name: Typecheck
         run: npm run typecheck --workspace @amrebeid/ui
