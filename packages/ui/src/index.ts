@@ -84,4 +84,6 @@ export { BarChart } from "./components/BarChart";
 export type { BarChartProps, ChartSeries } from "./components/BarChart";
 export { LineChart } from "./components/LineChart";
 export type { LineChartProps } from "./components/LineChart";
+export { DoughnutChart } from "./components/DoughnutChart";
+export type { DoughnutChartProps, DoughnutDatum } from "./components/DoughnutChart";
 export * from "./theme";
