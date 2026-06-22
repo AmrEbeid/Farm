@@ -498,3 +498,22 @@
   border-color:color-mix(in srgb, var(--success-fg) 30%, var(--surface)); }
 .fos-loopstep--blocked { background:var(--danger-bg); color:var(--danger-fg);
   border-color:color-mix(in srgb, var(--danger-fg) 30%, var(--surface)); }
+
+/* ---- PhaseCard (domain — plan phase / operation summary) ---- */
+.fos-phase { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card);
+  box-shadow:var(--shadow-card); padding:var(--card-pad); border-inline-start:3px solid var(--line); }
+.fos-phase__head { display:flex; align-items:center; gap:var(--space-2); }
+.fos-phase__dot { width:9px; height:9px; flex:none; border-radius:50%; background:var(--ink-muted); }
+.fos-phase__title { font-size:var(--text-md); font-weight:var(--weight-bold); flex:1; }
+.fos-phase__status { font-size:var(--text-xs); font-weight:var(--weight-bold); padding:2px 9px;
+  border-radius:var(--radius-pill); background:var(--surface-sunken); color:var(--ink-muted); }
+.fos-phase__meta { margin:var(--space-3) 0 0; display:grid; gap:var(--space-1); }
+.fos-phase__row { display:flex; justify-content:space-between; gap:var(--space-3); font-size:var(--text-xs); }
+.fos-phase__row dt { color:var(--ink-muted); margin:0; }
+.fos-phase__row dd { margin:0; font-weight:var(--weight-semibold); }
+.fos-phase__progress { margin-top:var(--space-3); }
+.fos-phase--neutral { border-inline-start-color:var(--neutral-fg); } .fos-phase--neutral .fos-phase__dot { background:var(--neutral-fg); }
+.fos-phase--info { border-inline-start-color:var(--info-fg); } .fos-phase--info .fos-phase__dot { background:var(--info-fg); } .fos-phase--info .fos-phase__status { background:var(--info-bg); color:var(--info-fg); }
+.fos-phase--ok { border-inline-start-color:var(--success-fg); } .fos-phase--ok .fos-phase__dot { background:var(--success-fg); } .fos-phase--ok .fos-phase__status { background:var(--success-bg); color:var(--success-fg); }
+.fos-phase--warning { border-inline-start-color:var(--warning-fg); } .fos-phase--warning .fos-phase__dot { background:var(--warning-fg); } .fos-phase--warning .fos-phase__status { background:var(--warning-bg); color:var(--warning-fg); }
+.fos-phase--danger { border-inline-start-color:var(--danger-fg); } .fos-phase--danger .fos-phase__dot { background:var(--danger-fg); } .fos-phase--danger .fos-phase__status { background:var(--danger-bg); color:var(--danger-fg); }

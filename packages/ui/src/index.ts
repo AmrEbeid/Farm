@@ -88,4 +88,6 @@ export { DoughnutChart } from "./components/DoughnutChart";
 export type { DoughnutChartProps, DoughnutDatum } from "./components/DoughnutChart";
 export { LoopStepper } from "./components/LoopStepper";
 export type { LoopStepperProps, LoopStep, LoopStepState } from "./components/LoopStepper";
+export { PhaseCard } from "./components/PhaseCard";
+export type { PhaseCardProps, PhaseTone, PhaseMetaRow } from "./components/PhaseCard";
 export * from "./theme";
