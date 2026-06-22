@@ -8,7 +8,7 @@ export interface NavItemData {
   /** Roles allowed to see this item. Omitted = visible to all roles. */ roles?: string[];
 }
 
-export interface NavItemProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
+export interface NavItemProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "onSelect"> {
   /** The nav entry to render. */ item: NavItemData;
   /** Marks the active route → aria-current="page". */ active?: boolean;
   /** Called with the item id on activation (SPA routing). */ onSelect?: (id: string) => void;

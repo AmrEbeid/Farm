@@ -6,7 +6,7 @@ export interface Crumb {
   /** Link target; omit on the current page (rendered as plain text). */ href?: string;
 }
 
-export interface BreadcrumbsProps extends React.HTMLAttributes<HTMLElement> {
+export interface BreadcrumbsProps extends Omit<React.HTMLAttributes<HTMLElement>, "onSelect"> {
   /** Ordered trail; the last item is treated as the current page. */ items: Crumb[];
   /** Accessible name for the breadcrumb <nav>. */ ariaLabel: string;
   /** Separator between crumbs (decorative). */ separator?: React.ReactNode;

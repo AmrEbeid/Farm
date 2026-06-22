@@ -1,7 +1,7 @@
 import * as React from "react";
 import { NavItem, type NavItemData } from "./NavItem";
 
-export interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
+export interface SidebarNavProps extends Omit<React.HTMLAttributes<HTMLElement>, "onSelect"> {
   /** Nav entries (consumer-supplied). */ items: NavItemData[];
   /** Active item id → that NavItem gets aria-current="page". */ activeId?: string;
   /** Filter items to those visible to this role (matches NavItemData.roles). */ role?: string;
