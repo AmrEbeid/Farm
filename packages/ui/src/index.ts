@@ -44,4 +44,6 @@ export { Stat } from "./components/Stat";
 export type { StatProps, StatTrend } from "./components/Stat";
 export { DataTable } from "./components/DataTable";
 export type { DataTableProps, DataTableColumn, SortState, SortDirection } from "./components/DataTable";
+export { Timeline } from "./components/Timeline";
+export type { TimelineProps, TimelineItem, TimelineTone } from "./components/Timeline";
 export * from "./theme";

@@ -251,3 +251,19 @@
 .fos-table__td--num { font-variant-numeric:tabular-nums; }
 .fos-table__row:hover { background:color-mix(in srgb, var(--brand) 6%, var(--surface)); }
 .fos-table__empty { padding:var(--space-8) var(--space-4); text-align:center; color:var(--ink-muted); font-size:var(--text-sm); }
+
+/* ---- Timeline ---- */
+.fos-timeline { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+.fos-timeline__item { position:relative; display:flex; gap:var(--space-3); padding-block-end:var(--space-4); padding-inline-start:var(--space-1); }
+.fos-timeline__item::before { content:""; position:absolute; inset-block-start:var(--space-4); inset-block-end:0; inset-inline-start:11px; width:2px; background:var(--line); }
+.fos-timeline__item:last-child::before { display:none; }
+.fos-timeline__marker { position:relative; z-index:var(--z-base); flex:none; width:24px; height:24px; border-radius:var(--radius-pill); display:grid; place-items:center; font-size:var(--text-xs); background:var(--neutral-bg); color:var(--neutral-fg); border:2px solid var(--surface); }
+.fos-timeline__marker--success { background:var(--success-bg); color:var(--success-fg); }
+.fos-timeline__marker--warning { background:var(--warning-bg); color:var(--warning-fg); }
+.fos-timeline__marker--danger { background:var(--danger-bg); color:var(--danger-fg); }
+.fos-timeline__marker--info { background:var(--info-bg); color:var(--info-fg); }
+.fos-timeline__body { flex:1; min-width:0; }
+.fos-timeline__head { display:flex; align-items:baseline; gap:var(--space-2); justify-content:space-between; }
+.fos-timeline__title { font-size:var(--text-sm); font-weight:var(--weight-bold); color:var(--ink); }
+.fos-timeline__time { font-size:var(--text-xs); color:var(--ink-muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.fos-timeline__desc { font-size:var(--text-xs); color:var(--ink-muted); margin-block-start:var(--space-1); }
