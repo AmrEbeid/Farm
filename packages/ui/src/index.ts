@@ -50,4 +50,6 @@ export { DescriptionList } from "./components/DescriptionList";
 export type { DescriptionListProps, DescriptionItem } from "./components/DescriptionList";
 export { Avatar } from "./components/Avatar";
 export type { AvatarProps, AvatarSize } from "./components/Avatar";
+export { Tooltip } from "./components/Tooltip";
+export type { TooltipProps, TooltipPlacement } from "./components/Tooltip";
 export * from "./theme";
