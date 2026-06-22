@@ -62,4 +62,6 @@ export { Modal, Dialog } from "./components/Modal";
 export type { ModalProps, ModalSize } from "./components/Modal";
 export { Drawer, Sheet } from "./components/Drawer";
 export type { DrawerProps, DrawerSide } from "./components/Drawer";
+export { ConfirmDialog } from "./components/ConfirmDialog";
+export type { ConfirmDialogProps, ConfirmTone } from "./components/ConfirmDialog";
 export * from "./theme";
