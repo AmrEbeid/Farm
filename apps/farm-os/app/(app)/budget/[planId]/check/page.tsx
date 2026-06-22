@@ -32,13 +32,20 @@ export default async function BudgetCheckPage({
   const after = available - thisOp;
   const utilization = approved > 0 ? Math.round(((committed + actual) / approved) * 100) : 0;
 
+  // Utilization AFTER committing this op. The أسمدة line is already at 94% used
+  // (committed 70k + actual 870k of 1,000k); the 42k op pushes it past the 90%
+  // comfort threshold, so it routes to owner approval even though it does not
+  // technically overspend the approved amount.
+  const utilizationAfter =
+    approved > 0 ? Math.round(((committed + thisOp + actual) / approved) * 100) : 0;
   const verdict =
-    after < 0 ? "block" : after < available * 0.2 ? "warn" : "ok";
+    after < 0 ? "block" : utilizationAfter > 90 ? "approval-needed" : "ok";
+  const needsOwner = verdict === "block" || verdict === "approval-needed";
   const verdictText =
     verdict === "block"
       ? `⛔ تجاوز للموازنة: المتاح ${egp(available)} لا يغطي ${egp(thisOp)} — يتطلب اعتماد المالك.`
-      : verdict === "warn"
-        ? `⚠️ الموازنة منخفضة: سيتبقى ${egp(after)} بعد هذه العملية.`
+      : verdict === "approval-needed"
+        ? `⚠️ الموازنة منخفضة (${utilizationAfter}٪ بعد هذه العملية) — يتطلب اعتماد المالك.`
         : `✓ الموازنة كافية: سيتبقى ${egp(after)}.`;
 
   return (
@@ -48,7 +55,7 @@ export default async function BudgetCheckPage({
         <p style={{ color: "var(--ink-muted)" }}>سنة 2025</p>
       </header>
 
-      <VerdictBanner tone={verdict === "block" ? "danger" : verdict === "warn" ? "warning" : "ok"}>
+      <VerdictBanner tone={verdict === "block" ? "danger" : verdict === "approval-needed" ? "warning" : "ok"}>
         {verdictText}
       </VerdictBanner>
 
@@ -75,7 +82,7 @@ export default async function BudgetCheckPage({
         </p>
       </Card>
 
-      {verdict === "block" && pr && (
+      {needsOwner && pr && (
         <Card title="التوجيه">
           <p className="mb-3">
             تتجاوز هذه العملية حدود بند الأسمدة، لذا يجب توجيه طلب الشراء إلى المالك للاعتماد

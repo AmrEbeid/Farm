@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button, Field, Input, Alert, Tag } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -14,7 +13,6 @@ const DEMO_ACCOUNTS = [
 const DEMO_PASSWORD = "farm-os-pilot";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("owner@ebeid.test");
   const [password, setPassword] = useState(DEMO_PASSWORD);
   const [message, setMessage] = useState<string | null>(null);
@@ -31,10 +29,15 @@ export default function LoginPage() {
       if (error) {
         setTone("danger");
         setMessage(error.message + " — جرّب «تفعيل حسابات العرض» أولاً.");
-      } else {
-        router.push("/dashboard");
-        router.refresh();
+        setPending(false);
+        return;
       }
+      // Wait until the session cookie is actually persisted, then do a full
+      // navigation so the server receives the fresh auth cookie on the next
+      // request (router.push can race ahead of the cookie write).
+      await supabase.auth.getSession();
+      window.location.assign("/dashboard");
+      return;
     } catch {
       setTone("danger");
       setMessage("تعذّر الاتصال بالخادم.");

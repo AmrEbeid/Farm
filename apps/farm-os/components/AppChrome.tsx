@@ -31,8 +31,7 @@ export function AppChrome({
 
   async function signOut() {
     await createClient().auth.signOut();
-    router.push("/login");
-    router.refresh();
+    window.location.assign("/login");
   }
 
   return (
