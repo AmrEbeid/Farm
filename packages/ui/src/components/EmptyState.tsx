@@ -1,6 +1,6 @@
 import * as React from "react";
 
-export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   /** Headline (e.g. "لا توجد طلبات"). */
   title: React.ReactNode;
   /** Optional supporting line. */
