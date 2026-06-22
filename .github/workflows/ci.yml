@@ -28,11 +28,11 @@ jobs:
           cache: npm
 
       - name: Install (workspace root)
-        # The committed lockfile is generated on macOS and omits Linux-only
-        # optional native deps (vitest's @rolldown/binding-linux-x64-gnu).
-        # Per npm/cli#4828, removing the lockfile forces a fresh, platform-correct
-        # resolution on the runner so the native binding installs.
-        run: rm -f package-lock.json && npm install --no-audit --no-fund
+        # npm ci gives the correct, lockfile-consistent hoisting. It skips Linux
+        # optional native deps not present when the macOS lockfile was generated
+        # (npm/cli#4828: vitest's @rolldown/binding-linux-x64-gnu), so a follow-up
+        # full `npm install` fetches the runner's platform optionals into the tree.
+        run: npm ci && npm install --no-audit --no-fund
 
       - name: Typecheck
         run: npm run typecheck --workspace @amrebeid/ui
