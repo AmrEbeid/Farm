@@ -92,4 +92,8 @@ export { PhaseCard } from "./components/PhaseCard";
 export type { PhaseCardProps, PhaseTone, PhaseMetaRow } from "./components/PhaseCard";
 export { StatusPill } from "./components/StatusPill";
 export type { StatusPillProps, PillStatus } from "./components/StatusPill";
+export { PalmCell } from "./components/PalmCell";
+export type { PalmCellProps, PalmStatus } from "./components/PalmCell";
+export { PalmGrid } from "./components/PalmGrid";
+export type { PalmGridProps, PalmLine, PalmCellData } from "./components/PalmGrid";
 export * from "./theme";
