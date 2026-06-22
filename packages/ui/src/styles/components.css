@@ -308,3 +308,13 @@
 .fos-empty__title { margin:0; font-size:var(--text-md); font-weight:var(--weight-bold); color:var(--ink); }
 .fos-empty__desc { margin:0; font-size:var(--text-sm); color:var(--ink-muted); max-width:42ch; }
 .fos-empty__action { margin-block-start:var(--space-2); }
+
+/* ---- Skeleton ---- */
+.fos-skeleton-group { display:flex; flex-direction:column; gap:var(--space-2); }
+.fos-skeleton { display:block; border-radius:var(--radius-control); background:linear-gradient(90deg, var(--neutral-bg) 0%, color-mix(in srgb, var(--neutral-bg) 60%, var(--surface)) 50%, var(--neutral-bg) 100%); background-size:200% 100%; animation:fos-shimmer 1.3s var(--ease) infinite; }
+.fos-skeleton--text { height:var(--text-sm); width:100%; }
+.fos-skeleton--rect { width:100%; height:var(--space-10); border-radius:var(--radius-card); }
+.fos-skeleton--circle { border-radius:var(--radius-pill); width:var(--space-10); height:var(--space-10); }
+.fos-skeleton__line { width:100%; }
+@keyframes fos-shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+@media (prefers-reduced-motion: reduce) { .fos-skeleton { animation:none; } }

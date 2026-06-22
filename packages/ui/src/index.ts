@@ -56,4 +56,6 @@ export { Pagination } from "./components/Pagination";
 export type { PaginationProps } from "./components/Pagination";
 export { EmptyState } from "./components/EmptyState";
 export type { EmptyStateProps } from "./components/EmptyState";
+export { Skeleton } from "./components/Skeleton";
+export type { SkeletonProps, SkeletonShape } from "./components/Skeleton";
 export * from "./theme";
