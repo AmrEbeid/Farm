@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/*
+ * Theming is owned by @amrebeid/ui's ThemeProvider (role tokens: --surface,
+ * --ink, --line, --brand, status pairs). This app only maps page background
+ * and text to those tokens so plain Tailwind layout sits on the design system.
+ */
+body {
+  background: var(--surface, #ffffff);
+  color: var(--ink, #171717);
+  font-family:
+    system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif;
+}

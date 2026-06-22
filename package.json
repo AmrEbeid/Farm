@@ -4,7 +4,8 @@
   "private": true,
   "description": "Farm OS monorepo — @amrebeid/ui design system (packages/ui) + product docs (docs/)",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "changeset": "changeset",
@@ -12,6 +13,12 @@
     "release": "changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.0"
+    "@changesets/cli": "^2.31.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "overrides": {
+    "react": "$react",
+    "react-dom": "$react-dom"
   }
 }
