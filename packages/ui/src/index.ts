@@ -66,4 +66,8 @@ export { ConfirmDialog } from "./components/ConfirmDialog";
 export type { ConfirmDialogProps, ConfirmTone } from "./components/ConfirmDialog";
 export { ToastProvider, Toaster, useToast } from "./components/Toast";
 export type { ToastApi, ToastOptions, ToastRecord, ToastTone, ToastProviderProps } from "./components/Toast";
+export { NavItem } from "./components/NavItem";
+export type { NavItemProps, NavItemData } from "./components/NavItem";
+export { SidebarNav } from "./components/SidebarNav";
+export type { SidebarNavProps } from "./components/SidebarNav";
 export * from "./theme";

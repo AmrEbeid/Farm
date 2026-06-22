@@ -382,3 +382,15 @@
 .fos-toast__close:hover { background:var(--surface-sunken); color:var(--ink); }
 .fos-toast__close:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
 @keyframes fos-toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+/* ---- SidebarNav / NavItem ---- */
+.fos-sidebarnav { display:block; }
+.fos-sidebarnav__list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-1); }
+.fos-navitem { display:flex; align-items:center; gap:var(--space-2); padding:9px var(--space-3); border-radius:var(--radius-control);
+  font-size:var(--text-sm); font-weight:var(--weight-semibold); color:var(--ink-muted); text-decoration:none;
+  transition:background var(--dur-fast) var(--ease), color var(--dur-fast); }
+.fos-navitem:hover { background:var(--surface-sunken); color:var(--ink); }
+.fos-navitem:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+.fos-navitem--active { background:color-mix(in srgb, var(--brand) 14%, var(--surface)); color:var(--brand-hover); font-weight:var(--weight-bold); }
+.fos-navitem__icon { width:20px; display:inline-grid; place-items:center; font-size:15px; flex:none; }
+.fos-navitem__label { flex:1 1 auto; }
