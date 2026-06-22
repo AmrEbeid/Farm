@@ -52,4 +52,6 @@ export { Avatar } from "./components/Avatar";
 export type { AvatarProps, AvatarSize } from "./components/Avatar";
 export { Tooltip } from "./components/Tooltip";
 export type { TooltipProps, TooltipPlacement } from "./components/Tooltip";
+export { Pagination } from "./components/Pagination";
+export type { PaginationProps } from "./components/Pagination";
 export * from "./theme";
