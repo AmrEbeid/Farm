@@ -70,4 +70,6 @@ export { NavItem } from "./components/NavItem";
 export type { NavItemProps, NavItemData } from "./components/NavItem";
 export { SidebarNav } from "./components/SidebarNav";
 export type { SidebarNavProps } from "./components/SidebarNav";
+export { Breadcrumbs } from "./components/Breadcrumbs";
+export type { BreadcrumbsProps, Crumb } from "./components/Breadcrumbs";
 export * from "./theme";

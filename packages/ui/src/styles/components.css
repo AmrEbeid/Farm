@@ -394,3 +394,12 @@
 .fos-navitem--active { background:color-mix(in srgb, var(--brand) 14%, var(--surface)); color:var(--brand-hover); font-weight:var(--weight-bold); }
 .fos-navitem__icon { width:20px; display:inline-grid; place-items:center; font-size:15px; flex:none; }
 .fos-navitem__label { flex:1 1 auto; }
+
+/* ---- Breadcrumbs ---- */
+.fos-breadcrumbs__list { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); }
+.fos-breadcrumbs__item { display:inline-flex; align-items:center; gap:var(--space-2); font-size:var(--text-xs); }
+.fos-breadcrumbs__link { color:var(--ink-muted); text-decoration:none; font-weight:var(--weight-semibold); }
+.fos-breadcrumbs__link:hover { color:var(--brand-hover); text-decoration:underline; }
+.fos-breadcrumbs__link:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; border-radius:var(--radius-control); }
+.fos-breadcrumbs__current { color:var(--ink); font-weight:var(--weight-bold); }
+.fos-breadcrumbs__sep { color:var(--ink-muted); }
