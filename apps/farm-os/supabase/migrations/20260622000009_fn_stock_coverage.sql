@@ -257,6 +257,18 @@ grant select, insert, update, delete on all tables in schema public to anon, aut
 grant usage, select on all sequences in schema public to anon, authenticated;
 grant execute on all functions in schema public to anon, authenticated;
 
+-- service_role table grants. service_role bypasses RLS and is used ONLY by the
+-- server-side admin/auth setup (lib/seed-auth.ts: minting auth users and
+-- relinking people/organization_member). It is never used for normal tenant
+-- reads/writes (those use the per-request authenticated session client above).
+-- In this local environment the default privileges did not cover service_role,
+-- so PostgREST denied its data access at the privilege layer; this restores the
+-- standard Supabase service_role grant set. Additive only.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to service_role;
+grant execute on all functions in schema public to service_role;
+
 -- Re-assert audit_log immutability (AP-4) AFTER the blanket grant above, mirroring
 -- migration 0008's hardening: the ONLY writer is the SECURITY DEFINER trigger, so a
 -- client INSERT/UPDATE/DELETE/TRUNCATE must be a hard privilege error (42501), not a

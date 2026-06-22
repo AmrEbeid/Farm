@@ -196,6 +196,22 @@ insert into public.budget_lines (id, org_id, budget_id, category, planned, appro
 -- Responsibility: manager accountable for الحصوة sector (auto-routing substrate).
 insert into public.responsibility_assignments (id, org_id, person_id, scope_type, scope_id, responsibility_type) values ('29c87f5a-bf74-57c5-a996-8cb44c221c04','00000000-0000-0000-0000-000000000001','51a562a7-958b-5ef7-ab2c-276895b984f9','sector','2aa10e7e-d6fe-5f6b-88f0-1c3c01bc1d23','accountable_manager');
 
+-- GoTrue compatibility: the bulk inserts above leave several auth.users token
+-- columns NULL, which GoTrue's Go scanner cannot read back (breaks signin AND
+-- the admin listUsers query). Coalesce them to empty strings so the seeded
+-- users are loadable. (Programmatic email+password sign-in is set up at runtime
+-- by lib/seed-auth.ts / the e2e global-setup, which relink these people rows to
+-- freshly-minted auth users.)
+update auth.users set
+  confirmation_token        = coalesce(confirmation_token, ''),
+  recovery_token            = coalesce(recovery_token, ''),
+  email_change_token_new    = coalesce(email_change_token_new, ''),
+  email_change              = coalesce(email_change, ''),
+  email_change_token_current= coalesce(email_change_token_current, ''),
+  phone_change              = coalesce(phone_change, ''),
+  phone_change_token        = coalesce(phone_change_token, ''),
+  reauthentication_token    = coalesce(reauthentication_token, '');
+
 reset session_replication_role;
 
 -- End Ebeid seed.
