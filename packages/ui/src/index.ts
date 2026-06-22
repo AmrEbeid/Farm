@@ -48,4 +48,6 @@ export { Timeline } from "./components/Timeline";
 export type { TimelineProps, TimelineItem, TimelineTone } from "./components/Timeline";
 export { DescriptionList } from "./components/DescriptionList";
 export type { DescriptionListProps, DescriptionItem } from "./components/DescriptionList";
+export { Avatar } from "./components/Avatar";
+export type { AvatarProps, AvatarSize } from "./components/Avatar";
 export * from "./theme";

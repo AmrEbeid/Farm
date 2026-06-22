@@ -276,3 +276,11 @@
 .fos-dl__dd { margin:0; font-size:var(--text-sm); font-weight:var(--weight-semibold); color:var(--ink); }
 .fos-dl__dd--num { font-variant-numeric:tabular-nums; }
 .fos-dl--inline .fos-dl__dd { text-align:end; }
+
+/* ---- Avatar ---- */
+.fos-avatar { display:inline-grid; place-items:center; flex:none; border-radius:var(--radius-pill); overflow:hidden; background:color-mix(in srgb, var(--brand) 16%, var(--surface)); color:var(--brand-hover); font-weight:var(--weight-bold); text-transform:uppercase; user-select:none; }
+.fos-avatar--sm { width:24px; height:24px; font-size:var(--text-xs); }
+.fos-avatar--md { width:34px; height:34px; font-size:var(--text-sm); }
+.fos-avatar--lg { width:48px; height:48px; font-size:var(--text-md); }
+.fos-avatar__img { width:100%; height:100%; object-fit:cover; display:block; }
+.fos-avatar__initials { line-height:1; }
