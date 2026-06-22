@@ -98,4 +98,6 @@ export { PalmGrid } from "./components/PalmGrid";
 export type { PalmGridProps, PalmLine, PalmCellData } from "./components/PalmGrid";
 export { FileTimeline } from "./components/FileTimeline";
 export type { FileTimelineProps, TimelineEvent, TimelineKind } from "./components/FileTimeline";
+export { ApprovalChain } from "./components/ApprovalChain";
+export type { ApprovalChainProps, ApprovalStep, ApprovalState } from "./components/ApprovalChain";
 export * from "./theme";

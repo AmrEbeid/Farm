@@ -568,3 +568,22 @@
 .fos-tl--inspection .fos-tl__marker { background:var(--info-fg); }
 .fos-tl--expense .fos-tl__marker { background:var(--warning-fg); }
 .fos-tl--photo .fos-tl__marker { background:var(--accent-fg); }
+
+/* ---- ApprovalChain (domain — approval sequence) ---- */
+.fos-approval { list-style:none; margin:0; padding:0; display:grid; gap:var(--space-2); }
+.fos-approval__step { display:flex; align-items:center; gap:var(--space-3);
+  padding-block:var(--space-2); padding-inline:var(--space-3); border:1px solid var(--line);
+  border-radius:var(--radius-control); background:var(--surface); }
+.fos-approval__marker { inline-size:var(--space-5); block-size:var(--space-5); flex:none; border-radius:50%;
+  display:grid; place-items:center; font-size:var(--text-xs); font-weight:var(--weight-bold);
+  color:var(--brand-contrast); background:var(--ink-muted); }
+.fos-approval__body { display:flex; flex-direction:column; gap:2px; }
+.fos-approval__actor { font-size:var(--text-sm); font-weight:var(--weight-bold); }
+.fos-approval__note { font-size:var(--text-xs); color:var(--ink-muted); }
+.fos-approval--requested .fos-approval__marker { background:var(--info-fg); }
+.fos-approval--pending .fos-approval__marker { background:var(--ink-muted); }
+.fos-approval--pending { border-color:color-mix(in srgb, var(--brand) 35%, var(--surface)); background:var(--surface-sunken); }
+.fos-approval--approved .fos-approval__marker { background:var(--success-fg); }
+.fos-approval--approved { border-color:color-mix(in srgb, var(--success-fg) 30%, var(--surface)); }
+.fos-approval--rejected .fos-approval__marker { background:var(--danger-fg); }
+.fos-approval--rejected { border-color:color-mix(in srgb, var(--danger-fg) 30%, var(--surface)); }
