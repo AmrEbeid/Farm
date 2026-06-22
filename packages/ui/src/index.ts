@@ -96,4 +96,6 @@ export { PalmCell } from "./components/PalmCell";
 export type { PalmCellProps, PalmStatus } from "./components/PalmCell";
 export { PalmGrid } from "./components/PalmGrid";
 export type { PalmGridProps, PalmLine, PalmCellData } from "./components/PalmGrid";
+export { FileTimeline } from "./components/FileTimeline";
+export type { FileTimelineProps, TimelineEvent, TimelineKind } from "./components/FileTimeline";
 export * from "./theme";
