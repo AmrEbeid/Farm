@@ -457,3 +457,24 @@
   /* Overlay is a no-op on desktop even if state is "open". */
   .fos-appshell__overlay { display:none; }
 }
+/* ── Charts ─────────────────────────────────────────────── */
+.fos-chart {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: var(--card-pad);
+  box-shadow: var(--shadow-card);
+}
+/* Visually-hidden data-table fallback — stays in the a11y tree. */
+.fos-chart__table {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: calc(-1 * var(--space-1));
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

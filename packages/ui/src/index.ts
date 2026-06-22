@@ -80,4 +80,6 @@ export { AppShell } from "./components/AppShell";
 export type { AppShellProps } from "./components/AppShell";
 export { useChartTokens } from "./components/useChartTokens";
 export type { ChartTokens } from "./components/useChartTokens";
+export { BarChart } from "./components/BarChart";
+export type { BarChartProps, ChartSeries } from "./components/BarChart";
 export * from "./theme";
