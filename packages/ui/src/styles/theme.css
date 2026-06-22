@@ -11,6 +11,7 @@
   --neutral-bg:#eef1ef; --neutral-fg: var(--gray-600);
   --accent-bg: var(--purple-100); --accent-fg: var(--purple-500);
   --shadow-card: var(--shadow-2);
+  --shadow-overlay: var(--shadow-3); --scrim: color-mix(in srgb, var(--gray-900) 45%, transparent);
 }
 [data-theme="dark"] {
   --brand: var(--green-500); --brand-hover: var(--green-300); --brand-contrast:#0c1f12;
@@ -24,6 +25,7 @@
   --neutral-bg:#243029; --neutral-fg: var(--gray-400);
   --accent-bg:#2a2140; --accent-fg:#b39ddb;
   --shadow-card:0 1px 3px rgba(0,0,0,.4),0 4px 18px rgba(0,0,0,.3);
+  --shadow-overlay:0 30px 90px rgba(0,0,0,.6); --scrim: color-mix(in srgb, #000000 62%, transparent);
 }
 /* Density (comfortable default) */
 :root { --control-h:38px; --control-pad-x:var(--space-4); --gap:var(--space-4); --card-pad:var(--space-4); }
