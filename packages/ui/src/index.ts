@@ -54,4 +54,6 @@ export { Tooltip } from "./components/Tooltip";
 export type { TooltipProps, TooltipPlacement } from "./components/Tooltip";
 export { Pagination } from "./components/Pagination";
 export type { PaginationProps } from "./components/Pagination";
+export { EmptyState } from "./components/EmptyState";
+export type { EmptyStateProps } from "./components/EmptyState";
 export * from "./theme";

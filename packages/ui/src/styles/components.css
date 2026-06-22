@@ -301,3 +301,10 @@
 .fos-pagination__page--active { background:var(--brand); color:var(--brand-contrast); border-color:var(--brand); }
 .fos-pagination__page:focus-visible, .fos-pagination__nav:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
 .fos-pagination__nav:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ---- EmptyState ---- */
+.fos-empty { display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--space-2); padding:var(--space-10) var(--space-4); color:var(--ink); }
+.fos-empty__icon { width:56px; height:56px; border-radius:var(--radius-pill); display:grid; place-items:center; font-size:var(--text-2xl); background:color-mix(in srgb, var(--brand) 12%, var(--surface)); color:var(--brand-hover); margin-block-end:var(--space-1); }
+.fos-empty__title { margin:0; font-size:var(--text-md); font-weight:var(--weight-bold); color:var(--ink); }
+.fos-empty__desc { margin:0; font-size:var(--text-sm); color:var(--ink-muted); max-width:42ch; }
+.fos-empty__action { margin-block-start:var(--space-2); }
