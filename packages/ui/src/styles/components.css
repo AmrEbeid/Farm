@@ -231,3 +231,23 @@
 .fos-stat__change--down { color:var(--danger-fg); }
 .fos-stat__change--flat { color:var(--ink-muted); }
 .fos-stat__help { font-size:var(--text-xs); color:var(--ink-muted); }
+
+/* ---- DataTable ---- */
+.fos-table-wrap { width:100%; overflow:auto; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); }
+.fos-table-wrap--sticky { max-height:420px; }
+.fos-table { width:100%; border-collapse:collapse; font-size:var(--text-sm); color:var(--ink); }
+.fos-table__caption { text-align:start; padding:var(--space-3) var(--space-4); font-weight:var(--weight-bold); color:var(--ink); }
+.fos-table__head { background:var(--surface-sunken); }
+.fos-table-wrap--sticky .fos-table__head th { position:sticky; inset-block-start:0; z-index:var(--z-sticky); background:var(--surface-sunken); }
+.fos-table__th { text-align:start; font-size:var(--text-xs); font-weight:var(--weight-bold); color:var(--ink-muted); padding:var(--space-2) var(--space-3); border-block-end:1px solid var(--line); white-space:nowrap; }
+.fos-table__th--center { text-align:center; }
+.fos-table__th--end { text-align:end; }
+.fos-table__sort { display:inline-flex; align-items:center; gap:var(--space-1); background:none; border:none; font:inherit; font-weight:var(--weight-bold); color:inherit; cursor:pointer; padding:0; }
+.fos-table__sort:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; border-radius:var(--radius-control); }
+.fos-table__sort-icon { font-size:var(--text-xs); color:var(--ink-muted); }
+.fos-table__td { padding:var(--space-2) var(--space-3); border-block-end:1px solid var(--line); text-align:start; }
+.fos-table__td--center { text-align:center; }
+.fos-table__td--end { text-align:end; }
+.fos-table__td--num { font-variant-numeric:tabular-nums; }
+.fos-table__row:hover { background:color-mix(in srgb, var(--brand) 6%, var(--surface)); }
+.fos-table__empty { padding:var(--space-8) var(--space-4); text-align:center; color:var(--ink-muted); font-size:var(--text-sm); }

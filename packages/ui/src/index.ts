@@ -42,4 +42,6 @@ export { FormRow, Label, Help, FieldError } from "./components/FormRow";
 export type { FormRowProps, LabelProps, HelpProps, FieldErrorProps } from "./components/FormRow";
 export { Stat } from "./components/Stat";
 export type { StatProps, StatTrend } from "./components/Stat";
+export { DataTable } from "./components/DataTable";
+export type { DataTableProps, DataTableColumn, SortState, SortDirection } from "./components/DataTable";
 export * from "./theme";
