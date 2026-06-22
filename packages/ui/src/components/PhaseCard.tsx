@@ -8,7 +8,7 @@ export interface PhaseMetaRow {
   value: React.ReactNode;
 }
 
-export interface PhaseCardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface PhaseCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   title: React.ReactNode;
   tone?: PhaseTone;
   status?: React.ReactNode;
