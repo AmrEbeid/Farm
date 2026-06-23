@@ -112,6 +112,17 @@ num(coverage_days)` — so `num("∞")` rendered **"ليس رقمًا"** (NaN) t
 - **D2 — `bin.reserved` ledger reconciliation** — make reservations `reserve`/`release`
   movements and extend `fn_bin_rebuild` to recompute `reserved`; couples to the B1 RPC fix
   and is validated by the reservation step of the e2e.
+- **D3 — RLS MEDIUM-2 (cross-org reference columns)** — extend the parent-org `WITH CHECK`
+  from RLS-H1 to the hierarchy reference columns on `assets`/`expenses`/`event_locations`/
+  `sectors`/`hawshat`/`lines` (e.g. `expenses.farm_id`, `event_locations.sector_id`).
+  **Investigated and deliberately deferred:** it cannot be applied blind, because
+  `executeOperation` stores `op.target_id` — the plan's `scope_id`, which is a *farm*,
+  *sector*, or *hawsha* id depending on `scope_type` — directly into
+  `event_locations.sector_id`. A strict "`sector_id` ∈ `sectors`" check would reject that
+  insert for farm/hawsha-scoped plans and break the wedge loop. The fix needs the column
+  semantics tightened (or polymorphic-aware checks) **and** the Playwright e2e to confirm
+  no regression. Low impact (injected rows are org-tagged and invisible to the victim), so
+  it belongs in the same slice as the B1 RPC refactor, on the Docker stack.
 
 ---
 
