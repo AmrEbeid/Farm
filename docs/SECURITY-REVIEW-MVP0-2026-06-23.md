@@ -108,7 +108,14 @@ num(coverage_days)` — so `num("∞")` rendered **"ليس رقمًا"** (NaN) t
 
 ---
 
-## C. Deferred (⏸ need the Docker/PostgREST stack to verify safely)
+## C. Deferred
+- **D3 — RLS reference-column hardening** ✅ DONE (migration `0012`, test `08`, harness-verified):
+  `assets`(sector_id/hawsha_id/line_id) and `expenses`(farm_id/sector_id/hawsha_id/plan_id/
+  supplier_id) now reject a non-null reference to a foreign-org row (NULL-tolerant). The
+  `assets.parent_id` self-reference is omitted (an EXISTS against `assets` inside its own
+  policy hits 42P17 recursion; a foreign parent is RLS-invisible to the victim anyway).
+
+### Still deferred (⏸ need the Docker/PostgREST stack to verify safely)
 - **D1 — FORCE ROW LEVEL SECURITY** on tenant tables (definer-function defense-in-depth).
   Local Postgres can't verify it: the superuser bypasses RLS, masking FORCE behavior, and
   its interaction with the Supabase `postgres`/`service_role` roles must be checked on the
