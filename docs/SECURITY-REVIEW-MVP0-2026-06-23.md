@@ -84,6 +84,15 @@ unchanged; `tsc` clean. **Pending:** confirm via the e2e, and extend to any othe
 numeric-input action. (No new dependency added — manual guards, not zod, per the
 "no new deps without Owner approval" rule.)
 
+### B5 (HIGH, display correctness) — coverage page showed "ليس رقمًا" (NaN) for ∞ coverage  ✅ fixed
+A calculation/display review of the read layer found one real bug (PvA-variance, budget, and
+dashboard math all verified correct). `fn_stock_coverage` returns the **string** `"∞"` for
+zero-demand items (never null), but the coverage page checked `coverage_days == null ? "∞" :
+num(coverage_days)` — so `num("∞")` rendered **"ليس رقمًا"** (NaN) to the user. Fixed with a
+`coverageDays()` helper in `lib/money.ts` (renders the ∞ sentinel) + a corrected type; new
+`lib/money.test.ts` pins it. The seeded wedge always has demand, so the e2e never hit it.
+(app `tsc` clean; app unit tests 15/15.)
+
 ### Reviewed and OK (no action)
 - `app/api/dev/seed-auth/route.ts` — guarded by `isLocal()` (URL-based), returns 403 off
   local and safe-defaults to 403 when the URL is unset. **Correct as-is**: the e2e runs a
