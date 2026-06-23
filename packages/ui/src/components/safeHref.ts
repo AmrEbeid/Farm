@@ -20,3 +20,19 @@ export function safeHref(href: string | undefined | null): string | undefined {
   // No scheme (relative/anchor/protocol-relative) or an allow-listed scheme: keep as-is.
   return href;
 }
+
+/**
+ * Same idea as safeHref but for image `src`: allow http(s), inline `data:image/…`, and
+ * relative URLs; reject everything else (javascript:, data:text/html, etc.). Returns
+ * `undefined` for an unsafe value so the caller can fall back (e.g. to initials).
+ */
+export function safeImgSrc(src: string | undefined | null): string | undefined {
+  if (!src) return undefined;
+  const cleaned = src.replace(/\s+/g, "");
+  if (/^data:image\//i.test(cleaned)) return src;
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(cleaned);
+  if (scheme && scheme[1].toLowerCase() !== "http" && scheme[1].toLowerCase() !== "https") {
+    return undefined;
+  }
+  return src;
+}

@@ -1,5 +1,5 @@
 import { it, expect, describe } from "vitest";
-import { safeHref } from "./safeHref";
+import { safeHref, safeImgSrc } from "./safeHref";
 
 describe("safeHref", () => {
   it("passes through safe schemes and relative/anchor URLs unchanged", () => {
@@ -27,5 +27,20 @@ describe("safeHref", () => {
     expect(safeHref(undefined)).toBeUndefined();
     expect(safeHref(null)).toBeUndefined();
     expect(safeHref("")).toBeUndefined();
+  });
+});
+
+describe("safeImgSrc", () => {
+  it("allows http(s), data:image, and relative URLs", () => {
+    for (const ok of ["https://x.test/a.png", "http://x.test/a.jpg",
+                      "data:image/png;base64,AAAA", "/avatars/1.png", "a.png"]) {
+      expect(safeImgSrc(ok)).toBe(ok);
+    }
+  });
+  it("blocks javascript:, data:text/html, and nullish", () => {
+    expect(safeImgSrc("javascript:alert(1)")).toBeUndefined();
+    expect(safeImgSrc("data:text/html,<script>alert(1)</script>")).toBeUndefined();
+    expect(safeImgSrc(undefined)).toBeUndefined();
+    expect(safeImgSrc("")).toBeUndefined();
   });
 });

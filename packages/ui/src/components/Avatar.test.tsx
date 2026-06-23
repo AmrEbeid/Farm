@@ -24,4 +24,15 @@ describe("Avatar", () => {
     const { container } = render(<Avatar name="عمر عبيد" />);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  // MEDIUM-2: an unsafe src must not render an <img>; fall back to initials.
+  it("falls back to initials for an unsafe (javascript:) src", () => {
+    const { container } = render(<Avatar name="عمر عبيد" src="javascript:alert(1)" />);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("عع")).toBeInTheDocument();
+  });
+  it("renders an <img> for a safe http src", () => {
+    const { container } = render(<Avatar name="عمر عبيد" src="https://x.test/o.jpg" />);
+    expect(container.querySelector("img")).not.toBeNull();
+  });
 });

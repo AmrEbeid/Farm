@@ -1,4 +1,5 @@
 import * as React from "react";
+import { safeImgSrc } from "./safeHref";
 
 export type AvatarSize = "sm" | "md" | "lg";
 
@@ -24,6 +25,13 @@ export const Avatar = React.forwardRef<HTMLSpanElement, AvatarProps>(function Av
   { name, src, size = "md", className = "", ...rest },
   ref
 ) {
+  // MEDIUM-2: only render an image for a safe scheme (http(s)/data:image), and fall back to
+  // initials if it fails to load — so an unsafe or broken src never leaves an empty avatar.
+  const safeSrc = safeImgSrc(src);
+  const [failed, setFailed] = React.useState(false);
+  React.useEffect(() => setFailed(false), [safeSrc]);
+  const showImg = safeSrc != null && !failed;
+
   return (
     <span
       ref={ref}
@@ -32,8 +40,8 @@ export const Avatar = React.forwardRef<HTMLSpanElement, AvatarProps>(function Av
       aria-label={name}
       {...rest}
     >
-      {src ? (
-        <img className="fos-avatar__img" src={src} alt="" />
+      {showImg ? (
+        <img className="fos-avatar__img" src={safeSrc} alt="" onError={() => setFailed(true)} />
       ) : (
         <span className="fos-avatar__initials" aria-hidden="true">{initialsOf(name)}</span>
       )}
