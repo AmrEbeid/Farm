@@ -3,13 +3,13 @@
 
 ## This session (2026-06-23) — independent security review DONE (gate #1)
 Ran the independent MVP-0 security review (3 adversarial subagents: RLS / grants / engine,
-then an app-layer pass). Findings fixed on branch **`fix/mvp0-security-remediation`** (7 commits,
-not merged/pushed) — migration `0010` + test `05`. Highlights: **GRANT-C1** (unauthenticated
+then an app-layer pass). Findings fixed on branch **`fix/mvp0-security-remediation`**
+(not merged/pushed) — migration `0010` + tests `05`/`06`. Highlights: **GRANT-C1** (unauthenticated
 `anon` had full DML+EXECUTE incl. the SECURITY DEFINER engine — CRITICAL), **RLS-H1** (child
 tables didn't validate parent org — cross-tenant write), **ENGINE-C1** (expiry double-counted),
 **ENGINE-H1** (phantom purchase rec), plus HIGH-1 (org_member write lockdown), ENGINE-H2/SS/M1,
 and B4 input-validation guards. Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
-- **Verified: 49/49 pgTAP green** (36 existing + 13 new). Docker crash-looped (`exit status 150`),
+- **Verified: 59/59 pgTAP green** (36 existing + 23 new). Docker crash-looped (`exit status 150`),
   so the suite was run via a new Docker-free harness: **`apps/farm-os/supabase/test-shims/`**
   (`run-pgtap-local.sh`). App `tsc` clean; TS unit tests 11/11.
 - **Remaining for this workstream (Owner-gated / Docker-gated):** (1) Owner **merge sign-off** on
@@ -28,7 +28,7 @@ Everything now lives in one **private monorepo: `github.com/AmrEbeid/Farm`** (np
 
 ## Approved to do next (the next safe slice)
 Build is done; the remaining gates are **review + validation + infra**, all Owner-led:
-1. **Independent security review — DONE this session** (branch `fix/mvp0-security-remediation`, 49/49 pgTAP). Next: Owner **merge sign-off** + the **Playwright e2e** on a healthy Docker stack; then the deferred B1/D1/D2/B2/B3 hardening (see the security-review doc).
+1. **Independent security review — DONE this session** (branch `fix/mvp0-security-remediation`, 59/59 pgTAP). Next: Owner **merge sign-off** + the **Playwright e2e** on a healthy Docker stack; then the deferred B1/D1/D2/B2/B3 hardening (see the security-review doc).
 2. **Pilot validation** — the 5-farm interviews + the H1–H4 / ≥5-of-7 gates (all still open).
 3. **Stage 0 — legacy security remediation** (rotate the exposed anon key, purge the old repo's git history, scrub the Gmail/password from the accounting sheet) — still OPEN; concerns the *legacy* system, untouched by the new build.
 4. **Cloud deploy** — provision a dedicated (non-Zeal-org) Supabase project + Vercel, apply migrations, wire real auth. (Local dev used local Supabase to avoid billing a personal project to the Zeal org.)
