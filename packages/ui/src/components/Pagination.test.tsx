@@ -32,4 +32,12 @@ describe("Pagination", () => {
     const { container } = render(<Pagination page={2} pageCount={5} onChange={() => {}} ariaLabel="ترقيم" prevLabel="السابق" nextLabel="التالي" />);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  // A non-finite pageCount must not crash (Array.from({length: Infinity}) throws RangeError).
+  it("renders no page buttons (instead of crashing) for a non-finite pageCount", () => {
+    const { container } = render(
+      <Pagination page={1} pageCount={Infinity} onChange={() => {}} ariaLabel="ترقيم" prevLabel="<" nextLabel=">" />
+    );
+    expect(container.querySelectorAll(".fos-pagination__page").length).toBe(0);
+  });
 });

@@ -19,12 +19,15 @@ export interface PaginationProps extends Omit<React.HTMLAttributes<HTMLElement>,
 export function Pagination({
   page, pageCount, onChange, ariaLabel, prevLabel, nextLabel, className = "", ...rest
 }: PaginationProps) {
+  // Guard a non-finite pageCount: Array.from({ length: Infinity }) throws a RangeError,
+  // which would crash the whole render. NaN/Infinity → 0 pages.
+  const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
   const pages = React.useMemo(
-    () => Array.from({ length: Math.max(0, pageCount) }, (_, i) => i + 1),
-    [pageCount]
+    () => Array.from({ length: count }, (_, i) => i + 1),
+    [count]
   );
   const go = (p: number) => {
-    if (p >= 1 && p <= pageCount && p !== page) onChange(p);
+    if (p >= 1 && p <= count && p !== page) onChange(p);
   };
 
   return (
@@ -55,7 +58,7 @@ export function Pagination({
         type="button"
         className="fos-pagination__nav"
         onClick={() => go(page + 1)}
-        disabled={page >= pageCount}
+        disabled={page >= count}
       >
         {nextLabel}
       </button>

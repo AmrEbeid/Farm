@@ -13,7 +13,8 @@ export interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /** Linear progress bar for budget / plan completion. */
 export function Progress({ value, tone = "default", label, className = "", ...rest }: ProgressProps) {
-  const pct = Math.max(0, Math.min(100, value));
+  // Guard non-finite values so aria-valuenow / width stay valid (NaN → 0).
+  const pct = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
   return (
     <div
       className={`fos-progress${tone !== "default" ? ` fos-progress--${tone}` : ""} ${className}`.trim()}
