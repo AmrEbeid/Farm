@@ -1,0 +1,46 @@
+name: db-tests
+
+# Runs the Farm OS pgTAP suite (RLS isolation, audit immutability, seed invariants, the
+# SPEC-0001 stock engine, and the security-remediation regressions) on every PR/push.
+# Uses the Docker-free harness in apps/farm-os/supabase/test-shims — a plain local
+# PostgreSQL + pgTAP with Supabase shims — so it needs neither Docker nor the Supabase CLI.
+#
+# NOTE: a local superuser bypasses RLS, so this does NOT verify FORCE ROW LEVEL SECURITY,
+# and it does not exercise PostgREST/GoTrue or the Playwright e2e. The authoritative
+# integration run is still `supabase test db` + `npx playwright test` on the Docker stack.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pgtap:
+    name: pgTAP — RLS · audit · seed · engine · security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL + pgTAP
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          # ubuntu-latest ships a postgresql server; ensure one is present, then add the
+          # matching pgTAP extension package (postgresql-<major>-pgtap).
+          sudo apt-get install -y postgresql postgresql-contrib
+          PGVER="$(ls -1 /usr/lib/postgresql/ | sort -V | tail -1)"
+          sudo apt-get install -y "postgresql-${PGVER}-pgtap"
+          echo "PG_BIN=/usr/lib/postgresql/${PGVER}/bin" >> "$GITHUB_ENV"
+          "/usr/lib/postgresql/${PGVER}/bin/pg_config" --version
+
+      - name: Run pgTAP suite (Docker-free harness)
+        run: bash apps/farm-os/supabase/test-shims/run-pgtap-local.sh

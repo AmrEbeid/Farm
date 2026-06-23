@@ -1,0 +1,84 @@
+-- 06 — stock-coverage engine edge cases (SPEC-0001 §2 "Test strategy": on_hand ≥
+-- requirement, lead time > horizon, multiple scheduled receipts, multiple demanding
+-- ops). Complements 04 (the worked example) and 05 (the security/remediation cases).
+-- Test-only: self-contained fixtures in org A, created as the superuser then read as the
+-- authenticated owner (the engine is org-scoped). begin/rollback — no committed state.
+
+begin;
+select plan(10);
+
+\set orgA '00000000-0000-0000-0000-000000000001'
+
+-- One plan to hang all the demand operations on (status active -> counted by the engine).
+insert into public.plans (id, org_id, type, period_start, status)
+  values ('cccc0000-0000-0000-0000-00000000e001', :'orgA', 'weekly', '2025-07-08', 'active');
+
+-- Helper data: 4 items, each with a bin and (most) a demand op needing material.
+-- A: ample stock, no shortage/warning.   B: coverage < a >horizon lead time.
+-- C: shortage offset by a scheduled receipt.   D: shortage caused by the 2nd-period op.
+insert into public.inventory_items (id, org_id, name, unit, pack_size, safety_stock, lead_time_days) values
+  ('cccc0000-0000-0000-0000-0000000000a0', :'orgA', 'صنف وفير',        'kg', 1,  60, 5),
+  ('cccc0000-0000-0000-0000-0000000000b0', :'orgA', 'صنف مهلة طويلة',  'kg', 1,   0, 70),
+  ('cccc0000-0000-0000-0000-0000000000c0', :'orgA', 'صنف بتوريد',      'kg', 1,   0, 5),
+  ('cccc0000-0000-0000-0000-0000000000d0', :'orgA', 'صنف عمليتين',     'kg', 50,  0, 5);
+insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, ordered, projected) values
+  (:'orgA','cccc0000-0000-0000-0000-0000000000a0','main',1000,0,0,1000),
+  (:'orgA','cccc0000-0000-0000-0000-0000000000b0','main', 100,0,0, 100),
+  (:'orgA','cccc0000-0000-0000-0000-0000000000c0','main', 100,0,0, 100),
+  (:'orgA','cccc0000-0000-0000-0000-0000000000d0','main', 150,0,0, 150);
+
+-- demand operations (period 1 = 2025-07-08, period 2 = 2025-07-15)
+insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, status) values
+  ('cccc0000-0000-0000-0000-0000000a0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- A
+  ('cccc0000-0000-0000-0000-0000000b0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- B
+  ('cccc0000-0000-0000-0000-0000000c0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- C
+  ('cccc0000-0000-0000-0000-0000000d0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- D op1
+  ('cccc0000-0000-0000-0000-0000000d0002', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-15','planned'); -- D op2
+insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit) values
+  (:'orgA','cccc0000-0000-0000-0000-0000000a0001','cccc0000-0000-0000-0000-0000000000a0', 50,'kg'),  -- A: 50/wk
+  (:'orgA','cccc0000-0000-0000-0000-0000000b0001','cccc0000-0000-0000-0000-0000000000b0',150,'kg'),  -- B: 150 in P1 (> 100 on hand → shortfall 50)
+  (:'orgA','cccc0000-0000-0000-0000-0000000c0001','cccc0000-0000-0000-0000-0000000000c0',200,'kg'),  -- C: 200 in P1
+  (:'orgA','cccc0000-0000-0000-0000-0000000d0001','cccc0000-0000-0000-0000-0000000000d0',100,'kg'),  -- D: 100 in P1
+  (:'orgA','cccc0000-0000-0000-0000-0000000d0002','cccc0000-0000-0000-0000-0000000000d0',100,'kg');  -- D: 100 in P2
+-- C's scheduled receipts: 60 in P1, 80 in P2 (future receipt movements)
+insert into public.inventory_movements (org_id, item_id, type, qty, location, occurred_at) values
+  (:'orgA','cccc0000-0000-0000-0000-0000000000c0','receipt',60,'main','2025-07-08'),
+  (:'orgA','cccc0000-0000-0000-0000-0000000000c0','receipt',80,'main','2025-07-15');
+
+select set_config('test.ownerA', (select user_id::text from public.organization_member
+  where org_id = :'orgA' and role='owner'), false);
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('test.ownerA'), 'role','authenticated')::text, true);
+set role authenticated;
+
+-- ===== Case A: on_hand (1000) >> requirement → no shortage, no warning, no order =====
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000a0','main',8)::jsonb ->> 'recommend_qty')::numeric,
+  0::numeric, 'A: ample stock → recommend_qty 0');
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000a0','main',8)::jsonb ->> 'shortage')::boolean,
+  false, 'A: ample stock → no shortage');
+select cmp_ok((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000a0','main',8)::jsonb ->> 'coverage_days')::numeric,
+  '>', 5::numeric, 'A: coverage_days exceeds the 5-day lead');
+
+-- ===== Case B: coverage (4.7d) < lead time (70d > 8-week horizon) → order flagged today =====
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000b0','main',8)::jsonb ->> 'coverage_days')::numeric,
+  4.7::numeric, 'B: coverage_days == 4.7 (100 ÷ 150/7)');
+select isnt((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000b0','main',8)::jsonb ->> 'order_by'),
+  null, 'B: coverage < lead → order_by set');
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000b0','main',8)::jsonb ->> 'recommend_qty')::numeric,
+  50::numeric, 'B: recommend covers the shortfall (50)');
+
+-- ===== Case C: a scheduled period-1 receipt (60) offsets the shortfall (40) → no order =====
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000c0','main',8)::jsonb ->> 'recommend_qty')::numeric,
+  0::numeric, 'C: scheduled receipt covers the shortfall → recommend_qty 0');
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000c0','main',8)::jsonb -> 'pab' ->> 2)::numeric,
+  40::numeric, 'C: PAB recovers to 40 after the 2nd-period receipt (80)');
+
+-- ===== Case D: the 2nd-period op is what tips PAB negative → shortage in period 2 =====
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000d0','main',8)::jsonb ->> 'first_shortage_period')::int,
+  2, 'D: multi-period demand → first shortage in period 2');
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000d0','main',8)::jsonb ->> 'recommend_qty')::numeric,
+  50::numeric, 'D: recommend rounds the 50 shortfall up to pack 50');
+
+reset role;
+select * from finish();
+rollback;

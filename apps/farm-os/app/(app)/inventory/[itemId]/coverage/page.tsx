@@ -3,7 +3,7 @@ import { requireMembership } from "@/lib/auth";
 import { VerdictBanner, KpiCard, Card } from "@/components/ui";
 import { PabChart } from "@/components/charts";
 import { CreatePrButton } from "@/components/CreatePrButton";
-import { num } from "@/lib/money";
+import { num, coverageDays } from "@/lib/money";
 
 interface Coverage {
   item_id: string;
@@ -11,7 +11,7 @@ interface Coverage {
   safety_stock: number;
   lead_time_days: number;
   reorder_point: number;
-  coverage_days: number | null;
+  coverage_days: number | "∞" | null;
   stockout_date: string | null;
   pab: number[];
   first_shortage_period: number | null;
@@ -67,7 +67,7 @@ export default async function CoveragePage({
         <KpiCard label="المتاح" value={num(c.available)} unit={unit} />
         <KpiCard
           label="أيام التغطية"
-          value={c.coverage_days == null ? "∞" : num(c.coverage_days, 1)}
+          value={coverageDays(c.coverage_days)}
           delta={`المهلة ${c.lead_time_days} يوم`}
           deltaDirection={c.shortage ? "down" : "none"}
         />
