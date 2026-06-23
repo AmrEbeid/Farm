@@ -1,22 +1,25 @@
 # Session Brief — Farm OS      Updated: 2026-06-23 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## This session (2026-06-23) — independent security review DONE (gate #1)
-Ran the independent MVP-0 security review (3 adversarial subagents: RLS / grants / engine,
-then an app-layer pass). Findings fixed on branch **`fix/mvp0-security-remediation`**
-(not merged/pushed) — migration `0010` + tests `05`/`06`. Highlights: **GRANT-C1** (unauthenticated
+## This session (2026-06-23) — security review DONE + **MERGED**; lib **published 1.1.0**
+Ran the independent MVP-0 security review (3 adversarial subagents: RLS / grants / engine, then
+an app + read/display pass) and the `@amrebeid/ui` hardening. **Merged to `main`:** PR #1 (library
+hardening), PR #2 (security remediation — migrations `0010`/`0011`, tests `05`/`06`/`07`, the
+`db-tests` pgTAP CI gate, B4/B5 app fixes). **`@amrebeid/ui@1.1.0` published** to GitHub Packages
+(changesets Version PR #3 → `release.yml`). The `db-tests` pgTAP job is green on CI (65/65).
+What landed: **GRANT-C1** (unauthenticated
 `anon` had full DML+EXECUTE incl. the SECURITY DEFINER engine — CRITICAL), **RLS-H1** (child
 tables didn't validate parent org — cross-tenant write), **ENGINE-C1** (expiry double-counted),
-**ENGINE-H1** (phantom purchase rec), plus HIGH-1 (org_member write lockdown), ENGINE-H2/SS/M1,
-and B4 input-validation guards. Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
-- **Verified: 59/59 pgTAP green** (36 existing + 23 new). Docker crash-looped (`exit status 150`),
-  so the suite was run via a new Docker-free harness: **`apps/farm-os/supabase/test-shims/`**
-  (`run-pgtap-local.sh`). App `tsc` clean; TS unit tests 11/11.
-- **Remaining for this workstream (Owner-gated / Docker-gated):** (1) Owner **merge sign-off** on
-  the branch — I cannot approve my own change; (2) **Playwright e2e** on a healthy Docker stack to
-  confirm no wedge-loop regression; (3) deferred to the Docker stack: B1 transactional inventory
-  RPCs (non-atomic on_hand arithmetic → ledger-drift risk, HIGH integrity), D1 FORCE RLS,
-  D2 `bin.reserved` reconciliation, B2 inventory role-gating, B3 hardcoded execution date/price.
+**ENGINE-H1** (phantom purchase rec), HIGH-1 (org_member write lockdown), ENGINE-H2/SS/M1, B4
+input validation, B5 coverage-NaN, and **`fn_post_movement`** (B1 transactional inventory RPC).
+Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
+- **Verified: 65/65 pgTAP** (Docker-free harness `apps/farm-os/supabase/test-shims/` — Docker
+  crash-looped, `exit status 150`); app `tsc` clean; app unit 18/18; library 231/231 + build.
+- **Open / remaining (Docker-gated):** **PR #4** — the B1 action rewiring
+  (`recordReceipt`/`executeOperation` → `fn_post_movement`), marked **DO NOT MERGE until the
+  Playwright e2e passes on Docker**. Then **D2** (`reserved` ledger-backing, coupled to PR #4),
+  **D1** FORCE RLS, **D3** RLS reference-columns, **B2** inventory role-gating, **B3** hardcoded
+  execution date/price. Also: enable repo setting "Allow Actions to create PRs" for hands-off releases.
 
 ## Where we are
 Everything now lives in one **private monorepo: `github.com/AmrEbeid/Farm`** (npm workspaces) — `packages/ui` (design system), `docs/` (these product docs). Governed under the **AI Project Operating System v3** (CLAUDE.md / TRACKER / this brief / SPEC-0001 / MASTER-PLAN).
