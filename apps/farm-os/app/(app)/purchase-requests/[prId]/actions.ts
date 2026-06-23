@@ -56,28 +56,18 @@ export async function recordReceipt(prId: string) {
     .select("item_id, qty, unit, supplier_id")
     .eq("pr_id", prId);
 
+  // B1: one transactional, ledger-reconciled RPC per item instead of the racy
+  // read-modify-write on inventory_bin.on_hand + separate movement insert.
   for (const it of items ?? []) {
-    const { data: bin } = await sb
-      .from("inventory_bin")
-      .select("on_hand")
-      .eq("item_id", it.item_id)
-      .eq("location", "main")
-      .single();
-    const onHand = Number(bin?.on_hand ?? 0) + Number(it.qty);
-    await sb
-      .from("inventory_bin")
-      .update({ on_hand: onHand })
-      .eq("item_id", it.item_id)
-      .eq("location", "main");
-    await sb.from("inventory_movements").insert({
-      org_id: m.orgId,
-      item_id: it.item_id,
-      type: "receipt",
-      qty: Number(it.qty),
-      unit: it.unit ?? "kg",
-      location: "main",
-      supplier_id: it.supplier_id ?? null,
+    const { error } = await sb.rpc("fn_post_movement", {
+      p_item: it.item_id,
+      p_type: "receipt",
+      p_qty: Number(it.qty),
+      p_location: "main",
+      p_unit: it.unit ?? "kg",
+      p_supplier_id: it.supplier_id ?? null,
     });
+    if (error) return { ok: false, error: error.message };
   }
 
   await sb.from("purchase_requests").update({ status: "received" }).eq("id", prId);

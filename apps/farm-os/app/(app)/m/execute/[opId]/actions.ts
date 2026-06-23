@@ -87,29 +87,31 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
       inventory_adjustment: -input.actualQty,
     });
 
+    // B1: issue stock via the transactional, ledger-reconciled RPC (replaces the racy
+    // on_hand read-modify-write + separate movement insert).
+    const { error: issErr } = await sb.rpc("fn_post_movement", {
+      p_item: req.item_id,
+      p_type: "issue",
+      p_qty: input.actualQty,
+      p_location: "main",
+      p_unit: req.unit ?? "kg",
+      p_event_id: ev.id,
+      p_plan_id: op.plan_id,
+    });
+    if (issErr) return { ok: false, error: issErr.message };
+    // Clear the reservation. NOTE (D2): `reserved` is still a direct snapshot update — not
+    // yet ledger-backed via reserve/release movements; reconcile it in the D2 slice.
     const { data: bin } = await sb
       .from("inventory_bin")
-      .select("on_hand, reserved")
+      .select("reserved")
       .eq("item_id", req.item_id)
       .eq("location", "main")
       .single();
-    const onHand = Number(bin?.on_hand ?? 0) - input.actualQty;
-    const reserved = Math.max(0, Number(bin?.reserved ?? 0) - Number(req.qty));
     await sb
       .from("inventory_bin")
-      .update({ on_hand: onHand, reserved })
+      .update({ reserved: Math.max(0, Number(bin?.reserved ?? 0) - Number(req.qty)) })
       .eq("item_id", req.item_id)
       .eq("location", "main");
-    await sb.from("inventory_movements").insert({
-      org_id: m.orgId,
-      item_id: req.item_id,
-      type: "issue",
-      qty: input.actualQty,
-      unit: req.unit ?? "kg",
-      location: "main",
-      event_id: ev.id,
-      plan_id: op.plan_id,
-    });
     // actual cost ~ price/kg × actual qty (84 ج.م/kg)
     actualCost = input.actualQty * 84;
   }
