@@ -18,7 +18,7 @@ Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
 - **Open / remaining (Docker-gated):** **PR #4** — the B1 action rewiring
   (`recordReceipt`/`executeOperation` → `fn_post_movement`), marked **DO NOT MERGE until the
   Playwright e2e passes on Docker**. Then **D2** (`reserved` ledger-backing, coupled to PR #4),
-  **D1** FORCE RLS, **D3** RLS reference-columns, **B2** inventory role-gating, **B3** hardcoded
+  **D1** FORCE RLS, **B2** inventory role-gating, **B3** hardcoded
   execution date/price. Also: enable repo setting "Allow Actions to create PRs" for hands-off releases.
 
 ## Where we are
