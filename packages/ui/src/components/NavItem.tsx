@@ -1,4 +1,5 @@
 import * as React from "react";
+import { safeHref } from "./safeHref";
 
 export interface NavItemData {
   /** Stable key. */ id: string;
@@ -22,7 +23,7 @@ export const NavItem = React.forwardRef<HTMLAnchorElement, NavItemProps>(functio
   return (
     <a
       ref={ref}
-      href={item.href ?? "#"}
+      href={safeHref(item.href) ?? "#"}
       className={`fos-navitem${active ? " fos-navitem--active" : ""} ${className}`.trim()}
       aria-current={active ? "page" : undefined}
       onClick={(e) => {

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { safeHref } from "./safeHref";
 
 export interface Crumb {
   /** Stable key. */ id: string;
@@ -36,7 +37,7 @@ export function Breadcrumbs({
               ) : (
                 <a
                   className="fos-breadcrumbs__link"
-                  href={c.href}
+                  href={safeHref(c.href)}
                   onClick={(e) => {
                     if (!e.defaultPrevented) onSelect?.(c.id);
                   }}

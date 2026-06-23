@@ -38,7 +38,7 @@ export function Modal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fos" data-theme={theme.scheme} data-density={theme.density} data-radius={theme.radius}>
+    <div className="fos" data-theme={theme.scheme} data-density={theme.density} data-radius={theme.radius} style={theme.brandStyle}>
       <div
         className="fos-modal__backdrop"
         onMouseDown={(e) => {

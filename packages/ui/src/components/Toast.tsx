@@ -117,6 +117,7 @@ export function Toaster(): React.ReactPortal | null {
       data-theme={theme.scheme}
       data-density={theme.density}
       data-radius={theme.radius}
+      style={theme.brandStyle}
     >
       <div className="fos-toaster" role="status" aria-live="polite" aria-atomic="false">
         {toasts.map((t) => (
@@ -132,6 +133,11 @@ function ToastItem({ toast, onDismiss }: { toast: ToastRecord; onDismiss: () => 
   const { tone = "info", duration = 4500 } = toast;
   const paused = React.useRef(false);
   const elRef = React.useRef<HTMLDivElement>(null);
+  // MEDIUM-3: Toaster passes a NEW onDismiss closure every render, so listing it in the
+  // effect deps restarted EVERY live toast's countdown whenever any toast was added/removed.
+  // Keep it in a ref and depend only on `duration`, so each timer runs once and isn't reset.
+  const dismissRef = React.useRef(onDismiss);
+  dismissRef.current = onDismiss;
 
   React.useEffect(() => {
     if (duration <= 0) return;
@@ -140,7 +146,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastRecord; onDismiss: () => 
     let timer: ReturnType<typeof setTimeout>;
     const run = () => {
       start = Date.now();
-      timer = setTimeout(onDismiss, remaining);
+      timer = setTimeout(() => dismissRef.current(), remaining);
     };
     const pause = () => {
       paused.current = true;
@@ -165,7 +171,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastRecord; onDismiss: () => 
       el?.removeEventListener("focusin", pause);
       el?.removeEventListener("focusout", resume);
     };
-  }, [duration, onDismiss]);
+  }, [duration]);
 
   return (
     <div ref={elRef} className={`fos-toast fos-toast--${tone}`}>

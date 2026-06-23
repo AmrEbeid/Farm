@@ -11,6 +11,7 @@ function Trigger() {
   return (
     <>
       <button onClick={() => t.ok("تم الحفظ")}>نجاح</button>
+      <button onClick={() => t.ok("إشعار ثانٍ")}>ثاني</button>
       <button onClick={() => t.danger("فشل الحفظ", { duration: 0 })}>خطأ ثابت</button>
     </>
   );
@@ -46,6 +47,19 @@ describe("useToast / Toaster", () => {
     expect(screen.getByText("تم الحفظ")).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(5000); });
     expect(screen.queryByText("تم الحفظ")).not.toBeInTheDocument();
+  });
+
+  // MEDIUM-3: adding a second toast must NOT reset the first toast's countdown.
+  it("does not restart a live toast's timer when another toast is added", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByText("نجاح"));          // toast 1 starts (duration 4500)
+    expect(screen.getByText("تم الحفظ")).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(3000); });        // toast 1 at 3000/4500
+    await user.click(screen.getByText("ثاني"));          // add toast 2 mid-flight
+    act(() => { vi.advanceTimersByTime(2000); });        // total 5000 > 4500 for toast 1
+    expect(screen.queryByText("تم الحفظ")).not.toBeInTheDocument(); // toast 1 dismissed on time
+    expect(screen.getByText("إشعار ثانٍ")).toBeInTheDocument();     // toast 2 (2000ms) still alive
   });
 
   it("keeps a sticky (duration<=0) toast on screen", async () => {

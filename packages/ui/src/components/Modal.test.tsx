@@ -66,4 +66,17 @@ describe("Modal", () => {
     await user.click(screen.getByText("افتح النافذة"));
     expect(await axe(document.body)).toHaveNoViolations();
   });
+
+  // HIGH-1: the modal portals to document.body (outside the provider subtree), so it must
+  // re-apply the tenant brand var or white-label themes would not reach modal content.
+  it("propagates the tenant brand var onto its portal root", () => {
+    render(
+      <ThemeProvider brand="#7a1fa2">
+        <Modal open onClose={() => {}} title="ت">x</Modal>
+      </ThemeProvider>
+    );
+    const dialog = document.querySelector(".fos-modal")!;
+    const portalRoot = dialog.closest(".fos") as HTMLElement;
+    expect(portalRoot.style.getPropertyValue("--brand")).toBe("#7a1fa2");
+  });
 });

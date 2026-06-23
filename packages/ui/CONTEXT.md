@@ -72,4 +72,6 @@ A component/PR is done only when all pass (see ADR-0003, spec §6):
 
 ## Status
 
-**v1.0 shipped.** All 8 plans in `docs/superpowers/plans/` executed: theming foundation + the full component catalog (forms, data-display, feedback/overlay, navigation/shell, charts, domain) + packaging/CI/publish. Green GitHub Actions CI; 176 tests; Changesets + GitHub Packages publish config (scope `@amrebeid`). Consumed by the Farm OS app at `../../apps/farm-os`.
+**v1.0 shipped.** All 8 plans in `docs/superpowers/plans/` executed: theming foundation + the full component catalog (forms, data-display, feedback/overlay, navigation/shell, charts, domain) + packaging/CI/publish. Green GitHub Actions CI; 231 tests (every source file covered); Changesets + GitHub Packages publish config (scope `@amrebeid`). Consumed by the Farm OS app at `../../apps/farm-os`.
+
+**Hardening (2026-06-23 review):** a malformed tenant `brand` is caught (falls back to the default theme, never crashes); `ThemeProvider` exposes the resolved brand vars via `useTheme().brandStyle`, which `Modal`/`Drawer`/`Toaster` spread onto their `document.body` portal roots so white-label brand reaches portalled content; consumer URLs (`href`/`src`) are scheme-sanitized via `safeHref`/`safeImgSrc`.

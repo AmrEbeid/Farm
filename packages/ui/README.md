@@ -80,7 +80,7 @@ The full **v1 catalog** is shipped (`1.0.0`):
 | **Charts** (theme-aware Recharts wrappers) | `BarChart`, `LineChart`, `DoughnutChart`, `useChartTokens` |
 | **Domain (Farm OS)** | `VerdictBanner`, `LoopStepper`, `PhaseCard`, `StatusPill`, `PalmGrid`, `FileTimeline`, `ApprovalChain` |
 
-Each export ships with its prop types (e.g. `ButtonProps`, `ButtonVariant`, `TagTone`, `AlertTone`). The theme API (`ThemeProvider`, `useTheme`, `brandVars`, and the `ThemeScheme` / `Density` / `Radius` types) is re-exported from the package root. **Recharts** is a peer dependency (used by the chart wrappers). Every component is token-pure, a11y-tested (jest-axe), and RTL-first; 176 tests pass under green CI.
+Each export ships with its prop types (e.g. `ButtonProps`, `ButtonVariant`, `TagTone`, `AlertTone`). The theme API (`ThemeProvider`, `useTheme`, `brandVars`, and the `ThemeScheme` / `Density` / `Radius` types) is re-exported from the package root. **Recharts** is a peer dependency (used by the chart wrappers). Every component is token-pure, a11y-tested (jest-axe), and RTL-first; 231 tests pass under green CI. Consumer-supplied URLs (`Breadcrumbs`/`NavItem` `href`, `Avatar` `src`) are scheme-sanitized — `javascript:`/`data:text/html` are neutralized.
 
 ---
 
