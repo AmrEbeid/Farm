@@ -117,6 +117,7 @@ export function Toaster(): React.ReactPortal | null {
       data-theme={theme.scheme}
       data-density={theme.density}
       data-radius={theme.radius}
+      style={theme.brandStyle}
     >
       <div className="fos-toaster" role="status" aria-live="polite" aria-atomic="false">
         {toasts.map((t) => (
