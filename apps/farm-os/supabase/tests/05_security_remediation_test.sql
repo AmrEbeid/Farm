@@ -6,7 +6,7 @@
 --   RLS-H1                  : a child row cannot reference a foreign-org parent.
 
 begin;
-select plan(8);
+select plan(10);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 
@@ -78,6 +78,19 @@ select lives_ok($$
   values ('00000000-0000-0000-0000-000000000001',
           'a0000000-0000-0000-0000-0000000000a1', 'weight', 99)
 $$, 'RLS-H1: child row on a same-org parent is allowed');
+
+-- HIGH-1: an authenticated member cannot write organization_member (no self-join
+-- escalation). Privilege is revoked, so this is a hard 42501 — not a silent RLS filter.
+select throws_ok($$
+  insert into public.organization_member (org_id, user_id, role)
+  values ('00000000-0000-0000-0000-000000000001', gen_random_uuid(), 'owner')
+$$, '42501', null, 'HIGH-1: authenticated cannot write organization_member');
+
+-- ENGINE-M1: the projected stock-out date is forward-looking (>= today), not anchored
+-- to the past plan start. (Potassium: ~4.2 days of cover from today.)
+select cmp_ok(
+  (public.fn_stock_coverage('39e22867-fbe2-5cd9-8a76-ce5871a8e8f4','main',8)::jsonb ->> 'stockout_date')::date,
+  '>=', current_date, 'ENGINE-M1: projected stock-out date is forward-looking (>= today)');
 
 reset role;
 select * from finish();

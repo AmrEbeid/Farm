@@ -34,6 +34,11 @@
 --             parent's. A member of org A could write a child row tagged org A but
 --             pointing at org B's parent (cross-tenant write / data injection). Add a
 --             WITH CHECK that the referenced parent is in the same org.
+--   HIGH-1    lock the tenancy spine (organization / organization_member) at the
+--             privilege layer — writes were denied only by policy omission. REVOKE
+--             client write privileges so membership changes go only via service_role.
+--   ENGINE-M1 projected stock-out date anchored to the (possibly past) plan start,
+--             yielding a historical date. Anchor to greatest(today, period_start).
 
 -- ===========================================================================
 -- GRANT-C1 — revoke the over-broad `anon` grants from migration 0009.
@@ -45,6 +50,19 @@ revoke usage, select on all sequences in schema public from anon;
 revoke execute on all functions in schema public from anon;
 -- `grant usage on schema public to anon` is retained (harmless; PostgREST needs it),
 -- but with no table/function privileges anon cannot read, write, or call anything.
+
+-- ===========================================================================
+-- HIGH-1 — lock down the tenancy spine at the privilege layer. organization and
+-- organization_member are SELECT-only for clients (migration 0001) — writes were
+-- denied only by policy OMISSION, while the blanket grant still handed `authenticated`
+-- INSERT/UPDATE/DELETE. A future permissive `tenant_all` policy on organization_member
+-- would then instantly become a self-service org-join / privilege-escalation hole
+-- (write your own membership row = join any org). REVOKE makes the deny robust: even a
+-- future policy cannot re-open it. Membership/org changes go ONLY through the
+-- server-side service_role path (lib/seed-auth.ts invite/relink flow), never a client.
+-- ===========================================================================
+revoke insert, update, delete on public.organization        from authenticated, anon;
+revoke insert, update, delete on public.organization_member from authenticated, anon;
 
 -- ===========================================================================
 -- ENGINE — re-define fn_stock_coverage with ENGINE-C1/H1/H2/SS/guard fixes.
@@ -187,7 +205,12 @@ begin
     v_stockout := null;
   else
     v_cov := round(v_avail / v_daily, 1);
-    v_stockout := (v_period_start::timestamptz + (v_avail / v_daily) * interval '1 day');
+    -- ENGINE-M1: anchor the projected stock-out to a FORWARD origin. v_period_start is
+    -- the plan's earliest demanding op, which can be in the past — anchoring there gave a
+    -- historical "stock-out date". Use greatest(today, period_start) so the projection
+    -- always looks forward (SPEC-0001 §1: "projected stock-out date").
+    v_stockout := greatest(current_date, v_period_start)::timestamptz
+                  + (v_avail / v_daily) * interval '1 day';
   end if;
 
   -- ENGINE-H1: recommend a purchase ONLY when the projected balance actually breaches
