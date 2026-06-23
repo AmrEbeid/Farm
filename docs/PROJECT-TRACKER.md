@@ -34,7 +34,7 @@ Status legend: Todo / Active / Blocked / In review / Done
 - [ ] Code complete · tests pass · RLS verified · Arabic-RTL · mobile · audit events · no secrets · Owner reviewed · reviewer approved (High/Critical) · tracker/spec/session updated · rollback documented
 
 ## Open gates / decisions needed
-- [ ] **Independent security review of the MVP-0 build** — RLS policies + the migration-0009 `service_role`/client grants + the stock-coverage engine math (PROJECT-RULES High-risk; before real data / deploy) — owner: Amr
+- [~] **Independent security review of the MVP-0 build** — DONE 2026-06-23 (3 adversarial subagents: RLS / grants / engine). Findings fixed on branch `fix/mvp0-security-remediation` (migration `0010` + test `05`): GRANT-C1 unauthenticated `anon` had full DML+EXECUTE incl. the SECURITY DEFINER engine (CRITICAL); RLS-H1 child tables didn't validate parent org (cross-tenant write, HIGH); ENGINE-C1 expiry double-counted (CRITICAL); ENGINE-H1 phantom purchase rec (HIGH); ENGINE-H2 horizon clamp + ENGINE-SS `first_warning_period`. **44/44 pgTAP green** (36 existing preserved + 8 new) verified on a local PG (Docker stack was down). Remaining: Owner merge sign-off + Playwright e2e on the Docker/PostgREST stack. Deferred (next slice): FORCE RLS, explicit `organization_member` write-deny, `bin.reserved` reconciliation, stockout-date origin. — owner: Amr
 - [ ] **Cloud infra decision** — provision a dedicated (non-Zeal-org) Supabase project + Vercel for deploy; wire real phone-OTP auth (currently email/password + local Supabase) — owner: Amr
 - [ ] **Owner sign-off on canonical palm count** (registry says 4,380/299) — owner: Amr
 - [ ] **Approve Stage 0 security remediation** (key rotation + history purge) — owner: Amr
