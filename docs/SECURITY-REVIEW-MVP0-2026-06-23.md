@@ -50,13 +50,17 @@ read `inventory_bin.on_hand`/`reserved`, compute the new value in JS, write it b
   `reserved = max(0, reserved − req.qty)` directly on the snapshot; no `reserve`/`release`
   movement is recorded, so `reserved` can never be reconciled. (Related to deferred item D2.)
 
-**Recommended fix:** move each inventory mutation into a single **SECURITY DEFINER
-Postgres RPC** (transactional) that inserts the movement(s) and then sets
-`on_hand = Σ(signed movements)` via the existing `fn_bin_rebuild` pattern — one round-trip,
-atomic, always ledger-consistent. The architecture decision (SPEC-0001 §"Decisions") already
-calls for logic in DB functions "close to the data." Add pgTAP that asserts the invariant
-holds after concurrent receipts. **Verify via the Playwright wedge-loop e2e** (the exact
-flow these actions drive) — which is why this wasn't shipped this session (Docker down).
+**Fix — DB primitive ✅ built + verified; app rewiring ⏸ e2e-gated.** Migration `0011`
+adds `fn_post_movement(item, type, qty, …)` — a SECURITY DEFINER, org-guarded RPC that
+appends to the ledger and recomputes `on_hand = Σ(signed movements)` via `fn_bin_rebuild`
+in one transactional call (no read-modify-write → inherently lost-update-safe and always
+reconciled). Test `07` (6 assertions, on the harness) proves: ledger reconciliation (SC-6),
+cross-call accumulation, non-positive-qty rejection, and the cross-org guard. This matches
+SPEC-0001 §"Decisions" ("logic in DB functions, close to the data").
+**Remaining (e2e-gated):** rewire `recordReceipt`/`executeOperation` to call the RPC instead
+of the JS read-modify-write, and fold in `reserved` reconciliation (D2). Left for the Docker
+stack so the Playwright wedge-loop (the exact flow these actions drive) re-verifies it before
+the app switches over.
 
 ### B2 (MED, authorization) — inventory writes are not role-gated
 `inventory_bin`/`inventory_movements` use the blanket `tenant_all` policy (org-only). The
