@@ -3,7 +3,7 @@
 Reviewer: independent adversarial pass (DB layer via 3 subagents + app layer), verified
 against SPEC-0001 and the pgTAP oracles. Owner: Amr Ebeid. Scope: `apps/farm-os` MVP-0
 build on local Supabase. Method: every high-severity finding re-checked against source
-before acting; fixes verified by re-running the pgTAP suite (46/46) on a local Postgres
+before acting; fixes verified by re-running the pgTAP suite (49/49) on a local Postgres
 (the Docker/Supabase stack would not start this session — see "Verification" below).
 
 Status legend: ✅ fixed + verified · 📝 documented (fix pending) · ⏸ deferred (needs Docker stack)
@@ -24,7 +24,7 @@ Status legend: ✅ fixed + verified · 📝 documented (fix pending) · ⏸ defe
 | HIGH-1 | HIGH | `organization`/`organization_member` writeable by `authenticated` at the privilege layer (denied only by policy omission) → latent self-service org-join escalation. | ✅ client writes revoked |
 | ENGINE-M1 | MED | Projected stock-out date anchored to a (possibly past) plan start. | ✅ `greatest(today, period_start)` |
 
-Regression: `supabase/tests/05_security_remediation_test.sql` (10 assertions) pins each.
+Regression: `supabase/tests/05_security_remediation_test.sql` (13 assertions) pins each.
 
 ---
 
@@ -107,7 +107,7 @@ numeric-input action. (No new dependency added — manual guards, not zod, per t
 ---
 
 ## Verification
-- pgTAP suite: **46/46 green** (36 existing + 10 new), run on a local PostgreSQL 17 + pgTAP
+- pgTAP suite: **49/49 green** (36 existing + 13 new), run on a local PostgreSQL 17 + pgTAP
   with Supabase shims (`auth` schema, `auth.uid()/role()`, the `anon/authenticated/service_role`
   roles), all 10 migrations + seed applied. Docker Desktop crash-looped (`exit status 150`)
   this session, so `supabase test db` + the Playwright e2e were run via the local-PG harness

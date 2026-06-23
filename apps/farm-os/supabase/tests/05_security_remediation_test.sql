@@ -6,7 +6,7 @@
 --   RLS-H1                  : a child row cannot reference a foreign-org parent.
 
 begin;
-select plan(10);
+select plan(13);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 
@@ -43,6 +43,22 @@ insert into public.organization (id, name) values
 insert into public.farm_event (id, org_id, type, occurred_at) values
   ('a0000000-0000-0000-0000-0000000000a1', :'orgA', 'note', '2025-07-15'),
   ('b0000000-0000-0000-0000-0000000000b1', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'note', '2025-07-15');
+
+-- ENGINE-SS fixture: an item that dips BELOW safety stock but never below zero — should
+-- warn (first_warning_period) without flagging a stockout, and recommend rebuilding to SS.
+-- on_hand 100, SS 60, demand 50 next week -> PAB(1)=50: <60 (warn) but >=0 (no shortage).
+\set ssitem 'aaaa0002-0000-0000-0000-0000000000ee'
+insert into public.inventory_items (id, org_id, name, unit, pack_size, safety_stock, lead_time_days)
+  values (:'ssitem', :'orgA', 'صنف اختبار مخزون الأمان', 'kg', 1, 60, 5);
+insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, ordered, projected)
+  values (:'orgA', :'ssitem', 'main', 100, 0, 0, 100);
+insert into public.plans (id, org_id, type, period_start, status)
+  values ('aaaa0003-0000-0000-0000-0000000000ee', :'orgA', 'weekly', '2025-07-08', 'active');
+insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, status)
+  values ('aaaa0004-0000-0000-0000-0000000000ee', :'orgA', 'aaaa0003-0000-0000-0000-0000000000ee',
+          'fertilization', '2025-07-08', 'planned');
+insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
+  values (:'orgA', 'aaaa0004-0000-0000-0000-0000000000ee', :'ssitem', 50, 'kg');
 
 select set_config('test.ownerA', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role='owner'), false);
@@ -91,6 +107,18 @@ $$, '42501', null, 'HIGH-1: authenticated cannot write organization_member');
 select cmp_ok(
   (public.fn_stock_coverage('39e22867-fbe2-5cd9-8a76-ce5871a8e8f4','main',8)::jsonb ->> 'stockout_date')::date,
   '>=', current_date, 'ENGINE-M1: projected stock-out date is forward-looking (>= today)');
+
+-- ENGINE-SS / H1: below safety stock but not a stockout -> warns, no shortage flag, and
+-- recommends rebuilding to safety stock (shortfall 0 + SS 60 - receipts 0 = 60).
+select is(
+  (public.fn_stock_coverage(:'ssitem','main',8)::jsonb ->> 'first_warning_period')::int,
+  1, 'ENGINE-SS: warns at the first period below safety stock');
+select is(
+  (public.fn_stock_coverage(:'ssitem','main',8)::jsonb ->> 'shortage')::boolean,
+  false, 'ENGINE-SS: a below-safety-stock dip is a warning, not a stockout');
+select is(
+  (public.fn_stock_coverage(:'ssitem','main',8)::jsonb ->> 'recommend_qty')::numeric,
+  60::numeric, 'ENGINE-SS/H1: recommends rebuilding to safety stock (60)');
 
 reset role;
 select * from finish();
