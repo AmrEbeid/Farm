@@ -23,6 +23,16 @@ export interface ExecuteInput {
  */
 export async function executeOperation(opId: string, input: ExecuteInput) {
   const m = await requireMembership();
+
+  // B4: validate inputs at the action boundary (RLS does not range-check values).
+  // A negative actualQty would otherwise *raise* on_hand via the issue path below.
+  if (!Number.isFinite(input.actualQty) || input.actualQty < 0) {
+    return { ok: false, error: "الكمية المستخدمة غير صالحة" };
+  }
+  if (!Number.isInteger(input.laborCount) || input.laborCount < 0) {
+    return { ok: false, error: "عدد العمالة غير صالح" };
+  }
+
   const sb = await createClient();
 
   const { data: op } = await sb

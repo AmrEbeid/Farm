@@ -106,6 +106,15 @@ export interface NewOperationInput {
  */
 export async function addPlanOperation(planId: string, input: NewOperationInput) {
   const m = await requireMembership();
+
+  // B4: validate inputs at the action boundary (RLS does not range-check values).
+  if (!Number.isFinite(input.est_cost) || input.est_cost < 0) {
+    return { ok: false, error: "التكلفة التقديرية غير صالحة" };
+  }
+  if (!Number.isFinite(input.material_qty) || input.material_qty <= 0) {
+    return { ok: false, error: "كمية الخامة يجب أن تكون أكبر من صفر" };
+  }
+
   const sb = await createClient();
 
   // plan scope (target) for the operation

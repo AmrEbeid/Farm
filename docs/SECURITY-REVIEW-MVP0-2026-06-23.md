@@ -75,10 +75,14 @@ are seed/demo conveniences but violate "never fabricate financial data" if they 
 tenant — a real execution must use the actual date and unit cost. Replace before any real
 data (Stage M).
 
-### B4 (MED, validation) — no input validation on server-action inputs
-`actualQty`, `laborCount`, `est_cost`, `material_qty` are written without range/NaN checks.
-A negative `actualQty` would *increase* `on_hand`. Add schema validation (e.g. zod) at the
-action boundary; RLS does not validate value ranges.
+### B4 (MED, validation) — no input validation on server-action inputs  ✅ partial
+`actualQty`, `laborCount`, `est_cost`, `material_qty` were written without range/NaN checks
+— a negative `actualQty` would *increase* `on_hand`. **Added boundary guards** to
+`executeOperation` (actualQty ≥ 0 finite; laborCount ≥ 0 integer) and `addPlanOperation`
+(est_cost ≥ 0 finite; material_qty > 0 finite) — reject-only, so the valid path is
+unchanged; `tsc` clean. **Pending:** confirm via the e2e, and extend to any other
+numeric-input action. (No new dependency added — manual guards, not zod, per the
+"no new deps without Owner approval" rule.)
 
 ### Reviewed and OK (no action)
 - `app/api/dev/seed-auth/route.ts` — guarded by `isLocal()` (URL-based), returns 403 off
