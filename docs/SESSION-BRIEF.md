@@ -13,13 +13,13 @@ tables didn't validate parent org — cross-tenant write), **ENGINE-C1** (expiry
 **ENGINE-H1** (phantom purchase rec), HIGH-1 (org_member write lockdown), ENGINE-H2/SS/M1, B4
 input validation, B5 coverage-NaN, and **`fn_post_movement`** (B1 transactional inventory RPC).
 Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
-- **Verified: 65/65 pgTAP** (Docker-free harness `apps/farm-os/supabase/test-shims/` — Docker
-  crash-looped, `exit status 150`); app `tsc` clean; app unit 18/18; library 231/231 + build.
-- **Open / remaining (Docker-gated):** **PR #4** — the B1 action rewiring
-  (`recordReceipt`/`executeOperation` → `fn_post_movement`), marked **DO NOT MERGE until the
-  Playwright e2e passes on Docker**. Then **D2** (`reserved` ledger-backing, coupled to PR #4),
-  **D1** FORCE RLS, **B2** inventory role-gating, **B3** hardcoded
-  execution date/price. Also: enable repo setting "Allow Actions to create PRs" for hands-off releases.
+- **Verified on the real Supabase stack (Docker repaired):** **70/70 pgTAP** + the **Playwright
+  wedge-loop e2e PASS** (coverage → PR reserve → budget gate → owner approve → receipt → execute →
+  PvA). PR #4 (the B1 action rewiring → `fn_post_movement`) is **merged + e2e-verified** — no revert.
+  App `tsc` clean; app unit 18/18; library 231/231 + build.
+- **Remaining:** **D2** (`reserved` ledger-backing via reserve/release movements — next),
+  **D1** FORCE RLS, **B2** inventory role-gating, **B3** hardcoded execution date/price; then pilot
+  validation, Stage 0, deploy. Also: enable repo setting "Allow Actions to create PRs" for hands-off releases.
 
 ## Where we are
 Everything now lives in one **private monorepo: `github.com/AmrEbeid/Farm`** (npm workspaces) — `packages/ui` (design system), `docs/` (these product docs). Governed under the **AI Project Operating System v3** (CLAUDE.md / TRACKER / this brief / SPEC-0001 / MASTER-PLAN).
