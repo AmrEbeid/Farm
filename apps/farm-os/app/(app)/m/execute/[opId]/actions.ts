@@ -99,19 +99,18 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
       p_plan_id: op.plan_id,
     });
     if (issErr) return { ok: false, error: issErr.message };
-    // Clear the reservation. NOTE (D2): `reserved` is still a direct snapshot update — not
-    // yet ledger-backed via reserve/release movements; reconcile it in the D2 slice.
-    const { data: bin } = await sb
-      .from("inventory_bin")
-      .select("reserved")
-      .eq("item_id", req.item_id)
-      .eq("location", "main")
-      .single();
-    await sb
-      .from("inventory_bin")
-      .update({ reserved: Math.max(0, Number(bin?.reserved ?? 0) - Number(req.qty)) })
-      .eq("item_id", req.item_id)
-      .eq("location", "main");
+    // D2: release the reservation via a ledger movement; fn_bin_rebuild recomputes
+    // bin.reserved = Σ(reserve)−Σ(release) (no racy read-modify-write).
+    const { error: relErr } = await sb.rpc("fn_post_movement", {
+      p_item: req.item_id,
+      p_type: "release",
+      p_qty: Number(req.qty),
+      p_location: "main",
+      p_unit: req.unit ?? "kg",
+      p_event_id: ev.id,
+      p_plan_id: op.plan_id,
+    });
+    if (relErr) return { ok: false, error: relErr.message };
     // actual cost ~ price/kg × actual qty (84 ج.م/kg)
     actualCost = input.actualQty * 84;
   }

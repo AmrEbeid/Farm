@@ -12,32 +12,22 @@ import { SEED_PLAN_ID } from "@/lib/nav";
  */
 async function reserveStock(
   sb: Awaited<ReturnType<typeof createClient>>,
-  orgId: string,
   itemId: string,
   qty: number,
   planId: string,
 ) {
-  const { data: bin } = await sb
-    .from("inventory_bin")
-    .select("reserved, on_hand, ordered")
-    .eq("item_id", itemId)
-    .eq("location", "main")
-    .single();
-  const reserved = Number(bin?.reserved ?? 0) + qty;
-  await sb
-    .from("inventory_bin")
-    .update({ reserved })
-    .eq("item_id", itemId)
-    .eq("location", "main");
-  await sb.from("inventory_movements").insert({
-    org_id: orgId,
-    item_id: itemId,
-    type: "reserve",
-    qty,
-    unit: "kg",
-    location: "main",
-    plan_id: planId,
+  // D2: reserve via the transactional RPC — posts a `reserve` movement and recomputes
+  // bin.reserved = Σ(reserve)−Σ(release) from the ledger (no racy read-modify-write; the
+  // RPC derives org from the item server-side).
+  const { error } = await sb.rpc("fn_post_movement", {
+    p_item: itemId,
+    p_type: "reserve",
+    p_qty: qty,
+    p_location: "main",
+    p_unit: "kg",
+    p_plan_id: planId,
   });
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -91,7 +81,7 @@ export async function createPurchaseRequestFromShortage(
   if (itemErr) return { ok: false, error: itemErr.message };
 
   // reserve the planned requirement
-  await reserveStock(sb, m.orgId, itemId, reserveQty, SEED_PLAN_ID);
+  await reserveStock(sb, itemId, reserveQty, SEED_PLAN_ID);
 
   revalidatePath(`/inventory/${itemId}/coverage`);
   revalidatePath(`/purchase-requests`);
