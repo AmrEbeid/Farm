@@ -33,6 +33,13 @@ resolve the `@amrebeid/ui` workspace dep, enable "Include source files outside t
 (Vercel monorepo/workspaces support) or set Install Command to install from the repo root. Custom
 domain `ebeidfarm.business` will serve the app once the root is fixed + redeployed.
 
+**Monorepo build fix (2026-06-24):** `@amrebeid/ui` resolves to `dist/` (not committed, no
+`prepare` script, no `transpilePackages`), so a fresh Vercel build can't resolve the library or
+its bundled `styles.css`. Added a **`vercel-build`** script to `apps/farm-os/package.json`
+(`npm --prefix ../.. run build --workspace @amrebeid/ui && next build`) — Vercel runs `vercel-build`
+over `build`, so the library is built first. (If Vercel doesn't pick it up, set the project's Build
+Command to that string.) Requires devDependencies during build (Vercel installs them by default).
+
 ## Auth decision (2026-06-24): NO SMS
 The Owner does not want the app to send SMS → **phone-OTP/Twilio is dropped**. Auth is
 **email/password** (the demo logins above; real users get email/password accounts the same way).
