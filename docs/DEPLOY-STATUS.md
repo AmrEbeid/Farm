@@ -64,3 +64,15 @@ package manager crash on Vercel with **"Failed to replace env in config"** durin
 (kept `.npmrc.example` for external consumers); publishing still works because `release.yml`'s
 `actions/setup-node` injects its own registry+token. This was the actual blocker behind the
 repeated build failures — not the lib build.
+
+## ⛔→✅ The actual Vercel build fix (2026-06-24): build with webpack, not Turbopack
+Next 16 builds with **Turbopack** by default. On Vercel's Linux runner Turbopack's native binary
+is broken (the macOS-generated lockfile omits the Linux swc/turbopack optional — npm/cli#4828; the
+"Found lockfile missing swc dependencies" warning), so Turbopack mishandled CSS-module imports in
+the root layout (`styles.css`, then `globals.css` — the `[Client Component Browser] ← layout.tsx`
+traces). Local Turbopack works (darwin binary present), Vercel's didn't. **Fix:** `build` script is
+now `next build --webpack` — webpack needs no native turbopack binary and handles CSS robustly.
+Verified locally (`✓ Compiled`, all routes, recharts fine via the client boundary). The earlier
+turbopack.root / committed-dist / local-CSS / .npmrc fixes were all real, sequential blockers; this
+is the last one. Turbopack stays available for `next dev` (the `turbopack` config block is inert for
+webpack builds).
