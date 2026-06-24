@@ -19,8 +19,10 @@ Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
   App `tsc` clean; app unit 18/18; library 231/231 + build.
 - **D2 DONE** (PR #8): `reserved` is now ledger-backed (`fn_bin_rebuild` = greatest(0, Σreserve−Σrelease);
   reserve/release routed through `fn_post_movement`) — 74/74 pgTAP + wedge-loop e2e green.
-- **B3 (date) DONE** (PR #13): real execution time (was hardcoded). **B2 investigated + dropped** (PR #11 —
-  PostgREST embed interaction, low value). **D1 decided: skip** (no-op on Supabase).
+- **B3 DONE** (date PR #13 + price PR #16): real execution time; unit price = plan-derived rate
+  (`est_cost÷qty`), not a magic number. **B2 investigated + dropped** (PR #11 — PostgREST embed
+  interaction, low value). **D1 decided: skip** (no-op on Supabase). **Every agent-doable security
+  finding is now resolved or decided.**
 - **Path-to-finish artifacts shipped** (PRs #12/#14): **`OWNER-DECISIONS-2026-06-24.md`** (every open
   decision + a recommendation), **`DEPLOY-RUNBOOK.md`** + `apps/farm-os/.env.production.example`, and
   **`STAGE-0-REMEDIATION-RUNBOOK.md`**. The gated steps are now turnkey.
