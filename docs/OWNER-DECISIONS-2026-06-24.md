@@ -6,6 +6,10 @@ recommendation for each** so we can resolve them in one pass. Nothing here is an
 these are proposals; the irreversible/external ones (deploy, key rotation, billing) remain
 Owner-gated per `docs/CLAUDE.md`.
 
+**Turnkey runbooks ready (so your gated steps are one pass):**
+`DEPLOY-RUNBOOK.md` (+ `apps/farm-os/.env.production.example`) for §1/§2/§4, and
+`STAGE-0-REMEDIATION-RUNBOOK.md` for §3.
+
 ## Where we are (done + verified)
 - **`@amrebeid/ui@1.1.0`** published (GitHub Packages); library hardened, 231 tests green.
 - **MVP-0 app** security-reviewed and remediated on `main`: RLS/grants/engine fixes, the
