@@ -88,10 +88,15 @@ pilot; tighten before multi-tenant.
 > ad-hoc client writes. Pair the eventual fix with the role-model decision (supervisors execute
 > ops, so the gate must not block the execute path).
 
-### B3 (MED, data fidelity) — hardcoded execution figures  ✅ date fixed; price pending decision
-**Date: DONE** — `executeOperation` now uses real server time (`new Date().toISOString()`),
-landing outside-seed-window events in the `farm_event_default` partition (tsc + e2e green).
-**Price: pending** a cost-source decision (see `OWNER-DECISIONS-2026-06-24.md` §4). Original:
+### B3 (MED, data fidelity) — hardcoded execution figures  ✅ DONE (date + price)
+**Date: DONE** — `executeOperation` uses real server time (`new Date().toISOString()`),
+landing outside-seed-window events in the `farm_event_default` partition.
+**Price: DONE** — the hardcoded `84 ج.م/kg` is replaced by the **plan-derived unit rate**
+(`op.est_cost ÷ planned qty`), so the figure comes from real plan data, not a magic number
+(seed: 42000÷500 = 84, so `actual_cost` stays 40320 and the e2e remains meaningful). tsc + e2e green.
+A **future refinement** can use the *actual paid* receipt price (needs receipt `unit_cost` capture —
+`OWNER-DECISIONS-2026-06-24.md` §4). The remaining demo-ism is `runPlanChecks`'s hardcoded budget
+category `"أسمدة"` (low risk; widen when multi-category budgets land). Original:
 `executeOperation` hardcoded `occurred_at = '2025-07-08'` and a price of **84 ج.م/kg**
 ([m/execute/[opId]/actions.ts:40,104](apps/farm-os/app/(app)/m/execute/[opId]/actions.ts)),
 and `runPlanChecks` hardcodes the budget category `"أسمدة"`

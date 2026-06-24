@@ -112,8 +112,10 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
       p_plan_id: op.plan_id,
     });
     if (relErr) return { ok: false, error: relErr.message };
-    // actual cost ~ price/kg × actual qty (84 ج.م/kg)
-    actualCost = input.actualQty * 84;
+    // B3: actual cost = actual qty × the plan's unit rate (est_cost ÷ planned qty), not a
+    // hardcoded price. Future refinement: use the actual paid receipt price (OWNER-DECISIONS §4).
+    const plannedUnit = Number(req.qty) > 0 ? Number(op.est_cost ?? 0) / Number(req.qty) : 0;
+    actualCost = input.actualQty * plannedUnit;
   }
 
   // 3) flip the operation done + persist actuals in data jsonb
