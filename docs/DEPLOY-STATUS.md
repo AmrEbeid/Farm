@@ -33,12 +33,16 @@ resolve the `@amrebeid/ui` workspace dep, enable "Include source files outside t
 (Vercel monorepo/workspaces support) or set Install Command to install from the repo root. Custom
 domain `ebeidfarm.business` will serve the app once the root is fixed + redeployed.
 
-**Monorepo build fix (2026-06-24):** `@amrebeid/ui` resolves to `dist/` (not committed, no
-`prepare` script, no `transpilePackages`), so a fresh Vercel build can't resolve the library or
-its bundled `styles.css`. Added a **`vercel-build`** script to `apps/farm-os/package.json`
-(`npm --prefix ../.. run build --workspace @amrebeid/ui && next build`) — Vercel runs `vercel-build`
-over `build`, so the library is built first. (If Vercel doesn't pick it up, set the project's Build
-Command to that string.) Requires devDependencies during build (Vercel installs them by default).
+**Monorepo build fix (2026-06-24):** `@amrebeid/ui` resolves to `dist/`. First attempt — a
+`vercel-build` that built the lib on Vercel (`npm … run build --workspace @amrebeid/ui && next build`)
+— **failed**: the lib's `tsup` build crashed on Vercel's Linux runner (the lockfile, generated on
+macOS, omits the Linux `esbuild`/rolldown optional binary — npm/cli#4828, same issue our CI patches).
+**Resolution: commit the prebuilt `packages/ui/dist/`** (un-ignored) so the Vercel app build just runs
+`next build` and consumes the prebuilt library — no fragile cross-workspace build on Vercel. The
+`vercel-build` script was removed. **Trade-off:** `dist/` can go stale vs source — **rebuild it before
+deploying any library change**: `npm run build --workspace @amrebeid/ui` then commit. (Cleaner future
+option: have the app consume the *published* `@amrebeid/ui@1.1.0` from GitHub Packages via an `.npmrc`
++ read token, instead of the workspace.)
 
 ## Auth decision (2026-06-24): NO SMS
 The Owner does not want the app to send SMS → **phone-OTP/Twilio is dropped**. Auth is
