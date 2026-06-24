@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ../.. && rm -f package-lock.json && npm install"
+  "framework": "nextjs"
 }
