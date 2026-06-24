@@ -20,8 +20,10 @@ isolation (owner sees «مزارع عبيد» + 28 hawshat, anon denied), and th
   exposed service_role key bypasses RLS. Fine for now (synthetic data only). Also reset the demo password then.
 - **Pilot validation — considered DONE (Owner, 2026-06-24):** the customer research was completed
   *before* the project (it produced the plan + the dummy/seed data), so the pilot-validation gate is satisfied.
-- **Remaining (Owner/human):** Stage 0 legacy-secret remediation; real-data migration (after a
-  privacy review + the key rotation above); optional D1 FORCE RLS (low value on Supabase).
+- **Near-term: nothing required** — MVP-0 is deployed, live, and stable on synthetic data.
+  **Deferred to project end (Owner):** key rotation (above), legacy **Stage 0** secret remediation,
+  and real-Ebeid-data migration (after a privacy review). **Optional, agent-doable anytime:**
+  in-browser wedge-loop walkthrough; D1 FORCE RLS check on the real Supabase roles (low value).
 
 ## This session (2026-06-23) — security review DONE + **MERGED**; lib **published 1.1.0**
 Ran the independent MVP-0 security review (3 adversarial subagents: RLS / grants / engine, then
