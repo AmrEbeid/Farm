@@ -28,6 +28,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 Status legend: Todo / Active / Blocked / In review / Done
 
 ## Pilot validation gates (MVP-0 — must hit ≥5/7 before building full MVP; see [06 §10](06-MVP-0-BUILD-SPEC.md))
+> Run it with **[`PILOT-READINESS.md`](PILOT-READINESS.md)** — demo script (the wedge loop), interview plan, and the kill/continue rule.
 - [ ] 5 farms interviewed · [ ] 2 share real data · [ ] 1 builds a monthly plan · [ ] 1 validates stock coverage · [ ] 1 owner confirms WTP · [ ] 1 accountant confirms reports · [ ] 1 supervisor confirms mobile (<60s)
 
 ## Definition of Done (paste per stage; see [10 §16](10-operations-and-readiness.md))
