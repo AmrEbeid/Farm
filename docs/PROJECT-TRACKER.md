@@ -23,7 +23,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 10 | Care Academy content | Documentation | Med/High | Todo | Agronomy liability → expert sign-off |
 | 11 | AI assistant عبدالجليل | Execution | **High** | Todo | Lethal-trifecta control required |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
-| P | Production deploy (Vercel) | External Apply | **Critical** | Todo | After risky changes → staged + rollback |
+| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; migrations 0001–0013 + seed live; backend verified (owner login + RLS 28/28; anon denied). Pending: Twilio OTP, security rotation (DB pw + service key shared in chat), frontend smoke. See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 
 Status legend: Todo / Active / Blocked / In review / Done
 
