@@ -2,7 +2,10 @@
 node_modules/
 
 # build output
-dist/
+# dist/ IS committed (see below) so the Vercel app build consumes the prebuilt library
+# instead of running a fragile cross-workspace tsup build on Vercel. Rebuild before deploying
+# library changes:  npm run build --workspace @amrebeid/ui
+!dist/
 storybook-static/
 
 # design-sync: build artifacts & scratch (durable config/notes/conventions ARE committed)
