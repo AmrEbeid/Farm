@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "npm --prefix ../.. run build --workspace @amrebeid/ui && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run"
