@@ -24,6 +24,20 @@ out-of-band and must be rotated (see "Security follow-ups").
    but can be rolled too.)
 3. **Rotate the demo login password** (or delete the demo users) before real users.
 
+## ⛔ Known issue — Vercel Root Directory is wrong (2026-06-24)
+`https://farm-ui-one.vercel.app/` serves the **`@amrebeid/ui` library JS**, and `/login` is 404 —
+i.e. Vercel is building the **monorepo root / library**, not the Next.js app. **Fix (Owner, in the
+Vercel dashboard):** project `farm-ui` → **Settings → Build & Deployment → Root Directory** = `apps/farm-os`
+→ Save → **Redeploy**. Framework preset: **Next.js**. Keep the env vars. If the build then fails to
+resolve the `@amrebeid/ui` workspace dep, enable "Include source files outside the Root Directory"
+(Vercel monorepo/workspaces support) or set Install Command to install from the repo root. Custom
+domain `ebeidfarm.business` will serve the app once the root is fixed + redeployed.
+
+## Auth decision (2026-06-24): NO SMS
+The Owner does not want the app to send SMS → **phone-OTP/Twilio is dropped**. Auth is
+**email/password** (the demo logins above; real users get email/password accounts the same way).
+The phone-OTP UI skeleton stays unused; ensure the login path never calls `signInWithOtp` (phone).
+
 ## Remaining for a real pilot
 - **Phone-OTP via Twilio** (`DEPLOY-RUNBOOK.md §3`) — the intended auth for field roles; the
   email/password logins above are an interim demo path.
