@@ -14,10 +14,14 @@ isolation (owner sees «مزارع عبيد» + 28 hawshat, anon denied), and th
   resilient middleware. Full record: `docs/DEPLOY-STATUS.md`.
 - **Auth:** 6 demo email/password accounts (`<role>@ebeid.test`) minted on prod via the admin API;
   password held by the Owner (not in repo).
-- **🔴 Owner security TODO:** rotate the Supabase **DB password** + **service_role key** (pasted in
-  the deploy chat); reset the **demo password** before real data.
-- **Remaining (Owner/human):** pilot validation; Stage 0 legacy-secret remediation; real-data
-  migration (after privacy review); optional D1 FORCE RLS (low value on Supabase).
+- **Security key rotation — DEFERRED to project end (Owner decision, 2026-06-24).** The Supabase
+  **DB password** + **service_role key** were pasted in the deploy chat; Owner will rotate at the
+  end of the project. ⚠️ Caveat (Claude): rotate **before any real Ebeid data** regardless — the
+  exposed service_role key bypasses RLS. Fine for now (synthetic data only). Also reset the demo password then.
+- **Pilot validation — considered DONE (Owner, 2026-06-24):** the customer research was completed
+  *before* the project (it produced the plan + the dummy/seed data), so the pilot-validation gate is satisfied.
+- **Remaining (Owner/human):** Stage 0 legacy-secret remediation; real-data migration (after a
+  privacy review + the key rotation above); optional D1 FORCE RLS (low value on Supabase).
 
 ## This session (2026-06-23) — security review DONE + **MERGED**; lib **published 1.1.0**
 Ran the independent MVP-0 security review (3 adversarial subagents: RLS / grants / engine, then
