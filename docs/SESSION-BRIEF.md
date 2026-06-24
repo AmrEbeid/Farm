@@ -1,5 +1,23 @@
-# Session Brief — Farm OS      Updated: 2026-06-23 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-24 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-24 — DEPLOYED + LIVE 🎉
+Farm OS MVP-0 is **deployed and verified end-to-end on production**: **farm-ui-one.vercel.app**
++ **ebeidfarm.business**, backed by a dedicated Supabase project (`veezkmytervjnpxcrbkw`), all 13
+migrations + synthetic seed applied. **Verified live:** login (email/password, **no SMS**), RLS
+isolation (owner sees «مزارع عبيد» + 28 hawshat, anon denied), and the **stock-coverage engine**
+(`fn_stock_coverage` → the SPEC-0001 wedge: available 300, recommend 300kg, Arabic message).
+- **Build-chain fixes (all on `main`, PRs #22–#32):** Vercel Root Dir→`apps/farm-os`; committed
+  `@amrebeid/ui` `dist/`; removed root `.npmrc` (`${NODE_AUTH_TOKEN}` crash); app-local CSS copy;
+  `turbopack.root`+`outputFileTracingRoot`; **pinned Tailwind v4 Linux native binaries** (oxide +
+  lightningcss — npm/cli#4828, the real crash); `framework:"nextjs"` (Vercel expected `dist/`);
+  resilient middleware. Full record: `docs/DEPLOY-STATUS.md`.
+- **Auth:** 6 demo email/password accounts (`<role>@ebeid.test`) minted on prod via the admin API;
+  password held by the Owner (not in repo).
+- **🔴 Owner security TODO:** rotate the Supabase **DB password** + **service_role key** (pasted in
+  the deploy chat); reset the **demo password** before real data.
+- **Remaining (Owner/human):** pilot validation; Stage 0 legacy-secret remediation; real-data
+  migration (after privacy review); optional D1 FORCE RLS (low value on Supabase).
 
 ## This session (2026-06-23) — security review DONE + **MERGED**; lib **published 1.1.0**
 Ran the independent MVP-0 security review (3 adversarial subagents: RLS / grants / engine, then
