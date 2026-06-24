@@ -67,8 +67,19 @@ the app switches over.
 intended model (`authorize('inventory.write')` = owner/farm_manager/storekeeper, migration
 0001) is **not enforced** in RLS or in the actions — any org member can mutate stock. The
 code comments claim the restriction but nothing applies it. Acceptable for the single-tenant
-pilot; tighten before multi-tenant (add `authorize('inventory.write')` to the policy or a
-`requireRole` check in the action).
+pilot; tighten before multi-tenant.
+
+> **Attempted 2026-06-23 — NOT shipped (regressed the e2e).** Splitting the
+> `inventory_bin`/`inventory_movements` policy into SELECT (org) + write (`authorize('inventory.write')`)
+> **broke the Playwright wedge loop**: `executeOperation`'s embedded read
+> `plan_operations.select("…plan_material_requirements(…)")` returned an empty
+> `plan_material_requirements` once the inventory policy was split, so the issue/release
+> never fired (on_hand stayed 600 vs expected 120). Isolated conclusively (e2e green without
+> the migration, red with it). Mechanism: a PostgREST nested-embed/RLS interaction — needs
+> investigation before retrying. Note the practical gain is low: post-B1/D2 **no app code does
+> direct inventory writes** (all go through the org-guarded, `bypassrls` `fn_post_movement`), so
+> this only blocks ad-hoc client writes. Pair the fix with the role-model decision (supervisors
+> execute ops, so the gate must not block the execute path).
 
 ### B3 (MED, data fidelity) — hardcoded execution figures
 `executeOperation` hardcodes `occurred_at = '2025-07-08'` and a price of **84 ج.م/kg**
