@@ -19,10 +19,15 @@ Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
   App `tsc` clean; app unit 18/18; library 231/231 + build.
 - **D2 DONE** (PR #8): `reserved` is now ledger-backed (`fn_bin_rebuild` = greatest(0, Σreserve−Σrelease);
   reserve/release routed through `fn_post_movement`) — 74/74 pgTAP + wedge-loop e2e green.
-- **Remaining (decision-gated / Owner-led):** **D1** FORCE RLS (low value on Supabase — `postgres` is
-  `bypassrls`), **B2** inventory role-gating (supervisors execute ops → needs a role-model decision),
-  **B3** hardcoded execution date/price (needs a cost-source decision); then **pilot validation**,
-  **Stage 0** secret remediation, **cloud deploy**. Also: enable repo "Allow Actions to create PRs".
+- **B3 (date) DONE** (PR #13): real execution time (was hardcoded). **B2 investigated + dropped** (PR #11 —
+  PostgREST embed interaction, low value). **D1 decided: skip** (no-op on Supabase).
+- **Path-to-finish artifacts shipped** (PRs #12/#14): **`OWNER-DECISIONS-2026-06-24.md`** (every open
+  decision + a recommendation), **`DEPLOY-RUNBOOK.md`** + `apps/farm-os/.env.production.example`, and
+  **`STAGE-0-REMEDIATION-RUNBOOK.md`**. The gated steps are now turnkey.
+- **Remaining — all need an Owner decision or human action** (see OWNER-DECISIONS): deploy infra owner
+  (non-Zeal Supabase + Vercel), Twilio phone-OTP, B3 *price* cost-source, Stage 0 execution, the 5 pilot
+  interviews; then optionally the full MVP (Stages 1–11 — each needs a spec + approval, Stage 0 first).
+  Also: enable repo "Allow Actions to create PRs" for hands-off releases.
 
 ## Where we are
 Everything now lives in one **private monorepo: `github.com/AmrEbeid/Farm`** (npm workspaces) — `packages/ui` (design system), `docs/` (these product docs). Governed under the **AI Project Operating System v3** (CLAUDE.md / TRACKER / this brief / SPEC-0001 / MASTER-PLAN).
