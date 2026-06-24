@@ -76,3 +76,25 @@ Verified locally (`✓ Compiled`, all routes, recharts fine via the client bound
 turbopack.root / committed-dist / local-CSS / .npmrc fixes were all real, sequential blockers; this
 is the last one. Turbopack stays available for `next dev` (the `turbopack` config block is inert for
 webpack builds).
+
+## ✅ LIVE (2026-06-24)
+The app is deployed and working end-to-end on **farm-ui-one.vercel.app** (+ `ebeidfarm.business`),
+backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
+- **Verified live:** `/` 200, `/login` 200, `/dashboard` 307 (auth redirect); a seeded **owner**
+  login returns a session and reads the org «مزارع عبيد» + the 28 hawshat (RLS scoped correctly);
+  anon is denied (GRANT-C1). DB = all 13 migrations + synthetic seed.
+- **Auth:** email/password, **no SMS** (phone-OTP/Twilio dropped per Owner). Six demo accounts
+  exist (`<role>@ebeid.test`); the password was given to the Owner directly (NOT committed).
+- **Build chain resolved (the saga):** Vercel Root Directory→`apps/farm-os`; committed `@amrebeid/ui`
+  `dist/`; removed the root `.npmrc` (`${NODE_AUTH_TOKEN}` crashed the build); app-local CSS copy;
+  `turbopack.root`+`outputFileTracingRoot`; **pinned Tailwind v4 Linux native binaries**
+  (`@tailwindcss/oxide-linux-x64-gnu`, `lightningcss-linux-x64-gnu` — npm/cli#4828, the real crash);
+  `framework:"nextjs"` (Vercel had expected a `dist/` output); resilient middleware.
+
+## 🔴 Security follow-ups (Owner — do now)
+- **Rotate the Supabase DB password and the `service_role` (secret) key** — both were pasted in the
+  setup chat. (Supabase → Settings → Database / API → roll.) After rotating the DB password, the
+  committed migrations still apply via a fresh connection string; the app uses only the publishable
+  + service-role keys (service-role only server-side on Vercel).
+- The **demo login password is known** (shared in chat). Fine for the pilot (synthetic data only),
+  but reset it before any real Ebeid data, and consider per-user passwords.
