@@ -21,7 +21,17 @@ Owner-gated per `docs/CLAUDE.md`.
 
 ## Decisions needed (with my recommendation)
 
-### 1. Deploy infrastructure  — **blocks everything downstream**
+### 1. Deploy infrastructure  — **blocks everything downstream**  ⚠️ Vercel deployed, but no backend
+**Status (2026-06-24):** the app was **deployed to Vercel**, but a Supabase-account check confirms
+**only the six Zeal production projects exist — there is NO dedicated Farm OS project.** So the
+deployment currently has **no valid backend**: auth + every data call will fail at runtime until a
+Supabase project is wired. **Do NOT point it at a Zeal project** (forbidden by the rules; no schema
+there anyway). I can't create the right project — the only visible org is the Zeal org
+(`blhuyowtrvuuipogybll`), and creating there would bill Zeal + break isolation. **Need from you:** a
+**non-Zeal** Supabase project (its ref + anon/service keys); then I set the 3 Vercel env vars, run
+`supabase db push` (migrations 0001–0013) + load the synthetic seed, and re-verify. Also share the
+**Vercel URL** so I can confirm how it's currently failing.
+
 The connected Supabase account holds only **Zeal production projects** (do NOT use them, per
 session rules). Farm OS needs its own isolated project.
 - **Recommendation:** create a **dedicated, non-Zeal Supabase project** (free tier is fine for
