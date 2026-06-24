@@ -1,0 +1,10 @@
+# EXTERNAL CONSUMERS ONLY — not active (npm reads .npmrc, not .npmrc.example).
+# To install @amrebeid/ui from GitHub Packages outside this monorepo, copy to .npmrc
+# and provide a read:packages token via the NODE_AUTH_TOKEN env var:
+#   @amrebeid:registry=https://npm.pkg.github.com
+#   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+#
+# NOT committed as a live .npmrc, because it redirects the @amrebeid scope to GitHub
+# Packages and requires NODE_AUTH_TOKEN — which breaks builds that don't set it (e.g. the
+# Vercel app build, which uses the workspace copy of @amrebeid/ui, not the registry).
+# CI publishing (release.yml) sets up its own auth via actions/setup-node (registry-url+scope).
