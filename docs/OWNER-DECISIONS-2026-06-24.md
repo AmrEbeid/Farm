@@ -48,15 +48,16 @@ accounting sheet**. This is independent of the new build but must close before r
 - **Need from you:** these are irreversible + touch systems I don't have access to → **you execute**,
   I can write the exact runbook. Confirm whether the old project/repo are still live.
 
-### 4. B3 — hardcoded execution date & unit price  (data fidelity)
-`executeOperation` hardcodes the execution date and a **84 ج.م/kg** price.
-- **Recommendation (split):** (a) **date** → use the real server time `now()` — *shipping this now*
-  (safe, e2e-verified separately). (b) **price** → needs a canonical **unit-cost source**. Options:
-  the PR/supplier purchase price (what we actually paid), or a price field on `inventory_items`.
-  My recommendation: **capture `unit_cost` on `receipt` movements** (we already paid it) and derive
-  actual cost from the consumed item's latest receipt cost; fall back to the plan's `est_cost`.
-  This is a small data-model addition + changes the e2e's asserted variance number.
-- **Need from you:** confirm the unit-cost source (receipt price vs item price field).
+### 4. B3 — hardcoded execution date & unit price  (data fidelity)  ✅ DONE
+- **(a) Date — DONE** (PR #13): real server time `now()`.
+- **(b) Price — DONE** (PR #16, per "go with your recommendation"): the hardcoded `84 ج.م/kg`
+  is now the **plan-derived unit rate** (`op.est_cost ÷ planned qty`) — data-driven, not a magic
+  number (seed: 42000÷500 = 84, so `actual_cost` stays 40320; e2e still meaningful).
+- **Optional future refinement (your call):** use the *actual paid* price instead of the planned
+  rate — capture `unit_cost` on `receipt` movements and derive actual cost from the latest receipt.
+  More accurate for variance, but a data-model addition that shifts the reported figure. Say the
+  word and I'll implement it. (`runPlanChecks` still hardcodes the budget category `"أسمدة"` —
+  low-risk demo-ism, widen with multi-category budgets.)
 
 ### 5. Real Ebeid data vs seed (Stage M)
 - **Recommendation:** keep the **synthetic seed** for the pilot demo; migrate **real** registry +
