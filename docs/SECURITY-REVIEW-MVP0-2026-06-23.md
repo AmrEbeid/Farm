@@ -88,8 +88,11 @@ pilot; tighten before multi-tenant.
 > ad-hoc client writes. Pair the eventual fix with the role-model decision (supervisors execute
 > ops, so the gate must not block the execute path).
 
-### B3 (MED, data fidelity) — hardcoded execution figures
-`executeOperation` hardcodes `occurred_at = '2025-07-08'` and a price of **84 ج.م/kg**
+### B3 (MED, data fidelity) — hardcoded execution figures  ✅ date fixed; price pending decision
+**Date: DONE** — `executeOperation` now uses real server time (`new Date().toISOString()`),
+landing outside-seed-window events in the `farm_event_default` partition (tsc + e2e green).
+**Price: pending** a cost-source decision (see `OWNER-DECISIONS-2026-06-24.md` §4). Original:
+`executeOperation` hardcoded `occurred_at = '2025-07-08'` and a price of **84 ج.م/kg**
 ([m/execute/[opId]/actions.ts:40,104](apps/farm-os/app/(app)/m/execute/[opId]/actions.ts)),
 and `runPlanChecks` hardcodes the budget category `"أسمدة"`
 ([plans/[planId]/actions.ts:64](apps/farm-os/app/(app)/plans/[planId]/actions.ts)). These

@@ -46,8 +46,9 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
     | { item_id: string; qty: number; unit: string }
     | undefined;
 
-  // 1) farm_event (done). occurred_at must fall in a partition (2025-07).
-  const occurredAt = "2025-07-08T08:00:00+00:00";
+  // 1) farm_event (done). B3: real execution time (was hardcoded to the seed window);
+  // dates outside the seed months land in the farm_event_default partition.
+  const occurredAt = new Date().toISOString();
   const { data: ev, error: evErr } = await sb
     .from("farm_event")
     .insert({
