@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import "@amrebeid/ui/styles.css";
+// App-local copy of @amrebeid/ui's bundled styles. Importing the library CSS directly from
+// the workspace/node_modules path broke the Vercel build (global CSS resolved inside
+// node_modules); a local copy is always allowed. Re-copy on library CSS changes:
+//   cp ../../packages/ui/dist/styles.css app/farm-os-ui.css
+import "./farm-os-ui.css";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui";
 
