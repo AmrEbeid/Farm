@@ -17,9 +17,12 @@ Full record: **`docs/SECURITY-REVIEW-MVP0-2026-06-23.md`**.
   wedge-loop e2e PASS** (coverage → PR reserve → budget gate → owner approve → receipt → execute →
   PvA). PR #4 (the B1 action rewiring → `fn_post_movement`) is **merged + e2e-verified** — no revert.
   App `tsc` clean; app unit 18/18; library 231/231 + build.
-- **Remaining:** **D2** (`reserved` ledger-backing via reserve/release movements — next),
-  **D1** FORCE RLS, **B2** inventory role-gating, **B3** hardcoded execution date/price; then pilot
-  validation, Stage 0, deploy. Also: enable repo setting "Allow Actions to create PRs" for hands-off releases.
+- **D2 DONE** (PR #8): `reserved` is now ledger-backed (`fn_bin_rebuild` = greatest(0, Σreserve−Σrelease);
+  reserve/release routed through `fn_post_movement`) — 74/74 pgTAP + wedge-loop e2e green.
+- **Remaining (decision-gated / Owner-led):** **D1** FORCE RLS (low value on Supabase — `postgres` is
+  `bypassrls`), **B2** inventory role-gating (supervisors execute ops → needs a role-model decision),
+  **B3** hardcoded execution date/price (needs a cost-source decision); then **pilot validation**,
+  **Stage 0** secret remediation, **cloud deploy**. Also: enable repo "Allow Actions to create PRs".
 
 ## Where we are
 Everything now lives in one **private monorepo: `github.com/AmrEbeid/Farm`** (npm workspaces) — `packages/ui` (design system), `docs/` (these product docs). Governed under the **AI Project Operating System v3** (CLAUDE.md / TRACKER / this brief / SPEC-0001 / MASTER-PLAN).
@@ -31,7 +34,7 @@ Everything now lives in one **private monorepo: `github.com/AmrEbeid/Farm`** (np
 
 ## Approved to do next (the next safe slice)
 Build is done; the remaining gates are **review + validation + infra**, all Owner-led:
-1. **Independent security review — DONE this session** (branch `fix/mvp0-security-remediation`, 59/59 pgTAP). Next: Owner **merge sign-off** + the **Playwright e2e** on a healthy Docker stack; then the deferred B1/D1/D2/B2/B3 hardening (see the security-review doc).
+1. **Independent security review — DONE + MERGED** (PRs #1–#8 on `main`; 74/74 pgTAP + wedge-loop e2e verified on the real Supabase stack; `@amrebeid/ui@1.1.0` published). B1+D2 inventory integrity landed. Only decision-gated minors remain (D1/B2/B3 — see the security-review doc).
 2. **Pilot validation** — the 5-farm interviews + the H1–H4 / ≥5-of-7 gates (all still open).
 3. **Stage 0 — legacy security remediation** (rotate the exposed anon key, purge the old repo's git history, scrub the Gmail/password from the accounting sheet) — still OPEN; concerns the *legacy* system, untouched by the new build.
 4. **Cloud deploy** — provision a dedicated (non-Zeal-org) Supabase project + Vercel, apply migrations, wire real auth. (Local dev used local Supabase to avoid billing a personal project to the Zeal org.)
