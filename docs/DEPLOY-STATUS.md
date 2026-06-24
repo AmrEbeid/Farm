@@ -55,3 +55,12 @@ The phone-OTP UI skeleton stays unused; ensure the login path never calls `signI
 - **Frontend smoke test** — walk the wedge loop on the live `*.vercel.app` URL signed in as each role.
 - **Real data** — only after Stage 0 (`STAGE-0-REMEDIATION-RUNBOOK.md`) + a privacy review (Stage M).
 - The deployed build predates the schema load; if any page cached an empty-DB error, redeploy.
+
+## ⛔→✅ Root cause of the failing Vercel builds (2026-06-24)
+The committed root `.npmrc` (`@amrebeid:registry=…github` + `_authToken=${NODE_AUTH_TOKEN}`) made the
+package manager crash on Vercel with **"Failed to replace env in config"** during `next build`
+(NODE_AUTH_TOKEN is undefined there). It exists for library publishing, but breaks the app build
+(which uses the *workspace* `@amrebeid/ui`, not the registry). **Fix:** removed the live `.npmrc`
+(kept `.npmrc.example` for external consumers); publishing still works because `release.yml`'s
+`actions/setup-node` injects its own registry+token. This was the actual blocker behind the
+repeated build failures — not the lib build.
