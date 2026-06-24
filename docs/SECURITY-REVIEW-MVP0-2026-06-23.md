@@ -75,11 +75,18 @@ pilot; tighten before multi-tenant.
 > `plan_operations.select("…plan_material_requirements(…)")` returned an empty
 > `plan_material_requirements` once the inventory policy was split, so the issue/release
 > never fired (on_hand stayed 600 vs expected 120). Isolated conclusively (e2e green without
-> the migration, red with it). Mechanism: a PostgREST nested-embed/RLS interaction — needs
-> investigation before retrying. Note the practical gain is low: post-B1/D2 **no app code does
-> direct inventory writes** (all go through the org-guarded, `bypassrls` `fn_post_movement`), so
-> this only blocks ad-hoc client writes. Pair the fix with the role-model decision (supervisors
-> execute ops, so the gate must not block the execute path).
+> the migration, red with it). **Further investigation (2026-06-23):** both formulations fail
+> identically — the 4-way SELECT/INSERT/UPDATE/DELETE split AND a single `FOR ALL` policy with
+> `authorize('inventory.write')` only in `WITH CHECK`. Yet under the migration the supervisor CAN
+> read `plan_material_requirements` / `inventory_items` via **direct SQL** (verified in a
+> transaction) — so it is NOT a base RLS read denial; it is specifically a PostgREST nested-embed
+> interaction (the embedded `plan_material_requirements` returns empty through PostgREST when
+> `authorize()` is referenced on the inventory tables' write policy). Root-causing needs
+> PostgREST-level debugging (forge a role JWT, hit the REST API, compare the embed SQL). Not
+> pursued further — the practical gain is low: post-B1/D2 **no app code does direct inventory
+> writes** (all go through the org-guarded, `bypassrls` `fn_post_movement`), so this only blocks
+> ad-hoc client writes. Pair the eventual fix with the role-model decision (supervisors execute
+> ops, so the gate must not block the execute path).
 
 ### B3 (MED, data fidelity) — hardcoded execution figures
 `executeOperation` hardcodes `occurred_at = '2025-07-08'` and a price of **84 ج.م/kg**
