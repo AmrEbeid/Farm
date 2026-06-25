@@ -35,9 +35,14 @@ echo "==> seed";        run -f "$SUPA"/seed.sql >/dev/null
 echo "==> pgTAP"; tot_ok=0; tot_no=0
 for f in "$SUPA"/tests/*.sql; do
   out="$(psql -h "$WORK" -p "$PORT" -U postgres -d farm -X -t -A -f "$f" 2>&1)"
-  ok=$(grep -cE '^ok [0-9]' <<<"$out" || true); no=$(grep -cE '^not ok [0-9]' <<<"$out" || true)
-  printf '   %-40s ok=%s not_ok=%s\n' "$(basename "$f")" "$ok" "$no"
-  [ "$no" -ne 0 ] && grep -E '^not ok|ERROR:|FATAL:' <<<"$out"
+  ok=$(grep -cE '^ok [0-9]' <<<"$out" || true)
+  # Honor the TAP TODO directive: `not ok N - … # TODO …` is an EXPECTED failure (a regression
+  # test pinning a known-unfixed bug), so it must NOT fail the run — same as pg_prove/`supabase
+  # test db`. Count only non-TODO `not ok` lines as real failures; report TODOs separately.
+  no=$(grep -E '^not ok [0-9]' <<<"$out" | grep -cvE '# TODO' || true)
+  todo=$(grep -cE '^not ok [0-9].*# TODO' <<<"$out" || true)
+  printf '   %-40s ok=%s not_ok=%s todo=%s\n' "$(basename "$f")" "$ok" "$no" "$todo"
+  [ "$no" -ne 0 ] && grep -E '^not ok|ERROR:|FATAL:' <<<"$out" | grep -vE '# TODO'
   tot_ok=$((tot_ok+ok)); tot_no=$((tot_no+no))
 done
 echo "==> TOTAL ok=$tot_ok not_ok=$tot_no"
