@@ -402,13 +402,20 @@ interface DataTableProps<Row> extends Omit<React.TableHTMLAttributes<HTMLTableEl
     stickyHeader?: boolean;
     /** Content shown (spanning all columns) when `rows` is empty. */
     empty?: React.ReactNode;
+    /**
+     * Narrow-screen behaviour (below ~48rem):
+     * - `"cards"` (default): the table reflows into one stacked card per row,
+     *   each cell shown as a `label: value` pair. The desktop table is unchanged.
+     * - `"scroll"`: legacy behaviour — the wide table horizontal-scrolls.
+     */
+    reflow?: "cards" | "scroll";
 }
 /**
  * Generic, controlled-sort data table. RTL-first, sticky header optional,
  * numeric columns are tabular-nums. Sortable headers are keyboard-operable
  * buttons carrying `aria-sort`.
  */
-declare function DataTable<Row>({ columns, rows, getRowId, caption, sort, onSortChange, stickyHeader, empty, className, ...rest }: DataTableProps<Row>): React.JSX.Element;
+declare function DataTable<Row>({ columns, rows, getRowId, caption, sort, onSortChange, stickyHeader, empty, reflow, className, ...rest }: DataTableProps<Row>): React.JSX.Element;
 
 type TimelineTone = "default" | "success" | "warning" | "danger" | "info";
 interface TimelineItem {

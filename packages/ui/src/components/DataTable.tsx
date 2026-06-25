@@ -42,6 +42,23 @@ export interface DataTableProps<Row>
   stickyHeader?: boolean;
   /** Content shown (spanning all columns) when `rows` is empty. */
   empty?: React.ReactNode;
+  /**
+   * Narrow-screen behaviour (below ~48rem):
+   * - `"cards"` (default): the table reflows into one stacked card per row,
+   *   each cell shown as a `label: value` pair. The desktop table is unchanged.
+   * - `"scroll"`: legacy behaviour — the wide table horizontal-scrolls.
+   */
+  reflow?: "cards" | "scroll";
+}
+
+/**
+ * Per-cell mobile label. Only string/number headers can become a CSS
+ * `::before` label; richer headers are skipped (the cell value still renders).
+ */
+function cellLabel(header: React.ReactNode): string | undefined {
+  return typeof header === "string" || typeof header === "number"
+    ? String(header)
+    : undefined;
 }
 
 const ARIA_SORT: Record<SortDirection, "ascending" | "descending"> = {
@@ -56,7 +73,7 @@ const ARIA_SORT: Record<SortDirection, "ascending" | "descending"> = {
  */
 export function DataTable<Row>({
   columns, rows, getRowId, caption, sort = null, onSortChange,
-  stickyHeader = false, empty, className = "", ...rest
+  stickyHeader = false, empty, reflow = "cards", className = "", ...rest
 }: DataTableProps<Row>) {
   function toggle(columnId: string) {
     if (!onSortChange) return;
@@ -68,7 +85,9 @@ export function DataTable<Row>({
   }
 
   return (
-    <div className={`fos-table-wrap${stickyHeader ? " fos-table-wrap--sticky" : ""} ${className}`.trim()}>
+    <div
+      className={`fos-table-wrap${stickyHeader ? " fos-table-wrap--sticky" : ""}${reflow === "cards" ? " fos-table-wrap--reflow" : ""} ${className}`.trim()}
+    >
       <table className="fos-table" {...rest}>
         {caption != null && <caption className="fos-table__caption">{caption}</caption>}
         <thead className="fos-table__head">
@@ -117,6 +136,7 @@ export function DataTable<Row>({
                     <td
                       key={col.id}
                       className={`fos-table__td fos-table__td--${align}${col.numeric ? " fos-table__td--num" : ""}`}
+                      data-label={cellLabel(col.header)}
                     >
                       {col.cell(row)}
                     </td>

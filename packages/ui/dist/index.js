@@ -571,6 +571,9 @@ function Stat({
     help != null && /* @__PURE__ */ jsx("div", { className: "fos-stat__help", children: help })
   ] });
 }
+function cellLabel(header) {
+  return typeof header === "string" || typeof header === "number" ? String(header) : void 0;
+}
 var ARIA_SORT = {
   asc: "ascending",
   desc: "descending"
@@ -584,6 +587,7 @@ function DataTable({
   onSortChange,
   stickyHeader = false,
   empty,
+  reflow = "cards",
   className = "",
   ...rest
 }) {
@@ -592,46 +596,53 @@ function DataTable({
     const next = sort && sort.columnId === columnId ? { columnId, direction: sort.direction === "asc" ? "desc" : "asc" } : { columnId, direction: "asc" };
     onSortChange(next);
   }
-  return /* @__PURE__ */ jsx("div", { className: `fos-table-wrap${stickyHeader ? " fos-table-wrap--sticky" : ""} ${className}`.trim(), children: /* @__PURE__ */ jsxs("table", { className: "fos-table", ...rest, children: [
-    caption != null && /* @__PURE__ */ jsx("caption", { className: "fos-table__caption", children: caption }),
-    /* @__PURE__ */ jsx("thead", { className: "fos-table__head", children: /* @__PURE__ */ jsx("tr", { children: columns.map((col) => {
-      const active = sort?.columnId === col.id;
-      const align = col.align ?? (col.numeric ? "end" : "start");
-      return /* @__PURE__ */ jsx(
-        "th",
-        {
-          scope: "col",
-          className: `fos-table__th fos-table__th--${align}`,
-          style: col.width ? { width: col.width } : void 0,
-          "aria-sort": col.sortable ? active ? ARIA_SORT[sort.direction] : "none" : void 0,
-          children: col.sortable ? /* @__PURE__ */ jsxs(
-            "button",
+  return /* @__PURE__ */ jsx(
+    "div",
+    {
+      className: `fos-table-wrap${stickyHeader ? " fos-table-wrap--sticky" : ""}${reflow === "cards" ? " fos-table-wrap--reflow" : ""} ${className}`.trim(),
+      children: /* @__PURE__ */ jsxs("table", { className: "fos-table", ...rest, children: [
+        caption != null && /* @__PURE__ */ jsx("caption", { className: "fos-table__caption", children: caption }),
+        /* @__PURE__ */ jsx("thead", { className: "fos-table__head", children: /* @__PURE__ */ jsx("tr", { children: columns.map((col) => {
+          const active = sort?.columnId === col.id;
+          const align = col.align ?? (col.numeric ? "end" : "start");
+          return /* @__PURE__ */ jsx(
+            "th",
             {
-              type: "button",
-              className: "fos-table__sort",
-              onClick: () => toggle(col.id),
-              children: [
-                col.header,
-                /* @__PURE__ */ jsx("span", { className: "fos-table__sort-icon", "aria-hidden": "true", children: active ? sort.direction === "asc" ? "\u25B2" : "\u25BC" : "\u2195" })
-              ]
-            }
-          ) : col.header
-        },
-        col.id
-      );
-    }) }) }),
-    /* @__PURE__ */ jsx("tbody", { children: rows.length === 0 ? /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", { className: "fos-table__empty", colSpan: columns.length, children: empty }) }) : rows.map((row) => /* @__PURE__ */ jsx("tr", { className: "fos-table__row", children: columns.map((col) => {
-      const align = col.align ?? (col.numeric ? "end" : "start");
-      return /* @__PURE__ */ jsx(
-        "td",
-        {
-          className: `fos-table__td fos-table__td--${align}${col.numeric ? " fos-table__td--num" : ""}`,
-          children: col.cell(row)
-        },
-        col.id
-      );
-    }) }, getRowId(row))) })
-  ] }) });
+              scope: "col",
+              className: `fos-table__th fos-table__th--${align}`,
+              style: col.width ? { width: col.width } : void 0,
+              "aria-sort": col.sortable ? active ? ARIA_SORT[sort.direction] : "none" : void 0,
+              children: col.sortable ? /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  type: "button",
+                  className: "fos-table__sort",
+                  onClick: () => toggle(col.id),
+                  children: [
+                    col.header,
+                    /* @__PURE__ */ jsx("span", { className: "fos-table__sort-icon", "aria-hidden": "true", children: active ? sort.direction === "asc" ? "\u25B2" : "\u25BC" : "\u2195" })
+                  ]
+                }
+              ) : col.header
+            },
+            col.id
+          );
+        }) }) }),
+        /* @__PURE__ */ jsx("tbody", { children: rows.length === 0 ? /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", { className: "fos-table__empty", colSpan: columns.length, children: empty }) }) : rows.map((row) => /* @__PURE__ */ jsx("tr", { className: "fos-table__row", children: columns.map((col) => {
+          const align = col.align ?? (col.numeric ? "end" : "start");
+          return /* @__PURE__ */ jsx(
+            "td",
+            {
+              className: `fos-table__td fos-table__td--${align}${col.numeric ? " fos-table__td--num" : ""}`,
+              "data-label": cellLabel(col.header),
+              children: col.cell(row)
+            },
+            col.id
+          );
+        }) }, getRowId(row))) })
+      ] })
+    }
+  );
 }
 function Timeline({ items, className = "", ...rest }) {
   return /* @__PURE__ */ jsx("ol", { className: `fos-timeline ${className}`.trim(), ...rest, children: items.map((item) => /* @__PURE__ */ jsxs("li", { className: "fos-timeline__item", children: [
