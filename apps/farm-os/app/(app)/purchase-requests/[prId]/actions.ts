@@ -48,7 +48,7 @@ export async function approvePurchaseRequest(prId: string, version: number) {
  * (Storekeeper / owner / farm_manager have inventory.write.)
  */
 export async function recordReceipt(prId: string) {
-  const m = await requireMembership();
+  await requireMembership();
   const sb = await createClient();
 
   const { data: items } = await sb
