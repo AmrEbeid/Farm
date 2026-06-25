@@ -65,6 +65,17 @@ is an npm `overrides` entry `"postcss": "^8.5.10"` (the root `package.json` alre
 re-verify, given how fragile the Linux-native / Tailwind-v4 build chain was to stabilize (PRs #22–#33).
 Low urgency.
 
+### CREATE-2 (LOW, integrity) — `addPlanOperation` is a non-idempotent, non-atomic create
+`addPlanOperation` (`plans/[planId]/actions.ts`) has B4 input validation, but (a) a double-submit
+creates **duplicate planned operations** (like CREATE-1) — though this only over-counts *planned
+demand*, which is **conservative** (the engine would over-recommend, never mask a shortage); and (b)
+its two inserts (`plan_operations` then `plan_material_requirements`) are **not atomic** — a partial
+failure leaves an operation with no material requirement, which `fn_stock_coverage` harmlessly skips
+(the demand query requires the join). Planning-path, no stock/money corruption. Deferred: a
+find-or-create guard + a single transactional RPC for the two inserts (disproportionate now; the UI
+disables the button on submit). *(Completes the write-action audit — all four `actions.ts` files
+reviewed; the high-severity idempotency class is closed by EXE-1 #51 + RCP-1 #57.)*
+
 ### AUTHZ-1 (LOW–MED, posture) — `op.execute`/role gates are claimed but not enforced at RLS
 `executeOperation`'s docstring says "RLS-scoped (op.execute role …)", but the action only calls
 `requireMembership()` and the tables it writes (`farm_event`, `quantities`, `event_locations`,
@@ -128,5 +139,7 @@ fixes are already on `main`, deploy on the next Vercel push.)*
 **Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (execute org-only, not
 role-gated — **DRAFT design in [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) #69 awaiting
 Owner ratification**, then an enforcement migration), **DEP-1** (`postcss` transitive, build-time
-only — low), **BUD-1** (INFO — budget gate is decision-support, not a hard cap). AUDIT-1 fixed
-(#68); CI-1 withdrawn (the pgTAP gate already exists via `db-tests.yml`).
+only — low), **BUD-1** (INFO — budget gate is decision-support, not a hard cap), **CREATE-2** (LOW —
+`addPlanOperation` non-idempotent/non-atomic, planning-path, conservative). AUDIT-1 fixed
+(#68); CI-1 withdrawn (the pgTAP gate already exists via `db-tests.yml`). **Write-action audit
+complete — all four `actions.ts` files reviewed; no new HIGH/MED.**
