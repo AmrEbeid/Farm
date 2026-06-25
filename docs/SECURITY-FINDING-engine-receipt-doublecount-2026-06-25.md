@@ -66,11 +66,31 @@ in order of least disruption:
    supply) rather than from the actual-movement ledger — this matches the SPEC's MRP framing
    ("scheduled receipts" = open POs) and removes the overlap by construction.
 
-Whichever is chosen, add a pgTAP case to `04`/`06`: *a receipt dated after `period_start` that is
-already in `on_hand` must not also be added forward* (assert `PAB[2] = −100` and `shortage = true`
-for the reproduction above). The current suite misses this because the seed's only receipt predates
-`period_start`. Re-run the Playwright wedge-loop afterward (the loop receives stock mid-plan, so it
-exercises exactly this path).
+Whichever is chosen, the regression is already pinned by **`tests/14_engine_receipt_doublecount_test.sql`**
+(added in #56, wrapped in TODO until the fix lands): *a received +100 must raise the forward PAB by
+its qty once, not twice, and must not mask the real shortage*. Re-run the Playwright wedge-loop
+afterward (the loop receives stock mid-plan, so it exercises exactly this path).
+
+### Update (2026-06-25): direction #1 alone is NOT sufficient — it's a data-model decision
+
+I prototyped direction #1 (project only `occurred_at > current_date`) and **it breaks
+`tests/06_stock_engine_edge_test.sql` Case C** ("a scheduled period-1 receipt offsets the shortfall").
+The reason is decisive: the engine's time model is **plan-relative**, not wall-clock. Case C dates its
+"scheduled receipts" `2025-07-08`/`2025-07-15` (the plan window) — wall-clock-**past** relative to a
+2026 `current_date`, yet semantically **future** supply — and sets the bin's `on_hand` **directly**
+(so those receipts are NOT in `on_hand`, and the engine correctly projects them). A `> current_date`
+filter drops them and Case C fails.
+
+So the two contexts are genuinely incompatible for any engine-only tweak:
+- **Case C / open-PO model:** the receipt is `>= period_start`, **not** in `on_hand` → must be projected.
+- **Production / `fn_bin_rebuild`:** the receipt is `>= period_start`, **already** in `on_hand` (rebuild
+  sums all receipts) → must **not** be projected.
+
+The engine cannot tell these apart from a `type='receipt'` row alone — the same movement is "scheduled"
+in one path and "received" in the other. **The double-count is therefore a receipt data-model
+inconsistency, not a filter bug**, and **direction #2 is the real fix**: model genuinely-scheduled
+supply as open POs / approved `purchase_requests` (never in `on_hand`), and stop sourcing the forward
+projection from the actual-movement ledger. Re-date/rewrite Case C onto that source as part of the fix.
 
 ## Why not auto-fixed
 
