@@ -1,4 +1,12 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-22 by Claude (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-25 by Claude (for Owner: Amr Ebeid)
+
+> **2026-06-25 follow-up security review (merged):** a second independent pass closed **B2.1**
+> (append-only stock ledger, migration `0016`, #42), **AP-3** (PR self-approval SoD trigger,
+> migration `0017`, #47), and **EXE-1** (idempotent operation execute / claim-first, #51) — plus a
+> lint fix (#43) and findings docs (#45/#49). All merged to `main` after independent diff review;
+> **pgTAP 92/92** + wedge-loop e2e green. **Prod DB still at `0013`** — pushing `0015`/`0016`/`0017`
+> remains an Owner hard-stop. Only open finding: **AUTHZ-1** (execute org-only, not role-gated) —
+> deferred with the role model. Detail: [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
 
 ## Current focus
 One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` + `docs/`). The **design system** (`@amrebeid/ui` **v1.1.0, published** to GitHub Packages, green CI) and the **Farm OS MVP-0 app** are both **BUILT** and on `main`. The **independent security review is DONE + merged** (RLS/grants/engine fixes, the `db-tests` pgTAP CI gate, the `fn_post_movement` B1 primitive). The full inventory path (B1 rewiring + **D2 ledger-backed `reserved`**) is **merged + verified** (74/74 pgTAP + the Playwright wedge-loop e2e pass on the real Supabase stack). The app is now **DEPLOYED + LIVE** (2026-06-24) on **farm-ui-one.vercel.app** + **ebeidfarm.business** with a dedicated Supabase project — login + RLS + the stock-coverage engine verified on prod (see `DEPLOY-STATUS.md`). **What's left:** **Key rotation — deferred to project end (Owner, 2026-06-24):** rotate the Supabase DB password + service_role key (pasted in the deploy chat) + reset the demo password — but do it **before any real data** regardless (the exposed service_role key bypasses RLS). **Pilot validation — considered DONE (Owner):** customer research was completed pre-project (it produced the plan + dummy data). **Near-term: nothing required** — MVP-0 is *deployed + security-reviewed + e2e-verified*, live and stable on synthetic data. **Deferred to project end (Owner):** key rotation, legacy **Stage 0** secret remediation, real-data migration (after a privacy review). **Optional, agent-doable:** D1 FORCE RLS (low value on Supabase); B2 role-gating / B3 (decision-gated minors); in-browser wedge walkthrough.

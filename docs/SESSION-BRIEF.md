@@ -1,6 +1,26 @@
 # Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-25 (later) — follow-up security review merged + EXE-1 fixed
+A second independent adversarial pass over post-deploy `main` (recorded in
+[`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md)) found and fixed
+three more issues, all **merged to `main`** after independent diff review:
+- **B2.1** (#42, migration `0016`) — the stock ledger was directly **DELETE-able** by any org member
+  (B2 gated INSERT/UPDATE via `WITH CHECK`, but `FOR ALL` DELETE uses `USING` only + the blanket
+  `0009` grant). Fixed: `revoke delete` → append-only ledger; pgTAP `11`.
+- **AP-3** (#47, migration `0017`) — PR **self-approval bypass** (the AP-2 `WITH CHECK` reads the
+  NEW row, which the same UPDATE can rewrite). Fixed: `BEFORE UPDATE` trigger freezes `requested_by`
+  + stamps `approved_by`/`approved_at` from the session; pgTAP `12`.
+- **EXE-1** (#51) — `executeOperation` was **not idempotent** (a double-submit/retry re-ran the
+  issue/release path → double stock loss). Fixed **claim-first** (flip `status→done` guarded by
+  `status <> 'done'`, abort if no row, before any stock movement; revert only pre-persist); pgTAP
+  `13` + wedge-loop e2e. Incorporated 3 CodeRabbit data-integrity refinements.
+- Also merged: **#43** (eslint clean) and **#45** + **#49** (DELETE-exposure + follow-up docs).
+- **Verified:** **pgTAP 92/92** on a clean reset + Playwright wedge-loop e2e + app/lib CI all green.
+- ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017` are verified on `main` but a prod
+  `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md`). App runs without them.
+- **Open:** AUTHZ-1 (execute is org-only, not role-gated) — deferred with the role model.
+
 ## 2026-06-25 — post-deploy hardening
 With the app live, hardened + verified further: **prod re-verified** (all 6 role logins + per-role
 RLS + `fn_stock_coverage` on the live stack); **app build now CI-gated** (`ci.yml` `app` job:
