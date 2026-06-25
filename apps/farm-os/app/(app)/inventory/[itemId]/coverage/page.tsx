@@ -23,6 +23,35 @@ interface Coverage {
   message_ar: string;
 }
 
+// Runtime guard for the fn_stock_coverage RPC result (defined in migration 0018).
+// supabase-js types this RPC's payload as `unknown`/`Json`, so without a check a
+// drift in the SQL shape would render undefined/NaN silently. We validate only the
+// fields the page actually reads; on mismatch we throw and let the segment error
+// boundary (app/(app)/error.tsx) surface it instead of rendering a broken page.
+function isCoverage(value: unknown): value is Coverage {
+  if (typeof value !== "object" || value === null) return false;
+  const c = value as Record<string, unknown>;
+  return (
+    typeof c.available === "number" &&
+    typeof c.safety_stock === "number" &&
+    typeof c.lead_time_days === "number" &&
+    typeof c.reorder_point === "number" &&
+    (typeof c.coverage_days === "number" ||
+      c.coverage_days === "∞" ||
+      c.coverage_days === null) &&
+    (typeof c.stockout_date === "string" || c.stockout_date === null) &&
+    Array.isArray(c.pab) &&
+    c.pab.every((n) => typeof n === "number") &&
+    (typeof c.first_shortage_period === "number" ||
+      c.first_shortage_period === null) &&
+    typeof c.shortage === "boolean" &&
+    typeof c.shortfall === "number" &&
+    typeof c.recommend_qty === "number" &&
+    (typeof c.order_by === "string" || c.order_by === null) &&
+    typeof c.message_ar === "string"
+  );
+}
+
 export default async function CoveragePage({
   params,
 }: {
@@ -55,7 +84,12 @@ export default async function CoveragePage({
     );
   }
 
-  const c = data as unknown as Coverage;
+  // Validate the RPC shape at runtime instead of force-casting it; a drift in
+  // fn_stock_coverage's output now fails loudly to the error boundary.
+  if (!isCoverage(data)) {
+    throw new Error("fn_stock_coverage returned an unexpected shape");
+  }
+  const c: Coverage = data;
   const unit = item?.unit ?? "kg";
 
   return (
