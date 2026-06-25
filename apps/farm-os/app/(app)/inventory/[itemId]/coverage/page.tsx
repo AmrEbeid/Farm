@@ -4,6 +4,7 @@ import { VerdictBanner, KpiCard, Card } from "@/components/ui";
 import { PabChart } from "@/components/charts";
 import { CreatePrButton } from "@/components/CreatePrButton";
 import { num, coverageDays } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
 
 interface Coverage {
   item_id: string;
@@ -84,7 +85,7 @@ export default async function CoveragePage({
         <PabChart series={c.pab} firstShortage={c.first_shortage_period} />
         {c.stockout_date && (
           <p className="mt-2 text-sm" style={{ color: "var(--ink-muted)" }}>
-            تاريخ نفاد المخزون المتوقع: {new Date(c.stockout_date).toLocaleDateString("ar-EG")}
+            تاريخ نفاد المخزون المتوقع: {fmtDate(c.stockout_date)}
           </p>
         )}
       </Card>

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { ExecuteForm } from "@/components/ExecuteForm";
+import { fmtDate } from "@/lib/dates";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -33,7 +34,7 @@ export default async function ExecutePage({
     <div className="mx-auto flex max-w-md flex-col gap-6 p-4">
       <header>
         <h1 className="text-xl font-bold">تنفيذ العملية — {SUBTYPE_AR[op.subtype ?? ""] ?? op.subtype}</h1>
-        <p style={{ color: "var(--ink-muted)" }}>الحصوة · {op.planned_at}</p>
+        <p style={{ color: "var(--ink-muted)" }}>الحصوة · {fmtDate(op.planned_at)}</p>
       </header>
 
       {op.status === "done" ? (
