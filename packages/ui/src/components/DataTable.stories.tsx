@@ -79,6 +79,26 @@ export const Empty: S = {
   ),
 };
 
+/**
+ * Below ~48rem the table reflows into one stacked card per row (label: value).
+ * Narrow this story's viewport (or use the Storybook mobile viewport) to see it.
+ * Pass `reflow="scroll"` to keep the legacy horizontal-scroll behaviour instead.
+ */
+export const MobileReflow: S = {
+  render: () => (
+    <div style={{ maxWidth: 360 }}>
+      <DataTable
+        caption="مخزون الأصناف (يتحوّل إلى بطاقات على الشاشات الصغيرة)"
+        columns={columns}
+        rows={data}
+        getRowId={(r) => r.id}
+        sort={{ columnId: "qty", direction: "desc" }}
+        onSortChange={() => {}}
+      />
+    </div>
+  ),
+};
+
 export const Gallery: S = {
   render: () => (
     <div style={{ display: "grid", gap: 24 }}>

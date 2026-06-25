@@ -54,4 +54,45 @@ describe("DataTable", () => {
     );
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  describe("mobile reflow", () => {
+    it("opts into card reflow by default and labels each cell with its header", () => {
+      const { container } = render(
+        <DataTable columns={columns} rows={rows} getRowId={(r) => r.id} caption="مخزون" />
+      );
+      expect(container.querySelector(".fos-table-wrap--reflow")).toBeInTheDocument();
+      const cells = container.querySelectorAll<HTMLTableCellElement>(".fos-table__td");
+      // first data row: name + qty cells carry their column header as data-label
+      expect(cells[0]).toHaveAttribute("data-label", "الصنف");
+      expect(cells[1]).toHaveAttribute("data-label", "الكمية");
+    });
+
+    it("can opt out to legacy horizontal scroll with reflow=\"scroll\"", () => {
+      const { container } = render(
+        <DataTable columns={columns} rows={rows} getRowId={(r) => r.id} reflow="scroll" />
+      );
+      expect(container.querySelector(".fos-table-wrap--reflow")).toBeNull();
+      expect(container.querySelector(".fos-table-wrap")).toBeInTheDocument();
+    });
+
+    it("omits data-label for non-string (JSX) headers so no broken label renders", () => {
+      const jsxCols: DataTableColumn<Row>[] = [
+        { id: "name", header: <span>الصنف</span>, cell: (r) => r.name },
+        { id: "qty", header: "الكمية", cell: (r) => r.qty, numeric: true },
+      ];
+      const { container } = render(
+        <DataTable columns={jsxCols} rows={rows} getRowId={(r) => r.id} />
+      );
+      const cells = container.querySelectorAll<HTMLTableCellElement>(".fos-table__td");
+      expect(cells[0]).not.toHaveAttribute("data-label");
+      expect(cells[1]).toHaveAttribute("data-label", "الكمية");
+    });
+
+    it("has no axe violations in card-reflow mode", async () => {
+      const { container } = render(
+        <DataTable columns={columns} rows={rows} getRowId={(r) => r.id} caption="مخزون" />
+      );
+      expect(await axe(container)).toHaveNoViolations();
+    });
+  });
 });
