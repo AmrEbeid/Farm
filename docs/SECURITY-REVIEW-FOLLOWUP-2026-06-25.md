@@ -82,6 +82,13 @@ the role model before multi-tenant. Recommend gating the execute path on `author
 when the role model lands (mirroring B2's inventory-write gate), keeping execution routed through
 the bypassrls RPCs so supervisors/engineers can still execute.
 
+**AUDIT-1 (related, INFO):** `organization_member` has **no `fn_audit` trigger** (audited tables:
+`purchase_request`, `budget`, `budget_line`, `farm_event`, `expense`, `inventory_movement`). Not a
+current vulnerability — HIGH-1 (migration `0010`) **revoked** client INSERT/UPDATE/DELETE on
+`organization_member` (SELECT-only), so there is no client role-change path to audit; role changes
+happen out-of-band via the admin API. **When role-management UI lands (with the role model), add an
+audit trigger on `organization_member`** so entitlement grants are on the immutable trail.
+
 ### CI-1 (process) — ~~the pgTAP suite is not run in CI~~ **WITHDRAWN — the gate already exists**
 **Correction:** the pgTAP suite **is** gated on every PR/push by a *separate* workflow,
 `.github/workflows/db-tests.yml` (the "pgTAP — RLS · audit · seed · engine · security" check). I
