@@ -40,10 +40,16 @@ insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty,
   (:'orgA','cccc0000-0000-0000-0000-0000000c0001','cccc0000-0000-0000-0000-0000000000c0',200,'kg'),  -- C: 200 in P1
   (:'orgA','cccc0000-0000-0000-0000-0000000d0001','cccc0000-0000-0000-0000-0000000000d0',100,'kg'),  -- D: 100 in P1
   (:'orgA','cccc0000-0000-0000-0000-0000000d0002','cccc0000-0000-0000-0000-0000000000d0',100,'kg');  -- D: 100 in P2
--- C's scheduled receipts: 60 in P1, 80 in P2 (future receipt movements)
-insert into public.inventory_movements (org_id, item_id, type, qty, location, occurred_at) values
-  (:'orgA','cccc0000-0000-0000-0000-0000000000c0','receipt',60,'main','2025-07-08'),
-  (:'orgA','cccc0000-0000-0000-0000-0000000000c0','receipt',80,'main','2025-07-15');
+-- C's scheduled receipts: 60 in P1, 80 in P2 — modeled as APPROVED purchase requests (open POs).
+-- ENGINE-DC (migration 0018): scheduled supply is approved-not-received PRs (future supply, not yet
+-- in on_hand) bucketed by needed_by — NOT actual receipt movements (those are already in on_hand, and
+-- projecting them double-counted). on_hand and the forward projection stay disjoint by construction.
+insert into public.purchase_requests (id, org_id, code, needed_by, status) values
+  ('cccc0000-0000-0000-0000-0000000c00a1', :'orgA', 'PR-C-P1', '2025-07-08', 'approved'),
+  ('cccc0000-0000-0000-0000-0000000c00a2', :'orgA', 'PR-C-P2', '2025-07-15', 'approved');
+insert into public.purchase_request_items (org_id, pr_id, item_id, qty, unit) values
+  (:'orgA','cccc0000-0000-0000-0000-0000000c00a1','cccc0000-0000-0000-0000-0000000000c0',60,'kg'),
+  (:'orgA','cccc0000-0000-0000-0000-0000000c00a2','cccc0000-0000-0000-0000-0000000000c0',80,'kg');
 
 select set_config('test.ownerA', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role='owner'), false);
