@@ -15,17 +15,22 @@ three more issues, all **merged to `main`** after independent diff review:
   issue/release path → double stock loss). Fixed **claim-first** (flip `status→done` guarded by
   `status <> 'done'`, abort if no row, before any stock movement; revert only pre-persist); pgTAP
   `13` + wedge-loop e2e. Incorporated 3 CodeRabbit data-integrity refinements.
-- Also merged: **#43** (eslint clean) and **#45** + **#49** (DELETE-exposure + follow-up docs).
-- **Verified:** **pgTAP 92/92** on a clean reset + Playwright wedge-loop e2e + app/lib CI all green.
+- **RCP-1** (#57) — EXE-1's twin: `recordReceipt` re-posted every `receipt` on a double-submit →
+  **phantom stock IN**. Fixed **claim-first** (flip `approved→received` guarded by `status='approved'`,
+  abort if no row, before any movement; adds the missing precondition); pgTAP `15` + wedge-loop.
+- Also merged: **#43** (eslint clean), **#45**/**#49**/**#54**/**#55** (findings + follow-up docs),
+  **#56** (ENGINE-DC TODO regression test `14` + shim harness honors TAP TODO).
+- **Verified:** **pgTAP 97/97** on a clean reset (test `14` ENGINE-DC as expected TODO) + Playwright
+  wedge-loop e2e + app/lib CI all green.
 - ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017` are verified on `main` but a prod
   `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md`). App runs without them.
 - **Open (Owner-gated):** **ENGINE-DC** (#53) — `fn_stock_coverage` double-counts receipts dated
   `>= period_start` (in both opening `on_hand` and the forward projection) → can **mask a real
   shortage**. NOT auto-fixed: a `current_date` cut-line breaks test `06` Case C, so the real fix is a
   data-model choice (recommend sourcing scheduled receipts from approved PRs/open POs). Core-engine →
-  Owner review. Also **AUTHZ-1** (execute org-only, not role-gated) and **DEP-1** (`postcss<8.5.10`
-  transitive via `next`, build-time only, low) — both deferred. SoD finding renamed **AP-3→AP-5**
-  (AP-3 was already the PR version-guard).
+  Owner review. Also **AUTHZ-1** (execute org-only, not role-gated), **CREATE-1** (PR-create not
+  idempotent — low, conservative), and **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time
+  only, low) — all deferred. SoD finding renamed **AP-3→AP-5** (AP-3 was already the PR version-guard).
 
 ## 2026-06-25 — post-deploy hardening
 With the app live, hardened + verified further: **prod re-verified** (all 6 role logins + per-role

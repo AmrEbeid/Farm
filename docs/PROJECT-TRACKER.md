@@ -2,14 +2,17 @@
 
 > **2026-06-25 follow-up security review (merged):** a second independent pass closed **B2.1**
 > (append-only stock ledger, migration `0016`, #42), **AP-5** (PR self-approval SoD trigger,
-> migration `0017`, #47), and **EXE-1** (idempotent operation execute / claim-first, #51) — plus a
-> lint fix (#43) and findings docs (#45/#49). All merged to `main` after independent diff review;
-> **pgTAP 92/92** + wedge-loop e2e green. **Prod DB still at `0013`** — pushing `0015`/`0016`/`0017`
-> remains an Owner hard-stop. Open findings (Owner-gated): **ENGINE-DC** (#53 — `fn_stock_coverage`
-> double-counts receipts dated `>= period_start`, can mask a real shortage; fix is a core-engine
-> data-model decision, recommend sourcing scheduled receipts from approved PRs/POs), **AUTHZ-1**
-> (execute org-only, not role-gated), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time
-> only). SoD finding renamed AP-3→AP-5 (AP-3 = the PR version-guard). Detail:
+> migration `0017`, #47), **EXE-1** (idempotent operation execute / claim-first, #51), and **RCP-1**
+> (idempotent PR receipt / claim-first, #57) — plus a lint fix (#43), findings docs (#45/#49/#54/#55),
+> and the ENGINE-DC TODO regression test (#56). All merged to `main` after independent diff review;
+> **pgTAP 97/97** + wedge-loop e2e green. **Prod DB still at `0013`** — pushing `0015`/`0016`/`0017`
+> remains an Owner hard-stop (the EXE-1/RCP-1 fixes are app code, no migration). Open findings
+> (Owner-gated): **ENGINE-DC** (#53 — `fn_stock_coverage` double-counts receipts dated
+> `>= period_start`, can mask a real shortage; fix is a core-engine data-model decision, recommend
+> sourcing scheduled receipts from approved PRs/POs; TODO regression test `14` in place), **AUTHZ-1**
+> (execute org-only, not role-gated), **CREATE-1** (PR-create not idempotent — low, conservative),
+> **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only). SoD finding renamed AP-3→AP-5
+> (AP-3 = the PR version-guard). Detail:
 > [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
 
 ## Current focus
