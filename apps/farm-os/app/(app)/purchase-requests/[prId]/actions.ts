@@ -81,6 +81,11 @@ export async function recordReceipt(prId: string) {
     if (error.code === "P0002") {
       return { ok: false, error: "الطلب غير موجود." };
     }
+    // 22023 = a malformed PR line (qty ≤ 0) rejected by fn_post_movement; map it rather than
+    // leaking the raw English (non-negotiable #2, consistent with executeOperation/reserve).
+    if (error.code === "22023") {
+      return { ok: false, error: "بند في الطلب يحمل كمية غير صالحة" };
+    }
     return { ok: false, error: error.message };
   }
 
