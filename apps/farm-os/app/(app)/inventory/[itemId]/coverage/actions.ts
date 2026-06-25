@@ -30,7 +30,17 @@ async function reserveStock(
   // Return a structured result rather than throwing: the caller propagates this as
   // `{ ok: false, error }` so a reserve failure surfaces in the UI (CreatePrButton
   // reads `res.ok`) instead of becoming an unhandled server-action rejection.
-  if (error) return { ok: false as const, error: error.message };
+  // Map fn_post_movement's SQLSTATEs to Arabic (non-negotiable #2; consistent with
+  // executeOperation/recordReceipt) — never leak the raw English DB message to the field UI.
+  if (error) {
+    const msg =
+      error.code === "42501"
+        ? "ليس لديك صلاحية حجز المخزون"
+        : error.code === "22023"
+          ? "كمية الحجز غير صالحة"
+          : error.message;
+    return { ok: false as const, error: msg };
+  }
   return { ok: true as const };
 }
 
