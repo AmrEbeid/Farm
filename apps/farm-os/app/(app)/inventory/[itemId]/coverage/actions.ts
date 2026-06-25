@@ -27,7 +27,11 @@ async function reserveStock(
     p_unit: "kg",
     p_plan_id: planId,
   });
-  if (error) throw new Error(error.message);
+  // Return a structured result rather than throwing: the caller propagates this as
+  // `{ ok: false, error }` so a reserve failure surfaces in the UI (CreatePrButton
+  // reads `res.ok`) instead of becoming an unhandled server-action rejection.
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const };
 }
 
 /**
@@ -109,8 +113,10 @@ export async function createPurchaseRequestFromShortage(
   });
   if (itemErr) return { ok: false, error: itemErr.message };
 
-  // reserve the planned requirement
-  await reserveStock(sb, itemId, reserveQty, SEED_PLAN_ID);
+  // reserve the planned requirement — propagate a reserve failure as a structured
+  // error instead of letting it throw as an unhandled server-action rejection.
+  const reserve = await reserveStock(sb, itemId, reserveQty, SEED_PLAN_ID);
+  if (!reserve.ok) return { ok: false, error: reserve.error };
 
   revalidatePath(`/inventory/${itemId}/coverage`);
   revalidatePath(`/purchase-requests`);

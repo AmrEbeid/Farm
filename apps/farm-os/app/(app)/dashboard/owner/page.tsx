@@ -14,16 +14,18 @@ const PR_STATUS_AR: Record<string, string> = {
 };
 
 export default async function OwnerDashboard() {
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
 
   const { data: prs } = await sb
     .from("purchase_requests")
     .select("id, code, status, reason")
     .order("code", { ascending: false });
+  // Scope budget_lines to the caller's org so this stays correct once a 2nd org exists.
   const { data: lines } = await sb
     .from("budget_lines")
-    .select("category, approved, committed, actual");
+    .select("category, approved, committed, actual")
+    .eq("org_id", m.orgId);
 
   const pending = (prs ?? []).filter((p) => p.status === "submitted");
   const overLines = (lines ?? []).filter(
