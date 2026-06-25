@@ -8,11 +8,12 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0029`** — `0001–0013` + `0015–0029` applied and recorded under their repo
-    versions (originally `0001–0013` via `supabase db push`; `0015→0024` applied 2026-06-25 via the
-    Supabase MCP after the prod-push assurance returned GO-WITH-CAVEATS; the `0025→0029`
-    access-control / engine-integrity hardening applied the same day — see below). Verified 2026-06-25
-    via `list_migrations` (latest = `20260622000029`).
+  - **Migrations now at `0031`** — `0001–0013` + `0015–0031` applied and recorded under their repo
+    versions (originally `0001–0013` via `supabase db push`; `0015→0029` applied 2026-06-25 via the
+    Supabase MCP after the prod-push assurance returned GO-WITH-CAVEATS; **`0030` (#158, PR #163) and
+    `0031` (#159, PR #164)** — the security re-audit MED fixes — merged + applied the same day).
+    Verified 2026-06-25 via `list_migrations` (latest = `20260622000031`). **`0032` (#160, PR #165) is
+    open/owner-gated — not yet applied.**
   - Synthetic **seed loaded** — verified 28 hawshat / 6 items / 6 members / potassium on_hand 300. Full
     dataset: 1 org, 6 organization_member, 12 auth.users, 1 farm, 60 assets, 5 sectors, 6 inventory
     items/bins/movements, 1 plan w/ 3 operations + checks + budget. Transactional tables (`farm_event`,
