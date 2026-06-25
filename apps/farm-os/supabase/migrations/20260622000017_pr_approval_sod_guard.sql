@@ -1,4 +1,4 @@
--- Farm OS MVP-0 — AP-3: close the purchase-request self-approval (separation-of-duties) bypass.
+-- Farm OS MVP-0 — AP-5: close the purchase-request self-approval (separation-of-duties) bypass.
 --
 -- The `pr_update` policy (migration 0007) enforces AP-2 — "the approver is not the requester" — in
 -- its WITH CHECK as `requested_by is distinct from auth.uid()`. But WITH CHECK can only see the NEW
