@@ -115,11 +115,12 @@ select is((select on_hand from public.inventory_bin where item_id = :'itemA' and
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.store'), 'role','authenticated')::text, true);
 set local role authenticated;
--- the bad item raises (unknown inventory item) → the whole receipt is rolled back
+-- itemB's NULL→0 qty makes fn_post_movement raise '22023' (qty must be a positive number) —
+-- pinned so the test proves WHY it rolled back, not merely that *something* threw.
 select throws_ok(
   format($$ select public.fn_post_receipt('%s'::uuid) $$, current_setting('t.prbad', true)),
-  null, null,
-  'RCP-ATOMIC-1: a mid-loop fn_post_movement failure raises (does not commit a partial receipt)');
+  '22023', null,
+  'RCP-ATOMIC-1: a mid-loop fn_post_movement failure raises 22023 (does not commit a partial receipt)');
 reset role;
 
 select is((select status from public.purchase_requests where id = :'prbad'), 'approved',

@@ -77,6 +77,10 @@ export async function recordReceipt(prId: string) {
     if (error.code === "42501") {
       return { ok: false, error: "ليس لديك صلاحية استلام المخزون" };
     }
+    // P0002 is the "purchase request not found" raise from fn_post_receipt.
+    if (error.code === "P0002") {
+      return { ok: false, error: "الطلب غير موجود." };
+    }
     return { ok: false, error: error.message };
   }
 
