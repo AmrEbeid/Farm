@@ -43,9 +43,11 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
           ? "العملية نُفِّذت بالفعل"
           : error.code === "22023"
             ? "الكمية أو عدد العمالة غير صالح"
-            : error.code === "P0002"
-              ? "العملية غير موجودة"
-              : error.message;
+            : error.code === "23514"
+              ? "المخزون غير كافٍ لتنفيذ هذه الكمية"
+              : error.code === "P0002"
+                ? "العملية غير موجودة"
+                : error.message;
     return { ok: false, error: msg };
   }
 
