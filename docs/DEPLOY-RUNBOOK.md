@@ -34,11 +34,13 @@ psql "<SUPABASE_DB_URL>" -f supabase/seed.sql
 ## 1a. Incremental migration push — post-deploy security fixes (0015→0018) — **Owner-gated**
 
 > **STATUS (2026-06-25): DONE.** The remote pilot DB (`veezkmytervjnpxcrbkw`) is now at migration
-> **`0024`** (`0001`–`0013` + `0015`–`0024`), fully seeded. After the 8-agent adversarial prod-push
+> **`0029`** (`0001`–`0013` + `0015`–`0029`), fully seeded. After the 8-agent adversarial prod-push
 > assurance returned **GO-WITH-CAVEATS**, `0015`→`0024` were applied in order (`0018` engine change
-> Owner-ratified) via the Supabase MCP and each recorded in `supabase_migrations.schema_migrations`
+> Owner-ratified); the subsequent access-control / engine-integrity hardening `0025`→`0029` (see the
+> table below) was applied the same way. Each is recorded in `supabase_migrations.schema_migrations`
 > under its repo version, so remote history matches the repo and a future `supabase db push` is a
-> no-op for these. pgTAP **126/126** on a clean reset.
+> no-op for these. pgTAP **270/270** on a clean reset (verified 2026-06-25; prod `list_migrations`
+> latest = `20260622000029`).
 
 The pilot DB was first provisioned at migration `0013`. The security/correctness delta below has
 since been applied (rows ✅ are live on prod). Each was a hard stop per PROJECT RULES, applied only
@@ -56,18 +58,23 @@ on the Owner's go-ahead:
 | `0022` | `…_inventory_ledger_no_update.sql` | **B2.1** — ledger UPDATE-immutable (now fully append-only) | access-control | ✅ |
 | `0023` | `…_pr_approval_sod_guard_insert.sql` | **AP-5** (#76 item 2) — extend SoD guard to BEFORE INSERT (block a born-approved PR) | financial control | ✅ |
 | `0024` | `…_fn_post_receipt.sql` | **RCP-ATOMIC-1** — atomic single-transaction PR receipt posting (no half-received state) | **inventory/finance** | ✅ |
+| `0025` | `…_operation_tables_rls_authz.sql` | **AUTHZ-1 (Option B)** (#146) — gate the operation tables (`plan_operations`/`farm_event`/`event_locations`/`quantities`) at the REST layer, not only inside the RPC | access-control | ✅ |
+| `0026` | `…_engine_dc_constraint.sql` | **ENGINE-DC** (#144) — DB-level disjointness guard so a received receipt can't be double-counted | **core engine** | ✅ |
+| `0027` | `…_delete_posture_remediation.sql` | **DELETE-posture** (#140) — tighten DELETE grants across tenant tables | access-control | ✅ |
+| `0028` | `…_force_rls_tenant_tables.sql` | **FORCE-RLS** (#142) — `FORCE ROW LEVEL SECURITY` on tenant tables so even table owners are RLS-bound | access-control | ✅ |
+| `0029` | `…_engine_dc_guard_pr_scope.sql` | **ENGINE-DC fix** (#151) — scope the `0026` guard to a txn-local GUC set by `fn_post_receipt` (fixes a two-PO-one-item false positive) | **core engine** | ✅ |
 
 ```bash
 # Re-running is safe (idempotent). To apply any FUTURE migration with the project linked (§1):
-supabase migration list           # confirm remote is at 0024 and only newer versions are pending
+supabase migration list           # confirm remote is at 0029 and only newer versions are pending
 supabase db push                  # applies pending versions in order
 ```
 
-> **Residual security caveats (queued, not blocking — from the prod-push assurance):** AUTHZ-1
-> Option B (gate the operation tables at the REST layer, not only inside the RPC); ENGINE-DC
-> disjointness is convention-enforced, not DB-constraint-enforced. None are live-exploitable on
-> synthetic single-tenant data; all tracked for a follow-up change window. *(AP-5 insert-side SoD —
-> issue #76 item 2 — is now closed by `0023`, which extends the guard to `BEFORE INSERT`.)*
+> **Residual security caveats — now CLOSED (2026-06-25).** The prod-push assurance left two queued
+> caveats; both have since landed: **AUTHZ-1 Option B** (gate the operation tables at the REST layer,
+> not only inside the RPC) is closed by `0025`; **ENGINE-DC** disjointness is now DB-enforced (`0026`)
+> with a PR-scoped guard fix (`0029`), no longer convention-only. *(AP-5 insert-side SoD — issue #76
+> item 2 — was already closed by `0023`.)* No queued security caveats remain from the assurance.
 
 **Before the push:**
 - **Independent review + Owner ratification is required for `0018`** — it changes the stock-coverage
@@ -79,7 +86,7 @@ supabase db push                  # applies pending versions in order
   the push can happen on its own change window.
 
 **After the push — verify in prod (read-only checks, or the SQL editor):**
-- `supabase migration list` shows `0024` as the latest applied version.
+- `supabase migration list` shows `0029` as the latest applied version.
 - **B2.1 (append-only):** a direct `delete from inventory_movements …` as an authenticated tenant is
   rejected (pgTAP `11` invariant).
 - **AP-5 (SoD):** an owner-author cannot self-approve a PR by rewriting `requested_by` in the approving
