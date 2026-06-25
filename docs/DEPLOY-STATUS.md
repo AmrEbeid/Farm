@@ -93,6 +93,16 @@ backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
   (`@tailwindcss/oxide-linux-x64-gnu`, `lightningcss-linux-x64-gnu` — npm/cli#4828, the real crash);
   `framework:"nextjs"` (Vercel had expected a `dist/` output); resilient middleware.
 
+## ⚠️ Prod DB schema vs `main` (important)
+The prod Supabase (`veezkmytervjnpxcrbkw`) was provisioned at migrations **0001–0013**. Merging a
+new migration to `main` **redeploys the app (Vercel) but does NOT apply DB migrations to prod.**
+So newer migrations on `main` — currently **`0015` (B2 inventory write role-gate)** — are verified
+(78/78 pgTAP + e2e) but **not yet applied to the prod DB**. The app runs fine without them (B2 is a
+hardening; all app writes already go through the bypassrls RPC). Apply with `supabase db push` to the
+linked prod project — a deliberate **prod DB migration (hard stop / Owner action)**, batched with the
+project-end items below. (Migration filenames skip `0014` — a dropped first B2 attempt; harmless, `db
+push` applies by version.)
+
 ## 🔴 Security follow-ups (Owner — do now)
 - **Rotate the Supabase DB password and the `service_role` (secret) key** — both were pasted in the
   setup chat. (Supabase → Settings → Database / API → roll.) After rotating the DB password, the
