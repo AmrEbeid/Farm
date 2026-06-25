@@ -5,16 +5,18 @@
 > migration `0017`, #47), **EXE-1** (idempotent operation execute / claim-first, #51), **RCP-1**
 > (idempotent PR receipt / claim-first, #57), **ENGINE-DC** (stock-coverage receipt double-count
 > → fixed via direction #2: scheduled receipts sourced from approved POs, migration `0018`, #61), and
-> **CREATE-1** (idempotent PR-create / find-or-create, #63) — plus a lint fix (#43), findings docs
-> (#45/#49/#54/#55/#58/#59/#60/#62/#64), and the ENGINE-DC TODO regression test (#56). All merged to
-> `main` after independent diff review + local pgTAP/e2e verification; **pgTAP 97/97** + wedge-loop
-> e2e green. **Prod DB still at `0013`** — pushing `0015`/`0016`/`0017`/`0018` remains an Owner
-> hard-stop (**`0018` is the core-engine change — ratify specifically**; the EXE-1/RCP-1/CREATE-1
-> fixes are app code, no migration). Open findings (all Owner-gated / deferred): **AUTHZ-1** (execute
-> org-only, not role-gated — with the role model; + **AUDIT-1** INFO: add an `organization_member`
-> audit trigger when role-management lands), **DEP-1** (`postcss<8.5.10` transitive via `next`,
-> build-time only), **BUD-1** (INFO — the budget gate is decision-support + owner-approval, not a hard
-> DB spend cap; `committed` is display-only). SoD finding renamed AP-3→AP-5
+> **CREATE-1** (idempotent PR-create / find-or-create, #63), and **AUDIT-1** (audit
+> `organization_member` changes, migration `0019`, #68) — plus a lint fix (#43), findings/runbook docs
+> (#45/#49/#54/#55/#58/#59/#60/#62/#64/#65/#66), the ENGINE-DC TODO regression (#56) + engine
+> round-trip test (#67), and the **SPEC-0002 authorization-enforcement DRAFT (#69, Owner-gated)**. All
+> merged to `main` after independent diff review + local pgTAP/e2e verification; **pgTAP 103/103** (17
+> files) + wedge-loop e2e green. **Prod DB still at `0013`** — pushing `0015`/`0016`/`0017`/`0018`/`0019`
+> remains an Owner hard-stop (**`0018` is the core-engine change — ratify specifically**; the
+> EXE-1/RCP-1/CREATE-1 fixes are app code, no migration). Open findings (all Owner-gated / deferred):
+> **AUTHZ-1** (execute org-only, not role-gated — SPEC-0002 draft awaiting Owner ratification, then an
+> enforcement migration), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only), **BUD-1**
+> (INFO — the budget gate is decision-support + owner-approval, not a hard DB spend cap; `committed`
+> is display-only). SoD finding renamed AP-3→AP-5
 > (AP-3 = the PR version-guard). Detail:
 > [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
 
