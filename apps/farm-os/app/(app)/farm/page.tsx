@@ -8,10 +8,13 @@ export default async function FarmStructurePage() {
   await requireMembership();
   const sb = await createClient();
 
-  const { data: sectors } = await sb
+  const { data: sectors, error } = await sb
     .from("sectors")
     .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
     .order("code");
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (error) throw error;
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "القطاع" },

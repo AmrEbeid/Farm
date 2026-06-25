@@ -18,12 +18,15 @@ export default async function BudgetCheckPage({
 
   // The fertilization category for this plan is أسمدة. Scope to the caller's org so
   // .maybeSingle() stays single-row once a 2nd org exists (otherwise it throws → 500).
-  const { data: line } = await sb
+  const { data: line, error } = await sb
     .from("budget_lines")
     .select("category, planned, approved, committed, actual")
     .eq("org_id", m.orgId)
     .eq("category", "أسمدة")
     .maybeSingle();
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (error) throw error;
 
   const planned = Number(line?.planned ?? 0);
   const approved = Number(line?.approved ?? 0);

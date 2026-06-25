@@ -23,19 +23,24 @@ export default async function PlannedVsActualPage({
 
   // The ops list and the done farm_events both filter by plan_id only; the
   // op_id matching happens in memory below, so the reads are independent.
-  const [{ data: ops }, { data: events }] = await Promise.all([
-    sb
-      .from("plan_operations")
-      .select("id, subtype, est_cost, status, plan_material_requirements(qty, unit)")
-      .eq("plan_id", planId)
-      .order("priority"),
-    // actuals from done farm_events for this plan
-    sb
-      .from("farm_event")
-      .select("subtype, status, data")
-      .eq("plan_id", planId)
-      .eq("status", "done"),
-  ]);
+  const [{ data: ops, error: opsError }, { data: events, error: eventsError }] =
+    await Promise.all([
+      sb
+        .from("plan_operations")
+        .select("id, subtype, est_cost, status, plan_material_requirements(qty, unit)")
+        .eq("plan_id", planId)
+        .order("priority"),
+      // actuals from done farm_events for this plan
+      sb
+        .from("farm_event")
+        .select("subtype, status, data")
+        .eq("plan_id", planId)
+        .eq("status", "done"),
+    ]);
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (opsError) throw opsError;
+  if (eventsError) throw eventsError;
 
   const actualByOp = new Map<string, { qty: number; cost: number }>();
   for (const ev of events ?? []) {

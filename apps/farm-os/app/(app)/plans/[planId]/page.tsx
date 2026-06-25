@@ -34,24 +34,34 @@ export default async function MonthlyPlanPage({
   const sb = await createClient();
 
   // These four reads are independent, so issue them in parallel.
-  const [{ data: plan }, { data: ops }, { data: checks }, { data: items }] =
-    await Promise.all([
-      sb
-        .from("plans")
-        .select("id, type, period_start, period_end, scope_type, status")
-        .eq("id", planId)
-        .maybeSingle(),
-      sb
-        .from("plan_operations")
-        .select("id, subtype, planned_at, est_cost, status, approval_needed")
-        .eq("plan_id", planId)
-        .order("planned_at"),
-      sb
-        .from("plan_checks")
-        .select("kind, result, detail")
-        .eq("plan_id", planId),
-      sb.from("inventory_items").select("id, name, unit").order("name"),
-    ]);
+  const [
+    { data: plan, error: planError },
+    { data: ops, error: opsError },
+    { data: checks, error: checksError },
+    { data: items, error: itemsError },
+  ] = await Promise.all([
+    sb
+      .from("plans")
+      .select("id, type, period_start, period_end, scope_type, status")
+      .eq("id", planId)
+      .maybeSingle(),
+    sb
+      .from("plan_operations")
+      .select("id, subtype, planned_at, est_cost, status, approval_needed")
+      .eq("plan_id", planId)
+      .order("planned_at"),
+    sb
+      .from("plan_checks")
+      .select("kind, result, detail")
+      .eq("plan_id", planId),
+    sb.from("inventory_items").select("id, name, unit").order("name"),
+  ]);
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (planError) throw planError;
+  if (opsError) throw opsError;
+  if (checksError) throw checksError;
+  if (itemsError) throw itemsError;
 
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },

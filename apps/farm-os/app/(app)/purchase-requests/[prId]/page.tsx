@@ -35,20 +35,24 @@ export default async function PurchaseRequestPage({
   const m = await requireMembership();
   const sb = await createClient();
 
-  const { data: pr } = await sb
+  const { data: pr, error: prError } = await sb
     .from("purchase_requests")
     .select("id, code, status, version, reason, needed_by, requested_by, approved_by")
     .eq("id", prId)
     .maybeSingle();
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (prError) throw prError;
 
   if (!pr) {
     return <div className="p-6">طلب الشراء غير موجود.</div>;
   }
 
-  const { data: items } = await sb
+  const { data: items, error: itemsError } = await sb
     .from("purchase_request_items")
     .select("id, qty, unit, est_cost, inventory_items(name)")
     .eq("pr_id", prId);
+  if (itemsError) throw itemsError;
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "الصنف" },
