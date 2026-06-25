@@ -1,0 +1,25 @@
+-- Farm OS MVP-0 — B2 follow-up: make the stock ledger APPEND-ONLY for direct REST access.
+--
+-- B2 (migration 0015) gated INSERT/UPDATE on inventory_bin/inventory_movements to
+-- `authorize('inventory.write')` via the tenant policy's WITH CHECK. But a `FOR ALL` policy
+-- governs DELETE by USING alone — there is no WITH CHECK for DELETE — so the role gate never
+-- applied to deletes. Combined with the blanket `grant ... delete ... to authenticated` from
+-- migration 0009, ANY authenticated org member could erase or forge stock by DELETE-ing rows
+-- directly via /rest/v1/inventory_movements (or inventory_bin), bypassing the app — the symmetric
+-- hole to the INSERT/UPDATE surface B2 closed. (Confirmed: a `supervisor`, who lacks
+-- inventory.write, deleted all of an org's movements in one statement.)
+--
+-- Fix: REVOKE delete on both stock tables from authenticated|anon. The ledger becomes append-only
+-- for every client role — exactly like audit_log (migration 0008/0009) and the org spine
+-- (migration 0010 HIGH-1). REVOKE (not just a policy tweak) makes the deny robust: even a future
+-- permissive policy cannot re-open it, since the privilege itself is gone.
+--
+-- Safe — nothing legitimate deletes these tables as a client:
+--   * all app stock writes go through fn_post_movement (SECURITY DEFINER, bypassrls) — corrections
+--     are compensating movements, never row deletions;
+--   * reads stay fully open to the org (the tenant policy's USING is untouched), so dashboards and
+--     the coverage engine keep working for every role;
+--   * service_role (e2e cleanup in e2e/global-setup.ts) and the table owner keep their grants — only
+--     authenticated|anon lose DELETE.
+revoke delete on public.inventory_movements from authenticated, anon;
+revoke delete on public.inventory_bin        from authenticated, anon;

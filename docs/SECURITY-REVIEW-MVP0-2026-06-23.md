@@ -62,6 +62,28 @@ of the JS read-modify-write, and fold in `reserved` reconciliation (D2). Left fo
 stack so the Playwright wedge-loop (the exact flow these actions drive) re-verifies it before
 the app switches over.
 
+### B2.1 (HIGH, integrity) — stock ledger was directly DELETE-able (B2 follow-up)  ✅ RESOLVED (2026-06-25)
+**Found in independent review of B2.** B2 (migration `0015`) gated INSERT/UPDATE via the
+`tenant_all` **`WITH CHECK`** — but a `FOR ALL` policy governs DELETE by **`USING` alone** (there is
+no WITH CHECK for DELETE), so the `inventory.write` gate never applied to deletes. With the blanket
+`grant … delete … to authenticated` from migration `0009` still in force, any authenticated org
+member could **erase or forge stock by DELETE-ing rows directly** via `/rest/v1/inventory_movements`
+(or `inventory_bin`) — the symmetric hole to the INSERT/UPDATE surface B2 closed. **Confirmed
+empirically:** a `supervisor` (no `inventory.write`), who can legitimately read the org's movements,
+deleted all 6 of an org's ledger rows in a single statement on the live local stack.
+
+**Fixed** in migration `0016`: `revoke delete on inventory_movements/inventory_bin from
+authenticated, anon`. The ledger is now **append-only for every client role** — exactly like
+`audit_log` (0008/0009) and the org spine (0010 HIGH-1). Corrections are compensating movements via
+the bypassrls `fn_post_movement` RPC, never row deletions. **Why this and not a policy split:** B2
+proved that splitting the `tenant_all` policy regresses the Playwright wedge loop (PostgREST
+nested-embed reads collapse — see the B2 note below). A grant `REVOKE` leaves the working `FOR ALL`
+policy untouched, and is *more* robust than a policy clause: even a future permissive policy cannot
+re-open DELETE once the privilege itself is gone. Reads stay open to the org; `service_role` (e2e
+cleanup) and the table owner keep DELETE. Verified: **pgTAP 83/83** (new test `11` pins it —
+supervisor *and* storekeeper direct-DELETE denied `42501`, reads + the `fn_post_movement` issue path
+unaffected); the supervisor delete now returns `permission denied for table inventory_movements`.
+
 ### B2 (MED, authorization) — inventory writes are not role-gated  ✅ RESOLVED (2026-06-25)
 **Fixed** in migration `0015`: `inventory_bin`/`inventory_movements` writes now require
 `authorize('inventory.write')` (owner/farm_manager/storekeeper) via the `tenant_all` WITH CHECK;
