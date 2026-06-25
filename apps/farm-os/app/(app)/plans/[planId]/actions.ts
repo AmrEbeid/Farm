@@ -22,6 +22,11 @@ export async function runPlanChecks(planId: string) {
   const m = await requireMembership();
   const sb = await createClient();
 
+  // PLAN-AUTHZ-1 (app-layer, like #71 Option C): plan checks delete + re-insert plan_checks, which is
+  // `plan.write` (owner/farm_manager). The action only checked membership. Gate via authorize().
+  const { data: canWrite } = await sb.rpc("authorize", { perm: "plan.write" });
+  if (!canWrite) return { ok: false, error: "ليس لديك صلاحية تعديل الخطة" };
+
   // distinct materials required across this plan's operations
   const { data: ops } = await sb
     .from("plan_operations")
@@ -116,6 +121,11 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
   }
 
   const sb = await createClient();
+
+  // PLAN-AUTHZ-1 (app-layer, like #71 Option C): authoring a planned operation is `plan.write`
+  // (owner/farm_manager). The action only checked membership. Gate via authorize().
+  const { data: canWrite } = await sb.rpc("authorize", { perm: "plan.write" });
+  if (!canWrite) return { ok: false, error: "ليس لديك صلاحية تعديل الخطة" };
 
   // plan scope (target) for the operation
   const { data: plan } = await sb
