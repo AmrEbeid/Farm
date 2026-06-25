@@ -16,10 +16,10 @@ import {
 // Scenario: on_hand 300 kg سلفات بوتاسيوم; plan needs 500 kg next week;
 // lead time 5 days; 95% service (Z=1.65); σ_d = 20 kg/day; pack size 50 kg.
 describe("stock-coverage engine — SPEC-0001 Ebeid oracle", () => {
-  it("Available = on_hand − reserved − expired = 300", () => {
-    expect(availableStock(300, 0, 0)).toBe(300);
+  it("Available = on_hand − reserved = 300", () => {
+    expect(availableStock(300, 0)).toBe(300);
     // covered counter-example: 100 on_hand, 20 reserved → 80 available
-    expect(availableStock(100, 20, 0)).toBe(80);
+    expect(availableStock(100, 20)).toBe(80);
   });
 
   it("Safety stock SS = Z·σ_d·√L ≈ 74 (Z=1.65, σ=20, L=5)", () => {
@@ -89,7 +89,9 @@ describe("stock-coverage engine — SPEC-0001 Ebeid oracle", () => {
     expect(r.qty).toBe(0);
   });
 
-  it("edge: expired stock reduces availability", () => {
-    expect(availableStock(300, 0, 50)).toBe(250);
+  it("edge: expiry is netted into on_hand, not subtracted twice (ENGINE-C1)", () => {
+    // 50 kg expired ⇒ the ledger already dropped on_hand to 250 (expiry is a negative
+    // movement), so available = on_hand(250) − reserved(0) = 250 — never on_hand − reserved − expired.
+    expect(availableStock(250, 0)).toBe(250);
   });
 });

@@ -14,11 +14,11 @@ import {
 // rounding, horizon boundaries, the no-plan case, and multi-receipt netting.
 
 describe("availableStock — edges", () => {
-  it("can go negative when reserved + expired exceed on_hand", () => {
-    expect(availableStock(100, 80, 50)).toBe(-30);
+  it("can go negative when reserved exceeds on_hand", () => {
+    expect(availableStock(100, 130)).toBe(-30);
   });
-  it("returns on_hand when nothing reserved or expired", () => {
-    expect(availableStock(500, 0, 0)).toBe(500);
+  it("returns on_hand when nothing is reserved", () => {
+    expect(availableStock(500, 0)).toBe(500);
   });
 });
 
