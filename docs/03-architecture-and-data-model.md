@@ -43,22 +43,26 @@ organization_member(org_id, user_id, role, scope jsonb, PRIMARY KEY(org_id, user
 **Consultants (user in many orgs, different roles):** use **membership-table RLS** (not a single `org_id` in the JWT — that breaks multi-org users and delays revocation) `[V]`. Resolve access by joining `organization_member` inside policies, via a `security definer` helper so it's indexable and non-recursive:
 
 ```sql
-create or replace function auth.user_org_ids()
+-- Note: the helper lives in `public`, not `auth`. Supabase migrations run as the
+-- `postgres` role, which lacks CREATE on the `auth` schema (owned by supabase_admin),
+-- so `public.user_org_ids()`/`public.authorize()` is the real location (see migration 0001).
+-- Same security (SECURITY DEFINER, locked search_path); only the schema-qualifier changes.
+create or replace function public.user_org_ids()
 returns setof uuid language sql stable security definer set search_path = '' as $$
   select org_id from public.organization_member where user_id = (select auth.uid())
 $$;
 
 alter table farm_event enable row level security;
 create policy tenant_all on farm_event for all to authenticated
-using ( org_id in (select auth.user_org_ids()) )
-with check ( org_id in (select auth.user_org_ids()) );
+using ( org_id in (select public.user_org_ids()) )
+with check ( org_id in (select public.user_org_ids()) );
 ```
 
 **RBAC:** `role` + `role_permission(role, permission)` + an `authorize(permission)` security-definer fn so policies call `authorize('voucher.approve')` rather than hard-coding roles `[V]`:
 
 ```sql
 create policy voucher_approve on payment_voucher for update to authenticated
-using ( org_id in (select auth.user_org_ids()) and authorize('voucher.approve') );
+using ( org_id in (select public.user_org_ids()) and authorize('voucher.approve') );
 ```
 
 **RLS performance rules `[V]` (don't skip — RLS is per-row):** wrap `auth.uid()`/`auth.jwt()` in `(select …)` (~95% faster, cached per query); **index `org_id`** (and `user_id` on membership) (~99% faster); always add `TO authenticated`; re-state the tenant filter in app queries; use `security definer` helpers for membership lookups.
@@ -67,7 +71,7 @@ using ( org_id in (select auth.user_org_ids()) and authorize('voucher.approve') 
 
 **Audit log:** append-only `audit_log(id, org_id, actor_user_id, action, entity_type, entity_id, before jsonb, after jsonb, occurred_at)` written by `AFTER INSERT/UPDATE/DELETE` triggers; org members can `SELECT` their org's rows; **no UPDATE/DELETE policy at all → immutable by omission** `[I]`.
 
-**Attachments:** Supabase Storage, path convention `{org_id}/{entity}/{uuid}`; RLS on `storage.objects` checks `(storage.foldername(name))[1] in (select auth.user_org_ids()::text)` `[V]`. Metadata + `org_id` in an `attachment` table.
+**Attachments:** Supabase Storage, path convention `{org_id}/{entity}/{uuid}`; RLS on `storage.objects` checks `(storage.foldername(name))[1] in (select public.user_org_ids()::text)` `[V]`. Metadata + `org_id` in an `attachment` table.
 
 ---
 
