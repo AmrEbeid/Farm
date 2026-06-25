@@ -7,7 +7,10 @@ RLS + `fn_stock_coverage` on the live stack); **app build now CI-gated** (`ci.ym
 tsc + vitest + `next build --webpack`, #36); **README refreshed** to live state (#37); **B2 RESOLVED**
 (#39, migration `0015`) — direct REST writes to inventory tables now require `inventory.write`,
 closing a stock-forgery hole; unblocked by B1/D2 (app writes go through the bypassrls RPC). All green:
-**pgTAP 78/78** + e2e + app/lib CI + Vercel. ⚠️ **Prod DB is at migrations 0001–0013**; `0015` (B2) is
+**pgTAP 78/78** + e2e + app/lib CI + Vercel. Also a **Playwright visual UX audit** (desktop +
+mobile screenshots) found + fixed an **RTL mobile-sidebar overflow** on the field (`/m`) view (the
+closed off-canvas drawer peeked ~90px) → **`@amrebeid/ui@1.1.1` published**; desktop screens
+(dashboard/coverage/inventory/plan) reviewed clean. ⚠️ **Prod DB is at migrations 0001–0013**; `0015` (B2) is
 verified on `main` but not yet `db push`ed to prod (prod migration = hard stop / Owner; app runs fine
 without it). Remaining is unchanged: project-end deferred (key rotation, Stage 0, real-data, prod
 db-push of 0015) + decision-gated minors (B3 actual-paid pricing; D1 FORCE RLS — low value).
