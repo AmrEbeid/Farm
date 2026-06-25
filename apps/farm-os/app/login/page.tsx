@@ -4,10 +4,13 @@ import { useState } from "react";
 import { Button, Field, Input, Alert, Tag } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 
+// Arabic labels below are kept in sync with the canonical ROLE_LABEL_AR map in
+// lib/auth.ts. We can't import that map here: auth.ts transitively pulls in
+// next/headers (server-only), which is not allowed in a client component.
 const DEMO_ACCOUNTS = [
   { role: "المالك", email: "owner@ebeid.test" },
   { role: "مدير المزرعة", email: "manager@ebeid.test" },
-  { role: "أمين المخزن", email: "storekeeper@ebeid.test" },
+  { role: "أمين مخزن", email: "storekeeper@ebeid.test" },
   { role: "مشرف ميداني", email: "supervisor@ebeid.test" },
 ];
 const DEMO_PASSWORD = "farm-os-pilot";
