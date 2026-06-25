@@ -10,7 +10,7 @@ db` (full reset). Status legend: ✅ fixed + verified (PR open) · 📝 document
 
 - `@amrebeid/ui`: typecheck clean, `tsup` build clean, token-purity clean, **231 vitest/jest-axe tests pass**.
 - `apps/farm-os`: `tsc --noEmit` clean, **18 vitest pass**, `next build` OK (19 routes), eslint **fixed to clean** (PR #43).
-- DB: **pgTAP green** at every step — 78/78 (baseline) → 84/84 (append-only + SoD-guard) → 92/92 (EXE-1) → 94/94 (ENGINE-DC TODO regression) → **97/97** (RCP-1). After every step run `supabase db reset` first (the invariant tests assume the pristine seed).
+- DB: **pgTAP green** at every step — 78/78 (baseline) → 84/84 (append-only + SoD-guard) → 92/92 (EXE-1) → 94/94 (ENGINE-DC TODO regression) → 97/97 (RCP-1) → **97/97 with test `14` a real pass** (ENGINE-DC fix, migration `0018`). After every step run `supabase db reset` first (the invariant tests assume the pristine seed).
 
 ## Fixed this pass — all **MERGED to `main`** (prod DB push still Owner-gated)
 
@@ -20,6 +20,7 @@ db` (full reset). Status legend: ✅ fixed + verified (PR open) · 📝 document
 | **AP-5** | MED–HIGH (financial control + audit) | PR **self-approval bypass**: `pr_update`'s AP-2 check (`requested_by <> auth.uid()`) reads the NEW row, which the same UPDATE can mutate — so an owner-author self-approved by rewriting `requested_by` to another member in one statement (also falsifying provenance). Confirmed on the DB. Fixed by a `BEFORE UPDATE` trigger that freezes `requested_by` and stamps `approved_by`/`approved_at` from the session (migration `0017`); pgTAP test `12`. | #47 ✅ |
 | **EXE-1** | MED (integrity) | `executeOperation` was **not idempotent**: a double-submit/retry/concurrent POST bypassed the page's "done" guard and re-ran the whole issue/release path (double stock loss, over-release, duplicate `done` event). Fixed **claim-first** — flip `status→done` as the first write guarded by `status <> 'done'`, abort if no row, before any stock movement; revert the claim only before anything is persisted. pgTAP test `13` + Playwright wedge-loop. | #51 ✅ |
 | **RCP-1** | MED–HIGH (integrity) | EXE-1's twin — `recordReceipt` posted a `receipt` movement per item then flipped the PR `received` with **no precondition**, so a double-submit re-posted every receipt → **phantom stock IN** (`on_hand` inflated). Fixed **claim-first** — flip `approved→received` guarded by `status='approved'`, abort if no row, before any movement (also adds the missing precondition). pgTAP test `15` + wedge-loop. | #57 ✅ |
+| **ENGINE-DC** | MED–HIGH (correctness) | `fn_stock_coverage` seeded `available` from `on_hand` (Σ **all** receipt movements via `fn_bin_rebuild`) **and** re-projected `receipt` movements dated `>= period_start` forward → any received receipt counted **twice** → optimistic PAB that could **hide a real shortage** (SPEC-0001 #1 risk). Prototyping a `current_date` cut-line proved it's a *data-model* problem (broke test `06` Case C), so **direction #2**: source scheduled receipts from **approved purchase_requests (open POs)**, never the actual-movement ledger — disjoint from `on_hand` by construction (on receipt the PR flips `→received` as a receipt movement enters `on_hand`). Migration `0018`; test `06` re-modeled onto POs; regression test `14` un-TODO'd. | #61 ✅ |
 | (lint) | — | `npm run lint` was red on `main` (1 error + 2 warnings; CI doesn't run lint). Fixed; presentation-only. | #43 ✅ |
 | (finding) | — | Schema-wide direct-DELETE exposure across 28 tenant tables (root cause + tiered remediation). | #45 ✅ |
 
@@ -29,20 +30,11 @@ db` (full reset). Status legend: ✅ fixed + verified (PR open) · 📝 document
 
 ## Open findings — documented, fix is Owner-gated
 
-### ENGINE-DC (MED–HIGH, correctness) — scheduled receipts double-counted (masks real shortages)
-`fn_stock_coverage` seeds `available = on_hand − reserved` (and `on_hand` = Σ **all** movements via
-`fn_bin_rebuild`, no date filter) **and** also adds `receipt` movements dated `>= period_start`
-forward as "scheduled receipts" — so any receipt on/after `period_start` (often in the past once a
-plan is underway) is counted twice, making the projection optimistic and **hiding a real shortage**.
-Full reproduction + root cause in
-[`SECURITY-FINDING-engine-receipt-doublecount-2026-06-25.md`](SECURITY-FINDING-engine-receipt-doublecount-2026-06-25.md) (#53).
-**Owner-gated — genuine design decision, not auto-fixed.** A `current_date` cut-line (the "minimal"
-fix) would break test `06` Case C, which deliberately models `v_receipts` as future supply with a
-hand-set `on_hand` — proving the real fix is a *data-model* choice. **Recommendation:** source
-scheduled receipts from **approved purchase_requests / open POs** (the MRP-correct model, disjoint
-from `on_hand` by construction) rather than from the actual-movement ledger, and rewrite test `06`
-Case C to the new model. Needs independent review + full pgTAP + the Playwright wedge-loop (the
-engine is the product's core IP and a PROJECT-RULES review-required area).
+> **ENGINE-DC is now FIXED on `main`** (migration `0018`, #61) via direction #2 — see the Fixed
+> table above and [`SECURITY-FINDING-engine-receipt-doublecount-2026-06-25.md`](SECURITY-FINDING-engine-receipt-doublecount-2026-06-25.md).
+> It was independently reviewed (diff + full pgTAP `97/97` incl. the un-TODO'd test `14` + the
+> Playwright wedge-loop) before merge. As the change to the product's core IP, **the Owner should
+> ratify it before the prod DB push** (which — like `0015`–`0017` — remains the gated step).
 
 ### BUD-1 (INFO, financial control) — the budget gate is decision-support, not a hard DB gate
 The budget "gate" (`budget/[planId]/check/page.tsx`) computes a verdict (`ok` / `approval-needed` /
@@ -112,20 +104,22 @@ not a defect. (I opened #50 for it and then closed it once I found `db-tests.yml
 
 ## Status — all fixes merged to `main` (2026-06-25)
 
-#43, #42, #47, #45, #51, and **#57** are **merged** (+ docs #49/#54/#55 and the ENGINE-DC TODO
-regression #56); `main` is green (pgTAP **97/97** on a clean reset, with ENGINE-DC test `14` as an
-expected TODO + wedge-loop e2e + app/lib CI). Each code fix was independently diff-reviewed before
-merge (RLS/money paths); #51 also incorporated three CodeRabbit data-integrity refinements.
+#43, #42, #47, #45, #51, **#57**, and **#61** are **merged** (+ docs #49/#54/#55/#58/#59/#60 and the
+ENGINE-DC TODO regression #56); `main` is green (pgTAP **97/97** on a clean reset — test `14` now a
+real pass after the ENGINE-DC fix — + wedge-loop e2e + app/lib CI). Each code fix was independently
+diff-reviewed + locally verified (pgTAP + e2e) before merge (RLS/money/engine paths); #51 also
+incorporated three CodeRabbit data-integrity refinements.
 
 **Still Owner-gated — prod DB migration push.** Prod is at migration `0013`; `0015` (B2), `0016`
-(B2.1), and `0017` (AP-5) are verified on `main` but **not applied to prod** (a prod DB migration is
-a hard stop per PROJECT RULES). When the Owner is ready, apply `0015`→`0016`→`0017` in order via
-[`DEPLOY-RUNBOOK.md`](DEPLOY-RUNBOOK.md). The app runs correctly without them (writes already route
-through the bypassrls RPCs); they tighten direct-REST access. *(The RCP-1/EXE-1 fixes are app code,
-no migration — already on `main`, deploy on the next Vercel push.)*
+(B2.1), `0017` (AP-5), and `0018` (ENGINE-DC) are verified on `main` but **not applied to prod** (a
+prod DB migration is a hard stop per PROJECT RULES). When the Owner is ready, apply
+`0015`→`0016`→`0017`→`0018` in order via [`DEPLOY-RUNBOOK.md`](DEPLOY-RUNBOOK.md). **`0018` changes
+the core stock-coverage engine — the Owner should ratify it specifically before the push.** The app
+runs correctly without these (writes already route through the bypassrls RPCs; `0018` only affects
+the coverage projection's receipt source). *(The RCP-1/EXE-1 app-code fixes are already on `main`,
+deploy on the next Vercel push.)*
 
-**Remaining open findings (all Owner-gated / deferred):** **ENGINE-DC** (core-engine receipt
-double-count — data-model decision; TODO regression test `14` is in place), **AUTHZ-1** (execute
+**Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (execute
 org-only, not role-gated — with the role model), **CREATE-1** (PR-create not idempotent — low,
 conservative), **DEP-1** (`postcss` transitive, build-time only — low). CI-1 withdrawn (the pgTAP
 gate already exists via `db-tests.yml`).
