@@ -1,5 +1,43 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-25 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-25 — DB hardening session (merged + APPLIED to prod):** the queued security caveats
+> from the prod-push assurance are now **closed in code and live on prod**. Prod Supabase
+> (`veezkmytervjnpxcrbkw`) advanced **`0024`→`0028`**, fully in sync with `main` — all migrations
+> applied + verified live; the full pgTAP suite is green locally and in CI at every step. Each landed
+> as its own CI-green PR:
+> - **AUTHZ-1 Option B** — PR #146, migration `0025_operation_tables_rls_authz`: REST-layer role gate on
+>   the operation tables. `farm_event` (+ partitions) / `event_locations` / `quantities` gated to
+>   `op.execute` (preserving the RLS-H1 parent-org `EXISTS` check); `plan_operations` gated to
+>   `plan.write` (matches the planning action). Closes the direct-PostgREST forge-a-done-operation
+>   surface. (test `26`)
+> - **ENGINE-DC** — PR #144, migration `0026_engine_dc_constraint`: a `BEFORE INSERT` trigger on
+>   `inventory_movements` (`type='receipt'`) rejecting a receipt while an approved-not-received PO for
+>   the same `(org,item)` still exists — turns `0018`'s disjointness invariant into a hard DB control.
+>   `fn_post_receipt` is claim-first so the legit path is safe. (test `27`)
+> - **DELETE-posture** — PR #140, migration `0027_delete_posture_remediation`: `REVOKE DELETE` from
+>   `authenticated,anon` on **27 tenant tables**; `plan_checks` intentionally kept deletable (the only
+>   legit client delete). (test `28`)
+> - **D1 FORCE RLS** — PR #142, migration `0028_force_rls_tenant_tables`: `FORCE ROW LEVEL SECURITY` on
+>   all **35** RLS-enabled tenant tables. (test `29`)
+>
+> **pgTAP now 217 assertions, all green** (Docker-free shim harness + CI). **B2 inventory receipt
+> role-gating assessed = ALREADY COVERED** (`fn_post_receipt` + the `0015` policy both enforce
+> `inventory.write`) — no migration needed. **AP-5 insert-side SoD** (#76 item 2) confirmed **ALREADY
+> merged earlier** (migration `0023`, test `21`) — **RESOLVED**. Other PRs merged this session: **#111**
+> (generated Supabase types + typed clients), **#127** (`@playwright/test` patch), **#129**
+> (`react`/`react-dom` → 19.2.7); #123/#125/#85/#139 merged earlier in the day. **Live verification:**
+> manager login OK; authenticated reads (`farms`/`plans`) HTTP 200; DELETE `expenses` as manager →
+> HTTP 403 (permission denied). Demo login fixed earlier — all 6 `@ebeid.test` accounts reset to
+> `farm-os-pilot`. **Prod hygiene:** dropped the stray `pgtap` extension from prod `public` (a Supabase
+> advisor WARN). **Dependabot majors DEFERRED** (open, commented): #128 TypeScript 6.0 (tsconfig
+> `baseUrl` deprecation hard-errors), #130 ESLint 10 (`eslint-plugin-react` incompatible with the v10
+> rule API), #131 Storybook 10 (ERESOLVE across the 8.6.x addon stack). **🔴 Still NOT done — KEY
+> ROTATION** (blocked on tooling: no `SUPABASE_ACCESS_TOKEN`, supabase not linked, no Vercel CLI, MCP
+> has no key-rotation tool) — needs the Owner to rotate `service_role` + DB password (+
+> `NEXT_PUBLIC_SUPABASE_ANON_KEY` if the JWT secret rotates), update Vercel env, redeploy; and to
+> enable **Leaked Password Protection** (HaveIBeenPwned) via the Auth dashboard toggle. Detail:
+> [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
+>
 > **2026-06-25 follow-up security review (merged):** a second independent pass closed **B2.1**
 > (append-only stock ledger, migration `0016`, #42), **AP-5** (PR self-approval SoD trigger,
 > migration `0017`, #47), **EXE-1** (idempotent operation execute / claim-first, #51), **RCP-1**
@@ -43,7 +81,7 @@
 > as a demo-linking key + contact data — it is not auth. (branch `chore/remove-phone-otp`.)
 
 ## Current focus
-One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` + `docs/`). The **design system** (`@amrebeid/ui` **v1.1.0, published** to GitHub Packages, green CI) and the **Farm OS MVP-0 app** are both **BUILT** and on `main`. The **independent security review is DONE + merged** (RLS/grants/engine fixes, the `db-tests` pgTAP CI gate, the `fn_post_movement` B1 primitive). The full inventory path (B1 rewiring + **D2 ledger-backed `reserved`**) is **merged + verified** (74/74 pgTAP + the Playwright wedge-loop e2e pass on the real Supabase stack). The app is now **DEPLOYED + LIVE** (2026-06-24) on **farm-ui-one.vercel.app** + **ebeidfarm.business** with a dedicated Supabase project — login + RLS + the stock-coverage engine verified on prod (see `DEPLOY-STATUS.md`). **What's left:** **Key rotation — deferred to project end (Owner, 2026-06-24):** rotate the Supabase DB password + service_role key (pasted in the deploy chat) + reset the demo password — but do it **before any real data** regardless (the exposed service_role key bypasses RLS). **Pilot validation — considered DONE (Owner):** customer research was completed pre-project (it produced the plan + dummy data). **Near-term: nothing required** — MVP-0 is *deployed + security-reviewed + e2e-verified*, live and stable on synthetic data. **Deferred to project end (Owner):** key rotation, legacy **Stage 0** secret remediation, real-data migration (after a privacy review). **Optional, agent-doable:** D1 FORCE RLS (low value on Supabase); B2 role-gating / B3 (decision-gated minors); in-browser wedge walkthrough.
+One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` + `docs/`). The **design system** (`@amrebeid/ui` **v1.1.0, published** to GitHub Packages, green CI) and the **Farm OS MVP-0 app** are both **BUILT** and on `main`. The **independent security review is DONE + merged** (RLS/grants/engine fixes, the `db-tests` pgTAP CI gate, the `fn_post_movement` B1 primitive). The full inventory path (B1 rewiring + **D2 ledger-backed `reserved`**) is **merged + verified** (74/74 pgTAP + the Playwright wedge-loop e2e pass on the real Supabase stack). The app is now **DEPLOYED + LIVE** (2026-06-24) on **farm-ui-one.vercel.app** + **ebeidfarm.business** with a dedicated Supabase project — login + RLS + the stock-coverage engine verified on prod (see `DEPLOY-STATUS.md`). **What's left:** **Key rotation — deferred to project end (Owner, 2026-06-24):** rotate the Supabase DB password + service_role key (pasted in the deploy chat) + reset the demo password — but do it **before any real data** regardless (the exposed service_role key bypasses RLS). **Pilot validation — considered DONE (Owner):** customer research was completed pre-project (it produced the plan + dummy data). **Near-term: nothing required** — MVP-0 is *deployed + security-reviewed + e2e-verified*, live and stable on synthetic data. **Deferred to project end (Owner):** key rotation, legacy **Stage 0** secret remediation, real-data migration (after a privacy review). **Done this session (2026-06-25):** AUTHZ-1 Option B, ENGINE-DC DB-constraint, the DELETE-exposure remediation, and D1 FORCE RLS — all merged + applied to prod (`0028`), pgTAP 217 green (see top banner). **Optional, agent-doable:** B3 (decision-gated minor); in-browser wedge walkthrough.
 
 ## Stages (risk-tiered; see MASTER-PLAN.md §4 for full plan)
 | Stage | Title | Type | Risk | Status | Notes |
@@ -65,7 +103,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 10 | Care Academy content | Documentation | Med/High | Todo | Agronomy liability → expert sign-off |
 | 11 | AI assistant عبدالجليل | Execution | **High** | Todo | Lethal-trifecta control required |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
-| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB now at `0022`** (`0001–0013` + `0015–0022`) + full synthetic seed (transactional tables empty); backend verified (owner login + RLS 28/28; anon denied). Pending: Twilio OTP, security rotation (DB pw + service key shared in chat), frontend smoke, merge of PRs #75/#77 (= Owner-gated prod deploy). See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
+| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB now at `0028`** (`0001–0013` + `0015–0028`, in sync with `main`) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied). Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 
 Status legend: Todo / Active / Blocked / In review / Done
 
@@ -81,10 +119,11 @@ Status legend: Todo / Active / Blocked / In review / Done
 > **See [`OWNER-DECISIONS-2026-06-24.md`](OWNER-DECISIONS-2026-06-24.md)** — consolidated path-to-finish with a recommendation per decision (deploy infra, phone-OTP, Stage 0 runbook, B3 cost source, role model, pricing, pilot).
 - [x] **Independent security review of the MVP-0 build — DONE + MERGED to main 2026-06-23** (PR #2; `@amrebeid/ui@1.1.0` published via PR #1/#3). On main (migrations `0010`/`0011` + tests `05`/`06`/`07`, **65/65 pgTAP** via the `db-tests` CI gate): GRANT-C1 unauthenticated `anon` DML+EXECUTE incl. the SECURITY DEFINER engine (CRITICAL); RLS-H1 child tables didn't validate parent org (cross-tenant write, HIGH); ENGINE-C1 expiry double-counted (CRITICAL); ENGINE-H1 phantom purchase rec (HIGH); ENGINE-H2/SS/M1; HIGH-1 org_member write lockdown; B4 input validation; B5 coverage-NaN; `fn_post_movement` (B1 RPC primitive); D3 RLS reference-columns. **PR #4 (B1 action rewiring) + PR #8 (D2 ledger-backed `reserved`) MERGED + e2e-verified** — **74/74 pgTAP + the Playwright wedge-loop e2e PASS on the real Supabase stack** (Docker repaired 2026-06-23; the full receipt/issue/reserve/release path now routes through `fn_post_movement`). **Remaining (decision-gated, minor):** D1 FORCE RLS (low value on Supabase — `postgres` is `bypassrls`), B2 inventory role-gating (needs role-model decision — supervisors execute ops), B3 hardcoded execution date/price (needs cost-source decision). — owner: Amr
 - [x] **Cloud infra — DONE (2026-06-24):** dedicated non-Zeal Supabase project (`veezkmytervjnpxcrbkw`) + Vercel deployed and LIVE (farm-ui-one.vercel.app + ebeidfarm.business). Auth = email/password (no SMS — phone-OTP/Twilio dropped per Owner). **Key rotation deferred to project end (rotate before real data).** — owner: Amr
-- [ ] **🔴 Rotate the Supabase `service_role` key + DB password + reset the demo password** (all pasted in the deploy chat) — the **only red item** from the 2026-06-25 prod-push assurance; do before any real data (the service_role key bypasses RLS). — owner: Amr
-- [ ] **Merge PRs #75 and #77** (both green) — each merge = a prod deploy = Owner gate. — owner: Amr
-- [ ] **AUTHZ-1 Option B** (REST-layer gate on operation tables `plan_operations`/`farm_event`/`event_locations`/`quantities`, not only the `0020` RPC) + **AP-5 insert-side SoD** (#76 item 2 — born-approved PR sidesteps the BEFORE UPDATE trigger) + **ENGINE-DC** DB-constraint enforcement — QUEUED caveats from the assurance, not blocking, not live-exploitable on synthetic single-tenant data. — owner: Amr
-- [ ] **Decide the DELETE/role posture for tenant tables** (ties into the role-model decision) — independent review (2026-06-25) found any org member can directly DELETE rows on **28 tenant tables** (incl. `expenses`, `farm_event`, `quantities`, `people`) via PostgREST; the org-spine + the inventory ledger (B2.1 #42; ledger now also UPDATE-locked via `0022`, closing #76 item 1) are locked. Within-tenant insider/integrity gap, not cross-tenant. The product only deletes `plan_checks` as a client, so the rest is open-but-unused surface. Full finding + tiered remediation in [`SECURITY-FINDING-delete-exposure-2026-06-25.md`](SECURITY-FINDING-delete-exposure-2026-06-25.md). — owner: Amr
+- [ ] **🔴 Rotate the Supabase `service_role` key + DB password** (both pasted in the deploy chat) — the demo password is already reset; this is the **only red item** left from the 2026-06-25 prod-push assurance; do before any real data (the service_role key bypasses RLS). **Blocked on tooling this session** (no `SUPABASE_ACCESS_TOKEN`, supabase not linked, no Vercel CLI, MCP has no key-rotation tool): the Owner rotates via the Supabase dashboard (or provides an access token + Vercel token), then updates Vercel env (`SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` if the JWT secret rotated) and redeploys. — owner: Amr
+- [ ] **Enable Supabase Auth Leaked Password Protection** (HaveIBeenPwned) — a dashboard toggle (advisor item). — owner: Amr
+- [x] **Merge PRs #75 and #77** — done earlier; the prod DB has since advanced to `0028` (see banner). — owner: Amr
+- [x] **AUTHZ-1 Option B + AP-5 insert-side SoD + ENGINE-DC DB-constraint — RESOLVED (2026-06-25).** AUTHZ-1 Option B = migration `0025` (#146, REST-layer role gate on `plan_operations`/`farm_event`/`event_locations`/`quantities`); ENGINE-DC = migration `0026` (#144, BEFORE INSERT receipt-vs-open-PO trigger); AP-5 insert-side SoD confirmed already merged (migration `0023`, test `21`). All applied to prod (`0028`), pgTAP 217 green. — owner: Amr
+- [x] **DELETE/role posture for tenant tables — RESOLVED (2026-06-25):** migration `0027` (#140) `REVOKE DELETE` from `authenticated,anon` on the **27** exposed tenant tables (keeping `plan_checks` deletable for the plan builder); migration `0028` (#142) also `FORCE`s RLS on all 35 RLS tables. Live-verified: DELETE `expenses` as manager → HTTP 403. Full finding in [`SECURITY-FINDING-delete-exposure-2026-06-25.md`](SECURITY-FINDING-delete-exposure-2026-06-25.md). — owner: Amr
 - [ ] **Owner sign-off on canonical palm count** (registry says 4,380/299) — owner: Amr
 - [ ] **Approve Stage 0 security remediation** (key rotation + history purge) — owner: Amr
 - [ ] **Confirm 4-vs-5 sector labels** and enterprise/crop list — owner: Amr

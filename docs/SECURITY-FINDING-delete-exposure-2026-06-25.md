@@ -1,9 +1,13 @@
 # Security Finding — broad direct-DELETE exposure across tenant tables   (2026-06-25)
 
 Reviewer: independent adversarial pass (DB layer, live local Supabase stack). Owner: Amr Ebeid.
-Scope: `apps/farm-os` RLS + grants. Status: **📝 documented — Owner decision required** (tied to the
-already-open "role model" gate). One concrete sub-case (the inventory ledger) is **already fixed** in
-PR #42 (B2.1).
+Scope: `apps/farm-os` RLS + grants. Status: **✅ RESOLVED (2026-06-25)** — migration
+`0027_delete_posture_remediation` (PR #140, test `28`) `REVOKE`s DELETE from `authenticated,anon` on
+the **27** exposed tenant tables, keeping only `plan_checks` deletable (the plan builder's
+delete+re-insert recompute). Migration `0028` (PR #142) additionally `FORCE`s RLS on all 35
+RLS-enabled tenant tables. Applied to prod (`0028`) and live-verified: DELETE `expenses` as a manager
+→ HTTP 403. The earlier inventory-ledger sub-case was already fixed in PR #42 (B2.1).
+*(Original finding retained below for the record.)*
 
 ## Summary
 
