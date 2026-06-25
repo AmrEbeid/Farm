@@ -111,7 +111,7 @@ export default async function PurchaseRequestPage({
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">الأصناف</h2>
-        <SimpleTable columns={columns} rows={rows} />
+        <SimpleTable columns={columns} rows={rows} empty="لا توجد أصناف في هذا الطلب." />
       </section>
 
       <Card title="الإجراءات">

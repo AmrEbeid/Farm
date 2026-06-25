@@ -71,7 +71,7 @@ export default async function ManagerDashboard() {
             <Button variant="ghost" size="sm">فتح الخطة</Button>
           </Link>
         </div>
-        <SimpleTable columns={columns} rows={rows} />
+        <SimpleTable columns={columns} rows={rows} empty="لا توجد عمليات مجدولة." />
       </section>
     </div>
   );

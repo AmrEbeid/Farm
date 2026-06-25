@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Card, Button, StatusPill, Alert } from "@/components/ui";
+import { Card, Button, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 
@@ -42,30 +42,37 @@ export default async function MobileHomePage({
       {done && <Alert tone="ok" title="تم تسجيل العملية بنجاح." />}
 
       <h2 className="text-lg font-semibold">عمليات اليوم</h2>
-      <div className="flex flex-col gap-3">
-        {(ops ?? []).map((o) => (
-          <Card key={o.id}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="font-medium">{SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype}</div>
-                <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
-                  {fmtDate(o.planned_at)} · {egp(Number(o.est_cost ?? 0))}
+      {(ops ?? []).length === 0 ? (
+        <EmptyState
+          title="لا توجد عمليات مجدولة."
+          description="ستظهر عمليات اليوم هنا عند جدولتها في الخطة."
+        />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {(ops ?? []).map((o) => (
+            <Card key={o.id}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">{SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype}</div>
+                  <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
+                    {fmtDate(o.planned_at)} · {egp(Number(o.est_cost ?? 0))}
+                  </div>
                 </div>
+                <StatusPill status={pill(o.status ?? "planned")}>
+                  {o.status === "done" ? "منفذ" : "قيد التنفيذ"}
+                </StatusPill>
               </div>
-              <StatusPill status={pill(o.status ?? "planned")}>
-                {o.status === "done" ? "منفذ" : "قيد التنفيذ"}
-              </StatusPill>
-            </div>
-            {o.status !== "done" && (
-              <div className="mt-3">
-                <Link href={`/m/execute/${o.id}`}>
-                  <Button variant="primary">تسجيل التنفيذ</Button>
-                </Link>
-              </div>
-            )}
-          </Card>
-        ))}
-      </div>
+              {o.status !== "done" && (
+                <div className="mt-3">
+                  <Link href={`/m/execute/${o.id}`}>
+                    <Button variant="primary">تسجيل التنفيذ</Button>
+                  </Link>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
