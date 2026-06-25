@@ -8,12 +8,16 @@ import { requireMembership } from "@/lib/auth";
 export async function submitPurchaseRequest(prId: string) {
   await requireMembership();
   const sb = await createClient();
-  const { error } = await sb
+  const { data, error } = await sb
     .from("purchase_requests")
     .update({ status: "submitted" })
     .eq("id", prId)
-    .eq("status", "draft");
+    .eq("status", "draft")
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "تعذّر الإرسال: الطلب ليس مسودة أو تم إرساله بالفعل." };
+  }
   revalidatePath(`/purchase-requests/${prId}`);
   return { ok: true };
 }
@@ -96,7 +100,18 @@ export async function recordReceipt(prId: string) {
       // so the receipt can be retried cleanly. After that, keep status=received (reverting
       // would let a retry double-post the already-received items) and surface the error.
       if (i === 0) {
-        await sb.from("purchase_requests").update({ status: "approved" }).eq("id", prId);
+        const { error: revertErr } = await sb
+          .from("purchase_requests")
+          .update({ status: "approved" })
+          .eq("id", prId);
+        // If the revert itself fails, the PR is stuck in `received` with nothing posted —
+        // surface that distinct state rather than the (misleadingly retryable) original error.
+        if (revertErr) {
+          return {
+            ok: false,
+            error: `تعذّر تسجيل الاستلام وتعذّر التراجع — الطلب عالق في حالة الاستلام: ${revertErr.message}`,
+          };
+        }
       }
       return { ok: false, error: error.message };
     }
