@@ -27,15 +27,6 @@ export const ROLE_LABEL_AR: Record<Role, string> = {
   storekeeper: "أمين مخزن",
 };
 
-/** The signed-in user, or null. */
-export async function getSession() {
-  const sb = await createClient();
-  const {
-    data: { user },
-  } = await sb.auth.getUser();
-  return user;
-}
-
 /**
  * The active org membership for the signed-in user (the pilot is single-org).
  * Reads through the RLS-scoped session client. Returns null when unauthenticated
