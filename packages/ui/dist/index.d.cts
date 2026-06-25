@@ -1,4 +1,5 @@
 import * as React from 'react';
+export { BarChart, BarChartProps, ChartSeries, ChartTokens, DoughnutChart, DoughnutChartProps, DoughnutDatum, LineChart, LineChartProps, useChartTokens } from './charts.cjs';
 
 type ButtonVariant = "primary" | "ghost" | "danger";
 type ButtonSize = "md" | "sm";
@@ -698,93 +699,6 @@ interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 declare function AppShell({ navItems, activeNavId, role, navAriaLabel, onNavSelect, brand, topbar, sidebarOpen, onSidebarOpenChange, menuButtonLabel, children, className, ...rest }: AppShellProps): React.JSX.Element;
 
-interface ChartTokens {
-    /** Primary series / accent color (resolved --brand). */
-    brand: string;
-    /** Foreground text color for labels/legends (resolved --ink). */
-    ink: string;
-    /** Muted text color for axis ticks (resolved --ink-muted). */
-    inkMuted: string;
-    /** Grid / axis line color (resolved --line). */
-    line: string;
-    /** Chart surface background (resolved --surface). */
-    surface: string;
-    /** Categorical palette derived from role + status tokens. */
-    palette: string[];
-    /** Ambient writing direction of the chart scope. */
-    dir: "rtl" | "ltr";
-}
-/**
- * Resolve theme-derived chart colors off `ref`'s element via getComputedStyle.
- * Re-reads when the nearest `.fos` scope's theme attributes change, so charts
- * recolor instantly when the consumer flips scheme/density/radius/brand.
- */
-declare function useChartTokens(ref: React.RefObject<HTMLElement>): ChartTokens;
-
-interface ChartSeries {
-    /** Key into each datum object for this series' numeric value. */
-    dataKey: string;
-    /** Consumer-supplied display name (legend/tooltip); presentational only. */
-    name?: string;
-    /** Optional explicit color; defaults to the theme palette by index. */
-    color?: string;
-}
-interface BarChartProps {
-    data: Array<Record<string, string | number>>;
-    categoryKey: string;
-    series: ChartSeries[];
-    ariaLabel: string;
-    stacked?: boolean;
-    showLegend?: boolean;
-    height?: number;
-    tableFallback?: {
-        caption: string;
-        columnHeader: string;
-    };
-    className?: string;
-}
-/** Theme-aware Recharts bar chart. Series colors come from role tokens. */
-declare function BarChart({ data, categoryKey, series, ariaLabel, stacked, showLegend, height, tableFallback, className, }: BarChartProps): React.JSX.Element;
-
-interface LineChartProps {
-    data: Array<Record<string, string | number>>;
-    categoryKey: string;
-    series: ChartSeries[];
-    ariaLabel: string;
-    curve?: "monotone" | "linear";
-    showDots?: boolean;
-    showLegend?: boolean;
-    height?: number;
-    tableFallback?: {
-        caption: string;
-        columnHeader: string;
-    };
-    className?: string;
-}
-/** Theme-aware Recharts line chart. Stroke colors come from role tokens. */
-declare function LineChart({ data, categoryKey, series, ariaLabel, curve, showDots, showLegend, height, tableFallback, className, }: LineChartProps): React.JSX.Element;
-
-interface DoughnutDatum {
-    name: string;
-    value: number;
-    color?: string;
-}
-interface DoughnutChartProps {
-    data: DoughnutDatum[];
-    ariaLabel: string;
-    innerRatio?: number;
-    showLegend?: boolean;
-    height?: number;
-    tableFallback?: {
-        caption: string;
-        labelHeader: string;
-        valueHeader: string;
-    };
-    className?: string;
-}
-/** Theme-aware Recharts doughnut (Pie with inner radius). Slice colors from role tokens. */
-declare function DoughnutChart({ data, ariaLabel, innerRatio, showLegend, height, tableFallback, className, }: DoughnutChartProps): React.JSX.Element;
-
 type LoopStepState = "pending" | "active" | "done" | "blocked";
 interface LoopStep {
     id: string;
@@ -930,4 +844,4 @@ declare function ThemeProvider({ scheme, density, radius, brand, className, chil
 /** Derive brand role variables from a single hex color. */
 declare function brandVars(hex: string): Record<string, string>;
 
-export { Alert, type AlertProps, type AlertTone, AppShell, type AppShellProps, ApprovalChain, type ApprovalChainProps, type ApprovalState, type ApprovalStep, Avatar, type AvatarProps, type AvatarSize, BarChart, type BarChartProps, Breadcrumbs, type BreadcrumbsProps, Button, type ButtonProps, type ButtonSize, type ButtonVariant, Card, type CardProps, type ChartSeries, type ChartTokens, Checkbox, type CheckboxProps, Combobox, type ComboboxOption, type ComboboxProps, ConfirmDialog, type ConfirmDialogProps, type ConfirmTone, type Crumb, DataTable, type DataTableColumn, type DataTableProps, DateField, type DateFieldProps, type DateFieldSize, type Density, type DescriptionItem, DescriptionList, type DescriptionListProps, Dialog, DoughnutChart, type DoughnutChartProps, type DoughnutDatum, Drawer, type DrawerProps, type DrawerSide, EmptyState, type EmptyStateProps, Field, FieldError, type FieldErrorProps, type FieldProps, FileTimeline, type FileTimelineProps, FormRow, type FormRowProps, Help, type HelpProps, IconButton, type IconButtonProps, type IconButtonSize, type IconButtonVariant, Input, type InputProps, type InputSize, KpiCard, type KpiCardProps, Label, type LabelProps, LineChart, type LineChartProps, type LoopStep, type LoopStepState, LoopStepper, type LoopStepperProps, Modal, type ModalProps, type ModalSize, NavItem, type NavItemData, type NavItemProps, NumberField, type NumberFieldProps, Pagination, type PaginationProps, PalmCell, type PalmCellData, type PalmCellProps, PalmGrid, type PalmGridProps, type PalmLine, type PalmStatus, PhaseCard, type PhaseCardProps, type PhaseMetaRow, type PhaseTone, type PillStatus, Progress, type ProgressProps, type ProgressTone, RadioGroup, type RadioGroupProps, type RadioOption, type Radius, type RoleOption, RoleSwitcher, type RoleSwitcherProps, SearchInput, type SearchInputProps, Select, type SelectOption, type SelectProps, type SelectSize, Sheet, SidebarNav, type SidebarNavProps, Skeleton, type SkeletonProps, type SkeletonShape, type SortDirection, type SortState, Stat, type StatProps, type StatTrend, StatusPill, type StatusPillProps, Switch, type SwitchProps, type TabItem, Tabs, type TabsProps, Tag, type TagProps, type TagTone, Textarea, type TextareaProps, type ThemeContextValue, ThemeProvider, type ThemeProviderProps, type ThemeScheme, Timeline, type TimelineEvent, type TimelineItem, type TimelineKind, type TimelineProps, type TimelineTone, type ToastApi, type ToastOptions, ToastProvider, type ToastProviderProps, type ToastRecord, type ToastTone, Toaster, Tooltip, type TooltipPlacement, type TooltipProps, VerdictBanner, type VerdictBannerProps, type VerdictTone, brandVars, tabId, tabPanelId, useChartTokens, useTheme, useToast };
+export { Alert, type AlertProps, type AlertTone, AppShell, type AppShellProps, ApprovalChain, type ApprovalChainProps, type ApprovalState, type ApprovalStep, Avatar, type AvatarProps, type AvatarSize, Breadcrumbs, type BreadcrumbsProps, Button, type ButtonProps, type ButtonSize, type ButtonVariant, Card, type CardProps, Checkbox, type CheckboxProps, Combobox, type ComboboxOption, type ComboboxProps, ConfirmDialog, type ConfirmDialogProps, type ConfirmTone, type Crumb, DataTable, type DataTableColumn, type DataTableProps, DateField, type DateFieldProps, type DateFieldSize, type Density, type DescriptionItem, DescriptionList, type DescriptionListProps, Dialog, Drawer, type DrawerProps, type DrawerSide, EmptyState, type EmptyStateProps, Field, FieldError, type FieldErrorProps, type FieldProps, FileTimeline, type FileTimelineProps, FormRow, type FormRowProps, Help, type HelpProps, IconButton, type IconButtonProps, type IconButtonSize, type IconButtonVariant, Input, type InputProps, type InputSize, KpiCard, type KpiCardProps, Label, type LabelProps, type LoopStep, type LoopStepState, LoopStepper, type LoopStepperProps, Modal, type ModalProps, type ModalSize, NavItem, type NavItemData, type NavItemProps, NumberField, type NumberFieldProps, Pagination, type PaginationProps, PalmCell, type PalmCellData, type PalmCellProps, PalmGrid, type PalmGridProps, type PalmLine, type PalmStatus, PhaseCard, type PhaseCardProps, type PhaseMetaRow, type PhaseTone, type PillStatus, Progress, type ProgressProps, type ProgressTone, RadioGroup, type RadioGroupProps, type RadioOption, type Radius, type RoleOption, RoleSwitcher, type RoleSwitcherProps, SearchInput, type SearchInputProps, Select, type SelectOption, type SelectProps, type SelectSize, Sheet, SidebarNav, type SidebarNavProps, Skeleton, type SkeletonProps, type SkeletonShape, type SortDirection, type SortState, Stat, type StatProps, type StatTrend, StatusPill, type StatusPillProps, Switch, type SwitchProps, type TabItem, Tabs, type TabsProps, Tag, type TagProps, type TagTone, Textarea, type TextareaProps, type ThemeContextValue, ThemeProvider, type ThemeProviderProps, type ThemeScheme, Timeline, type TimelineEvent, type TimelineItem, type TimelineKind, type TimelineProps, type TimelineTone, type ToastApi, type ToastOptions, ToastProvider, type ToastProviderProps, type ToastRecord, type ToastTone, Toaster, Tooltip, type TooltipPlacement, type TooltipProps, VerdictBanner, type VerdictBannerProps, type VerdictTone, brandVars, tabId, tabPanelId, useTheme, useToast };
