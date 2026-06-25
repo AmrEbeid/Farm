@@ -39,6 +39,25 @@ This folder is the full product blueprint produced from (a) your *Farm Operating
 | **[SESSION-BRIEF.md](SESSION-BRIEF.md)** | Context for the next session (updated last) |
 | **[SPEC-0001](SPEC-0001-stock-coverage-engine.md)** | First workstream spec — the stock-coverage engine (the wedge), checks-first |
 
+### Engineering reference (the implemented system — what the code actually is)
+| Document | What's inside |
+|---|---|
+| **[CONTEXT.md](CONTEXT.md)** | The domain glossary & ubiquitous language — the single source of truth for the terms the code, schema, and docs all use |
+| **[ARCHITECTURE.md](ARCHITECTURE.md)** | How the shipped system is built — monorepo layout, Next.js + Supabase wiring, RLS/authz model, the engine and budget flow as implemented |
+| **[ADR index](adr/README.md)** | Architecture Decision Records (0001–0006) — one decision per file, each grounded in the source it changed |
+
+### Decisions, security & handoff
+| Document | What's inside |
+|---|---|
+| **[PRICING-DECISION.md](PRICING-DECISION.md)** | The per-farm (EGP) pricing decision — model, tiers, rationale, and what was rejected |
+| **[SECURITY-NOTES.md](SECURITY-NOTES.md)** | Security posture summary — the review trail, findings, and the controls that enforce them |
+| **[OWNER-HANDOFF-2026-06-25.md](OWNER-HANDOFF-2026-06-25.md)** | Owner handoff — live deploy state, open gates, and the actions only the Owner can take (key rotation, approvals) |
+
+### User manual (Arabic-first, for farm staff)
+| Document | What's inside |
+|---|---|
+| **[دليل الاستخدام / User Manual](user-manual/README.md)** | End-user guide for farm staff: getting started, stock coverage & purchase requests, approvals & budget, receipts & execution, reports & dashboards |
+
 **Companion design artifact:** `../farm-os-prototype.html` — a clickable prototype of the core differentiator loop (Plan → Stock check → Budget gate → Purchase approval → Execute → Farm file) plus the palm-grid map and stock-coverage simulation. The earlier `../ebeid-farm-os-demo.html` remains as the Ebeid-specific, data-loaded demo.
 
 ---
