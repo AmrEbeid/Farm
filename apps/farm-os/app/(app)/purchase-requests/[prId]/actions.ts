@@ -51,6 +51,13 @@ export async function recordReceipt(prId: string) {
   await requireMembership();
   const sb = await createClient();
 
+  // RCP-AUTHZ-3 (app-layer, like #71 Option C): receiving stock is `inventory.write`
+  // (owner/farm_manager/storekeeper). The action only checked membership, and the approved→received
+  // PR transition is open to any org member, so a non-storekeeper could mark a PR received and inflate
+  // on_hand. Gate via the DB's authorize() map (single source of truth); DB-layer enforcement is next.
+  const { data: canWrite } = await sb.rpc("authorize", { perm: "inventory.write" });
+  if (!canWrite) return { ok: false, error: "ليس لديك صلاحية استلام المخزون" };
+
   // RCP-1: claim-first idempotency gate (same class as EXE-1). recordReceipt is a server
   // action = a POST endpoint, so a double-submit / network retry / concurrent call would
   // re-post every `receipt` movement → phantom stock IN (on_hand inflated, the ledger
