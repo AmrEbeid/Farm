@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 /**
  * Service-role Supabase client — SERVER ONLY. Bypasses RLS, so it must never
@@ -10,7 +11,7 @@ export function createAdminClient() {
   if (typeof window !== "undefined") {
     throw new Error("createAdminClient must never run in the browser");
   }
-  return createSupabaseClient(
+  return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } },

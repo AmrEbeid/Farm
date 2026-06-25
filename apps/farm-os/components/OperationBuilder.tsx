@@ -17,7 +17,7 @@ export function OperationBuilder({
   items,
 }: {
   planId: string;
-  items: { id: string; name: string; unit: string }[];
+  items: { id: string; name: string; unit: string | null }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
