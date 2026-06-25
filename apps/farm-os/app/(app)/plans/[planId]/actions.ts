@@ -86,10 +86,17 @@ export async function runPlanChecks(planId: string) {
     { kind: "responsibility", result: "ok", detail: {} },
   ];
 
-  await sb.from("plan_checks").delete().eq("plan_id", planId);
-  await sb.from("plan_checks").insert(
+  const { error: delErr } = await sb
+    .from("plan_checks")
+    .delete()
+    .eq("plan_id", planId);
+  if (delErr) return { ok: false, error: delErr.message };
+  // If this insert fails after the delete, plan_checks is left empty — surface the
+  // error rather than reporting a successful (but empty) recompute.
+  const { error: insErr } = await sb.from("plan_checks").insert(
     checks.map((c) => ({ plan_id: planId, org_id: m.orgId, ...c })),
   );
+  if (insErr) return { ok: false, error: insErr.message };
 
   revalidatePath(`/plans/${planId}`);
   return { ok: true, checks };
