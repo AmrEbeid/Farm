@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 // App-local copy of @amrebeid/ui's bundled styles. Importing the library CSS directly from
 // the workspace/node_modules path broke the Vercel build (global CSS resolved inside
 // node_modules); a local copy is always allowed. Re-copy on library CSS changes:
@@ -8,8 +8,31 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "نظام تشغيل المزارع",
-  description: "Farm OS — نظام تشغيل مزارع عبيد",
+  applicationName: "نظام تشغيل المزارع",
+  title: {
+    default: "نظام تشغيل المزارع",
+    template: "%s · نظام تشغيل المزارع",
+  },
+  description:
+    "أداة ميدانية لإدارة وتشغيل مزارع عبيد — متابعة العمليات اليومية من الحقل مباشرة.",
+  appleWebApp: {
+    capable: true,
+    title: "نظام تشغيل المزارع",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+};
+
+// Brand token: --brand = --green-600 = #2f7d49 (see app/farm-os-ui.css), matching
+// the ThemeProvider brand prop below. Light scheme surface is #ffffff.
+export const viewport: Viewport = {
+  themeColor: "#2f7d49",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
