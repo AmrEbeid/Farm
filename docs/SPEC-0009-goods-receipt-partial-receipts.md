@@ -64,7 +64,7 @@ rejected as cosmetic / wrong-granularity for a per-`item_id` engine.)
 5. App: `recordReceipt` passes per-line received quantities; surface a partial-receipt UI affordance.
 
 **Forbidden:**
-- Editing posted `inventory_movements` (append-only ledger — migrations 0016/0020/0030).
+- Editing posted `inventory_movements` (append-only ledger — migrations `0016` no-DELETE / `0022` no-UPDATE / `0030` INSERT-via-RPC-only).
 - Posting the accounting expense here — that is a SPEC-0004 follow-on (this spec only fixes supply).
 - Weakening the disjointness oracle to make a partial receipt pass (SPEC-0001 §7).
 - Relaxing migration 0030's INSERT lockdown (the residual #156 over-block depends on it).
