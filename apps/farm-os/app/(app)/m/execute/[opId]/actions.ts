@@ -35,6 +35,16 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
 
   const sb = await createClient();
 
+  // AUTHZ-1 (SPEC-0002 Option C — app-layer defense-in-depth): the docstring promises op.execute, but
+  // only membership was checked. Enforce the permission via the DB's authorize() map (the single
+  // source of truth) so a role WITHOUT op.execute (e.g. accountant / storekeeper) cannot execute
+  // through the app. The authoritative Postgres-layer gate (Option A — a bypassrls fn_execute_operation
+  // with the authorize() check inside) is the ratified next step (SPEC-0002 §5); until it lands the
+  // operation tables stay directly writable via REST, so this is defense-in-depth, not the whole fix.
+  const { data: canExecute, error: authzErr } = await sb.rpc("authorize", { perm: "op.execute" });
+  if (authzErr) return { ok: false, error: authzErr.message };
+  if (!canExecute) return { ok: false, error: "ليس لديك صلاحية تنفيذ هذه العملية" };
+
   const { data: op } = await sb
     .from("plan_operations")
     .select("id, plan_id, subtype, target_id, est_cost, status, plan_material_requirements(item_id, qty, unit)")
