@@ -1,7 +1,17 @@
 # Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-25 (latest) — prod migration push (0015→0022) + authz/ledger hardening
+## 2026-06-25 (latest) — phone-OTP removed (email/password only)
+Auth is now **email + password only**. The phone-OTP UI skeleton (the login footnote) was removed and
+a brief comment was added above `[auth.sms]` in `supabase/config.toml` (SMS already disabled). **Twilio /
+any SMS provider is dropped from MVP-0 scope** — OWNER-DECISIONS §2 marked RESOLVED, and the active docs
+(deploy runbook, pilot-readiness, screen-map, architecture) now say "email + password (phone-OTP
+removed)". The seed `phone` field is untouched — it is a demo-linking key + contact data, not auth.
+Branch `chore/remove-phone-otp` (PR open, **not merged** — Owner gate). `tsc`/lint/tests verified (the 3
+known pre-existing `bigint`-not-`ReactNode` `tsc` errors in `layout.tsx`/`AppChrome.tsx`/`SimpleTable.tsx`
+are unrelated and unchanged).
+
+## 2026-06-25 — prod migration push (0015→0022) + authz/ledger hardening
 After an **8-agent adversarial prod-push assurance** returned **GO-WITH-CAVEATS**, migrations
 **`0015`→`0022`** were applied to the prod Supabase (`veezkmytervjnpxcrbkw`) via the Supabase MCP
 (`0018` engine change **Owner-ratified** first). **Prod DB is now at `0022`** (`0001–0013` +
@@ -21,7 +31,8 @@ items/bins/movements, 1 plan w/ 3 operations + checks + budget). Transactional t
   a born-approved PR sidesteps the BEFORE UPDATE trigger); **ENGINE-DC** disjointness is
   convention-enforced, not DB-constraint-enforced.
 - **Still OWNER-GATED / open:** 🔴 rotate the Supabase `service_role` key + DB password + reset the
-  demo password (the **only red item** from the assurance); Twilio phone-OTP; Stage-0 legacy
+  demo password (the **only red item** from the assurance); ~~Twilio phone-OTP~~ (resolved 2026-06-25 —
+  dropped; email/password only); Stage-0 legacy
   remediation; real Ebeid data (Stage M); per-farm EGP pricing; agronomist sign-off; **merging PRs
   #75 and #77** (both green) — a merge = prod deploy = Owner gate.
 - Note: the local Docker DB was found empty after a reboot (volume not persisted) — irrelevant; the

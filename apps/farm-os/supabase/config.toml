@@ -233,6 +233,8 @@ otp_expiry = 3600
 # subject = "Your password has been changed"
 # content_path = "./templates/password_changed_notification.html"
 
+# Phone/SMS auth is intentionally disabled — MVP-0 is email + password only
+# (no SMS provider / phone-OTP). Keep enable_signup = false.
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
 enable_signup = false

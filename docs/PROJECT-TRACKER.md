@@ -36,6 +36,11 @@
 > the `0020` RPC); **AP-5 insert-side SoD** (#76 item 2 — a born-approved PR sidesteps the BEFORE UPDATE
 > trigger); **ENGINE-DC** disjointness is convention-enforced, not DB-constraint-enforced. PRs #75/#77
 > are both green; merging either = prod deploy = **Owner gate**.
+>
+> **2026-06-25 — phone-OTP removed:** auth is **email + password only**. The phone-OTP UI skeleton
+> (login footnote) is gone and `[auth.sms]` stays disabled in `supabase/config.toml`; Twilio / any SMS
+> provider is **dropped from MVP-0 scope** (OWNER-DECISIONS §2 resolved). The seed `phone` field stays
+> as a demo-linking key + contact data — it is not auth. (branch `chore/remove-phone-otp`.)
 
 ## Current focus
 One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` + `docs/`). The **design system** (`@amrebeid/ui` **v1.1.0, published** to GitHub Packages, green CI) and the **Farm OS MVP-0 app** are both **BUILT** and on `main`. The **independent security review is DONE + merged** (RLS/grants/engine fixes, the `db-tests` pgTAP CI gate, the `fn_post_movement` B1 primitive). The full inventory path (B1 rewiring + **D2 ledger-backed `reserved`**) is **merged + verified** (74/74 pgTAP + the Playwright wedge-loop e2e pass on the real Supabase stack). The app is now **DEPLOYED + LIVE** (2026-06-24) on **farm-ui-one.vercel.app** + **ebeidfarm.business** with a dedicated Supabase project — login + RLS + the stock-coverage engine verified on prod (see `DEPLOY-STATUS.md`). **What's left:** **Key rotation — deferred to project end (Owner, 2026-06-24):** rotate the Supabase DB password + service_role key (pasted in the deploy chat) + reset the demo password — but do it **before any real data** regardless (the exposed service_role key bypasses RLS). **Pilot validation — considered DONE (Owner):** customer research was completed pre-project (it produced the plan + dummy data). **Near-term: nothing required** — MVP-0 is *deployed + security-reviewed + e2e-verified*, live and stable on synthetic data. **Deferred to project end (Owner):** key rotation, legacy **Stage 0** secret remediation, real-data migration (after a privacy review). **Optional, agent-doable:** D1 FORCE RLS (low value on Supabase); B2 role-gating / B3 (decision-gated minors); in-browser wedge walkthrough.

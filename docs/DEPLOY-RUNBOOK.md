@@ -2,14 +2,13 @@
 
 Turnkey steps to deploy the MVP-0 app to a **dedicated, non-Zeal** Supabase project + Vercel.
 Pre-written so deploy is one pass once the Owner makes the decisions in
-`OWNER-DECISIONS-2026-06-24.md` (§1 infra owner, §2 Twilio). **Owner-gated:** provisioning,
-deploy, and SMS are hard stops — do not run these without explicit Owner go-ahead. Nothing here
-has been executed.
+`OWNER-DECISIONS-2026-06-24.md` (§1 infra owner; §2 phone-OTP — resolved: dropped, email/password
+only). **Owner-gated:** provisioning and deploy are hard stops — do not run these without explicit
+Owner go-ahead. Nothing here has been executed.
 
 ## 0. Prerequisites (Owner decisions)
 - A **non-Zeal** billing account for Supabase + Vercel (the connected Supabase account holds only
   Zeal production projects — do NOT use them).
-- A Twilio account for phone-OTP (or chosen SMS provider).
 - Stage 0 closed (`STAGE-0-REMEDIATION-RUNBOOK.md`) before any **real** data.
 
 ## 1. Supabase project
@@ -98,14 +97,12 @@ supabase db push                  # applies pending versions in order
 - Deploy. (The `@amrebeid/ui` workspace dep resolves via the monorepo; no registry token needed
   for the app build.)
 
-## 3. Phone-OTP auth (Twilio)
-- Supabase Dashboard → Authentication → Providers → **Phone** → enable, set Twilio Account SID /
-  Auth Token / Message Service SID.
-- Validate **Egypt SMS delivery** with a real handset during the pilot (deliverability varies).
-- The email/password seed accounts remain for demo; field roles use phone-OTP.
+## 3. Auth
+- Auth = email + password only. Phone-OTP / Twilio is removed from MVP-0 scope (no SMS provider
+  needed).
 
 ## 4. Smoke test (post-deploy)
-- Sign in (phone-OTP) as each seeded role; walk the wedge loop:
+- Sign in (email + password) as each seeded role; walk the wedge loop:
   coverage → PR(reserve) → budget gate → owner approve → receipt → execute → PvA.
 - Confirm RLS: a second org cannot see tenant-1 data (the pgTAP `01` isolation invariant in prod).
 - Optionally point the Playwright e2e at the deployed URL (set `baseURL`), though it assumes the

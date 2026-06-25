@@ -19,7 +19,7 @@ Stack: **Next.js (App Router) + TypeScript + Tailwind** · **Supabase** (Postgre
                          ┌───────────────▼─────────────────────────────┐
                          │  Supabase                                    │
                          │  Postgres + PostGIS  ── RLS (org isolation)  │
-                         │  Auth (phone OTP)   Storage (attachments)    │
+                         │  Auth (email+pwd)   Storage (attachments)    │
                          │  Realtime (alerts)  Edge Fns (cron, sims)    │
                          │  Postgres functions: stock-coverage sim,     │
                          │  budget check, reorder calc, reservations    │
