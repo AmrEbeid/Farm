@@ -1,3 +1,5 @@
+/* AUTO-SYNCED from @amrebeid/ui (packages/ui/dist/styles.css) by scripts/sync-ds-css.mjs. */
+/* Do NOT hand-edit — run `npm run sync:ds-css` (or any build/dev) to regenerate. */
 /* Farm OS UI — bundled styles (tokens + components). Generated. */
 /* Tier-1 primitives — theme-agnostic constants. Components NEVER reference these directly. */
 :root {
@@ -323,6 +325,38 @@
 .fos-table__row:hover { background:color-mix(in srgb, var(--brand) 6%, var(--surface)); }
 .fos-table__empty { padding:var(--space-8) var(--space-4); text-align:center; color:var(--ink-muted); font-size:var(--text-sm); }
 
+/* Mobile reflow: below ~48rem an opted-in (.fos-table-wrap--reflow) table becomes
+   one stacked card per row, each cell a `label: value` pair. Desktop is untouched.
+   Logical properties keep it RTL-correct; the label comes from each td's data-label. */
+@media (max-width:48rem) {
+  .fos-table-wrap--reflow { overflow:visible; border:none; background:none; border-radius:0; }
+  .fos-table-wrap--reflow .fos-table { display:block; }
+  .fos-table-wrap--reflow .fos-table__caption { display:block; padding-inline:0; padding-block-end:var(--space-2); }
+  /* Hide the header row visually but keep it for assistive tech. */
+  .fos-table-wrap--reflow .fos-table__head { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  .fos-table-wrap--reflow .fos-table tbody { display:block; }
+  .fos-table-wrap--reflow .fos-table__row {
+    display:block; margin-block-end:var(--space-3);
+    border:1px solid var(--line); border-radius:var(--radius-card);
+    background:var(--surface); overflow:hidden;
+  }
+  .fos-table-wrap--reflow .fos-table__row:last-child { margin-block-end:0; }
+  .fos-table-wrap--reflow .fos-table__td {
+    display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-4);
+    text-align:end; padding:var(--space-2) var(--space-3);
+  }
+  .fos-table-wrap--reflow .fos-table__td:last-child { border-block-end:none; }
+  /* The label is the column header (logical inline-start), value follows it. */
+  .fos-table-wrap--reflow .fos-table__td[data-label]::before {
+    content:attr(data-label); text-align:start;
+    font-size:var(--text-xs); font-weight:var(--weight-bold); color:var(--ink-muted);
+  }
+  /* A cell without a string header (rich/JSX) spans full width with no label gap. */
+  .fos-table-wrap--reflow .fos-table__td:not([data-label]) { justify-content:flex-end; }
+  /* The "no rows" cell stays a single full-width line. */
+  .fos-table-wrap--reflow .fos-table__empty { display:block; text-align:center; }
+}
+
 /* ---- Timeline ---- */
 .fos-timeline { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
 .fos-timeline__item { position:relative; display:flex; gap:var(--space-3); padding-block-end:var(--space-4); padding-inline-start:var(--space-1); }
@@ -372,6 +406,10 @@
 .fos-pagination__page--active { background:var(--brand); color:var(--brand-contrast); border-color:var(--brand); }
 .fos-pagination__page:focus-visible, .fos-pagination__nav:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
 .fos-pagination__nav:disabled { opacity:.4; cursor:not-allowed; }
+/* Touch (coarse pointer): meet the ~44px minimum tap target (WCAG 2.5.5 / 2.5.8). */
+@media (pointer:coarse) {
+  .fos-pagination__page, .fos-pagination__nav { min-width:44px; height:44px; }
+}
 
 /* ---- EmptyState ---- */
 .fos-empty { display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--space-2); padding:var(--space-10) var(--space-4); color:var(--ink); }
@@ -655,4 +693,22 @@
 .fos-approval--approved { border-color:color-mix(in srgb, var(--success-fg) 30%, var(--surface)); }
 .fos-approval--rejected .fos-approval__marker { background:var(--danger-fg); }
 .fos-approval--rejected { border-color:color-mix(in srgb, var(--danger-fg) 30%, var(--surface)); }
+
+/* ---- Reduced motion ---- */
+/* Honour the user's prefers-reduced-motion: reduce setting. Collapse all
+   non-essential transitions and animations to near-instant so content still
+   appears (opacity/visibility resolve immediately) but nothing slides, pops,
+   spins or shimmers. Durations are kept just above 0 so transitionend /
+   animationiteration handlers still fire. Looping indicators (spinner,
+   shimmer, progress) are simply stopped. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+    scroll-behavior:auto !important;
+  }
+  .fos-btn__spinner, .fos-iconbtn__spinner { animation:none !important; }
+  .fos-skeleton { animation:none !important; }
+}
 

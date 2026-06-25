@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync:ds-css": "node scripts/sync-ds-css.mjs",
+    "predev": "node scripts/sync-ds-css.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-ds-css.mjs",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
