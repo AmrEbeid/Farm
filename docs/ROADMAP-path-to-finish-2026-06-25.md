@@ -40,10 +40,11 @@ The autonomous pipeline builds fast; what gates the finish:
 5. **Accounting + P&L** — ratify [`SPEC-0004`](SPEC-0004-accounting-and-pnl.md) (Stage 7). Resolves
    #157. Gated on the Excel reconciliation + (for real figures) the Stage M privacy review. *(High —
    independent review per slice.)*
-6. **People & payroll** (Stage 8 — PII; needs a spec) and **Weather** (Stage 9 — untrusted API; needs
-   a spec). *(High / Med.)*
-7. **Care Academy** (Stage 10) — content as editable templates; **gated on the agronomist + Egyptian
-   pesticide-registration sign-off**. *(Med/High; needs a spec.)*
+6. **People & payroll** — ratify [`SPEC-0006`](SPEC-0006-people-labor-payroll.md) (Stage 8); its first
+   slice closes **PII-1 (#173)** — wages/PII org-readable today. **Weather** — ratify
+   [`SPEC-0007`](SPEC-0007-weather-integration.md) (Stage 9). *(High / Med.)*
+7. **Care Academy** — ratify [`SPEC-0008`](SPEC-0008-care-academy.md) (Stage 10); content as editable
+   templates, **gated on the agronomist + Egyptian pesticide-registration sign-off**. *(Med/High.)*
 8. **عبدالجليل AI** — ratify [`SPEC-0005`](SPEC-0005-ai-assistant-abduljalil.md) (Stage 11). Build
    last; highest-risk; security review each slice; recommend the no-ingest version first. *(High.)*
 9. **Stage M real-data migration** + **Stage 0** legacy remediation + **key rotation** — the
@@ -58,7 +59,12 @@ The autonomous pipeline builds fast; what gates the finish:
 | SPEC-0003 farm structure + palm import | 2 | DRAFT — awaiting ratification |
 | SPEC-0004 accounting + P&L | 7 | DRAFT — awaiting ratification |
 | SPEC-0005 AI assistant عبدالجليل | 11 | DRAFT — awaiting ratification |
-| *(todo)* people/payroll · weather · Care Academy | 8 · 9 · 10 | Specs not yet drafted |
+| SPEC-0006 people, labor & payroll | 8 | DRAFT — awaiting ratification (filed PII-1 #173) |
+| SPEC-0007 weather integration | 9 | DRAFT — awaiting ratification |
+| SPEC-0008 Care Academy | 10 | DRAFT — awaiting ratification |
+
+**Every stage is now specced (SPEC-0001..0008 + the Stage-0 runbook).** The planning corpus is
+complete; the project is decision-bound, not design-bound — see the gates above.
 
 ## Immediate next actions (Owner)
 
