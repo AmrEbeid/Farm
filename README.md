@@ -12,8 +12,8 @@ Monorepo for **Farm OS** — an Arabic-RTL-first, multi-tenant operating system 
 
 ## Sub-projects
 
-- **A — `@amrebeid/ui`** (`packages/ui`): **v1.1.1, published** to GitHub Packages — full component catalog, white-label theming, green CI. Plans in [`packages/ui/docs/superpowers/plans`](packages/ui/docs/superpowers/plans).
-- **B — Farm OS app** (`apps/farm-os`): **MVP-0 DEPLOYED + LIVE** — Next.js + Supabase, the full stock-coverage wedge loop end-to-end. Auth is **email + password** (Supabase `signInWithPassword`). Independent security review done; **74 pgTAP + Playwright e2e** green. Live at **farm-ui-one.vercel.app** (+ `ebeidfarm.business`) on a dedicated cloud Supabase project (prod DB at **migration 0023**), running on synthetic seed data. Recharts is code-split via the `@amrebeid/ui/charts` subpath, so charts load only on the **2** chart routes (inventory coverage + planned-vs-actual report). Spec/plan in [`docs/superpowers`](docs/superpowers); deploy in [`docs/DEPLOY-RUNBOOK.md`](docs/DEPLOY-RUNBOOK.md) / status in [`docs/DEPLOY-STATUS.md`](docs/DEPLOY-STATUS.md).
+- **A — `@amrebeid/ui`** (`packages/ui`): **v1.2.0, published** to GitHub Packages — full component catalog, white-label theming, green CI. Plans in [`packages/ui/docs/superpowers/plans`](packages/ui/docs/superpowers/plans).
+- **B — Farm OS app** (`apps/farm-os`): **MVP-0 DEPLOYED + LIVE** — Next.js + Supabase, the full stock-coverage wedge loop end-to-end. Auth is **email + password** (Supabase `signInWithPassword`). Independent security review done; **287 pgTAP + Playwright e2e** green. Live at **farm-ui-one.vercel.app** (+ `ebeidfarm.business`) on a dedicated cloud Supabase project (prod DB at **migration 0031** — repo `main` is at `0033`; `0032`/`0033` are verified on `main` but Owner-gated, not yet pushed to prod), running on synthetic seed data. Recharts is code-split via the `@amrebeid/ui/charts` subpath, so charts load only on the **2** chart routes (inventory coverage + planned-vs-actual report). Spec/plan in [`docs/superpowers`](docs/superpowers); deploy in [`docs/DEPLOY-RUNBOOK.md`](docs/DEPLOY-RUNBOOK.md) / status in [`docs/DEPLOY-STATUS.md`](docs/DEPLOY-STATUS.md).
 
 ## Working in the library
 
@@ -32,7 +32,7 @@ cd apps/farm-os
 supabase start          # local Supabase (requires Docker)
 supabase db reset       # apply migrations + Ebeid seed
 npm run dev             # http://localhost:3000
-supabase test db        # 74 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
+supabase test db        # 287 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
 npx playwright test     # the end-to-end wedge loop
 ```
 

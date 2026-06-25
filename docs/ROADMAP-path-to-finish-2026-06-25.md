@@ -6,8 +6,9 @@ built or applied by this doc. Reconciles [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 
 
 ## Where we are (reconciled to `main`)
 
-- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0029` (`0030`–`0033` verified on
-  `main`, pending push). pgTAP 287/287 (Docker-free harness). 8-agent re-audit complete.
+- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0031` (live-verified 2026-06-26 via
+  `list_migrations`); repo `main` at `0033` — `0032`/`0033` verified on `main`, pending the Owner prod
+  push. pgTAP 287/287 (Docker-free harness). 8-agent re-audit complete.
 - **Foundation/security hardened:** AUTHZ-1 RLS (`0025`), delete-posture (`0027`), FORCE RLS (`0028`),
   ledger INSERT-locked (`0030`), stock floor + **CONC-1** concurrency fix (`0031`/`0033`), PR-line
   freeze + AP-3 (`0032`), org-member audit (`0019`). `@amrebeid/ui` 1.2.0.
@@ -19,16 +20,16 @@ The autonomous pipeline builds fast; what gates the finish:
 
 | Gate | Type | Blocks |
 |---|---|---|
-| **Prod push `0030`–`0033`** (incl. CONC-1) | Owner apply | live hardening |
+| **Prod push `0032`/`0033`** (incl. CONC-1; `0030`/`0031` already live) | Owner apply | live hardening |
 | **Ratify SPEC-0002** (authz enforcement) | Owner decision | closing AUTHZ-1 fully |
-| **HIGH product forks** #155 partial-receipts · #156 guard scope · #157 budget-as-hard-cap · #89 pricing | Owner decision | engine/budget correctness + GTM |
+| **HIGH product forks** #155 partial-receipts · #157 budget-as-hard-cap · #89 pricing · #181 AUTHZ-2 org-scoping | Owner decision | engine/budget correctness + GTM (#156 guard-scope now CLOSED) |
 | **Agronomist sign-off** (Stage 10) | External | Care Academy content |
 | **Accounting reconciliation vs the 7-yr Excel** (Stage 7) | External + privacy | the P&L |
 | **Real-data privacy review** (Stage M) | External | real reference tenant |
 
 ## Recommended sequence (each stage: ratify SPEC → build in slices → Owner gate; never auto-advance)
 
-1. **Apply the pending hardening to prod** (`0030`→`0033`) once ratified — `DEPLOY-RUNBOOK §1a`. Ratify
+1. **Apply the pending hardening to prod** (`0032`/`0033`; `0030`/`0031` already live) once ratified — `DEPLOY-RUNBOOK §1a`. Ratify
    the core-engine `0018`/CONC-1 `0033` specifically. *(Owner apply — small, high-value.)*
 2. **Close AUTHZ-1** — ratify [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) (the role model
    already exists; it's a coverage gap), then the enforcement migration. *(Low/Med.)*
@@ -68,6 +69,6 @@ complete; the project is decision-bound, not design-bound — see the gates abov
 
 ## Immediate next actions (Owner)
 
-1. Push `0030`–`0033` to prod (ratify `0018`/`0033` engine changes). 2. Ratify SPEC-0002 → build.
+1. Push `0032`/`0033` to prod (`0030`/`0031` already live; ratify CONC-1 `0033` engine change). 2. Ratify SPEC-0002 → build.
 3. Decide the HIGH forks (#155/#156/#157, #89). 4. Confirm 4-vs-5 sectors to unblock SPEC-0003.
 Everything else sequences behind these + the external sign-offs.

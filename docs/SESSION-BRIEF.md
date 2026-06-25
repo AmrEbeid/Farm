@@ -1,7 +1,46 @@
-# Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-25 (latest) — adopted amr-operating-method + independent review (5 findings) + repo relocation
+## 2026-06-26 (latest) — prod-state reconciliation + app-layer audit (read-only; docs + issues only)
+Autonomous "keep working" session under `amr-operating-method` (propose → validate → report; no
+self-merge, no prod push). No app code or schema changed on `main`; deliverables are this doc
+reconciliation (un-merged PR) + filed issues. Key results:
+- **Prod migration state live-verified.** Queried prod Supabase (`veezkmytervjnpxcrbkw`) via
+  `list_migrations`: **prod is at `0031`** (`fn_post_movement_stock_floor`) — `0001–0013` + `0015–0031`.
+  Repo `main` is at **`0033`**; **`0032`** (`pr_items_lock_and_version_bump`) + **`0033`**
+  (`fn_post_movement_floor_lock`, CONC-1) are verified on `main` but **NOT pushed to prod** (Owner-gated).
+  This **corrects the stale `0029` figures** in the older entries below (and `0023`/`0028` in the READMEs
+  / tracker Stage-P row) — those were mid-push or lagging snapshots. **Authoritative prod state: `0031`.**
+- **Docs reconciled (un-merged PR `docs/reconcile-state-2026-06-26`):** README (`0023`→`0031`, ui
+  `v1.1.1`→`1.2.0`, `74`→`287` pgTAP), app README (`0023`→`0033`), PROJECT-TRACKER (Stage-P row +
+  new banner → `0031`), DEPLOY-STATUS (removed the stale "Phone-OTP via Twilio = intended auth" item
+  that contradicted the same file's NO-SMS decision; `270`→`287` pgTAP), ROADMAP (`0029`→`0031`; pending
+  push is `0032`/`0033`, not `0030`–`0033`; `#156` marked CLOSED, `#181` AUTHZ-2 added to the HIGH forks).
+- **App-layer audit (read-only) — 3 findings filed as issues** (per `amr-operating-method`):
+  - **#187 — AR-ERR-1 (MED, non-gated):** several PR/plan/coverage server actions still return raw
+    English `error.message` to the field UI on un-mapped paths (violates non-negotiable #2). A helper
+    `apps/farm-os/lib/errors.ts` (`toArabicError`) was drafted to fix this but is **unwired** (no callers).
+    Agent-doable next slice: wire it in + a `lib/errors.test.ts` unit test.
+  - **#188 — CREATE-1-RESERVE (MED, review-gated):** `createPurchaseRequestFromShortage` inserts PR+line
+    then reserves; if reserve fails post-insert, the retry dedup branch returns the PR **without
+    re-reserving** → orphaned (un-reserved) PR. Engine-adjacent → independent review required.
+  - **#89 (existing) — commented:** the hardcoded `needed_by: "2025-07-08"` (coverage/actions.ts:105)
+    has an **engine-projection consequence** (a wrong/null `needed_by` silently drops the PO from
+    `fn_stock_coverage` scheduled-receipts) — suggested splitting the date fix from the pricing decision.
+- **Unratified Stage 2 WIP preserved.** A local-only branch **`feat/stage-2-farm-structure`** (also on
+  origin) holds farm-structure read-views (hawsha drill-down + farm/sector timelines) + a registry
+  reconciliation oracle (`tests/34_...sql`) that **hardcodes 5 sectors** — but 4-vs-5 is an **open Owner
+  decision** and SPEC-0003 is **DRAFT**. Do **not** merge before SPEC-0003 ratification + the sector call.
+  `lib/errors.ts` is committed there but unwired.
+- **Toolchain installed:** this machine had no Node/Docker; installed **Node v26.4.0 + npm 11.17.0** via
+  Homebrew + ran `npm install` (root). `tsc`/`eslint`/`vitest`/`next build` are now runnable locally;
+  **pgTAP still cannot run locally** (no Postgres/Docker — the shim needs `psql`), so the `287` figure is
+  the latest committed harness run, not re-run this session.
+- **State:** `main` unchanged (origin HEAD `e35c46b`); open PRs: **#183** (SPEC-0002 consolidation, DRAFT,
+  green — Owner gate) + the new `docs/reconcile-state-2026-06-26` docs PR. Owner-gated next moves unchanged:
+  🔴 key rotation; push `0032`/`0033`; ratify SPEC-0002/0003; the HIGH forks (#155/#157/#173/#89/#181).
+
+## 2026-06-25 — adopted amr-operating-method + independent review (5 findings) + repo relocation
 **Working method:** adopted **`amr-operating-method`** (the gated protocol — propose → validate →
 report → **STOP**, owner gates merges/migrations; no self-merge). Going forward, findings are filed
 as issues + un-merged PRs for the Owner to gate.

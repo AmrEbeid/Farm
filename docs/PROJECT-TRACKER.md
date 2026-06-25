@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-25 by Claude (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-26 by Claude (for Owner: Amr Ebeid)
+
+> **2026-06-26 — prod migration state reconciled to ground truth (live-verified):** queried the prod
+> Supabase (`veezkmytervjnpxcrbkw`) via `list_migrations` — **prod is at `0031`** (`fn_post_movement_stock_floor`):
+> `0001–0013` + `0015–0031` applied. Repo `main` is at **`0033`**; migrations **`0032`**
+> (`pr_items_lock_and_version_bump`) and **`0033`** (`fn_post_movement_floor_lock`, CONC-1) are verified on
+> `main` but **NOT pushed to prod** (Owner-gated prod push). **Authoritative current prod state: `0031`.**
+> This supersedes the stale figures elsewhere — the `0028`/`0029` prod claims in older entries (and `0023`
+> in the READMEs) were mid-push or lagging snapshots, now corrected. No code/schema changed in this
+> reconciliation. (Also surfaced this session: a local-only branch `feat/stage-2-farm-structure` holds
+> **unratified** Stage 2 WIP — farm-structure read-views + a registry reconciliation oracle that hardcodes
+> **5 sectors**, an open Owner decision per SPEC-0003; do not merge before SPEC-0003 ratification + the
+> 4-vs-5 sector call. And three app-layer findings filed: **#187** (AR-ERR-1 Arabic error-mapping gaps,
+> non-gated), **#188** (CREATE-1-RESERVE orphaned reservation, review-gated), plus a note on **#89**
+> (hardcoded `needed_by` has an engine-projection consequence).)
 
 > **2026-06-25 — Storybook 10 toolchain upgrade + `@amrebeid/ui` 1.2.0 published (merged):** the deferred
 > Storybook major (Dependabot #131, ERESOLVE) landed properly via **PR #154** (`chore/storybook-10`).
@@ -119,7 +133,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 10 | Care Academy content | Documentation | Med/High | Todo | Agronomy liability → expert sign-off |
 | 11 | AI assistant عبدالجليل | Execution | **High** | Todo | Lethal-trifecta control required |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
-| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB now at `0028`** (`0001–0013` + `0015–0028`, in sync with `main`) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied). Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
+| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0031`** (`0001–0013` + `0015–0031`, live-verified 2026-06-26 via `list_migrations`; repo `main` at `0033` — `0032`/`0033` Owner-gated, not yet pushed) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied). Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection + the `0032`/`0033` prod push. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 
 Status legend: Todo / Active / Blocked / In review / Done
 
