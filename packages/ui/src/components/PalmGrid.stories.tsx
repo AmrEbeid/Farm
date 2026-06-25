@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { PalmGrid, type PalmLine } from "./PalmGrid";
 import type { PalmStatus } from "./PalmCell";
 

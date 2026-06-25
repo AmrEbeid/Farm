@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DataTable, type DataTableColumn, type SortState } from "./DataTable";
 
 interface Row { id: string; variety: string; qty: number; price: number; }
