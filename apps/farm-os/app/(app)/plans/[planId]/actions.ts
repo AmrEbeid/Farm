@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import type { Json } from "@/lib/database.types";
 
 interface CoverageResult {
   shortage?: boolean;
@@ -44,7 +45,7 @@ export async function runPlanChecks(planId: string) {
 
   // stock check: any shortage among the plan's materials blocks
   let stockResult: "ok" | "block" = "ok";
-  const stockDetail: Record<string, unknown> = {};
+  const stockDetail: Record<string, Json> = {};
   for (const itemId of materialIds) {
     const { data } = await sb.rpc("fn_stock_coverage", {
       p_item: itemId,
@@ -69,7 +70,7 @@ export async function runPlanChecks(planId: string) {
     .eq("category", "أسمدة")
     .maybeSingle();
   let budgetResult: "ok" | "warn" | "block" = "ok";
-  let budgetDetail: Record<string, unknown> = {};
+  let budgetDetail: Json = {};
   if (line) {
     const available =
       Number(line.approved) - Number(line.committed) - Number(line.actual);
