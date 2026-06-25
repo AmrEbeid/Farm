@@ -78,14 +78,25 @@ export { RoleSwitcher } from "./components/RoleSwitcher";
 export type { RoleSwitcherProps, RoleOption } from "./components/RoleSwitcher";
 export { AppShell } from "./components/AppShell";
 export type { AppShellProps } from "./components/AppShell";
-export { useChartTokens } from "./components/useChartTokens";
-export type { ChartTokens } from "./components/useChartTokens";
-export { BarChart } from "./components/BarChart";
-export type { BarChartProps, ChartSeries } from "./components/BarChart";
-export { LineChart } from "./components/LineChart";
-export type { LineChartProps } from "./components/LineChart";
-export { DoughnutChart } from "./components/DoughnutChart";
-export type { DoughnutChartProps, DoughnutDatum } from "./components/DoughnutChart";
+// Chart components (Recharts-based) live in a dedicated split entry so recharts
+// only enters a bundle when a chart is referenced. Re-exported here to keep the
+// `import { BarChart } from "@amrebeid/ui"` API working; with tsup `splitting`
+// these become a separate chunk that tree-shakes out of non-chart consumers.
+// Prefer `@amrebeid/ui/charts` to import charts without touching the barrel.
+export {
+  useChartTokens,
+  BarChart,
+  LineChart,
+  DoughnutChart,
+} from "./charts";
+export type {
+  ChartTokens,
+  BarChartProps,
+  ChartSeries,
+  LineChartProps,
+  DoughnutChartProps,
+  DoughnutDatum,
+} from "./charts";
 export { LoopStepper } from "./components/LoopStepper";
 export type { LoopStepperProps, LoopStep, LoopStepState } from "./components/LoopStepper";
 export { PhaseCard } from "./components/PhaseCard";

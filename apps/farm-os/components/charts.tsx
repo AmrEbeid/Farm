@@ -3,7 +3,9 @@
 // Client-only chart wrappers. @amrebeid/ui's BarChart/LineChart are Recharts
 // based; Recharts is server-stubbed (see next.config.ts / recharts-stub.ts), so
 // charts MUST render inside a "use client" boundary to use the real library.
-import { LineChart, BarChart } from "@amrebeid/ui";
+// Import from the dedicated recharts-only subpath so recharts enters only the
+// bundles of routes that actually render a chart, never the global chunk.
+import { LineChart, BarChart } from "@amrebeid/ui/charts";
 
 /**
  * Projected Available Balance over the planning horizon. The first period that
