@@ -52,7 +52,8 @@ select is(
       and p.proname not in (
         'authorize', 'user_org_ids',             -- RLS helpers
         'fn_stock_coverage', 'fn_post_movement',
-        'fn_bin_rebuild', 'fn_execute_operation' -- intended authenticated RPC surface
+        'fn_bin_rebuild', 'fn_execute_operation', -- intended authenticated RPC surface
+        'fn_post_receipt'                         -- atomic PR receipt RPC (migration 0024)
       )
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   0,
