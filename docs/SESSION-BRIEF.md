@@ -1,7 +1,32 @@
 # Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-25 (latest) — Storybook 8.6→10.4 toolchain upgrade + @amrebeid/ui 1.2.0 published
+## 2026-06-25 (latest) — independent review (CONC-1 fix + PII-1) + complete SPEC corpus + roadmap
+A follow-on session that **reconciled to the advanced `main`** (it had moved to migration `0031` +
+prod `0029` via the 8-agent re-audit; an earlier fork was stale — re-read the repo first) and then:
+- **CONC-1 (fixed, #168, migration `0033`):** the #159 stock floor (`0031`) was a TOCTOU under
+  concurrency — the floor read `on_hand` with no lock + `fn_bin_rebuild` locks only at its closing
+  UPDATE, so two simultaneous outflows could drive `on_hand` negative. Fixed: `SELECT … FOR UPDATE`
+  the bin row before the floor check (serializes movements per bin). Shim harness 287/287.
+- **PII-1 (filed, issue #173, MED):** `people.rate` (wages) + phone/email are org-readable by any
+  member (`tenant_all`, no role gate) via PostgREST — UI-gated, not RLS-gated. Fix is Stage 8 (a
+  `people_compensation` table) — designed in SPEC-0006, not a blind patch.
+- **#161 L2 + L5 (fixed, #176):** seed-auth route got a `VERCEL_ENV !== 'production'` belt-and-braces
+  gate; `lib/stock-calc.ts` aligned to the SQL (`available = on_hand − reserved`, expiry already
+  netted into on_hand per ENGINE-C1) + oracle tests corrected. (L1/L3/L4/L6 left — deferred/design/
+  non-exploitable.)
+- **Re-confirmed sound:** `0025` (AUTHZ-1 operation-tables RLS — every app write path matches its
+  gate), `0027` (delete posture).
+- **Completed the SPEC corpus:** every stage now has a DRAFT spec for Owner ratification — SPEC-0003
+  (Stage 2 palm import), 0004 (Stage 7 accounting), 0005 (Stage 11 AI / trifecta-safe), 0006 (Stage 8
+  payroll/PII), 0007 (Stage 9 weather), 0008 (Stage 10 Care Academy) — plus
+  **`ROADMAP-path-to-finish-2026-06-25.md`** (the dependency-ordered plan).
+- **State:** all merged; `main` green; **no open PRs**. ⚠️ **prod still at `0029`** — `0030`–`0033`
+  (incl. CONC-1; `0018`/`0033` are core-engine) verified on `main`, pending the Owner prod push. The
+  project is now **decision-bound, not design-bound** — next moves need Owner ratification of a SPEC,
+  the prod push, the HIGH forks (#155/#156/#157/#173/#89), and the agronomist (Stage 10 long-pole).
+
+## 2026-06-25 — Storybook 8.6→10.4 toolchain upgrade + @amrebeid/ui 1.2.0 published
 Coordinated **MAJOR** Storybook upgrade for `packages/ui` (the `@amrebeid/ui` design system),
 landing the deferred Dependabot bump #131 properly (it had failed install with ERESOLVE because
 only `@storybook/react-vite` was bumped while the rest of the 8.6.x stack stayed put).
