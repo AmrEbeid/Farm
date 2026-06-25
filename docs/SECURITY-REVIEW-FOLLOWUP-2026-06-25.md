@@ -94,10 +94,17 @@ proven B2/`0015` `authorize()`-in-`WITH CHECK` pattern to the execute path.
 now calls `authorize('op.execute')` (the DB permission map) and rejects a caller without it, so a
 non-`op.execute` role (accountant/storekeeper) can no longer execute *through the app* — and the
 docstring's claim is now true at the app layer. Verified: tsc + the wedge-loop e2e (executes as
-`supervisor`, who holds `op.execute`) pass. **Still open — the authoritative Postgres-layer gate
-(Option A: a `bypassrls` `fn_execute_operation` with the `authorize()` check inside, so direct REST
-writes to the operation tables are gated too) remains Owner-gated** pending SPEC-0002 ratification;
-until it lands, the operation tables stay directly writable via REST by any org member.
+`supervisor`, who holds `op.execute`) pass.
+
+**✅ RESOLVED at the DB/REST layer (2026-06-25) — AUTHZ-1 Option B, PR #146, migration
+`0025_operation_tables_rls_authz` (test `26`).** Rather than route every write through a `bypassrls`
+RPC (Option A), the operation tables are now gated **directly at the RLS layer** — the proven
+B2/`0015` `authorize()`-in-policy pattern: `farm_event` (+ partitions) / `event_locations` /
+`quantities` require `op.execute` and `plan_operations` requires `plan.write` in their `WITH CHECK`,
+while the RLS-H1 parent-org `EXISTS` check is preserved. A direct PostgREST write forging a done
+operation by a non-`op.execute` member is now rejected at the DB. Applied to prod (`0028`). The
+operation tables are **no longer directly writable by an arbitrary org member**, so the AUTHZ-1
+posture gap is closed.
 
 **AUDIT-1 — ✅ FIXED (#68, migration `0019`, test `17`).** `organization_member` had no audit
 trigger (the generic `fn_audit` keys on `new.id`, but it's a composite-PK table). A dedicated
@@ -135,19 +142,24 @@ ENGINE-DC TODO regression #56, engine round-trip test #67, the runbook prod-push
 independently diff-reviewed + locally verified (pgTAP + e2e) before merge (RLS/money/engine paths);
 #51 also incorporated three CodeRabbit data-integrity refinements.
 
-**Still Owner-gated — prod DB migration push.** Prod is at migration `0013`; `0015` (B2), `0016`
-(B2.1), `0017` (AP-5), `0018` (ENGINE-DC), and `0019` (AUDIT-1) are verified on `main` but **not
-applied to prod** (a prod DB migration is a hard stop per PROJECT RULES). When the Owner is ready,
-apply `0015`→`0016`→`0017`→`0018`→`0019` in order via [`DEPLOY-RUNBOOK.md`](DEPLOY-RUNBOOK.md) §1a.
-**`0018` changes the core stock-coverage engine — the Owner should ratify it specifically before the
-push.** The app runs correctly without these (writes already route through the bypassrls RPCs;
-`0018` only affects the coverage projection's receipt source). *(The EXE-1/RCP-1/CREATE-1 app-code
-fixes are already on `main`, deploy on the next Vercel push.)*
+**✅ Prod DB migration push — DONE (2026-06-25).** Prod Supabase (`veezkmytervjnpxcrbkw`) is now at
+migration **`0028`** (`0001–0013` + `0015–0028`), in sync with `main` — all migrations applied +
+verified live (`0018` engine change Owner-ratified). This session also pushed the four hardening
+migrations as their own CI-green PRs: `0025` AUTHZ-1 Option B (#146, test `26`), `0026` ENGINE-DC
+DB-constraint (#144, test `27`), `0027` DELETE-posture remediation (#140, test `28`), `0028` D1 FORCE
+RLS (#142, test `29`). **pgTAP now 217 assertions, all green** (Docker-free shim harness + CI).
+Live-verified: manager login OK; authenticated reads HTTP 200; DELETE `expenses` as manager → HTTP
+403. **B2 inventory receipt role-gating = ALREADY COVERED** (`fn_post_receipt` + `0015` both enforce
+`inventory.write`); **AP-5 insert-side SoD** (#76 item 2) = ALREADY merged (migration `0023`, test
+`21`) — RESOLVED. Prod hygiene: dropped the stray `pgtap` extension from prod `public` (advisor WARN).
 
-**Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (app-layer gate **landed**
-#71; the authoritative RLS/Postgres enforcement — Option A — awaits **[`SPEC-0002`](SPEC-0002-authorization-enforcement.md) #69**
-ratification, then an enforcement migration), **DEP-1** (`postcss` transitive, build-time
+**Remaining open findings (all Owner-gated / deferred):** **DEP-1** (`postcss` transitive, build-time
 only — low), **BUD-1** (INFO — budget gate is decision-support, not a hard cap), **CREATE-2** (LOW —
-`addPlanOperation` non-idempotent/non-atomic, planning-path, conservative). AUDIT-1 fixed
-(#68); CI-1 withdrawn (the pgTAP gate already exists via `db-tests.yml`). **Write-action audit
-complete — all four `actions.ts` files reviewed; no new HIGH/MED.**
+`addPlanOperation` non-idempotent/non-atomic, planning-path, conservative). **AUTHZ-1 — ✅ RESOLVED**
+(Option B, migration `0025`, #146 — RLS-layer role gate on the operation tables); AUDIT-1 fixed
+(#68); ENGINE-DC DB-constraint landed (`0026`, #144); the DELETE-exposure posture remediated
+(`0027`, #140) and FORCE RLS applied to all 35 tenant tables (`0028`, #142); CI-1 withdrawn. **Two Owner-only items remain (dashboard/tooling, not code):**
+**🔴 rotate the `service_role` key + DB password** (blocked on tooling this session — no
+`SUPABASE_ACCESS_TOKEN`/Vercel CLI/MCP rotation tool; do via the dashboard before any real data) and
+**enable Leaked Password Protection** (HaveIBeenPwned toggle). **Write-action audit complete — all
+four `actions.ts` files reviewed; no new HIGH/MED.**

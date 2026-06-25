@@ -1,10 +1,13 @@
 # Engine Finding — scheduled receipts are double-counted (PAB masks real shortages)   (2026-06-25)
 
-> **✅ FIXED on `main`** (migration `0018`, PR #61) via **direction #2** — scheduled receipts are now
-> sourced from approved purchase_requests (open POs), disjoint from `on_hand` by construction.
-> Independently reviewed (diff + pgTAP `97/97`, incl. the un-TODO'd regression test `14`, + the
-> Playwright wedge-loop). **Core-engine change → the Owner should ratify it before the prod DB push**
-> (which remains the gated step, with `0015`–`0018`).
+> **✅ FIXED + APPLIED TO PROD** (migration `0018`, PR #61) via **direction #2** — scheduled receipts
+> are now sourced from approved purchase_requests (open POs), disjoint from `on_hand` by construction.
+> Independently reviewed (diff + pgTAP, incl. the un-TODO'd regression test `14`, + the Playwright
+> wedge-loop). The Owner ratified the core-engine change and prod is now at migration `0028`.
+> **Hardened further (2026-06-25):** migration `0026_engine_dc_constraint` (PR #144, test `27`) adds a
+> `BEFORE INSERT` trigger on `inventory_movements` (`type='receipt'`) that rejects a receipt while an
+> approved-not-received PO for the same `(org,item)` still exists — turning the `0018` disjointness
+> invariant into a hard DB control (`fn_post_receipt` is claim-first, so the legit path is safe).
 
 Reviewer: independent adversarial pass over the **stock-coverage engine** (`fn_stock_coverage`, the
 SPEC-0001 wedge — the product's differentiator). Owner: Amr Ebeid. Verified on the live local stack.
