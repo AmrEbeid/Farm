@@ -20,6 +20,26 @@ describe("Timeline", () => {
     const { container } = render(<Timeline items={items} />);
     expect(container.querySelector(".fos-timeline__marker--success")).toBeInTheDocument();
   });
+  it("falls back to the default marker tone when none is given", () => {
+    const { container } = render(<Timeline items={[{ id: "x", title: "بدون نبرة" }]} />);
+    expect(container.querySelector(".fos-timeline__marker--default")).toBeInTheDocument();
+  });
+  it("renders an icon inside the marker and the time/description only when present", () => {
+    const { container } = render(
+      <Timeline items={[{ id: "x", title: "مع أيقونة", icon: "🌴" }]} />,
+    );
+    expect(container.querySelector(".fos-timeline__marker")).toHaveTextContent("🌴");
+    expect(container.querySelector(".fos-timeline__time")).toBeNull();
+    expect(container.querySelector(".fos-timeline__desc")).toBeNull();
+  });
+  it("merges a consumer className and forwards rest props", () => {
+    const { container } = render(
+      <Timeline items={items} className="extra" data-testid="tl" />,
+    );
+    const el = container.querySelector(".fos-timeline")!;
+    expect(el.className).toContain("extra");
+    expect(el).toHaveAttribute("data-testid", "tl");
+  });
   it("has no axe violations", async () => {
     const { container } = render(<Timeline items={items} aria-label="سجل العمليات" />);
     expect(await axe(container)).toHaveNoViolations();

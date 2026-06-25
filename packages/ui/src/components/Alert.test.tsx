@@ -18,6 +18,29 @@ describe("Alert", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
+  it("renders a leading icon, hidden from the accessibility tree", () => {
+    const { container } = render(<Alert tone="ok" title="تم" icon="✅" />);
+    const icon = container.querySelector(".fos-alert__icon")!;
+    expect(icon).toHaveTextContent("✅");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("omits the description element when not provided", () => {
+    const { container } = render(<Alert tone="info" title="معلومة فقط" />);
+    expect(container.querySelector(".fos-alert__desc")).toBeNull();
+    expect(container.querySelector(".fos-alert__icon")).toBeNull();
+  });
+
+  it("merges a consumer className and forwards rest props", () => {
+    const { container } = render(
+      <Alert tone="info" title="x" className="extra" data-testid="a" />,
+    );
+    const el = container.querySelector(".fos-alert")!;
+    expect(el.className).toContain("fos-alert--info");
+    expect(el.className).toContain("extra");
+    expect(el).toHaveAttribute("data-testid", "a");
+  });
+
   it("has no axe violations", async () => {
     const { container } = render(<Alert tone="ok" title="تم" description="نجحت العملية" />);
     expect(await axe(container)).toHaveNoViolations();
