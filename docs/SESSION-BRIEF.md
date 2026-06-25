@@ -31,11 +31,15 @@ three more issues, all **merged to `main`** after independent diff review:
 - ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017`/`0018` are verified on `main` but a
   prod `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md`; **`0018` is the
   core-engine change — ratify it specifically**). App runs without them.
-- **Open (Owner-gated):** **AUTHZ-1** (execute org-only, not role-gated), **CREATE-1** (PR-create not
-  idempotent — low, conservative), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time
-  only, low), and **BUD-1** (INFO — the budget gate is decision-support + owner-approval, AP-1/AP-5
-  enforced server-side, but no hard DB spend cap; `committed` is display-only in MVP-0) — all
-  deferred. SoD finding renamed **AP-3→AP-5** (AP-3 was already the PR version-guard).
+- Also fixed: **CREATE-1** (#63) — `createPurchaseRequestFromShortage` find-or-create (reuse an open
+  PR for the item+plan instead of duplicating + re-reserving). And **AUDIT-1** noted (INFO):
+  `organization_member` has no audit trigger — not a vuln (client writes revoked), add it with
+  role-management.
+- **Open (Owner-gated / deferred):** **AUTHZ-1** (execute org-only, not role-gated — with the role
+  model), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only, low), **BUD-1** (INFO —
+  budget gate is decision-support + owner-approval, AP-1/AP-5 server-side, no hard DB spend cap;
+  `committed` display-only), **AUDIT-1** (INFO — see above). SoD finding renamed **AP-3→AP-5**
+  (AP-3 was already the PR version-guard).
 
 ## 2026-06-25 — post-deploy hardening
 With the app live, hardened + verified further: **prod re-verified** (all 6 role logins + per-role

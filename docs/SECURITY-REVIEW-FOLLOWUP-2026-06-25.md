@@ -21,6 +21,7 @@ db` (full reset). Status legend: ✅ fixed + verified (PR open) · 📝 document
 | **EXE-1** | MED (integrity) | `executeOperation` was **not idempotent**: a double-submit/retry/concurrent POST bypassed the page's "done" guard and re-ran the whole issue/release path (double stock loss, over-release, duplicate `done` event). Fixed **claim-first** — flip `status→done` as the first write guarded by `status <> 'done'`, abort if no row, before any stock movement; revert the claim only before anything is persisted. pgTAP test `13` + Playwright wedge-loop. | #51 ✅ |
 | **RCP-1** | MED–HIGH (integrity) | EXE-1's twin — `recordReceipt` posted a `receipt` movement per item then flipped the PR `received` with **no precondition**, so a double-submit re-posted every receipt → **phantom stock IN** (`on_hand` inflated). Fixed **claim-first** — flip `approved→received` guarded by `status='approved'`, abort if no row, before any movement (also adds the missing precondition). pgTAP test `15` + wedge-loop. | #57 ✅ |
 | **ENGINE-DC** | MED–HIGH (correctness) | `fn_stock_coverage` seeded `available` from `on_hand` (Σ **all** receipt movements via `fn_bin_rebuild`) **and** re-projected `receipt` movements dated `>= period_start` forward → any received receipt counted **twice** → optimistic PAB that could **hide a real shortage** (SPEC-0001 #1 risk). Prototyping a `current_date` cut-line proved it's a *data-model* problem (broke test `06` Case C), so **direction #2**: source scheduled receipts from **approved purchase_requests (open POs)**, never the actual-movement ledger — disjoint from `on_hand` by construction (on receipt the PR flips `→received` as a receipt movement enters `on_hand`). Migration `0018`; test `06` re-modeled onto POs; regression test `14` un-TODO'd. | #61 ✅ |
+| **CREATE-1** | LOW (integrity) | `createPurchaseRequestFromShortage` inserted a new draft PR + posted a `reserve` on every call → a double-submit made duplicate draft PRs + an extra reservation (conservative — over-reserves, can't mask a shortage). Fixed **find-or-create**: reuse an existing open (draft/submitted) PR that already carries a line for the item instead of creating a duplicate. (Residual: truly-concurrent calls could still both create — over-reserve only; a fully race-safe guard needs a DB constraint.) | #63 ✅ |
 | (lint) | — | `npm run lint` was red on `main` (1 error + 2 warnings; CI doesn't run lint). Fixed; presentation-only. | #43 ✅ |
 | (finding) | — | Schema-wide direct-DELETE exposure across 28 tenant tables (root cause + tiered remediation). | #45 ✅ |
 
@@ -50,15 +51,6 @@ budget is informational, not an enforced spend cap. If a hard cap is wanted late
 `committed` on approval (in a transactional RPC) and add a `WITH CHECK`/trigger that rejects an
 approval exceeding `approved − committed − actual`, with a pgTAP case. Needs the role/budget design
 + independent review (money logic).
-
-### CREATE-1 (LOW, integrity) — `createPurchaseRequestFromShortage` is not idempotent
-The reserve/PR-create action (`inventory/[itemId]/coverage/actions.ts`) inserts a new draft PR +
-line item and posts a `reserve` movement on every call, with no idempotency token — so a
-double-submit makes **duplicate draft PRs** and an **extra reservation**. Lower severity than
-EXE-1/RCP-1: the duplicate PRs are draft/visible/deletable, and the double `reserve` *over*-states
-`reserved` (available drops further) — **conservative**, it can't mask a shortage. The clean fix is
-a client-supplied idempotency key or a "one open PR per (item, plan)" unique constraint; deferred
-(the UI disables the button on submit). Noted while fixing RCP-1.
 
 ### DEP-1 (LOW, dependency) — `postcss < 8.5.10` (transitive via `next`)
 `npm audit --omit=dev` reports **2 moderate** advisories: `postcss < 8.5.10`
@@ -126,7 +118,8 @@ runs correctly without these (writes already route through the bypassrls RPCs; `
 the coverage projection's receipt source). *(The RCP-1/EXE-1 app-code fixes are already on `main`,
 deploy on the next Vercel push.)*
 
-**Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (execute
-org-only, not role-gated — with the role model), **CREATE-1** (PR-create not idempotent — low,
-conservative), **DEP-1** (`postcss` transitive, build-time only — low). CI-1 withdrawn (the pgTAP
-gate already exists via `db-tests.yml`).
+**Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (execute org-only, not
+role-gated — with the role model; + the related **AUDIT-1** INFO note: add an `organization_member`
+audit trigger when role-management lands), **DEP-1** (`postcss` transitive, build-time only — low),
+**BUD-1** (INFO — budget gate is decision-support, not a hard cap). CI-1 withdrawn (the pgTAP gate
+already exists via `db-tests.yml`).
