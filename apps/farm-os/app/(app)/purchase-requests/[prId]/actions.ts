@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import { toArabicError } from "@/lib/errors";
 
 /** Submit a draft PR for approval (draft → submitted). Any member with the org. */
 export async function submitPurchaseRequest(prId: string) {
@@ -14,7 +15,7 @@ export async function submitPurchaseRequest(prId: string) {
     .eq("id", prId)
     .eq("status", "draft")
     .select("id");
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: toArabicError(error) };
   if (!data || data.length === 0) {
     return { ok: false, error: "تعذّر الإرسال: الطلب ليس مسودة أو تم إرساله بالفعل." };
   }
@@ -38,7 +39,7 @@ export async function approvePurchaseRequest(prId: string, version: number) {
     .eq("version", version)
     .eq("status", "submitted")
     .select("id");
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: toArabicError(error) };
   if (!data || data.length === 0) {
     return { ok: false, error: "تعذّر الاعتماد: قد لا تملك صلاحية المالك أو أنك صاحب الطلب." };
   }
@@ -68,25 +69,22 @@ export async function recordReceipt(prId: string) {
   // the per-item loop are gone.
   const { error } = await sb.rpc("fn_post_receipt", { p_pr_id: prId });
   if (error) {
-    // 23505 is the claim-first idempotency abort (not approved / already received) — preserve the
-    // existing user-facing message for that case.
-    if (error.code === "23505") {
-      return { ok: false, error: "تعذّر تسجيل الاستلام: الطلب غير معتمد أو تم استلامه بالفعل." };
-    }
-    // 42501 is the authz failure (no inventory.write / cross-org).
-    if (error.code === "42501") {
-      return { ok: false, error: "ليس لديك صلاحية استلام المخزون" };
-    }
-    // P0002 is the "purchase request not found" raise from fn_post_receipt.
-    if (error.code === "P0002") {
-      return { ok: false, error: "الطلب غير موجود." };
-    }
-    // 22023 = a malformed PR line (qty ≤ 0) rejected by fn_post_movement; map it rather than
-    // leaking the raw English (non-negotiable #2, consistent with executeOperation/reserve).
-    if (error.code === "22023") {
-      return { ok: false, error: "بند في الطلب يحمل كمية غير صالحة" };
-    }
-    return { ok: false, error: error.message };
+    // Map fn_post_receipt's SQLSTATEs to context-specific Arabic; toArabicError falls back to a
+    // generic Arabic message for anything unlisted, so the raw English DB message never leaks
+    // (non-negotiable #2, consistent with executeOperation/reserveStock).
+    return {
+      ok: false,
+      error: toArabicError(error, {
+        // 23505 — claim-first idempotency abort (not approved / already received).
+        "23505": "تعذّر تسجيل الاستلام: الطلب غير معتمد أو تم استلامه بالفعل.",
+        // 42501 — authz failure (no inventory.write / cross-org).
+        "42501": "ليس لديك صلاحية استلام المخزون",
+        // P0002 — "purchase request not found" raise from fn_post_receipt.
+        P0002: "الطلب غير موجود.",
+        // 22023 — a malformed PR line (qty ≤ 0) rejected by fn_post_movement.
+        "22023": "بند في الطلب يحمل كمية غير صالحة",
+      }),
+    };
   }
 
   revalidatePath(`/purchase-requests/${prId}`);

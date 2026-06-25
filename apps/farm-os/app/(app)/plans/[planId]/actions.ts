@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import { toArabicError } from "@/lib/errors";
 import type { Json } from "@/lib/database.types";
 
 interface CoverageResult {
@@ -91,13 +92,13 @@ export async function runPlanChecks(planId: string) {
     .from("plan_checks")
     .delete()
     .eq("plan_id", planId);
-  if (delErr) return { ok: false, error: delErr.message };
+  if (delErr) return { ok: false, error: toArabicError(delErr) };
   // If this insert fails after the delete, plan_checks is left empty — surface the
   // error rather than reporting a successful (but empty) recompute.
   const { error: insErr } = await sb.from("plan_checks").insert(
     checks.map((c) => ({ plan_id: planId, org_id: m.orgId, ...c })),
   );
-  if (insErr) return { ok: false, error: insErr.message };
+  if (insErr) return { ok: false, error: toArabicError(insErr) };
 
   revalidatePath(`/plans/${planId}`);
   return { ok: true, checks };
@@ -143,7 +144,7 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
     .select("scope_type, scope_id")
     .eq("id", planId)
     .single();
-  if (planErr || !plan) return { ok: false, error: planErr?.message ?? "الخطة غير موجودة" };
+  if (planErr || !plan) return { ok: false, error: toArabicError(planErr, {}, "الخطة غير موجودة") };
 
   // CREATE-2: idempotency (same class as CREATE-1 #63). A double-submit / network retry would
   // otherwise create a DUPLICATE planned operation + a second material requirement — over-counting
@@ -185,7 +186,7 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
     })
     .select("id")
     .single();
-  if (opErr || !op) return { ok: false, error: opErr?.message ?? "insert failed" };
+  if (opErr || !op) return { ok: false, error: toArabicError(opErr, {}, "تعذّر إنشاء العملية") };
 
   const { error: matErr } = await sb.from("plan_material_requirements").insert({
     org_id: m.orgId,
@@ -194,7 +195,7 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
     qty: input.material_qty,
     unit: input.material_unit,
   });
-  if (matErr) return { ok: false, error: matErr.message };
+  if (matErr) return { ok: false, error: toArabicError(matErr) };
 
   revalidatePath(`/plans/${planId}`);
   return { ok: true, operationId: op.id };
