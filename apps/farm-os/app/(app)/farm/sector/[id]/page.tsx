@@ -38,11 +38,28 @@ export default async function SectorFilePage({
   await requireMembership();
   const sb = await createClient();
 
-  const { data: sector } = await sb
-    .from("sectors")
-    .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
-    .eq("id", id)
-    .maybeSingle();
+  // sector, the sector's event_locations, and its palm assets are all keyed on
+  // the sector id and independent of each other, so fetch them in parallel. The
+  // farm_event read below is dependent (it filters by the ids from locs), so it
+  // stays sequential.
+  const [{ data: sector }, { data: locs }, { data: assets }] = await Promise.all(
+    [
+      sb
+        .from("sectors")
+        .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
+        .eq("id", id)
+        .maybeSingle(),
+      // timeline from done/planned farm_events located in this sector (FF-1 rollup)
+      sb.from("event_locations").select("event_id").eq("sector_id", id),
+      // palm grid: assets in this sector, grouped by line
+      sb
+        .from("assets")
+        .select("id, id_tag, status, sex, line_id, lines(line_no)")
+        .eq("sector_id", id)
+        .eq("type", "palm")
+        .order("id_tag"),
+    ],
+  );
 
   if (!sector) return <div className="p-6">القطاع غير موجود.</div>;
 
@@ -50,11 +67,6 @@ export default async function SectorFilePage({
   const barhi = hawshat.reduce((s, h) => s + Number(h.palm_count_barhi ?? 0), 0);
   const male = hawshat.reduce((s, h) => s + Number(h.palm_count_male ?? 0), 0);
 
-  // timeline from done/planned farm_events located in this sector (FF-1 rollup)
-  const { data: locs } = await sb
-    .from("event_locations")
-    .select("event_id")
-    .eq("sector_id", id);
   const eventIds = (locs ?? []).map((l) => l.event_id);
   const { data: events } = eventIds.length
     ? await sb
@@ -71,14 +83,6 @@ export default async function SectorFilePage({
     time: e.occurred_at ? new Date(e.occurred_at).toLocaleDateString("ar-EG") : "—",
     description: e.notes ?? (e.status === "done" ? "منفّذة" : e.status),
   }));
-
-  // palm grid: assets in this sector, grouped by line
-  const { data: assets } = await sb
-    .from("assets")
-    .select("id, id_tag, status, sex, line_id, lines(line_no)")
-    .eq("sector_id", id)
-    .eq("type", "palm")
-    .order("id_tag");
 
   const lineMap = new Map<string, PalmLine>();
   for (const a of assets ?? []) {

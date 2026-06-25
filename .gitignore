@@ -4,6 +4,10 @@ node_modules/
 # build output
 dist/
 storybook-static/
+.next/
+
+# vercel (e.g. apps/*/.vercel/output from `vercel build`) — never commit
+.vercel
 
 # design-sync build artifacts
 ds-bundle/

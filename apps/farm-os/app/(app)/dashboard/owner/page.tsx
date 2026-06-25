@@ -17,15 +17,18 @@ export default async function OwnerDashboard() {
   const m = await requireMembership();
   const sb = await createClient();
 
-  const { data: prs } = await sb
-    .from("purchase_requests")
-    .select("id, code, status, reason")
-    .order("code", { ascending: false });
-  // Scope budget_lines to the caller's org so this stays correct once a 2nd org exists.
-  const { data: lines } = await sb
-    .from("budget_lines")
-    .select("category, approved, committed, actual")
-    .eq("org_id", m.orgId);
+  // Independent reads, issued in parallel.
+  const [{ data: prs }, { data: lines }] = await Promise.all([
+    sb
+      .from("purchase_requests")
+      .select("id, code, status, reason")
+      .order("code", { ascending: false }),
+    // Scope budget_lines to the caller's org so this stays correct once a 2nd org exists.
+    sb
+      .from("budget_lines")
+      .select("category, approved, committed, actual")
+      .eq("org_id", m.orgId),
+  ]);
 
   const pending = (prs ?? []).filter((p) => p.status === "submitted");
   const overLines = (lines ?? []).filter(
