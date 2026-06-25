@@ -16,7 +16,7 @@ export { Field } from "./components/Field";
 export type { FieldProps } from "./components/Field";
 export { VerdictBanner } from "./components/VerdictBanner";
 export type { VerdictBannerProps, VerdictTone } from "./components/VerdictBanner";
-export { Tabs } from "./components/Tabs";
+export { Tabs, tabId, tabPanelId } from "./components/Tabs";
 export type { TabsProps, TabItem } from "./components/Tabs";
 export { IconButton } from "./components/IconButton";
 export type { IconButtonProps, IconButtonVariant, IconButtonSize } from "./components/IconButton";

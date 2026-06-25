@@ -58,7 +58,7 @@ export function Drawer({
             <div className="fos-drawer__header">
               {title != null && <h2 id={titleId} className="fos-drawer__title">{title}</h2>}
               {closeLabel != null && (
-                <button type="button" className="fos-drawer__close" aria-label={closeLabel} onClick={onClose}>
+                <button type="button" className="fos-drawer__close" aria-label={closeLabel || "Close"} onClick={onClose}>
                   ✕
                 </button>
               )}

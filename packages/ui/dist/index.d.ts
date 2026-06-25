@@ -120,7 +120,33 @@ interface TabsProps {
     /** Called with the newly selected tab id. */ onChange: (id: string) => void;
     /** Accessible label for the tablist. */ ariaLabel?: string;
 }
-/** Horizontal tab switcher (also used for accounting/inventory sub-views). */
+/** DOM id for a tab button, derived from the tab id. Stable so consumers can reference it. */
+declare function tabId(id: string): string;
+/**
+ * DOM id for the panel a tab controls. Consumers rendering their own panels should set this
+ * `id` plus `role="tabpanel"` and `aria-labelledby={tabId(id)}` on the panel element so the
+ * `aria-controls` wired here resolves. See the component doc-comment for the full pattern.
+ */
+declare function tabPanelId(id: string): string;
+/**
+ * Horizontal tab switcher (also used for accounting/inventory sub-views).
+ *
+ * Renders only the tab buttons; panels are rendered by the consumer. Implements the
+ * WAI-ARIA tabs pattern: roving tabindex (only the active tab is in the tab order) and
+ * ArrowLeft/ArrowRight/Home/End keyboard navigation that activates the focused tab.
+ *
+ * Each tab carries `id={tabId(it.id)}` and `aria-controls={tabPanelId(it.id)}`. For the
+ * `aria-controls` link to resolve, the consumer's panel for an active tab should render:
+ *
+ * ```tsx
+ * <div role="tabpanel" id={tabPanelId(id)} aria-labelledby={tabId(id)} tabIndex={0}>…</div>
+ * ```
+ *
+ * RTL note: keyboard navigation is logical (ArrowRight = next tab in array order). Under a
+ * `dir="rtl"` container the visual order is mirrored, so we detect the tablist's computed
+ * direction and swap Arrow handling so ArrowRight moves to the *previous* tab (toward the
+ * visual right), matching the WAI-ARIA RTL recommendation.
+ */
 declare function Tabs({ items, value, onChange, ariaLabel }: TabsProps): React.JSX.Element;
 
 type IconButtonVariant = "primary" | "ghost" | "danger";
@@ -904,4 +930,4 @@ declare function ThemeProvider({ scheme, density, radius, brand, className, chil
 /** Derive brand role variables from a single hex color. */
 declare function brandVars(hex: string): Record<string, string>;
 
-export { Alert, type AlertProps, type AlertTone, AppShell, type AppShellProps, ApprovalChain, type ApprovalChainProps, type ApprovalState, type ApprovalStep, Avatar, type AvatarProps, type AvatarSize, BarChart, type BarChartProps, Breadcrumbs, type BreadcrumbsProps, Button, type ButtonProps, type ButtonSize, type ButtonVariant, Card, type CardProps, type ChartSeries, type ChartTokens, Checkbox, type CheckboxProps, Combobox, type ComboboxOption, type ComboboxProps, ConfirmDialog, type ConfirmDialogProps, type ConfirmTone, type Crumb, DataTable, type DataTableColumn, type DataTableProps, DateField, type DateFieldProps, type DateFieldSize, type Density, type DescriptionItem, DescriptionList, type DescriptionListProps, Dialog, DoughnutChart, type DoughnutChartProps, type DoughnutDatum, Drawer, type DrawerProps, type DrawerSide, EmptyState, type EmptyStateProps, Field, FieldError, type FieldErrorProps, type FieldProps, FileTimeline, type FileTimelineProps, FormRow, type FormRowProps, Help, type HelpProps, IconButton, type IconButtonProps, type IconButtonSize, type IconButtonVariant, Input, type InputProps, type InputSize, KpiCard, type KpiCardProps, Label, type LabelProps, LineChart, type LineChartProps, type LoopStep, type LoopStepState, LoopStepper, type LoopStepperProps, Modal, type ModalProps, type ModalSize, NavItem, type NavItemData, type NavItemProps, NumberField, type NumberFieldProps, Pagination, type PaginationProps, PalmCell, type PalmCellData, type PalmCellProps, PalmGrid, type PalmGridProps, type PalmLine, type PalmStatus, PhaseCard, type PhaseCardProps, type PhaseMetaRow, type PhaseTone, type PillStatus, Progress, type ProgressProps, type ProgressTone, RadioGroup, type RadioGroupProps, type RadioOption, type Radius, type RoleOption, RoleSwitcher, type RoleSwitcherProps, SearchInput, type SearchInputProps, Select, type SelectOption, type SelectProps, type SelectSize, Sheet, SidebarNav, type SidebarNavProps, Skeleton, type SkeletonProps, type SkeletonShape, type SortDirection, type SortState, Stat, type StatProps, type StatTrend, StatusPill, type StatusPillProps, Switch, type SwitchProps, type TabItem, Tabs, type TabsProps, Tag, type TagProps, type TagTone, Textarea, type TextareaProps, type ThemeContextValue, ThemeProvider, type ThemeProviderProps, type ThemeScheme, Timeline, type TimelineEvent, type TimelineItem, type TimelineKind, type TimelineProps, type TimelineTone, type ToastApi, type ToastOptions, ToastProvider, type ToastProviderProps, type ToastRecord, type ToastTone, Toaster, Tooltip, type TooltipPlacement, type TooltipProps, VerdictBanner, type VerdictBannerProps, type VerdictTone, brandVars, useChartTokens, useTheme, useToast };
+export { Alert, type AlertProps, type AlertTone, AppShell, type AppShellProps, ApprovalChain, type ApprovalChainProps, type ApprovalState, type ApprovalStep, Avatar, type AvatarProps, type AvatarSize, BarChart, type BarChartProps, Breadcrumbs, type BreadcrumbsProps, Button, type ButtonProps, type ButtonSize, type ButtonVariant, Card, type CardProps, type ChartSeries, type ChartTokens, Checkbox, type CheckboxProps, Combobox, type ComboboxOption, type ComboboxProps, ConfirmDialog, type ConfirmDialogProps, type ConfirmTone, type Crumb, DataTable, type DataTableColumn, type DataTableProps, DateField, type DateFieldProps, type DateFieldSize, type Density, type DescriptionItem, DescriptionList, type DescriptionListProps, Dialog, DoughnutChart, type DoughnutChartProps, type DoughnutDatum, Drawer, type DrawerProps, type DrawerSide, EmptyState, type EmptyStateProps, Field, FieldError, type FieldErrorProps, type FieldProps, FileTimeline, type FileTimelineProps, FormRow, type FormRowProps, Help, type HelpProps, IconButton, type IconButtonProps, type IconButtonSize, type IconButtonVariant, Input, type InputProps, type InputSize, KpiCard, type KpiCardProps, Label, type LabelProps, LineChart, type LineChartProps, type LoopStep, type LoopStepState, LoopStepper, type LoopStepperProps, Modal, type ModalProps, type ModalSize, NavItem, type NavItemData, type NavItemProps, NumberField, type NumberFieldProps, Pagination, type PaginationProps, PalmCell, type PalmCellData, type PalmCellProps, PalmGrid, type PalmGridProps, type PalmLine, type PalmStatus, PhaseCard, type PhaseCardProps, type PhaseMetaRow, type PhaseTone, type PillStatus, Progress, type ProgressProps, type ProgressTone, RadioGroup, type RadioGroupProps, type RadioOption, type Radius, type RoleOption, RoleSwitcher, type RoleSwitcherProps, SearchInput, type SearchInputProps, Select, type SelectOption, type SelectProps, type SelectSize, Sheet, SidebarNav, type SidebarNavProps, Skeleton, type SkeletonProps, type SkeletonShape, type SortDirection, type SortState, Stat, type StatProps, type StatTrend, StatusPill, type StatusPillProps, Switch, type SwitchProps, type TabItem, Tabs, type TabsProps, Tag, type TagProps, type TagTone, Textarea, type TextareaProps, type ThemeContextValue, ThemeProvider, type ThemeProviderProps, type ThemeScheme, Timeline, type TimelineEvent, type TimelineItem, type TimelineKind, type TimelineProps, type TimelineTone, type ToastApi, type ToastOptions, ToastProvider, type ToastProviderProps, type ToastRecord, type ToastTone, Toaster, Tooltip, type TooltipPlacement, type TooltipProps, VerdictBanner, type VerdictBannerProps, type VerdictTone, brandVars, tabId, tabPanelId, useChartTokens, useTheme, useToast };

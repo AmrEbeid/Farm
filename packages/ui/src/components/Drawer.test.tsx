@@ -63,4 +63,13 @@ describe("Drawer", () => {
     await user.click(screen.getByText("افتح اللوحة"));
     expect(await axe(document.body)).toHaveNoViolations();
   });
+
+  it("falls back to a 'Close' accessible name when closeLabel is an empty string", () => {
+    render(
+      <ThemeProvider>
+        <Drawer open onClose={() => {}} title="ت" closeLabel="">x</Drawer>
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  });
 });

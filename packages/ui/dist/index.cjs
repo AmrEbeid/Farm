@@ -1,6 +1,6 @@
 'use strict';
 
-var React20 = require('react');
+var React22 = require('react');
 var jsxRuntime = require('react/jsx-runtime');
 var reactDom = require('react-dom');
 var recharts = require('recharts');
@@ -23,10 +23,10 @@ function _interopNamespace(e) {
   return Object.freeze(n);
 }
 
-var React20__namespace = /*#__PURE__*/_interopNamespace(React20);
+var React22__namespace = /*#__PURE__*/_interopNamespace(React22);
 
 // src/components/Button.tsx
-var Button = React20__namespace.forwardRef(function Button2({ variant = "primary", size = "md", loading = false, icon, disabled, children, className = "", ...rest }, ref) {
+var Button = React22__namespace.forwardRef(function Button2({ variant = "primary", size = "md", loading = false, icon, disabled, children, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsxRuntime.jsxs(
     "button",
     {
@@ -110,19 +110,28 @@ function Progress({ value, tone = "default", label, className = "", ...rest }) {
   );
 }
 function Field({ label, id, error, children, placeholder }) {
+  const errorId = `${id}-err`;
+  let control = children;
+  if (children != null && React22__namespace.isValidElement(children) && error) {
+    const childProps = children.props;
+    control = React22__namespace.cloneElement(children, {
+      "aria-invalid": childProps["aria-invalid"] ?? true,
+      "aria-describedby": childProps["aria-describedby"] ? `${childProps["aria-describedby"]} ${errorId}` : errorId
+    });
+  }
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "fos-field", children: [
     /* @__PURE__ */ jsxRuntime.jsx("label", { className: "fos-field__label", htmlFor: id, children: label }),
-    children ?? /* @__PURE__ */ jsxRuntime.jsx(
+    control ?? /* @__PURE__ */ jsxRuntime.jsx(
       "input",
       {
         id,
         className: "fos-field__control",
         placeholder,
         "aria-invalid": error ? true : void 0,
-        "aria-describedby": error ? `${id}-err` : void 0
+        "aria-describedby": error ? errorId : void 0
       }
     ),
-    error && /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-field__error", id: `${id}-err`, children: error })
+    error && /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-field__error", id: errorId, children: error })
   ] });
 }
 var DEFAULT_ICON = { ok: "\u2705", warning: "\u26A0\uFE0F", danger: "\u26D4" };
@@ -132,20 +141,66 @@ function VerdictBanner({ tone = "ok", icon, children, className = "", ...rest })
     /* @__PURE__ */ jsxRuntime.jsx("span", { children })
   ] });
 }
-function Tabs({ items, value, onChange, ariaLabel }) {
-  return /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-tabs", role: "tablist", "aria-label": ariaLabel, children: items.map((it) => /* @__PURE__ */ jsxRuntime.jsx(
-    "button",
-    {
-      role: "tab",
-      "aria-selected": it.id === value,
-      className: `fos-tabs__tab${it.id === value ? " fos-tabs__tab--active" : ""}`,
-      onClick: () => onChange(it.id),
-      children: it.label
-    },
-    it.id
-  )) });
+function tabId(id) {
+  return `fos-tab-${id}`;
 }
-var IconButton = React20__namespace.forwardRef(function IconButton2({ label, variant = "ghost", size = "md", loading = false, disabled, children, className = "", ...rest }, ref) {
+function tabPanelId(id) {
+  return `fos-tabpanel-${id}`;
+}
+function Tabs({ items, value, onChange, ariaLabel }) {
+  const listRef = React22__namespace.useRef(null);
+  const focusTabAt = (index) => {
+    const tabs = listRef.current?.querySelectorAll('[role="tab"]');
+    tabs?.[index]?.focus();
+  };
+  const onKeyDown = (e) => {
+    const count = items.length;
+    if (count === 0) return;
+    const current = items.findIndex((it) => it.id === value);
+    if (current < 0) return;
+    const isRtl = typeof window !== "undefined" && listRef.current ? window.getComputedStyle(listRef.current).direction === "rtl" : false;
+    const forwardKey = isRtl ? "ArrowLeft" : "ArrowRight";
+    const backwardKey = isRtl ? "ArrowRight" : "ArrowLeft";
+    let next = null;
+    if (e.key === forwardKey) next = (current + 1) % count;
+    else if (e.key === backwardKey) next = (current - 1 + count) % count;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = count - 1;
+    if (next === null) return;
+    e.preventDefault();
+    const nextId = items[next].id;
+    if (nextId !== value) onChange(nextId);
+    focusTabAt(next);
+  };
+  return /* @__PURE__ */ jsxRuntime.jsx(
+    "div",
+    {
+      ref: listRef,
+      className: "fos-tabs",
+      role: "tablist",
+      "aria-label": ariaLabel,
+      onKeyDown,
+      children: items.map((it) => {
+        const active = it.id === value;
+        return /* @__PURE__ */ jsxRuntime.jsx(
+          "button",
+          {
+            id: tabId(it.id),
+            role: "tab",
+            "aria-selected": active,
+            "aria-controls": tabPanelId(it.id),
+            tabIndex: active ? 0 : -1,
+            className: `fos-tabs__tab${active ? " fos-tabs__tab--active" : ""}`,
+            onClick: () => onChange(it.id),
+            children: it.label
+          },
+          it.id
+        );
+      })
+    }
+  );
+}
+var IconButton = React22__namespace.forwardRef(function IconButton2({ label, variant = "ghost", size = "md", loading = false, disabled, children, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsxRuntime.jsx(
     "button",
     {
@@ -161,7 +216,7 @@ var IconButton = React20__namespace.forwardRef(function IconButton2({ label, var
     }
   );
 });
-var Input = React20__namespace.forwardRef(function Input2({ inputSize = "md", invalid, className = "", type = "text", ...rest }, ref) {
+var Input = React22__namespace.forwardRef(function Input2({ inputSize = "md", invalid, className = "", type = "text", ...rest }, ref) {
   return /* @__PURE__ */ jsxRuntime.jsx(
     "input",
     {
@@ -173,7 +228,7 @@ var Input = React20__namespace.forwardRef(function Input2({ inputSize = "md", in
     }
   );
 });
-var Textarea = React20__namespace.forwardRef(function Textarea2({ invalid, rows = 3, className = "", ...rest }, ref) {
+var Textarea = React22__namespace.forwardRef(function Textarea2({ invalid, rows = 3, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsxRuntime.jsx(
     "textarea",
     {
@@ -190,7 +245,7 @@ function clamp(n, min, max) {
   if (max != null && n > max) return max;
   return n;
 }
-var NumberField = React20__namespace.forwardRef(function NumberField2({
+var NumberField = React22__namespace.forwardRef(function NumberField2({
   value,
   defaultValue,
   onValueChange,
@@ -205,7 +260,7 @@ var NumberField = React20__namespace.forwardRef(function NumberField2({
   ...rest
 }, ref) {
   const isControlled = value !== void 0;
-  const [inner, setInner] = React20__namespace.useState(defaultValue ?? "");
+  const [inner, setInner] = React22__namespace.useState(defaultValue ?? "");
   const current = isControlled ? value : inner;
   const commit = (next) => {
     if (!isControlled) setInner(next);
@@ -260,7 +315,7 @@ var NumberField = React20__namespace.forwardRef(function NumberField2({
     )
   ] });
 });
-var Select = React20__namespace.forwardRef(function Select2({ options, placeholder, selectSize = "md", invalid, className = "", defaultValue, value, ...rest }, ref) {
+var Select = React22__namespace.forwardRef(function Select2({ options, placeholder, selectSize = "md", invalid, className = "", defaultValue, value, ...rest }, ref) {
   return /* @__PURE__ */ jsxRuntime.jsxs(
     "select",
     {
@@ -278,7 +333,7 @@ var Select = React20__namespace.forwardRef(function Select2({ options, placehold
   );
 });
 var uid = 0;
-var Combobox = React20__namespace.forwardRef(function Combobox2({
+var Combobox = React22__namespace.forwardRef(function Combobox2({
   options,
   value,
   onValueChange,
@@ -290,13 +345,13 @@ var Combobox = React20__namespace.forwardRef(function Combobox2({
   ...aria
 }, ref) {
   const isControlled = value !== void 0;
-  const [inner, setInner] = React20__namespace.useState("");
+  const [inner, setInner] = React22__namespace.useState("");
   const text = isControlled ? value : inner;
-  const [open, setOpen] = React20__namespace.useState(false);
-  const [active, setActive] = React20__namespace.useState(-1);
-  const baseId = React20__namespace.useMemo(() => id ?? `fos-combobox-${++uid}`, [id]);
+  const [open, setOpen] = React22__namespace.useState(false);
+  const [active, setActive] = React22__namespace.useState(-1);
+  const baseId = React22__namespace.useMemo(() => id ?? `fos-combobox-${++uid}`, [id]);
   const listId = `${baseId}-listbox`;
-  const filtered = React20__namespace.useMemo(
+  const filtered = React22__namespace.useMemo(
     () => options.filter((o) => o.label.includes(text.trim()) || text.trim() === ""),
     [options, text]
   );
@@ -381,8 +436,8 @@ var Combobox = React20__namespace.forwardRef(function Combobox2({
   ] });
 });
 var uid2 = 0;
-var Checkbox = React20__namespace.forwardRef(function Checkbox2({ label, invalid, id, disabled, className = "", ...rest }, ref) {
-  const autoId = React20__namespace.useMemo(() => id ?? `fos-checkbox-${++uid2}`, [id]);
+var Checkbox = React22__namespace.forwardRef(function Checkbox2({ label, invalid, id, disabled, className = "", ...rest }, ref) {
+  const autoId = React22__namespace.useMemo(() => id ?? `fos-checkbox-${++uid2}`, [id]);
   return /* @__PURE__ */ jsxRuntime.jsxs("label", { className: `fos-checkbox ${className}`.trim(), "data-disabled": disabled || void 0, children: [
     /* @__PURE__ */ jsxRuntime.jsx(
       "input",
@@ -413,9 +468,9 @@ function RadioGroup({
   className = ""
 }) {
   const isControlled = value !== void 0;
-  const [inner, setInner] = React20__namespace.useState(defaultValue ?? "");
+  const [inner, setInner] = React22__namespace.useState(defaultValue ?? "");
   const current = isControlled ? value : inner;
-  const groupId = React20__namespace.useMemo(() => `fos-radio-${++uid3}`, []);
+  const groupId = React22__namespace.useMemo(() => `fos-radio-${++uid3}`, []);
   const onChange = (next) => {
     if (!isControlled) setInner(next);
     onValueChange?.(next);
@@ -452,9 +507,9 @@ function RadioGroup({
     }
   );
 }
-var Switch = React20__namespace.forwardRef(function Switch2({ label, checked, defaultChecked, onCheckedChange, disabled, className = "", ...rest }, ref) {
+var Switch = React22__namespace.forwardRef(function Switch2({ label, checked, defaultChecked, onCheckedChange, disabled, className = "", ...rest }, ref) {
   const isControlled = checked !== void 0;
-  const [inner, setInner] = React20__namespace.useState(defaultChecked ?? false);
+  const [inner, setInner] = React22__namespace.useState(defaultChecked ?? false);
   const on = isControlled ? checked : inner;
   const toggle = () => {
     const next = !on;
@@ -478,7 +533,7 @@ var Switch = React20__namespace.forwardRef(function Switch2({ label, checked, de
     }
   );
 });
-var DateField = React20__namespace.forwardRef(function DateField2({ fieldSize = "md", invalid, className = "", ...rest }, ref) {
+var DateField = React22__namespace.forwardRef(function DateField2({ fieldSize = "md", invalid, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsxRuntime.jsx(
     "input",
     {
@@ -506,7 +561,7 @@ function FormRow({ id, label, help, error, required, children }) {
   const helpId = help != null ? `${id}-help` : void 0;
   const errorId = error != null ? `${id}-error` : void 0;
   const describedBy = [helpId, errorId].filter(Boolean).join(" ") || void 0;
-  const control = React20__namespace.cloneElement(children, {
+  const control = React22__namespace.cloneElement(children, {
     id,
     required: required || children.props.required,
     "aria-invalid": error != null ? true : children.props["aria-invalid"],
@@ -645,10 +700,10 @@ function initialsOf(name) {
   if (parts.length === 1) return parts[0].slice(0, 2);
   return (parts[0][0] ?? "") + (parts[parts.length - 1][0] ?? "");
 }
-var Avatar = React20__namespace.forwardRef(function Avatar2({ name, src, size = "md", className = "", ...rest }, ref) {
+var Avatar = React22__namespace.forwardRef(function Avatar2({ name, src, size = "md", className = "", ...rest }, ref) {
   const safeSrc = safeImgSrc(src);
-  const [failed, setFailed] = React20__namespace.useState(false);
-  React20__namespace.useEffect(() => setFailed(false), [safeSrc]);
+  const [failed, setFailed] = React22__namespace.useState(false);
+  React22__namespace.useEffect(() => setFailed(false), [safeSrc]);
   const showImg = safeSrc != null && !failed;
   return /* @__PURE__ */ jsxRuntime.jsx(
     "span",
@@ -664,12 +719,12 @@ var Avatar = React20__namespace.forwardRef(function Avatar2({ name, src, size = 
 });
 var tooltipSeq = 0;
 function Tooltip({ label, placement = "top", children }) {
-  const [open, setOpen] = React20__namespace.useState(false);
-  const id = React20__namespace.useMemo(() => `fos-tip-${++tooltipSeq}`, []);
+  const [open, setOpen] = React22__namespace.useState(false);
+  const id = React22__namespace.useMemo(() => `fos-tip-${++tooltipSeq}`, []);
   const show = () => setOpen(true);
   const hide = () => setOpen(false);
-  const child = React20__namespace.Children.only(children);
-  const trigger = React20__namespace.cloneElement(child, {
+  const child = React22__namespace.Children.only(children);
+  const trigger = React22__namespace.cloneElement(child, {
     "aria-describedby": open ? id : child.props["aria-describedby"],
     onMouseEnter: (e) => {
       show();
@@ -708,7 +763,7 @@ function Pagination({
   ...rest
 }) {
   const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
-  const pages = React20__namespace.useMemo(
+  const pages = React22__namespace.useMemo(
     () => Array.from({ length: count }, (_, i) => i + 1),
     [count]
   );
@@ -723,6 +778,7 @@ function Pagination({
         className: "fos-pagination__nav",
         onClick: () => go(page - 1),
         disabled: page <= 1,
+        "aria-label": prevLabel == null ? "Previous" : void 0,
         children: prevLabel
       }
     ),
@@ -743,6 +799,7 @@ function Pagination({
         className: "fos-pagination__nav",
         onClick: () => go(page + 1),
         disabled: page >= count,
+        "aria-label": nextLabel == null ? "Next" : void 0,
         children: nextLabel
       }
     )
@@ -800,8 +857,8 @@ function brandVars(hex) {
   const contrast = lum > 0.6 ? "#0c1f12" : "#ffffff";
   return { "--brand": hex.toLowerCase(), "--brand-hover": hover, "--brand-contrast": contrast };
 }
-var ThemeContext = React20__namespace.createContext({ scheme: "light", density: "comfortable", radius: "default", brandStyle: {} });
-var useTheme = () => React20__namespace.useContext(ThemeContext);
+var ThemeContext = React22__namespace.createContext({ scheme: "light", density: "comfortable", radius: "default", brandStyle: {} });
+var useTheme = () => React22__namespace.useContext(ThemeContext);
 function ThemeProvider({
   scheme = "light",
   density = "comfortable",
@@ -810,7 +867,7 @@ function ThemeProvider({
   className = "",
   children
 }) {
-  const style = React20__namespace.useMemo(() => {
+  const style = React22__namespace.useMemo(() => {
     if (!brand) return {};
     try {
       return brandVars(brand);
@@ -818,7 +875,7 @@ function ThemeProvider({
       return {};
     }
   }, [brand]);
-  const value = React20__namespace.useMemo(
+  const value = React22__namespace.useMemo(
     () => ({ scheme, density, radius, brand, brandStyle: style }),
     [scheme, density, radius, brand, style]
   );
@@ -836,11 +893,11 @@ function focusable(root) {
   return Array.from(root.querySelectorAll(FOCUSABLE)).filter(isVisible);
 }
 function useOverlay({ open, onClose, closeOnEsc = true }) {
-  const ref = React20__namespace.useRef(null);
-  const restoreRef = React20__namespace.useRef(null);
-  const onCloseRef = React20__namespace.useRef(onClose);
+  const ref = React22__namespace.useRef(null);
+  const restoreRef = React22__namespace.useRef(null);
+  const onCloseRef = React22__namespace.useRef(onClose);
   onCloseRef.current = onClose;
-  React20__namespace.useEffect(() => {
+  React22__namespace.useEffect(() => {
     if (!open) return;
     restoreRef.current = document.activeElement;
     const panel = ref.current;
@@ -896,7 +953,7 @@ function Modal({
 }) {
   const theme = useTheme();
   const { ref } = useOverlay({ open, onClose, closeOnEsc });
-  const titleId = React20__namespace.useId();
+  const titleId = React22__namespace.useId();
   if (!open) return null;
   return reactDom.createPortal(
     /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos", "data-theme": theme.scheme, "data-density": theme.density, "data-radius": theme.radius, style: theme.brandStyle, children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -919,7 +976,7 @@ function Modal({
             children: [
               (title != null || closeLabel != null) && /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "fos-modal__header", children: [
                 title != null && /* @__PURE__ */ jsxRuntime.jsx("h2", { id: titleId, className: "fos-modal__title", children: title }),
-                closeLabel != null && /* @__PURE__ */ jsxRuntime.jsx("button", { type: "button", className: "fos-modal__close", "aria-label": closeLabel, onClick: onClose, children: "\u2715" })
+                closeLabel != null && /* @__PURE__ */ jsxRuntime.jsx("button", { type: "button", className: "fos-modal__close", "aria-label": closeLabel || "Close", onClick: onClose, children: "\u2715" })
               ] }),
               /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-modal__body", children }),
               footer != null && /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-modal__footer", children: footer })
@@ -947,7 +1004,7 @@ function Drawer({
 }) {
   const theme = useTheme();
   const { ref } = useOverlay({ open, onClose, closeOnEsc });
-  const titleId = React20__namespace.useId();
+  const titleId = React22__namespace.useId();
   if (!open) return null;
   return reactDom.createPortal(
     /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos", "data-theme": theme.scheme, "data-density": theme.density, "data-radius": theme.radius, style: theme.brandStyle, children: /* @__PURE__ */ jsxRuntime.jsx(
@@ -970,7 +1027,7 @@ function Drawer({
             children: [
               (title != null || closeLabel != null) && /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "fos-drawer__header", children: [
                 title != null && /* @__PURE__ */ jsxRuntime.jsx("h2", { id: titleId, className: "fos-drawer__title", children: title }),
-                closeLabel != null && /* @__PURE__ */ jsxRuntime.jsx("button", { type: "button", className: "fos-drawer__close", "aria-label": closeLabel, onClick: onClose, children: "\u2715" })
+                closeLabel != null && /* @__PURE__ */ jsxRuntime.jsx("button", { type: "button", className: "fos-drawer__close", "aria-label": closeLabel || "Close", onClick: onClose, children: "\u2715" })
               ] }),
               /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-drawer__body", children }),
               footer != null && /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-drawer__footer", children: footer })
@@ -1028,11 +1085,11 @@ function reducer(state, action) {
       return [];
   }
 }
-var ToastContext = React20__namespace.createContext(null);
+var ToastContext = React22__namespace.createContext(null);
 var seq = 0;
 function ToastProvider({ children, max = 4 }) {
-  const [toasts, dispatch] = React20__namespace.useReducer(reducer, []);
-  const api = React20__namespace.useMemo(() => {
+  const [toasts, dispatch] = React22__namespace.useReducer(reducer, []);
+  const api = React22__namespace.useMemo(() => {
     const push = (opts) => {
       const id = `fos-toast-${++seq}`;
       dispatch({ type: "add", toast: { duration: 4500, tone: "info", ...opts, id }, max });
@@ -1049,19 +1106,19 @@ function ToastProvider({ children, max = 4 }) {
       danger: shorthand("danger")
     };
   }, [max]);
-  const value = React20__namespace.useMemo(() => ({ toasts, api }), [toasts, api]);
+  const value = React22__namespace.useMemo(() => ({ toasts, api }), [toasts, api]);
   return /* @__PURE__ */ jsxRuntime.jsxs(ToastContext.Provider, { value, children: [
     children,
     /* @__PURE__ */ jsxRuntime.jsx(Toaster, {})
   ] });
 }
 function useToast() {
-  const ctx = React20__namespace.useContext(ToastContext);
+  const ctx = React22__namespace.useContext(ToastContext);
   if (!ctx) throw new Error("useToast must be used within a <ToastProvider>");
   return ctx.api;
 }
 function Toaster() {
-  const ctx = React20__namespace.useContext(ToastContext);
+  const ctx = React22__namespace.useContext(ToastContext);
   const theme = useTheme();
   if (!ctx || typeof document === "undefined") return null;
   const { toasts, api } = ctx;
@@ -1082,11 +1139,11 @@ function Toaster() {
 }
 function ToastItem({ toast, onDismiss }) {
   const { tone = "info", duration = 4500 } = toast;
-  const paused = React20__namespace.useRef(false);
-  const elRef = React20__namespace.useRef(null);
-  const dismissRef = React20__namespace.useRef(onDismiss);
+  const paused = React22__namespace.useRef(false);
+  const elRef = React22__namespace.useRef(null);
+  const dismissRef = React22__namespace.useRef(onDismiss);
   dismissRef.current = onDismiss;
-  React20__namespace.useEffect(() => {
+  React22__namespace.useEffect(() => {
     if (duration <= 0) return;
     let remaining = duration;
     let start = Date.now();
@@ -1128,7 +1185,7 @@ function ToastItem({ toast, onDismiss }) {
     /* @__PURE__ */ jsxRuntime.jsx("button", { type: "button", className: "fos-toast__close", "aria-label": "\u2715", onClick: onDismiss, children: "\u2715" })
   ] });
 }
-var NavItem = React20__namespace.forwardRef(function NavItem2({ item, active = false, onSelect, className = "", onClick, ...rest }, ref) {
+var NavItem = React22__namespace.forwardRef(function NavItem2({ item, active = false, onSelect, className = "", onClick, ...rest }, ref) {
   return /* @__PURE__ */ jsxRuntime.jsxs(
     "a",
     {
@@ -1187,8 +1244,8 @@ function Breadcrumbs({
   }) }) });
 }
 var uid4 = 0;
-var SearchInput = React20__namespace.forwardRef(function SearchInput2({ label, value, onValueChange, icon, onSubmitSearch, className = "", id, onKeyDown, ...rest }, ref) {
-  const reactId = React20__namespace.useId?.() ?? `fos-search-${++uid4}`;
+var SearchInput = React22__namespace.forwardRef(function SearchInput2({ label, value, onValueChange, icon, onSubmitSearch, className = "", id, onKeyDown, ...rest }, ref) {
+  const reactId = React22__namespace.useId?.() ?? `fos-search-${++uid4}`;
   const inputId = id ?? reactId;
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: `fos-search ${className}`.trim(), role: "search", children: [
     /* @__PURE__ */ jsxRuntime.jsx("label", { className: "fos-search__label", htmlFor: inputId, children: label }),
@@ -1212,8 +1269,8 @@ var SearchInput = React20__namespace.forwardRef(function SearchInput2({ label, v
   ] });
 });
 var uid5 = 0;
-var RoleSwitcher = React20__namespace.forwardRef(function RoleSwitcher2({ options, value, onRoleChange, label, className = "", id, ...rest }, ref) {
-  const reactId = React20__namespace.useId?.() ?? `fos-role-${++uid5}`;
+var RoleSwitcher = React22__namespace.forwardRef(function RoleSwitcher2({ options, value, onRoleChange, label, className = "", id, ...rest }, ref) {
+  const reactId = React22__namespace.useId?.() ?? `fos-role-${++uid5}`;
   const selectId = id ?? reactId;
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: `fos-roleswitcher ${className}`.trim(), children: [
     /* @__PURE__ */ jsxRuntime.jsx("label", { className: "fos-roleswitcher__label", htmlFor: selectId, children: label }),
@@ -1247,16 +1304,16 @@ function AppShell({
   ...rest
 }) {
   const isControlled = sidebarOpen !== void 0;
-  const [internalOpen, setInternalOpen] = React20__namespace.useState(false);
+  const [internalOpen, setInternalOpen] = React22__namespace.useState(false);
   const open = isControlled ? sidebarOpen : internalOpen;
-  const setOpen = React20__namespace.useCallback(
+  const setOpen = React22__namespace.useCallback(
     (next) => {
       if (!isControlled) setInternalOpen(next);
       onSidebarOpenChange?.(next);
     },
     [isControlled, onSidebarOpenChange]
   );
-  React20__namespace.useEffect(() => {
+  React22__namespace.useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
       if (e.key === "Escape") setOpen(false);
@@ -1349,8 +1406,8 @@ function resolve(el) {
   };
 }
 function useChartTokens(ref) {
-  const [tokens, setTokens] = React20__namespace.useState(EMPTY);
-  React20__namespace.useEffect(() => {
+  const [tokens, setTokens] = React22__namespace.useState(EMPTY);
+  React22__namespace.useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const update = () => setTokens(resolve(el));
@@ -1395,7 +1452,7 @@ function BarChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React20__namespace.useRef(null);
+  const ref = React22__namespace.useRef(null);
   const t = useChartTokens(ref);
   const stackId = stacked ? "stack" : void 0;
   return /* @__PURE__ */ jsxRuntime.jsxs(
@@ -1490,7 +1547,7 @@ function LineChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React20__namespace.useRef(null);
+  const ref = React22__namespace.useRef(null);
   const t = useChartTokens(ref);
   return /* @__PURE__ */ jsxRuntime.jsxs(
     "div",
@@ -1567,7 +1624,7 @@ function DoughnutChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React20__namespace.useRef(null);
+  const ref = React22__namespace.useRef(null);
   const t = useChartTokens(ref);
   const outer = Math.round(height / 2 * 0.8);
   const inner = Math.round(outer * innerRatio);
@@ -1844,6 +1901,8 @@ exports.Toaster = Toaster;
 exports.Tooltip = Tooltip;
 exports.VerdictBanner = VerdictBanner;
 exports.brandVars = brandVars;
+exports.tabId = tabId;
+exports.tabPanelId = tabPanelId;
 exports.useChartTokens = useChartTokens;
 exports.useTheme = useTheme;
 exports.useToast = useToast;
