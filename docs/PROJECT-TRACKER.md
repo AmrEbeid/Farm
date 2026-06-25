@@ -1,5 +1,21 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-25 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-25 — Storybook 10 toolchain upgrade + `@amrebeid/ui` 1.2.0 published (merged):** the deferred
+> Storybook major (Dependabot #131, ERESOLVE) landed properly via **PR #154** (`chore/storybook-10`).
+> Whole Storybook stack `8.6.14`→`10.4.6` (`@storybook/react-vite` + core `storybook`), `@storybook/addon-essentials`
+> **removed** (Storybook 9+ folded essentials into core — no v9/v10 release exists, by design; **not** an
+> upstream block). `.storybook/main.ts`+`preview.ts` migrated (renderer→framework import; `backgrounds`
+> `values`→`options`+`initialGlobals`); all **49** `*.stories.tsx` imports moved to `@storybook/react-vite`.
+> Lockfile updated **surgically** to preserve `@types/react` hoisting (kept the `apps/farm-os` typecheck
+> green); **no `--force`/`--legacy-peer-deps`**. All CI green (build job incl. **build-storybook**; app job;
+> pgTAP) locally + on GitHub. Owner merged #154 (#131 auto-closed). The changesets flow then published
+> **`@amrebeid/ui@1.2.0`** to npm + tag `@amrebeid/ui@1.2.0` (release PR #162), carrying this upgrade + the
+> 4 queued UI changesets (a11y, datatable-mobile, recharts code-split, reduced-motion); `packages/ui` now `1.2.0`.
+> Also merged by Owner this session (not authored here): **#163** (`#158`, lock `inventory_movements` INSERT
+> to the RPC path — forgeable ENGINE-DC bypass) and **#164** (`#159`, floor `on_hand` at 0 in
+> `fn_post_movement`) — both stock-engine/security fixes on `main` (HEAD `52fa7b0`); **confirm prod migration
+> state separately before relying on them in prod.**
+>
 > **2026-06-25 — DB hardening session (merged + APPLIED to prod):** the queued security caveats
 > from the prod-push assurance are now **closed in code and live on prod**. Prod Supabase
 > (`veezkmytervjnpxcrbkw`) advanced **`0024`→`0028`**, fully in sync with `main` — all migrations
@@ -88,7 +104,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 |---|---|---|---|---|---|
 | R | Research & strategy | Research | Low | **Done** | 4 cited streams; white-space confirmed (docs 01) |
 | D | Designs / prototypes | Documentation | Low | **Done** | `ebeid-farm-os-demo.html`, `farm-os-prototype.html`, `farm-os-full-demo.html` (mocks) |
-| DS | Design system + component library | Execution | Low/Med | **Done (v1.0)** | `@amrebeid/ui` ~40 components, white-label theming, token-purity gate, Changesets, **green CI**. (Catalog expanded beyond the 9 synced to Claude Design — re-sync pending.) |
+| DS | Design system + component library | Execution | Low/Med | **Done (v1.2.0 published)** | `@amrebeid/ui` ~40 components, white-label theming, token-purity gate, Changesets, **green CI**. **`1.2.0` published to npm + tagged (2026-06-25)** — a11y, datatable-mobile, recharts code-split, reduced-motion + **Storybook 10 toolchain upgrade** (PR #154). (Catalog expanded beyond the 9 synced to Claude Design — re-sync pending.) |
 | 0 | Security remediation & data cleanup | Execution+Apply | **Critical/High** | **OPEN — still required** | Legacy system: rotate exposed key, purge old-repo history, scrub Gmail/password, reconcile counts. Untouched by the new build. |
 | **MVP-0** | **Proof-of-value pilot (1 reference tenant)** | Execution | **Low/Med** | **BUILT (local) — pending review+validation** | `apps/farm-os`: all 14 screens, wedge loop e2e passing, 36 pgTAP + 11 Vitest. Plan: `docs/superpowers/plans/2026-06-21-farm-os-mvp0.md`. Local DB only; needs security review + pilot validation + deploy. |
 | 1 | SaaS foundation (orgs/RLS/roles/audit) | Execution | **High** | Todo | RLS is the tenant isolation gate |

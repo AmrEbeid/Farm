@@ -1,7 +1,47 @@
 # Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-25 (latest) — phone-OTP removed (email/password only)
+## 2026-06-25 (latest) — Storybook 8.6→10.4 toolchain upgrade + @amrebeid/ui 1.2.0 published
+Coordinated **MAJOR** Storybook upgrade for `packages/ui` (the `@amrebeid/ui` design system),
+landing the deferred Dependabot bump #131 properly (it had failed install with ERESOLVE because
+only `@storybook/react-vite` was bumped while the rest of the 8.6.x stack stayed put).
+- **Full footprint inventoried** — only **3** Storybook packages, not a 14-addon stack:
+  `@storybook/react-vite`, `storybook` (core), `@storybook/addon-essentials`, declared in the repo
+  root + `packages/ui`; one config dir `packages/ui/.storybook/`; 49 `*.stories.tsx`. `apps/farm-os`
+  and `docs/export` have **zero** Storybook deps.
+- **Upstream availability checked** per package: `@storybook/react-vite` + `storybook` exist at `10.4.6`
+  (latest). `@storybook/addon-essentials` has **no v9 stable / no v10** — by design: Storybook 9+ folded
+  the essentials addons (controls, actions, backgrounds, viewport, docs, measure, outline) into core
+  `storybook` and stopped publishing the standalone addon. **Not a block** (unlike the ESLint-10 /
+  `eslint-plugin-react` case) — the correct action is to remove it.
+- **Changes:** bumped `@storybook/react-vite` + `storybook` `8.6.14`→`^10.4.6` (root + `packages/ui`);
+  **removed** `@storybook/addon-essentials` (deps + the `addons` array in `.storybook/main.ts`);
+  migrated `.storybook/preview.ts` (Preview type import `@storybook/react`→`@storybook/react-vite`;
+  `backgrounds` `values[]`+`default` → `options` map + `initialGlobals`; defaults off the deprecated
+  `globalTypes.defaultValue` → `initialGlobals`); migrated all **49** story imports
+  `@storybook/react`→`@storybook/react-vite`. Kept TypeScript at the repo's `^6.0.3` (did NOT take
+  Dependabot's incidental TS 6→5.6.3 downgrade).
+- **Lockfile:** updated **surgically** (pruned only the `@storybook/*`+`storybook` entries and
+  re-resolved) to preserve the existing `@types/react` hoisting (`19.2.17` root / `18.3.31` nested under
+  `packages/ui`) — a full from-scratch regen flipped it and broke the `apps/farm-os` typecheck; the
+  surgical approach keeps both CI jobs green. **No `--force` / `--legacy-peer-deps` / overrides hacks.**
+- **All CI gates verified green** locally AND on GitHub runners (build job: typecheck, tokens:present,
+  tokens:purity, 270 unit+a11y tests, tsup build, **build-storybook**; app job: typecheck, eslint,
+  75 tests, `next build`; pgTAP).
+- **PR #154** (`chore/storybook-10`) merged to `main` by the Owner; superseded Dependabot **#131**
+  (auto-closed). The changesets release flow then published **`@amrebeid/ui@1.2.0`** to npm + pushed tag
+  `@amrebeid/ui@1.2.0` (PR #162 release-PR merge) — carrying this upgrade plus the 4 queued UI changesets
+  (a11y, datatable-mobile, recharts code-split, reduced-motion). `packages/ui/package.json` now `1.2.0`.
+- **Also landed by Owner this session (not authored here):** PR **#163** (`#158`, lock
+  `inventory_movements` INSERT to the RPC path — closes a forgeable ENGINE-DC bypass) and PR **#164**
+  (`#159`, floor `on_hand` at 0 in `fn_post_movement` — no negative stock). Both stock-engine/security
+  fixes are merged on `main` (HEAD `52fa7b0`); confirm prod DB migration state separately.
+- **Safe stop:** the upgrade + release are complete. **No agent-doable, non-gated task remains on the
+  critical path** — everything left is Owner-gated (🔴 key rotation; Leaked Password Protection toggle;
+  pricing #89; Stage-0 ratification; Stage M) or "do not start the next stage automatically" per
+  `docs/CLAUDE.md`. Stopping per project rules.
+
+## 2026-06-25 — phone-OTP removed (email/password only)
 Auth is now **email + password only**. The phone-OTP UI skeleton (the login footnote) was removed and
 a brief comment was added above `[auth.sms]` in `supabase/config.toml` (SMS already disabled). **Twilio /
 any SMS provider is dropped from MVP-0 scope** — OWNER-DECISIONS §2 marked RESOLVED, and the active docs
