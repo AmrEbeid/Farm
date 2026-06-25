@@ -35,7 +35,16 @@ export function AppChrome({
   }
 
   return (
-    <AppShell
+    <>
+      {/*
+       * Skip-to-content: first focusable element on the page (visually hidden
+       * until focused, see .skip-to-content in globals.css). Targets the #main
+       * focus wrapper inside AppShell's <main> landmark.
+       */}
+      <a href="#main" className="skip-to-content">
+        تخطّي إلى المحتوى
+      </a>
+      <AppShell
       navItems={navItems}
       activeNavId={activeNavId}
       navAriaLabel="التنقل الرئيسي"
@@ -60,7 +69,15 @@ export function AppChrome({
         </div>
       }
     >
-      {children}
+      {/*
+       * Focus target for the skip link. AppShell already renders the <main
+       * role="main"> landmark; this is a non-landmark wrapper (no role) that
+       * carries the id + tabIndex={-1} so keyboard focus lands on the content.
+       */}
+      <div id="main" tabIndex={-1}>
+        {children}
+      </div>
     </AppShell>
+    </>
   );
 }
