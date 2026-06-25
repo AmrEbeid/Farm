@@ -1,0 +1,45 @@
+# CODEOWNERS
+#
+# This file tells GitHub who must review changes to which paths. When a pull
+# request touches a path listed below, GitHub AUTOMATICALLY requests a review
+# from the matching owner. This aligns with the project rule: "Owner gates
+# every change."
+#
+# IMPORTANT: CODEOWNERS only auto-REQUESTS review by itself. To make owner
+# review MANDATORY (i.e. block merge until the owner approves), the repo Owner
+# must enable branch protection on `main` with "Require review from Code
+# Owners" turned on. That is a GitHub repository-settings step and cannot be
+# configured from this file alone.
+#
+# Matching rules: the LAST matching pattern wins. More specific (high-risk)
+# entries are placed below the default so they override it for those paths.
+# Patterns follow the same syntax as .gitignore.
+
+# ----------------------------------------------------------------------------
+# Default owner for everything in the repo.
+# ----------------------------------------------------------------------------
+* @AmrEbeid
+
+# ----------------------------------------------------------------------------
+# High-risk areas — these always require Owner review.
+# (Each entry resolves to @AmrEbeid, but is called out explicitly so the
+#  intent is clear and so future team additions never weaken these paths.)
+# ----------------------------------------------------------------------------
+
+# Database migrations — schema and RLS changes are security-critical.
+/apps/farm-os/supabase/migrations/ @AmrEbeid
+
+# Database tests (pgTAP) — guard the security/invariant oracles.
+/apps/farm-os/supabase/tests/ @AmrEbeid
+
+# Server actions — privileged server-side mutations / authz boundaries.
+/apps/farm-os/app/**/actions.ts @AmrEbeid
+
+# Supabase client wiring — service-role / auth-sensitive client setup.
+/apps/farm-os/lib/supabase/ @AmrEbeid
+
+# Auth helpers — authentication and access-control logic.
+/apps/farm-os/lib/auth.ts @AmrEbeid
+
+# Published UI library — changes here ship to all consumers.
+/packages/ui/ @AmrEbeid
