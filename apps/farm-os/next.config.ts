@@ -27,6 +27,33 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Baseline HTTP security response headers applied to every route. These are
+  // low-risk hardening headers only. A Content-Security-Policy is deliberately
+  // omitted here — it has a high risk of breaking the app, Supabase, and Vercel
+  // and needs dedicated tuning before it can be enabled safely.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
