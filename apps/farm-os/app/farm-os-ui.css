@@ -520,8 +520,11 @@
   .fos-appshell__sidebar { position:fixed; inset-block:0; inset-inline-start:0; inline-size:min(80vw,300px);
     z-index:var(--z-drawer); transform:translateX(-100%); transition:transform var(--dur) var(--ease); }
   .fos-appshell__sidebar[data-open] { transform:translateX(0); }
-  /* RTL: the drawer slides in from the inline-start (right) edge. */
-  [dir="rtl"] .fos-appshell__sidebar { inset-inline-start:auto; inset-inline-end:0; transform:translateX(100%); }
+  /* RTL: the drawer is already anchored to the inline-start (right) edge by the rule above
+     (inset-inline-start is logical). Only flip the off-canvas translate sign — translateX is
+     PHYSICAL, so closed must push RIGHT (+100%) in RTL. (Re-anchoring with inset-inline-end here
+     double-flipped the logical edge and left the closed drawer ~90px on-screen.) */
+  [dir="rtl"] .fos-appshell__sidebar { transform:translateX(100%); }
   [dir="rtl"] .fos-appshell__sidebar[data-open] { transform:translateX(0); }
 }
 @media (min-width:48.01rem) {
