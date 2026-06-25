@@ -1,7 +1,44 @@
 # Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-25 (latest) — Arabic error-mapping thread closed (#178–#180 merged)
+## 2026-06-25 (latest) — adopted amr-operating-method + independent review (5 findings) + repo relocation
+**Working method:** adopted **`amr-operating-method`** (the gated protocol — propose → validate →
+report → **STOP**, owner gates merges/migrations; no self-merge). Going forward, findings are filed
+as issues + un-merged PRs for the Owner to gate.
+
+**Repo relocated (Owner request):** the working copy is now **`~/projects/farm`** (old `~/farm-os-ui`
+deleted; local `.env.local` + `.vercel/` migrated; verified functional — tsc + pgTAP 287/287). A
+personal skills inventory was generated at `~/skills.md` (+ regen script `~/.claude/gen-skills.mjs`).
+
+**Independent read-only security + core-engine review — 5 findings (1 fixed, 4 filed; all fixes
+Owner-gated):**
+- **CONC-1** ✅ fixed + merged (#168, migration `0033`): the #159 stock floor was a TOCTOU under
+  concurrency; added `SELECT … FOR UPDATE` to serialize movements per bin.
+- **AUTHZ-2** (#181, HIGH·latent): `authorize(perm)` is **not org-scoped** → a multi-org member can
+  exercise a privileged role in an org where they hold only a low role. Violates Stage-1 acceptance.
+- **AUTHZ-3** (#182, MED): `fn_post_movement` is `authenticated`-callable with **no `inventory.write`
+  check** (definer bypasses table RLS; `0030` removed the only gated path) → B2's control isn't
+  enforced on the real write path. Fix = revoke from `authenticated` + a gated reserve wrapper.
+- **ENGINE-REC1** (#184, MED–HIGH): the purchase recommendation **double-subtracts period-1
+  scheduled receipts** (shortfall is already net of them) → emits `shortage=true` **and**
+  `recommend_qty=0` + "stock sufficient" — a contradictory, shortage-masking output (SPEC-0001 #1 risk).
+- **PII-1** (#173, MED): `people.rate`/phone/email org-readable by any member (no role gate); fix
+  designed in SPEC-0006.
+- **SPEC-0002 updated** to consolidate AUTHZ-1/2/3 + PII-1 and correct a now-false claim
+  (`fn_post_movement` is *not* gated) → **PR #183 (OPEN, awaiting your gate — not merged).**
+
+**Confirmed sound:** auth/route boundary (middleware + `requireMembership` redirect + per-action
+self-protect + only one guarded `api` route), `op.execute` enforcement (`0020`/`0025`), SoD (AP-5),
+`fn_post_receipt` atomicity + concurrency-safe claim, delete-posture (`0027`), `audit_log`
+immutability (AP-4), `authorize` injection-safety, PvA variance math.
+
+**Theme across the authz findings:** *role/permission gates must be enforced at the definer-RPC/data
+layer and **org-scoped** — not on table RLS that definers bypass, nor globally across a user's
+memberships.* Natural next step: ratify the expanded SPEC-0002 (#183) → build the enforcement
+migration in gated slices. **Open queue for the Owner:** issues #173/#181/#182/#184, PR #183; plus the
+still-pending prod push of `0030`–`0033` (now incl. CONC-1 `0033`).
+
+## 2026-06-25 — Arabic error-mapping thread closed (#178–#180 merged)
 Finished mapping every RPC-calling field action's Postgres SQLSTATEs to Arabic, so a DB-raised error
 never leaks raw English to field users (non-negotiable #2). All three **merged to `main`**, all CI
 green (app typecheck/lint/test/build, pgTAP, Storybook, CodeRabbit, Vercel):
