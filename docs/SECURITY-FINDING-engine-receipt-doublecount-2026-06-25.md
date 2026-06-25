@@ -1,5 +1,11 @@
 # Engine Finding — scheduled receipts are double-counted (PAB masks real shortages)   (2026-06-25)
 
+> **✅ FIXED on `main`** (migration `0018`, PR #61) via **direction #2** — scheduled receipts are now
+> sourced from approved purchase_requests (open POs), disjoint from `on_hand` by construction.
+> Independently reviewed (diff + pgTAP `97/97`, incl. the un-TODO'd regression test `14`, + the
+> Playwright wedge-loop). **Core-engine change → the Owner should ratify it before the prod DB push**
+> (which remains the gated step, with `0015`–`0018`).
+
 Reviewer: independent adversarial pass over the **stock-coverage engine** (`fn_stock_coverage`, the
 SPEC-0001 wedge — the product's differentiator). Owner: Amr Ebeid. Verified on the live local stack.
 Severity: **MEDIUM–HIGH (correctness)** — it makes the projection *optimistic*, which can **hide a

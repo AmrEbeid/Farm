@@ -18,17 +18,20 @@ three more issues, all **merged to `main`** after independent diff review:
 - **RCP-1** (#57) — EXE-1's twin: `recordReceipt` re-posted every `receipt` on a double-submit →
   **phantom stock IN**. Fixed **claim-first** (flip `approved→received` guarded by `status='approved'`,
   abort if no row, before any movement; adds the missing precondition); pgTAP `15` + wedge-loop.
-- Also merged: **#43** (eslint clean), **#45**/**#49**/**#54**/**#55** (findings + follow-up docs),
-  **#56** (ENGINE-DC TODO regression test `14` + shim harness honors TAP TODO).
-- **Verified:** **pgTAP 97/97** on a clean reset (test `14` ENGINE-DC as expected TODO) + Playwright
+- **ENGINE-DC** (#61, migration `0018`) — `fn_stock_coverage` double-counted received receipts (in
+  `on_hand` **and** re-projected forward) → could **mask a real shortage** (the wedge's whole point).
+  Fixed **direction #2**: scheduled receipts now come from approved purchase_requests (open POs),
+  disjoint from `on_hand` by construction; test `06` re-modeled onto POs, regression test `14`
+  un-TODO'd. Independently reviewed + locally verified before merge. **Core-engine change — Owner
+  should ratify before the prod push.**
+- Also merged: **#43** (eslint clean), **#45**/**#49**/**#54**/**#55**/**#58**/**#59**/**#60**
+  (findings + follow-up docs), **#56** (ENGINE-DC TODO regression test `14` + shim harness honors TAP TODO).
+- **Verified:** **pgTAP 97/97** on a clean reset (test `14` now a real pass post-fix) + Playwright
   wedge-loop e2e + app/lib CI all green.
-- ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017` are verified on `main` but a prod
-  `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md`). App runs without them.
-- **Open (Owner-gated):** **ENGINE-DC** (#53) — `fn_stock_coverage` double-counts receipts dated
-  `>= period_start` (in both opening `on_hand` and the forward projection) → can **mask a real
-  shortage**. NOT auto-fixed: a `current_date` cut-line breaks test `06` Case C, so the real fix is a
-  data-model choice (recommend sourcing scheduled receipts from approved PRs/open POs). Core-engine →
-  Owner review. Also **AUTHZ-1** (execute org-only, not role-gated), **CREATE-1** (PR-create not
+- ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017`/`0018` are verified on `main` but a
+  prod `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md`; **`0018` is the
+  core-engine change — ratify it specifically**). App runs without them.
+- **Open (Owner-gated):** **AUTHZ-1** (execute org-only, not role-gated), **CREATE-1** (PR-create not
   idempotent — low, conservative), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time
   only, low), and **BUD-1** (INFO — the budget gate is decision-support + owner-approval, AP-1/AP-5
   enforced server-side, but no hard DB spend cap; `committed` is display-only in MVP-0) — all
