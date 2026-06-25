@@ -1,5 +1,16 @@
 name: ci
 
+# Quality gates for the Farm OS monorepo, on every PR to / push to main.
+#
+#   build job  (packages/ui — @amrebeid/ui design library):
+#     typecheck → token presence → token purity → unit + a11y tests → build → Storybook
+#   app job    (apps/farm-os — Next.js application):
+#     typecheck → lint (eslint) → unit tests (vitest) → build (next build --webpack)
+#
+# pgTAP database tests live in db-tests.yml; npm publish/versioning lives in release.yml.
+# The Linux-natives install steps work around npm/cli#4828 (macOS-generated lockfile omits
+# some Linux optional native binaries); see the inline notes on each.
+
 on:
   pull_request:
     branches: [main]
@@ -68,7 +79,7 @@ jobs:
         run: npm run build-storybook --workspace @amrebeid/ui
 
   app:
-    name: app · typecheck · test · build
+    name: app · typecheck · lint · test · build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -100,6 +111,12 @@ jobs:
 
       - name: Typecheck (app)
         run: cd apps/farm-os && npx tsc --noEmit
+
+      - name: Lint (app · eslint)
+        # The app declares an `eslint` lint script + eslint.config.mjs but it was not run
+        # in CI; lint regressions could land silently. Run it as a fast fail-early gate
+        # before the heavier test/build steps.
+        run: npm run lint --workspace farm-os
 
       - name: Unit tests (app)
         run: npm test --workspace farm-os
