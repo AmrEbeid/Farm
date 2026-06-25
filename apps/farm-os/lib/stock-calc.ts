@@ -6,7 +6,9 @@
  * test binds the two so they cannot drift).
  *
  * Conventions (stated per SPEC-0001 §2 and the build brief):
- *  - Available = on_hand − reserved − expired.
+ *  - Available = on_hand − reserved. Expiry is NOT subtracted separately: an expiry is a
+ *    negative stock movement in the ledger, so it is already netted into on_hand (matches
+ *    `fn_stock_coverage` / ENGINE-C1, migration 0010 — L5/#161 keeps the TS core in parity).
  *  - Safety stock SS = Z·σ_d·√L  (Z: 1.28/1.65/2.33). Fixed-days fallback elsewhere.
  *  - Reorder point ROP = d̄·L + SS, where d̄ is the *daily* demand rate.
  *  - Daily demand = weekly requirement / 7 (the plan states weekly need; we spread
@@ -17,9 +19,10 @@
  *    UP to the pack/MOQ.
  */
 
-/** Available = on_hand − reserved − expired. */
-export function availableStock(onHand: number, reserved: number, expired: number): number {
-  return onHand - reserved - expired;
+/** Available = on_hand − reserved. (Expiry is already netted into on_hand via the ledger —
+ *  ENGINE-C1, migration 0010 — so it is never subtracted again here.) */
+export function availableStock(onHand: number, reserved: number): number {
+  return onHand - reserved;
 }
 
 /** Safety stock SS = Z·σ_d·√L (statistical). */
