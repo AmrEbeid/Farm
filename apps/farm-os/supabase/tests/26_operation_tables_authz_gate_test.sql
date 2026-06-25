@@ -5,12 +5,13 @@
 -- Run via `supabase test db`.
 
 begin;
-select plan(8);
+select plan(9);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set item 'c0000000-0000-0000-0000-000000000026'
 \set plan 'c0000000-0000-0000-0000-000000000126'
 \set op   'c0000000-0000-0000-0000-000000000226'
+\set evt  'c0000000-0000-0000-0000-000000000326'
 
 -- actors (captured as superuser; client writes below run RLS-scoped as authenticated)
 select set_config('t.acc', (select user_id::text from public.organization_member
@@ -33,6 +34,15 @@ insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est
 insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
   values (:'orgA', :'op', :'item', 500, 'kg');
 
+-- A REAL same-org farm_event so the quantities negative test below can satisfy the
+-- RLS-H1 same-org parent-event EXISTS check (migration 0010), leaving op.execute as the
+-- ONLY clause that can still produce 42501. occurred_at lands in the farm_event_2025_07
+-- partition window (2025-07-01..2025-08-01). Inserted here as superuser, so the op.execute
+-- WITH CHECK gate does not apply to this setup row.
+insert into public.farm_event (id, org_id, type, subtype, status, occurred_at)
+  values (:'evt', :'orgA', 'operation', 'fertilization', 'done', '2025-07-15T00:00:00Z');
+select set_config('t.evt', :'evt', false);
+
 -- ===== accountant (no op.execute, no plan.write): direct writes are refused =====
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.acc'), 'role','authenticated')::text, true);
@@ -44,11 +54,24 @@ select throws_ok($$
 $$, '42501', null,
   'Option B: accountant (no op.execute) cannot direct-insert farm_event');
 
-select throws_ok($$
+-- quantities — gate ISOLATED: reference a REAL same-org farm_event so the RLS-H1 parent-org
+-- EXISTS check (migration 0010) PASSES; the only remaining clause that can throw 42501 is the
+-- op.execute role gate this migration added. (Previously this used gen_random_uuid() for
+-- event_id, which failed the EXISTS check too — so 42501 did not actually prove the role gate.)
+select throws_ok(format($$
   insert into public.quantities (org_id, event_id, measure, value_num)
-  values ('00000000-0000-0000-0000-000000000001', gen_random_uuid(), 'weight', 1)
+  values ('00000000-0000-0000-0000-000000000001', %L, 'weight', 1)
+$$, current_setting('t.evt')), '42501', null,
+  'Option B: accountant (no op.execute) cannot direct-insert quantities '
+  || '(parent-org EXISTS satisfied — only the op.execute gate can refuse)');
+
+-- farm_event partition CHILD: the migration policies each child independently, so prove the
+-- gate also denies a direct write to a partition table (not just the parent farm_event).
+select throws_ok($$
+  insert into public.farm_event_2025_07 (org_id, type, subtype, status, occurred_at)
+  values ('00000000-0000-0000-0000-000000000001','operation','fertilization','done','2025-07-20T00:00:00Z')
 $$, '42501', null,
-  'Option B: accountant (no op.execute) cannot direct-insert quantities');
+  'Option B: accountant (no op.execute) cannot direct-insert farm_event_2025_07 (partition child gated)');
 
 select throws_ok($$
   insert into public.plan_operations (org_id, plan_id, subtype, est_cost, status)
