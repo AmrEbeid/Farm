@@ -5,6 +5,8 @@ import { KpiCard, Card, Progress, Button } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { SEED_PLAN_ID } from "@/lib/nav";
 import { egp } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
+import { OP_STATUS_AR } from "@/lib/labels";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -49,9 +51,9 @@ export default async function ManagerDashboard() {
   const rows = (ops ?? []).map((o) => ({
     id: o.id,
     subtype: SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype ?? "—",
-    planned_at: o.planned_at ?? "—",
+    planned_at: fmtDate(o.planned_at),
     cost: egp(Number(o.est_cost ?? 0)),
-    status: o.status ?? "planned",
+    status: OP_STATUS_AR[o.status ?? "planned"] ?? o.status ?? "—",
   }));
 
   return (
