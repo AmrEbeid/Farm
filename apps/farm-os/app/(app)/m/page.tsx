@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Card, Button, StatusPill, Alert } from "@/components/ui";
 import { egp } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -48,7 +49,7 @@ export default async function MobileHomePage({
               <div>
                 <div className="font-medium">{SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype}</div>
                 <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
-                  {o.planned_at} · {egp(Number(o.est_cost ?? 0))}
+                  {fmtDate(o.planned_at)} · {egp(Number(o.est_cost ?? 0))}
                 </div>
               </div>
               <StatusPill status={pill(o.status ?? "planned")}>
