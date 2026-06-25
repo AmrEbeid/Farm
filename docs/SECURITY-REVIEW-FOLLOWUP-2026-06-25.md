@@ -50,14 +50,19 @@ the role model before multi-tenant. Recommend gating the execute path on `author
 when the role model lands (mirroring B2's inventory-write gate), keeping execution routed through
 the bypassrls RPCs so supervisors/engineers can still execute.
 
-### CI-1 (process) — the pgTAP suite is not run in CI
-`.github/workflows/ci.yml` has only two jobs: lib `build` and `app` (typecheck + vitest +
-`next build`). **The entire pgTAP suite — every RLS, grants, audit, stock-engine and security
-regression (now 84 assertions across 12 files) — is not gated.** Each of the fixes above was
-validated locally; nothing would catch a regression on a future PR. Recommend adding a `db-tests`
-job that runs `supabase db reset` + `supabase test db` (the suite is Docker-only; the existing
-`supabase/test-shims/run-pgtap-local.sh` is the no-Docker fallback). This is the single
-highest-leverage process fix — it would have caught B2.1 and AP-3 automatically.
+### CI-1 (process) — ~~the pgTAP suite is not run in CI~~ **WITHDRAWN — the gate already exists**
+**Correction:** the pgTAP suite **is** gated on every PR/push by a *separate* workflow,
+`.github/workflows/db-tests.yml` (the "pgTAP — RLS · audit · seed · engine · security" check). I
+originally concluded otherwise by inspecting only `ci.yml`, which carries just the lib `build` and
+`app` jobs — I missed the sibling workflow. So my fixes (B2.1 test 11, AP-3 test 12) and every other
+RLS/audit/engine regression **are** caught on a PR. CI-1 is withdrawn.
+
+The one true (and deliberately-accepted) residual: `db-tests.yml` runs the **Docker-free shim
+harness** (plain Postgres + pgTAP shims), which by its own note does **not** exercise FORCE ROW
+LEVEL SECURITY, PostgREST/GoTrue, or the Playwright e2e — the authoritative `supabase test db` +
+`playwright` run stays a local/Docker step. Adding a full-stack `supabase test db` job would close
+that, but it's a slow/Docker tradeoff the project chose against on purpose; it's the Owner's call,
+not a defect. (I opened #50 for it and then closed it once I found `db-tests.yml`.)
 
 ## Suggested merge order for the Owner
 
@@ -66,5 +71,5 @@ highest-leverage process fix — it would have caught B2.1 and AP-3 automaticall
    changes; independent of each other (migrations `0016` vs `0017`). Apply the migrations to prod via
    `DEPLOY-RUNBOOK.md` (prod was at `0013`; `0015` already verified-not-applied — sequence the new
    ones accordingly).
-3. **#45** + this doc — the documented findings; action EXE-1/AUTHZ-1 with the role-model decision,
-   and CI-1 as a standalone hardening PR.
+3. **#45** + this doc — the documented findings; action EXE-1/AUTHZ-1 with the role-model decision.
+   (CI-1 withdrawn — the pgTAP gate already exists via `db-tests.yml`.)
