@@ -37,7 +37,7 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
 
   const { data: op } = await sb
     .from("plan_operations")
-    .select("id, plan_id, subtype, target_id, est_cost, plan_material_requirements(item_id, qty, unit)")
+    .select("id, plan_id, subtype, target_id, est_cost, status, plan_material_requirements(item_id, qty, unit)")
     .eq("id", opId)
     .single();
   if (!op) return { ok: false, error: "العملية غير موجودة" };
@@ -45,6 +45,28 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
   const req = (op.plan_material_requirements ?? [])[0] as
     | { item_id: string; qty: number; unit: string }
     | undefined;
+
+  // EXE-1: claim-first idempotency gate. A server action is a POST endpoint, so a
+  // double-submit / network retry / concurrent call bypasses the page's "done" guard
+  // and would otherwise re-run the whole issue/release path (double stock loss,
+  // over-release, duplicate `done` event). Atomically flip → done ONLY if not already
+  // done; if no row comes back, another caller already executed this op — abort BEFORE
+  // touching stock. This replaces the unconditional status flip that used to run last.
+  const prevStatus = op.status as string;
+  const { data: claimed, error: claimErr } = await sb
+    .from("plan_operations")
+    .update({ status: "done" })
+    .eq("id", opId)
+    .neq("status", "done")
+    .select("id");
+  if (claimErr) return { ok: false, error: claimErr.message };
+  if (!claimed || claimed.length === 0) {
+    return { ok: false, error: "العملية نُفِّذت بالفعل" };
+  }
+  // If any step below fails, release the claim so the op can be retried (we own it now).
+  const revertClaim = async () => {
+    await sb.from("plan_operations").update({ status: prevStatus }).eq("id", opId);
+  };
 
   // 1) farm_event (done). B3: real execution time (was hardcoded to the seed window);
   // dates outside the seed months land in the farm_event_default partition.
@@ -65,7 +87,10 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
     })
     .select("id")
     .single();
-  if (evErr || !ev) return { ok: false, error: evErr?.message ?? "تعذّر تسجيل الحدث" };
+  if (evErr || !ev) {
+    await revertClaim();
+    return { ok: false, error: evErr?.message ?? "تعذّر تسجيل الحدث" };
+  }
 
   // location rollup (FF-1)
   await sb.from("event_locations").insert({
@@ -99,7 +124,10 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
       p_event_id: ev.id,
       p_plan_id: op.plan_id,
     });
-    if (issErr) return { ok: false, error: issErr.message };
+    if (issErr) {
+      await revertClaim();
+      return { ok: false, error: issErr.message };
+    }
     // D2: release the reservation via a ledger movement; fn_bin_rebuild recomputes
     // bin.reserved = Σ(reserve)−Σ(release) (no racy read-modify-write).
     const { error: relErr } = await sb.rpc("fn_post_movement", {
@@ -111,6 +139,9 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
       p_event_id: ev.id,
       p_plan_id: op.plan_id,
     });
+    // No revertClaim() here: the `issue` above already committed (on_hand dropped), so
+    // re-running would double-issue. Keep status=done and surface the release error for
+    // manual reconciliation of the (lesser) over-reservation rather than risk a re-issue.
     if (relErr) return { ok: false, error: relErr.message };
     // B3: actual cost = actual qty × the plan's unit rate (est_cost ÷ planned qty), not a
     // hardcoded price. Future refinement: use the actual paid receipt price (OWNER-DECISIONS §4).
@@ -118,12 +149,7 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
     actualCost = input.actualQty * plannedUnit;
   }
 
-  // 3) flip the operation done + persist actuals in data jsonb
-  await sb
-    .from("plan_operations")
-    .update({ status: "done" })
-    .eq("id", opId);
-
+  // 3) persist actuals in data jsonb (status was already claimed → done at the top, EXE-1)
   // record the actual figures on the farm_event data for the PvA report
   await sb
     .from("farm_event")
