@@ -66,3 +66,43 @@ jobs:
 
       - name: Build Storybook
         run: npm run build-storybook --workspace @amrebeid/ui
+
+  app:
+    name: app · typecheck · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/ui/.nvmrc
+          cache: npm
+
+      - name: Install (workspace root)
+        run: npm ci
+
+      - name: Install app Linux natives (npm/cli#4828)
+        # The macOS-generated lockfile omits some Linux optional native binaries, so a
+        # clean `npm ci` on the runner can miss @next/swc / Tailwind oxide / lightningcss —
+        # the exact failure that broke the Vercel build. Resolve each from the app context
+        # and install from root (no re-nesting), matching the lib job's approach.
+        run: |
+          pkgs=""
+          for spec in "next:@next/swc-linux-x64-gnu" "@tailwindcss/oxide:@tailwindcss/oxide-linux-x64-gnu" "lightningcss:lightningcss-linux-x64-gnu"; do
+            mod="${spec%%:*}"; pkg="${spec#*:}"
+            v=$(cd apps/farm-os && node -p "try{require('${mod}/package.json').version}catch(e){''}")
+            if [ -n "$v" ]; then pkgs="${pkgs} ${pkg}@${v}"; fi
+          done
+          echo "installing:${pkgs}"
+          npm install --no-save --no-audit --no-fund ${pkgs}
+
+      - name: Typecheck (app)
+        run: cd apps/farm-os && npx tsc --noEmit
+
+      - name: Unit tests (app)
+        run: npm test --workspace farm-os
+
+      - name: Build (next build --webpack)
+        run: npm run build --workspace farm-os
