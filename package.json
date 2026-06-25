@@ -23,6 +23,7 @@
   },
   "overrides": {
     "react": "$react",
-    "react-dom": "$react-dom"
+    "react-dom": "$react-dom",
+    "postcss": "^8.5.10"
   }
 }
