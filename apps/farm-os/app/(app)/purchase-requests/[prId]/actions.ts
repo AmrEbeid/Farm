@@ -55,66 +55,29 @@ export async function recordReceipt(prId: string) {
   await requireMembership();
   const sb = await createClient();
 
-  // RCP-AUTHZ-3 (app-layer, like #71 Option C): receiving stock is `inventory.write`
-  // (owner/farm_manager/storekeeper). The action only checked membership, and the approved→received
-  // PR transition is open to any org member, so a non-storekeeper could mark a PR received and inflate
-  // on_hand. Gate via the DB's authorize() map (single source of truth); DB-layer enforcement is next.
-  const { data: canWrite } = await sb.rpc("authorize", { perm: "inventory.write" });
-  if (!canWrite) return { ok: false, error: "ليس لديك صلاحية استلام المخزون" };
-
-  // RCP-1: claim-first idempotency gate (same class as EXE-1). recordReceipt is a server
-  // action = a POST endpoint, so a double-submit / network retry / concurrent call would
-  // re-post every `receipt` movement → phantom stock IN (on_hand inflated, the ledger
-  // corrupted). Flip approved→received FIRST, guarded by `status='approved'`, and abort if
-  // no row (already received, or never approved) BEFORE posting any movement. This also
-  // adds the missing precondition: only an approved PR can be received.
-  const { data: claimed, error: claimErr } = await sb
-    .from("purchase_requests")
-    .update({ status: "received" })
-    .eq("id", prId)
-    .eq("status", "approved")
-    .select("id");
-  if (claimErr) return { ok: false, error: claimErr.message };
-  if (!claimed || claimed.length === 0) {
-    return { ok: false, error: "تعذّر تسجيل الاستلام: الطلب غير معتمد أو تم استلامه بالفعل." };
-  }
-
-  const { data: items } = await sb
-    .from("purchase_request_items")
-    .select("item_id, qty, unit, supplier_id")
-    .eq("pr_id", prId);
-
-  // B1: one transactional, ledger-reconciled RPC per item instead of the racy
-  // read-modify-write on inventory_bin.on_hand + separate movement insert.
-  for (const [i, it] of (items ?? []).entries()) {
-    const { error } = await sb.rpc("fn_post_movement", {
-      p_item: it.item_id,
-      p_type: "receipt",
-      p_qty: Number(it.qty),
-      p_location: "main",
-      p_unit: it.unit ?? "kg",
-      p_supplier_id: it.supplier_id ?? null,
-    });
-    if (error) {
-      // Only if the FIRST item failed (nothing posted yet) is it safe to release the claim
-      // so the receipt can be retried cleanly. After that, keep status=received (reverting
-      // would let a retry double-post the already-received items) and surface the error.
-      if (i === 0) {
-        const { error: revertErr } = await sb
-          .from("purchase_requests")
-          .update({ status: "approved" })
-          .eq("id", prId);
-        // If the revert itself fails, the PR is stuck in `received` with nothing posted —
-        // surface that distinct state rather than the (misleadingly retryable) original error.
-        if (revertErr) {
-          return {
-            ok: false,
-            error: `تعذّر تسجيل الاستلام وتعذّر التراجع — الطلب عالق في حالة الاستلام: ${revertErr.message}`,
-          };
-        }
-      }
-      return { ok: false, error: error.message };
+  // RCP-ATOMIC-1: the whole receipt — the approved→received claim AND every line-item `receipt`
+  // movement — now runs in ONE transaction inside the SECURITY DEFINER `fn_post_receipt` RPC
+  // (migration 0024). The previous app-layer version claim-flipped then LOOPED fn_post_movement
+  // per item: if item ≥1 failed after item 0 committed, the PR was left `received` with only partial
+  // stock posted and no clean retry path (claim consumed) → corrupt half-received state. The RPC
+  // makes a mid-loop failure roll the claim + all prior receipts back, so the PR stays `approved`
+  // and is cleanly retryable — mirroring the fn_execute_operation precedent.
+  //
+  // Authz (inventory.write) + the org/membership guard + the claim-first idempotency gate all live
+  // in the RPC now (single source of truth), so the app-layer authorize() check + the client claim +
+  // the per-item loop are gone.
+  const { error } = await sb.rpc("fn_post_receipt", { p_pr_id: prId });
+  if (error) {
+    // 23505 is the claim-first idempotency abort (not approved / already received) — preserve the
+    // existing user-facing message for that case.
+    if (error.code === "23505") {
+      return { ok: false, error: "تعذّر تسجيل الاستلام: الطلب غير معتمد أو تم استلامه بالفعل." };
     }
+    // 42501 is the authz failure (no inventory.write / cross-org).
+    if (error.code === "42501") {
+      return { ok: false, error: "ليس لديك صلاحية استلام المخزون" };
+    }
+    return { ok: false, error: error.message };
   }
 
   revalidatePath(`/purchase-requests/${prId}`);
