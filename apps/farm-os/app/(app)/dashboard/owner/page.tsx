@@ -88,7 +88,7 @@ export default async function OwnerDashboard() {
             <Button variant="ghost" size="sm">عرض الكل</Button>
           </Link>
         </div>
-        <SimpleTable columns={columns} rows={rows} empty="لا توجد طلبات" />
+        <SimpleTable columns={columns} rows={rows} empty="لا توجد طلبات شراء بعد." />
       </section>
     </div>
   );
