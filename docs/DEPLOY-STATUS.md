@@ -8,9 +8,11 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0024`** — `0001–0013` + `0015–0024` applied and recorded under their repo
+  - **Migrations now at `0029`** — `0001–0013` + `0015–0029` applied and recorded under their repo
     versions (originally `0001–0013` via `supabase db push`; `0015→0024` applied 2026-06-25 via the
-    Supabase MCP after the prod-push assurance returned GO-WITH-CAVEATS — see below).
+    Supabase MCP after the prod-push assurance returned GO-WITH-CAVEATS; the `0025→0029`
+    access-control / engine-integrity hardening applied the same day — see below). Verified 2026-06-25
+    via `list_migrations` (latest = `20260622000029`).
   - Synthetic **seed loaded** — verified 28 hawshat / 6 items / 6 members / potassium on_hand 300. Full
     dataset: 1 org, 6 organization_member, 12 auth.users, 1 farm, 60 assets, 5 sectors, 6 inventory
     items/bins/movements, 1 plan w/ 3 operations + checks + budget. Transactional tables (`farm_event`,
@@ -103,8 +105,10 @@ backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
 ## ✅ Prod DB migration push (2026-06-25)
 Prod was provisioned at `0001–0013`. After an **8-agent adversarial prod-push assurance returned
 GO-WITH-CAVEATS**, migrations **`0015`→`0024`** were applied to the prod Supabase
-(`veezkmytervjnpxcrbkw`) via the Supabase MCP — **prod DB is now at `0024`** (`0001–0013` +
-`0015–0024`, all recorded under their repo versions). `0018` (the core-engine change) was
+(`veezkmytervjnpxcrbkw`) via the Supabase MCP; the **`0025`→`0029`** access-control / engine-integrity
+hardening (AUTHZ-1 Option B, ENGINE-DC DB-enforcement + PR-scope fix, DELETE-posture, FORCE-RLS) was
+applied the same way — **prod DB is now at `0029`** (`0001–0013` +
+`0015–0029`, all recorded under their repo versions). `0018` (the core-engine change) was
 **Owner-ratified** first. Earlier this session (branch `fix/authz-1-execute-rpc`, PR #75, commit
 `31ad992`): **`0021`** locks SECURITY DEFINER fn EXECUTE grants (revoke `anon` on write RPCs
 `fn_execute_operation`/`fn_post_movement`; revoke public+anon+authenticated on trigger fns
@@ -113,14 +117,15 @@ GO-WITH-CAVEATS**, migrations **`0015`→`0024`** were applied to the prod Supab
 **`0023`** (`pr_approval_sod_guard_insert`) extends the PR self-approval guard to fire BEFORE INSERT,
 closing the AP-5 insert-side sidestep (#76 item 2 — a born-approved PR), and **`0024`**
 (`fn_post_receipt`, **RCP-ATOMIC-1**) makes PR receipt posting atomic in one transaction (no more
-half-received corrupt state). **pgTAP 126/126** on a clean reset (was 103; new tests `19`+`20`).
-(Migration filenames skip `0014` — a dropped first B2 attempt; harmless, applied by version.)
+half-received corrupt state). **pgTAP 270/270** on a clean reset (verified 2026-06-25; grew from 126
+as `0025`–`0029` and their tests `22`–`30` landed). (Migration filenames skip `0014` — a dropped first
+B2 attempt; harmless, applied by version.)
 
-**Residual caveats — QUEUED, not blocking, not live-exploitable on synthetic single-tenant data:**
-**AUTHZ-1 Option B** (gate operation tables `plan_operations`/`farm_event`/`event_locations`/
-`quantities` at the REST layer, not only inside the `0020` RPC); **ENGINE-DC** disjointness is
-convention-enforced, not DB-constraint-enforced. *(AP-5 insert-side SoD — #76 item 2 — is now closed
-by `0023`; the receipt-posting atomicity gap is closed by `0024`.)*
+**Residual caveats — now CLOSED (2026-06-25):** **AUTHZ-1 Option B** (gate operation tables
+`plan_operations`/`farm_event`/`event_locations`/`quantities` at the REST layer, not only inside the
+`0020` RPC) landed in `0025`; **ENGINE-DC** disjointness is now DB-enforced (`0026`) with a PR-scoped
+guard fix (`0029`), no longer convention-only. *(AP-5 insert-side SoD — #76 item 2 — closed by `0023`;
+receipt-posting atomicity — closed by `0024`.)* No queued security caveats remain from the assurance.
 
 ## 🔴 Security follow-ups (Owner — do now)
 - **Rotate the Supabase DB password and the `service_role` (secret) key** — both were pasted in the
