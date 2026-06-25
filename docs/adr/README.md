@@ -26,3 +26,4 @@ and flip the old one's Status to `Superseded by NNNN`.
 - [0003 — SECURITY DEFINER grant lockdown on Supabase](0003-definer-grant-lockdown.md) — claw back the default anon/authenticated EXECUTE grant; pin with invariant oracles.
 - [0004 — ENGINE-DC: scheduled receipts from open purchase requests](0004-scheduled-receipts-from-purchase-requests.md) — project open POs, not the movement ledger, to kill the receipt double-count.
 - [0005 — Recharts tree-shaken via an `@amrebeid/ui/charts` subpath](0005-recharts-charts-subpath.md) — split entry so recharts loads only on chart routes.
+- [0006 — SQL migration conventions (idempotency, SECURITY DEFINER hygiene, function lockdown)](0006-sql-migration-conventions.md) — guard object creation and lock down functions so every new migration is independently re-run-safe.
