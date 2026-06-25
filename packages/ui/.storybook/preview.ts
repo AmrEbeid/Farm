@@ -1,4 +1,4 @@
-import type { Preview } from "@storybook/react";
+import type { Preview } from "@storybook/react-vite";
 import * as React from "react";
 import { ThemeProvider } from "../src/theme";
 import "../src/styles/index.css";
@@ -6,15 +6,30 @@ import "../src/styles/index.css";
 const preview: Preview = {
   parameters: {
     controls: { matchers: { color: /(background|color)$/i, date: /Date$/i } },
-    backgrounds: { default: "farm-bg", values: [{ name: "farm-bg", value: "#f3f6f3" }, { name: "surface", value: "#ffffff" }] },
+    // Storybook 9+ replaced the `values` array + `default` key with an `options`
+    // map keyed by id; the active background moves to `initialGlobals` below.
+    backgrounds: {
+      options: {
+        "farm-bg": { name: "farm-bg", value: "#f3f6f3" },
+        surface: { name: "surface", value: "#ffffff" },
+      },
+    },
+  },
+  // Storybook 9+ deprecates `globalTypes.defaultValue`; initial global values
+  // (direction/scheme/density + the default background) live here instead.
+  initialGlobals: {
+    direction: "rtl",
+    scheme: "light",
+    density: "comfortable",
+    backgrounds: { value: "farm-bg" },
   },
   globalTypes: {
-    direction: { description: "Text direction", defaultValue: "rtl",
+    direction: { description: "Text direction",
       toolbar: { title: "Direction", icon: "transfer", items: [{ value: "rtl", title: "RTL (عربي)" }, { value: "ltr", title: "LTR" }] } },
-    scheme: { description: "Color scheme", defaultValue: "light",
+    scheme: { description: "Color scheme",
       toolbar: { title: "Scheme", icon: "circlehollow", items: [{ value: "light", title: "Light" }, { value: "dark", title: "Dark" }] } },
-    density: { description: "Control density", defaultValue: "comfortable",
-      toolbar: { title: "Density", icon: "component", items: [{ value: "comfortable", title: "Comfortable" }, { value: "compact", title: "Compact" }] } },
+    density: { description: "Control density",
+      toolbar: { title: "Control density", icon: "component", items: [{ value: "comfortable", title: "Comfortable" }, { value: "compact", title: "Compact" }] } },
   },
   decorators: [
     (Story, ctx) => {

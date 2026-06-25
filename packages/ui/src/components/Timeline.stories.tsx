@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Timeline, type TimelineItem } from "./Timeline";
 
 const items: TimelineItem[] = [
