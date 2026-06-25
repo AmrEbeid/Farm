@@ -17,14 +17,60 @@ has been executed.
 # Create the project in the Supabase dashboard (region close to Egypt, e.g. eu-central-1).
 # Then, from apps/farm-os:
 supabase link --project-ref <PROJECT_REF>
-supabase db push                 # applies migrations 0001–0013 to the remote DB
+supabase db push                 # applies the migration set in supabase/migrations/ to the remote DB
 ```
+> `supabase db push` is **incremental and idempotent** — it consults
+> `supabase_migrations.schema_migrations` on the remote and applies only versions not yet recorded.
+> A first run on a fresh project applies the whole set; a re-run after the initial deploy applies only
+> the newer ones (see §1a). The remote was first provisioned at migration `0013`; the security fixes
+> `0015`–`0018` are the not-yet-applied delta. *(There is no `0014` — the numbering skips it; pgTAP
+> test `14` is the ENGINE-DC regression, unrelated to a migration file.)*
 Seed (pilot demo data — synthetic, not real Ebeid data):
 ```bash
 # Run the seed against the remote DB (SQL editor, or psql with the project's connection string):
 psql "<SUPABASE_DB_URL>" -f supabase/seed.sql
 ```
 > For **real** Ebeid data, do NOT use seed.sql — migrate after a privacy review (Stage M).
+
+## 1a. Incremental migration push — post-deploy security fixes (0015→0018) — **Owner-gated**
+
+The live pilot DB is at migration `0013`. Four security/correctness migrations are verified on `main`
+(pgTAP **97/97** on a clean reset) but **not yet applied to prod** — a prod DB migration is a hard
+stop per PROJECT RULES. Apply them **in order** when the Owner gives the go-ahead:
+
+| # | File | Closes | Risk |
+|---|------|--------|------|
+| `0015` | `…_inventory_write_rolegate.sql` | **B2** — inventory writes are role-gated (not org-wide) | access-control |
+| `0016` | `…_inventory_ledger_append_only.sql` | **B2.1** — stock ledger is append-only (no direct DELETE) | access-control |
+| `0017` | `…_pr_approval_sod_guard.sql` | **AP-5** — PR self-approval / `requested_by` rewrite blocked | financial control |
+| `0018` | `…_engine_scheduled_receipts_from_pos.sql` | **ENGINE-DC** — scheduled receipts sourced from open POs (no double-count) | **core engine** |
+
+```bash
+# from apps/farm-os, with the pilot project linked (§1):
+supabase migration list           # confirm the remote is at 0013 and 0015–0018 are pending
+supabase db push                  # applies 0015 → 0016 → 0017 → 0018 in order (idempotent)
+```
+
+**Before the push:**
+- **Independent review + Owner ratification is required for `0018`** — it changes the stock-coverage
+  engine (the product's core IP, a review-required area per PROJECT RULES). `0015`–`0017` are
+  access-control/ledger hardening (also review-required, already diff-reviewed on their PRs).
+- The app **runs correctly without these** — writes already route through the `bypassrls` RPCs;
+  `0015`/`0016` tighten *direct* REST access, `0017` hardens the approval policy, and `0018` only
+  changes the coverage projection's receipt source. So there is no app-vs-DB lockstep requirement;
+  the push can happen on its own change window.
+
+**After the push — verify in prod (read-only checks, or the SQL editor):**
+- `supabase migration list` shows `0018` as the latest applied version.
+- **B2.1 (append-only):** a direct `delete from inventory_movements …` as an authenticated tenant is
+  rejected (pgTAP `11` invariant).
+- **AP-5 (SoD):** an owner-author cannot self-approve a PR by rewriting `requested_by` in the approving
+  `UPDATE` (pgTAP `12`).
+- **ENGINE-DC:** `fn_stock_coverage` for an item with a received receipt no longer double-counts —
+  `available` matches `on_hand − reserved` plus *open-PO* scheduled receipts only (pgTAP `06`/`14`).
+
+> **Rollback:** migrations are forward-only (see §5). A regression is fixed forward with a new additive
+> migration — never destructive-reset prod.
 
 ## 2. Vercel app
 - Import the GitHub repo into Vercel; set **Root Directory = `apps/farm-os`** (monorepo).
