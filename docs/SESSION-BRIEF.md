@@ -29,8 +29,10 @@ three more issues, all **merged to `main`** after independent diff review:
   shortage**. NOT auto-fixed: a `current_date` cut-line breaks test `06` Case C, so the real fix is a
   data-model choice (recommend sourcing scheduled receipts from approved PRs/open POs). Core-engine →
   Owner review. Also **AUTHZ-1** (execute org-only, not role-gated), **CREATE-1** (PR-create not
-  idempotent — low, conservative), and **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time
-  only, low) — all deferred. SoD finding renamed **AP-3→AP-5** (AP-3 was already the PR version-guard).
+  idempotent — low, conservative), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time
+  only, low), and **BUD-1** (INFO — the budget gate is decision-support + owner-approval, AP-1/AP-5
+  enforced server-side, but no hard DB spend cap; `committed` is display-only in MVP-0) — all
+  deferred. SoD finding renamed **AP-3→AP-5** (AP-3 was already the PR version-guard).
 
 ## 2026-06-25 — post-deploy hardening
 With the app live, hardened + verified further: **prod re-verified** (all 6 role logins + per-role
