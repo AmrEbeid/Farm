@@ -63,10 +63,11 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
   if (!claimed || claimed.length === 0) {
     return { ok: false, error: "العملية نُفِّذت بالفعل" };
   }
-  // If any step below fails, release the claim so the op can be retried (we own it now).
-  const revertClaim = async () => {
-    await sb.from("plan_operations").update({ status: prevStatus }).eq("id", opId);
-  };
+  // Release the claim so the op can be retried — but ONLY before anything is persisted
+  // (i.e. if the farm_event insert itself fails). Once the event/quantities rows exist,
+  // reverting would let a retry duplicate them, so we keep status=done from there on.
+  const revertClaim = async () =>
+    (await sb.from("plan_operations").update({ status: prevStatus }).eq("id", opId)).error;
 
   // 1) farm_event (done). B3: real execution time (was hardcoded to the seed window);
   // dates outside the seed months land in the farm_event_default partition.
@@ -88,8 +89,16 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
     .select("id")
     .single();
   if (evErr || !ev) {
-    await revertClaim();
-    return { ok: false, error: evErr?.message ?? "تعذّر تسجيل الحدث" };
+    // Nothing persisted yet — safe to release the claim. If the revert ITSELF fails, the
+    // op is stuck `done` with nothing recorded; surface that so it isn't silently lost.
+    const revErr = await revertClaim();
+    const base = evErr?.message ?? "تعذّر تسجيل الحدث";
+    return {
+      ok: false,
+      error: revErr
+        ? `${base} (وتعذّر التراجع — العملية ما زالت معلَّمة كمنفّذة: ${revErr.message})`
+        : base,
+    };
   }
 
   // location rollup (FF-1)
@@ -101,6 +110,7 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
 
   // 2) issue stock for the consumed material
   let actualCost = Number(op.est_cost ?? 0);
+  let releaseError: { message: string } | null = null;
   if (req) {
     await sb.from("quantities").insert({
       org_id: m.orgId,
@@ -124,10 +134,11 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
       p_event_id: ev.id,
       p_plan_id: op.plan_id,
     });
-    if (issErr) {
-      await revertClaim();
-      return { ok: false, error: issErr.message };
-    }
+    // No revertClaim() here: the farm_event + quantities rows above are already
+    // committed, so releasing the claim would let a retry create DUPLICATE done
+    // events/quantities. fn_post_movement is transactional (no stock committed on
+    // failure), so we keep status=done and surface the error for reconciliation.
+    if (issErr) return { ok: false, error: issErr.message };
     // D2: release the reservation via a ledger movement; fn_bin_rebuild recomputes
     // bin.reserved = Σ(reserve)−Σ(release) (no racy read-modify-write).
     const { error: relErr } = await sb.rpc("fn_post_movement", {
@@ -140,9 +151,9 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
       p_plan_id: op.plan_id,
     });
     // No revertClaim() here: the `issue` above already committed (on_hand dropped), so
-    // re-running would double-issue. Keep status=done and surface the release error for
-    // manual reconciliation of the (lesser) over-reservation rather than risk a re-issue.
-    if (relErr) return { ok: false, error: relErr.message };
+    // re-running would double-issue. Capture the release error but DON'T early-return —
+    // we still persist actuals below so the PvA report is consistent — then surface it.
+    if (relErr) releaseError = relErr;
     // B3: actual cost = actual qty × the plan's unit rate (est_cost ÷ planned qty), not a
     // hardcoded price. Future refinement: use the actual paid receipt price (OWNER-DECISIONS §4).
     const plannedUnit = Number(req.qty) > 0 ? Number(op.est_cost ?? 0) / Number(req.qty) : 0;
@@ -166,5 +177,8 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
 
   revalidatePath(`/m`);
   revalidatePath(`/reports/${op.plan_id}/pva`);
+  // The issue committed and actuals are persisted; if the reservation release failed,
+  // surface it now (status stays done) so the over-reservation can be reconciled.
+  if (releaseError) return { ok: false, error: releaseError.message };
   return { ok: true, eventId: ev.id, actualCost };
 }
