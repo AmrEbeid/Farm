@@ -1,8 +1,9 @@
 {
-  "//": "Typecheck-only config. The react/react-dom paths pin a single @types identity so hoisted deps (e.g. recharts) typecheck cleanly. Kept OUT of the base tsconfig.json so Storybook/Vite runtime module resolution is not redirected to @types (which has no runtime entry points).",
+  "//": "Typecheck-only config. The react/react-dom paths pin a single @types identity so hoisted deps (e.g. recharts) typecheck cleanly. Kept OUT of the base tsconfig.json so Storybook/Vite runtime module resolution is not redirected to @types (which has no runtime entry points). baseUrl removed for TS6 (TS5101 deprecation): with no baseUrl, relative path mappings resolve against this config file's directory, so the ./node_modules/... entries below still point at packages/ui/node_modules.",
+  "//ignoreDeprecations": "tsup 8.5.1 (latest) hardcodes `baseUrl: compilerOptions.baseUrl || '.'` for its bundled rollup-dts compiler pass (see tsup/dist/rollup.js), re-injecting the now-deprecated baseUrl during the d.ts build regardless of this file. No tsup release removes that, so we use the TS-sanctioned 6.0→7.0 transition flag to silence TS5101 only in this build-tool config. Remove once tsup stops injecting baseUrl.",
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "react": ["./node_modules/@types/react"],
       "react/*": ["./node_modules/@types/react/*"],
