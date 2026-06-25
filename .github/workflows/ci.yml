@@ -123,3 +123,15 @@ jobs:
 
       - name: Build (next build --webpack)
         run: npm run build --workspace farm-os
+
+      - name: Guard · Recharts stays code-split (off the global bundle)
+        # Recharts is heavy and only two routes render a chart. A code-split keeps it
+        # out of the always-loaded shared/framework chunk and off the other 16/18
+        # routes. This guard scans the built .next client chunks for "recharts", then
+        # asserts the recharts-bearing chunk is referenced ONLY by the two allow-listed
+        # chart routes' per-route client-reference manifests — never by build-manifest
+        # rootMainFiles (the global bundle) nor any other route. It is hash-agnostic
+        # (the chunk is discovered by content, matched by basename) and self-checking
+        # (fails loudly if recharts vanishes or the .next layout moves). Pure Node, no
+        # external actions/secrets. See apps/farm-os/scripts/check-recharts-codesplit.mjs.
+        run: cd apps/farm-os && node scripts/check-recharts-codesplit.mjs
