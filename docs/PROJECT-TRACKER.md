@@ -13,10 +13,11 @@
 > files) + wedge-loop e2e green. **Prod DB still at `0013`** — pushing `0015`/`0016`/`0017`/`0018`/`0019`
 > remains an Owner hard-stop (**`0018` is the core-engine change — ratify specifically**; the
 > EXE-1/RCP-1/CREATE-1 fixes are app code, no migration). Open findings (all Owner-gated / deferred):
-> **AUTHZ-1** (execute org-only, not role-gated — SPEC-0002 draft awaiting Owner ratification, then an
-> enforcement migration), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only), **BUD-1**
-> (INFO — the budget gate is decision-support + owner-approval, not a hard DB spend cap; `committed`
-> is display-only). SoD finding renamed AP-3→AP-5
+> **AUTHZ-1** (app-layer `op.execute` gate landed #71; authoritative RLS enforcement — SPEC-0002
+> Option A — awaits Owner ratification, then a migration), **DEP-1** (`postcss<8.5.10` transitive via
+> `next`, build-time only), **BUD-1** (INFO — the budget gate is decision-support + owner-approval, not
+> a hard DB spend cap; `committed` is display-only), **CREATE-2** (LOW — `addPlanOperation`
+> non-idempotent/non-atomic, planning-path, conservative). SoD finding renamed AP-3→AP-5
 > (AP-3 = the PR version-guard). Detail:
 > [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
 

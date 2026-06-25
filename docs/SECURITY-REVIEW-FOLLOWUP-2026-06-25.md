@@ -88,8 +88,16 @@ the bypassrls RPCs so supervisors/engineers can still execute. **A DRAFT design 
 [`SPEC-0002-authorization-enforcement.md`](SPEC-0002-authorization-enforcement.md) (#69)** — is now
 in the repo for Owner review: it notes the role model *already exists* (migration `0001`: 6 roles +
 the `authorize()` permission map) so AUTHZ-1 is a *coverage* gap, and proposes generalizing the
-proven B2/`0015` `authorize()`-in-`WITH CHECK` pattern to the execute path. **No code/migration yet
-— Owner ratifies the spec first.**
+proven B2/`0015` `authorize()`-in-`WITH CHECK` pattern to the execute path.
+
+**Partial fix landed (#71) — SPEC-0002 Option C, app-layer defense-in-depth:** `executeOperation`
+now calls `authorize('op.execute')` (the DB permission map) and rejects a caller without it, so a
+non-`op.execute` role (accountant/storekeeper) can no longer execute *through the app* — and the
+docstring's claim is now true at the app layer. Verified: tsc + the wedge-loop e2e (executes as
+`supervisor`, who holds `op.execute`) pass. **Still open — the authoritative Postgres-layer gate
+(Option A: a `bypassrls` `fn_execute_operation` with the `authorize()` check inside, so direct REST
+writes to the operation tables are gated too) remains Owner-gated** pending SPEC-0002 ratification;
+until it lands, the operation tables stay directly writable via REST by any org member.
 
 **AUDIT-1 — ✅ FIXED (#68, migration `0019`, test `17`).** `organization_member` had no audit
 trigger (the generic `fn_audit` keys on `new.id`, but it's a composite-PK table). A dedicated
@@ -136,9 +144,9 @@ push.** The app runs correctly without these (writes already route through the b
 `0018` only affects the coverage projection's receipt source). *(The EXE-1/RCP-1/CREATE-1 app-code
 fixes are already on `main`, deploy on the next Vercel push.)*
 
-**Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (execute org-only, not
-role-gated — **DRAFT design in [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) #69 awaiting
-Owner ratification**, then an enforcement migration), **DEP-1** (`postcss` transitive, build-time
+**Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (app-layer gate **landed**
+#71; the authoritative RLS/Postgres enforcement — Option A — awaits **[`SPEC-0002`](SPEC-0002-authorization-enforcement.md) #69**
+ratification, then an enforcement migration), **DEP-1** (`postcss` transitive, build-time
 only — low), **BUD-1** (INFO — budget gate is decision-support, not a hard cap), **CREATE-2** (LOW —
 `addPlanOperation` non-idempotent/non-atomic, planning-path, conservative). AUDIT-1 fixed
 (#68); CI-1 withdrawn (the pgTAP gate already exists via `db-tests.yml`). **Write-action audit

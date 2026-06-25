@@ -36,14 +36,16 @@ three more issues, all **merged to `main`** after independent diff review:
 - Test coverage added: **#67** (test `16` engine approve→receive round-trip disjointness), **#56**
   (test `14` ENGINE-DC). Runbook **#65** documents the gated `0015→0019` prod push. **pgTAP 103/103**
   (17 files) + wedge-loop e2e green.
-- **SPEC-0002 DRAFT (#69)** — authorization-enforcement design for **AUTHZ-1** (the role model already
-  exists in migration `0001`; AUTHZ-1 is a coverage gap; proposes generalizing the B2/`0015`
-  `authorize()`-in-`WITH CHECK` pattern to the execute path). **Awaiting Owner ratification — no
-  code/migration yet.**
-- **Open (Owner-gated / deferred):** **AUTHZ-1** (SPEC-0002 draft → Owner ratify → enforcement
-  migration), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only, low), **BUD-1**
-  (INFO — budget gate is decision-support, AP-1/AP-5 server-side, no hard DB spend cap). SoD finding
-  renamed **AP-3→AP-5** (AP-3 was already the PR version-guard).
+- **AUTHZ-1 partial fix (#71)** + **SPEC-0002 DRAFT (#69)**: the app-layer `op.execute` gate landed
+  (`executeOperation` now calls `authorize('op.execute')`; e2e executes as supervisor, passes) —
+  defense-in-depth. SPEC-0002 records that the role model already exists (migration `0001`) and
+  proposes the authoritative RLS/`bypassrls` enforcement (Option A). **That enforcement migration is
+  Owner-gated** (ratify SPEC-0002 first); until then the operation tables stay directly REST-writable.
+- **Open (Owner-gated / deferred):** **AUTHZ-1** (authoritative Option A — SPEC-0002 ratify → migration),
+  **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only, low), **BUD-1** (INFO — budget
+  gate is decision-support, AP-1/AP-5 server-side, no hard DB spend cap), **CREATE-2** (LOW —
+  `addPlanOperation` non-idempotent/non-atomic, planning-path, conservative). SoD finding renamed
+  **AP-3→AP-5** (AP-3 was already the PR version-guard).
 
 ## 2026-06-25 — post-deploy hardening
 With the app live, hardened + verified further: **prod re-verified** (all 6 role logins + per-role
