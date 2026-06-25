@@ -145,6 +145,29 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
     .single();
   if (planErr || !plan) return { ok: false, error: planErr?.message ?? "الخطة غير موجودة" };
 
+  // CREATE-2: idempotency (same class as CREATE-1 #63). A double-submit / network retry would
+  // otherwise create a DUPLICATE planned operation + a second material requirement — over-counting
+  // planned demand (conservative: the engine over-recommends, never masks a shortage). Find-or-create:
+  // if an operation for this plan with the same natural key (subtype + planned_at) already carries a
+  // requirement for this item, reuse it instead of inserting a duplicate.
+  // (Conservative residual: a truly concurrent pair of calls could still both create, which only
+  // over-counts demand. A fully race-safe guard would need a DB constraint spanning plan_operations
+  // (plan_id, subtype, planned_at) and plan_material_requirements.item_id.)
+  const { data: existingOps } = await sb
+    .from("plan_operations")
+    .select("id, plan_material_requirements(item_id)")
+    .eq("plan_id", planId)
+    .eq("subtype", input.subtype)
+    .eq("planned_at", input.planned_at);
+  const dupe = (existingOps ?? []).find((o) =>
+    ((o.plan_material_requirements ?? []) as { item_id: string }[]).some(
+      (r) => r.item_id === input.item_id,
+    ),
+  );
+  if (dupe) {
+    return { ok: true, operationId: dupe.id, deduped: true };
+  }
+
   const { data: op, error: opErr } = await sb
     .from("plan_operations")
     .insert({
