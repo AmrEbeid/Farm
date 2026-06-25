@@ -10,7 +10,7 @@ db` (full reset). Status legend: ✅ fixed + verified (PR open) · 📝 document
 
 - `@amrebeid/ui`: typecheck clean, `tsup` build clean, token-purity clean, **231 vitest/jest-axe tests pass**.
 - `apps/farm-os`: `tsc --noEmit` clean, **18 vitest pass**, `next build` OK (19 routes), eslint **fixed to clean** (PR #43).
-- DB: **pgTAP green** at every step — 78/78 (baseline) → 84/84 (append-only + SoD-guard) → 92/92 (EXE-1) → 94/94 (ENGINE-DC TODO regression) → 97/97 (RCP-1) → **97/97 with test `14` a real pass** (ENGINE-DC fix, migration `0018`). After every step run `supabase db reset` first (the invariant tests assume the pristine seed).
+- DB: **pgTAP green** at every step — 78/78 (baseline) → 84/84 (append-only + SoD-guard) → 92/92 (EXE-1) → 94/94 (ENGINE-DC TODO) → 97/97 (RCP-1) → 97/97 test `14` real pass (ENGINE-DC fix `0018`) → 100/100 (test `16` engine round-trip) → **103/103** (test `17` AUDIT-1, migration `0019`). 17 test files. After every step run `supabase db reset` first (the invariant tests assume the pristine seed).
 
 ## Fixed this pass — all **MERGED to `main`** (prod DB push still Owner-gated)
 
@@ -22,6 +22,7 @@ db` (full reset). Status legend: ✅ fixed + verified (PR open) · 📝 document
 | **RCP-1** | MED–HIGH (integrity) | EXE-1's twin — `recordReceipt` posted a `receipt` movement per item then flipped the PR `received` with **no precondition**, so a double-submit re-posted every receipt → **phantom stock IN** (`on_hand` inflated). Fixed **claim-first** — flip `approved→received` guarded by `status='approved'`, abort if no row, before any movement (also adds the missing precondition). pgTAP test `15` + wedge-loop. | #57 ✅ |
 | **ENGINE-DC** | MED–HIGH (correctness) | `fn_stock_coverage` seeded `available` from `on_hand` (Σ **all** receipt movements via `fn_bin_rebuild`) **and** re-projected `receipt` movements dated `>= period_start` forward → any received receipt counted **twice** → optimistic PAB that could **hide a real shortage** (SPEC-0001 #1 risk). Prototyping a `current_date` cut-line proved it's a *data-model* problem (broke test `06` Case C), so **direction #2**: source scheduled receipts from **approved purchase_requests (open POs)**, never the actual-movement ledger — disjoint from `on_hand` by construction (on receipt the PR flips `→received` as a receipt movement enters `on_hand`). Migration `0018`; test `06` re-modeled onto POs; regression test `14` un-TODO'd. | #61 ✅ |
 | **CREATE-1** | LOW (integrity) | `createPurchaseRequestFromShortage` inserted a new draft PR + posted a `reserve` on every call → a double-submit made duplicate draft PRs + an extra reservation (conservative — over-reserves, can't mask a shortage). Fixed **find-or-create**: reuse an existing open (draft/submitted) PR that already carries a line for the item instead of creating a duplicate. (Residual: truly-concurrent calls could still both create — over-reserve only; a fully race-safe guard needs a DB constraint.) | #63 ✅ |
+| **AUDIT-1** | LOW (posture) | `organization_member` (membership = privilege) had **no audit trigger** (the generic `fn_audit` keys on `new.id`; it's a composite-PK table). Added a dedicated `fn_audit_org_member` trigger → join/leave/role-change is on the append-only `audit_log` (keyed on `user_id`, full before/after). Migration `0019`; test `17`. | #68 ✅ |
 | (lint) | — | `npm run lint` was red on `main` (1 error + 2 warnings; CI doesn't run lint). Fixed; presentation-only. | #43 ✅ |
 | (finding) | — | Schema-wide direct-DELETE exposure across 28 tenant tables (root cause + tiered remediation). | #45 ✅ |
 
@@ -72,14 +73,18 @@ operation** (issue stock, mark done) directly. This is the same posture as the d
 (see B2 and the DELETE-exposure finding): acceptable for the single reference tenant, tighten with
 the role model before multi-tenant. Recommend gating the execute path on `authorize('op.execute')`
 when the role model lands (mirroring B2's inventory-write gate), keeping execution routed through
-the bypassrls RPCs so supervisors/engineers can still execute.
+the bypassrls RPCs so supervisors/engineers can still execute. **A DRAFT design for closing this —
+[`SPEC-0002-authorization-enforcement.md`](SPEC-0002-authorization-enforcement.md) (#69)** — is now
+in the repo for Owner review: it notes the role model *already exists* (migration `0001`: 6 roles +
+the `authorize()` permission map) so AUTHZ-1 is a *coverage* gap, and proposes generalizing the
+proven B2/`0015` `authorize()`-in-`WITH CHECK` pattern to the execute path. **No code/migration yet
+— Owner ratifies the spec first.**
 
-**AUDIT-1 (related, INFO):** `organization_member` has **no `fn_audit` trigger** (audited tables:
-`purchase_request`, `budget`, `budget_line`, `farm_event`, `expense`, `inventory_movement`). Not a
-current vulnerability — HIGH-1 (migration `0010`) **revoked** client INSERT/UPDATE/DELETE on
-`organization_member` (SELECT-only), so there is no client role-change path to audit; role changes
-happen out-of-band via the admin API. **When role-management UI lands (with the role model), add an
-audit trigger on `organization_member`** so entitlement grants are on the immutable trail.
+**AUDIT-1 — ✅ FIXED (#68, migration `0019`, test `17`).** `organization_member` had no audit
+trigger (the generic `fn_audit` keys on `new.id`, but it's a composite-PK table). A dedicated
+`fn_audit_org_member` trigger now records join/leave/role-change to the append-only `audit_log`
+(keyed on the member's `user_id`, full before/after image) — so the server-side invite/relink flow's
+membership grants are on the immutable trail. (Client writes stay revoked per HIGH-1.)
 
 ### CI-1 (process) — ~~the pgTAP suite is not run in CI~~ **WITHDRAWN — the gate already exists**
 **Correction:** the pgTAP suite **is** gated on every PR/push by a *separate* workflow,
@@ -103,23 +108,25 @@ not a defect. (I opened #50 for it and then closed it once I found `db-tests.yml
 
 ## Status — all fixes merged to `main` (2026-06-25)
 
-#43, #42, #47, #45, #51, **#57**, and **#61** are **merged** (+ docs #49/#54/#55/#58/#59/#60 and the
-ENGINE-DC TODO regression #56); `main` is green (pgTAP **97/97** on a clean reset — test `14` now a
-real pass after the ENGINE-DC fix — + wedge-loop e2e + app/lib CI). Each code fix was independently
-diff-reviewed + locally verified (pgTAP + e2e) before merge (RLS/money/engine paths); #51 also
-incorporated three CodeRabbit data-integrity refinements.
+Code fixes #42 (B2.1), #47 (AP-5), #51 (EXE-1), #57 (RCP-1), #61 (ENGINE-DC), #63 (CREATE-1), #68
+(AUDIT-1) + #43 (lint) are **merged**, with docs #45/#49/#54/#55/#58/#59/#60/#62/#64/#66, the
+ENGINE-DC TODO regression #56, engine round-trip test #67, the runbook prod-push section #65, and the
+**SPEC-0002 authorization-enforcement DRAFT #69**. `main` is green: **pgTAP 103/103** on a clean reset
+(17 test files; ENGINE-DC test `14` a real pass) + wedge-loop e2e + app/lib CI. Each code fix was
+independently diff-reviewed + locally verified (pgTAP + e2e) before merge (RLS/money/engine paths);
+#51 also incorporated three CodeRabbit data-integrity refinements.
 
 **Still Owner-gated — prod DB migration push.** Prod is at migration `0013`; `0015` (B2), `0016`
-(B2.1), `0017` (AP-5), and `0018` (ENGINE-DC) are verified on `main` but **not applied to prod** (a
-prod DB migration is a hard stop per PROJECT RULES). When the Owner is ready, apply
-`0015`→`0016`→`0017`→`0018` in order via [`DEPLOY-RUNBOOK.md`](DEPLOY-RUNBOOK.md). **`0018` changes
-the core stock-coverage engine — the Owner should ratify it specifically before the push.** The app
-runs correctly without these (writes already route through the bypassrls RPCs; `0018` only affects
-the coverage projection's receipt source). *(The RCP-1/EXE-1 app-code fixes are already on `main`,
-deploy on the next Vercel push.)*
+(B2.1), `0017` (AP-5), `0018` (ENGINE-DC), and `0019` (AUDIT-1) are verified on `main` but **not
+applied to prod** (a prod DB migration is a hard stop per PROJECT RULES). When the Owner is ready,
+apply `0015`→`0016`→`0017`→`0018`→`0019` in order via [`DEPLOY-RUNBOOK.md`](DEPLOY-RUNBOOK.md) §1a.
+**`0018` changes the core stock-coverage engine — the Owner should ratify it specifically before the
+push.** The app runs correctly without these (writes already route through the bypassrls RPCs;
+`0018` only affects the coverage projection's receipt source). *(The EXE-1/RCP-1/CREATE-1 app-code
+fixes are already on `main`, deploy on the next Vercel push.)*
 
 **Remaining open findings (all Owner-gated / deferred):** **AUTHZ-1** (execute org-only, not
-role-gated — with the role model; + the related **AUDIT-1** INFO note: add an `organization_member`
-audit trigger when role-management lands), **DEP-1** (`postcss` transitive, build-time only — low),
-**BUD-1** (INFO — budget gate is decision-support, not a hard cap). CI-1 withdrawn (the pgTAP gate
-already exists via `db-tests.yml`).
+role-gated — **DRAFT design in [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) #69 awaiting
+Owner ratification**, then an enforcement migration), **DEP-1** (`postcss` transitive, build-time
+only — low), **BUD-1** (INFO — budget gate is decision-support, not a hard cap). AUDIT-1 fixed
+(#68); CI-1 withdrawn (the pgTAP gate already exists via `db-tests.yml`).

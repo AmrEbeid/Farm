@@ -28,18 +28,22 @@ three more issues, all **merged to `main`** after independent diff review:
   (findings + follow-up docs), **#56** (ENGINE-DC TODO regression test `14` + shim harness honors TAP TODO).
 - **Verified:** **pgTAP 97/97** on a clean reset (test `14` now a real pass post-fix) + Playwright
   wedge-loop e2e + app/lib CI all green.
-- ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017`/`0018` are verified on `main` but a
-  prod `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md`; **`0018` is the
-  core-engine change — ratify it specifically**). App runs without them.
-- Also fixed: **CREATE-1** (#63) — `createPurchaseRequestFromShortage` find-or-create (reuse an open
-  PR for the item+plan instead of duplicating + re-reserving). And **AUDIT-1** noted (INFO):
-  `organization_member` has no audit trigger — not a vuln (client writes revoked), add it with
-  role-management.
-- **Open (Owner-gated / deferred):** **AUTHZ-1** (execute org-only, not role-gated — with the role
-  model), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only, low), **BUD-1** (INFO —
-  budget gate is decision-support + owner-approval, AP-1/AP-5 server-side, no hard DB spend cap;
-  `committed` display-only), **AUDIT-1** (INFO — see above). SoD finding renamed **AP-3→AP-5**
-  (AP-3 was already the PR version-guard).
+- ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017`/`0018`/`0019` are verified on `main`
+  but a prod `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md` §1a; **`0018`
+  is the core-engine change — ratify it specifically**). App runs without them.
+- Also fixed: **CREATE-1** (#63, find-or-create) and **AUDIT-1** (#68, migration `0019`, test `17` —
+  a dedicated `fn_audit_org_member` trigger puts membership/role changes on the append-only audit_log).
+- Test coverage added: **#67** (test `16` engine approve→receive round-trip disjointness), **#56**
+  (test `14` ENGINE-DC). Runbook **#65** documents the gated `0015→0019` prod push. **pgTAP 103/103**
+  (17 files) + wedge-loop e2e green.
+- **SPEC-0002 DRAFT (#69)** — authorization-enforcement design for **AUTHZ-1** (the role model already
+  exists in migration `0001`; AUTHZ-1 is a coverage gap; proposes generalizing the B2/`0015`
+  `authorize()`-in-`WITH CHECK` pattern to the execute path). **Awaiting Owner ratification — no
+  code/migration yet.**
+- **Open (Owner-gated / deferred):** **AUTHZ-1** (SPEC-0002 draft → Owner ratify → enforcement
+  migration), **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only, low), **BUD-1**
+  (INFO — budget gate is decision-support, AP-1/AP-5 server-side, no hard DB spend cap). SoD finding
+  renamed **AP-3→AP-5** (AP-3 was already the PR version-guard).
 
 ## 2026-06-25 — post-deploy hardening
 With the app live, hardened + verified further: **prod re-verified** (all 6 role logins + per-role
