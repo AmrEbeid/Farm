@@ -11,7 +11,9 @@
 > `>= period_start`, can mask a real shortage; fix is a core-engine data-model decision, recommend
 > sourcing scheduled receipts from approved PRs/POs; TODO regression test `14` in place), **AUTHZ-1**
 > (execute org-only, not role-gated), **CREATE-1** (PR-create not idempotent — low, conservative),
-> **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only). SoD finding renamed AP-3→AP-5
+> **DEP-1** (`postcss<8.5.10` transitive via `next`, build-time only), **BUD-1** (INFO — the budget
+> gate is decision-support + owner-approval, not a hard DB spend cap; `committed` is display-only).
+> SoD finding renamed AP-3→AP-5
 > (AP-3 = the PR version-guard). Detail:
 > [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
 

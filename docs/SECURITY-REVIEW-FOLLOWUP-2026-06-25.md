@@ -44,6 +44,21 @@ from `on_hand` by construction) rather than from the actual-movement ledger, and
 Case C to the new model. Needs independent review + full pgTAP + the Playwright wedge-loop (the
 engine is the product's core IP and a PROJECT-RULES review-required area).
 
+### BUD-1 (INFO, financial control) — the budget gate is decision-support, not a hard DB gate
+The budget "gate" (`budget/[planId]/check/page.tsx`) computes a verdict (`ok` / `approval-needed` /
+`block`) and **routes** over-threshold PRs to owner approval — but nothing **server-side** blocks an
+owner from approving an over-budget PR. The enforced financial controls are **AP-1** (only an owner
+can approve, `authorize('pr.approve')`) and **AP-5** (the requester can't approve) — both in the
+`pr_update` RLS policy; the budget figure is **decision support** the owner sees before deciding (a
+legitimate "owner may override budget" reality). Also: `budgets/budget_lines.committed` is
+**display-only** in MVP-0 — it is read on the dashboard/check page but **never written** on
+approval/receipt (the seed supplies the numbers; the wedge's `thisOp` cost is hardcoded for the
+demo). **Not a defect** — it matches the single-tenant MVP scope — but the Owner should know the
+budget is informational, not an enforced spend cap. If a hard cap is wanted later: increment
+`committed` on approval (in a transactional RPC) and add a `WITH CHECK`/trigger that rejects an
+approval exceeding `approved − committed − actual`, with a pgTAP case. Needs the role/budget design
++ independent review (money logic).
+
 ### CREATE-1 (LOW, integrity) — `createPurchaseRequestFromShortage` is not idempotent
 The reserve/PR-create action (`inventory/[itemId]/coverage/actions.ts`) inserts a new draft PR +
 line item and posts a `reserve` movement on every call, with no idempotency token — so a
