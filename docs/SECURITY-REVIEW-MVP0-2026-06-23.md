@@ -62,7 +62,19 @@ of the JS read-modify-write, and fold in `reserved` reconciliation (D2). Left fo
 stack so the Playwright wedge-loop (the exact flow these actions drive) re-verifies it before
 the app switches over.
 
-### B2 (MED, authorization) — inventory writes are not role-gated
+### B2 (MED, authorization) — inventory writes are not role-gated  ✅ RESOLVED (2026-06-25)
+**Fixed** in migration `0015`: `inventory_bin`/`inventory_movements` writes now require
+`authorize('inventory.write')` (owner/farm_manager/storekeeper) via the `tenant_all` WITH CHECK;
+reads stay open to the org. This closes a real hole — previously any authenticated org member
+could forge stock by POSTing directly to `/rest/v1/inventory_movements`. **Why it works now:**
+post-B1/D2 every app inventory write goes through the bypassrls `fn_post_movement` RPC, so the
+receipt/issue/reserve/release flow — incl. execution by supervisors/engineers who lack
+`inventory.write` — is unaffected; only ad-hoc direct-table writes are gated. Verified: **pgTAP
+78/78** (test `10` pins it: supervisor direct-insert denied, can still read + issue via the RPC;
+storekeeper can write) **+ the Playwright wedge-loop e2e passes** with the gate on. (The earlier
+2026-06-23 attempt regressed the e2e only because the *old* actions did direct table writes as the
+authenticated user.) Original finding below:
+
 `inventory_bin`/`inventory_movements` use the blanket `tenant_all` policy (org-only). The
 intended model (`authorize('inventory.write')` = owner/farm_manager/storekeeper, migration
 0001) is **not enforced** in RLS or in the actions — any org member can mutate stock. The
