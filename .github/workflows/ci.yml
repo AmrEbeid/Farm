@@ -106,3 +106,32 @@ jobs:
 
       - name: Build (next build --webpack)
         run: npm run build --workspace farm-os
+
+  db-tests:
+    name: db · pgTAP (RLS · audit · engine · security)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The pgTAP suite (RLS isolation, audit immutability, the stock-coverage engine, the
+      # security-remediation regressions, inventory role-gate/ledger) is the only gate on the
+      # database security model — it was previously runnable only on a developer's Docker stack.
+      # ubuntu-latest ships Docker, so the standard Supabase local stack runs here unchanged.
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase stack
+        working-directory: apps/farm-os
+        run: supabase start
+
+      - name: Reset DB (apply migrations + Ebeid seed)
+        # Deterministic pristine seed — the invariant tests (03) assume the canonical seed state.
+        working-directory: apps/farm-os
+        run: supabase db reset
+
+      - name: pgTAP suite (supabase test db)
+        working-directory: apps/farm-os
+        run: supabase test db
