@@ -10,35 +10,19 @@ db` (full reset). Status legend: ✅ fixed + verified (PR open) · 📝 document
 
 - `@amrebeid/ui`: typecheck clean, `tsup` build clean, token-purity clean, **231 vitest/jest-axe tests pass**.
 - `apps/farm-os`: `tsc --noEmit` clean, **18 vitest pass**, `next build` OK (19 routes), eslint **fixed to clean** (PR #43).
-- DB: **pgTAP green** at every step — 78/78 (baseline) → 83/83 (with the append-only fix) → 84/84 (with the SoD-guard fix).
+- DB: **pgTAP green** at every step — 78/78 (baseline) → 83/83 (append-only) → 84/84 (SoD-guard) → **92/92** (EXE-1 claim test). After every step run `supabase db reset` first (the invariant tests assume the pristine seed).
 
-## Fixed this pass (PRs open for Owner review — not merged/deployed)
+## Fixed this pass — all **MERGED to `main`** (prod DB push still Owner-gated)
 
 | Id | Sev | Finding | PR |
 |----|-----|---------|----|
-| **B2.1** | HIGH (integrity) | The stock ledger was directly **DELETE-able** by any org member. B2's `FOR ALL` policy gated INSERT/UPDATE via `WITH CHECK`, but DELETE is governed by `USING` alone, and the blanket `0009` grant still gave `authenticated` DELETE. Confirmed: a supervisor deleted all of an org's movements. Fixed by `revoke delete … from authenticated` (migration `0016`) → append-only ledger; pgTAP test `11`. | #42 |
-| **AP-3** | MED–HIGH (financial control + audit) | PR **self-approval bypass**: `pr_update`'s AP-2 check (`requested_by <> auth.uid()`) reads the NEW row, which the same UPDATE can mutate — so an owner-author self-approved by rewriting `requested_by` to another member in one statement (also falsifying provenance). Confirmed on the DB. Fixed by a `BEFORE UPDATE` trigger that freezes `requested_by` and stamps `approved_by`/`approved_at` from the session (migration `0017`); pgTAP test `12`. | #47 |
-| (lint) | — | `npm run lint` was red on `main` (1 error + 2 warnings; CI doesn't run lint). Fixed; presentation-only. | #43 |
-| (finding) | — | Schema-wide direct-DELETE exposure across 28 tenant tables (root cause + tiered remediation). | #45 |
+| **B2.1** | HIGH (integrity) | The stock ledger was directly **DELETE-able** by any org member. B2's `FOR ALL` policy gated INSERT/UPDATE via `WITH CHECK`, but DELETE is governed by `USING` alone, and the blanket `0009` grant still gave `authenticated` DELETE. Confirmed: a supervisor deleted all of an org's movements. Fixed by `revoke delete … from authenticated` (migration `0016`) → append-only ledger; pgTAP test `11`. | #42 ✅ |
+| **AP-3** | MED–HIGH (financial control + audit) | PR **self-approval bypass**: `pr_update`'s AP-2 check (`requested_by <> auth.uid()`) reads the NEW row, which the same UPDATE can mutate — so an owner-author self-approved by rewriting `requested_by` to another member in one statement (also falsifying provenance). Confirmed on the DB. Fixed by a `BEFORE UPDATE` trigger that freezes `requested_by` and stamps `approved_by`/`approved_at` from the session (migration `0017`); pgTAP test `12`. | #47 ✅ |
+| **EXE-1** | MED (integrity) | `executeOperation` was **not idempotent**: a double-submit/retry/concurrent POST bypassed the page's "done" guard and re-ran the whole issue/release path (double stock loss, over-release, duplicate `done` event). Fixed **claim-first** — flip `status→done` as the first write guarded by `status <> 'done'`, abort if no row, before any stock movement; revert the claim only before anything is persisted. pgTAP test `13` + Playwright wedge-loop. | #51 ✅ |
+| (lint) | — | `npm run lint` was red on `main` (1 error + 2 warnings; CI doesn't run lint). Fixed; presentation-only. | #43 ✅ |
+| (finding) | — | Schema-wide direct-DELETE exposure across 28 tenant tables (root cause + tiered remediation). | #45 ✅ |
 
 ## Open findings — documented, fix is Owner-gated
-
-### EXE-1 (MED, integrity) — `executeOperation` is not idempotent at the server boundary
-`executeOperation` ([m/execute/[opId]/actions.ts:24](apps/farm-os/app/(app)/m/execute/[opId]/actions.ts))
-reads the operation **without a status precondition** and issues stock + releases the reservation
-**before** flipping `plan_operations.status` to `done` — and the flip is an unconditional
-`update … where id = opId` (no `status` guard). The execute *page* hides the form when
-`status = 'done'`, but a server action is a POST endpoint: a **double-submit, network retry, or
-concurrent call bypasses the page** and runs the whole issue/release path again →
-- `inventory_bin.on_hand` drops twice (real stock lost), a second `issue` movement is logged;
-- a second `release` is posted (over-release of the reservation);
-- a duplicate `done` farm_event is recorded.
-**Recommended fix (e2e-gated):** *claim-first* — make the status flip the gating step:
-`update plan_operations set status='done' where id = :id and status <> 'done' returning id`, and
-**abort if no row is returned**, before any stock movement. (A fully race-safe version wraps the
-execution in a single transactional RPC, like `fn_post_movement` did for the bin arithmetic.) Must
-re-run the Playwright wedge-loop (the exact flow this action drives) before shipping — left
-Owner-gated for that reason, not fixed blind.
 
 ### AUTHZ-1 (LOW–MED, posture) — `op.execute`/role gates are claimed but not enforced at RLS
 `executeOperation`'s docstring says "RLS-scoped (op.execute role …)", but the action only calls
@@ -64,12 +48,17 @@ LEVEL SECURITY, PostgREST/GoTrue, or the Playwright e2e — the authoritative `s
 that, but it's a slow/Docker tradeoff the project chose against on purpose; it's the Owner's call,
 not a defect. (I opened #50 for it and then closed it once I found `db-tests.yml`.)
 
-## Suggested merge order for the Owner
+## Status — all five PRs merged to `main` (2026-06-25)
 
-1. **#43** (lint) — trivial, unblocks a green `npm run lint`.
-2. **#42** (B2.1 append-only ledger) and **#47** (AP-3 SoD guard) — both Owner-gated RLS/access
-   changes; independent of each other (migrations `0016` vs `0017`). Apply the migrations to prod via
-   `DEPLOY-RUNBOOK.md` (prod was at `0013`; `0015` already verified-not-applied — sequence the new
-   ones accordingly).
-3. **#45** + this doc — the documented findings; action EXE-1/AUTHZ-1 with the role-model decision.
-   (CI-1 withdrawn — the pgTAP gate already exists via `db-tests.yml`.)
+#43, #42, #47, #45, and #51 are **merged**; `main` is green (pgTAP **92/92** on a clean reset +
+wedge-loop e2e + app/lib CI). Each was independently diff-reviewed before merge (RLS/money paths)
+and #51 also incorporated three CodeRabbit data-integrity refinements.
+
+**Still Owner-gated — prod DB migration push.** Prod is at migration `0013`; `0015` (B2), `0016`
+(B2.1), and `0017` (AP-3) are verified on `main` but **not applied to prod** (a prod DB migration is
+a hard stop per PROJECT RULES). When the Owner is ready, apply `0015`→`0016`→`0017` in order via
+[`DEPLOY-RUNBOOK.md`](DEPLOY-RUNBOOK.md). The app runs correctly without them (writes already route
+through the bypassrls RPCs); they tighten direct-REST access.
+
+**Remaining open finding:** AUTHZ-1 (execute is org-only, not role-gated) — deferred with the role
+model, same as B2/B3. CI-1 withdrawn (the pgTAP gate already exists via `db-tests.yml`).
