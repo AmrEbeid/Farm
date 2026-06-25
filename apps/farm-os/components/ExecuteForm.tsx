@@ -23,7 +23,9 @@ export function ExecuteForm({
 
   return (
     <div className="flex flex-col gap-4">
-      {error && <Alert tone="danger" title={error} />}
+      <div aria-live="assertive" aria-atomic="true">
+        {error && <Alert tone="danger" title={error} />}
+      </div>
       <FormRow id="qty" label={`الكمية المستخدمة (${unit})`}>
         <Input type="number" inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} />
       </FormRow>

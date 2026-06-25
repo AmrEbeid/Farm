@@ -12,7 +12,9 @@ export function PlanChecksRunner({ planId }: { planId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {error && <Alert tone="danger" title={error} />}
+      <div aria-live="assertive" aria-atomic="true">
+        {error && <Alert tone="danger" title={error} />}
+      </div>
       <Button
         variant="ghost"
         loading={pending}

@@ -83,7 +83,9 @@ export function OperationBuilder({
         }
       >
         <div className="flex flex-col gap-4">
-          {error && <p style={{ color: "var(--danger,#b91c1c)" }}>{error}</p>}
+          <div role="alert" aria-live="assertive" aria-atomic="true">
+            {error && <p style={{ color: "var(--danger,#b91c1c)" }}>{error}</p>}
+          </div>
           <FormRow id="subtype" label="نوع العملية">
             <Select
               options={subtypeOptions}
