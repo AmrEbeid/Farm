@@ -71,7 +71,9 @@ export default function LoginPage() {
         <p style={{ color: "var(--ink-muted)" }}>نظام تشغيل المزارع — مزارع عبيد</p>
       </header>
 
-      {message && <Alert tone={tone} title={message} />}
+      <div aria-live="polite" aria-atomic="true">
+        {message && <Alert tone={tone} title={message} />}
+      </div>
 
       <form onSubmit={signIn} className="flex flex-col gap-4">
         <Field label="البريد الإلكتروني" id="email">

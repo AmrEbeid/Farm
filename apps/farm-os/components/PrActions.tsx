@@ -37,7 +37,9 @@ export function PrActions({
 
   return (
     <div className="flex flex-col gap-3">
-      {error && <Alert tone="danger" title={error} />}
+      <div aria-live="assertive" aria-atomic="true">
+        {error && <Alert tone="danger" title={error} />}
+      </div>
       <div className="flex flex-wrap gap-2">
         {status === "draft" && (
           <Button variant="primary" loading={pending} onClick={() => run(() => submitPurchaseRequest(prId))}>
