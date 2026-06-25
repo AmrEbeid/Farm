@@ -17,10 +17,21 @@ export default meta;
 type S = StoryObj<typeof Timeline>;
 
 export const Default: S = {};
+
+// All marker tones, including `danger` (rejections/failures) and the
+// neutral `default`, which the realistic Default story above never exercises.
+const allTones: TimelineItem[] = [
+  { id: "t1", title: "حدث افتراضي", time: "٠٨:٠٠", icon: "•", description: "بدون لون (default)" },
+  { id: "t2", title: "معلومة", time: "٠٩:٠٠", tone: "info", icon: "i" },
+  { id: "t3", title: "نجاح", time: "١٠:٠٠", tone: "success", icon: "✓" },
+  { id: "t4", title: "تحذير", time: "١١:٠٠", tone: "warning", icon: "!" },
+  { id: "t5", title: "خطأ", time: "١٢:٠٠", tone: "danger", icon: "✕", description: "رُفض الطلب" },
+];
+
 export const Gallery: S = {
   render: () => (
     <div style={{ maxWidth: 420 }}>
-      <Timeline items={items} aria-label="سجل العمليات" />
+      <Timeline items={allTones} aria-label="نغمات السجل" />
     </div>
   ),
 };
