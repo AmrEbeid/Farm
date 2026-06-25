@@ -64,6 +64,36 @@ LEVEL SECURITY, PostgREST/GoTrue, or the Playwright e2e — the authoritative `s
 that, but it's a slow/Docker tradeoff the project chose against on purpose; it's the Owner's call,
 not a defect. (I opened #50 for it and then closed it once I found `db-tests.yml`.)
 
+### DEP-1 (LOW, dependency) — `postcss < 8.5.10` (transitive via `next`)
+`npm audit --omit=dev` reports **2 moderate** advisories: `postcss < 8.5.10`
+([GHSA-qx2v-qp2m-jg93](https://github.com/advisories/GHSA-qx2v-qp2m-jg93), XSS via an unescaped
+`</style>` in CSS-stringify output), pulled in transitively by `next`. Real-world risk here is
+**low** — postcss runs at **build time** over the app's own Tailwind/CSS, not untrusted input.
+`npm audit fix --force` proposes a bogus **downgrade to `next@9`** — do not run it. The advisory
+range covers `next` through `16.3.0-canary.5`, so a patch bump likely won't clear it; the clean fix
+is an npm `overrides` entry `"postcss": "^8.5.10"` (the root `package.json` already uses `overrides`).
+**Left for the Owner** — touch the dependency tree only with a full `next build` + Vercel deploy
+re-verify, given how fragile the Linux-native / Tailwind-v4 build chain was to stabilize (PRs #22–#33).
+Low urgency.
+
+## Repo hygiene (clean bill)
+- **No committed secrets:** no `.env*` tracked; no JWTs (`eyJ…`), connection strings with embedded
+  credentials, or hardcoded passwords/keys in tracked files. (The 🔴 "exposed secret" risk in the
+  tracker is the *legacy* accounting sheet + the keys pasted in the deploy chat — Owner rotates at
+  project end; the repo itself is clean.)
+- **Auth layer sound:** `lib/auth.ts` uses `auth.getUser()` (verified, not cookie-trusted),
+  RLS-scoped reads, role checks redirect. `approvePurchaseRequest` is idempotent
+  (`status='submitted'` + `version` precondition) — the contrast that made EXE-1 stand out.
+- **Budget checks are advisory by design:** `runPlanChecks` persists `ok/warn/block` to
+  `plan_checks` for the manager's judgment; nothing hard-blocks an over-budget plan (the wedge is
+  decision-support, not a hard gate).
+
+## Naming note (AP-5)
+This pass labelled the PR self-approval finding **AP-5** (originally written as "AP-3" in #47, since
+corrected here). The codebase already uses AP-1 (owner-only), AP-2 (author ≠ approver), **AP-3 (the
+optimistic version / stale guard in `approvePurchaseRequest`)**, AP-4 (audit immutability) — so the
+self-approval guard is AP-5 to avoid conflating two distinct controls.
+
 ## Suggested merge order for the Owner
 
 1. **#43** (lint) — trivial, unblocks a green `npm run lint`.
