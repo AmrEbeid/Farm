@@ -692,3 +692,21 @@
 .fos-approval--rejected .fos-approval__marker { background:var(--danger-fg); }
 .fos-approval--rejected { border-color:color-mix(in srgb, var(--danger-fg) 30%, var(--surface)); }
 
+/* ---- Reduced motion ---- */
+/* Honour the user's prefers-reduced-motion: reduce setting. Collapse all
+   non-essential transitions and animations to near-instant so content still
+   appears (opacity/visibility resolve immediately) but nothing slides, pops,
+   spins or shimmers. Durations are kept just above 0 so transitionend /
+   animationiteration handlers still fire. Looping indicators (spinner,
+   shimmer, progress) are simply stopped. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+    scroll-behavior:auto !important;
+  }
+  .fos-btn__spinner, .fos-iconbtn__spinner { animation:none !important; }
+  .fos-skeleton { animation:none !important; }
+}
+
