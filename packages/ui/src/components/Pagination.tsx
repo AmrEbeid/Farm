@@ -37,6 +37,7 @@ export function Pagination({
         className="fos-pagination__nav"
         onClick={() => go(page - 1)}
         disabled={page <= 1}
+        aria-label={prevLabel == null ? "Previous" : undefined}
       >
         {prevLabel}
       </button>
@@ -59,6 +60,7 @@ export function Pagination({
         className="fos-pagination__nav"
         onClick={() => go(page + 1)}
         disabled={page >= count}
+        aria-label={nextLabel == null ? "Next" : undefined}
       >
         {nextLabel}
       </button>

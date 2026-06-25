@@ -33,6 +33,23 @@ describe("Pagination", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it("gives prev/next an accessible-name fallback when labels are omitted", () => {
+    render(<Pagination page={2} pageCount={5} onChange={() => {}} ariaLabel="ترقيم" />);
+    expect(screen.getByRole("button", { name: "Previous" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+  });
+
+  it("prefers a provided prev/next label over the fallback", () => {
+    render(<Pagination page={2} pageCount={5} onChange={() => {}} ariaLabel="ترقيم" prevLabel="السابق" nextLabel="التالي" />);
+    expect(screen.getByRole("button", { name: "السابق" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Previous" })).toBeNull();
+  });
+
+  it("has no axe violations when prev/next labels are omitted", async () => {
+    const { container } = render(<Pagination page={2} pageCount={5} onChange={() => {}} ariaLabel="ترقيم" />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   // A non-finite pageCount must not crash (Array.from({length: Infinity}) throws RangeError).
   it("renders no page buttons (instead of crashing) for a non-finite pageCount", () => {
     const { container } = render(

@@ -1,10 +1,10 @@
-import * as React20 from 'react';
+import * as React22 from 'react';
 import { jsxs, jsx, Fragment } from 'react/jsx-runtime';
 import { createPortal } from 'react-dom';
 import { ResponsiveContainer, BarChart as BarChart$1, CartesianGrid, XAxis, YAxis, Tooltip as Tooltip$1, Legend, Bar, LineChart as LineChart$1, Line, PieChart, Pie, Cell } from 'recharts';
 
 // src/components/Button.tsx
-var Button = React20.forwardRef(function Button2({ variant = "primary", size = "md", loading = false, icon, disabled, children, className = "", ...rest }, ref) {
+var Button = React22.forwardRef(function Button2({ variant = "primary", size = "md", loading = false, icon, disabled, children, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsxs(
     "button",
     {
@@ -88,19 +88,28 @@ function Progress({ value, tone = "default", label, className = "", ...rest }) {
   );
 }
 function Field({ label, id, error, children, placeholder }) {
+  const errorId = `${id}-err`;
+  let control = children;
+  if (children != null && React22.isValidElement(children) && error) {
+    const childProps = children.props;
+    control = React22.cloneElement(children, {
+      "aria-invalid": childProps["aria-invalid"] ?? true,
+      "aria-describedby": childProps["aria-describedby"] ? `${childProps["aria-describedby"]} ${errorId}` : errorId
+    });
+  }
   return /* @__PURE__ */ jsxs("div", { className: "fos-field", children: [
     /* @__PURE__ */ jsx("label", { className: "fos-field__label", htmlFor: id, children: label }),
-    children ?? /* @__PURE__ */ jsx(
+    control ?? /* @__PURE__ */ jsx(
       "input",
       {
         id,
         className: "fos-field__control",
         placeholder,
         "aria-invalid": error ? true : void 0,
-        "aria-describedby": error ? `${id}-err` : void 0
+        "aria-describedby": error ? errorId : void 0
       }
     ),
-    error && /* @__PURE__ */ jsx("div", { className: "fos-field__error", id: `${id}-err`, children: error })
+    error && /* @__PURE__ */ jsx("div", { className: "fos-field__error", id: errorId, children: error })
   ] });
 }
 var DEFAULT_ICON = { ok: "\u2705", warning: "\u26A0\uFE0F", danger: "\u26D4" };
@@ -110,20 +119,66 @@ function VerdictBanner({ tone = "ok", icon, children, className = "", ...rest })
     /* @__PURE__ */ jsx("span", { children })
   ] });
 }
-function Tabs({ items, value, onChange, ariaLabel }) {
-  return /* @__PURE__ */ jsx("div", { className: "fos-tabs", role: "tablist", "aria-label": ariaLabel, children: items.map((it) => /* @__PURE__ */ jsx(
-    "button",
-    {
-      role: "tab",
-      "aria-selected": it.id === value,
-      className: `fos-tabs__tab${it.id === value ? " fos-tabs__tab--active" : ""}`,
-      onClick: () => onChange(it.id),
-      children: it.label
-    },
-    it.id
-  )) });
+function tabId(id) {
+  return `fos-tab-${id}`;
 }
-var IconButton = React20.forwardRef(function IconButton2({ label, variant = "ghost", size = "md", loading = false, disabled, children, className = "", ...rest }, ref) {
+function tabPanelId(id) {
+  return `fos-tabpanel-${id}`;
+}
+function Tabs({ items, value, onChange, ariaLabel }) {
+  const listRef = React22.useRef(null);
+  const focusTabAt = (index) => {
+    const tabs = listRef.current?.querySelectorAll('[role="tab"]');
+    tabs?.[index]?.focus();
+  };
+  const onKeyDown = (e) => {
+    const count = items.length;
+    if (count === 0) return;
+    const current = items.findIndex((it) => it.id === value);
+    if (current < 0) return;
+    const isRtl = typeof window !== "undefined" && listRef.current ? window.getComputedStyle(listRef.current).direction === "rtl" : false;
+    const forwardKey = isRtl ? "ArrowLeft" : "ArrowRight";
+    const backwardKey = isRtl ? "ArrowRight" : "ArrowLeft";
+    let next = null;
+    if (e.key === forwardKey) next = (current + 1) % count;
+    else if (e.key === backwardKey) next = (current - 1 + count) % count;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = count - 1;
+    if (next === null) return;
+    e.preventDefault();
+    const nextId = items[next].id;
+    if (nextId !== value) onChange(nextId);
+    focusTabAt(next);
+  };
+  return /* @__PURE__ */ jsx(
+    "div",
+    {
+      ref: listRef,
+      className: "fos-tabs",
+      role: "tablist",
+      "aria-label": ariaLabel,
+      onKeyDown,
+      children: items.map((it) => {
+        const active = it.id === value;
+        return /* @__PURE__ */ jsx(
+          "button",
+          {
+            id: tabId(it.id),
+            role: "tab",
+            "aria-selected": active,
+            "aria-controls": tabPanelId(it.id),
+            tabIndex: active ? 0 : -1,
+            className: `fos-tabs__tab${active ? " fos-tabs__tab--active" : ""}`,
+            onClick: () => onChange(it.id),
+            children: it.label
+          },
+          it.id
+        );
+      })
+    }
+  );
+}
+var IconButton = React22.forwardRef(function IconButton2({ label, variant = "ghost", size = "md", loading = false, disabled, children, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsx(
     "button",
     {
@@ -139,7 +194,7 @@ var IconButton = React20.forwardRef(function IconButton2({ label, variant = "gho
     }
   );
 });
-var Input = React20.forwardRef(function Input2({ inputSize = "md", invalid, className = "", type = "text", ...rest }, ref) {
+var Input = React22.forwardRef(function Input2({ inputSize = "md", invalid, className = "", type = "text", ...rest }, ref) {
   return /* @__PURE__ */ jsx(
     "input",
     {
@@ -151,7 +206,7 @@ var Input = React20.forwardRef(function Input2({ inputSize = "md", invalid, clas
     }
   );
 });
-var Textarea = React20.forwardRef(function Textarea2({ invalid, rows = 3, className = "", ...rest }, ref) {
+var Textarea = React22.forwardRef(function Textarea2({ invalid, rows = 3, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsx(
     "textarea",
     {
@@ -168,7 +223,7 @@ function clamp(n, min, max) {
   if (max != null && n > max) return max;
   return n;
 }
-var NumberField = React20.forwardRef(function NumberField2({
+var NumberField = React22.forwardRef(function NumberField2({
   value,
   defaultValue,
   onValueChange,
@@ -183,7 +238,7 @@ var NumberField = React20.forwardRef(function NumberField2({
   ...rest
 }, ref) {
   const isControlled = value !== void 0;
-  const [inner, setInner] = React20.useState(defaultValue ?? "");
+  const [inner, setInner] = React22.useState(defaultValue ?? "");
   const current = isControlled ? value : inner;
   const commit = (next) => {
     if (!isControlled) setInner(next);
@@ -238,7 +293,7 @@ var NumberField = React20.forwardRef(function NumberField2({
     )
   ] });
 });
-var Select = React20.forwardRef(function Select2({ options, placeholder, selectSize = "md", invalid, className = "", defaultValue, value, ...rest }, ref) {
+var Select = React22.forwardRef(function Select2({ options, placeholder, selectSize = "md", invalid, className = "", defaultValue, value, ...rest }, ref) {
   return /* @__PURE__ */ jsxs(
     "select",
     {
@@ -256,7 +311,7 @@ var Select = React20.forwardRef(function Select2({ options, placeholder, selectS
   );
 });
 var uid = 0;
-var Combobox = React20.forwardRef(function Combobox2({
+var Combobox = React22.forwardRef(function Combobox2({
   options,
   value,
   onValueChange,
@@ -268,13 +323,13 @@ var Combobox = React20.forwardRef(function Combobox2({
   ...aria
 }, ref) {
   const isControlled = value !== void 0;
-  const [inner, setInner] = React20.useState("");
+  const [inner, setInner] = React22.useState("");
   const text = isControlled ? value : inner;
-  const [open, setOpen] = React20.useState(false);
-  const [active, setActive] = React20.useState(-1);
-  const baseId = React20.useMemo(() => id ?? `fos-combobox-${++uid}`, [id]);
+  const [open, setOpen] = React22.useState(false);
+  const [active, setActive] = React22.useState(-1);
+  const baseId = React22.useMemo(() => id ?? `fos-combobox-${++uid}`, [id]);
   const listId = `${baseId}-listbox`;
-  const filtered = React20.useMemo(
+  const filtered = React22.useMemo(
     () => options.filter((o) => o.label.includes(text.trim()) || text.trim() === ""),
     [options, text]
   );
@@ -359,8 +414,8 @@ var Combobox = React20.forwardRef(function Combobox2({
   ] });
 });
 var uid2 = 0;
-var Checkbox = React20.forwardRef(function Checkbox2({ label, invalid, id, disabled, className = "", ...rest }, ref) {
-  const autoId = React20.useMemo(() => id ?? `fos-checkbox-${++uid2}`, [id]);
+var Checkbox = React22.forwardRef(function Checkbox2({ label, invalid, id, disabled, className = "", ...rest }, ref) {
+  const autoId = React22.useMemo(() => id ?? `fos-checkbox-${++uid2}`, [id]);
   return /* @__PURE__ */ jsxs("label", { className: `fos-checkbox ${className}`.trim(), "data-disabled": disabled || void 0, children: [
     /* @__PURE__ */ jsx(
       "input",
@@ -391,9 +446,9 @@ function RadioGroup({
   className = ""
 }) {
   const isControlled = value !== void 0;
-  const [inner, setInner] = React20.useState(defaultValue ?? "");
+  const [inner, setInner] = React22.useState(defaultValue ?? "");
   const current = isControlled ? value : inner;
-  const groupId = React20.useMemo(() => `fos-radio-${++uid3}`, []);
+  const groupId = React22.useMemo(() => `fos-radio-${++uid3}`, []);
   const onChange = (next) => {
     if (!isControlled) setInner(next);
     onValueChange?.(next);
@@ -430,9 +485,9 @@ function RadioGroup({
     }
   );
 }
-var Switch = React20.forwardRef(function Switch2({ label, checked, defaultChecked, onCheckedChange, disabled, className = "", ...rest }, ref) {
+var Switch = React22.forwardRef(function Switch2({ label, checked, defaultChecked, onCheckedChange, disabled, className = "", ...rest }, ref) {
   const isControlled = checked !== void 0;
-  const [inner, setInner] = React20.useState(defaultChecked ?? false);
+  const [inner, setInner] = React22.useState(defaultChecked ?? false);
   const on = isControlled ? checked : inner;
   const toggle = () => {
     const next = !on;
@@ -456,7 +511,7 @@ var Switch = React20.forwardRef(function Switch2({ label, checked, defaultChecke
     }
   );
 });
-var DateField = React20.forwardRef(function DateField2({ fieldSize = "md", invalid, className = "", ...rest }, ref) {
+var DateField = React22.forwardRef(function DateField2({ fieldSize = "md", invalid, className = "", ...rest }, ref) {
   return /* @__PURE__ */ jsx(
     "input",
     {
@@ -484,7 +539,7 @@ function FormRow({ id, label, help, error, required, children }) {
   const helpId = help != null ? `${id}-help` : void 0;
   const errorId = error != null ? `${id}-error` : void 0;
   const describedBy = [helpId, errorId].filter(Boolean).join(" ") || void 0;
-  const control = React20.cloneElement(children, {
+  const control = React22.cloneElement(children, {
     id,
     required: required || children.props.required,
     "aria-invalid": error != null ? true : children.props["aria-invalid"],
@@ -623,10 +678,10 @@ function initialsOf(name) {
   if (parts.length === 1) return parts[0].slice(0, 2);
   return (parts[0][0] ?? "") + (parts[parts.length - 1][0] ?? "");
 }
-var Avatar = React20.forwardRef(function Avatar2({ name, src, size = "md", className = "", ...rest }, ref) {
+var Avatar = React22.forwardRef(function Avatar2({ name, src, size = "md", className = "", ...rest }, ref) {
   const safeSrc = safeImgSrc(src);
-  const [failed, setFailed] = React20.useState(false);
-  React20.useEffect(() => setFailed(false), [safeSrc]);
+  const [failed, setFailed] = React22.useState(false);
+  React22.useEffect(() => setFailed(false), [safeSrc]);
   const showImg = safeSrc != null && !failed;
   return /* @__PURE__ */ jsx(
     "span",
@@ -642,12 +697,12 @@ var Avatar = React20.forwardRef(function Avatar2({ name, src, size = "md", class
 });
 var tooltipSeq = 0;
 function Tooltip({ label, placement = "top", children }) {
-  const [open, setOpen] = React20.useState(false);
-  const id = React20.useMemo(() => `fos-tip-${++tooltipSeq}`, []);
+  const [open, setOpen] = React22.useState(false);
+  const id = React22.useMemo(() => `fos-tip-${++tooltipSeq}`, []);
   const show = () => setOpen(true);
   const hide = () => setOpen(false);
-  const child = React20.Children.only(children);
-  const trigger = React20.cloneElement(child, {
+  const child = React22.Children.only(children);
+  const trigger = React22.cloneElement(child, {
     "aria-describedby": open ? id : child.props["aria-describedby"],
     onMouseEnter: (e) => {
       show();
@@ -686,7 +741,7 @@ function Pagination({
   ...rest
 }) {
   const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
-  const pages = React20.useMemo(
+  const pages = React22.useMemo(
     () => Array.from({ length: count }, (_, i) => i + 1),
     [count]
   );
@@ -701,6 +756,7 @@ function Pagination({
         className: "fos-pagination__nav",
         onClick: () => go(page - 1),
         disabled: page <= 1,
+        "aria-label": prevLabel == null ? "Previous" : void 0,
         children: prevLabel
       }
     ),
@@ -721,6 +777,7 @@ function Pagination({
         className: "fos-pagination__nav",
         onClick: () => go(page + 1),
         disabled: page >= count,
+        "aria-label": nextLabel == null ? "Next" : void 0,
         children: nextLabel
       }
     )
@@ -778,8 +835,8 @@ function brandVars(hex) {
   const contrast = lum > 0.6 ? "#0c1f12" : "#ffffff";
   return { "--brand": hex.toLowerCase(), "--brand-hover": hover, "--brand-contrast": contrast };
 }
-var ThemeContext = React20.createContext({ scheme: "light", density: "comfortable", radius: "default", brandStyle: {} });
-var useTheme = () => React20.useContext(ThemeContext);
+var ThemeContext = React22.createContext({ scheme: "light", density: "comfortable", radius: "default", brandStyle: {} });
+var useTheme = () => React22.useContext(ThemeContext);
 function ThemeProvider({
   scheme = "light",
   density = "comfortable",
@@ -788,7 +845,7 @@ function ThemeProvider({
   className = "",
   children
 }) {
-  const style = React20.useMemo(() => {
+  const style = React22.useMemo(() => {
     if (!brand) return {};
     try {
       return brandVars(brand);
@@ -796,7 +853,7 @@ function ThemeProvider({
       return {};
     }
   }, [brand]);
-  const value = React20.useMemo(
+  const value = React22.useMemo(
     () => ({ scheme, density, radius, brand, brandStyle: style }),
     [scheme, density, radius, brand, style]
   );
@@ -814,11 +871,11 @@ function focusable(root) {
   return Array.from(root.querySelectorAll(FOCUSABLE)).filter(isVisible);
 }
 function useOverlay({ open, onClose, closeOnEsc = true }) {
-  const ref = React20.useRef(null);
-  const restoreRef = React20.useRef(null);
-  const onCloseRef = React20.useRef(onClose);
+  const ref = React22.useRef(null);
+  const restoreRef = React22.useRef(null);
+  const onCloseRef = React22.useRef(onClose);
   onCloseRef.current = onClose;
-  React20.useEffect(() => {
+  React22.useEffect(() => {
     if (!open) return;
     restoreRef.current = document.activeElement;
     const panel = ref.current;
@@ -874,7 +931,7 @@ function Modal({
 }) {
   const theme = useTheme();
   const { ref } = useOverlay({ open, onClose, closeOnEsc });
-  const titleId = React20.useId();
+  const titleId = React22.useId();
   if (!open) return null;
   return createPortal(
     /* @__PURE__ */ jsx("div", { className: "fos", "data-theme": theme.scheme, "data-density": theme.density, "data-radius": theme.radius, style: theme.brandStyle, children: /* @__PURE__ */ jsx(
@@ -897,7 +954,7 @@ function Modal({
             children: [
               (title != null || closeLabel != null) && /* @__PURE__ */ jsxs("div", { className: "fos-modal__header", children: [
                 title != null && /* @__PURE__ */ jsx("h2", { id: titleId, className: "fos-modal__title", children: title }),
-                closeLabel != null && /* @__PURE__ */ jsx("button", { type: "button", className: "fos-modal__close", "aria-label": closeLabel, onClick: onClose, children: "\u2715" })
+                closeLabel != null && /* @__PURE__ */ jsx("button", { type: "button", className: "fos-modal__close", "aria-label": closeLabel || "Close", onClick: onClose, children: "\u2715" })
               ] }),
               /* @__PURE__ */ jsx("div", { className: "fos-modal__body", children }),
               footer != null && /* @__PURE__ */ jsx("div", { className: "fos-modal__footer", children: footer })
@@ -925,7 +982,7 @@ function Drawer({
 }) {
   const theme = useTheme();
   const { ref } = useOverlay({ open, onClose, closeOnEsc });
-  const titleId = React20.useId();
+  const titleId = React22.useId();
   if (!open) return null;
   return createPortal(
     /* @__PURE__ */ jsx("div", { className: "fos", "data-theme": theme.scheme, "data-density": theme.density, "data-radius": theme.radius, style: theme.brandStyle, children: /* @__PURE__ */ jsx(
@@ -948,7 +1005,7 @@ function Drawer({
             children: [
               (title != null || closeLabel != null) && /* @__PURE__ */ jsxs("div", { className: "fos-drawer__header", children: [
                 title != null && /* @__PURE__ */ jsx("h2", { id: titleId, className: "fos-drawer__title", children: title }),
-                closeLabel != null && /* @__PURE__ */ jsx("button", { type: "button", className: "fos-drawer__close", "aria-label": closeLabel, onClick: onClose, children: "\u2715" })
+                closeLabel != null && /* @__PURE__ */ jsx("button", { type: "button", className: "fos-drawer__close", "aria-label": closeLabel || "Close", onClick: onClose, children: "\u2715" })
               ] }),
               /* @__PURE__ */ jsx("div", { className: "fos-drawer__body", children }),
               footer != null && /* @__PURE__ */ jsx("div", { className: "fos-drawer__footer", children: footer })
@@ -1006,11 +1063,11 @@ function reducer(state, action) {
       return [];
   }
 }
-var ToastContext = React20.createContext(null);
+var ToastContext = React22.createContext(null);
 var seq = 0;
 function ToastProvider({ children, max = 4 }) {
-  const [toasts, dispatch] = React20.useReducer(reducer, []);
-  const api = React20.useMemo(() => {
+  const [toasts, dispatch] = React22.useReducer(reducer, []);
+  const api = React22.useMemo(() => {
     const push = (opts) => {
       const id = `fos-toast-${++seq}`;
       dispatch({ type: "add", toast: { duration: 4500, tone: "info", ...opts, id }, max });
@@ -1027,19 +1084,19 @@ function ToastProvider({ children, max = 4 }) {
       danger: shorthand("danger")
     };
   }, [max]);
-  const value = React20.useMemo(() => ({ toasts, api }), [toasts, api]);
+  const value = React22.useMemo(() => ({ toasts, api }), [toasts, api]);
   return /* @__PURE__ */ jsxs(ToastContext.Provider, { value, children: [
     children,
     /* @__PURE__ */ jsx(Toaster, {})
   ] });
 }
 function useToast() {
-  const ctx = React20.useContext(ToastContext);
+  const ctx = React22.useContext(ToastContext);
   if (!ctx) throw new Error("useToast must be used within a <ToastProvider>");
   return ctx.api;
 }
 function Toaster() {
-  const ctx = React20.useContext(ToastContext);
+  const ctx = React22.useContext(ToastContext);
   const theme = useTheme();
   if (!ctx || typeof document === "undefined") return null;
   const { toasts, api } = ctx;
@@ -1060,11 +1117,11 @@ function Toaster() {
 }
 function ToastItem({ toast, onDismiss }) {
   const { tone = "info", duration = 4500 } = toast;
-  const paused = React20.useRef(false);
-  const elRef = React20.useRef(null);
-  const dismissRef = React20.useRef(onDismiss);
+  const paused = React22.useRef(false);
+  const elRef = React22.useRef(null);
+  const dismissRef = React22.useRef(onDismiss);
   dismissRef.current = onDismiss;
-  React20.useEffect(() => {
+  React22.useEffect(() => {
     if (duration <= 0) return;
     let remaining = duration;
     let start = Date.now();
@@ -1106,7 +1163,7 @@ function ToastItem({ toast, onDismiss }) {
     /* @__PURE__ */ jsx("button", { type: "button", className: "fos-toast__close", "aria-label": "\u2715", onClick: onDismiss, children: "\u2715" })
   ] });
 }
-var NavItem = React20.forwardRef(function NavItem2({ item, active = false, onSelect, className = "", onClick, ...rest }, ref) {
+var NavItem = React22.forwardRef(function NavItem2({ item, active = false, onSelect, className = "", onClick, ...rest }, ref) {
   return /* @__PURE__ */ jsxs(
     "a",
     {
@@ -1165,8 +1222,8 @@ function Breadcrumbs({
   }) }) });
 }
 var uid4 = 0;
-var SearchInput = React20.forwardRef(function SearchInput2({ label, value, onValueChange, icon, onSubmitSearch, className = "", id, onKeyDown, ...rest }, ref) {
-  const reactId = React20.useId?.() ?? `fos-search-${++uid4}`;
+var SearchInput = React22.forwardRef(function SearchInput2({ label, value, onValueChange, icon, onSubmitSearch, className = "", id, onKeyDown, ...rest }, ref) {
+  const reactId = React22.useId?.() ?? `fos-search-${++uid4}`;
   const inputId = id ?? reactId;
   return /* @__PURE__ */ jsxs("div", { className: `fos-search ${className}`.trim(), role: "search", children: [
     /* @__PURE__ */ jsx("label", { className: "fos-search__label", htmlFor: inputId, children: label }),
@@ -1190,8 +1247,8 @@ var SearchInput = React20.forwardRef(function SearchInput2({ label, value, onVal
   ] });
 });
 var uid5 = 0;
-var RoleSwitcher = React20.forwardRef(function RoleSwitcher2({ options, value, onRoleChange, label, className = "", id, ...rest }, ref) {
-  const reactId = React20.useId?.() ?? `fos-role-${++uid5}`;
+var RoleSwitcher = React22.forwardRef(function RoleSwitcher2({ options, value, onRoleChange, label, className = "", id, ...rest }, ref) {
+  const reactId = React22.useId?.() ?? `fos-role-${++uid5}`;
   const selectId = id ?? reactId;
   return /* @__PURE__ */ jsxs("div", { className: `fos-roleswitcher ${className}`.trim(), children: [
     /* @__PURE__ */ jsx("label", { className: "fos-roleswitcher__label", htmlFor: selectId, children: label }),
@@ -1225,16 +1282,16 @@ function AppShell({
   ...rest
 }) {
   const isControlled = sidebarOpen !== void 0;
-  const [internalOpen, setInternalOpen] = React20.useState(false);
+  const [internalOpen, setInternalOpen] = React22.useState(false);
   const open = isControlled ? sidebarOpen : internalOpen;
-  const setOpen = React20.useCallback(
+  const setOpen = React22.useCallback(
     (next) => {
       if (!isControlled) setInternalOpen(next);
       onSidebarOpenChange?.(next);
     },
     [isControlled, onSidebarOpenChange]
   );
-  React20.useEffect(() => {
+  React22.useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
       if (e.key === "Escape") setOpen(false);
@@ -1327,8 +1384,8 @@ function resolve(el) {
   };
 }
 function useChartTokens(ref) {
-  const [tokens, setTokens] = React20.useState(EMPTY);
-  React20.useEffect(() => {
+  const [tokens, setTokens] = React22.useState(EMPTY);
+  React22.useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const update = () => setTokens(resolve(el));
@@ -1373,7 +1430,7 @@ function BarChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React20.useRef(null);
+  const ref = React22.useRef(null);
   const t = useChartTokens(ref);
   const stackId = stacked ? "stack" : void 0;
   return /* @__PURE__ */ jsxs(
@@ -1468,7 +1525,7 @@ function LineChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React20.useRef(null);
+  const ref = React22.useRef(null);
   const t = useChartTokens(ref);
   return /* @__PURE__ */ jsxs(
     "div",
@@ -1545,7 +1602,7 @@ function DoughnutChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React20.useRef(null);
+  const ref = React22.useRef(null);
   const t = useChartTokens(ref);
   const outer = Math.round(height / 2 * 0.8);
   const inner = Math.round(outer * innerRatio);
@@ -1765,4 +1822,4 @@ function ApprovalChain({ steps, ariaLabel, className = "", ...rest }) {
   )) });
 }
 
-export { Alert, AppShell, ApprovalChain, Avatar, BarChart, Breadcrumbs, Button, Card, Checkbox, Combobox, ConfirmDialog, DataTable, DateField, DescriptionList, Dialog, DoughnutChart, Drawer, EmptyState, Field, FieldError, FileTimeline, FormRow, Help, IconButton, Input, KpiCard, Label, LineChart, LoopStepper, Modal, NavItem, NumberField, Pagination, PalmCell, PalmGrid, PhaseCard, Progress, RadioGroup, RoleSwitcher, SearchInput, Select, Sheet, SidebarNav, Skeleton, Stat, StatusPill, Switch, Tabs, Tag, Textarea, ThemeProvider, Timeline, ToastProvider, Toaster, Tooltip, VerdictBanner, brandVars, useChartTokens, useTheme, useToast };
+export { Alert, AppShell, ApprovalChain, Avatar, BarChart, Breadcrumbs, Button, Card, Checkbox, Combobox, ConfirmDialog, DataTable, DateField, DescriptionList, Dialog, DoughnutChart, Drawer, EmptyState, Field, FieldError, FileTimeline, FormRow, Help, IconButton, Input, KpiCard, Label, LineChart, LoopStepper, Modal, NavItem, NumberField, Pagination, PalmCell, PalmGrid, PhaseCard, Progress, RadioGroup, RoleSwitcher, SearchInput, Select, Sheet, SidebarNav, Skeleton, Stat, StatusPill, Switch, Tabs, Tag, Textarea, ThemeProvider, Timeline, ToastProvider, Toaster, Tooltip, VerdictBanner, brandVars, tabId, tabPanelId, useChartTokens, useTheme, useToast };

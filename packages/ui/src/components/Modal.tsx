@@ -58,7 +58,7 @@ export function Modal({
             <div className="fos-modal__header">
               {title != null && <h2 id={titleId} className="fos-modal__title">{title}</h2>}
               {closeLabel != null && (
-                <button type="button" className="fos-modal__close" aria-label={closeLabel} onClick={onClose}>
+                <button type="button" className="fos-modal__close" aria-label={closeLabel || "Close"} onClick={onClose}>
                   ✕
                 </button>
               )}

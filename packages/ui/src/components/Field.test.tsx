@@ -29,8 +29,49 @@ describe("Field", () => {
     expect(err).toHaveTextContent("قيمة غير صالحة");
   });
 
+  it("injects aria-invalid + aria-describedby into a custom child control on error", () => {
+    render(
+      <Field label="نوع" id="kind" error="قيمة غير صالحة">
+        <select id="kind"><option>أ</option></select>
+      </Field>
+    );
+    const control = screen.getByLabelText("نوع");
+    expect(control.tagName).toBe("SELECT");
+    expect(control).toHaveAttribute("aria-invalid", "true");
+    expect(control).toHaveAttribute("aria-describedby", "kind-err");
+  });
+
+  it("does not set error attributes on custom children when there is no error", () => {
+    render(
+      <Field label="نوع" id="kind">
+        <select id="kind"><option>أ</option></select>
+      </Field>
+    );
+    const control = screen.getByLabelText("نوع");
+    expect(control).not.toHaveAttribute("aria-invalid");
+    expect(control).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("appends to a child's existing aria-describedby rather than overwriting it", () => {
+    render(
+      <Field label="نوع" id="kind" error="خطأ">
+        <input id="kind" aria-describedby="hint" />
+      </Field>
+    );
+    expect(screen.getByLabelText("نوع")).toHaveAttribute("aria-describedby", "hint kind-err");
+  });
+
   it("has no axe violations", async () => {
     const { container } = render(<Field label="الاسم" id="name" />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("has no axe violations with a custom child control in an error state", async () => {
+    const { container } = render(
+      <Field label="نوع" id="kind" error="قيمة غير صالحة">
+        <select id="kind"><option>أ</option></select>
+      </Field>
+    );
     expect(await axe(container)).toHaveNoViolations();
   });
 });

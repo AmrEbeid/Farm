@@ -67,6 +67,15 @@ describe("Modal", () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  it("falls back to a 'Close' accessible name when closeLabel is an empty string", () => {
+    render(
+      <ThemeProvider>
+        <Modal open onClose={() => {}} title="ت" closeLabel="">x</Modal>
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  });
+
   // HIGH-1: the modal portals to document.body (outside the provider subtree), so it must
   // re-apply the tenant brand var or white-label themes would not reach modal content.
   it("propagates the tenant brand var onto its portal root", () => {

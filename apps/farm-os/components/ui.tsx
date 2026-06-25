@@ -30,6 +30,8 @@ export {
   Progress,
   VerdictBanner,
   Tabs,
+  tabId,
+  tabPanelId,
   DataTable,
   DescriptionList,
   Timeline,

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import {
   Tabs,
+  tabId,
+  tabPanelId,
   Card,
   DescriptionList,
   FileTimeline,
@@ -39,29 +41,35 @@ export function SectorFile({
       />
 
       {tab === "overview" && (
-        <Card title="بيانات القطاع">
-          <DescriptionList layout="inline" items={meta} />
-        </Card>
+        <div role="tabpanel" id={tabPanelId("overview")} aria-labelledby={tabId("overview")} tabIndex={0}>
+          <Card title="بيانات القطاع">
+            <DescriptionList layout="inline" items={meta} />
+          </Card>
+        </div>
       )}
 
       {tab === "timeline" && (
-        <Card title="سجل العمليات">
-          {events.length === 0 ? (
-            <EmptyState title="لا توجد عمليات مسجّلة بعد" />
-          ) : (
-            <FileTimeline events={events} ariaLabel={`السجل الزمني لـ ${name}`} />
-          )}
-        </Card>
+        <div role="tabpanel" id={tabPanelId("timeline")} aria-labelledby={tabId("timeline")} tabIndex={0}>
+          <Card title="سجل العمليات">
+            {events.length === 0 ? (
+              <EmptyState title="لا توجد عمليات مسجّلة بعد" />
+            ) : (
+              <FileTimeline events={events} ariaLabel={`السجل الزمني لـ ${name}`} />
+            )}
+          </Card>
+        </div>
       )}
 
       {tab === "palms" && (
-        <Card title="خريطة النخيل — حوشة 2">
-          {palmLines.length === 0 ? (
-            <EmptyState title="لا توجد نخيل مسجّلة" />
-          ) : (
-            <PalmGrid lines={palmLines} ariaLabel={`خريطة نخيل ${name}`} />
-          )}
-        </Card>
+        <div role="tabpanel" id={tabPanelId("palms")} aria-labelledby={tabId("palms")} tabIndex={0}>
+          <Card title="خريطة النخيل — حوشة 2">
+            {palmLines.length === 0 ? (
+              <EmptyState title="لا توجد نخيل مسجّلة" />
+            ) : (
+              <PalmGrid lines={palmLines} ariaLabel={`خريطة نخيل ${name}`} />
+            )}
+          </Card>
+        </div>
       )}
     </div>
   );
