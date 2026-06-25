@@ -58,7 +58,7 @@ needing 500 kg).
 
 ## Readiness checklist before the first interview
 - [ ] App deployed (or local stack ready) — `DEPLOY-RUNBOOK.md`.
-- [ ] Phone-OTP working for field roles, or email/password demo accounts ready.
+- [ ] Email/password demo accounts ready (auth is email + password — phone-OTP removed).
 - [ ] The seeded wedge scenario loads and the demo script runs end-to-end (it does — e2e green).
 - [ ] Arabic-RTL verified on a real phone for the supervisor step.
 - [ ] Stage 0 closed if any real farm data will be loaded.

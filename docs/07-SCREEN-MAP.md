@@ -6,7 +6,7 @@ Legend for permissions: O=owner, M=manager, E=engineer, A=accountant, S=storekee
 ---
 
 ### ⭐ Login + Role
-- **Purpose:** authenticate; pick active org (consultants) and land on role homepage. **Users:** all. **Fields:** phone, OTP, org selector, role badge. **Actions:** sign in, switch org. **Permissions:** public→authenticated. **Empty state:** n/a. **Mobile:** full-screen, large inputs, OTP autofill.
+- **Purpose:** authenticate; pick active org (consultants) and land on role homepage. **Users:** all. **Fields:** email, password, org selector, role badge. **Actions:** sign in, switch org. **Permissions:** public→authenticated. **Empty state:** n/a. **Mobile:** full-screen, large inputs. *(Auth is email + password — phone-OTP removed.)*
 
 ### ⭐ Owner Dashboard
 - **Purpose:** decisions at a glance — profit, approvals, risks. **Users:** O. **Fields:** profit-to-date, sales/expense, **pending approvals**, stock risks, critical issues, weather risks, delayed ops, best/worst sector. **Actions:** open approval, drill into a sector, run owner report. **Permissions:** O view; A read-only finance. **Empty state:** "No data yet — finish farm setup." **Mobile:** stacked KPI cards, approvals first.

@@ -41,12 +41,11 @@ session rules). Farm OS needs its own isolated project.
   Amr account, not Zeal). Once decided, I can pre-write all config (env, `vercel.json`, migration
   apply steps) — I just won't provision/deploy without your go-ahead.
 
-### 2. Phone-OTP auth provider
-Auth is currently email/password for seeded roles; the phone-OTP UI is a skeleton (field roles
-need phone login). Supabase Auth needs an SMS provider.
-- **Recommendation:** **Twilio Verify** (well-supported by Supabase, pay-per-OTP, cheap at pilot
-  volume). Egypt SMS delivery should be validated in the pilot.
-- **Need from you:** approve Twilio (or name a preferred SMS provider) + an account.
+### 2. Phone-OTP auth provider  ✅ RESOLVED — dropped (2026-06-25)
+**Resolved: phone-OTP is dropped from MVP-0; auth is email + password only.** No SMS provider /
+Twilio is needed. The phone-OTP UI skeleton has been removed; `[auth.sms]` stays disabled in
+`supabase/config.toml`. (The `phone` field in the seed remains as a demo-linking key + contact
+data — it is not auth.)
 
 ### 3. Legacy Stage 0 — secret remediation  (**still OPEN; Critical**)
 The legacy system has an **exposed anon key + project id (old repo)** and **Gmail/password in the
@@ -95,7 +94,7 @@ writes go through the org-guarded `fn_post_movement`).
 - **Pilot:** schedule the **5 design-partner farm interviews**; track the ≥5-of-7 H1–H4 gates.
 
 ## Recommended sequence to "finish"
-1. **You:** decide #1 (infra owner) + #2 (Twilio) → I pre-write all deploy config.
+1. **You:** decide #1 (infra owner) → I pre-write all deploy config. (#2 resolved — email/password only.)
 2. **You:** run Stage 0 remediation (#3) using my runbook (gates real data).
 3. **Me:** ship B3 *date* now; implement B3 *price* once #4 is decided.
 4. **Me (on your go):** provision + deploy to the dedicated Supabase + Vercel; smoke-test.

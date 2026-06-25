@@ -21,6 +21,8 @@ out-of-band and must be rotated (see "Security follow-ups").
   (`owner@ebeid.test`, `manager@…`, `engineer@…`, `accountant@…`, `supervisor@…`,
   `storekeeper@…`) and relinked to the tenant rows. Login confirmed working (password-grant returns
   a token). The shared demo password was delivered out-of-band — **rotate before any non-demo use.**
+  *(2026-06-25: auth is **email + password only** — phone-OTP / Twilio removed from MVP-0 scope;
+  `[auth.sms]` stays disabled.)*
 
 ## Security follow-ups (REQUIRED — credentials were shared in chat)
 1. **Reset the Supabase DB password** (Settings → Database) — it was used over chat for `db push`.
