@@ -7,10 +7,13 @@ export default async function InventoryListPage() {
   await requireMembership();
   const sb = await createClient();
 
-  const { data: items } = await sb
+  const { data: items, error } = await sb
     .from("inventory_items")
     .select("id, name, category, unit, min_stock, reorder_point, inventory_bin(on_hand, reserved)")
     .order("name");
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (error) throw error;
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "الصنف" },

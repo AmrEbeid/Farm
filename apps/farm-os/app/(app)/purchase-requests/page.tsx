@@ -15,10 +15,13 @@ export default async function PurchaseRequestsPage() {
   await requireMembership();
   const sb = await createClient();
 
-  const { data: prs } = await sb
+  const { data: prs, error } = await sb
     .from("purchase_requests")
     .select("id, code, status, reason, needed_by")
     .order("code", { ascending: false });
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (error) throw error;
 
   const columns: SimpleColumn[] = [
     { id: "code", header: "الرمز" },

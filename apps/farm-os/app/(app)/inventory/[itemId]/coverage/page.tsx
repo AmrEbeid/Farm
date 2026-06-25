@@ -32,11 +32,14 @@ export default async function CoveragePage({
   await requireMembership();
   const sb = await createClient();
 
-  const { data: item } = await sb
+  const { data: item, error: itemError } = await sb
     .from("inventory_items")
     .select("name, unit")
     .eq("id", itemId)
     .maybeSingle();
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page. (The RPC below already handles its own error.)
+  if (itemError) throw itemError;
 
   const { data, error } = await sb.rpc("fn_stock_coverage", {
     p_item: itemId,

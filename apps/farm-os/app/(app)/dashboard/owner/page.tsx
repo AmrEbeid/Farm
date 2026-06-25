@@ -18,17 +18,22 @@ export default async function OwnerDashboard() {
   const sb = await createClient();
 
   // Independent reads, issued in parallel.
-  const [{ data: prs }, { data: lines }] = await Promise.all([
-    sb
-      .from("purchase_requests")
-      .select("id, code, status, reason")
-      .order("code", { ascending: false }),
-    // Scope budget_lines to the caller's org so this stays correct once a 2nd org exists.
-    sb
-      .from("budget_lines")
-      .select("category, approved, committed, actual")
-      .eq("org_id", m.orgId),
-  ]);
+  const [{ data: prs, error: prsError }, { data: lines, error: linesError }] =
+    await Promise.all([
+      sb
+        .from("purchase_requests")
+        .select("id, code, status, reason")
+        .order("code", { ascending: false }),
+      // Scope budget_lines to the caller's org so this stays correct once a 2nd org exists.
+      sb
+        .from("budget_lines")
+        .select("category, approved, committed, actual")
+        .eq("org_id", m.orgId),
+    ]);
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (prsError) throw prsError;
+  if (linesError) throw linesError;
 
   const pending = (prs ?? []).filter((p) => p.status === "submitted");
   const overLines = (lines ?? []).filter(

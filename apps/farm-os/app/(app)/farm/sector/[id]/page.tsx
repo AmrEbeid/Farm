@@ -42,24 +42,31 @@ export default async function SectorFilePage({
   // the sector id and independent of each other, so fetch them in parallel. The
   // farm_event read below is dependent (it filters by the ids from locs), so it
   // stays sequential.
-  const [{ data: sector }, { data: locs }, { data: assets }] = await Promise.all(
-    [
-      sb
-        .from("sectors")
-        .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
-        .eq("id", id)
-        .maybeSingle(),
-      // timeline from done/planned farm_events located in this sector (FF-1 rollup)
-      sb.from("event_locations").select("event_id").eq("sector_id", id),
-      // palm grid: assets in this sector, grouped by line
-      sb
-        .from("assets")
-        .select("id, id_tag, status, sex, line_id, lines(line_no)")
-        .eq("sector_id", id)
-        .eq("type", "palm")
-        .order("id_tag"),
-    ],
-  );
+  const [
+    { data: sector, error: sectorError },
+    { data: locs, error: locsError },
+    { data: assets, error: assetsError },
+  ] = await Promise.all([
+    sb
+      .from("sectors")
+      .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
+      .eq("id", id)
+      .maybeSingle(),
+    // timeline from done/planned farm_events located in this sector (FF-1 rollup)
+    sb.from("event_locations").select("event_id").eq("sector_id", id),
+    // palm grid: assets in this sector, grouped by line
+    sb
+      .from("assets")
+      .select("id, id_tag, status, sex, line_id, lines(line_no)")
+      .eq("sector_id", id)
+      .eq("type", "palm")
+      .order("id_tag"),
+  ]);
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (sectorError) throw sectorError;
+  if (locsError) throw locsError;
+  if (assetsError) throw assetsError;
 
   if (!sector) return <div className="p-6">القطاع غير موجود.</div>;
 
@@ -68,13 +75,14 @@ export default async function SectorFilePage({
   const male = hawshat.reduce((s, h) => s + Number(h.palm_count_male ?? 0), 0);
 
   const eventIds = (locs ?? []).map((l) => l.event_id);
-  const { data: events } = eventIds.length
+  const { data: events, error: eventsError } = eventIds.length
     ? await sb
         .from("farm_event")
         .select("id, subtype, status, occurred_at, notes")
         .in("id", eventIds)
         .order("occurred_at", { ascending: false })
-    : { data: [] };
+    : { data: [], error: null };
+  if (eventsError) throw eventsError;
 
   const timeline: TimelineEvent[] = (events ?? []).map((e) => ({
     id: e.id,

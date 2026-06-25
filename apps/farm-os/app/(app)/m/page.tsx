@@ -27,10 +27,13 @@ export default async function MobileHomePage({
   const m = await requireMembership();
   const sb = await createClient();
 
-  const { data: ops } = await sb
+  const { data: ops, error } = await sb
     .from("plan_operations")
     .select("id, subtype, planned_at, est_cost, status")
     .order("planned_at");
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (error) throw error;
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 p-4">

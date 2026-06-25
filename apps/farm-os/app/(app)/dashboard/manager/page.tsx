@@ -18,17 +18,22 @@ export default async function ManagerDashboard() {
   const sb = await createClient();
 
   // Independent reads, issued in parallel.
-  const [{ data: ops }, { data: checks }] = await Promise.all([
-    sb
-      .from("plan_operations")
-      .select("id, subtype, planned_at, est_cost, status")
-      .eq("plan_id", SEED_PLAN_ID)
-      .order("planned_at"),
-    sb
-      .from("plan_checks")
-      .select("kind, result")
-      .eq("plan_id", SEED_PLAN_ID),
-  ]);
+  const [{ data: ops, error: opsError }, { data: checks, error: checksError }] =
+    await Promise.all([
+      sb
+        .from("plan_operations")
+        .select("id, subtype, planned_at, est_cost, status")
+        .eq("plan_id", SEED_PLAN_ID)
+        .order("planned_at"),
+      sb
+        .from("plan_checks")
+        .select("kind, result")
+        .eq("plan_id", SEED_PLAN_ID),
+    ]);
+  // Surface DB read failures to the segment error boundary instead of rendering
+  // a misleading empty page.
+  if (opsError) throw opsError;
+  if (checksError) throw checksError;
 
   const total = (ops ?? []).length;
   const done = (ops ?? []).filter((o) => o.status === "done").length;
