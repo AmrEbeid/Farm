@@ -1,0 +1,38 @@
+-- Farm OS MVP-0 — #158: close the forgeable ENGINE-DC bypass by making the stock ledger
+-- INSERT-only through the SECURITY DEFINER RPCs (no client direct INSERT).
+--
+-- CONFIRMED EXPLOIT (local probe, 2026-06-25). The 0026/0029 double-count guard
+-- `inv_guard_receipt_no_open_po` skips its check when `current_setting('app.posting_receipt') = '1'`
+-- (the trusted-path marker `fn_post_receipt` sets txn-locally). Custom `app.*` GUCs are
+-- CLIENT-SETTABLE, so any authenticated `inventory.write` member (owner/farm_manager/storekeeper) can:
+--     select set_config('app.posting_receipt','1', true);
+--     insert into public.inventory_movements (... type='receipt' ...);   -- direct REST insert
+-- and land a double-counting receipt past the guard while the approved PO is still projected — the
+-- exact disjointness violation 0026/0029 exist to prevent. (Probe: baseline plain direct receipt is
+-- rejected 23514; the same insert with the GUC set SUCCEEDS.)
+--
+-- Fix: REVOKE INSERT on inventory_movements from authenticated|anon — symmetric to the 0016 DELETE
+-- and 0022 UPDATE revokes (the ledger was already DELETE/UPDATE-immutable; this makes it INSERT-only
+-- via the RPC path too). All writes already route through the bypassrls RPCs
+-- (`fn_post_movement` / `fn_post_receipt` / `fn_execute_operation`, owner = postgres → UNAFFECTED by
+-- this client revoke), which gate authorization and, for receipts, flip the PR approved→received
+-- before posting. With no client direct-INSERT, the forgeable GUC marker is unreachable for clients,
+-- so #158 is closed at the privilege layer (42501) rather than relying on the marker.
+--
+-- The guard still matters: a `receipt` posted via the `fn_post_movement` wide door does NOT set the
+-- marker, so the guard still enforces disjointness on that path. This change only removes the
+-- direct-table-INSERT vector.
+--
+-- Safe — confirmed (grep) that NO app path does a direct INSERT into inventory_movements; every write
+-- goes through the RPCs. Reads stay fully open (tenant USING untouched). service_role + table owner
+-- keep their grants. This supersedes the 0015 direct-INSERT role-gate for inventory_movements (that
+-- WITH CHECK is now moot for INSERT — privilege is revoked first — but harmless as defense in depth).
+--
+-- ⚠️ #156 INTERACTION (owner decision at merge): with no client direct-INSERT, an opening-stock /
+-- donation / manual-correction `receipt` for an item that ALSO has an open approved PO has no client
+-- path (fn_post_movement 'receipt' is guard-blocked while that PO is open). If such manual receipts
+-- are a required workflow, pair this with the #156 PR-aware-guard redesign. Flagged, not assumed.
+--
+-- inventory_bin INSERT is intentionally NOT revoked here — it is the derived cache (rebuilt by
+-- fn_bin_rebuild, definer), not the ledger, and is not part of the #158 vector. Out of scope.
+revoke insert on public.inventory_movements from authenticated, anon;
