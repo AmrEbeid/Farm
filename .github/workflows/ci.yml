@@ -90,7 +90,7 @@ jobs:
         # and install from root (no re-nesting), matching the lib job's approach.
         run: |
           pkgs=""
-          for spec in "next:@next/swc-linux-x64-gnu" "@tailwindcss/oxide:@tailwindcss/oxide-linux-x64-gnu" "lightningcss:lightningcss-linux-x64-gnu"; do
+          for spec in "next:@next/swc-linux-x64-gnu" "@tailwindcss/oxide:@tailwindcss/oxide-linux-x64-gnu" "lightningcss:lightningcss-linux-x64-gnu" "rolldown:@rolldown/binding-linux-x64-gnu"; do
             mod="${spec%%:*}"; pkg="${spec#*:}"
             v=$(cd apps/farm-os && node -p "try{require('${mod}/package.json').version}catch(e){''}")
             if [ -n "$v" ]; then pkgs="${pkgs} ${pkg}@${v}"; fi
