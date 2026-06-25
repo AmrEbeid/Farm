@@ -80,9 +80,11 @@ webpack builds).
 ## ✅ LIVE (2026-06-24)
 The app is deployed and working end-to-end on **farm-ui-one.vercel.app** (+ `ebeidfarm.business`),
 backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
-- **Verified live:** `/` 200, `/login` 200, `/dashboard` 307 (auth redirect); a seeded **owner**
-  login returns a session and reads the org «مزارع عبيد» + the 28 hawshat (RLS scoped correctly);
-  anon is denied (GRANT-C1). DB = all 13 migrations + synthetic seed.
+- **Verified live (2026-06-25):** `/` 200, `/login` 200, `/dashboard` 307 (auth redirect); **all 6
+  role logins** succeed and each reads the org «مزارع عبيد» + 28 hawshat (RLS scoped per role);
+  **`fn_stock_coverage` works on prod** (potassium → available 300, shortage, recommend 300kg,
+  Arabic message); dashboard reads correct (6 items / 1 plan / 1 budget / 1 farm); anon denied
+  (GRANT-C1). DB = all 13 migrations + synthetic seed. Also CI now gates the app build (ci.yml `app` job).
 - **Auth:** email/password, **no SMS** (phone-OTP/Twilio dropped per Owner). Six demo accounts
   exist (`<role>@ebeid.test`); the password was given to the Owner directly (NOT committed).
 - **Build chain resolved (the saga):** Vercel Root Directory→`apps/farm-os`; committed `@amrebeid/ui`
