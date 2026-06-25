@@ -1,7 +1,23 @@
 # Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-25 (latest) — independent review (CONC-1 fix + PII-1) + complete SPEC corpus + roadmap
+## 2026-06-25 (latest) — Arabic error-mapping thread closed (#178–#180 merged)
+Finished mapping every RPC-calling field action's Postgres SQLSTATEs to Arabic, so a DB-raised error
+never leaks raw English to field users (non-negotiable #2). All three **merged to `main`**, all CI
+green (app typecheck/lint/test/build, pgTAP, Storybook, CodeRabbit, Vercel):
+- **#178** — `executeOperation`: map `23514` (insufficient stock) → «المخزون غير كافٍ لتنفيذ هذه الكمية».
+- **#179** — `reserve` (coverage): map the reserve-RPC errors → Arabic, consistent with #178.
+- **#180** — `recordReceipt`: map `22023` → «بند في الطلب يحمل كمية غير صالحة». The last raw-message
+  fall-through: a malformed PR line (qty ≤ 0) makes `fn_post_movement` raise `22023` via the
+  `fn_post_receipt` chain (type is the constant `'receipt'`, so `22023` here can only mean bad qty —
+  the message is precise). **App-layer only — no migration, no engine/RLS surface touched.**
+- **State:** all merged; `main` green (HEAD `b0aaf3b`); **no open PRs**. ⚠️ **prod still at `0029`**
+  (unchanged by this thread — these are app-code-only, ship via the Vercel deploy on merge). The prod
+  push of `0030`–`0033` (incl. CONC-1) remains Owner-gated, as do the items below.
+- **Stale branches** (not on critical path): `docs/review-followup-0625` (3 ahead),
+  `fix/pr-approval-sod-bypass` (2 ahead), `fix/74-silent-failures` (0 ahead — safe to delete).
+
+## 2026-06-25 — independent review (CONC-1 fix + PII-1) + complete SPEC corpus + roadmap
 A follow-on session that **reconciled to the advanced `main`** (it had moved to migration `0031` +
 prod `0029` via the 8-agent re-audit; an earlier fork was stale — re-read the repo first) and then:
 - **CONC-1 (fixed, #168, migration `0033`):** the #159 stock floor (`0031`) was a TOCTOU under
