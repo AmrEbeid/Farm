@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contributing & dev setup
+    url: https://github.com/AmrEbeid/Farm/blob/main/CONTRIBUTING.md
+    about: How to develop here — repo layout, tests (vitest + pgTAP), migrations, and PR/CI conventions.
+  - name: Security concern
+    url: https://github.com/AmrEbeid/Farm/blob/main/docs/CLAUDE.md
+    about: Do NOT file secrets, credentials, or real farm/financial data in a public issue. See the project security rules.
