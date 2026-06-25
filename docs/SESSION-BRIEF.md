@@ -1,5 +1,16 @@
-# Session Brief — Farm OS      Updated: 2026-06-24 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-25 — post-deploy hardening
+With the app live, hardened + verified further: **prod re-verified** (all 6 role logins + per-role
+RLS + `fn_stock_coverage` on the live stack); **app build now CI-gated** (`ci.yml` `app` job:
+tsc + vitest + `next build --webpack`, #36); **README refreshed** to live state (#37); **B2 RESOLVED**
+(#39, migration `0015`) — direct REST writes to inventory tables now require `inventory.write`,
+closing a stock-forgery hole; unblocked by B1/D2 (app writes go through the bypassrls RPC). All green:
+**pgTAP 78/78** + e2e + app/lib CI + Vercel. ⚠️ **Prod DB is at migrations 0001–0013**; `0015` (B2) is
+verified on `main` but not yet `db push`ed to prod (prod migration = hard stop / Owner; app runs fine
+without it). Remaining is unchanged: project-end deferred (key rotation, Stage 0, real-data, prod
+db-push of 0015) + decision-gated minors (B3 actual-paid pricing; D1 FORCE RLS — low value).
 
 ## 2026-06-24 — DEPLOYED + LIVE 🎉
 Farm OS MVP-0 is **deployed and verified end-to-end on production**: **farm-ui-one.vercel.app**
