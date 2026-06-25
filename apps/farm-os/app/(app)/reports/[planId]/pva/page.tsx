@@ -3,7 +3,7 @@ import { requireMembership } from "@/lib/auth";
 import { Card, Stat, EmptyState } from "@/components/ui";
 import { VarianceChart } from "@/components/charts";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
-import { egp, num, pct } from "@/lib/money";
+import { egp, num } from "@/lib/money";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",

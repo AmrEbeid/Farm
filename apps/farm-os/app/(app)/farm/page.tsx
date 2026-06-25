@@ -21,26 +21,26 @@ export default async function FarmStructurePage() {
     { id: "male", header: "ذكور", numeric: true },
   ];
 
-  let totalBarhi = 0;
-  let totalMale = 0;
-  let totalHawshat = 0;
-  const rows = (sectors ?? []).map((s) => {
+  const tallied = (sectors ?? []).map((s) => {
     const hawshat = (s.hawshat ?? []) as { palm_count_barhi?: number; palm_count_male?: number }[];
     const barhi = hawshat.reduce((sum, h) => sum + Number(h.palm_count_barhi ?? 0), 0);
     const male = hawshat.reduce((sum, h) => sum + Number(h.palm_count_male ?? 0), 0);
-    totalBarhi += barhi;
-    totalMale += male;
-    totalHawshat += hawshat.length;
-    return {
-      id: s.id,
-      href: `/farm/sector/${s.id}`,
-      name: s.name,
-      code: s.code,
-      hawshat: num(hawshat.length),
-      barhi: num(barhi),
-      male: num(male),
-    };
+    return { id: s.id, name: s.name, code: s.code, hawshatCount: hawshat.length, barhi, male };
   });
+
+  const totalBarhi = tallied.reduce((sum, t) => sum + t.barhi, 0);
+  const totalMale = tallied.reduce((sum, t) => sum + t.male, 0);
+  const totalHawshat = tallied.reduce((sum, t) => sum + t.hawshatCount, 0);
+
+  const rows = tallied.map((t) => ({
+    id: t.id,
+    href: `/farm/sector/${t.id}`,
+    name: t.name,
+    code: t.code,
+    hawshat: num(t.hawshatCount),
+    barhi: num(t.barhi),
+    male: num(t.male),
+  }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
