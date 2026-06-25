@@ -76,7 +76,7 @@ Gmail/password — flag, don't propagate, #6); putting real financials into any 
    `crop`/`season` columns (or a season table) and a sector→crop mapping? Owner decides the model.
 3. **Drawings model** — `expense.kind` enum vs a dedicated `drawings` table. (Recommend the enum:
    minimal, keeps one ledger, trivially excludable.)
-4. **Budget enforcement (#157)** — **Recommended (2026-06-26): two-step.** *Step-1 (done, PR #190):*
+4. **Budget enforcement (#157)** — **Recommended (2026-06-26): two-step.** *Step-1 (shipped in open PR #190, not yet merged):*
    make the gate honest — judge the **real** plan-op cost, not a hardcoded constant (decision-support
    only, no block). *Step-2 (Owner-gated, this stage):* once slice 2 below makes `committed`/`actual`
    live, make the budget a **hard cap with Owner-override + audit**, enforced in the `pr_update` RLS
