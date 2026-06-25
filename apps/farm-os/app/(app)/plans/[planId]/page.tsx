@@ -33,27 +33,25 @@ export default async function MonthlyPlanPage({
   await requireMembership();
   const sb = await createClient();
 
-  const { data: plan } = await sb
-    .from("plans")
-    .select("id, type, period_start, period_end, scope_type, status")
-    .eq("id", planId)
-    .maybeSingle();
-
-  const { data: ops } = await sb
-    .from("plan_operations")
-    .select("id, subtype, planned_at, est_cost, status, approval_needed")
-    .eq("plan_id", planId)
-    .order("planned_at");
-
-  const { data: checks } = await sb
-    .from("plan_checks")
-    .select("kind, result, detail")
-    .eq("plan_id", planId);
-
-  const { data: items } = await sb
-    .from("inventory_items")
-    .select("id, name, unit")
-    .order("name");
+  // These four reads are independent, so issue them in parallel.
+  const [{ data: plan }, { data: ops }, { data: checks }, { data: items }] =
+    await Promise.all([
+      sb
+        .from("plans")
+        .select("id, type, period_start, period_end, scope_type, status")
+        .eq("id", planId)
+        .maybeSingle(),
+      sb
+        .from("plan_operations")
+        .select("id, subtype, planned_at, est_cost, status, approval_needed")
+        .eq("plan_id", planId)
+        .order("planned_at"),
+      sb
+        .from("plan_checks")
+        .select("kind, result, detail")
+        .eq("plan_id", planId),
+      sb.from("inventory_items").select("id, name, unit").order("name"),
+    ]);
 
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },

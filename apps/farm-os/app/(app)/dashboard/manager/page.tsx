@@ -17,15 +17,18 @@ export default async function ManagerDashboard() {
   await requireMembership();
   const sb = await createClient();
 
-  const { data: ops } = await sb
-    .from("plan_operations")
-    .select("id, subtype, planned_at, est_cost, status")
-    .eq("plan_id", SEED_PLAN_ID)
-    .order("planned_at");
-  const { data: checks } = await sb
-    .from("plan_checks")
-    .select("kind, result")
-    .eq("plan_id", SEED_PLAN_ID);
+  // Independent reads, issued in parallel.
+  const [{ data: ops }, { data: checks }] = await Promise.all([
+    sb
+      .from("plan_operations")
+      .select("id, subtype, planned_at, est_cost, status")
+      .eq("plan_id", SEED_PLAN_ID)
+      .order("planned_at"),
+    sb
+      .from("plan_checks")
+      .select("kind, result")
+      .eq("plan_id", SEED_PLAN_ID),
+  ]);
 
   const total = (ops ?? []).length;
   const done = (ops ?? []).filter((o) => o.status === "done").length;
