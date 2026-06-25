@@ -13,13 +13,15 @@ export default async function BudgetCheckPage({
 }) {
   await params;
   const { pr } = await searchParams;
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
 
-  // The fertilization category for this plan is أسمدة.
+  // The fertilization category for this plan is أسمدة. Scope to the caller's org so
+  // .maybeSingle() stays single-row once a 2nd org exists (otherwise it throws → 500).
   const { data: line } = await sb
     .from("budget_lines")
     .select("category, planned, approved, committed, actual")
+    .eq("org_id", m.orgId)
     .eq("category", "أسمدة")
     .maybeSingle();
 

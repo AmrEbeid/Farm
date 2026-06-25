@@ -134,12 +134,15 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
   const { data: canWrite } = await sb.rpc("authorize", { perm: "plan.write" });
   if (!canWrite) return { ok: false, error: "ليس لديك صلاحية تعديل الخطة" };
 
-  // plan scope (target) for the operation
-  const { data: plan } = await sb
+  // plan scope (target) for the operation. Fail loudly on a missing/failed plan rather
+  // than silently defaulting scope_type to "sector" (which would create an orphan op
+  // with a null target on a bad planId).
+  const { data: plan, error: planErr } = await sb
     .from("plans")
     .select("scope_type, scope_id")
     .eq("id", planId)
     .single();
+  if (planErr || !plan) return { ok: false, error: planErr?.message ?? "الخطة غير موجودة" };
 
   const { data: op, error: opErr } = await sb
     .from("plan_operations")
