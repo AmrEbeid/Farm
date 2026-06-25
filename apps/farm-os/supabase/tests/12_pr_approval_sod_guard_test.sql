@@ -1,4 +1,4 @@
--- 12 — AP-3: the purchase-request self-approval / separation-of-duties bypass is closed.
+-- 12 — AP-5: the purchase-request self-approval / separation-of-duties bypass is closed.
 --
 -- The pr_update WITH CHECK enforces "approver != requester" against the NEW row, which the same
 -- UPDATE can mutate. Without the pr_guard_approval trigger (migration 0017) an owner who authored a
@@ -33,25 +33,25 @@ set local role authenticated;
 select throws_ok($$
   update public.purchase_requests set status='approved'
   where id='aaaa1212-1212-1212-1212-aaaa12121212'
-$$, '42501', null, 'AP-3: owner cannot plain self-approve their own PR');
+$$, '42501', null, 'AP-5: owner cannot plain self-approve their own PR');
 
 -- 2. THE BYPASS: self-approve while rewriting requested_by to another member — now rejected
 select throws_ok($$
   update public.purchase_requests
   set status='approved', requested_by=(select current_setting('test.mgr')::uuid)
   where id='aaaa1212-1212-1212-1212-aaaa12121212'
-$$, '42501', null, 'AP-3: cannot self-approve by rewriting requested_by (requested_by is immutable)');
+$$, '42501', null, 'AP-5: cannot self-approve by rewriting requested_by (requested_by is immutable)');
 
 -- 3. requested_by is immutable even on a plain edit
 select throws_ok($$
   update public.purchase_requests set requested_by=(select current_setting('test.mgr')::uuid)
   where id='aaaa1212-1212-1212-1212-aaaa12121212'
-$$, '42501', null, 'AP-3: requested_by cannot be reassigned');
+$$, '42501', null, 'AP-5: requested_by cannot be reassigned');
 
 -- the PR is still submitted and still authored by the owner
 select is((select status from public.purchase_requests
   where id='aaaa1212-1212-1212-1212-aaaa12121212'), 'submitted',
-  'AP-3: the PR remained submitted after the blocked attempts');
+  'AP-5: the PR remained submitted after the blocked attempts');
 
 reset role;
 
@@ -66,13 +66,13 @@ set local role authenticated;
 select lives_ok($$
   update public.purchase_requests set status='approved'
   where id='bbbb1212-1212-1212-1212-bbbb12121212'
-$$, 'AP-3: non-author owner can still approve a submitted PR');
+$$, 'AP-5: non-author owner can still approve a submitted PR');
 
 -- approved_by is stamped from the session (auth.uid()), tamper-proof
 select is((select approved_by from public.purchase_requests
   where id='bbbb1212-1212-1212-1212-bbbb12121212'),
   (select current_setting('test.owner')::uuid),
-  'AP-3: approved_by is stamped to the approving owner');
+  'AP-5: approved_by is stamped to the approving owner');
 
 reset role;
 select * from finish();
