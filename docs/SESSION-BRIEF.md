@@ -16,17 +16,27 @@ reconciliation (un-merged PR) + filed issues. Key results:
   new banner → `0031`), DEPLOY-STATUS (removed the stale "Phone-OTP via Twilio = intended auth" item
   that contradicted the same file's NO-SMS decision; `270`→`287` pgTAP), ROADMAP (`0029`→`0031`; pending
   push is `0032`/`0033`, not `0030`–`0033`; `#156` marked CLOSED, `#181` AUTHZ-2 added to the HIGH forks).
-- **App-layer audit (read-only) — 3 findings filed as issues** (per `amr-operating-method`):
-  - **#187 — AR-ERR-1 (MED, non-gated):** several PR/plan/coverage server actions still return raw
-    English `error.message` to the field UI on un-mapped paths (violates non-negotiable #2). A helper
-    `apps/farm-os/lib/errors.ts` (`toArabicError`) was drafted to fix this but is **unwired** (no callers).
-    Agent-doable next slice: wire it in + a `lib/errors.test.ts` unit test.
+- **App-layer audit + review sweep — findings filed AND the non-gated ones fixed** (un-merged PRs, per
+  `amr-operating-method`):
+  - **#187 — AR-ERR-1 (MED, non-gated) → FIXED in PR #191:** several PR/plan/coverage server actions
+    returned raw English `error.message` to the field UI on un-mapped paths (violates non-negotiable #2).
+    Wired the existing-but-unused `lib/errors.ts` `toArabicError` into all 9 leak sites + added
+    `lib/errors.test.ts` (7 tests). Verified local: tsc 0, eslint 0, vitest 82, next build OK. CI green.
+  - **Review sweep → PR #195 (non-gated, FIXED):** (a) operation status rendered **raw English**
+    (`planned`/`approved`/`done`) in the status pills on the plan-detail table + manager dashboard — added
+    `lib/labels.ts` `OP_STATUS_AR` (aligned to `SimpleTable.statusFor` for correct pill colour) + `fmtDate`
+    on `planned_at`; (b) **`runPlanChecks` swallowed read/RPC errors** → could persist a false-pass
+    stock/budget check that **masks a shortage**; now aborts on those errors. tsc/eslint/vitest/next build green.
+  - **#196 — CREATE-3 (MED, gated):** `addPlanOperation` can orphan a `plan_operation` on partial failure;
+    the dedup misses it on retry → over-counts the budget check. Needs an atomic RPC → independent review.
   - **#188 — CREATE-1-RESERVE (MED, review-gated):** `createPurchaseRequestFromShortage` inserts PR+line
     then reserves; if reserve fails post-insert, the retry dedup branch returns the PR **without
     re-reserving** → orphaned (un-reserved) PR. Engine-adjacent → independent review required.
   - **#89 (existing) — commented:** the hardcoded `needed_by: "2025-07-08"` (coverage/actions.ts:105)
     has an **engine-projection consequence** (a wrong/null `needed_by` silently drops the PO from
     `fn_stock_coverage` scheduled-receipts) — suggested splitting the date fix from the pricing decision.
+  - **Deferred (not done):** the `farm/sector/[id]/page.tsx` raw-status/date findings — that file is being
+    reworked on `feat/stage-2`, so fixing it now would conflict.
 - **Unratified Stage 2 WIP preserved.** A local-only branch **`feat/stage-2-farm-structure`** (also on
   origin) holds farm-structure read-views (hawsha drill-down + farm/sector timelines) + a registry
   reconciliation oracle (`tests/34_...sql`) that **hardcodes 5 sectors** — but 4-vs-5 is an **open Owner
@@ -36,9 +46,11 @@ reconciliation (un-merged PR) + filed issues. Key results:
   Homebrew + ran `npm install` (root). `tsc`/`eslint`/`vitest`/`next build` are now runnable locally;
   **pgTAP still cannot run locally** (no Postgres/Docker — the shim needs `psql`), so the `287` figure is
   the latest committed harness run, not re-run this session.
-- **State:** `main` unchanged (origin HEAD `e35c46b`); open PRs: **#183** (SPEC-0002 consolidation, DRAFT,
-  green — Owner gate) + the new `docs/reconcile-state-2026-06-26` docs PR. Owner-gated next moves unchanged:
-  🔴 key rotation; push `0032`/`0033`; ratify SPEC-0002/0003; the HIGH forks (#155/#157/#173/#89/#181).
+- **State:** `main` unchanged (origin HEAD `e35c46b`); **4 open PRs, all un-merged for the Owner gate:**
+  **#183** (SPEC-0002 consolidation, DRAFT, green), **#189** (this docs reconciliation), **#191** (AR-ERR-1
+  fix, CI green), **#195** (op-status/date Arabic + plan-check safety). New issues this session: **#187**
+  (fixed by #191), **#188**, **#196**. Owner-gated next moves unchanged: 🔴 key rotation; push `0032`/`0033`;
+  ratify SPEC-0002/0003; merge the 3 ready fix/docs PRs; the HIGH forks (#155/#157/#173/#89/#181).
 
 ## 2026-06-25 — adopted amr-operating-method + independent review (5 findings) + repo relocation
 **Working method:** adopted **`amr-operating-method`** (the gated protocol — propose → validate →
