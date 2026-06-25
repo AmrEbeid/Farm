@@ -1,4 +1,4 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-24)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file** — credentials were shared
 out-of-band and must be rotated (see "Security follow-ups").
@@ -8,8 +8,13 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - Migrations **0001–0013 applied** (`supabase db push` via the session pooler).
-  - Synthetic **seed loaded** — verified 28 hawshat / 6 items / 6 users / potassium on_hand 300.
+  - **Migrations now at `0022`** — `0001–0013` + `0015–0022` applied and recorded under their repo
+    versions (originally `0001–0013` via `supabase db push`; `0015→0022` applied 2026-06-25 via the
+    Supabase MCP after the prod-push assurance returned GO-WITH-CAVEATS — see below).
+  - Synthetic **seed loaded** — verified 28 hawshat / 6 items / 6 members / potassium on_hand 300. Full
+    dataset: 1 org, 6 organization_member, 12 auth.users, 1 farm, 60 assets, 5 sectors, 6 inventory
+    items/bins/movements, 1 plan w/ 3 operations + checks + budget. Transactional tables (`farm_event`,
+    `purchase_requests`, `expenses`, `audit_log`) start **empty** — correct pilot state.
   - **Security verified on prod:** anon → `permission denied` (GRANT-C1); a logged-in owner reads
     only their org (RLS: 28/28 hawshat, org `مزارع عبيد`).
 - **Auth (demo):** email/password sign-in minted for the 6 seeded roles via the Admin API
@@ -93,15 +98,25 @@ backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
   (`@tailwindcss/oxide-linux-x64-gnu`, `lightningcss-linux-x64-gnu` — npm/cli#4828, the real crash);
   `framework:"nextjs"` (Vercel had expected a `dist/` output); resilient middleware.
 
-## ⚠️ Prod DB schema vs `main` (important)
-The prod Supabase (`veezkmytervjnpxcrbkw`) was provisioned at migrations **0001–0013**. Merging a
-new migration to `main` **redeploys the app (Vercel) but does NOT apply DB migrations to prod.**
-So newer migrations on `main` — currently **`0015` (B2 inventory write role-gate)** — are verified
-(78/78 pgTAP + e2e) but **not yet applied to the prod DB**. The app runs fine without them (B2 is a
-hardening; all app writes already go through the bypassrls RPC). Apply with `supabase db push` to the
-linked prod project — a deliberate **prod DB migration (hard stop / Owner action)**, batched with the
-project-end items below. (Migration filenames skip `0014` — a dropped first B2 attempt; harmless, `db
-push` applies by version.)
+## ✅ Prod DB migration push (2026-06-25)
+Prod was provisioned at `0001–0013`. After an **8-agent adversarial prod-push assurance returned
+GO-WITH-CAVEATS**, migrations **`0015`→`0022`** were applied to the prod Supabase
+(`veezkmytervjnpxcrbkw`) via the Supabase MCP — **prod DB is now at `0022`** (`0001–0013` +
+`0015–0022`, all recorded under their repo versions). `0018` (the core-engine change) was
+**Owner-ratified** first. New this session (branch `fix/authz-1-execute-rpc`, PR #75, commit
+`31ad992`): **`0021`** locks SECURITY DEFINER fn EXECUTE grants (revoke `anon` on write RPCs
+`fn_execute_operation`/`fn_post_movement`; revoke public+anon+authenticated on trigger fns
+`pr_guard_approval`/`fn_audit`/`fn_audit_org_member`) and **`0022`** revokes UPDATE on
+`inventory_movements`/`inventory_bin` (ledger now fully append-only, closing #76 item 1). **pgTAP
+126/126** on a clean reset (was 103; new tests `19`+`20`). (Migration filenames skip `0014` — a
+dropped first B2 attempt; harmless, applied by version.) Merging PRs #75/#77 (both green) = a prod
+deploy = **Owner gate**.
+
+**Residual caveats — QUEUED, not blocking, not live-exploitable on synthetic single-tenant data:**
+**AUTHZ-1 Option B** (gate operation tables `plan_operations`/`farm_event`/`event_locations`/
+`quantities` at the REST layer, not only inside the `0020` RPC); **AP-5 insert-side SoD** (#76 item 2 —
+a born-approved PR sidesteps the BEFORE UPDATE trigger); **ENGINE-DC** disjointness is
+convention-enforced, not DB-constraint-enforced.
 
 ## 🔴 Security follow-ups (Owner — do now)
 - **Rotate the Supabase DB password and the `service_role` (secret) key** — both were pasted in the

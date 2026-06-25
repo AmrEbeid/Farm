@@ -34,22 +34,39 @@ psql "<SUPABASE_DB_URL>" -f supabase/seed.sql
 
 ## 1a. Incremental migration push — post-deploy security fixes (0015→0018) — **Owner-gated**
 
-The live pilot DB is at migration `0013`. Four security/correctness migrations are verified on `main`
-(pgTAP **97/97** on a clean reset) but **not yet applied to prod** — a prod DB migration is a hard
-stop per PROJECT RULES. Apply them **in order** when the Owner gives the go-ahead:
+> **STATUS (2026-06-25): DONE.** The remote pilot DB (`veezkmytervjnpxcrbkw`) is now at migration
+> **`0022`** (`0001`–`0013` + `0015`–`0022`), fully seeded. After the 8-agent adversarial prod-push
+> assurance returned **GO-WITH-CAVEATS**, `0015`→`0022` were applied in order (`0018` engine change
+> Owner-ratified) via the Supabase MCP and each recorded in `supabase_migrations.schema_migrations`
+> under its repo version, so remote history matches the repo and a future `supabase db push` is a
+> no-op for these. pgTAP **126/126** on a clean reset.
 
-| # | File | Closes | Risk |
-|---|------|--------|------|
-| `0015` | `…_inventory_write_rolegate.sql` | **B2** — inventory writes are role-gated (not org-wide) | access-control |
-| `0016` | `…_inventory_ledger_append_only.sql` | **B2.1** — stock ledger is append-only (no direct DELETE) | access-control |
-| `0017` | `…_pr_approval_sod_guard.sql` | **AP-5** — PR self-approval / `requested_by` rewrite blocked | financial control |
-| `0018` | `…_engine_scheduled_receipts_from_pos.sql` | **ENGINE-DC** — scheduled receipts sourced from open POs (no double-count) | **core engine** |
+The pilot DB was first provisioned at migration `0013`. The security/correctness delta below has
+since been applied (rows ✅ are live on prod). Each was a hard stop per PROJECT RULES, applied only
+on the Owner's go-ahead:
+
+| # | File | Closes | Risk | Applied |
+|---|------|--------|------|---------|
+| `0015` | `…_inventory_write_rolegate.sql` | **B2** — inventory writes are role-gated (not org-wide) | access-control | ✅ |
+| `0016` | `…_inventory_ledger_append_only.sql` | **B2.1** — stock ledger DELETE-immutable | access-control | ✅ |
+| `0017` | `…_pr_approval_sod_guard.sql` | **AP-5** — PR self-approval / `requested_by` rewrite blocked | financial control | ✅ |
+| `0018` | `…_engine_scheduled_receipts_from_pos.sql` | **ENGINE-DC** — scheduled receipts from open POs (no double-count) | **core engine** | ✅ (Owner-ratified) |
+| `0019` | `…_audit_organization_member.sql` | **AUDIT-1** — membership/role changes audited | audit | ✅ |
+| `0020` | `…_fn_execute_operation.sql` | **AUTHZ-1 (Option A)** — atomic, server-gated `op.execute` RPC | access-control | ✅ |
+| `0021` | `…_lock_definer_exec_to_caller_roles.sql` | **GRANT-C1** — revoke anon/PUBLIC EXECUTE on definer write + trigger fns | access-control | ✅ |
+| `0022` | `…_inventory_ledger_no_update.sql` | **B2.1** — ledger UPDATE-immutable (now fully append-only) | access-control | ✅ |
 
 ```bash
-# from apps/farm-os, with the pilot project linked (§1):
-supabase migration list           # confirm the remote is at 0013 and 0015–0018 are pending
-supabase db push                  # applies 0015 → 0016 → 0017 → 0018 in order (idempotent)
+# Re-running is safe (idempotent). To apply any FUTURE migration with the project linked (§1):
+supabase migration list           # confirm remote is at 0022 and only newer versions are pending
+supabase db push                  # applies pending versions in order
 ```
+
+> **Residual security caveats (queued, not blocking — from the prod-push assurance):** AUTHZ-1
+> Option B (gate the operation tables at the REST layer, not only inside the RPC); AP-5 insert-side
+> SoD (issue #76 item 2 — a born-approved PR sidesteps the `BEFORE UPDATE` trigger); ENGINE-DC
+> disjointness is convention-enforced, not DB-constraint-enforced. None are live-exploitable on
+> synthetic single-tenant data; all tracked for a follow-up change window.
 
 **Before the push:**
 - **Independent review + Owner ratification is required for `0018`** — it changes the stock-coverage

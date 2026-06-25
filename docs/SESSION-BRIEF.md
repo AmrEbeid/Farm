@@ -1,6 +1,32 @@
 # Session Brief — Farm OS      Updated: 2026-06-25 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-25 (latest) — prod migration push (0015→0022) + authz/ledger hardening
+After an **8-agent adversarial prod-push assurance** returned **GO-WITH-CAVEATS**, migrations
+**`0015`→`0022`** were applied to the prod Supabase (`veezkmytervjnpxcrbkw`) via the Supabase MCP
+(`0018` engine change **Owner-ratified** first). **Prod DB is now at `0022`** (`0001–0013` +
+`0015–0022`, recorded under their repo versions), **fully seeded** (1 org, 6 organization_member,
+12 auth.users, full synthetic dataset: 1 farm, 60 assets, 28 hawshat, 5 sectors, 6 inventory
+items/bins/movements, 1 plan w/ 3 operations + checks + budget). Transactional tables (`farm_event`,
+`purchase_requests`, `expenses`, `audit_log`) start **empty** — correct pilot state.
+- **New this session** (branch `fix/authz-1-execute-rpc`, PR #75, commit `31ad992`): **`0021`** locks
+  SECURITY DEFINER fn EXECUTE grants (revoke `anon` on write RPCs `fn_execute_operation`/
+  `fn_post_movement`; revoke public+anon+authenticated on trigger fns `pr_guard_approval`/`fn_audit`/
+  `fn_audit_org_member`) and **`0022`** revokes UPDATE on `inventory_movements`/`inventory_bin` →
+  ledger now **fully append-only**, closing **#76 item 1**. New pgTAP tests `19`+`20`.
+- **Verified: pgTAP 126/126** on a clean reset (was 103).
+- **Residual caveats — QUEUED, not blocking, not live-exploitable on synthetic single-tenant data:**
+  **AUTHZ-1 Option B** (gate operation tables `plan_operations`/`farm_event`/`event_locations`/
+  `quantities` at the REST layer, not only the `0020` RPC); **AP-5 insert-side SoD** (#76 item 2 —
+  a born-approved PR sidesteps the BEFORE UPDATE trigger); **ENGINE-DC** disjointness is
+  convention-enforced, not DB-constraint-enforced.
+- **Still OWNER-GATED / open:** 🔴 rotate the Supabase `service_role` key + DB password + reset the
+  demo password (the **only red item** from the assurance); Twilio phone-OTP; Stage-0 legacy
+  remediation; real Ebeid data (Stage M); per-farm EGP pricing; agronomist sign-off; **merging PRs
+  #75 and #77** (both green) — a merge = prod deploy = Owner gate.
+- Note: the local Docker DB was found empty after a reboot (volume not persisted) — irrelevant; the
+  **cloud DB is the source of truth**.
+
 ## 2026-06-25 (later) — follow-up security review merged + EXE-1 fixed
 A second independent adversarial pass over post-deploy `main` (recorded in
 [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md)) found and fixed
@@ -28,9 +54,9 @@ three more issues, all **merged to `main`** after independent diff review:
   (findings + follow-up docs), **#56** (ENGINE-DC TODO regression test `14` + shim harness honors TAP TODO).
 - **Verified:** **pgTAP 97/97** on a clean reset (test `14` now a real pass post-fix) + Playwright
   wedge-loop e2e + app/lib CI all green.
-- ⚠️ **Prod DB still at migration `0013`** — `0015`/`0016`/`0017`/`0018`/`0019` are verified on `main`
-  but a prod `db push` remains an Owner hard-stop (apply in order via `DEPLOY-RUNBOOK.md` §1a; **`0018`
-  is the core-engine change — ratify it specifically**). App runs without them.
+- ⚠️ **(superseded — see the 2026-06-25 (latest) entry above):** at the time of this entry the prod DB
+  was still at migration `0013` with `0015`–`0019` verified on `main` but unpushed; the `0015`→`0022`
+  push (incl. the Owner-ratified `0018`) was subsequently applied to prod — **prod DB is now at `0022`**.
 - Also fixed: **CREATE-1** (#63, find-or-create) and **AUDIT-1** (#68, migration `0019`, test `17` —
   a dedicated `fn_audit_org_member` trigger puts membership/role changes on the append-only audit_log).
 - Test coverage added: **#67** (test `16` engine approve→receive round-trip disjointness), **#56**
@@ -56,10 +82,11 @@ closing a stock-forgery hole; unblocked by B1/D2 (app writes go through the bypa
 **pgTAP 78/78** + e2e + app/lib CI + Vercel. Also a **Playwright visual UX audit** (desktop +
 mobile screenshots) found + fixed an **RTL mobile-sidebar overflow** on the field (`/m`) view (the
 closed off-canvas drawer peeked ~90px) → **`@amrebeid/ui@1.1.1` published**; desktop screens
-(dashboard/coverage/inventory/plan) reviewed clean. ⚠️ **Prod DB is at migrations 0001–0013**; `0015` (B2) is
-verified on `main` but not yet `db push`ed to prod (prod migration = hard stop / Owner; app runs fine
-without it). Remaining is unchanged: project-end deferred (key rotation, Stage 0, real-data, prod
-db-push of 0015) + decision-gated minors (B3 actual-paid pricing; D1 FORCE RLS — low value).
+(dashboard/coverage/inventory/plan) reviewed clean. ⚠️ **(prod-DB note superseded — prod is now at
+`0022`; see the 2026-06-25 (latest) entry above)** at the time of this entry prod was at migrations
+0001–0013 with `0015` (B2) verified on `main` but not yet `db push`ed. Remaining is unchanged:
+project-end deferred (key rotation, Stage 0, real-data) + decision-gated minors (B3 actual-paid
+pricing; D1 FORCE RLS — low value).
 
 ## 2026-06-24 — DEPLOYED + LIVE 🎉
 Farm OS MVP-0 is **deployed and verified end-to-end on production**: **farm-ui-one.vercel.app**
