@@ -1,4 +1,4 @@
--- 16 — AUDIT-1: organization_member changes write an immutable audit_log row (migration 0019).
+-- 17 — AUDIT-1: organization_member changes write an immutable audit_log row (migration 0019).
 --
 -- Membership = privilege; a join/leave/role-change must be auditable. The generic audit trigger
 -- skipped organization_member (composite PK, no `id`), so this pins that the dedicated
