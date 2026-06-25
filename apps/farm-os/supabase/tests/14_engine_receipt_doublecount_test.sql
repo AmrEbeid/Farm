@@ -1,16 +1,13 @@
--- 14 — ENGINE-DC (KNOWN BUG, wrapped in TODO until fixed): scheduled receipts are double-counted.
+-- 14 — ENGINE-DC: a RECEIVED receipt must not be double-counted (regression for migration 0018).
 --
--- fn_bin_rebuild sums ALL receipt movements into on_hand (no date filter), while fn_stock_coverage
--- ALSO projects receipts dated >= period_start forward in the PAB recurrence. So a receipt on/after
--- period_start (already physically in on_hand) is counted TWICE — once in `available`, once forward —
--- making PAB optimistic and able to HIDE a real shortage (the core wedge's whole purpose; SPEC-0001
--- #1 risk). Full finding + fix directions: SECURITY-FINDING-engine-receipt-doublecount-2026-06-25.md.
+-- Before the fix, fn_stock_coverage projected `receipt` movements dated >= period_start forward while
+-- fn_bin_rebuild had already summed them into on_hand → counted twice → PAB optimistic, could HIDE a
+-- real shortage (SPEC-0001 #1 risk). Migration 0018 sources scheduled receipts from approved purchase
+-- requests (open POs) instead of the actual-movement ledger, so a `receipt` movement is ONLY in
+-- on_hand and never re-projected. Full finding: SECURITY-FINDING-engine-receipt-doublecount-2026-06-25.md.
 --
--- This pins the correct behaviour: a received +100 must raise the forward PAB by exactly 100 (counted
--- once), not 200, and must not erase the period's real shortage. It currently FAILS (the bug), so it
--- is wrapped in todo_start/todo_end — pgTAP reports the failures as expected (TODO) and the suite
--- stays green. When ENGINE-DC is fixed the asserts pass; remove the TODO wrapper then. Run via
--- `supabase test db` (or the shim harness, which now honors the TODO directive).
+-- This pins it: a received +100 (a receipt movement, with no matching open PR) raises the forward PAB
+-- by exactly 100 via on_hand — once, not twice — and the real period-1 shortage is not masked.
 
 begin;
 select plan(2);
@@ -31,8 +28,6 @@ select public.fn_bin_rebuild(current_setting('t.item')::uuid, 'main');
 select set_config('t.pab2_new',
   ((public.fn_stock_coverage(current_setting('t.item')::uuid, 'main', 8))->'pab'->>1), false);
 
-select todo_start('ENGINE-DC: scheduled-receipt double-count not yet fixed');
-
 -- a received +100 must raise forward PAB by its qty ONCE (100), not twice (200)
 select is(
   current_setting('t.pab2_new')::numeric - current_setting('t.pab2_base')::numeric,
@@ -43,9 +38,7 @@ select is(
 select is(
   ((public.fn_stock_coverage(current_setting('t.item')::uuid, 'main', 8))->>'shortage')::boolean,
   true,
-  'ENGINE-DC: the double-counted receipt does not mask the real period-1 shortage');
-
-select todo_end();
+  'ENGINE-DC: the receipt does not mask the real period-1 shortage');
 
 select * from finish();
 rollback;
