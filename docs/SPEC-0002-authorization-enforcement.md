@@ -59,8 +59,10 @@ tables it writes directly carry the org-only `tenant_all` policy:
 - `farm_event` (+ monthly partition children) — the `done` event
 - `event_locations` — where it happened
 - `quantities` — the negative `inventory_adjustment` (consumption)
-- *(stock movement goes through `fn_post_movement`, a SECURITY DEFINER **bypassrls** RPC — already
-  the gated path, not part of this gap)*
+- *(stock movement goes through `fn_post_movement`, a SECURITY DEFINER **bypassrls** RPC — ~~already
+  the gated path~~ **CORRECTION (2026-06-25): `fn_post_movement` is NOT role-gated — see AUTHZ-3 / §8
+  / [#182]. It bypasses the table RLS and has no `authorize('inventory.write')`, so it is part of the
+  gap, not outside it.**)*
 
 **Consequence:** any authenticated org member — including an `accountant` or `storekeeper` who has
 no `op.execute` permission — can mark operations done (and thereby drive stock issue) either through
@@ -184,5 +186,58 @@ DELETE where a delete is legitimate; (3) leave truly client-deletable tables ope
 
 ---
 
-*No enforcement is changed here. Next step is an Owner decision on §6; only then is migration `0019`
-written, independently reviewed, and pgTAP/e2e-verified before the gated prod push.*
+---
+
+## 8. Update (2026-06-25) — AUTHZ-1 shipped; three further authorization gaps found in review
+
+Since this spec was drafted, **AUTHZ-1 was implemented via Option A** (`fn_execute_operation`,
+migration `0020`, + the operation-tables `op.execute` RLS gate, `0025`) and the **§45 DELETE posture
+was remediated** (`0027`, REVOKE on 28 tables). An independent read-only review of the RBAC core +
+the ledger RPC grants then surfaced **three more gaps in the *same* authorization-enforcement
+workstream** — they belong in this spec and should be ratified together:
+
+### 8a. AUTHZ-2 — `authorize(perm)` is not org-scoped  ([#181], HIGH·latent)
+`authorize(perm)` (`0001`) does `EXISTS (… where m.user_id = auth.uid() and role-match)` with **no
+`org_id`**, and every policy calls it as two *independent* clauses: `org_id in user_org_ids() AND
+authorize(perm)`. A user who belongs to **two orgs with different roles** (e.g. `owner` in A,
+`storekeeper` in B) passes `authorize('pr.approve')` **in org B** because they're an owner *somewhere*
+→ cross-org privilege escalation. Violates MASTER-PLAN Stage 1's *"consultant in two orgs gets correct
+per-org role."* Latent in the single tenant; a multi-tenant blocker.
+**Fix:** `authorize(perm text, p_org uuid)` checking `m.org_id = p_org`; thread the row's `org_id`
+through **every** call site (the `0007`/`0015`/`0025` policies + the `0020`/`0024` RPCs). This is the
+systemic version of "enforce the role at the write path" — and it must land **before** multi-tenant.
+
+### 8b. AUTHZ-3 — `inventory.write` not enforced on the real write path  ([#182], MED)
+`fn_post_movement` is `SECURITY DEFINER`, `grant execute … to authenticated`, and has **no**
+`authorize('inventory.write')` (only an org guard). Being a definer it bypasses the `0015` table
+`WITH CHECK`, and `0030` revoked the only *gated* (direct-table) path — so the `inventory.write`
+control (B2) is **not enforced** on the actual write path. Any member (incl. `accountant`/
+`agri_engineer`, who lack it) can `POST /rest/v1/rpc/fn_post_movement` to move their org's stock.
+**Fix (not the obvious one):** do **not** add `inventory.write` inside `fn_post_movement` — the
+execute flow needs `op.execute` roles (no `inventory.write`) to post `issue`/`release` through it.
+Instead **`REVOKE EXECUTE … FROM authenticated`** (make it an internal primitive; the `op.execute`/
+`inventory.write` wrappers call it as owner), and route the one direct caller
+(`createPurchaseRequestFromShortage → reserveStock`) through a gated `fn_reserve_stock(...)` wrapper.
+
+### 8c. PII-1 — wages/PII org-readable  ([#173], MED — see SPEC-0006)
+`people.rate` + `phone`/`email` are org-readable by any member (`tenant_all`, no role gate). The
+confidentiality fix (a `people_compensation` table, owner/accountant RLS) is designed in **SPEC-0006
+§2** — noted here because it's the same "role gate at the data layer" theme.
+
+### The unifying principle
+All four (AUTHZ-1/2/3 + PII-1) are one design point: **role/permission gates must be enforced at the
+actual definer-RPC / data layer and scoped to the acting org — not on table RLS that definers bypass,
+nor globally across a user's memberships.** Recommend folding §8 into the AUTHZ-1 work as one ratified
+enforcement migration set (org-scoped `authorize`, the `fn_post_movement` revoke + reserve wrapper,
+and the operation-table gates already shipped), with the §7 test plan extended to cover the multi-org
+escalation case and the direct-`fn_post_movement` rejection.
+
+[#181]: https://github.com/AmrEbeid/Farm/issues/181
+[#182]: https://github.com/AmrEbeid/Farm/issues/182
+[#173]: https://github.com/AmrEbeid/Farm/issues/173
+
+---
+
+*No enforcement is changed here. Next step is an Owner decision on §6 + §8; only then is the
+enforcement migration written, independently reviewed, and pgTAP/e2e-verified before the gated prod
+push.*
