@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Card } from "@/components/ui";
+import { Breadcrumbs } from "@/components/ui";
 import { SectorFile } from "@/components/SectorFile";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
 
@@ -30,7 +29,7 @@ function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
   }
 }
 
-export default async function SectorFilePage({
+export default async function HawshaFilePage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -39,64 +38,46 @@ export default async function SectorFilePage({
   await requireMembership();
   const sb = await createClient();
 
-  // sector, the sector's event_locations, and its palm assets are all keyed on
-  // the sector id and independent of each other, so fetch them in parallel. The
-  // farm_event read below is dependent (it filters by the ids from locs), so it
-  // stays sequential.
+  // hawsha (+ its sector for the breadcrumb), the hawsha's event_locations, and
+  // its palm assets are all keyed on the hawsha id and independent of each
+  // other, so fetch them in parallel. The farm_event read below filters by the
+  // ids from locs, so it stays sequential.
   const [
-    { data: sector, error: sectorError },
+    { data: hawsha, error: hawshaError },
     { data: locs, error: locsError },
     { data: assets, error: assetsError },
   ] = await Promise.all([
     sb
-      .from("sectors")
-      .select("id, name, code, crop, hawshat(id, name, code, palm_count_barhi, palm_count_male)")
+      .from("hawshat")
+      .select(
+        "id, name, code, area_qirat, row_count, palm_count_barhi, palm_count_male, planting_date, sector_id, sectors(id, name)",
+      )
       .eq("id", id)
       .maybeSingle(),
-    // timeline from done/planned farm_events located in this sector (FF-1 rollup)
-    sb.from("event_locations").select("event_id").eq("sector_id", id),
-    // palm grid: assets in this sector, grouped by line
+    // timeline from farm_events located in this hawsha (FF-1 rollup)
+    sb.from("event_locations").select("event_id").eq("hawsha_id", id),
+    // palm grid: assets in this hawsha, grouped by line
     sb
       .from("assets")
       .select("id, id_tag, status, sex, line_id, lines(line_no)")
-      .eq("sector_id", id)
+      .eq("hawsha_id", id)
       .eq("type", "palm")
       .order("id_tag"),
   ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
-  if (sectorError) throw sectorError;
+  if (hawshaError) throw hawshaError;
   if (locsError) throw locsError;
   if (assetsError) throw assetsError;
 
-  if (!sector) return <div className="p-6">القطاع غير موجود.</div>;
+  if (!hawsha) return <div className="p-6">الحوشة غير موجودة.</div>;
 
-  const hawshat = (sector.hawshat ?? []) as {
-    id: string;
-    name: string;
-    code: string;
-    palm_count_barhi?: number;
-    palm_count_male?: number;
-  }[];
-  const barhi = hawshat.reduce((s, h) => s + Number(h.palm_count_barhi ?? 0), 0);
-  const male = hawshat.reduce((s, h) => s + Number(h.palm_count_male ?? 0), 0);
-
-  const hawshaColumns: SimpleColumn[] = [
-    { id: "name", header: "الحوشة" },
-    { id: "code", header: "الرمز" },
-    { id: "barhi", header: "نخيل برحي", numeric: true },
-    { id: "male", header: "ذكور", numeric: true },
-  ];
-  const hawshaRows = [...hawshat]
-    .sort((a, b) => a.code.localeCompare(b.code))
-    .map((h) => ({
-      id: h.id,
-      href: `/farm/hawsha/${h.id}`,
-      name: h.name,
-      code: h.code,
-      barhi: num(h.palm_count_barhi ?? 0),
-      male: num(h.palm_count_male ?? 0),
-    }));
+  // PostgREST returns a to-one embed as an object or a single-element array
+  // depending on FK detection — normalise both to one sector (for the breadcrumb).
+  const sectorRel = hawsha.sectors as unknown;
+  const sector = (Array.isArray(sectorRel) ? sectorRel[0] : sectorRel) as
+    | { id?: string; name?: string }
+    | null;
 
   const eventIds = (locs ?? []).map((l) => l.event_id);
   const { data: events, error: eventsError } = eventIds.length
@@ -137,25 +118,37 @@ export default async function SectorFilePage({
         ariaLabel="المسار"
         items={[
           { id: "farm", label: "المزرعة", href: "/farm" },
-          { id: "sector", label: sector.name },
+          ...(sector?.id
+            ? [{ id: "sector", label: sector.name ?? "القطاع", href: `/farm/sector/${sector.id}` }]
+            : []),
+          { id: "hawsha", label: hawsha.name },
         ]}
       />
-      <h1 className="text-2xl font-bold">{sector.name}</h1>
+      <h1 className="text-2xl font-bold">{hawsha.name}</h1>
       <SectorFile
-        name={sector.name}
+        name={hawsha.name}
+        overviewTitle="بيانات الحوشة"
         meta={[
-          { id: "code", term: "الرمز", description: sector.code },
-          { id: "crop", term: "المحصول", description: sector.crop ?? "—" },
-          { id: "hawshat", term: "عدد الحوشات", description: num(hawshat.length) },
-          { id: "barhi", term: "نخيل برحي", description: num(barhi) },
-          { id: "male", term: "ذكور", description: num(male) },
+          { id: "code", term: "الرمز", description: hawsha.code },
+          {
+            id: "area",
+            term: "المساحة",
+            description: hawsha.area_qirat != null ? `${num(hawsha.area_qirat)} قيراط` : "—",
+          },
+          { id: "rows", term: "عدد الصفوف", description: hawsha.row_count != null ? num(hawsha.row_count) : "—" },
+          { id: "barhi", term: "نخيل برحي", description: num(hawsha.palm_count_barhi ?? 0) },
+          { id: "male", term: "ذكور", description: num(hawsha.palm_count_male ?? 0) },
+          {
+            id: "planting",
+            term: "تاريخ الزراعة",
+            description: hawsha.planting_date
+              ? new Date(hawsha.planting_date).toLocaleDateString("ar-EG")
+              : "—",
+          },
         ]}
         events={timeline}
         palmLines={palmLines}
       />
-      <Card title="الحوشات">
-        <SimpleTable columns={hawshaColumns} rows={hawshaRows} empty="لا توجد حوشات" />
-      </Card>
     </div>
   );
 }

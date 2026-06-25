@@ -19,11 +19,14 @@ export function SectorFile({
   meta,
   events,
   palmLines,
+  overviewTitle = "بيانات القطاع",
 }: {
   name: string;
   meta: { id: string; term: string; description: string }[];
   events: TimelineEvent[];
   palmLines: PalmLine[];
+  /** Title of the overview card — defaults to the sector wording; the hawsha file passes its own. */
+  overviewTitle?: string;
 }) {
   const [tab, setTab] = useState("overview");
 
@@ -42,7 +45,7 @@ export function SectorFile({
 
       {tab === "overview" && (
         <div role="tabpanel" id={tabPanelId("overview")} aria-labelledby={tabId("overview")} tabIndex={0}>
-          <Card title="بيانات القطاع">
+          <Card title={overviewTitle}>
             <DescriptionList layout="inline" items={meta} />
           </Card>
         </div>
@@ -62,7 +65,7 @@ export function SectorFile({
 
       {tab === "palms" && (
         <div role="tabpanel" id={tabPanelId("palms")} aria-labelledby={tabId("palms")} tabIndex={0}>
-          <Card title="خريطة النخيل — حوشة 2">
+          <Card title="خريطة النخيل">
             {palmLines.length === 0 ? (
               <EmptyState title="لا توجد نخيل مسجّلة" />
             ) : (
