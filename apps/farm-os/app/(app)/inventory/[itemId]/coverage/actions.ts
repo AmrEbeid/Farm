@@ -46,6 +46,35 @@ export async function createPurchaseRequestFromShortage(
   const m = await requireMembership();
   const sb = await createClient();
 
+  // CREATE-1: idempotency. A double-submit / network retry would otherwise create a duplicate draft
+  // PR AND post a second `reserve` movement (over-stating `reserved`). If an OPEN (draft/submitted) PR
+  // for this plan already carries a line for this item, reuse it — no duplicate, no re-reserve.
+  // (Conservative residual: a truly concurrent pair of calls could still both create, which only
+  // over-reserves — it can never mask a shortage. A fully race-safe guard would need a DB constraint
+  // spanning purchase_requests.plan_id/status and purchase_request_items.item_id.)
+  const { data: openPrs } = await sb
+    .from("purchase_requests")
+    .select("id, code")
+    .eq("org_id", m.orgId)
+    .eq("plan_id", SEED_PLAN_ID)
+    .in("status", ["draft", "submitted"]);
+  if (openPrs && openPrs.length > 0) {
+    const { data: dup } = await sb
+      .from("purchase_request_items")
+      .select("pr_id")
+      .eq("item_id", itemId)
+      .in(
+        "pr_id",
+        openPrs.map((p) => p.id),
+      )
+      .limit(1)
+      .maybeSingle();
+    const existing = dup ? openPrs.find((p) => p.id === dup.pr_id) : undefined;
+    if (existing) {
+      return { ok: true, prId: existing.id, code: existing.code, deduped: true };
+    }
+  }
+
   const { data: item } = await sb
     .from("inventory_items")
     .select("name, unit, preferred_supplier_id")
