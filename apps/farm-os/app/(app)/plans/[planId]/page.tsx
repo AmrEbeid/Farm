@@ -10,6 +10,13 @@ import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR } from "@/lib/labels";
 
+const PLAN_TYPE_AR: Record<string, string> = {
+  weekly: "الأسبوعية",
+  monthly: "الشهرية",
+  quarterly: "الربع سنوية",
+  annual: "السنوية",
+};
+
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
   irrigation: "ري",
@@ -99,9 +106,9 @@ export default async function MonthlyPlanPage({
     <div className="flex flex-col gap-6 p-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">الخطة الشهرية — الحصوة</h1>
+          <h1 className="text-2xl font-bold">الخطة {PLAN_TYPE_AR[plan?.type ?? ""] ?? ""}</h1>
           <p style={{ color: "var(--ink-muted)" }}>
-            {plan?.period_start} إلى {plan?.period_end}
+            {fmtDate(plan?.period_start)} إلى {fmtDate(plan?.period_end)}
           </p>
         </div>
         <div className="flex gap-2">
