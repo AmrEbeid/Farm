@@ -1,7 +1,22 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — ✅ palm-status RPC `0039` + ENGINE-REC1 `0040` + unit_cost `0041` MERGED + PUSHED; prod now `0041`; #241 app-fix batch
+## 2026-06-26 (latest) — ✅ the `0042`–`0046` batch MERGED + PUSHED to prod + verified; prod now `0046`, in sync with `main`
+Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, and verified:
+- **The Owner's RLS role-gate trio** — **`0042`** plan_req_rolegate, **`0043`** budget_rolegate, **`0044`**
+  expenses_rolegate: WITH-CHECK role gates on the plan-req/budget/expenses tables, closing the same
+  no-role-gate class as B2 / AUTHZ-1 (org-scoped but ungated writes).
+- **#155 partial receipts** → **`0045`** (SPEC-0009): `received_qty` + `partially_received` + a
+  remaining-based projection, **plus the `received_qty` column-UPDATE lockdown the independent review caught**
+  (clients can't hand-edit received quantities outside the receipt RPC).
+- **#173 PII-1 wage confidentiality** → **`0046`** people_compensation: a `payroll.read` perm
+  (owner/accountant) + a role-gated `people_compensation` table; the leaking `people.rate` column dropped.
+- Verified: `list_migrations` → `20260622000046`; **pgTAP 411/411** (Docker-free shim harness), all green.
+- **Prod is now at `0046`, in sync with `main`.**
+- **Remaining (Owner-decision / human-only):** #173 **phone/email half** (open PII-access decision), #157
+  chart-of-accounts, #239 registry import, #199/#198 held low-value/design items, 🔴 **key rotation** (only red).
+
+## 2026-06-26 — ✅ palm-status RPC `0039` + ENGINE-REC1 `0040` + unit_cost `0041` MERGED + PUSHED; prod now `0041`; #241 app-fix batch
 Three migrations + one app-only batch closed and live in prod; prod is back in sync with `main`:
 - **#238 — palm-status RPC** → **Migration `0039`** (`fn_update_palm_status`): an op.execute-gated atomic
   SECURITY DEFINER RPC for palm-status changes. Merged → pushed → verified.
