@@ -60,8 +60,6 @@ The Owner does not want the app to send SMS → **phone-OTP/Twilio is dropped**.
 The phone-OTP UI skeleton stays unused; ensure the login path never calls `signInWithOtp` (phone).
 
 ## Remaining for a real pilot
-- **Phone-OTP via Twilio** (`DEPLOY-RUNBOOK.md §3`) — the intended auth for field roles; the
-  email/password logins above are an interim demo path.
 - **Frontend smoke test** — walk the wedge loop on the live `*.vercel.app` URL signed in as each role.
 - **Real data** — only after Stage 0 (`STAGE-0-REMEDIATION-RUNBOOK.md`) + a privacy review (Stage M).
 - The deployed build predates the schema load; if any page cached an empty-DB error, redeploy.
@@ -108,8 +106,9 @@ Prod was provisioned at `0001–0013`. After an **8-agent adversarial prod-push 
 GO-WITH-CAVEATS**, migrations **`0015`→`0024`** were applied to the prod Supabase
 (`veezkmytervjnpxcrbkw`) via the Supabase MCP; the **`0025`→`0029`** access-control / engine-integrity
 hardening (AUTHZ-1 Option B, ENGINE-DC DB-enforcement + PR-scope fix, DELETE-posture, FORCE-RLS) was
-applied the same way — **prod DB is now at `0029`** (`0001–0013` +
-`0015–0029`, all recorded under their repo versions). `0018` (the core-engine change) was
+applied the same way — **prod DB reached `0029`** at this 2026-06-25 push (`0001–0013` +
+`0015–0029`, all recorded under their repo versions); it has since advanced to **`0031`** (see the
+top-of-file status — `0030`/`0031` applied; `0032`/`0033` remain Owner-gated). `0018` (the core-engine change) was
 **Owner-ratified** first. Earlier this session (branch `fix/authz-1-execute-rpc`, PR #75, commit
 `31ad992`): **`0021`** locks SECURITY DEFINER fn EXECUTE grants (revoke `anon` on write RPCs
 `fn_execute_operation`/`fn_post_movement`; revoke public+anon+authenticated on trigger fns
@@ -118,8 +117,8 @@ applied the same way — **prod DB is now at `0029`** (`0001–0013` +
 **`0023`** (`pr_approval_sod_guard_insert`) extends the PR self-approval guard to fire BEFORE INSERT,
 closing the AP-5 insert-side sidestep (#76 item 2 — a born-approved PR), and **`0024`**
 (`fn_post_receipt`, **RCP-ATOMIC-1**) makes PR receipt posting atomic in one transaction (no more
-half-received corrupt state). **pgTAP 270/270** on a clean reset (verified 2026-06-25; grew from 126
-as `0025`–`0029` and their tests `22`–`30` landed). (Migration filenames skip `0014` — a dropped first
+half-received corrupt state). **pgTAP 287/287** on a clean reset (latest harness run 2026-06-25; grew
+from 126 as `0025`–`0033` and their tests landed). (Migration filenames skip `0014` — a dropped first
 B2 attempt; harmless, applied by version.)
 
 **Residual caveats — now CLOSED (2026-06-25):** **AUTHZ-1 Option B** (gate operation tables
