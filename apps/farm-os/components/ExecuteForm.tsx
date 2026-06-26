@@ -8,16 +8,18 @@ import { executeOperation } from "@/app/(app)/m/execute/[opId]/actions";
 export function ExecuteForm({
   opId,
   defaultQty,
+  defaultNote = "",
   unit,
 }: {
   opId: string;
-  defaultQty: number;
+  defaultQty: number | null;
+  defaultNote?: string;
   unit: string;
 }) {
   const router = useRouter();
-  const [qty, setQty] = useState(String(defaultQty));
+  const [qty, setQty] = useState(defaultQty != null ? String(defaultQty) : "");
   const [labor, setLabor] = useState("4");
-  const [note, setNote] = useState("تم التسميد على الحصوة");
+  const [note, setNote] = useState(defaultNote);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

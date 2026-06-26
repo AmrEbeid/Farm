@@ -11,6 +11,14 @@ const SUBTYPE_AR: Record<string, string> = {
   inspection: "تفتيش",
 };
 
+// Subtype-derived default note (no hardcoded location); blank when subtype is unknown.
+const SUBTYPE_NOTE_AR: Record<string, string> = {
+  fertilization: "تم التسميد",
+  irrigation: "تم الري",
+  spraying: "تم الرش",
+  inspection: "تم التفتيش",
+};
+
 export default async function ExecutePage({
   params,
 }: {
@@ -37,7 +45,7 @@ export default async function ExecutePage({
     <div className="mx-auto flex max-w-md flex-col gap-6 p-4">
       <header>
         <h1 className="text-xl font-bold">تنفيذ العملية — {SUBTYPE_AR[op.subtype ?? ""] ?? op.subtype}</h1>
-        <p style={{ color: "var(--ink-muted)" }}>الحصوة · {fmtDate(op.planned_at)}</p>
+        <p style={{ color: "var(--ink-muted)" }}>{fmtDate(op.planned_at)}</p>
       </header>
 
       {op.status === "done" ? (
@@ -48,7 +56,8 @@ export default async function ExecutePage({
         <Card title="سجّل الفعلي">
           <ExecuteForm
             opId={opId}
-            defaultQty={Number(req?.qty ?? 480)}
+            defaultQty={req?.qty != null ? Number(req.qty) : null}
+            defaultNote={SUBTYPE_NOTE_AR[op.subtype ?? ""] ?? ""}
             unit={req?.unit ?? "kg"}
           />
         </Card>
