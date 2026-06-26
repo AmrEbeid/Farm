@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Card, Button, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
+import { OP_STATUS_AR } from "@/lib/labels";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -64,7 +65,7 @@ export default async function MobileHomePage({
                   </div>
                 </div>
                 <StatusPill status={pill(o.status ?? "planned")}>
-                  {o.status === "done" ? "منفذ" : "قيد التنفيذ"}
+                  {OP_STATUS_AR[o.status ?? "planned"] ?? o.status ?? "—"}
                 </StatusPill>
               </div>
               {o.status !== "done" && (

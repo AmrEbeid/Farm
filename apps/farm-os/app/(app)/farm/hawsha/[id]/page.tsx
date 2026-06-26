@@ -96,7 +96,7 @@ export default async function HawshaFilePage({
     kind: "operation",
     title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
     time: fmtDate(e.occurred_at),
-    description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status,
+    description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status ?? "—",
   }));
 
   const lineMap = new Map<string, PalmLine>();
