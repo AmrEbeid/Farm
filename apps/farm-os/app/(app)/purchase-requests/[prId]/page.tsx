@@ -63,7 +63,9 @@ export default async function PurchaseRequestPage({
     id: it.id,
     name: (it.inventory_items as { name?: string } | null)?.name ?? "—",
     qty: `${num(Number(it.qty))} ${it.unit ?? ""}`,
-    cost: egp(Number(it.est_cost ?? 0)),
+    // #89-B: a null est_cost means the unit price is unknown (no fabricated cost) — show "—",
+    // not "0 ج.م" (which would falsely imply a zero cost).
+    cost: it.est_cost != null ? egp(Number(it.est_cost)) : "—",
   }));
 
   // AP-1/AP-2 are enforced by RLS; the UI mirrors them for affordance only.
