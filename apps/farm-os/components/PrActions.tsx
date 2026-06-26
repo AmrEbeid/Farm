@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Alert } from "@/components/ui";
+import { ReceiveForm, type ReceiveLine } from "@/components/ReceiveForm";
 import {
   submitPurchaseRequest,
   approvePurchaseRequest,
-  recordReceipt,
 } from "@/app/(app)/purchase-requests/[prId]/actions";
 
 export function PrActions({
@@ -15,12 +15,14 @@ export function PrActions({
   version,
   canApprove,
   canReceive,
+  lines,
 }: {
   prId: string;
   status: string;
   version: number;
   canApprove: boolean;
   canReceive: boolean;
+  lines: ReceiveLine[];
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -34,6 +36,10 @@ export function PrActions({
     if (res.ok) router.refresh();
     else setError(res.error ?? "تعذّر تنفيذ الإجراء");
   }
+
+  // A receipt may be recorded against an approved PR OR one that is already partially received
+  // (real deliveries arrive in instalments — SPEC-0009 #155).
+  const receivable = status === "approved" || status === "partially_received";
 
   return (
     <div className="flex flex-col gap-3">
@@ -56,17 +62,13 @@ export function PrActions({
             {canApprove ? "اعتماد (المالك)" : "الاعتماد للمالك فقط"}
           </Button>
         )}
-        {status === "approved" && (
-          <Button
-            variant="primary"
-            loading={pending}
-            disabled={!canReceive}
-            onClick={() => run(() => recordReceipt(prId))}
-          >
-            تسجيل الاستلام
-          </Button>
-        )}
       </div>
+      {receivable &&
+        (canReceive ? (
+          <ReceiveForm prId={prId} lines={lines} />
+        ) : (
+          <p style={{ color: "var(--ink-muted)" }}>ليس لديك صلاحية استلام المخزون.</p>
+        ))}
     </div>
   );
 }

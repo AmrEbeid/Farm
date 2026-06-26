@@ -48,26 +48,35 @@ export async function approvePurchaseRequest(prId: string, version: number) {
 }
 
 /**
- * Record a receipt against an approved PR: a `receipt` movement raises
- * inventory_bin.on_hand, and the PR is marked received. RLS-scoped.
- * (Storekeeper / owner / farm_manager have inventory.write.)
+ * Record a receipt against an approved (or partially-received) PR: a `receipt` movement raises
+ * inventory_bin.on_hand, received_qty advances per line, and the PR is marked `received` (every line
+ * fully received) or `partially_received`. RLS-scoped. (Storekeeper / owner / farm_manager have
+ * inventory.write.)
+ *
+ * `lines` (SPEC-0009 #155 partial receipts): an optional per-line received-quantity map
+ * `[{ item_id, qty }, …]` passed straight through as the RPC's `p_lines` jsonb. When omitted (the
+ * one-click "receive all remaining"), the RPC receives every line's FULL remaining qty — the original
+ * all-or-nothing behaviour, byte-identical for an approved PR.
  */
-export async function recordReceipt(prId: string) {
+export async function recordReceipt(
+  prId: string,
+  lines?: { item_id: string; qty: number }[],
+) {
   await requireMembership();
   const sb = await createClient();
 
-  // RCP-ATOMIC-1: the whole receipt — the approved→received claim AND every line-item `receipt`
-  // movement — now runs in ONE transaction inside the SECURITY DEFINER `fn_post_receipt` RPC
-  // (migration 0024). The previous app-layer version claim-flipped then LOOPED fn_post_movement
-  // per item: if item ≥1 failed after item 0 committed, the PR was left `received` with only partial
-  // stock posted and no clean retry path (claim consumed) → corrupt half-received state. The RPC
-  // makes a mid-loop failure roll the claim + all prior receipts back, so the PR stays `approved`
-  // and is cleanly retryable — mirroring the fn_execute_operation precedent.
+  // RCP-ATOMIC-1: the whole receipt — the approved/partially_received claim AND every line-item
+  // `receipt` movement — runs in ONE transaction inside the SECURITY DEFINER `fn_post_receipt` RPC
+  // (migrations 0024/0045). A mid-loop failure (e.g. over-receipt) rolls the claim + all prior
+  // receipts back, so the PR stays in its prior status and is cleanly retryable.
   //
   // Authz (inventory.write) + the org/membership guard + the claim-first idempotency gate all live
-  // in the RPC now (single source of truth), so the app-layer authorize() check + the client claim +
-  // the per-item loop are gone.
-  const { error } = await sb.rpc("fn_post_receipt", { p_pr_id: prId });
+  // in the RPC (single source of truth). When `lines` is supplied we pass `p_lines` (per-line received
+  // qtys); when omitted we call with `p_pr_id` only and the RPC defaults every line to its remaining.
+  const { error } = await sb.rpc(
+    "fn_post_receipt",
+    lines && lines.length > 0 ? { p_pr_id: prId, p_lines: lines } : { p_pr_id: prId },
+  );
   if (error) {
     // Map fn_post_receipt's SQLSTATEs to context-specific Arabic; toArabicError falls back to a
     // generic Arabic message for anything unlisted, so the raw English DB message never leaks
@@ -75,6 +84,9 @@ export async function recordReceipt(prId: string) {
     return {
       ok: false,
       error: toArabicError(error, {
+        // 23514 — over-receipt: fn_post_receipt rejects a requested qty > remaining-on-order
+        // (SPEC-0009 §4.3). The default 23514 (stock-floor) message would be misleading here.
+        "23514": "الكمية المستلمة تتجاوز المتبقي في الطلب.",
         // 23505 — claim-first idempotency abort (not approved / already received).
         "23505": "تعذّر تسجيل الاستلام: الطلب غير معتمد أو تم استلامه بالفعل.",
         // 42501 — authz failure (no inventory.write / cross-org).
