@@ -8,17 +8,21 @@ import { executeOperation } from "@/app/(app)/m/execute/[opId]/actions";
 export function ExecuteForm({
   opId,
   defaultQty,
+  defaultLabor = null,
   defaultNote = "",
   unit,
 }: {
   opId: string;
   defaultQty: number | null;
+  defaultLabor?: number | null;
   defaultNote?: string;
   unit: string;
 }) {
   const router = useRouter();
   const [qty, setQty] = useState(defaultQty != null ? String(defaultQty) : "");
-  const [labor, setLabor] = useState("4");
+  // Prefill from the op's planned labor (plan_labor_requirements.count) like qty — never a
+  // hardcoded magic default, which would persist fabricated actual-labor data (non-negotiable #1).
+  const [labor, setLabor] = useState(defaultLabor != null ? String(defaultLabor) : "");
   const [note, setNote] = useState(defaultNote);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);

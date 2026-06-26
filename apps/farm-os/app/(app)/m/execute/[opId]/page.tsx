@@ -30,7 +30,9 @@ export default async function ExecutePage({
 
   const { data: op, error } = await sb
     .from("plan_operations")
-    .select("id, subtype, planned_at, est_cost, status, plan_material_requirements(qty, unit)")
+    .select(
+      "id, subtype, planned_at, est_cost, status, plan_material_requirements(qty, unit), plan_labor_requirements(count)",
+    )
     .eq("id", opId)
     .maybeSingle();
   // Surface DB read failures to the segment error boundary instead of rendering
@@ -40,6 +42,7 @@ export default async function ExecutePage({
   if (!op) return <div className="p-6">العملية غير موجودة.</div>;
 
   const req = (op.plan_material_requirements ?? [])[0] as { qty?: number; unit?: string } | undefined;
+  const laborReq = (op.plan_labor_requirements ?? [])[0] as { count?: number } | undefined;
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6 p-4">
@@ -57,6 +60,7 @@ export default async function ExecutePage({
           <ExecuteForm
             opId={opId}
             defaultQty={req?.qty != null ? Number(req.qty) : null}
+            defaultLabor={laborReq?.count != null ? Number(laborReq.count) : null}
             defaultNote={SUBTYPE_NOTE_AR[op.subtype ?? ""] ?? ""}
             unit={req?.unit ?? "kg"}
           />
