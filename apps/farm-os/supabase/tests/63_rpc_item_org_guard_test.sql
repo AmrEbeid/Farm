@@ -40,15 +40,17 @@ select lives_ok(
          :'plan', :'itemA'),
   '#235: fn_add_plan_operation accepts a same-org p_item_id');
 
-reset role;
+-- a wholly NON-EXISTENT item is NOT reclassified by the guard — it falls through to the requirement
+-- insert's FK (23503), proving the guard scopes precisely to the cross-org case (Option-B), not to all
+-- non-org items. (A behavioral check rather than a pg_get_functiondef text-match, which would pass even
+-- if the guard were commented out, since the definition text includes comments.)
+select throws_ok(
+  format($$ select public.fn_add_plan_operation(%L, 'spraying', date '2026-07-03', 100, %L, 5, 'kg') $$,
+         :'plan', '00000000-0000-0000-0000-0000deadbeef'),
+  '23503', null,
+  '#235: a non-existent item still raises the FK (23503), not the org guard — Option-B scoping is precise');
 
--- structural: the guard is present in the function body
-select is(
-  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public' and p.proname = 'fn_add_plan_operation'
-       and pg_get_functiondef(p.oid) like '%and org_id = v_org%'),
-  1,
-  '#235: fn_add_plan_operation carries the item-org guard');
+reset role;
 
 select * from finish();
 rollback;
