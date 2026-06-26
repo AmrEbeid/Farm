@@ -65,6 +65,14 @@ export async function recordReceipt(
   await requireMembership();
   const sb = await createClient();
 
+  // Defense-in-depth (independent-review finding): an EMPTY `lines` array is a PARTIAL submit with no
+  // quantities entered — it must NOT fall through to the receive-all path (which only `lines === undefined`
+  // should trigger). Without this, `lines && lines.length > 0` is false for `[]`, so the RPC would receive
+  // the whole PR's remaining — overstating on_hand, the exact corruption SPEC-0009 prevents. Reject it.
+  if (lines && lines.length === 0) {
+    return { ok: false, error: "أدخل كمية مستلمة واحدة على الأقل." };
+  }
+
   // RCP-ATOMIC-1: the whole receipt — the approved/partially_received claim AND every line-item
   // `receipt` movement — runs in ONE transaction inside the SECURITY DEFINER `fn_post_receipt` RPC
   // (migrations 0024/0045). A mid-loop failure (e.g. over-receipt) rolls the claim + all prior

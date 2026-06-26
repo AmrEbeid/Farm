@@ -52,6 +52,13 @@ export function ReceiveForm({ prId, lines }: { prId: string; lines: ReceiveLine[
     const lineMap = openLines
       .map((l) => ({ item_id: l.itemId, qty: Number(qtys[l.itemId] ?? "0") }))
       .filter((e) => Number.isFinite(e.qty) && e.qty > 0);
+    // Guard: an all-blank/all-zero partial submit must NOT fall through to a full receipt. recordReceipt
+    // treats "no lines" as receive-all-remaining (the ghost button), so an empty lineMap here would post
+    // the WHOLE PR — the opposite of intent, on the irreversible inventory path. Require ≥1 positive qty.
+    if (lineMap.length === 0) {
+      setError("أدخل كمية مستلمة واحدة على الأقل.");
+      return;
+    }
     submit(lineMap);
   }
 
