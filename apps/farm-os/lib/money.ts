@@ -10,7 +10,16 @@ export function egp(n: number | null | undefined): string {
 
 export function num(n: number | null | undefined, decimals = 0): string {
   if (n == null || Number.isNaN(n)) return "—";
-  return (decimals > 0 ? FMT2 : FMT).format(n);
+  // Honor `decimals` exactly. The cached 0/2-dp formatters cover the common cases;
+  // build one for anything else (e.g. coverageDays' 1 dp). Previously any decimals>0
+  // fell through to the 2-dp formatter, so num(x,1) wrongly rendered 2 decimals.
+  const fmt =
+    decimals === 0
+      ? FMT
+      : decimals === 2
+        ? FMT2
+        : new Intl.NumberFormat("ar-EG", { maximumFractionDigits: decimals });
+  return fmt.format(n);
 }
 
 export function pct(n: number | null | undefined): string {

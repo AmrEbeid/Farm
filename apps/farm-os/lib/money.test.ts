@@ -8,6 +8,13 @@ describe("money formatters", () => {
     expect(pct(NaN)).toBe("—");
   });
 
+  it("num honors the decimals argument (1dp ≠ 2dp; was a contract bug)", () => {
+    const oneDp = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 }).format(12.857);
+    expect(num(12.857, 1)).toBe(oneDp); // exactly one decimal, not two
+    expect(num(12.857, 1)).not.toBe(num(12.857, 2)); // decimals actually distinguishes
+    expect(num(12.857)).toBe(num(12.857, 0)); // default stays 0 dp
+  });
+
   describe("coverageDays", () => {
     it("renders the infinite sentinel as ∞ (not NaN)", () => {
       // The RPC returns the STRING "∞" for zero demand — the bug was num("∞") => "ليس رقمًا".
