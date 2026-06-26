@@ -27,6 +27,20 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // The prod build runs `next build --webpack`, where the turbopack alias above does
+  // NOT apply — so without this, real Recharts re-enters the SERVER module graph on
+  // chart routes (inventory coverage, the PvA report) and throws the React-19
+  // "Super expression…" import error. Mirror the turbopack alias for webpack:
+  // stub Recharts on the server only; the browser keeps the real library.
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        recharts: path.resolve(__dirname, "recharts-stub.ts"),
+      };
+    }
+    return config;
+  },
   // Baseline HTTP security response headers applied to every route. These are
   // low-risk hardening headers only. A Content-Security-Policy is deliberately
   // omitted here — it has a high risk of breaking the app, Supabase, and Vercel
