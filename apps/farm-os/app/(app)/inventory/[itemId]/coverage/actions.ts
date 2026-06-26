@@ -101,7 +101,7 @@ export async function createPurchaseRequestFromShortage(
 
   const { data: item } = await sb
     .from("inventory_items")
-    .select("name, unit, preferred_supplier_id")
+    .select("name, unit, preferred_supplier_id, unit_cost")
     .eq("id", itemId)
     .single();
 
@@ -152,7 +152,11 @@ export async function createPurchaseRequestFromShortage(
     qty: recommendQty,
     unit: item?.unit ?? "kg",
     supplier_id: item?.preferred_supplier_id ?? null,
-    est_cost: recommendQty * 84, // ~84 ج.م/kg potassium sulfate (real Ebeid price)
+    // #89 (Option C): estimate from the item's manually-maintained standard unit_cost. When
+    // unit_cost is NULL the price is genuinely UNKNOWN, so leave est_cost NULL rather than
+    // fabricate one (the old `recommendQty * 84` stamped the potassium price on every item —
+    // non-negotiable #1). Numeric columns arrive as strings from PostgREST → Number().
+    est_cost: item?.unit_cost != null ? recommendQty * Number(item.unit_cost) : null,
   });
   if (itemErr) return { ok: false, error: toArabicError(itemErr) };
 
