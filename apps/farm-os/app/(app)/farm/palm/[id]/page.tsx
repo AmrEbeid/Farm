@@ -3,6 +3,7 @@ import { requireMembership } from "@/lib/auth";
 import { Breadcrumbs, Card, DescriptionList, FileTimeline, EmptyState } from "@/components/ui";
 import type { TimelineEvent } from "@/components/ui";
 import { fmtDate } from "@/lib/dates";
+import { PalmStatusForm } from "@/components/PalmStatusForm";
 
 // assets.status — the closed set from migration 0003.
 const STATUS_AR: Record<string, string> = {
@@ -25,7 +26,7 @@ export default async function PalmFilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
 
   // asset (+ its sector/hawsha/line for the breadcrumb) and its status history are
@@ -58,6 +59,8 @@ export default async function PalmFilePage({
   const hawsha = one<{ id?: string; name?: string }>(asset.hawshat);
   const line = one<{ line_no?: number }>(asset.lines);
   const label = asset.id_tag ?? asset.name ?? "نخلة";
+  // Field roles may update tree health; others get a read-only file (the action re-checks).
+  const canEdit = ["supervisor", "agri_engineer", "farm_manager", "owner"].includes(m.role);
 
   const timeline: TimelineEvent[] = (history ?? []).map((h) => ({
     id: h.id,
@@ -110,6 +113,12 @@ export default async function PalmFilePage({
           <FileTimeline events={timeline} ariaLabel={`سجل حالة ${label}`} />
         )}
       </Card>
+
+      {canEdit && (
+        <Card title="تحديث حالة النخلة">
+          <PalmStatusForm assetId={asset.id} currentStatus={asset.status} />
+        </Card>
+      )}
     </div>
   );
 }
