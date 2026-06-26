@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
 
 type CellKind = "text" | "num" | "status" | "tag-danger" | "tag-ok" | "tag-warn";
@@ -34,24 +34,33 @@ export function SimpleTable({
   caption?: string;
   empty?: string;
 }) {
-  const router = useRouter();
-
   return (
     <DataTable<SimpleRow>
       caption={caption}
-      columns={columns.map((c) => ({
+      columns={columns.map((c, i) => ({
         id: c.id,
         header: c.header,
         numeric: c.numeric,
-        cell: (row) => renderCell(c, row),
+        // Make the first cell a real <Link> when the row has an href. Restores
+        // row→detail navigation and is keyboard/AT-accessible (a real anchor) —
+        // the previous table-level onClick looked for a `tr[data-href]` that
+        // DataTable never renders, so navigation was dead for everyone.
+        cell: (row) =>
+          i === 0 && row.href ? (
+            <Link
+              href={row.href}
+              className="font-medium underline underline-offset-4"
+              style={{ color: "var(--brand)" }}
+            >
+              {renderCell(c, row)}
+            </Link>
+          ) : (
+            renderCell(c, row)
+          ),
       }))}
       rows={rows}
       getRowId={(r) => r.id}
       empty={empty ?? "لا توجد بيانات"}
-      onClick={(e) => {
-        const tr = (e.target as HTMLElement).closest("tr[data-href]") as HTMLElement | null;
-        if (tr?.dataset.href) router.push(tr.dataset.href);
-      }}
     />
   );
 }
