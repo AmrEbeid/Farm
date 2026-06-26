@@ -2012,6 +2012,18 @@ export type Database = {
         Args: { p_item: string; p_location?: string }
         Returns: number
       }
+      fn_add_plan_operation: {
+        Args: {
+          p_est_cost: number
+          p_item_id: string
+          p_plan_id: string
+          p_planned_at: string
+          p_qty: number
+          p_subtype: string
+          p_unit: string
+        }
+        Returns: Json
+      }
       fn_execute_operation: {
         Args: {
           p_actual_qty: number

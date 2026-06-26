@@ -125,13 +125,18 @@ export interface NewOperationInput {
 
 /**
  * Add a planned operation with one material requirement to a plan.
- * Writes plan_operations + plan_material_requirements (both tenant_all RLS).
- * The material requirement is what fn_stock_coverage reads as planned demand.
+ *
+ * CREATE-3 (#196): the op + its material requirement are written atomically by the SECURITY DEFINER
+ * RPC fn_add_plan_operation (migration 0038) — ONE transaction, so a requirement failure rolls the op
+ * back. The old two-write app path could leave an ORPHAN op (no requirement) when the 2nd write failed;
+ * the CREATE-2 dedup (it only matches ops that already carry a requirement for the item) then missed it
+ * on retry → a duplicate op whose est_cost still over-counts the budget while contributing no demand.
+ * The RPC also enforces plan.write (org-scoped), the cross-org guard, and the CREATE-2 dedup server-side.
  */
 export async function addPlanOperation(planId: string, input: NewOperationInput) {
-  const m = await requireMembership();
+  await requireMembership();
 
-  // B4: validate inputs at the action boundary (RLS does not range-check values).
+  // B4: validate inputs at the action boundary (RLS/RPC does not range-check these values).
   if (!Number.isFinite(input.est_cost) || input.est_cost < 0) {
     return { ok: false, error: "التكلفة التقديرية غير صالحة" };
   }
@@ -141,72 +146,34 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
 
   const sb = await createClient();
 
-  // PLAN-AUTHZ-1 (app-layer, like #71 Option C): authoring a planned operation is `plan.write`
-  // (owner/farm_manager). The action only checked membership. Gate via authorize().
-  const { data: canWrite } = await sb.rpc("authorize", { perm: "plan.write", p_org: m.orgId });
-  if (!canWrite) return { ok: false, error: "ليس لديك صلاحية تعديل الخطة" };
-
-  // plan scope (target) for the operation. Fail loudly on a missing/failed plan rather
-  // than silently defaulting scope_type to "sector" (which would create an orphan op
-  // with a null target on a bad planId).
-  const { data: plan, error: planErr } = await sb
-    .from("plans")
-    .select("scope_type, scope_id")
-    .eq("id", planId)
-    .single();
-  if (planErr || !plan) return { ok: false, error: toArabicError(planErr, {}, "الخطة غير موجودة") };
-
-  // CREATE-2: idempotency (same class as CREATE-1 #63). A double-submit / network retry would
-  // otherwise create a DUPLICATE planned operation + a second material requirement — over-counting
-  // planned demand (conservative: the engine over-recommends, never masks a shortage). Find-or-create:
-  // if an operation for this plan with the same natural key (subtype + planned_at) already carries a
-  // requirement for this item, reuse it instead of inserting a duplicate.
-  // (Conservative residual: a truly concurrent pair of calls could still both create, which only
-  // over-counts demand. A fully race-safe guard would need a DB constraint spanning plan_operations
-  // (plan_id, subtype, planned_at) and plan_material_requirements.item_id.)
-  const { data: existingOps } = await sb
-    .from("plan_operations")
-    .select("id, plan_material_requirements(item_id)")
-    .eq("plan_id", planId)
-    .eq("subtype", input.subtype)
-    .eq("planned_at", input.planned_at);
-  const dupe = (existingOps ?? []).find((o) =>
-    ((o.plan_material_requirements ?? []) as { item_id: string }[]).some(
-      (r) => r.item_id === input.item_id,
-    ),
-  );
-  if (dupe) {
-    return { ok: true, operationId: dupe.id, deduped: true };
+  // Single atomic call: authz (plan.write, org-scoped) + plan-scope lookup + CREATE-2 dedup + the two
+  // inserts all happen inside fn_add_plan_operation. Errors are mapped to field-safe Arabic by SQLSTATE
+  // (42501 → permission, P0002 → plan not found, …) — never a raw English message.
+  const { data, error } = await sb.rpc("fn_add_plan_operation", {
+    p_plan_id: planId,
+    p_subtype: input.subtype,
+    p_planned_at: input.planned_at,
+    p_est_cost: input.est_cost,
+    p_item_id: input.item_id,
+    p_qty: input.material_qty,
+    p_unit: input.material_unit,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "ليس لديك صلاحية تعديل الخطة", P0002: "الخطة غير موجودة" },
+        "تعذّر إنشاء العملية",
+      ),
+    };
   }
 
-  const { data: op, error: opErr } = await sb
-    .from("plan_operations")
-    .insert({
-      org_id: m.orgId,
-      plan_id: planId,
-      subtype: input.subtype,
-      target_type: plan?.scope_type ?? "sector",
-      target_id: plan?.scope_id ?? null,
-      planned_at: input.planned_at,
-      priority: 1,
-      responsible_person_id: m.personId,
-      est_cost: input.est_cost,
-      approval_needed: true,
-      status: "planned",
-    })
-    .select("id")
-    .single();
-  if (opErr || !op) return { ok: false, error: toArabicError(opErr, {}, "تعذّر إنشاء العملية") };
-
-  const { error: matErr } = await sb.from("plan_material_requirements").insert({
-    org_id: m.orgId,
-    plan_op_id: op.id,
-    item_id: input.item_id,
-    qty: input.material_qty,
-    unit: input.material_unit,
-  });
-  if (matErr) return { ok: false, error: toArabicError(matErr) };
+  const result = data as { operationId: string; deduped: boolean } | null;
+  if (!result?.operationId) return { ok: false, error: "تعذّر إنشاء العملية" };
 
   revalidatePath(`/plans/${planId}`);
-  return { ok: true, operationId: op.id };
+  return result.deduped
+    ? { ok: true, operationId: result.operationId, deduped: true }
+    : { ok: true, operationId: result.operationId };
 }
