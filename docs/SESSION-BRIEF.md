@@ -1,7 +1,18 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — prod push 0049→0066 + deep 360 review
+## 2026-06-26 (latest) — PRs #318/#321 merged; prod pushed to `0073`; live site verified
+After the 360 review: **PR #318** (landing fabricated-KPI removal + 6-form offline handling + migration
+drafts) and **PR #321** (renumber, resolving a 0070/0071 dup-version collision with concurrent #319/#320)
+merged to `main`. The 360 draft **0072 (revoke anon EXECUTE on authorize/user_org_ids) was dropped** — it
+broke pgTAP INV-1, which deliberately pins those two anon-executable (RLS policies call them for anon
+queries too); the advisor 0028/0029 WARN is a known false-positive. Then **applied `0067–0073` (7) to prod**
+via the MCP — prod head now **`0073`, in sync with `main`** (verified: 7/7 recorded, 0 dup/stray versions,
+CHECKs/trigger/policies live, `get_advisors` no new regressions). **Live site verified:** Vercel prod
+deploy on the merge succeeded; landing page now shows no fabricated KPI tiles, login renders clean, no
+errors. The remaining tracked items are unchanged (#270 C1/C2 engine, #157 budget, #317 grants, #161 parity).
+
+## 2026-06-26 — prod push 0049→0066 + deep 360 review
 **Local was 97 commits behind origin** (HEAD #185 vs origin #311) — fast-forwarded to `4ac73b1`. The
 work since the prior brief was overwhelmingly DB-layer + docs (security/integrity hardening) and subtle
 app-code, and the DB half was un-applied on prod — which is why the live site "looked unchanged" despite
