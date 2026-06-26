@@ -8,7 +8,11 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0048` — in sync with `main`.** `0001–0013` + `0015–0048` applied and recorded
+  - **Migrations now at `0066` — in sync with `main` (2026-06-26 push).** `0049–0066` (18: assets/PR/engine
+    hardening + cross-org FK sweep, issues #235/#270/#280/#306) applied via the Supabase MCP, all versions
+    matching their files; verified 18/18 recorded + triggers/constraints/write-gates live, `get_advisors`
+    no new regressions. Drafts `0067–0069` (360-review fixes) are on branch `docs/push-prep-0049-0066`,
+    NOT yet applied. — Prior baseline: `0001–0013` + `0015–0048` applied and recorded
     (`0036` FK perf indexes #230; `0037` AUTHZ-3 #182 — fn_post_movement made internal + gated fn_reserve_stock;
     `0038` fn_add_plan_operation #196 — atomic plan-operation RPC; `0039` fn_update_palm_status #238 — op.execute-gated
     atomic palm-status RPC; `0040` engine_rec1_fix #184 — removed the recommendation's period-1 receipts double-subtract;
