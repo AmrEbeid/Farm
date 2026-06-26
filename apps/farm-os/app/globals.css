@@ -51,3 +51,21 @@ body {
 #main:focus {
   outline: none;
 }
+
+/*
+ * Mobile nav-drawer tap fix (app-side override of @amrebeid/ui AppShell).
+ * The library's `.fos-appshell__overlay` (the dim-to-dismiss backdrop) and the
+ * mobile `.fos-appshell__sidebar` share `--z-drawer`, and the overlay is painted
+ * AFTER the sidebar in the DOM — so on a phone the overlay sat on top of the open
+ * drawer and intercepted taps on the nav links (the drawer just closed instead of
+ * navigating; confirmed live on farm-ui-one.vercel.app). Field roles are mobile,
+ * so this blocked primary navigation. Raise the sidebar one above the overlay so
+ * taps reach the links; the overlay (still --z-drawer) keeps tap-outside-to-close.
+ * Harmless on desktop, where the sidebar is in grid flow (unpositioned → z-index
+ * is a no-op). Override lives here because farm-os-ui.css is generated (synced
+ * from the library) and would be overwritten; the proper fix belongs in
+ * @amrebeid/ui (AppShell z-index) as a follow-up.
+ */
+.fos-appshell__sidebar {
+  z-index: calc(var(--z-drawer) + 1);
+}
