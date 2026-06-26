@@ -8,7 +8,8 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0035` — in sync with `main`.** `0001–0013` + `0015–0035` applied and recorded
+  - **Migrations now at `0037` — in sync with `main`.** `0001–0013` + `0015–0037` applied and recorded
+    (`0036` FK perf indexes #230; `0037` AUTHZ-3 #182 — fn_post_movement made internal + gated fn_reserve_stock).
     under their repo versions (`0001–0013` via `supabase db push`; `0015→0029` applied 2026-06-25 via the
     Supabase MCP after the prod-push assurance; `0030`/`0031` the same day; **`0032`–`0035` applied
     2026-06-26 via the MCP** — `0032` PR-line lock + version bump, `0033` CONC-1 floor lock, `0034`
