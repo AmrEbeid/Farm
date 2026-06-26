@@ -1,20 +1,45 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { KpiCard, Card } from "@/components/ui";
+import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { num } from "@/lib/money";
+
+const SUBTYPE_AR: Record<string, string> = {
+  fertilization: "تسميد",
+  irrigation: "ري",
+  spraying: "رش",
+  inspection: "تفتيش",
+};
 
 export default async function FarmStructurePage() {
   await requireMembership();
   const sb = await createClient();
 
-  const { data: sectors, error } = await sb
-    .from("sectors")
-    .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
-    .order("code");
+  // sectors (the grid) and the farm-level event timeline are independent reads,
+  // both RLS-scoped to the caller's org — fetch in parallel.
+  const [{ data: sectors, error }, { data: events, error: eventsError }] = await Promise.all([
+    sb
+      .from("sectors")
+      .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
+      .order("code"),
+    sb
+      .from("farm_event")
+      .select("id, subtype, status, occurred_at, notes")
+      .order("occurred_at", { ascending: false })
+      .limit(15),
+  ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
   if (error) throw error;
+  if (eventsError) throw eventsError;
+
+  const timeline: TimelineEvent[] = (events ?? []).map((e) => ({
+    id: e.id,
+    kind: "operation",
+    title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
+    time: e.occurred_at ? new Date(e.occurred_at).toLocaleDateString("ar-EG") : "—",
+    description: e.notes ?? (e.status === "done" ? "منفّذة" : e.status),
+  }));
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "القطاع" },
@@ -58,6 +83,14 @@ export default async function FarmStructurePage() {
 
       <Card title="القطاعات">
         <SimpleTable columns={columns} rows={rows} empty="لا توجد قطاعات" />
+      </Card>
+
+      <Card title="السجل الزمني للمزرعة">
+        {timeline.length === 0 ? (
+          <EmptyState title="لا توجد عمليات مسجّلة بعد" />
+        ) : (
+          <FileTimeline events={timeline} ariaLabel="السجل الزمني للمزرعة" />
+        )}
       </Card>
     </div>
   );
