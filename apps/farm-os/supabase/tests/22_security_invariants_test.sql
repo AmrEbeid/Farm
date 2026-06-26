@@ -15,7 +15,7 @@ select plan(8);
 
 -- ============================================================================================
 -- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function except the RLS helpers.
--- Generalises migration 0021. authorize(text)/user_org_ids() are the intentional helpers anon
+-- Generalises migration 0021. authorize(text,uuid)/user_org_ids() are the intentional helpers anon
 -- needs so RLS policies can evaluate for an unauthenticated request; every other definer fn is a
 -- privileged code path that must never be reachable from the anon (unauthenticated) JWT.
 -- ============================================================================================
@@ -32,8 +32,8 @@ select is(
 
 -- Pin the positive side too: the two intended helpers MUST stay anon-executable (so a future
 -- over-zealous revoke that breaks anonymous RLS evaluation is also caught).
-select ok(has_function_privilege('anon', 'public.authorize(text)', 'EXECUTE'),
-  'INV-1: authorize(text) remains EXECUTE-able by anon (RLS helper)');
+select ok(has_function_privilege('anon', 'public.authorize(text, uuid)', 'EXECUTE'),
+  'INV-1: authorize(text, uuid) remains EXECUTE-able by anon (RLS helper; AUTHZ-2 #181 org-scoped overload)');
 select ok(has_function_privilege('anon', 'public.user_org_ids()', 'EXECUTE'),
   'INV-1: user_org_ids() remains EXECUTE-able by anon (RLS helper)');
 

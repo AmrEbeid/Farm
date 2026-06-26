@@ -1949,7 +1949,7 @@ export type Database = {
       _table_privs: { Args: never; Returns: unknown[] }
       _temptypes: { Args: { "": string }; Returns: string }
       _todo: { Args: never; Returns: string }
-      authorize: { Args: { perm: string }; Returns: boolean }
+      authorize: { Args: { perm: string; p_org: string }; Returns: boolean }
       col_is_null:
         | {
             Args: {
