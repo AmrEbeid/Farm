@@ -18,10 +18,13 @@ const PR_STATUS_AR: Record<string, string> = {
   approved: "معتمد",
   rejected: "مرفوض",
   received: "مُستلم",
+  partially_received: "مُستلم جزئيًا",
 };
 
 function pillStatus(s: string): "draft" | "scheduled" | "active" | "done" | "blocked" {
   if (s === "approved" || s === "received") return "done";
+  // partially_received is in-progress — supply still on order. Treat like an active state.
+  if (s === "partially_received") return "active";
   if (s === "submitted") return "scheduled";
   if (s === "rejected") return "blocked";
   return "draft";
@@ -51,22 +54,42 @@ export default async function PurchaseRequestPage({
 
   const { data: items, error: itemsError } = await sb
     .from("purchase_request_items")
-    .select("id, qty, unit, est_cost, inventory_items(name)")
+    .select("id, item_id, qty, unit, est_cost, received_qty, inventory_items(name)")
     .eq("pr_id", prId);
   if (itemsError) throw itemsError;
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "الصنف" },
     { id: "qty", header: "الكمية", numeric: true },
+    // SPEC-0009 #155: received-to-date and the still-owed remainder, so the storekeeper can see
+    // progress across partial deliveries.
+    { id: "received", header: "المُستلم", numeric: true },
+    { id: "remaining", header: "المتبقي", numeric: true },
     { id: "cost", header: "التكلفة التقديرية", numeric: true },
   ];
-  const rows = (items ?? []).map((it) => ({
-    id: it.id,
+  const rows = (items ?? []).map((it) => {
+    const qty = Number(it.qty ?? 0);
+    const received = Number(it.received_qty ?? 0);
+    const unit = it.unit ?? "";
+    return {
+      id: it.id,
+      name: (it.inventory_items as { name?: string } | null)?.name ?? "—",
+      qty: `${num(qty)} ${unit}`.trim(),
+      received: `${num(received)} ${unit}`.trim(),
+      remaining: `${num(qty - received)} ${unit}`.trim(),
+      // #89-B: a null est_cost means the unit price is unknown (no fabricated cost) — show "—",
+      // not "0 ج.م" (which would falsely imply a zero cost).
+      cost: it.est_cost != null ? egp(Number(it.est_cost)) : "—",
+    };
+  });
+
+  // Lines for the receive UI: keyed by inventory item_id (the RPC's p_lines key).
+  const receiveLines = (items ?? []).map((it) => ({
+    itemId: it.item_id,
     name: (it.inventory_items as { name?: string } | null)?.name ?? "—",
-    qty: `${num(Number(it.qty))} ${it.unit ?? ""}`,
-    // #89-B: a null est_cost means the unit price is unknown (no fabricated cost) — show "—",
-    // not "0 ج.م" (which would falsely imply a zero cost).
-    cost: it.est_cost != null ? egp(Number(it.est_cost)) : "—",
+    unit: it.unit ?? "",
+    qty: Number(it.qty ?? 0),
+    receivedQty: Number(it.received_qty ?? 0),
   }));
 
   // AP-1/AP-2 are enforced by RLS; the UI mirrors them for affordance only.
@@ -78,7 +101,9 @@ export default async function PurchaseRequestPage({
     {
       id: "owner",
       state:
-        pr.status === "approved" || pr.status === "received"
+        pr.status === "approved" ||
+        pr.status === "received" ||
+        pr.status === "partially_received"
           ? "approved"
           : pr.status === "rejected"
             ? "rejected"
@@ -128,6 +153,7 @@ export default async function PurchaseRequestPage({
           version={pr.version ?? 1}
           canApprove={canApprove}
           canReceive={canReceive}
+          lines={receiveLines}
         />
       </Card>
     </div>

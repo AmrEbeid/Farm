@@ -1630,6 +1630,7 @@ export type Database = {
           org_id: string
           pr_id: string
           qty: number | null
+          received_qty: number
           supplier_id: string | null
           unit: string | null
         }
@@ -1640,6 +1641,7 @@ export type Database = {
           org_id: string
           pr_id: string
           qty?: number | null
+          received_qty?: number
           supplier_id?: string | null
           unit?: string | null
         }
@@ -1650,6 +1652,7 @@ export type Database = {
           org_id?: string
           pr_id?: string
           qty?: number | null
+          received_qty?: number
           supplier_id?: string | null
           unit?: string | null
         }
