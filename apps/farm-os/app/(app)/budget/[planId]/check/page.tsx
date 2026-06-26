@@ -11,7 +11,7 @@ export default async function BudgetCheckPage({
   params: Promise<{ planId: string }>;
   searchParams: Promise<{ pr?: string }>;
 }) {
-  await params;
+  const { planId } = await params;
   const { pr } = await searchParams;
   const m = await requireMembership();
   const sb = await createClient();
@@ -33,7 +33,19 @@ export default async function BudgetCheckPage({
   const committed = Number(line?.committed ?? 0);
   const actual = Number(line?.actual ?? 0);
   const available = approved - committed - actual;
-  const thisOp = 42000; // the planned fertilization op cost
+
+  // The pending أسمدة spend for this plan = Σ est_cost of its planned fertilization
+  // operations — real plan data, not a fabricated constant (non-negotiable #1). The
+  // budget gate must judge the actual cost, never a magic number.
+  const { data: ops, error: opsError } = await sb
+    .from("plan_operations")
+    .select("est_cost")
+    .eq("plan_id", planId)
+    .eq("subtype", "fertilization")
+    .eq("status", "planned");
+  if (opsError) throw opsError;
+  const thisOp = (ops ?? []).reduce((s, o) => s + Number(o.est_cost ?? 0), 0);
+
   const after = available - thisOp;
   const utilization = approved > 0 ? Math.round(((committed + actual) / approved) * 100) : 0;
 
