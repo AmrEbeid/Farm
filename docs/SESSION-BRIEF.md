@@ -1,7 +1,29 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — ✅ PROD PUSHED to `0034`; live app no longer has the shortage-mask
+## 2026-06-26 (latest) — ✅ AUTHZ-2 (#181) fixed + MERGED + PUSHED; prod now `0035`
+Under full Owner autonomy (the Stop-hook directive: review→merge green PRs, push, don't wait), built +
+shipped the second HIGH security fix end-to-end:
+- **AUTHZ-2 / #181 — `authorize()` was not org-scoped** → a multi-org member could exercise a privileged
+  role in an org where they hold only a low role (cross-org privilege escalation). **Migration `0035`**
+  (`authorize_org_scoped`) adds the org-scoped overload `authorize(perm text, p_org uuid)` (`m.org_id =
+  p_org`), repoints all 7 RLS policies + `fn_execute_operation` + `fn_post_receipt` (re-emitted from the
+  0029 body, ENGINE-DC marker intact), and **drops the 1-arg fn last** (un-migrated callers fail closed).
+- **Process:** worktree-agent implementation → **independent fresh-context review** (caught a real
+  test-pin bug — test 22's `has_function_privilege('authorize(text)')` would error post-drop; fixed) →
+  full pgTAP **315/315** (test 36 proves escalation blocked + single-org access retained) → **PR #227
+  merged** → **pushed to prod via MCP** (atomic) → verified: `list_migrations` → `0035`, all 7 policies
+  call the 2-arg authorize, RPCs org-scoped, `multi_org_members = 0` (zero behavior change on current
+  single-org data — a latent-hole closure ahead of multi-tenant), `get_advisors` only pre-existing WARNs.
+  **#181 closed.**
+- **Prod is now at `0035`, fully in sync with `main`.** Both HIGH issues this session (#197 shortage-mask,
+  #181 authz escalation) are fixed AND live in prod.
+- **Next security slice = #182 (AUTHZ-3):** `fn_post_movement` is `authenticated`-callable with no
+  `inventory.write` gate (the app calls it directly for `reserve`). Fix = a gated `fn_reserve_stock`
+  wrapper + revoke `fn_post_movement` from `authenticated`. Paired with SPEC-0002; changes the live
+  reserve write path, so test + review carefully before the prod push.
+
+## 2026-06-26 — ✅ PROD PUSHED to `0034`; live app no longer has the shortage-mask
 Owner directive escalated to full autonomy incl. prod ("go ahead with recommendations, do not wait").
 Pushed the pending migrations to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, one at a time,
 recorded under their exact repo versions:
