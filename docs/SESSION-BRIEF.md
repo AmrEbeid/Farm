@@ -1,6 +1,38 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-26 (latest) — prod push 0049→0066 + deep 360 review
+**Local was 97 commits behind origin** (HEAD #185 vs origin #311) — fast-forwarded to `4ac73b1`. The
+work since the prior brief was overwhelmingly DB-layer + docs (security/integrity hardening) and subtle
+app-code, and the DB half was un-applied on prod — which is why the live site "looked unchanged" despite
+heavy activity.
+
+**Prod-DB push (Owner-authorized in writing):** applied migrations **0049–0066** (18) to prod
+`veezkmytervjnpxcrbkw` via the Supabase MCP (DDL + ledger row per file; the one `apply_migration` stray
+apply-time version was corrected so every version matches its file). **Prod head = `0066`, in sync with
+`main`.** Verified live: 18/18 recorded, 5 new audit triggers, 6 new CHECK constraints, write-gates live;
+`get_advisors` shows **no new** regressions. Turnkey record: `RUNBOOK-prod-push-0049-0066-2026-06-26.md`.
+
+**Deep 360 review (6 parallel reviewers)** — full writeup: `REVIEW-360-2026-06-26.md`. Verdict:
+substantive holes closed; short precise remainder.
+- **Fixed in branch `docs/push-prep-0049-0066` (PR open, Owner-gated):** removed landing-page
+  dashboard KPI tiles (`app/page.tsx` — hardcoded; for palms they show the canonical 4,380 while the
+  registry import never happened, #239 — Owner may re-add as static brand copy); offline `try/catch`
+  added to 6 mutation forms (only ExecuteForm had it); migration **drafts 0070** (inventory_items
+  safety_stock/pack_size CHECK) + **0071** (palm_status_history write-gate). App validated: lint 0,
+  tsc 0, 110/110 tests. **0070–0071 NOT applied to prod** (new migrations → PR review + pgTAP, then
+  Owner applies). *(Draft 0072 — revoke anon EXECUTE on authorize/user_org_ids — was WITHDRAWN: pgTAP
+  INV-1 deliberately pins them anon-executable since RLS policies call them for anon queries too; the
+  advisor 0028/0029 WARN is a false-positive.)*
+- **Closed (verified fixed on prod 0066):** #306 (cross-org FK sweep), #280 (F2/F4/F5).
+- **Still open / tracked:** #270 **C1** (fn_post_receipt keys received_qty by item_id not line id →
+  phantom on_hand with duplicate same-item lines) + **C2** (overdue PO projected as supply) — both
+  verified real, need a tested PR; #157 (budget guardrail not table-backed + NULL est_cost=0); **#317
+  (new)** (default privileges re-grant anon/authenticated CRUD+TRUNCATE on post-0027 tables); #161
+  (SQL↔TS engine parity drift, latent).
+- **Recommended next (one PR each):** merge this PR + apply 0070–0071 → #270 C1/C2 engine fix (pgTAP)
+  → #157 budget → #317 grant lockdown.
+
 ## 2026-06-26 — ✅ `0048` contact-PII lockdown PUSHED + verified; #173/PII-1 now FULLY closed; prod `0048`, in sync with `main`
 - **#173 — PII-1 phone/email slice** → **`0048`** contact_pii_lockdown: deny-by-default on `people`
   (`revoke select on people from authenticated` + re-grant all columns **except** phone/email; the phone column is

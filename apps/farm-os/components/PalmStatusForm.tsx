@@ -33,14 +33,22 @@ export function PalmStatusForm({
     setPending(true);
     setError(null);
     setDone(false);
-    const res = await updatePalmStatus(assetId, status, reason);
-    setPending(false);
-    if (res.ok) {
-      setDone(true);
-      setReason("");
-      router.refresh(); // re-render the page (overview status + history timeline)
-    } else {
-      setError(res.error ?? "تعذّر تحديث الحالة");
+    try {
+      const res = await updatePalmStatus(assetId, status, reason);
+      if (res.ok) {
+        setDone(true);
+        setReason("");
+        router.refresh(); // re-render the page (overview status + history timeline)
+      } else {
+        setError(res.error ?? "تعذّر تحديث الحالة");
+      }
+    } catch {
+      // Field PWA is offline-tolerant (non-negotiable #2): a dropped connection rejects the
+      // server-action fetch, so without this catch the spinner would hang forever. Surface a
+      // retryable Arabic message instead (mirrors ExecuteForm).
+      setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+    } finally {
+      setPending(false);
     }
   }
 
