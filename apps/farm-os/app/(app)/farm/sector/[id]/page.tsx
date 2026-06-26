@@ -5,6 +5,8 @@ import { SectorFile } from "@/components/SectorFile";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
+import { OP_STATUS_AR } from "@/lib/labels";
+import { fmtDate } from "@/lib/dates";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -112,8 +114,8 @@ export default async function SectorFilePage({
     id: e.id,
     kind: "operation",
     title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
-    time: e.occurred_at ? new Date(e.occurred_at).toLocaleDateString("ar-EG") : "—",
-    description: e.notes ?? (e.status === "done" ? "منفّذة" : e.status),
+    time: fmtDate(e.occurred_at),
+    description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status,
   }));
 
   const lineMap = new Map<string, PalmLine>();
