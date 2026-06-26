@@ -6,7 +6,7 @@
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(5);
+select plan(9);
 
 \set orgA   '00000000-0000-0000-0000-000000000001'
 \set plan   '06800000-0000-0000-0000-0000000000c2'
@@ -36,6 +36,16 @@ select is(
   1,
   'plan_checks: a non-plan.write member can still READ the plan''s checks (reads ungated)');
 
+-- mask-by-DELETE is blocked too (RESTRICTIVE for-delete policy, 0069): the member's DELETE is filtered
+-- to 0 rows, so the seeded check SURVIVES (a filtered delete is silent, not 42501 — assert row survival).
+select lives_ok(
+  format($$ delete from public.plan_checks where plan_id = %L and kind = 'budget' $$, :'plan'),
+  'plan_checks: a non-plan.write member''s DELETE does not error (it is filtered)');
+select is(
+  (select count(*)::int from public.plan_checks where plan_id = :'plan' and kind = 'budget'),
+  1,
+  'plan_checks: ...and the check SURVIVES the non-plan.write DELETE (mask-by-deletion blocked)');
+
 reset role;
 
 -- ===== an owner (HAS plan.write) — write allowed =====
@@ -47,6 +57,15 @@ select lives_ok(
   format($$ insert into public.plan_checks (org_id, plan_id, kind, result)
             values (%L, %L, 'stock', 'ok') $$, :'orgA', :'plan'),
   'plan_checks: an owner (plan.write) CAN write a check');
+
+-- an owner (plan.write) CAN delete — runPlanChecks' delete+re-insert flow still works
+select lives_ok(
+  format($$ delete from public.plan_checks where plan_id = %L and kind = 'budget' $$, :'plan'),
+  'plan_checks: an owner (plan.write) CAN delete a check (runPlanChecks recompute path)');
+select is(
+  (select count(*)::int from public.plan_checks where plan_id = :'plan' and kind = 'budget'),
+  0,
+  'plan_checks: ...and the owner''s DELETE actually removed it');
 
 reset role;
 
