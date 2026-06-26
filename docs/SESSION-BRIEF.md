@@ -1,7 +1,24 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (later) — autonomous fixes MERGED to main + ENGINE-STALE-1 fixed; ⚠️ prod push pending
+## 2026-06-26 (latest) — ✅ PROD PUSHED to `0034`; live app no longer has the shortage-mask
+Owner directive escalated to full autonomy incl. prod ("go ahead with recommendations, do not wait").
+Pushed the pending migrations to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, one at a time,
+recorded under their exact repo versions:
+- **`0032`** `pr_items_lock_and_version_bump`, **`0033`** `fn_post_movement_floor_lock` (CONC-1),
+  **`0034`** `engine_stale_po_guard` (ENGINE-STALE-1 #197 — the empirically-proven shortage-mask).
+- **Verified live:** `list_migrations` → `0034`; `fn_stock_coverage` contains the `needed_by >=
+  v_period_start` guard; `fn_post_movement` has the `FOR UPDATE` lock; the 2 new PR triggers exist;
+  baseline potassium coverage returns `shortage:true` + the correct Arabic message; `get_advisors`
+  (security) shows only **pre-existing** WARNs (SECURITY DEFINER RPCs by design / #182 / leaked-pw toggle)
+  — no new regressions. **Prod is now in sync with `main` at `0034`.** No prod data was mutated to test
+  (verified via function definitions, not by injecting rows).
+- **Remaining Owner-only items:** 🔴 rotate the Supabase service-role key + DB password + reset the demo
+  password (now the only red item); enable Leaked-Password-Protection; ratify SPEC-0002/0003; the HIGH
+  product forks (#155/#157/#173/#89/#181/#182/#184); the gated engine follow-ups (#188/#196/#198/#199).
+- Docs (this PR) bumped prod `0031`→`0034` across README / TRACKER / DEPLOY-STATUS / ROADMAP.
+
+## 2026-06-26 (later) — autonomous fixes MERGED to main + ENGINE-STALE-1 fixed; prod push (now done above)
 The "keep working" session below moved from propose-only to **review→merge** (Owner directive: review
 then merge green PRs, don't wait). All landed on `main` (CI green; some merged by the Owner in parallel):
 - **#189** docs reconciliation (prod=`0031`), **#191** AR-ERR-1 (Arabic error mapping), **#195** op-status/
