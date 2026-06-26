@@ -6,6 +6,7 @@ import { egp, num, pct, coverageDays } from "./money";
 // Intl formatters (re-created here) rather than hardcoded Arabic-Indic glyphs, so
 // they stay deterministic across ICU/Node versions while still proving behavior.
 const FMT0 = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 0 });
+const FMT1 = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 });
 const FMT2 = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 2 });
 
 const NULLISH: Array<number | null | undefined> = [null, undefined, NaN];
@@ -40,10 +41,10 @@ describe("num", () => {
     expect(num(0)).toBe(FMT0.format(0));
   });
 
-  it("uses 2-decimal formatting only when decimals > 0", () => {
+  it("honors the decimals argument (1 dp ≠ 2 dp)", () => {
     expect(num(4.25)).toBe(FMT0.format(4.25)); // default 0 → rounded whole
-    expect(num(4.25, 1)).toBe(FMT2.format(4.25)); // any decimals>0 → FMT2
-    expect(num(4.25, 2)).toBe(FMT2.format(4.25));
+    expect(num(4.25, 1)).toBe(FMT1.format(4.25)); // decimals=1 → 1 dp (fixed in #208)
+    expect(num(4.25, 2)).toBe(FMT2.format(4.25)); // decimals=2 → 2 dp
   });
 
   it("formats negative and large values", () => {
