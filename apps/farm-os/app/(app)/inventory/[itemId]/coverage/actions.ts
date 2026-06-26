@@ -70,6 +70,19 @@ export async function createPurchaseRequestFromShortage(
     return { ok: false, error: "ليس لديك صلاحية لإنشاء طلب شراء وحجز المخزون" };
   }
 
+  // Validate quantities before any write. The legit UI path always passes engine-derived positive
+  // values, but a crafted direct server-action call with a negative/non-finite recommendQty would
+  // persist a negative line qty AND a negative est_cost (recommendQty * unit_cost); reserveQty feeds
+  // fn_reserve_stock. Reject up front so a bad call mutates nothing.
+  if (
+    !Number.isFinite(recommendQty) ||
+    recommendQty <= 0 ||
+    !Number.isFinite(reserveQty) ||
+    reserveQty <= 0
+  ) {
+    return { ok: false, error: "الكمية غير صالحة" };
+  }
+
   // CREATE-1: idempotency. A double-submit / network retry would otherwise create a duplicate draft
   // PR AND post a second `reserve` movement (over-stating `reserved`). If an OPEN (draft/submitted) PR
   // for this plan already carries a line for this item, reuse it — no duplicate, no re-reserve.
@@ -104,6 +117,11 @@ export async function createPurchaseRequestFromShortage(
     .select("name, unit, preferred_supplier_id, unit_cost")
     .eq("id", itemId)
     .single();
+  // Don't create a PR line for a nonexistent / cross-org item (RLS hides it → .single() returns null):
+  // that would persist an orphan PR pointing at an invalid item_id.
+  if (!item) {
+    return { ok: false, error: "الصنف غير موجود" };
+  }
 
   // NEEDED-BY (#89, correctness): derive the PR's needed_by from the plan's REAL demand date for
   // this item — the earliest plan_operations.planned_at for a live op (status planned/reserved/ready,
