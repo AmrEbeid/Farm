@@ -1,7 +1,19 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — ✅ AUTHZ-3 (#182) fixed + MERGED + PUSHED; prod now `0037`; SPEC-0002 set COMPLETE
+## 2026-06-26 (latest) — ✅ #196 atomic plan-op (migration `0038`) MERGED + PUSHED; prod now `0038`; review-sweep actioned
+The atomic plan-operation RPC is closed and live in prod:
+- **#196 — `addPlanOperation` was non-atomic / non-idempotent** (CREATE-2). **Migration `0038`**
+  (`fn_add_plan_operation`) adds a single SECURITY DEFINER RPC that inserts the plan-operation atomically
+  (gated, claim-first); the app's `addPlanOperation` now routes through it. **PR #196 merged → pushed to
+  prod** via the MCP (recorded under repo version `20260622000038`) → verified: `list_migrations` → `0038`,
+  the RPC present + gated, `get_advisors` only pre-existing WARNs. **Prod is now at `0038`, in sync with `main`.**
+- **Review-sweep findings actioned:** the budget wrong-ops fix is **in flight**; **#238** (palm-status) and
+  **#239** (registry-import) filed for follow-up.
+- **pgTAP is now 338** (Docker-free shim harness + CI), all green.
+- **Next:** the budget wrong-ops fix (in flight); then triage #238 / #239; key rotation still the only 🔴.
+
+## 2026-06-26 — ✅ AUTHZ-3 (#182) fixed + MERGED + PUSHED; prod now `0037`; SPEC-0002 set COMPLETE
 The full SPEC-0002 authorization-enforcement set is now closed and live in prod:
 - **AUTHZ-3 / #182 — `fn_post_movement` was `authenticated`-callable with no role gate** (any member could
   move their org's stock). **Migration `0037`** makes it an INTERNAL primitive (`revoke execute from
