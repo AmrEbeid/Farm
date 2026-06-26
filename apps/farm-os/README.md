@@ -13,7 +13,7 @@ data. See [`../../docs/DEPLOY-RUNBOOK.md`](../../docs/DEPLOY-RUNBOOK.md) and
 
 ```bash
 supabase start          # local Supabase (requires Docker)
-supabase db reset       # apply migrations (latest: 0038; prod is at 0038) + Ebeid seed
+supabase db reset       # apply migrations (latest: 0041; prod is at 0041) + Ebeid seed
 npm run dev             # http://localhost:3000
 ```
 
