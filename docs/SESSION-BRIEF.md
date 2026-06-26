@@ -1,7 +1,31 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — ✅ AUTHZ-2 (#181) fixed + MERGED + PUSHED; prod now `0035`
+## 2026-06-26 (latest) — ✅ AUTHZ-3 (#182) fixed + MERGED + PUSHED; prod now `0037`; SPEC-0002 set COMPLETE
+The full SPEC-0002 authorization-enforcement set is now closed and live in prod:
+- **AUTHZ-3 / #182 — `fn_post_movement` was `authenticated`-callable with no role gate** (any member could
+  move their org's stock). **Migration `0037`** makes it an INTERNAL primitive (`revoke execute from
+  authenticated`; the SECURITY DEFINER callers still reach it via the owner's grant) and adds a gated
+  **`fn_reserve_stock(item,qty,plan)`** wrapper (`authorize('inventory.write', v_org)`) — the one client
+  reserve entry point. App: `reserveStock` → `fn_reserve_stock`; an up-front `inventory.write` gate added
+  to `createPurchaseRequestFromShortage` (also closes the #188 authz-orphan). Gate choice = `inventory.write`.
+- **Process:** worktree-agent build → **independent review** (confirmed none of the 7 adapted tests
+  weakened an invariant — test 10 now `throws_ok 42501`, test 22 adds a negative pin; reviewer also caught
+  a `0036` migration-number collision with #230, renumbered → `0037`) → full pgTAP **326/326** (test 37 =
+  10 assertions) → **PR #231 merged** → **pushed to prod** (`0036` perf indexes + `0037`) → verified:
+  `fn_post_movement` no longer authenticated-executable, `fn_reserve_stock` gated + callable, advisors clean.
+  Removed a duplicate non-repo perf-index record (`20260626053743`) so prod history == repo. **#182 closed.**
+- **Prod is now at `0037`, fully in sync with `main`.** This session shipped to prod, in order:
+  `0032`/`0033` (locks/CONC-1), **`0034`** (ENGINE-STALE-1 #197 shortage-mask), **`0035`** (AUTHZ-2 #181),
+  `0036` (FK perf indexes #230), **`0037`** (AUTHZ-3 #182). Two HIGH bugs + the full authz set, all live.
+- **Decision memos filed (Owner input needed)** on **#155** (partial receipts → recommend line-level
+  `received_qty`; DRAFT SPEC-0009 exists), **#157** (budget gate display-only → make figures live then
+  enforce in RLS), **#89** (price source → pick catalog/last-paid/manual; the `needed_by`+`reserveQty`
+  correctness half is being shipped separately).
+- **Next codeable (in flight / queued):** #89 `needed_by`/`reserveQty` correctness fix (app-only, no gate);
+  then the engine follow-ups #188/#196 (atomic-RPC orphan fixes) and #198 (null-date, conservative).
+
+## 2026-06-26 — ✅ AUTHZ-2 (#181) fixed + MERGED + PUSHED; prod now `0035`
 Under full Owner autonomy (the Stop-hook directive: review→merge green PRs, push, don't wait), built +
 shipped the second HIGH security fix end-to-end:
 - **AUTHZ-2 / #181 — `authorize()` was not org-scoped** → a multi-org member could exercise a privileged
