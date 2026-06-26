@@ -34,6 +34,18 @@ export async function updatePalmStatus(assetId: string, status: string, reason: 
     };
   }
 
+  // A status change affects every view that reads this tree's status: its own file, the farm
+  // landing's "palms needing attention" list, and the sector/hawsha palm grids. The RPC doesn't
+  // return the tree's location, so fetch it (RLS-scoped) and revalidate all affected views.
+  // Restores the freshness #244 added before #245's RPC rewrite dropped the multi-path revalidate.
+  const { data: loc } = await sb
+    .from("assets")
+    .select("sector_id, hawsha_id")
+    .eq("id", assetId)
+    .maybeSingle();
   revalidatePath(`/farm/palm/${assetId}`);
+  revalidatePath("/farm");
+  if (loc?.sector_id) revalidatePath(`/farm/sector/${loc.sector_id}`);
+  if (loc?.hawsha_id) revalidatePath(`/farm/hawsha/${loc.hawsha_id}`);
   return { ok: true as const };
 }
