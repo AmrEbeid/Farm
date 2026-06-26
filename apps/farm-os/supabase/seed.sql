@@ -33,6 +33,15 @@ insert into public.organization_member (org_id, user_id, role) values ('00000000
 insert into public.organization_member (org_id, user_id, role) values ('00000000-0000-0000-0000-000000000001','f7206225-47ac-5a67-9d57-66c4a8e722d1','supervisor');
 insert into public.organization_member (org_id, user_id, role) values ('00000000-0000-0000-0000-000000000001','0701dd98-37f6-557f-bacd-10b97fd04e42','storekeeper');
 
+-- Wages live in the role-gated people_compensation table (PII-1 / #173, migration 0043) — readable
+-- only by owner/accountant via authorize('payroll.read'). One monthly rate per seeded person.
+insert into public.people_compensation (org_id, person_id, rate) values ('00000000-0000-0000-0000-000000000001','f2efd2ea-d861-59bd-9cf3-a0f24ffcfd9c',50000);
+insert into public.people_compensation (org_id, person_id, rate) values ('00000000-0000-0000-0000-000000000001','51a562a7-958b-5ef7-ab2c-276895b984f9',30000);
+insert into public.people_compensation (org_id, person_id, rate) values ('00000000-0000-0000-0000-000000000001','51ed8286-fad7-53d1-a92d-01532fa78b43',20000);
+insert into public.people_compensation (org_id, person_id, rate) values ('00000000-0000-0000-0000-000000000001','465cfc4e-9821-5778-9318-fa0d96994f6f',18000);
+insert into public.people_compensation (org_id, person_id, rate) values ('00000000-0000-0000-0000-000000000001','bfc8ed03-61a9-5f48-8661-68b211765ec1',12000);
+insert into public.people_compensation (org_id, person_id, rate) values ('00000000-0000-0000-0000-000000000001','adbef018-600c-524e-8fd1-536718a60455',9000);
+
 -- Farm (single farm; total area ~ sum of sectors). main_crop = نخيل برحي
 insert into public.farms (id, org_id, name, code, area_feddan, owner_person_id, manager_person_id, main_crop) values ('bd7ff67d-1af9-573b-bbac-029ecae01f8f','00000000-0000-0000-0000-000000000001','مزرعة عبيد','EBD',60,'f2efd2ea-d861-59bd-9cf3-a0f24ffcfd9c','51a562a7-958b-5ef7-ab2c-276895b984f9','نخيل برحي');
 
