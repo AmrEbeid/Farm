@@ -12,6 +12,7 @@ const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
   irrigation: "ري",
   spraying: "رش",
+  pollination: "تلقيح",
   inspection: "تفتيش",
 };
 
