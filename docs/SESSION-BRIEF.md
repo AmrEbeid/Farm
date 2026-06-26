@@ -1,7 +1,23 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — ✅ #196 atomic plan-op (migration `0038`) MERGED + PUSHED; prod now `0038`; review-sweep actioned
+## 2026-06-26 (latest) — ✅ palm-status RPC `0039` + ENGINE-REC1 `0040` + unit_cost `0041` MERGED + PUSHED; prod now `0041`; #241 app-fix batch
+Three migrations + one app-only batch closed and live in prod; prod is back in sync with `main`:
+- **#238 — palm-status RPC** → **Migration `0039`** (`fn_update_palm_status`): an op.execute-gated atomic
+  SECURITY DEFINER RPC for palm-status changes. Merged → pushed → verified.
+- **#184 — ENGINE-REC1** → **Migration `0040`** (`engine_rec1_fix`): removed the recommendation's period-1
+  receipts double-subtract. Merged → pushed → verified.
+- **#89-B — inventory unit_cost** → **Migration `0041`** (`inventory_unit_cost`): manual `unit_cost`, NULL
+  when unknown, removes the fabricated `*84`. Merged → pushed → verified.
+- **#241 — app-only fix batch:** `runPlanChecks` budget now scoped to fertilization (the #190 parity bug);
+  hawsha Arabic label; pct locale leaks fixed. No migration.
+- All three migrations applied to prod via the MCP and verified: `list_migrations` → `20260622000041`,
+  RPCs present + gated, `get_advisors` only pre-existing WARNs. **Prod is now at `0041`, in sync with `main`.**
+- **pgTAP is now 356** (Docker-free shim harness + CI), all green.
+- **Remaining is now Owner-decision / human-only:** #155/#157 chart-of-accounts, #239 registry import, #173
+  PII, 🔴 key rotation; plus held low-value/design items #198/#199/#188. Nothing auto-buildable is open.
+
+## 2026-06-26 — ✅ #196 atomic plan-op (migration `0038`) MERGED + PUSHED; prod `0038`; review-sweep actioned
 The atomic plan-operation RPC is closed and live in prod:
 - **#196 — `addPlanOperation` was non-atomic / non-idempotent** (CREATE-2). **Migration `0038`**
   (`fn_add_plan_operation`) adds a single SECURITY DEFINER RPC that inserts the plan-operation atomically

@@ -6,9 +6,10 @@ built or applied by this doc. Reconciles [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 
 
 ## Where we are (reconciled to `main`)
 
-- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0038`, **in sync with `main`**
-  (`0032`–`0038` pushed 2026-06-26 via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
-  fix #197 + AUTHZ-2/3 + atomic plan-op #196). pgTAP 338/338 (Docker-free harness). 8-agent re-audit complete.
+- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0041`, **in sync with `main`**
+  (`0032`–`0041` pushed 2026-06-26 via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
+  fix #197 + AUTHZ-2/3 + atomic plan-op #196 + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B).
+  pgTAP 356/356 (Docker-free harness). 8-agent re-audit complete.
 - **Foundation/security hardened:** AUTHZ-1 RLS (`0025`), delete-posture (`0027`), FORCE RLS (`0028`),
   ledger INSERT-locked (`0030`), stock floor + **CONC-1** concurrency fix (`0031`/`0033`), PR-line
   freeze + AP-3 (`0032`), org-member audit (`0019`). `@amrebeid/ui` 1.2.0.
