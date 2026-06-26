@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { fmtDate } from "@/lib/dates";
 
 const PR_STATUS_AR: Record<string, string> = {
   draft: "مسودة",
@@ -34,7 +35,7 @@ export default async function PurchaseRequestsPage() {
     href: `/purchase-requests/${p.id}`,
     code: p.code,
     reason: p.reason ?? "—",
-    needed_by: p.needed_by ?? "—",
+    needed_by: p.needed_by ? fmtDate(p.needed_by) : "—",
     status: PR_STATUS_AR[p.status] ?? p.status,
   }));
 

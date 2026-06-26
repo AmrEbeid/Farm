@@ -3,6 +3,7 @@ import { requireMembership } from "@/lib/auth";
 import { Breadcrumbs, Card, DescriptionList, FileTimeline, EmptyState } from "@/components/ui";
 import type { TimelineEvent } from "@/components/ui";
 import { fmtDate } from "@/lib/dates";
+import { num } from "@/lib/money";
 import { PalmStatusForm } from "@/components/PalmStatusForm";
 
 // assets.status — the closed set from migration 0003.
@@ -13,6 +14,14 @@ const STATUS_AR: Record<string, string> = {
   dead: "ميتة",
   removed: "مُزالة",
   replaced: "مُستبدلة",
+};
+
+// assets.health_status — coded agronomy values; map to Arabic so the palm file never
+// shows raw English (non-negotiable #2). Unmapped codes fall back to the raw value.
+const HEALTH_STATUS_AR: Record<string, string> = {
+  good: "سليمة",
+  leaf_spot_watch: "مراقبة تبقّع الأوراق",
+  rpw_suspected: "اشتباه سوسة النخيل الحمراء",
 };
 
 function one<T>(rel: unknown): T | null {
@@ -67,7 +76,7 @@ export default async function PalmFilePage({
     kind: "operation",
     title: STATUS_AR[h.status ?? ""] ?? h.status ?? "تغيير الحالة",
     time: fmtDate(h.changed_at),
-    description: h.reason ?? h.health_status ?? "—",
+    description: h.reason ?? (h.health_status ? (HEALTH_STATUS_AR[h.health_status] ?? h.health_status) : null) ?? "—",
   }));
 
   return (
@@ -100,8 +109,8 @@ export default async function PalmFilePage({
               description: asset.sex === "male" ? "ذكر" : asset.sex === "female" ? "أنثى" : "—",
             },
             { id: "status", term: "الحالة", description: STATUS_AR[asset.status ?? ""] ?? asset.status ?? "—" },
-            { id: "health", term: "الحالة الصحية", description: asset.health_status ?? "—" },
-            { id: "line", term: "الخط", description: line?.line_no != null ? `خط ${line.line_no}` : "—" },
+            { id: "health", term: "الحالة الصحية", description: asset.health_status ? (HEALTH_STATUS_AR[asset.health_status] ?? asset.health_status) : "—" },
+            { id: "line", term: "الخط", description: line?.line_no != null ? `خط ${num(line.line_no)}` : "—" },
             {
               id: "planting",
               term: "تاريخ الزراعة",

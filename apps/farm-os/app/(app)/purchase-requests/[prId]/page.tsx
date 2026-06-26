@@ -10,6 +10,7 @@ import {
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { PrActions } from "@/components/PrActions";
 import { egp, num } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
 
 const PR_STATUS_AR: Record<string, string> = {
   draft: "مسودة",
@@ -105,7 +106,7 @@ export default async function PurchaseRequestPage({
             layout="inline"
             items={[
               { id: "code", term: "الرمز", description: pr.code },
-              { id: "needed", term: "مطلوب بحلول", description: pr.needed_by ?? "—" },
+              { id: "needed", term: "مطلوب بحلول", description: pr.needed_by ? fmtDate(pr.needed_by) : "—" },
               { id: "status", term: "الحالة", description: PR_STATUS_AR[pr.status] },
             ]}
           />

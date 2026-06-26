@@ -75,7 +75,7 @@ export default async function OwnerDashboard() {
       {pending.length > 0 && (
         <Alert
           tone="warning"
-          title={`${pending.length} طلب شراء بانتظار اعتمادك`}
+          title={`${num(pending.length)} طلب شراء بانتظار اعتمادك`}
           description="فصل الواجبات: لا يعتمد مقدّم الطلب طلبه."
         />
       )}
