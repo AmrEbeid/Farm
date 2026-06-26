@@ -72,6 +72,12 @@ export default async function MonthlyPlanPage({
   if (checksError) throw checksError;
   if (itemsError) throw itemsError;
 
+  // .maybeSingle() returns null (no error) for a bogus or RLS-hidden id — show a
+  // not-found message instead of rendering a blank "الخطة " header (mirrors farm/sector).
+  if (!plan) {
+    return <div className="p-6">الخطة غير موجودة.</div>;
+  }
+
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
     { id: "planned_at", header: "التاريخ" },
@@ -90,11 +96,15 @@ export default async function MonthlyPlanPage({
 
   const stockCheck = (checks ?? []).find((c) => c.kind === "stock");
   const budgetCheck = (checks ?? []).find((c) => c.kind === "budget");
+  const checksRun = (checks ?? []).length > 0;
+  const stockBlocked = stockCheck?.result === "block";
+  const budgetBlocked = budgetCheck?.result === "block";
   const blocked = (checks ?? []).some((c) => c.result === "block");
 
   const steps: LoopStep[] = [
     { id: "plan", label: "الخطة", state: "active" },
-    { id: "check", label: "الفحوصات", state: blocked ? "blocked" : "done" },
+    // not-yet-run checks are pending, not "done" — the empty list must not read as a pass.
+    { id: "check", label: "الفحوصات", state: !checksRun ? "pending" : blocked ? "blocked" : "done" },
     { id: "coverage", label: "تغطية المخزون", state: stockCheck?.result === "block" ? "active" : "pending" },
     { id: "pr", label: "طلب الشراء", state: "pending" },
     { id: "approve", label: "الاعتماد", state: "pending" },
@@ -122,16 +132,24 @@ export default async function MonthlyPlanPage({
       {blocked && (
         <Alert
           tone="danger"
-          title="الخطة محظورة بفحص المخزون"
+          // Title the block by its real cause — budget can block with stock OK, in which case the
+          // stock detail is {} and the old hardcoded "محظورة بفحص المخزون" showed an empty body.
+          title={
+            stockBlocked && budgetBlocked
+              ? "الخطة محظورة بفحص المخزون والميزانية"
+              : budgetBlocked
+                ? "الخطة محظورة بفحص الميزانية"
+                : "الخطة محظورة بفحص المخزون"
+          }
           description={
-            (stockCheck?.detail as Record<string, { message_ar?: string }> | null)
+            stockBlocked
               ? Object.values(
-                  stockCheck!.detail as Record<string, { message_ar?: string }>,
+                  (stockCheck?.detail as Record<string, { message_ar?: string }> | null) ?? {},
                 )
                   .map((d) => d.message_ar)
                   .filter(Boolean)
-                  .join(" · ")
-              : "يوجد نقص متوقع في أحد الأصناف المطلوبة."
+                  .join(" · ") || "يوجد نقص متوقع في أحد الأصناف المطلوبة."
+              : "تتجاوز التكلفة المتوقعة الميزانية المتاحة لبنود الخطة."
           }
         />
       )}
