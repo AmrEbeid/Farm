@@ -41,9 +41,11 @@ set local role authenticated;
 
 select throws_ok($$ update public.inventory_movements set org_id = org_id $$, '42501', null,
   'B2.1: storekeeper cannot UPDATE inventory_movements directly (append-only ledger)');
--- but legit append via the bypassrls RPC is unaffected
-select isnt(public.fn_post_movement(:'pot', 'issue', 1), null,
-  'B2.1: storekeeper can still issue stock via fn_post_movement (RPC path unaffected)');
+-- but legit append via the gated bypassrls RPC is unaffected. AUTHZ-3 (#182, migration 0036):
+-- fn_post_movement is now internal; the client-facing write path is fn_reserve_stock (inventory.write,
+-- which storekeeper holds).
+select isnt(public.fn_reserve_stock(:'pot', 1, null), null,
+  'B2.1: storekeeper can still reserve stock via the gated fn_reserve_stock RPC (path unaffected)');
 
 reset role;
 select * from finish();

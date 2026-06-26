@@ -11,7 +11,7 @@
 -- Run via `supabase test db` or the local shim (test-shims/run-pgtap-local.sh).
 
 begin;
-select plan(8);
+select plan(9);
 
 -- ============================================================================================
 -- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function except the RLS helpers.
@@ -51,13 +51,25 @@ select is(
       and p.prosecdef
       and p.proname not in (
         'authorize', 'user_org_ids',             -- RLS helpers
-        'fn_stock_coverage', 'fn_post_movement',
+        'fn_stock_coverage',                      -- read RPC
         'fn_bin_rebuild', 'fn_execute_operation', -- intended authenticated RPC surface
-        'fn_post_receipt'                         -- atomic PR receipt RPC (migration 0024)
+        'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
+        'fn_reserve_stock'                        -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
+        -- NB: fn_post_movement is deliberately NOT here — AUTHZ-3 (migration 0036) revoked its
+        -- `authenticated` EXECUTE, making it an INTERNAL primitive. Pinned negatively below.
       )
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   0,
-  'INV-2: no unexpected public SECURITY DEFINER fn is EXECUTE-able by authenticated (trigger fns locked)');
+  'INV-2: no unexpected public SECURITY DEFINER fn is EXECUTE-able by authenticated (trigger fns + fn_post_movement locked)');
+
+-- AUTHZ-3 (#182, migration 0036): fn_post_movement is an INTERNAL primitive — `authenticated` must
+-- NOT hold EXECUTE on it (the bug was that any org member could POST it to move stock). Pin the
+-- revoke directly so a future migration that re-grants it is caught.
+select ok(
+  not has_function_privilege('authenticated',
+    'public.fn_post_movement(uuid, text, numeric, text, text, numeric, uuid, uuid, uuid, timestamptz)',
+    'EXECUTE'),
+  'INV-2: authenticated can NO LONGER EXECUTE fn_post_movement directly (AUTHZ-3 #182 — now internal)');
 
 -- Pin the trigger functions explicitly — these are the ones 0021 had to claw back from PUBLIC/
 -- authenticated, so guard the regression directly as well as via the dynamic count above.

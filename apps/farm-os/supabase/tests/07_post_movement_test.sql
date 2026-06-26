@@ -17,9 +17,13 @@ insert into public.inventory_items (id, org_id, name, unit)
 
 select set_config('test.ownerA', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role='owner'), false);
+-- AUTHZ-3 (#182): fn_post_movement is now an INTERNAL primitive (EXECUTE revoked from `authenticated`,
+-- migration 0036) — callable only in a SECURITY DEFINER / owner context, exactly how its definer
+-- callers reach it. So this behavioural test exercises it in the OWNER context (the local superuser
+-- test role), not under `set role authenticated`. The org / cross-org guard still reads the JWT GUC
+-- (request.jwt.claims, set below), so the org-scope assertions below remain real.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('test.ownerA'), 'role','authenticated')::text, true);
-set role authenticated;
 
 -- 1. receipt 100 on an item with no bin -> returns on_hand 100 (bin auto-created from the ledger)
 select is(public.fn_post_movement(:'aitem', 'receipt', 100), 100::numeric,
@@ -50,6 +54,5 @@ select throws_ok($$ select public.fn_post_movement('dddd0001-0000-0000-0000-0000
 select is(public.fn_post_movement(:'aitem', 'issue', 20), 100::numeric,
   'issue 20 → on_hand 100');
 
-reset role;
 select * from finish();
 rollback;
