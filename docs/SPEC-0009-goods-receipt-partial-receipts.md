@@ -1,9 +1,13 @@
 # SPEC-0009 — Goods receipt & partial-receipt model (engine)
 
-*Status: **DRAFT for Owner review** — design + decision-support only. No code, no migration, no
-data change is performed by this document. The fix it specs is a **core-engine + financial** change
-(PROJECT RULES hard stop): Owner-ratified, independent-review-required, applied via a forward
-migration through the gated apply layer.*
+*Status: **SHIPPED (model + UI) — #155 complete end-to-end.** Slices 1–3 landed as migration
+**`0045`** (schema + per-line `fn_post_receipt` + remaining-based projection); slice 5 (partial-receipt
+UI) merged as **#285**. Only slice 4 (retire the `app.posting_receipt` GUC) remains, now
+**deferred/optional, low-priority** — the writes it guarded are already independently locked down
+(movements RPC-only via `0030`, `received_qty` column-revoked via `0045`), so a forged GUC achieves
+nothing. The fix it specs is a **core-engine + financial** change (PROJECT RULES hard stop):
+Owner-ratified, independent-review-required, applied via a forward migration through the gated apply
+layer.*
 
 *Companion to [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md) (the engine whose disjointness
 invariant this protects) and [`SPEC-0004`](SPEC-0004-accounting-and-pnl.md) (which later posts the
@@ -89,14 +93,18 @@ rejected as cosmetic / wrong-granularity for a per-`item_id` engine.)
 
 1. **Schema + reconciliation-oracle extension** (`received_qty`, `partially_received`; new pgTAP
    asserting the disjointness invariant under partial/over receipts — must fail on the current
-   all-or-nothing RPC). *(Low risk; defines the gate.)*
+   all-or-nothing RPC). *(Low risk; defines the gate.)* — **DONE (migration `0045`).**
 2. **Per-line quantity-aware `fn_post_receipt`** (claim-first, over-receipt rejection, atomic).
-   *(High — engine/financial, Owner-gated apply, independent review.)*
+   *(High — engine/financial, Owner-gated apply, independent review.)* — **DONE (migration `0045`).**
 3. **Engine projection** → remaining-based (`qty − received_qty`). *(High — engine; full pgTAP +
-   wedge-loop e2e.)*
+   wedge-loop e2e.)* — **DONE (migration `0045`).**
 4. **ENGINE-DC guard** → quantity + horizon aware; retire the GUC bypass if proven safe. *(High —
-   security + engine.)*
-5. **App** — `recordReceipt` per-line + partial-receipt UI. *(Med.)*
+   security + engine.)* — **DEFERRED / optional, low-priority.** The writes the `app.posting_receipt`
+   GUC guarded are already independently locked down (movements RPC-only via `0030`, `received_qty`
+   column-revoked via `0045`), so a forged GUC achieves nothing; retiring it is hygiene, not a fix.
+5. **App** — `recordReceipt` per-line + partial-receipt UI (per-line received-qty inputs, default/max =
+   remaining, partial + receive-all, over-receipt 23514→Arabic, double-submit guard; PR-detail
+   received/remaining columns + `partially_received` status). *(Med.)* — **DONE (PR #285).**
 
 Each slice stops at its gate; **do not auto-advance** (PROJECT RULES). The accounting hook (a
 partial receipt posting a partial committed/actual) is tracked separately in SPEC-0004.
@@ -117,5 +125,11 @@ partial receipt posting a partial committed/actual) is tracked separately in SPE
   Rationale + rejected options in the #155 decision memo. Belongs in its own spec (not SPEC-0004)
   because the invariant, projection, and guard all live in the stock-coverage engine; cross-linked
   from SPEC-0001 §2 and SPEC-0004 §2.
+- **2026-06-26 (shipped):** slices 1–3 landed as migration **`0045`** (schema + per-line
+  `fn_post_receipt` + remaining-based projection + `received_qty` column-UPDATE lockdown) and slice 5
+  (partial-receipt UI) merged as **#285** — **#155 is complete end-to-end**. Slice 4 (retire the
+  forgeable `app.posting_receipt` GUC) is deferred/optional and low-priority: the writes it guarded are
+  already independently locked down (movements RPC-only via `0030`, `received_qty` column-revoked via
+  `0045`), so a forged GUC achieves nothing.
 - **Open for the Owner:** ratify this spec; confirm whether the ENGINE-DC GUC bypass is retired now
   (slice 4) or deferred; confirm the partial-receipt UI affordance for field roles.
