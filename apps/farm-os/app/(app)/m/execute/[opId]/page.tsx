@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
-import { SUBTYPE_AR } from "@/lib/labels";
+import { SUBTYPE_AR, OP_STATUS_AR, isExecutableOpStatus } from "@/lib/labels";
 
 // Subtype-derived default note (no hardcoded location); blank when subtype is unknown.
 const SUBTYPE_NOTE_AR: Record<string, string> = {
@@ -45,11 +45,7 @@ export default async function ExecutePage({
         <p style={{ color: "var(--ink-muted)" }}>{fmtDate(op.planned_at)}</p>
       </header>
 
-      {op.status === "done" ? (
-        <Card title="تم التنفيذ">
-          <p>سُجّلت هذه العملية بالفعل.</p>
-        </Card>
-      ) : (
+      {isExecutableOpStatus(op.status) ? (
         <Card title="سجّل الفعلي">
           <ExecuteForm
             opId={opId}
@@ -58,6 +54,19 @@ export default async function ExecutePage({
             defaultNote={SUBTYPE_NOTE_AR[op.subtype ?? ""] ?? ""}
             unit={req?.unit ?? "kg"}
           />
+        </Card>
+      ) : op.status === "done" ? (
+        <Card title="تم التنفيذ">
+          <p>سُجّلت هذه العملية بالفعل.</p>
+        </Card>
+      ) : (
+        // blocked / abandoned / skipped — terminal, not executable (matches the fn_execute_operation
+        // guard, which 22023s these); don't render the form as a dead-end.
+        <Card title="غير قابلة للتنفيذ">
+          <p>
+            لا يمكن تنفيذ هذه العملية في حالتها الحالية (
+            {OP_STATUS_AR[op.status ?? ""] ?? op.status}).
+          </p>
         </Card>
       )}
     </div>

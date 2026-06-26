@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Card, Button, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
+import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
 function pill(s: string): "active" | "done" | "scheduled" {
   if (s === "done") return "done";
@@ -61,7 +61,10 @@ export default async function MobileHomePage({
                   {OP_STATUS_AR[o.status ?? "planned"] ?? o.status ?? "—"}
                 </StatusPill>
               </div>
-              {o.status !== "done" && (
+              {/* Only show the execute affordance for an ACTIVE op — a done/blocked/abandoned/skipped
+                  op is not executable (the fn_execute_operation guard rejects it), so the button would
+                  be a dead-end that 22023s. Matches the server set via isExecutableOpStatus. */}
+              {isExecutableOpStatus(o.status) && (
                 <div className="mt-3">
                   <Link href={`/m/execute/${o.id}`}>
                     <Button variant="primary">تسجيل التنفيذ</Button>

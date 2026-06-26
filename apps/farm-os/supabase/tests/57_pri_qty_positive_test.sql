@@ -1,9 +1,12 @@
--- 57 — #235: a purchase-request line must order a positive, non-null quantity. Before 0056,
--- purchase_request_items.qty was nullable with no positivity CHECK, so a NULL or <=0 line was accepted
--- but left the PR permanently un-receivable (fn_post_receipt's qty-received_qty arithmetic NULLs out /
--- posts a 0|negative movement → 22023 rollback). 0056 makes qty NOT NULL + CHECK(qty > 0). Inserts run
--- as superuser — the constraints are table invariants, fired regardless of role. POTASSIUM item + orgA
--- from seed; a draft PR is seeded for the FK.
+-- 57 — #235: a purchase-request line must order a strictly positive quantity. Before 0056,
+-- purchase_request_items.qty had no positivity CHECK, so a 0/negative line was accepted but left the PR
+-- permanently un-receivable (fn_post_receipt posts a 0|negative movement → fn_post_movement 22023 →
+-- rollback). 0056 adds CHECK(qty > 0) (NOT a NOT NULL — a NULL qty already fails safely via the
+-- tests/23 atomic rollback and the app never writes it; see the migration's SCOPE NOTE). Inserts run as
+-- superuser — the CHECK is a table invariant, fired regardless of role. POTASSIUM item + orgA from seed;
+-- a draft PR is seeded for the FK. NB: the zero-qty case is the one UNIQUELY closed by this CHECK — a
+-- negative qty is also caught by 0045's pri_received_qty_valid (received_qty 0 <= -5 is false), so the
+-- negative assertion below is defense-in-depth, while the zero assertion is the load-bearing one.
 --
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
