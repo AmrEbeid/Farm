@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Tabs,
   tabId,
@@ -29,6 +30,7 @@ export function SectorFile({
   overviewTitle?: string;
 }) {
   const [tab, setTab] = useState("overview");
+  const router = useRouter();
 
   return (
     <div className="flex flex-col gap-4">
@@ -69,7 +71,11 @@ export function SectorFile({
             {palmLines.length === 0 ? (
               <EmptyState title="لا توجد نخيل مسجّلة" />
             ) : (
-              <PalmGrid lines={palmLines} ariaLabel={`خريطة نخيل ${name}`} />
+              <PalmGrid
+                lines={palmLines}
+                ariaLabel={`خريطة نخيل ${name}`}
+                onCellActivate={(cellId) => router.push(`/farm/palm/${cellId}`)}
+              />
             )}
           </Card>
         </div>
