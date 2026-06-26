@@ -1,13 +1,14 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-26 by Claude (for Owner: Amr Ebeid)
 
-> **2026-06-26 (later) — prod pushed to `0034`, IN SYNC with `main` (live-verified):** applied
-> **`0032`** (`pr_items_lock_and_version_bump`), **`0033`** (`fn_post_movement_floor_lock`, CONC-1) and
-> **`0034`** (`engine_stale_po_guard`, ENGINE-STALE-1 #197) to the prod Supabase (`veezkmytervjnpxcrbkw`)
-> via the MCP, recorded under their exact repo versions. Verified live: `list_migrations` → `0034`; the
-> `fn_stock_coverage` guard (`needed_by >= v_period_start`) and the `fn_post_movement` `FOR UPDATE` lock are
-> present; baseline potassium coverage returns `shortage:true` correctly; `get_advisors` shows only
-> pre-existing WARNs (no new regressions). **Authoritative current prod state: `0034`.** *(Earlier this
-> session prod was reconciled from stale docs to `0031`, then this push brought it to `0034`.)*
+> **2026-06-26 (later) — prod pushed to `0035`, IN SYNC with `main` (live-verified):** applied
+> **`0032`** (`pr_items_lock_and_version_bump`), **`0033`** (`fn_post_movement_floor_lock`, CONC-1),
+> **`0034`** (`engine_stale_po_guard`, ENGINE-STALE-1 #197) and **`0035`** (`authorize_org_scoped`,
+> AUTHZ-2 #181) to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, recorded under their exact repo
+> versions. Verified live: `list_migrations` → `0035`; the `fn_stock_coverage` guard + `fn_post_movement`
+> `FOR UPDATE` lock present; `authorize` is now the 2-arg org-scoped overload (1-arg dropped) and all 7
+> policies + the 2 RPCs call it (`multi_org_members = 0`, so zero behavior change on current data);
+> baseline coverage correct; `get_advisors` shows only pre-existing WARNs (no new regressions).
+> **Authoritative current prod state: `0035`.** *(Earlier this session prod went stale-docs→`0031`→`0034`→`0035`.)*
 > This supersedes the stale figures elsewhere — the `0028`/`0029` prod claims in older entries (and `0023`
 > in the READMEs) were mid-push or lagging snapshots, now corrected. No code/schema changed in this
 > reconciliation. (Also surfaced this session: a local-only branch `feat/stage-2-farm-structure` holds
@@ -136,7 +137,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 10 | Care Academy content | Documentation | Med/High | Todo | Agronomy liability → expert sign-off |
 | 11 | AI assistant عبدالجليل | Execution | **High** | Todo | Lethal-trifecta control required |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
-| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0034`** (`0001–0013` + `0015–0034`, **in sync with `main`**; `0032`/`0033`/`0034` pushed + live-verified 2026-06-26 via `list_migrations`) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied). Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
+| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0035`** (`0001–0013` + `0015–0035`, **in sync with `main`**; `0032`–`0035` pushed + live-verified 2026-06-26 via `list_migrations`, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 org-scoping) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied). Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 
 Status legend: Todo / Active / Blocked / In review / Done
 

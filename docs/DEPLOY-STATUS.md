@@ -8,13 +8,14 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0034` — in sync with `main`.** `0001–0013` + `0015–0034` applied and recorded
+  - **Migrations now at `0035` — in sync with `main`.** `0001–0013` + `0015–0035` applied and recorded
     under their repo versions (`0001–0013` via `supabase db push`; `0015→0029` applied 2026-06-25 via the
-    Supabase MCP after the prod-push assurance; `0030`/`0031` the same day; **`0032`/`0033`/`0034` applied
+    Supabase MCP after the prod-push assurance; `0030`/`0031` the same day; **`0032`–`0035` applied
     2026-06-26 via the MCP** — `0032` PR-line lock + version bump, `0033` CONC-1 floor lock, `0034`
-    ENGINE-STALE-1 #197 shortage-mask fix). Verified 2026-06-26 via `list_migrations` (latest =
-    `20260622000034`) + function-definition checks (the coverage guard + the `fn_post_movement` `FOR
-    UPDATE` lock are live); `get_advisors` shows only pre-existing WARNs.
+    ENGINE-STALE-1 #197 shortage-mask fix, `0035` AUTHZ-2 #181 org-scoped `authorize()`). Verified
+    2026-06-26 via `list_migrations` (latest = `20260622000035`) + function-definition / policy checks
+    (coverage guard + `fn_post_movement` `FOR UPDATE` lock live; `authorize` now the 2-arg org-scoped
+    overload, 1-arg dropped, all 7 policies repointed); `get_advisors` shows only pre-existing WARNs.
   - Synthetic **seed loaded** — verified 28 hawshat / 6 items / 6 members / potassium on_hand 300. Full
     dataset: 1 org, 6 organization_member, 12 auth.users, 1 farm, 60 assets, 5 sectors, 6 inventory
     items/bins/movements, 1 plan w/ 3 operations + checks + budget. Transactional tables (`farm_event`,
