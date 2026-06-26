@@ -7,7 +7,7 @@
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(5);
+select plan(6);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set orgB  '06500000-0000-0000-0000-0000000000b0'
@@ -48,11 +48,19 @@ select throws_ok(
             values (%L, %L, 'fertilization', 'planned', %L) $$, :'orgA', :'plan', :'persB'),
   '42501', null, '#306: plan_operations cannot set a CROSS-ORG responsible person');
 
--- 4) farm_event (partitioned) cannot assign a cross-org person
+-- 4) farm_event (partitioned) cannot assign a cross-org person — via the PARENT
 select throws_ok(
   format($$ insert into public.farm_event (org_id, type, occurred_at, assigned_to_person_id)
             values (%L, 'note', '2025-07-16', %L) $$, :'orgA', :'persB'),
-  '42501', null, '#306: farm_event cannot assign a CROSS-ORG person');
+  '42501', null, '#306: farm_event cannot assign a CROSS-ORG person (via the parent)');
+
+-- 4b) ...AND via a direct PARTITION-CHILD insert. authenticated holds direct DML on
+-- farm_event_2025_07, so the per-partition policy (0065) must carry the same check — otherwise a
+-- POST /rest/v1/farm_event_2025_07 bypasses the parent gate (the bug 0065 fixes).
+select throws_ok(
+  format($$ insert into public.farm_event_2025_07 (org_id, type, occurred_at, assigned_to_person_id)
+            values (%L, 'note', '2025-07-17', %L) $$, :'orgA', :'persB'),
+  '42501', null, '#306: a cross-org person is blocked even via a direct partition-child insert (no bypass)');
 
 reset role;
 
