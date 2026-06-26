@@ -54,7 +54,8 @@ select is(
         'fn_stock_coverage',                      -- read RPC
         'fn_bin_rebuild', 'fn_execute_operation', -- intended authenticated RPC surface
         'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
-        'fn_reserve_stock'                        -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
+        'fn_reserve_stock',                       -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
+        'fn_add_plan_operation'                   -- atomic plan-operation authoring RPC (CREATE-3 #196, migration 0038)
         -- NB: fn_post_movement is deliberately NOT here — AUTHZ-3 (migration 0036) revoked its
         -- `authenticated` EXECUTE, making it an INTERNAL primitive. Pinned negatively below.
       )
