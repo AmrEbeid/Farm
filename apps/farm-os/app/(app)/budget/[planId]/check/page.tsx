@@ -62,7 +62,7 @@ export default async function BudgetCheckPage({
     verdict === "block"
       ? `⛔ تجاوز للموازنة: المتاح ${egp(available)} لا يغطي ${egp(thisOp)} — يتطلب اعتماد المالك.`
       : verdict === "approval-needed"
-        ? `⚠️ الموازنة منخفضة (${utilizationAfter}٪ بعد هذه العملية) — يتطلب اعتماد المالك.`
+        ? `⚠️ الموازنة منخفضة (${pct(utilizationAfter)} بعد هذه العملية) — يتطلب اعتماد المالك.`
         : `✓ الموازنة كافية: سيتبقى ${egp(after)}.`;
 
   return (
