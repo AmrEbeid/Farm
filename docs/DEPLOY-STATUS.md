@@ -8,23 +8,24 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0046` — in sync with `main`.** `0001–0013` + `0015–0046` applied and recorded
+  - **Migrations now at `0047` — in sync with `main`.** `0001–0013` + `0015–0047` applied and recorded
     (`0036` FK perf indexes #230; `0037` AUTHZ-3 #182 — fn_post_movement made internal + gated fn_reserve_stock;
     `0038` fn_add_plan_operation #196 — atomic plan-operation RPC; `0039` fn_update_palm_status #238 — op.execute-gated
     atomic palm-status RPC; `0040` engine_rec1_fix #184 — removed the recommendation's period-1 receipts double-subtract;
     `0041` inventory_unit_cost #89-B — manual unit_cost, NULL when unknown; `0042` plan_req_rolegate, `0043` budget_rolegate,
     `0044` expenses_rolegate — the Owner's RLS role-gates on plan-req/budget/expenses (closing the no-role-gate class B2/AUTHZ-1);
     `0045` partial_receipts #155 — received_qty + partially_received + remaining-based projection + received_qty column-UPDATE lockdown;
-    `0046` people_compensation — PII-1 #173 wage slice: `payroll.read` perm + role-gated `people_compensation`, `people.rate` dropped).
+    `0046` people_compensation — PII-1 #173 wage slice: `payroll.read` perm + role-gated `people_compensation`, `people.rate` dropped;
+    `0047` engine_nulldate_guard #198 — `fn_stock_coverage` coalesces a NULL `planned_at` to period 1 so null-dated demand is never silently dropped).
     under their repo versions (`0001–0013` via `supabase db push`; `0015→0029` applied 2026-06-25 via the
     Supabase MCP after the prod-push assurance; `0030`/`0031` the same day; `0032`–`0041` applied
     2026-06-26 via the MCP — `0032` PR-line lock + version bump, `0033` CONC-1 floor lock, `0034`
     ENGINE-STALE-1 #197 shortage-mask fix, `0035` AUTHZ-2 #181 org-scoped `authorize()`, `0036` FK perf
     indexes #230, `0037` AUTHZ-3 #182 reserve wrapper, `0038` fn_add_plan_operation #196, `0039` palm-status
-    RPC #238, `0040` ENGINE-REC1 #184, `0041` inventory unit_cost #89-B; **`0042`–`0046` applied via the MCP** —
+    RPC #238, `0040` ENGINE-REC1 #184, `0041` inventory unit_cost #89-B; **`0042`–`0047` applied via the MCP** —
     `0042` plan_req_rolegate, `0043` budget_rolegate, `0044` expenses_rolegate, `0045` partial_receipts #155,
-    `0046` people_compensation PII-1 #173). Verified
-    via `list_migrations` (latest = `20260622000046`) + function-definition / policy checks
+    `0046` people_compensation PII-1 #173, `0047` engine_nulldate_guard #198). Verified
+    via `list_migrations` (latest = `20260622000047`) + function-definition / policy checks
     (coverage guard + `fn_post_movement` `FOR UPDATE` lock live; `authorize` now the 2-arg org-scoped
     overload incl. the `payroll.read` branch, 1-arg dropped, all policies repointed); `get_advisors` shows only pre-existing WARNs.
   - Synthetic **seed loaded** — verified 28 hawshat / 6 items / 6 members / potassium on_hand 300. Full
@@ -120,8 +121,8 @@ GO-WITH-CAVEATS**, migrations **`0015`→`0024`** were applied to the prod Supab
 (`veezkmytervjnpxcrbkw`) via the Supabase MCP; the **`0025`→`0029`** access-control / engine-integrity
 hardening (AUTHZ-1 Option B, ENGINE-DC DB-enforcement + PR-scope fix, DELETE-posture, FORCE-RLS) was
 applied the same way — **prod DB reached `0029`** at this 2026-06-25 push (`0001–0013` +
-`0015–0029`, all recorded under their repo versions); it has since advanced to **`0046`** (see the
-top-of-file status — `0030`–`0046` all applied; prod is now in sync with `main`). `0018` (the core-engine change) was
+`0015–0029`, all recorded under their repo versions); it has since advanced to **`0047`** (see the
+top-of-file status — `0030`–`0047` all applied; prod is now in sync with `main`). `0018` (the core-engine change) was
 **Owner-ratified** first. Earlier this session (branch `fix/authz-1-execute-rpc`, PR #75, commit
 `31ad992`): **`0021`** locks SECURITY DEFINER fn EXECUTE grants (revoke `anon` on write RPCs
 `fn_execute_operation`/`fn_post_movement`; revoke public+anon+authenticated on trigger fns

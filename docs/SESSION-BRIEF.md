@@ -1,7 +1,21 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — ✅ the `0042`–`0046` batch MERGED + PUSHED to prod + verified; prod now `0046`, in sync with `main`
+## 2026-06-26 — ✅ `0047` engine null-date guard PUSHED + verified; prod now `0047`, in sync with `main`; app swept clean
+- **#198 — ENGINE null-date guard** → **`0047`** engine_nulldate_guard: `fn_stock_coverage` now coalesces a
+  NULL `planned_at` to period 1, so null-dated demand is never silently dropped. Pushed to prod + verified —
+  it's a no-op for dated ops (potassium recommendation unchanged at **600**, confirming behaviour is preserved).
+- **App-only (no migration):** the `/m` field-view fixes (#268 — dropped a hardcoded plot name, corrected the
+  "today" heading, subtype-derived execute defaults) and the plans-page fixes (#269 — plan-block labeled by the
+  real cause budget-vs-stock, not-found guard, stepper state).
+- **Comprehensive app bug-sweep** this session confirmed auth / middleware / inventory / farm-sector / all
+  action files **clean** — the whole app is now swept.
+- Verified: `list_migrations` → `20260622000047`; **pgTAP 415/415** (Docker-free shim harness), all green.
+- **Prod is now at `0047`, in sync with `main`.**
+- **Remaining (Owner-decision / human-only, unchanged):** #199/reserveQty + #173 phone/email half + #157
+  chart-of-accounts (open Owner decisions), #239 registry data, 🔴 **key rotation** (only red).
+
+## 2026-06-26 — ✅ the `0042`–`0046` batch MERGED + PUSHED to prod + verified; prod now `0046`, in sync with `main`
 Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, and verified:
 - **The Owner's RLS role-gate trio** — **`0042`** plan_req_rolegate, **`0043`** budget_rolegate, **`0044`**
   expenses_rolegate: WITH-CHECK role gates on the plan-req/budget/expenses tables, closing the same
