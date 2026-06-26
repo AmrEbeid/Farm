@@ -8,13 +8,15 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0037` — in sync with `main`.** `0001–0013` + `0015–0037` applied and recorded
-    (`0036` FK perf indexes #230; `0037` AUTHZ-3 #182 — fn_post_movement made internal + gated fn_reserve_stock).
+  - **Migrations now at `0038` — in sync with `main`.** `0001–0013` + `0015–0038` applied and recorded
+    (`0036` FK perf indexes #230; `0037` AUTHZ-3 #182 — fn_post_movement made internal + gated fn_reserve_stock;
+    `0038` fn_add_plan_operation #196 — atomic plan-operation RPC).
     under their repo versions (`0001–0013` via `supabase db push`; `0015→0029` applied 2026-06-25 via the
-    Supabase MCP after the prod-push assurance; `0030`/`0031` the same day; **`0032`–`0035` applied
+    Supabase MCP after the prod-push assurance; `0030`/`0031` the same day; **`0032`–`0038` applied
     2026-06-26 via the MCP** — `0032` PR-line lock + version bump, `0033` CONC-1 floor lock, `0034`
-    ENGINE-STALE-1 #197 shortage-mask fix, `0035` AUTHZ-2 #181 org-scoped `authorize()`). Verified
-    2026-06-26 via `list_migrations` (latest = `20260622000035`) + function-definition / policy checks
+    ENGINE-STALE-1 #197 shortage-mask fix, `0035` AUTHZ-2 #181 org-scoped `authorize()`, `0036` FK perf
+    indexes #230, `0037` AUTHZ-3 #182 reserve wrapper, `0038` fn_add_plan_operation #196). Verified
+    2026-06-26 via `list_migrations` (latest = `20260622000038`) + function-definition / policy checks
     (coverage guard + `fn_post_movement` `FOR UPDATE` lock live; `authorize` now the 2-arg org-scoped
     overload, 1-arg dropped, all 7 policies repointed); `get_advisors` shows only pre-existing WARNs.
   - Synthetic **seed loaded** — verified 28 hawshat / 6 items / 6 members / potassium on_hand 300. Full
@@ -110,8 +112,8 @@ GO-WITH-CAVEATS**, migrations **`0015`→`0024`** were applied to the prod Supab
 (`veezkmytervjnpxcrbkw`) via the Supabase MCP; the **`0025`→`0029`** access-control / engine-integrity
 hardening (AUTHZ-1 Option B, ENGINE-DC DB-enforcement + PR-scope fix, DELETE-posture, FORCE-RLS) was
 applied the same way — **prod DB reached `0029`** at this 2026-06-25 push (`0001–0013` +
-`0015–0029`, all recorded under their repo versions); it has since advanced to **`0034`** (see the
-top-of-file status — `0030`–`0034` all applied; prod is now in sync with `main`). `0018` (the core-engine change) was
+`0015–0029`, all recorded under their repo versions); it has since advanced to **`0038`** (see the
+top-of-file status — `0030`–`0038` all applied; prod is now in sync with `main`). `0018` (the core-engine change) was
 **Owner-ratified** first. Earlier this session (branch `fix/authz-1-execute-rpc`, PR #75, commit
 `31ad992`): **`0021`** locks SECURITY DEFINER fn EXECUTE grants (revoke `anon` on write RPCs
 `fn_execute_operation`/`fn_post_movement`; revoke public+anon+authenticated on trigger fns

@@ -6,9 +6,9 @@ built or applied by this doc. Reconciles [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 
 
 ## Where we are (reconciled to `main`)
 
-- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0034`, **in sync with `main`**
-  (`0032`/`0033`/`0034` pushed 2026-06-26 via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
-  fix #197). pgTAP 290/290 (Docker-free harness). 8-agent re-audit complete.
+- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0038`, **in sync with `main`**
+  (`0032`–`0038` pushed 2026-06-26 via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
+  fix #197 + AUTHZ-2/3 + atomic plan-op #196). pgTAP 338/338 (Docker-free harness). 8-agent re-audit complete.
 - **Foundation/security hardened:** AUTHZ-1 RLS (`0025`), delete-posture (`0027`), FORCE RLS (`0028`),
   ledger INSERT-locked (`0030`), stock floor + **CONC-1** concurrency fix (`0031`/`0033`), PR-line
   freeze + AP-3 (`0032`), org-member audit (`0019`). `@amrebeid/ui` 1.2.0.
@@ -29,7 +29,7 @@ The autonomous pipeline builds fast; what gates the finish:
 
 ## Recommended sequence (each stage: ratify SPEC → build in slices → Owner gate; never auto-advance)
 
-1. ~~**Apply the pending hardening to prod** (`0032`/`0033`/`0034`)~~ ✅ **DONE 2026-06-26** — applied via the Supabase MCP + verified live (`list_migrations` → `0034`; engine guard live). Ratify
+1. ~~**Apply the pending hardening to prod** (`0032`/`0033`/`0034`)~~ ✅ **DONE 2026-06-26** — applied via the Supabase MCP + verified live (`list_migrations` → `0038`; engine guard live). Ratify
    the core-engine `0018`/CONC-1 `0033` specifically. *(Owner apply — small, high-value.)*
 2. **Close AUTHZ-1** — ratify [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) (the role model
    already exists; it's a coverage gap), then the enforcement migration. *(Low/Med.)*
@@ -69,7 +69,7 @@ complete; the project is decision-bound, not design-bound — see the gates abov
 
 ## Immediate next actions (Owner)
 
-1. ~~Push `0032`/`0033`/`0034` to prod~~ ✅ DONE 2026-06-26 (prod now `0034`, in sync with `main`).
+1. ~~Push `0032`/`0033`/`0034` to prod~~ ✅ DONE 2026-06-26 (prod now `0038`, in sync with `main`).
 2. Ratify SPEC-0002 → build. 3. Decide the HIGH forks (#155/#157, #89; #156 closed). 4. Confirm 4-vs-5 sectors
 (Stage 2 #186 merged with **5** — confirm intended). 5. 🔴 rotate the service-role key + DB password.
 Everything else sequences behind these + the external sign-offs.
