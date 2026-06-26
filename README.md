@@ -13,7 +13,7 @@ Monorepo for **Farm OS** — an Arabic-RTL-first, multi-tenant operating system 
 ## Sub-projects
 
 - **A — `@amrebeid/ui`** (`packages/ui`): **v1.2.0, published** to GitHub Packages — full component catalog, white-label theming, green CI. Plans in [`packages/ui/docs/superpowers/plans`](packages/ui/docs/superpowers/plans).
-- **B — Farm OS app** (`apps/farm-os`): **MVP-0 DEPLOYED + LIVE** — Next.js + Supabase, the full stock-coverage wedge loop end-to-end. Auth is **email + password** (Supabase `signInWithPassword`). Independent security review done; **411 pgTAP + Playwright e2e** green. Live at **farm-ui-one.vercel.app** (+ `ebeidfarm.business`) on a dedicated cloud Supabase project (prod DB at **migration 0046**, in sync with `main` — `0032`–`0046` pushed and verified live, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` (#155) + wage-confidentiality `0046` (PII-1 #173)), running on synthetic seed data. Recharts is code-split via the `@amrebeid/ui/charts` subpath, so charts load only on the **2** chart routes (inventory coverage + planned-vs-actual report). Spec/plan in [`docs/superpowers`](docs/superpowers); deploy in [`docs/DEPLOY-RUNBOOK.md`](docs/DEPLOY-RUNBOOK.md) / status in [`docs/DEPLOY-STATUS.md`](docs/DEPLOY-STATUS.md).
+- **B — Farm OS app** (`apps/farm-os`): **MVP-0 DEPLOYED + LIVE** — Next.js + Supabase, the full stock-coverage wedge loop end-to-end. Auth is **email + password** (Supabase `signInWithPassword`). Independent security review done; **415 pgTAP + Playwright e2e** green. Live at **farm-ui-one.vercel.app** (+ `ebeidfarm.business`) on a dedicated cloud Supabase project (prod DB at **migration 0047**, in sync with `main` — `0032`–`0047` pushed and verified live, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` (#155) + wage-confidentiality `0046` (PII-1 #173) + engine null-date guard `0047` (#198)), running on synthetic seed data. Recharts is code-split via the `@amrebeid/ui/charts` subpath, so charts load only on the **2** chart routes (inventory coverage + planned-vs-actual report). Spec/plan in [`docs/superpowers`](docs/superpowers); deploy in [`docs/DEPLOY-RUNBOOK.md`](docs/DEPLOY-RUNBOOK.md) / status in [`docs/DEPLOY-STATUS.md`](docs/DEPLOY-STATUS.md).
 
 ## Working in the library
 
@@ -32,7 +32,7 @@ cd apps/farm-os
 supabase start          # local Supabase (requires Docker)
 supabase db reset       # apply migrations + Ebeid seed
 npm run dev             # http://localhost:3000
-supabase test db        # 411 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
+supabase test db        # 415 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
 npx playwright test     # the end-to-end wedge loop
 ```
 

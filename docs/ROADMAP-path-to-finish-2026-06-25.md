@@ -6,12 +6,13 @@ built or applied by this doc. Reconciles [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 
 
 ## Where we are (reconciled to `main`)
 
-- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0046`, **in sync with `main`**
-  (`0032`–`0046` pushed via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
+- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0047`, **in sync with `main`**
+  (`0032`–`0047` pushed via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
   fix #197 + AUTHZ-2/3 + atomic plan-op #196 + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B
   + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` (#155)
-  + wage-confidentiality `0046` (PII-1 #173, `payroll.read` + `people_compensation`, `people.rate` dropped)).
-  pgTAP 411/411 (Docker-free harness). 8-agent re-audit complete.
+  + wage-confidentiality `0046` (PII-1 #173, `payroll.read` + `people_compensation`, `people.rate` dropped)
+  + engine null-date guard `0047` (#198 — `fn_stock_coverage` coalesces a NULL `planned_at` to period 1, DONE; no-op for dated ops, potassium rec unchanged at 600)).
+  pgTAP 415/415 (Docker-free harness). 8-agent re-audit complete.
 - **Foundation/security hardened:** AUTHZ-1 RLS (`0025`), delete-posture (`0027`), FORCE RLS (`0028`),
   ledger INSERT-locked (`0030`), stock floor + **CONC-1** concurrency fix (`0031`/`0033`), PR-line
   freeze + AP-3 (`0032`), org-member audit (`0019`). `@amrebeid/ui` 1.2.0.
