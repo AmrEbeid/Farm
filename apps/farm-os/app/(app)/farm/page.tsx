@@ -11,13 +11,24 @@ const SUBTYPE_AR: Record<string, string> = {
   inspection: "تفتيش",
 };
 
+// Palm asset statuses that need attention (assets.status — migration 0003).
+const ATTENTION_STATUS_AR: Record<string, string> = {
+  watch: "تحت المراقبة",
+  sick: "مريضة",
+  dead: "ميتة",
+};
+
 export default async function FarmStructurePage() {
   await requireMembership();
   const sb = await createClient();
 
   // sectors (the grid) and the farm-level event timeline are independent reads,
   // both RLS-scoped to the caller's org — fetch in parallel.
-  const [{ data: sectors, error }, { data: events, error: eventsError }] = await Promise.all([
+  const [
+    { data: sectors, error },
+    { data: events, error: eventsError },
+    { data: atRisk, error: atRiskError },
+  ] = await Promise.all([
     sb
       .from("sectors")
       .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
@@ -27,11 +38,21 @@ export default async function FarmStructurePage() {
       .select("id, subtype, status, occurred_at, notes")
       .order("occurred_at", { ascending: false })
       .limit(15),
+    // Palms needing attention: watch/sick/dead trees across the org (the agronomy
+    // signal), with their location, linked to each palm's file.
+    sb
+      .from("assets")
+      .select("id, id_tag, name, status, hawshat(name), sectors(name)")
+      .eq("type", "palm")
+      .in("status", ["watch", "sick", "dead"])
+      .order("status")
+      .limit(100),
   ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
   if (error) throw error;
   if (eventsError) throw eventsError;
+  if (atRiskError) throw atRiskError;
 
   const timeline: TimelineEvent[] = (events ?? []).map((e) => ({
     id: e.id,
@@ -70,6 +91,26 @@ export default async function FarmStructurePage() {
     male: num(t.male),
   }));
 
+  const attentionColumns: SimpleColumn[] = [
+    { id: "tag", header: "الرمز" },
+    { id: "sector", header: "القطاع" },
+    { id: "hawsha", header: "الحوشة" },
+    { id: "status", header: "الحالة" },
+  ];
+  const attentionRows = (atRisk ?? []).map((a) => {
+    // hawshat/sectors are to-one embeds — PostgREST may return object or array.
+    const h = (Array.isArray(a.hawshat) ? a.hawshat[0] : a.hawshat) as { name?: string } | null;
+    const s = (Array.isArray(a.sectors) ? a.sectors[0] : a.sectors) as { name?: string } | null;
+    return {
+      id: a.id,
+      href: `/farm/palm/${a.id}`,
+      tag: a.id_tag ?? a.name ?? a.id,
+      sector: s?.name ?? "—",
+      hawsha: h?.name ?? "—",
+      status: ATTENTION_STATUS_AR[a.status ?? ""] ?? a.status ?? "—",
+    };
+  });
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">هيكل المزرعة</h1>
@@ -80,6 +121,14 @@ export default async function FarmStructurePage() {
         <KpiCard label="نخيل برحي" value={num(totalBarhi)} />
         <KpiCard label="ذكور" value={num(totalMale)} />
       </section>
+
+      <Card title="نخيل يحتاج عناية">
+        {attentionRows.length === 0 ? (
+          <EmptyState title="لا يوجد نخيل يحتاج عناية" />
+        ) : (
+          <SimpleTable columns={attentionColumns} rows={attentionRows} empty="—" />
+        )}
+      </Card>
 
       <Card title="القطاعات">
         <SimpleTable columns={columns} rows={rows} empty="لا توجد قطاعات" />
