@@ -76,8 +76,13 @@ Gmail/password — flag, don't propagate, #6); putting real financials into any 
    `crop`/`season` columns (or a season table) and a sector→crop mapping? Owner decides the model.
 3. **Drawings model** — `expense.kind` enum vs a dedicated `drawings` table. (Recommend the enum:
    minimal, keeps one ledger, trivially excludable.)
-4. **Budget enforcement** — keep budget as decision-support (BUD-1) or make it a hard cap now that
-   actuals will be live? (Ties to SPEC-0002 §budget.)
+4. **Budget enforcement (#157)** — **Recommended (2026-06-26): two-step.** *Step-1 (shipped in open PR #190, not yet merged):*
+   make the gate honest — judge the **real** plan-op cost, not a hardcoded constant (decision-support
+   only, no block). *Step-2 (Owner-gated, this stage):* once slice 2 below makes `committed`/`actual`
+   live, make the budget a **hard cap with Owner-override + audit**, enforced in the `pr_update` RLS
+   policy **AND-ed** alongside the existing SoD predicate (never a separate PERMISSIVE policy that
+   ORs the guard away). Do **not** enforce a cap on inert figures (non-negotiable #1). Owner-only
+   financial decision; independent review required. (Ties to SPEC-0002 §budget / BUD-1.)
 5. **Reconciliation data source** — the dual-run needs the real closed-season Excel figures; that is
    sensitive financial data → requires the **Stage M privacy review** first, OR a faithful
    synthetic-but-reconcilable fixture for the build, with the real dual-run gated to Stage M.
