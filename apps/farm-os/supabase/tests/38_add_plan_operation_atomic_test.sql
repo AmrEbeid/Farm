@@ -15,7 +15,9 @@
 -- Run via `supabase test db`.
 
 begin;
-select plan(11);
+-- 12 assertions below (the 12th — accountant refusal — was added without bumping the plan,
+-- which the false-green harness did not catch).
+select plan(12);
 
 -- ===== grants (migration 0038 lockdown): anon must NOT execute; authenticated MUST =====
 select ok(not has_function_privilege('anon',

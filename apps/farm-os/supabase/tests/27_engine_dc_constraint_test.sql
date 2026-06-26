@@ -18,7 +18,9 @@
 -- Run via `supabase test db`.
 
 begin;
-select plan(8);
+-- 7 assertions below; the plan said 8 (an off-by-one the false-green harness hid — no
+-- 8th assertion exists in this file). Matched to the actual count.
+select plan(7);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set itemA 'c0000000-0000-0000-0000-000000000027'
