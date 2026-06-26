@@ -6,15 +6,7 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { SEED_PLAN_ID } from "@/lib/nav";
 import { egp, num, pct } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR } from "@/lib/labels";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  pollination: "تلقيح",
-  inspection: "تفتيش",
-};
+import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 export default async function ManagerDashboard() {
   // Role-gate: farm_manager/agri_engineer land here via the dashboard router; a

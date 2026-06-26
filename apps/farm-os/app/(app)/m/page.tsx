@@ -4,15 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Card, Button, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR } from "@/lib/labels";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  pollination: "تلقيح",
-  inspection: "تفتيش",
-};
+import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 function pill(s: string): "active" | "done" | "scheduled" {
   if (s === "done") return "done";

@@ -3,15 +3,7 @@ import { requireMembership } from "@/lib/auth";
 import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { num } from "@/lib/money";
-import { OP_STATUS_AR } from "@/lib/labels";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  pollination: "تلقيح",
-  inspection: "تفتيش",
-};
+import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 // Palm asset statuses that need attention (assets.status — migration 0003).
 const ATTENTION_STATUS_AR: Record<string, string> = {
