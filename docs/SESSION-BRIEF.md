@@ -18,9 +18,9 @@ substantive holes closed; short precise remainder.
 - **Fixed in branch `docs/push-prep-0049-0066` (PR open, Owner-gated):** removed landing-page
   dashboard KPI tiles (`app/page.tsx` — hardcoded; for palms they show the canonical 4,380 while the
   registry import never happened, #239 — Owner may re-add as static brand copy); offline `try/catch`
-  added to 6 mutation forms (only ExecuteForm had it); migration **drafts 0067** (inventory_items
-  safety_stock/pack_size CHECK), **0068** (palm_status_history write-gate), **0069** (revoke anon
-  EXECUTE on authorize/user_org_ids). App validated: lint 0, tsc 0, 110/110 tests. **0067–0069 NOT
+  added to 6 mutation forms (only ExecuteForm had it); migration **drafts 0070** (inventory_items
+  safety_stock/pack_size CHECK), **0071** (palm_status_history write-gate), **0072** (revoke anon
+  EXECUTE on authorize/user_org_ids). App validated: lint 0, tsc 0, 110/110 tests. **0070–0072 NOT
   applied to prod** (new migrations → PR review + pgTAP, then Owner applies).
 - **Closed (verified fixed on prod 0066):** #306 (cross-org FK sweep), #280 (F2/F4/F5).
 - **Still open / tracked:** #270 **C1** (fn_post_receipt keys received_qty by item_id not line id →
@@ -28,7 +28,7 @@ substantive holes closed; short precise remainder.
   verified real, need a tested PR; #157 (budget guardrail not table-backed + NULL est_cost=0); **#317
   (new)** (default privileges re-grant anon/authenticated CRUD+TRUNCATE on post-0027 tables); #161
   (SQL↔TS engine parity drift, latent).
-- **Recommended next (one PR each):** merge this PR + apply 0067–0069 → #270 C1/C2 engine fix (pgTAP)
+- **Recommended next (one PR each):** merge this PR + apply 0070–0072 → #270 C1/C2 engine fix (pgTAP)
   → #157 budget → #317 grant lockdown.
 
 ## 2026-06-26 — ✅ `0048` contact-PII lockdown PUSHED + verified; #173/PII-1 now FULLY closed; prod `0048`, in sync with `main`
