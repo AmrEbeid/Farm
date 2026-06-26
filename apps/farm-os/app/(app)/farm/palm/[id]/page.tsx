@@ -93,7 +93,12 @@ export default async function PalmFilePage({
           items={[
             { id: "tag", term: "الرمز", description: asset.id_tag ?? "—" },
             { id: "variety", term: "الصنف", description: asset.variety ?? "—" },
-            { id: "sex", term: "النوع", description: asset.sex === "male" ? "ذكر" : "أنثى" },
+            {
+              id: "sex",
+              term: "النوع",
+              // sex is nullable; don't render unknown as "أنثى" — sex drives pollination role.
+              description: asset.sex === "male" ? "ذكر" : asset.sex === "female" ? "أنثى" : "—",
+            },
             { id: "status", term: "الحالة", description: STATUS_AR[asset.status ?? ""] ?? asset.status ?? "—" },
             { id: "health", term: "الحالة الصحية", description: asset.health_status ?? "—" },
             { id: "line", term: "الخط", description: line?.line_no != null ? `خط ${line.line_no}` : "—" },
