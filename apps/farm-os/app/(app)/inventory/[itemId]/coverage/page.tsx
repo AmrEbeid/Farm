@@ -58,7 +58,10 @@ export default async function CoveragePage({
   params: Promise<{ itemId: string }>;
 }) {
   const { itemId } = await params;
-  await requireMembership();
+  const m = await requireMembership();
+  // Only inventory.write roles can create the PR/reserve (the action 42501s otherwise) — don't
+  // show the button to accountant/supervisor/agri_engineer as a dead-end affordance.
+  const canReserve = ["owner", "farm_manager", "storekeeper"].includes(m.role);
   const sb = await createClient();
 
   const { data: item, error: itemError } = await sb
@@ -136,11 +139,13 @@ export default async function CoveragePage({
             نقص قدره {num(c.shortfall)} {unit}. ننصح بطلب {num(c.recommend_qty)} {unit} اليوم
             {c.order_by ? ` (آخر موعد للطلب: ${fmtDate(c.order_by)})` : ""}.
           </p>
-          <CreatePrButton
-            itemId={itemId}
-            recommendQty={c.recommend_qty}
-            reserveQty={c.recommend_qty}
-          />
+          {canReserve && (
+            <CreatePrButton
+              itemId={itemId}
+              recommendQty={c.recommend_qty}
+              reserveQty={c.recommend_qty}
+            />
+          )}
         </Card>
       )}
     </div>

@@ -39,7 +39,10 @@ export default async function MonthlyPlanPage({
   params: Promise<{ planId: string }>;
 }) {
   const { planId } = await params;
-  await requireMembership();
+  const m = await requireMembership();
+  // Only plan.write roles can add operations / run plan checks (the actions 42501 otherwise) —
+  // don't show the edit controls to the other roles as dead-end affordances.
+  const canEditPlan = ["owner", "farm_manager"].includes(m.role);
   const sb = await createClient();
 
   // These four reads are independent, so issue them in parallel.
@@ -121,10 +124,12 @@ export default async function MonthlyPlanPage({
             {fmtDate(plan?.period_start)} إلى {fmtDate(plan?.period_end)}
           </p>
         </div>
-        <div className="flex gap-2">
-          <PlanChecksRunner planId={planId} />
-          <OperationBuilder planId={planId} items={items ?? []} />
-        </div>
+        {canEditPlan && (
+          <div className="flex gap-2">
+            <PlanChecksRunner planId={planId} />
+            <OperationBuilder planId={planId} items={items ?? []} />
+          </div>
+        )}
       </header>
 
       <LoopStepper steps={steps} ariaLabel="خطوات الدورة" />
