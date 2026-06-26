@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import { toArabicError } from "@/lib/errors";
 import { SEED_PLAN_ID } from "@/lib/nav";
 
 /**
@@ -33,12 +34,10 @@ async function reserveStock(
   // Map fn_post_movement's SQLSTATEs to Arabic (non-negotiable #2; consistent with
   // executeOperation/recordReceipt) — never leak the raw English DB message to the field UI.
   if (error) {
-    const msg =
-      error.code === "42501"
-        ? "ليس لديك صلاحية حجز المخزون"
-        : error.code === "22023"
-          ? "كمية الحجز غير صالحة"
-          : error.message;
+    const msg = toArabicError(error, {
+      "42501": "ليس لديك صلاحية حجز المخزون",
+      "22023": "كمية الحجز غير صالحة",
+    });
     return { ok: false as const, error: msg };
   }
   return { ok: true as const };
@@ -110,7 +109,7 @@ export async function createPurchaseRequestFromShortage(
     })
     .select("id, code")
     .single();
-  if (prErr || !pr) return { ok: false, error: prErr?.message ?? "insert failed" };
+  if (prErr || !pr) return { ok: false, error: toArabicError(prErr, {}, "تعذّر إنشاء طلب الشراء") };
 
   const { error: itemErr } = await sb.from("purchase_request_items").insert({
     pr_id: pr.id,
@@ -121,7 +120,7 @@ export async function createPurchaseRequestFromShortage(
     supplier_id: item?.preferred_supplier_id ?? null,
     est_cost: recommendQty * 84, // ~84 ج.م/kg potassium sulfate (real Ebeid price)
   });
-  if (itemErr) return { ok: false, error: itemErr.message };
+  if (itemErr) return { ok: false, error: toArabicError(itemErr) };
 
   // reserve the planned requirement — propagate a reserve failure as a structured
   // error instead of letting it throw as an unhandled server-action rejection.
