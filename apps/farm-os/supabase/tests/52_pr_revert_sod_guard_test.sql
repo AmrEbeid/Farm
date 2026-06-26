@@ -69,7 +69,7 @@ select is(
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.proname = 'pr_guard_approval'
-       and pg_get_functiondef(p.oid) like '%only an approver can revert a decided purchase request%'),
+       and regexp_replace(pg_get_functiondef(p.oid), '--.*$', '', 'ng') like '%only an approver can revert a decided purchase request%'),
   1,
   '#270 H4: pr_guard_approval gates the decided→editable revert on pr.approve');
 
