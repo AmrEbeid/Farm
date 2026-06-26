@@ -31,10 +31,17 @@ export function PrActions({
   async function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setPending(true);
     setError(null);
-    const res = await fn();
-    setPending(false);
-    if (res.ok) router.refresh();
-    else setError(res.error ?? "تعذّر تنفيذ الإجراء");
+    try {
+      const res = await fn();
+      if (res.ok) router.refresh();
+      else setError(res.error ?? "تعذّر تنفيذ الإجراء");
+    } catch {
+      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner —
+      // surface a retryable Arabic message (mirrors ExecuteForm).
+      setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+    } finally {
+      setPending(false);
+    }
   }
 
   // A receipt may be recorded against an approved PR OR one that is already partially received

@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { Button, KpiCard } from "@/components/ui";
+import { Button } from "@/components/ui";
 
 export default function Home() {
+  // Public, unauthenticated landing page — no org context, so it must NOT display
+  // any farm figures (a hardcoded count would be fabricated data, violating the
+  // no-fabricated-numbers rule). Real KPIs live behind auth on the role dashboards,
+  // each derived from a live org-scoped query.
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
@@ -11,12 +15,6 @@ export default function Home() {
           <code>@amrebeid/ui</code>، وعميل Supabase.
         </p>
       </header>
-
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiCard label="القطاعات" value="٥" />
-        <KpiCard label="الحوشات" value="٢٨" />
-        <KpiCard label="النخيل" value="٤٬٣٨٠" unit="برحي" />
-      </section>
 
       <nav className="flex flex-wrap gap-3">
         <Link href="/login">

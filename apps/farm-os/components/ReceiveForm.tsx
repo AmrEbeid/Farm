@@ -41,10 +41,17 @@ export function ReceiveForm({ prId, lines }: { prId: string; lines: ReceiveLine[
   async function submit(lineMap?: { item_id: string; qty: number }[]) {
     setPending(true);
     setError(null);
-    const res = await recordReceipt(prId, lineMap);
-    setPending(false);
-    if (res.ok) router.refresh();
-    else setError(res.error ?? "تعذّر تسجيل الاستلام");
+    try {
+      const res = await recordReceipt(prId, lineMap);
+      if (res.ok) router.refresh();
+      else setError(res.error ?? "تعذّر تسجيل الاستلام");
+    } catch {
+      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner on
+      // the irreversible inventory path — surface a retryable Arabic message (mirrors ExecuteForm).
+      setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+    } finally {
+      setPending(false);
+    }
   }
 
   function submitPartial() {

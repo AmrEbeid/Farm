@@ -30,18 +30,25 @@ export function CreatePrButton({
         onClick={async () => {
           setPending(true);
           setError(null);
-          const res = await createPurchaseRequestFromShortage(
-            itemId,
-            recommendQty,
-            reserveQty,
-          );
-          setPending(false);
-          if (res.ok) {
-            // route to the budget gate for this plan
-            router.push(`/budget/${SEED_PLAN_ID}/check?pr=${res.prId}`);
-            router.refresh();
-          } else {
+          try {
+            const res = await createPurchaseRequestFromShortage(
+              itemId,
+              recommendQty,
+              reserveQty,
+            );
+            if (res.ok) {
+              // route to the budget gate for this plan
+              router.push(`/budget/${SEED_PLAN_ID}/check?pr=${res.prId}`);
+              router.refresh();
+              return;
+            }
             setError(res.error ?? "تعذّر إنشاء طلب الشراء");
+          } catch {
+            // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner —
+            // surface a retryable Arabic message (mirrors ExecuteForm).
+            setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+          } finally {
+            setPending(false);
           }
         }}
       >

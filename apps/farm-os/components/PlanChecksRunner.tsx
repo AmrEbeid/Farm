@@ -21,12 +21,19 @@ export function PlanChecksRunner({ planId }: { planId: string }) {
         onClick={async () => {
           setPending(true);
           setError(null);
-          const res = await runPlanChecks(planId);
-          setPending(false);
-          if (res.ok) {
-            router.refresh();
-          } else {
-            setError(res.error ?? "تعذّرت إعادة فحص الخطة");
+          try {
+            const res = await runPlanChecks(planId);
+            if (res.ok) {
+              router.refresh();
+            } else {
+              setError(res.error ?? "تعذّرت إعادة فحص الخطة");
+            }
+          } catch {
+            // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner —
+            // surface a retryable Arabic message (mirrors ExecuteForm).
+            setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+          } finally {
+            setPending(false);
           }
         }}
       >

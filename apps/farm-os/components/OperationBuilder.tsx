@@ -43,20 +43,27 @@ export function OperationBuilder({
   async function submit() {
     setPending(true);
     setError(null);
-    const res = await addPlanOperation(planId, {
-      subtype,
-      planned_at: plannedAt,
-      est_cost: Number(estCost),
-      item_id: itemId,
-      material_qty: Number(qty),
-      material_unit: unit,
-    });
-    setPending(false);
-    if (res.ok) {
-      setOpen(false);
-      router.refresh();
-    } else {
-      setError(res.error ?? "تعذّر الحفظ");
+    try {
+      const res = await addPlanOperation(planId, {
+        subtype,
+        planned_at: plannedAt,
+        est_cost: Number(estCost),
+        item_id: itemId,
+        material_qty: Number(qty),
+        material_unit: unit,
+      });
+      if (res.ok) {
+        setOpen(false);
+        router.refresh();
+      } else {
+        setError(res.error ?? "تعذّر الحفظ");
+      }
+    } catch {
+      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner —
+      // surface a retryable Arabic message (mirrors ExecuteForm).
+      setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+    } finally {
+      setPending(false);
     }
   }
 
