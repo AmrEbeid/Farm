@@ -105,6 +105,29 @@ export async function createPurchaseRequestFromShortage(
     .eq("id", itemId)
     .single();
 
+  // NEEDED-BY (#89, correctness): derive the PR's needed_by from the plan's REAL demand date for
+  // this item — the earliest plan_operations.planned_at for a live op (status planned/reserved/ready,
+  // plan status draft/active/approved) in SEED_PLAN_ID that carries a plan_material_requirement for
+  // this item. This mirrors fn_stock_coverage's demand origin (v_period_start). It matters because
+  // the scheduled-receipts projection only counts an approved PO when its needed_by >= v_period_start
+  // and buckets it by that date (migrations 0034/0018): a stale/hardcoded needed_by would silently
+  // drop this PO from the projection and could MASK the very shortage that triggered it.
+  const { data: demandOp } = await sb
+    .from("plan_operations")
+    .select("planned_at, plan_material_requirements!inner(item_id), plans!inner(status)")
+    .eq("plan_id", SEED_PLAN_ID)
+    .in("status", ["planned", "reserved", "ready"])
+    .eq("plan_material_requirements.item_id", itemId)
+    .in("plans.status", ["draft", "active", "approved"])
+    .order("planned_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  // Fallback when no live demanding op exists for this item: leave needed_by null (the column is
+  // nullable). The demand date is genuinely unknown, and a null is honest rather than pinning the PO
+  // to a fabricated date. In practice this branch is unreachable from the shortage flow — a coverage
+  // shortage requires planned demand to exist, which is exactly what the query above finds.
+  const neededBy = demandOp?.planned_at ?? null;
+
   const code = `PR-${Date.now().toString().slice(-6)}`;
   const { data: pr, error: prErr } = await sb
     .from("purchase_requests")
@@ -112,7 +135,7 @@ export async function createPurchaseRequestFromShortage(
       org_id: m.orgId,
       code,
       requested_by: m.userId,
-      needed_by: "2025-07-08",
+      needed_by: neededBy,
       reason: `نقص ${item?.name ?? "صنف"} لعملية التسميد المخطّطة`,
       plan_id: SEED_PLAN_ID,
       status: "draft",
