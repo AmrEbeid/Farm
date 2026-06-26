@@ -31,7 +31,8 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setTone("danger");
-        setMessage(error.message + " — جرّب «تفعيل حسابات العرض» أولاً.");
+        // Don't leak the raw English Supabase auth error to the Arabic UI.
+        setMessage("تعذّر تسجيل الدخول. تأكد من البريد وكلمة المرور، أو جرّب «تفعيل حسابات العرض» أولاً.");
         setPending(false);
         return;
       }
