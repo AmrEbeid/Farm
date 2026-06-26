@@ -10,6 +10,11 @@
 export const OP_STATUS_AR: Record<string, string> = {
   planned: "مخطط",
   approved: "معتمد",
+  reserved: "محجوز",
+  ready: "جاهز",
   in_progress: "قيد التنفيذ",
   done: "منفذ",
+  blocked: "محظور",
+  abandoned: "ملغاة",
+  skipped: "متخطّاة",
 };
