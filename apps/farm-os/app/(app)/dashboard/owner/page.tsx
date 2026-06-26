@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { egp } from "@/lib/money";
@@ -14,7 +14,9 @@ const PR_STATUS_AR: Record<string, string> = {
 };
 
 export default async function OwnerDashboard() {
-  const m = await requireMembership();
+  // Role-gate: owner/accountant land here via the dashboard router; a wrong role
+  // typing the URL is bounced back to the router (which routes to its own home).
+  const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
   // Independent reads, issued in parallel.

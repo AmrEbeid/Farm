@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { Card, Button, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
@@ -24,7 +24,9 @@ export default async function MobileHomePage({
   searchParams: Promise<{ done?: string }>;
 }) {
   const { done } = await searchParams;
-  const m = await requireMembership();
+  // Role-gate the field view to match the nav (lib/nav.ts hides الميدان from
+  // accountant/storekeeper) and /m/execute's gate — field roles only.
+  const m = await requireRole(["supervisor", "agri_engineer", "farm_manager", "owner"]);
   const sb = await createClient();
 
   const { data: ops, error } = await sb
