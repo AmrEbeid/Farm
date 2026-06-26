@@ -135,3 +135,22 @@ jobs:
         # (fails loudly if recharts vanishes or the .next layout moves). Pure Node, no
         # external actions/secrets. See apps/farm-os/scripts/check-recharts-codesplit.mjs.
         run: cd apps/farm-os && node scripts/check-recharts-codesplit.mjs
+
+  secret-scan:
+    name: gitleaks · secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history for the git-mode scan
+
+      - name: gitleaks · scan committed history
+        # PROJECT RULES (docs/CLAUDE.md) require "secret scanning that blocks a leak
+        # before commit." Pin the gitleaks binary and scan all commits against
+        # .gitleaks.toml (build artifacts / vendored trees allowlisted there). Exits
+        # non-zero — and fails the gate — the moment a real secret is committed.
+        run: |
+          VER=8.30.1
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks git . --config .gitleaks.toml --log-opts="--all" --redact
