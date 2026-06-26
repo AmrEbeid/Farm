@@ -136,7 +136,7 @@ export default async function CoveragePage({
           <CreatePrButton
             itemId={itemId}
             recommendQty={c.recommend_qty}
-            reserveQty={500}
+            reserveQty={c.recommend_qty}
           />
         </Card>
       )}
