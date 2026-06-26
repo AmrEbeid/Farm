@@ -6,6 +6,7 @@
 // Import from the dedicated recharts-only subpath so recharts enters only the
 // bundles of routes that actually render a chart, never the global chunk.
 import { LineChart, BarChart } from "@amrebeid/ui/charts";
+import { num } from "@/lib/money";
 
 /**
  * Projected Available Balance over the planning horizon. The first period that
@@ -20,7 +21,7 @@ export function PabChart({
   firstShortage: number | null;
 }) {
   const data = series.map((value, i) => ({
-    period: i === 0 ? "الآن" : `أسبوع ${i}`,
+    period: i === 0 ? "الآن" : `أسبوع ${num(i)}`,
     "الرصيد المتوقع": value,
   }));
   return (
@@ -37,7 +38,7 @@ export function PabChart({
       />
       {firstShortage != null && (
         <p className="mt-2 text-sm" style={{ color: "var(--danger, #b91c1c)" }}>
-          أول نقص متوقع في الأسبوع {firstShortage} (يهبط الرصيد دون الصفر).
+          أول نقص متوقع في الأسبوع {num(firstShortage)} (يهبط الرصيد دون الصفر).
         </p>
       )}
     </div>
