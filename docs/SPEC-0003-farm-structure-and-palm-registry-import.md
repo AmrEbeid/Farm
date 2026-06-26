@@ -5,6 +5,16 @@ import is performed by this document. Importing real Ebeid data is an Owner-gate
 (PROJECT RULES hard stop), and Stage 2 must not start before the Stage 1 gate is closed. This spec
 exists so the Owner can ratify scope + the open decisions before any import migration is written.*
 
+> **Status update — 2026-06-26.** The Stage-1 (AUTHZ-1) gate is **closed** (migration `0025` live,
+> pgTAP `26` green), so Stage 2 may proceed. Investigation found the canonical registry **structure
+> is already loaded in the seed** (and prod) — 4,380 برحي / 299 ذكور / 28 حوش across **5** sectors with
+> the correct per-sector distribution — so Stage 2's "import" is already satisfied for aggregate
+> counts. Built + CI-verified (PR **#186**): **slice 1** (reconciliation oracle, pgTAP
+> `34_registry_reconciliation_oracle_test.sql`, 18 assertions) and **slice 3** (farm grid + sector
+> file + **new hawsha file** + farm-level event roll-up). The two §6 open decisions have **recommendations**
+> below (5 sectors; aggregate-only) — **pending Owner ratification** (merging #186 = deploy = the Owner gate). Slice 2 (a standalone import migration) is **not needed** for
+> aggregate counts; slice 4 (per-tree `assets`) stays **deferred**. Merge of #186 = deploy = Owner gate.
+
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 2, [`03-architecture-and-data-model.md`](03-architecture-and-data-model.md),
 and the canonical **Nov-2025 palm registry**. Follows the pattern of [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md)
 (engine) and [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) (authz).*
@@ -29,7 +39,7 @@ The **Nov-2025 palm registry** is the single source of truth for counts:
 | Barhi palms (برحي) | **4,380** |
 | Male palms (ذكور) | **299** |
 | Hawshat (حوش) | **28** |
-| Sectors | **4 or 5 — OPEN (see §6)** |
+| Sectors | **5** (recommended 2026-06-26, pending Owner ratification: S22 / HSW / BAB / SHF / KHT) |
 
 Every other document (the 7-yr accounting sheet, prior tallies) reconciles **to** the registry, never
 the reverse. If the registry file itself is internally inconsistent, **stop and report** — do not pick
@@ -81,11 +91,13 @@ all of these (Stage 1 / migrations `0010`/`0028`).
   against it roll up correctly (drive one operation via the wedge → it appears in the file).
 - **Arabic:** names/codes render RTL with no mojibake.
 
-## 6. Open decisions for the Owner (ratify before build)
+## 6. Open decisions for the Owner (recommendations 2026-06-26 — pending Owner ratification)
 
-1. **4 vs 5 sectors** + the enterprise/crop list (open in the tracker). The import can't proceed
-   without the agreed sector partition.
-2. **Materialize individual palm `assets`?** Aggregate counts (28 hawshat × barhi/male) fully serve
+1. **4 vs 5 sectors** — **RECOMMENDED: 5 sectors** (S22 / HSW / BAB / SHF / KHT), matching the seed
+   structure and the registry; the enterprise/crop list is نخيل برحي for all five. (Was: the import
+   can't proceed without the agreed sector partition.)
+2. **Materialize individual palm `assets`?** — **RECOMMENDED: aggregate-only this stage; per-tree
+   deferred** (slice 4) per the recommendation below. Aggregate counts (28 hawshat × barhi/male) fully serve
    the current wedge + files. Materializing ~4,679 individual `assets` rows enables per-tree status
    history (the full moat) but is a larger import + more UI. **Recommendation:** ship aggregate-count
    import + the file/grid views first (this stage); make per-tree `assets` a follow-up slice once the
