@@ -47,11 +47,11 @@ export default async function MobileHomePage({
 
       {done && <Alert tone="ok" title="تم تسجيل العملية بنجاح." />}
 
-      <h2 className="text-lg font-semibold">عمليات اليوم</h2>
+      <h2 className="text-lg font-semibold">العمليات المخطّطة</h2>
       {(ops ?? []).length === 0 ? (
         <EmptyState
           title="لا توجد عمليات مجدولة."
-          description="ستظهر عمليات اليوم هنا عند جدولتها في الخطة."
+          description="ستظهر العمليات المخطّطة هنا عند جدولتها في الخطة."
         />
       ) : (
         <div className="flex flex-col gap-3">
