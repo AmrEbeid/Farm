@@ -1,5 +1,15 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-26 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-26 — #155 / SPEC-0009 partial receipts COMPLETE end-to-end (model + UI):** the partial-receipt
+> UI (SPEC-0009 slice 5) merged as **#285** — `components/ReceiveForm.tsx` (per-line received-qty inputs,
+> default/max = remaining, partial + receive-all, over-receipt 23514→Arabic, double-submit guard), the
+> PR-detail received/remaining columns + `partially_received` status, and `recordReceipt` passing
+> `p_lines`. With slices 1–3 already shipped as migration **`0045`**, **#155 is complete end-to-end**.
+> Only slice 4 (retire the forgeable `app.posting_receipt` GUC) remains, now **optional/low-priority** —
+> the writes it guarded are already independently locked down (movements RPC-only via `0030`,
+> `received_qty` column-revoked via `0045`), so a forged GUC achieves nothing. **App-only — prod migration
+> number unchanged at `0048`.**
+
 > **2026-06-26 (later) — prod pushed to `0035`, IN SYNC with `main` (live-verified):** applied
 > **`0032`** (`pr_items_lock_and_version_bump`), **`0033`** (`fn_post_movement_floor_lock`, CONC-1),
 > **`0034`** (`engine_stale_po_guard`, ENGINE-STALE-1 #197) and **`0035`** (`authorize_org_scoped`,
