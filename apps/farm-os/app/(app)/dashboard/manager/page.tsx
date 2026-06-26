@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { KpiCard, Card, Progress, Button } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { SEED_PLAN_ID } from "@/lib/nav";
-import { egp, pct } from "@/lib/money";
+import { egp, num, pct } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR } from "@/lib/labels";
 
@@ -63,9 +63,9 @@ export default async function ManagerDashboard() {
       <h1 className="text-2xl font-bold">لوحة تحكم المدير</h1>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="عمليات هذا الشهر" value={String(total)} />
-        <KpiCard label="منفّذة" value={String(done)} />
-        <KpiCard label="فحوصات محظورة" value={String(blocked)} deltaDirection={blocked ? "down" : "none"} />
+        <KpiCard label="عمليات الخطة" value={num(total)} />
+        <KpiCard label="منفّذة" value={num(done)} />
+        <KpiCard label="فحوصات محظورة" value={num(blocked)} deltaDirection={blocked ? "down" : "none"} />
         <KpiCard label="جاهزية الخطة" value={pct(readiness)} />
       </section>
 
