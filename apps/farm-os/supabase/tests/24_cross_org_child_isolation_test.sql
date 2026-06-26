@@ -61,10 +61,10 @@ insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, st
   ('a0000000-0000-0000-0000-0000000000c1', :'orgA',
    'a0000000-0000-0000-0000-0000000000d1', 'fertilization', '2025-07-08', 'planned');
 
--- An org-B inventory_item for plan_material_requirements / purchase_request_items
--- (item_id is a NOT NULL FK; existence is enough — the org guard is on the parent op/PR).
-insert into public.inventory_items (id, org_id, name) values
-  ('b0000000-0000-0000-0000-0000000000a2', :'orgB', 'صنف B');
+-- plan_material_requirements / purchase_request_items carry an item_id FK. Since migration 0061 the
+-- WITH CHECK requires that item to be SAME-ORG, so the child inserts below use a same-org item (the
+-- seeded POTASSIUM 39e2…) to isolate the RLS-H1 PARENT-org check being tested here; the cross-org ITEM
+-- refusal is covered by test 62. (Previously these used an org-B item, which 0061 now correctly blocks.)
 
 -- Org-B budget -> the parent for budget_lines.
 insert into public.budgets (id, org_id, name) values
@@ -174,13 +174,13 @@ select throws_ok($$
   insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
   values ('00000000-0000-0000-0000-000000000001',
           'b0000000-0000-0000-0000-0000000000c1',
-          'b0000000-0000-0000-0000-0000000000a2', 10, 'kg')
+          '39e22867-fbe2-5cd9-8a76-ce5871a8e8f4', 10, 'kg')
 $$, '42501', null, 'RLS-H1 plan_material_requirements: child on a foreign-org op is denied');
 select lives_ok($$
   insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
   values ('00000000-0000-0000-0000-000000000001',
           'a0000000-0000-0000-0000-0000000000c1',
-          'b0000000-0000-0000-0000-0000000000a2', 10, 'kg')
+          '39e22867-fbe2-5cd9-8a76-ce5871a8e8f4', 10, 'kg')
 $$, 'RLS-H1 plan_material_requirements: child on a same-org op is allowed');
 
 -- plan_labor_requirements
@@ -216,13 +216,13 @@ select throws_ok($$
   insert into public.purchase_request_items (pr_id, org_id, item_id, qty, unit)
   values ('b0000000-0000-0000-0000-0000000000f1',
           '00000000-0000-0000-0000-000000000001',
-          'b0000000-0000-0000-0000-0000000000a2', 5, 'kg')
+          '39e22867-fbe2-5cd9-8a76-ce5871a8e8f4', 5, 'kg')
 $$, '42501', null, 'RLS-H1 purchase_request_items: child on a foreign-org PR is denied');
 select lives_ok($$
   insert into public.purchase_request_items (pr_id, org_id, item_id, qty, unit)
   values ('a0000000-0000-0000-0000-0000000000f1',
           '00000000-0000-0000-0000-000000000001',
-          'b0000000-0000-0000-0000-0000000000a2', 5, 'kg')
+          '39e22867-fbe2-5cd9-8a76-ce5871a8e8f4', 5, 'kg')
 $$, 'RLS-H1 purchase_request_items: child on a same-org PR is allowed');
 
 reset role;
