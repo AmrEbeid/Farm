@@ -32,7 +32,7 @@ export async function runPlanChecks(planId: string) {
   // distinct materials required across this plan's operations
   const { data: ops, error: opsErr } = await sb
     .from("plan_operations")
-    .select("id, est_cost, plan_material_requirements(item_id, qty)")
+    .select("id, est_cost, subtype, status, plan_material_requirements(item_id, qty)")
     .eq("plan_id", planId);
   // Do NOT proceed on a failed read: an empty `ops` would compute plannedCost=0 and zero
   // materials, then persist stock/budget = "ok" — a false pass that can MASK a real shortage
@@ -42,7 +42,13 @@ export async function runPlanChecks(planId: string) {
   const materialIds = new Set<string>();
   let plannedCost = 0;
   for (const op of ops ?? []) {
-    plannedCost += Number(op.est_cost ?? 0);
+    // Budget check scopes to the أسمدة (fertilizer) line, so only planned fertilization
+    // ops count against it — mirror the #190 fix in budget/[planId]/check/page.tsx. Other
+    // subtypes (irrigation/inspection) belong to different budget lines and must not inflate
+    // the fertilizer plannedCost (51,500 → flips ok→warn; correct fertilization-only is 42,000).
+    if (op.subtype === "fertilization" && op.status === "planned") {
+      plannedCost += Number(op.est_cost ?? 0);
+    }
     for (const r of (op.plan_material_requirements ?? []) as { item_id: string }[]) {
       materialIds.add(r.item_id);
     }

@@ -4,6 +4,8 @@ import { Breadcrumbs } from "@/components/ui";
 import { SectorFile } from "@/components/SectorFile";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
+import { OP_STATUS_AR } from "@/lib/labels";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -93,8 +95,8 @@ export default async function HawshaFilePage({
     id: e.id,
     kind: "operation",
     title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
-    time: e.occurred_at ? new Date(e.occurred_at).toLocaleDateString("ar-EG") : "—",
-    description: e.notes ?? (e.status === "done" ? "منفّذة" : e.status),
+    time: fmtDate(e.occurred_at),
+    description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status,
   }));
 
   const lineMap = new Map<string, PalmLine>();
