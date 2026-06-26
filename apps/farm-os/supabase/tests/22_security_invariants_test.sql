@@ -11,7 +11,7 @@
 -- Run via `supabase test db` or the local shim (test-shims/run-pgtap-local.sh).
 
 begin;
-select plan(9);
+select plan(11);
 
 -- ============================================================================================
 -- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function except the RLS helpers.
@@ -133,6 +133,35 @@ select cmp_ok(
     where n.nspname = 'public' and parent.relname = 'farm_event'),
   '>=', 1,
   'INV-4: farm_event still has partition children (the invariant is not vacuous)');
+
+-- ============================================================================================
+-- Invariant 5 — every public SECURITY DEFINER function PINS search_path (proconfig carries a
+-- search_path entry). A definer fn that leaves search_path unset runs with the CALLER's
+-- search_path, so a malicious user who creates a same-named table/function in an earlier schema
+-- can hijack an unqualified reference inside the definer body and have it execute with the owner's
+-- (elevated) privileges — the classic CVE-2018-1058 / search_path privilege-escalation vector. All
+-- of Farm's definer fns use `set search_path = ''` (forcing fully-qualified names); this pins that
+-- so a future definer fn that forgets it is caught at CI rather than shipping exploitable.
+-- ============================================================================================
+select is(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prosecdef
+      and not (array_to_string(coalesce(p.proconfig, '{}'), ',') ilike '%search_path%')),
+  0,
+  'INV-5: every public SECURITY DEFINER fn pins search_path (no caller-search_path hijack)');
+
+-- Sanity floor: there are many definer fns (so INV-5 is not vacuously true if a refactor ever
+-- removed prosecdef from all of them).
+select cmp_ok(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef),
+  '>=', 10,
+  'INV-5: there are many SECURITY DEFINER fns (the search_path invariant is not vacuous)');
 
 select * from finish();
 rollback;
