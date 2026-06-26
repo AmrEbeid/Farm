@@ -31,7 +31,7 @@ export async function updatePalmStatus(assetId: string, status: string, reason: 
     .update({ status })
     .eq("id", assetId)
     .eq("type", "palm")
-    .select("id, org_id");
+    .select("id, org_id, sector_id, hawsha_id");
   if (upErr) return { ok: false as const, error: toArabicError(upErr) };
   if (!updated || updated.length === 0) {
     return { ok: false as const, error: "النخلة غير موجودة" };
@@ -49,6 +49,13 @@ export async function updatePalmStatus(assetId: string, status: string, reason: 
   });
   if (histErr) return { ok: false as const, error: toArabicError(histErr) };
 
+  // A status change affects every view that reads this tree's status: its own file,
+  // the farm landing's "palms needing attention" list, and the sector/hawsha palm
+  // grids. Revalidate all of them so the read→act loop reflects the change at once.
+  const a = updated[0] as { sector_id?: string | null; hawsha_id?: string | null };
   revalidatePath(`/farm/palm/${assetId}`);
+  revalidatePath("/farm");
+  if (a.sector_id) revalidatePath(`/farm/sector/${a.sector_id}`);
+  if (a.hawsha_id) revalidatePath(`/farm/hawsha/${a.hawsha_id}`);
   return { ok: true as const };
 }
