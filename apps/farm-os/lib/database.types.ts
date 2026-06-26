@@ -2063,6 +2063,10 @@ export type Database = {
         Args: { p_horizon_weeks?: number; p_item: string; p_location?: string }
         Returns: Json
       }
+      fn_update_palm_status: {
+        Args: { p_asset_id: string; p_note?: string; p_status: string }
+        Returns: Json
+      }
       format_type_string: { Args: { "": string }; Returns: string }
       has_unique: { Args: { "": string }; Returns: string }
       in_todo: { Args: never; Returns: boolean }
