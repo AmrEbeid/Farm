@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import { toArabicError } from "@/lib/errors";
 
 export interface ExecuteInput {
   actualQty: number; // material used
@@ -36,18 +37,15 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
 
   if (error) {
     // Map the RPC's SQLSTATEs to Arabic action errors (Postgres is the source of truth).
-    const msg =
-      error.code === "42501"
-        ? "ليس لديك صلاحية تنفيذ هذه العملية"
-        : error.code === "23505"
-          ? "العملية نُفِّذت بالفعل"
-          : error.code === "22023"
-            ? "الكمية أو عدد العمالة غير صالح"
-            : error.code === "23514"
-              ? "المخزون غير كافٍ لتنفيذ هذه الكمية"
-              : error.code === "P0002"
-                ? "العملية غير موجودة"
-                : error.message;
+    // Centralized through toArabicError so contention/timeout codes (40001/40P01/57014)
+    // raised by the fn_post_movement FOR UPDATE lock never leak raw English to the field UI
+    // (non-negotiable #2). Context-specific phrasings kept as overrides.
+    const msg = toArabicError(error, {
+      "42501": "ليس لديك صلاحية تنفيذ هذه العملية",
+      "23505": "العملية نُفِّذت بالفعل",
+      "22023": "الكمية أو عدد العمالة غير صالح",
+      "P0002": "العملية غير موجودة",
+    });
     return { ok: false, error: msg };
   }
 
