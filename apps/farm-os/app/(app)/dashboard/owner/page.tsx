@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
-import { egp } from "@/lib/money";
+import { egp, num } from "@/lib/money";
 
 const PR_STATUS_AR: Record<string, string> = {
   draft: "مسودة",
@@ -59,11 +59,17 @@ export default async function OwnerDashboard() {
     <div className="flex flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">لوحة تحكم المالك</h1>
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="المساحة" value="٦٠" unit="فدان" />
-        <KpiCard label="موافقات معلّقة" value={String(pending.length)} deltaDirection={pending.length ? "up" : "none"} />
-        <KpiCard label="مخاطر المخزون" value="١" delta="سلفات بوتاسيوم" deltaDirection="down" />
-        <KpiCard label="بنود متجاوزة" value={String(overLines.length)} />
+      {/*
+        KPI tiles must be query-derived, never literals (non-negotiable #1). The
+        previous "المساحة ٦٠ فدان" and "مخاطر المخزون ١" tiles were hardcoded and went
+        stale (the risk tile stayed "١" even after the shortage was resolved), so they
+        were removed. Re-add them only when backed by real reads (area from the farm
+        registry; stock-risk count from the coverage engine) — that derivation is a
+        separate, reviewed slice. The two tiles below are derived from real rows.
+      */}
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-2">
+        <KpiCard label="موافقات معلّقة" value={num(pending.length)} deltaDirection={pending.length ? "up" : "none"} />
+        <KpiCard label="بنود متجاوزة" value={num(overLines.length)} deltaDirection={overLines.length ? "down" : "none"} />
       </section>
 
       {pending.length > 0 && (

@@ -77,9 +77,12 @@ export default async function CoveragePage({
   });
 
   if (error || !data) {
+    // Never leak a raw English Postgres/PostgREST message to the Arabic UI (non-negotiable #2).
+    // The detail is logged server-side; the user sees a static Arabic message.
+    if (error) console.error("fn_stock_coverage failed:", error);
     return (
       <div className="p-6">
-        <VerdictBanner tone="warning">تعذّر حساب التغطية: {error?.message}</VerdictBanner>
+        <VerdictBanner tone="warning">تعذّر حساب التغطية. حاول مرة أخرى.</VerdictBanner>
       </div>
     );
   }
@@ -106,7 +109,7 @@ export default async function CoveragePage({
         <KpiCard
           label="أيام التغطية"
           value={coverageDays(c.coverage_days)}
-          delta={`المهلة ${c.lead_time_days} يوم`}
+          delta={`المهلة ${num(c.lead_time_days)} يوم`}
           deltaDirection={c.shortage ? "down" : "none"}
         />
         <KpiCard label="نقطة إعادة الطلب" value={num(c.reorder_point)} unit={unit} />
@@ -131,7 +134,7 @@ export default async function CoveragePage({
         <Card title="الإجراء الموصى به">
           <p className="mb-3">
             نقص قدره {num(c.shortfall)} {unit}. ننصح بطلب {num(c.recommend_qty)} {unit} اليوم
-            {c.order_by ? ` (آخر موعد للطلب: ${c.order_by})` : ""}.
+            {c.order_by ? ` (آخر موعد للطلب: ${fmtDate(c.order_by)})` : ""}.
           </p>
           <CreatePrButton
             itemId={itemId}

@@ -3,6 +3,7 @@ import { requireMembership } from "@/lib/auth";
 import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { num } from "@/lib/money";
+import { OP_STATUS_AR } from "@/lib/labels";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -59,7 +60,7 @@ export default async function FarmStructurePage() {
     kind: "operation",
     title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
     time: e.occurred_at ? new Date(e.occurred_at).toLocaleDateString("ar-EG") : "—",
-    description: e.notes ?? (e.status === "done" ? "منفّذة" : e.status),
+    description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status ?? "—",
   }));
 
   const columns: SimpleColumn[] = [
