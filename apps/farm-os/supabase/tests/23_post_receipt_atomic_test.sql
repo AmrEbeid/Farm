@@ -16,9 +16,11 @@ select plan(13);
 
 -- ===== grants (migration 0024 lockdown): anon must NOT execute; authenticated MUST =====
 -- Catalog-level (has_function_privilege) — independent of RLS, valid on the local superuser cluster.
-select ok(not has_function_privilege('anon', 'public.fn_post_receipt(uuid)', 'EXECUTE'),
+-- SPEC-0009 (#155): the signature gained an optional p_lines jsonb (default null), so the catalog
+-- signature is now (uuid, jsonb). The grant posture (anon denied / authenticated allowed) is unchanged.
+select ok(not has_function_privilege('anon', 'public.fn_post_receipt(uuid, jsonb)', 'EXECUTE'),
   '0024: anon cannot EXECUTE fn_post_receipt');
-select ok(has_function_privilege('authenticated', 'public.fn_post_receipt(uuid)', 'EXECUTE'),
+select ok(has_function_privilege('authenticated', 'public.fn_post_receipt(uuid, jsonb)', 'EXECUTE'),
   '0024: authenticated CAN EXECUTE fn_post_receipt (the legitimate inventory.write gate)');
 
 \set orgA  '00000000-0000-0000-0000-000000000001'

@@ -2052,7 +2052,7 @@ export type Database = {
         Returns: number
       }
       fn_post_receipt: {
-        Args: { p_pr_id: string }
+        Args: { p_pr_id: string; p_lines?: Json }
         Returns: Json
       }
       fn_reserve_stock: {
