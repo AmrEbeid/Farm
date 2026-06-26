@@ -1,7 +1,34 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-26 (latest) — prod-state reconciliation + app-layer audit (read-only; docs + issues only)
+## 2026-06-26 (later) — autonomous fixes MERGED to main + ENGINE-STALE-1 fixed; ⚠️ prod push pending
+The "keep working" session below moved from propose-only to **review→merge** (Owner directive: review
+then merge green PRs, don't wait). All landed on `main` (CI green; some merged by the Owner in parallel):
+- **#189** docs reconciliation (prod=`0031`), **#191** AR-ERR-1 (Arabic error mapping), **#195** op-status/
+  date Arabic + plan-check false-pass guard, **#203** sector-page Arabic — all app-layer, merged.
+- **#202 — ENGINE-STALE-1 (#197), migration `0034`:** the HIGH, **empirically-reproduced** shortage-mask —
+  `fn_stock_coverage` projected an overdue approved PO (`needed_by < v_period_start`) as period-1 supply
+  via `greatest(bucket,1)`, hiding a real shortage (live-triggerable via the #89 past `needed_by`). Fix =
+  one guard `and pr.needed_by >= v_period_start` (faithful 0018 copy; strictly conservative — only reveals,
+  never hides; independent-review + pgTAP `35` + full shim **290/290**). Closes #197.
+- **Owner-merged in parallel:** #183 (SPEC-0002 consolidation, docs), **#186 (Stage 2 farm-structure)**,
+  #190 (budget gate uses real plan-op cost), #201 (turnkey runbook).
+- ⚠️ **GOVERNANCE FLAG — Stage 2 (#186) merged while SPEC-0003 was DRAFT and 4-vs-5 sectors was OPEN.**
+  Test `34_registry_reconciliation_oracle` now asserts **5 sectors** + per-sector counts as truth. Merging
+  it effectively ratifies 5 sectors — **confirm that's intended** (the registry import itself is still a
+  separate Owner-gated apply on real data).
+- 🔴 **Prod push still PENDING (the one action held for an explicit Owner go):** prod DB is at **`0031`**;
+  `main` is now at **`0034`**. **`0032`/`0033`/`0034` are NOT on prod.** Until `0034` is pushed, **the LIVE
+  app still has the ENGINE-STALE-1 shortage-mask.** `0034` is a core-engine change → ratify before push
+  (the `0018` precedent). This is a direct prod-DB mutation (not a PR merge), so it awaits an explicit
+  "ratified, push to prod" — say it and the push + verify happens.
+- **Follow-up issues filed (gated):** #188 CREATE-1-RESERVE, #196 CREATE-3, #198 ENGINE-NULLDATE-1,
+  #199 ENGINE-RESV-1, + #197 residual (forward-anchoring). Plus the pre-existing HIGH forks
+  #155/#157/#173/#89/#181/#182/#184.
+- **Local toolchain now present:** Node 26 + Postgres 17 + pgTAP (built) — `tsc`/`eslint`/`vitest`/
+  `next build` + the full pgTAP shim (`290/290`) all runnable locally.
+
+## 2026-06-26 — prod-state reconciliation + app-layer audit (read-only; docs + issues only)
 Autonomous "keep working" session under `amr-operating-method` (propose → validate → report; no
 self-merge, no prod push). No app code or schema changed on `main`; deliverables are this doc
 reconciliation (un-merged PR) + filed issues. Key results:
