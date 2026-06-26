@@ -46,7 +46,7 @@ reset role;
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.proname = 'fn_add_plan_operation'
-       and pg_get_functiondef(p.oid) like '%and org_id = v_org%'),
+       and regexp_replace(pg_get_functiondef(p.oid), '--.*$', '', 'ng') like '%and org_id = v_org%'),
   1,
   '#235: fn_add_plan_operation carries the item-org guard');
 

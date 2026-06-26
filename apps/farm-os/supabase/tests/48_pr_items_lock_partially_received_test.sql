@@ -52,7 +52,7 @@ reset role;
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.proname = 'fn_pr_items_lock_when_decided'
-       and pg_get_functiondef(p.oid) like '%partially_received%'),
+       and regexp_replace(pg_get_functiondef(p.oid), '--.*$', '', 'ng') like '%partially_received%'),
   1,
   '#270 C3: fn_pr_items_lock_when_decided guards partially_received');
 
