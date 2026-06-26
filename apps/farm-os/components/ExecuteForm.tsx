@@ -43,14 +43,26 @@ export function ExecuteForm({
         onClick={async () => {
           setPending(true);
           setError(null);
-          const res = await executeOperation(opId, {
-            actualQty: Number(qty),
-            laborCount: Number(labor),
-            note,
-          });
-          setPending(false);
-          if (res.ok) router.push("/m?done=1");
-          else setError(res.error ?? "تعذّر التنفيذ");
+          try {
+            const res = await executeOperation(opId, {
+              actualQty: Number(qty),
+              laborCount: Number(labor),
+              note,
+            });
+            if (res.ok) {
+              router.push("/m?done=1");
+              return;
+            }
+            setError(res.error ?? "تعذّر التنفيذ");
+          } catch {
+            // Field PWA is offline-tolerant (non-negotiable #2): a network failure rejects the
+            // server-action fetch and the await throws. Without this catch the button would stay
+            // stuck on its spinner forever (setPending never resets, event-handler throws aren't
+            // caught by an error boundary). Surface a retryable Arabic message instead.
+            setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+          } finally {
+            setPending(false);
+          }
         }}
       >
         إنهاء العملية
