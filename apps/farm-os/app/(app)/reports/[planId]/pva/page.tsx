@@ -4,6 +4,7 @@ import { Card, Stat, EmptyState } from "@/components/ui";
 import { VarianceChart } from "@/components/charts";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { egp, num } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
 
 const SUBTYPE_AR: Record<string, string> = {
   fertilization: "تسميد",
@@ -23,8 +24,11 @@ export default async function PlannedVsActualPage({
 
   // The ops list and the done farm_events both filter by plan_id only; the
   // op_id matching happens in memory below, so the reads are independent.
-  const [{ data: ops, error: opsError }, { data: events, error: eventsError }] =
-    await Promise.all([
+  const [
+    { data: ops, error: opsError },
+    { data: events, error: eventsError },
+    { data: plan },
+  ] = await Promise.all([
       sb
         .from("plan_operations")
         .select("id, subtype, est_cost, status, plan_material_requirements(qty, unit)")
@@ -36,6 +40,8 @@ export default async function PlannedVsActualPage({
         .select("subtype, status, data")
         .eq("plan_id", planId)
         .eq("status", "done"),
+      // plan header for the real period (the title must not hardcode a sector/date)
+      sb.from("plans").select("period_start, period_end").eq("id", planId).maybeSingle(),
     ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
@@ -67,7 +73,7 @@ export default async function PlannedVsActualPage({
       actual_cost: egp(act.cost),
       var_qty: num(varQty),
       var_cost: egp(varCost),
-      var_pct: `${varPct}٪`,
+      var_pct: `${num(varPct, 1)}٪`,
     };
   });
 
@@ -96,8 +102,12 @@ export default async function PlannedVsActualPage({
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold">المخطط مقابل الفعلي — الحصوة</h1>
-        <p style={{ color: "var(--ink-muted)" }}>خطة يوليو 2025</p>
+        <h1 className="text-2xl font-bold">المخطط مقابل الفعلي</h1>
+        {plan?.period_start && plan?.period_end && (
+          <p style={{ color: "var(--ink-muted)" }}>
+            {fmtDate(plan.period_start)} إلى {fmtDate(plan.period_end)}
+          </p>
+        )}
       </header>
 
       {executed.length === 0 ? (
@@ -113,7 +123,7 @@ export default async function PlannedVsActualPage({
             <Stat
               label="الانحراف"
               value={egp(totalVar)}
-              change={`${totalVarPct}٪`}
+              change={`${num(totalVarPct, 1)}٪`}
               trend={totalVar < 0 ? "down" : totalVar > 0 ? "up" : "flat"}
             />
           </section>
