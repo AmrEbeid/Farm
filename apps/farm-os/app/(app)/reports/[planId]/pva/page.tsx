@@ -5,14 +5,7 @@ import { VarianceChart } from "@/components/charts";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { egp, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  pollination: "تلقيح",
-  inspection: "تفتيش",
-};
+import { SUBTYPE_AR } from "@/lib/labels";
 
 export default async function PlannedVsActualPage({
   params,

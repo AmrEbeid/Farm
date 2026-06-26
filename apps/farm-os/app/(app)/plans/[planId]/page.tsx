@@ -8,21 +8,13 @@ import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { POTASSIUM_ID } from "@/lib/nav";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR } from "@/lib/labels";
+import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 const PLAN_TYPE_AR: Record<string, string> = {
   weekly: "الأسبوعية",
   monthly: "الشهرية",
   quarterly: "الربع سنوية",
   annual: "السنوية",
-};
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  pollination: "تلقيح",
-  inspection: "تفتيش",
 };
 
 const CHECK_AR: Record<string, string> = {

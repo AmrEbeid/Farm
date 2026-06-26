@@ -3,14 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  pollination: "تلقيح",
-  inspection: "تفتيش",
-};
+import { SUBTYPE_AR } from "@/lib/labels";
 
 // Subtype-derived default note (no hardcoded location); blank when subtype is unknown.
 const SUBTYPE_NOTE_AR: Record<string, string> = {

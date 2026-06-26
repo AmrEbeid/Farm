@@ -18,3 +18,13 @@ export const OP_STATUS_AR: Record<string, string> = {
   abandoned: "ملغاة",
   skipped: "متخطّاة",
 };
+
+/** Operation subtype (`plan_operations.subtype`) → Arabic. Centralized so a new subtype is
+ *  translated everywhere at once (it was duplicated in 8 screens; "pollination" got missed). */
+export const SUBTYPE_AR: Record<string, string> = {
+  fertilization: "تسميد",
+  irrigation: "ري",
+  spraying: "رش",
+  pollination: "تلقيح",
+  inspection: "تفتيش",
+};

@@ -5,15 +5,7 @@ import { SectorFile } from "@/components/SectorFile";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR } from "@/lib/labels";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  pollination: "تلقيح",
-  inspection: "تفتيش",
-};
+import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
   if (sex === "male") return "male";
