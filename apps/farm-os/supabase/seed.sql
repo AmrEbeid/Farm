@@ -154,6 +154,10 @@ insert into public.inventory_items (id, org_id, name, category, unit, pack_size,
 insert into public.inventory_items (id, org_id, name, category, unit, pack_size, min_stock, safety_stock, lead_time_days, preferred_supplier_id, criticality) values ('de09e375-199a-5801-9726-e31ca12dccae','00000000-0000-0000-0000-000000000001','كرتون تعبئة','مستلزمات تعبئة','قطعة',100,500,150,10,'40c8053d-c3ad-55a3-8e6b-39dd61066353','normal');
 insert into public.inventory_items (id, org_id, name, category, unit, pack_size, min_stock, safety_stock, lead_time_days, preferred_supplier_id, criticality) values ('b944b038-23d1-5718-b1cd-2ea671f657b9','00000000-0000-0000-0000-000000000001','سولار','وقود','L',1,400,200,3,'40c8053d-c3ad-55a3-8e6b-39dd61066353','high');
 insert into public.inventory_items (id, org_id, name, category, unit, pack_size, min_stock, safety_stock, lead_time_days, preferred_supplier_id, criticality) values ('9987555b-4236-50e3-8fbf-50d7287aa6e0','00000000-0000-0000-0000-000000000001','فرمون السوسة','مكافحة','قطعة',1,20,8,7,'40c8053d-c3ad-55a3-8e6b-39dd61066353','normal');
+-- unit_cost (#89, Option C): only potassium sulfate has a KNOWN real price (~84 ج.م/kg, Ebeid) —
+-- set it so the wedge demo keeps a real est_cost on the shortage PR. The other 5 items' prices are
+-- genuinely unknown, so unit_cost stays NULL (no fabricated constant — non-negotiable #1).
+update public.inventory_items set unit_cost = 84 where id = '39e22867-fbe2-5cd9-8a76-ce5871a8e8f4';
 insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, ordered, projected) values ('00000000-0000-0000-0000-000000000001','39e22867-fbe2-5cd9-8a76-ce5871a8e8f4','main',300,0,0,300);
 insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, ordered, projected) values ('00000000-0000-0000-0000-000000000001','761c43f2-011b-598b-80cf-96abc48881cb','main',140,0,0,140);
 insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, ordered, projected) values ('00000000-0000-0000-0000-000000000001','21f793b6-58f8-5607-9b0b-49581ae52b27','main',22,0,0,22);

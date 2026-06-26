@@ -996,6 +996,7 @@ export type Database = {
           reorder_qty: number | null
           safety_stock: number | null
           unit: string | null
+          unit_cost: number | null
         }
         Insert: {
           category?: string | null
@@ -1013,6 +1014,7 @@ export type Database = {
           reorder_qty?: number | null
           safety_stock?: number | null
           unit?: string | null
+          unit_cost?: number | null
         }
         Update: {
           category?: string | null
@@ -1030,6 +1032,7 @@ export type Database = {
           reorder_qty?: number | null
           safety_stock?: number | null
           unit?: string | null
+          unit_cost?: number | null
         }
         Relationships: [
           {
