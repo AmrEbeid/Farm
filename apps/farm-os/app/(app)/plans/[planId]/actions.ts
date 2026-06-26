@@ -30,10 +30,14 @@ export async function runPlanChecks(planId: string) {
   if (!canWrite) return { ok: false, error: "ليس لديك صلاحية تعديل الخطة" };
 
   // distinct materials required across this plan's operations
-  const { data: ops } = await sb
+  const { data: ops, error: opsErr } = await sb
     .from("plan_operations")
     .select("id, est_cost, plan_material_requirements(item_id, qty)")
     .eq("plan_id", planId);
+  // Do NOT proceed on a failed read: an empty `ops` would compute plannedCost=0 and zero
+  // materials, then persist stock/budget = "ok" — a false pass that can MASK a real shortage
+  // (the wedge's whole point). Abort rather than record a passing check we didn't actually run.
+  if (opsErr) return { ok: false, error: "تعذّر قراءة عمليات الخطة، حاول مرة أخرى." };
 
   const materialIds = new Set<string>();
   let plannedCost = 0;
@@ -48,10 +52,13 @@ export async function runPlanChecks(planId: string) {
   let stockResult: "ok" | "block" = "ok";
   const stockDetail: Record<string, Json> = {};
   for (const itemId of materialIds) {
-    const { data } = await sb.rpc("fn_stock_coverage", {
+    const { data, error: covErr } = await sb.rpc("fn_stock_coverage", {
       p_item: itemId,
       p_location: "main",
     });
+    // A failed coverage check must NOT silently count as "no shortage" — abort rather than
+    // persist a passing stock check that could mask a shortage.
+    if (covErr) return { ok: false, error: "تعذّر التحقق من تغطية المخزون، حاول مرة أخرى." };
     const cov = data as CoverageResult | null;
     if (cov?.shortage) {
       stockResult = "block";
@@ -64,12 +71,15 @@ export async function runPlanChecks(planId: string) {
   }
 
   // budget check: compare added plan cost against the أسمدة line's available
-  const { data: line } = await sb
+  const { data: line, error: budgetErr } = await sb
     .from("budget_lines")
     .select("category, approved, committed, actual")
     .eq("org_id", m.orgId)
     .eq("category", "أسمدة")
     .maybeSingle();
+  // A read error must not be confused with "no budget line" (a legitimate null): a failed read
+  // would otherwise persist budget = "ok" (a false pass). A genuinely-absent line stays "ok".
+  if (budgetErr) return { ok: false, error: "تعذّر قراءة بنود الميزانية، حاول مرة أخرى." };
   let budgetResult: "ok" | "warn" | "block" = "ok";
   let budgetDetail: Json = {};
   if (line) {
