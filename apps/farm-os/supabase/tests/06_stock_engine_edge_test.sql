@@ -5,7 +5,7 @@
 -- authenticated owner (the engine is org-scoped). begin/rollback — no committed state.
 
 begin;
-select plan(10);
+select plan(11);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 
@@ -73,9 +73,17 @@ select isnt((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000b0','ma
 select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000b0','main',8)::jsonb ->> 'recommend_qty')::numeric,
   50::numeric, 'B: recommend covers the shortfall (50)');
 
--- ===== Case C: a scheduled period-1 receipt (60) offsets the shortfall (40) → no order =====
+-- ===== Case C: a real period-1 shortage partly offset by an in-period receipt → still order the gap =====
+-- on_hand 100, demand 200 in P1, receipts 60 in P1 (80 in P2). PAB[2] = 100 - 200 + 60 = -40 → a REAL
+-- period-1 shortage of 40 (the P2 receipt arrives too late for the P1 op). ENGINE-REC1 (#184): the
+-- shortfall (40) already nets the P1 receipt via the PAB recurrence, so the recommendation is
+-- shortfall + SS = 40 + 0 = 40 (pack 1). The OLD code subtracted receipts[1]=60 a SECOND time —
+-- greatest(0, 40 + 0 - 60) = 0 — emitting shortage=true with recommend_qty=0 (the #184 contradiction,
+-- an under-order). The corrected oracle is 40.
+select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000c0','main',8)::jsonb ->> 'shortage')::boolean,
+  true, 'C: a period-1 PAB dip to -40 is a real shortage (shortage=true)');
 select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000c0','main',8)::jsonb ->> 'recommend_qty')::numeric,
-  0::numeric, 'C: scheduled receipt covers the shortfall → recommend_qty 0');
+  40::numeric, 'C: ENGINE-REC1 — order the remaining gap (shortfall 40 + SS 0), no double-subtract of receipts[1]');
 select is((public.fn_stock_coverage('cccc0000-0000-0000-0000-0000000000c0','main',8)::jsonb -> 'pab' ->> 2)::numeric,
   40::numeric, 'C: PAB recovers to 40 after the 2nd-period receipt (80)');
 
