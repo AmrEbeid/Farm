@@ -1,0 +1,23 @@
+# gitleaks config — satisfies PROJECT RULES ("run secret scanning that blocks a leak before commit").
+# Extends the upstream default ruleset; scopes scanning to source we control by allowlisting build
+# artifacts and vendored/worktree trees (none are committed — .next/, node_modules/, dist/ are gitignored,
+# .claude/worktrees/ are ephemeral agent worktrees). Next.js emits high-entropy build IDs in .next/* that
+# trip generic-api-key; they are not secrets.
+title = "Farm OS gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Build artifacts, vendored deps, and ephemeral worktrees — not source-controlled secrets."
+paths = [
+  '''(^|/)\.next/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)dist/''',
+  '''(^|/)\.turbo/''',
+  '''(^|/)\.claude/worktrees/''',
+  '''(^|/)storybook-static/''',
+  '''(^|/)coverage/''',
+  '''(^|/)\.env\.example$''',
+  '''(^|/)\.env\.production\.example$''',
+]

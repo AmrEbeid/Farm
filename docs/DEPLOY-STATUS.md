@@ -38,7 +38,10 @@ out-of-band and must be rotated (see "Security follow-ups").
 - **Auth (demo):** email/password sign-in minted for the 6 seeded roles via the Admin API
   (`owner@ebeid.test`, `manager@…`, `engineer@…`, `accountant@…`, `supervisor@…`,
   `storekeeper@…`) and relinked to the tenant rows. Login confirmed working (password-grant returns
-  a token). The shared demo password was delivered out-of-band — **rotate before any non-demo use.**
+  a token). ⚠️ **Correction (2026-06-26):** the demo password is NOT out-of-band — it is **hardcoded
+  and committed** (`apps/farm-os/lib/seed-auth.ts` `SEED_PASSWORD`, `apps/farm-os/app/login/page.tsx`
+  `DEMO_PASSWORD`) and ships in the client bundle (prefilled in the login field). Fine for the pilot
+  (synthetic data only), but it **must be de-hardcoded + rotated before any non-demo use** — see follow-up #4.
   *(2026-06-25: auth is **email + password only** — phone-OTP / Twilio removed from MVP-0 scope;
   `[auth.sms]` stays disabled.)*
 
@@ -48,6 +51,11 @@ out-of-band and must be rotated (see "Security follow-ups").
    Vercel env** (`SUPABASE_SERVICE_ROLE_KEY`) and redeploy. (The publishable/anon key is lower-risk
    but can be rolled too.)
 3. **Rotate the demo login password** (or delete the demo users) before real users.
+4. **De-hardcode the demo password** — it is committed in `lib/seed-auth.ts` + `app/login/page.tsx`
+   (client-bundled, prefilled). Move it to a (server-side for seed, `NEXT_PUBLIC_` for the prefill) env
+   var and stop pre-filling the field, then rotate (#3). *(A gitleaks CI gate now blocks NEW committed
+   secrets — `.gitleaks.toml` + `ci.yml` `secret-scan` job — but this pre-existing one needs the manual
+   de-hardcode + a Vercel env var, so it is Owner-gated.)*
 
 ## ⛔ Known issue — Vercel Root Directory is wrong (2026-06-24)
 `https://farm-ui-one.vercel.app/` serves the **`@amrebeid/ui` library JS**, and `/login` is 404 —
@@ -109,7 +117,8 @@ backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
   Arabic message); dashboard reads correct (6 items / 1 plan / 1 budget / 1 farm); anon denied
   (GRANT-C1). DB = all 13 migrations + synthetic seed. Also CI now gates the app build (ci.yml `app` job).
 - **Auth:** email/password, **no SMS** (phone-OTP/Twilio dropped per Owner). Six demo accounts
-  exist (`<role>@ebeid.test`); the password was given to the Owner directly (NOT committed).
+  exist (`<role>@ebeid.test`); ⚠️ **the password IS committed** (`lib/seed-auth.ts` + `app/login/page.tsx`,
+  client-bundled) — see "Security follow-ups" #4. Synthetic-only, but de-hardcode + rotate before real use.
 - **Build chain resolved (the saga):** Vercel Root Directory→`apps/farm-os`; committed `@amrebeid/ui`
   `dist/`; removed the root `.npmrc` (`${NODE_AUTH_TOKEN}` crashed the build); app-local CSS copy;
   `turbopack.root`+`outputFileTracingRoot`; **pinned Tailwind v4 Linux native binaries**
@@ -147,5 +156,6 @@ receipt-posting atomicity — closed by `0024`.)* No queued security caveats rem
   setup chat. (Supabase → Settings → Database / API → roll.) After rotating the DB password, the
   committed migrations still apply via a fresh connection string; the app uses only the publishable
   + service-role keys (service-role only server-side on Vercel).
-- The **demo login password is known** (shared in chat). Fine for the pilot (synthetic data only),
+- The **demo login password is known** (shared in chat **and committed** in `lib/seed-auth.ts` +
+  `app/login/page.tsx`, client-bundled). Fine for the pilot (synthetic data only),
   but reset it before any real Ebeid data, and consider per-user passwords.
