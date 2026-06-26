@@ -6,13 +6,14 @@ built or applied by this doc. Reconciles [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 
 
 ## Where we are (reconciled to `main`)
 
-- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0047`, **in sync with `main`**
-  (`0032`–`0047` pushed via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
+- **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0048`, **in sync with `main`**
+  (`0032`–`0048` pushed via the Supabase MCP and verified live; incl. the ENGINE-STALE-1
   fix #197 + AUTHZ-2/3 + atomic plan-op #196 + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B
   + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` (#155)
-  + wage-confidentiality `0046` (PII-1 #173, `payroll.read` + `people_compensation`, `people.rate` dropped)
-  + engine null-date guard `0047` (#198 — `fn_stock_coverage` coalesces a NULL `planned_at` to period 1, DONE; no-op for dated ops, potassium rec unchanged at 600)).
-  pgTAP 415/415 (Docker-free harness). 8-agent re-audit complete.
+  + wage-confidentiality `0046` (PII-1 #173 wage slice, `payroll.read` + `people_compensation`, `people.rate` dropped)
+  + engine null-date guard `0047` (#198 — `fn_stock_coverage` coalesces a NULL `planned_at` to period 1, DONE; no-op for dated ops, potassium rec unchanged at 600)
+  + contact-PII lockdown `0048` (PII-1 #173 phone/email slice — deny-by-default on `people`, phone/email no longer member-readable; **#173/PII-1 now FULLY DONE**)).
+  pgTAP 421/421 (Docker-free harness). 8-agent re-audit complete.
 - **Foundation/security hardened:** AUTHZ-1 RLS (`0025`), delete-posture (`0027`), FORCE RLS (`0028`),
   ledger INSERT-locked (`0030`), stock floor + **CONC-1** concurrency fix (`0031`/`0033`), PR-line
   freeze + AP-3 (`0032`), org-member audit (`0019`). `@amrebeid/ui` 1.2.0.
@@ -45,10 +46,11 @@ The autonomous pipeline builds fast; what gates the finish:
 5. **Accounting + P&L** — ratify [`SPEC-0004`](SPEC-0004-accounting-and-pnl.md) (Stage 7). Resolves
    #157. Gated on the Excel reconciliation + (for real figures) the Stage M privacy review. *(High —
    independent review per slice.)*
-6. **People & payroll** — ratify [`SPEC-0006`](SPEC-0006-people-labor-payroll.md) (Stage 8); its first
-   slice — the **PII-1 (#173) wage slice — is DONE** (`0046`: `payroll.read` perm + role-gated
-   `people_compensation`, `people.rate` dropped). **Still open: the phone/email half of #173** (Owner PII-access
-   decision). **Weather** — ratify
+6. **People & payroll** — ratify [`SPEC-0006`](SPEC-0006-people-labor-payroll.md) (Stage 8);
+   **PII-1 (#173) is now FULLY DONE** — both the wage slice (`0046`: `payroll.read` perm + role-gated
+   `people_compensation`, `people.rate` dropped) and the contact slice (`0048`: deny-by-default on `people`,
+   phone/email no longer member-readable). The broader Stage-8 build (attendance / payroll runs) is still
+   to come. **Weather** — ratify
    [`SPEC-0007`](SPEC-0007-weather-integration.md) (Stage 9). *(High / Med.)*
 7. **Care Academy** — ratify [`SPEC-0008`](SPEC-0008-care-academy.md) (Stage 10); content as editable
    templates, **gated on the agronomist + Egyptian pesticide-registration sign-off**. *(Med/High.)*
@@ -66,7 +68,7 @@ The autonomous pipeline builds fast; what gates the finish:
 | SPEC-0003 farm structure + palm import | 2 | DRAFT — awaiting ratification |
 | SPEC-0004 accounting + P&L | 7 | DRAFT — awaiting ratification |
 | SPEC-0005 AI assistant عبدالجليل | 11 | DRAFT — awaiting ratification |
-| SPEC-0006 people, labor & payroll | 8 | DRAFT — awaiting ratification (PII-1 #173 wage slice DONE `0046`; phone/email half still open) |
+| SPEC-0006 people, labor & payroll | 8 | DRAFT — awaiting ratification (PII-1 #173 FULLY DONE — wage slice `0046` + contact slice `0048`) |
 | SPEC-0007 weather integration | 9 | DRAFT — awaiting ratification |
 | SPEC-0008 Care Academy | 10 | DRAFT — awaiting ratification |
 

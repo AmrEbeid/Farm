@@ -13,7 +13,7 @@ data. See [`../../docs/DEPLOY-RUNBOOK.md`](../../docs/DEPLOY-RUNBOOK.md) and
 
 ```bash
 supabase start          # local Supabase (requires Docker)
-supabase db reset       # apply migrations (latest: 0047; prod is at 0047) + Ebeid seed
+supabase db reset       # apply migrations (latest: 0048; prod is at 0048) + Ebeid seed
 npm run dev             # http://localhost:3000
 ```
 
@@ -46,7 +46,7 @@ the **two** routes that actually render a chart — the inventory coverage page
 ## Tests
 
 ```bash
-supabase test db        # 415 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
+supabase test db        # 421 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
 npx playwright test     # the end-to-end wedge loop
 ```
 

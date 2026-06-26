@@ -1,6 +1,18 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-26 — ✅ `0048` contact-PII lockdown PUSHED + verified; #173/PII-1 now FULLY closed; prod `0048`, in sync with `main`
+- **#173 — PII-1 phone/email slice** → **`0048`** contact_pii_lockdown: deny-by-default on `people`
+  (`revoke select on people from authenticated` + re-grant all columns **except** phone/email; the phone column is
+  retained for service-role linking). Pushed to prod + verified — members can no longer read phone/email; non-PII
+  columns still readable.
+- **#173 / PII-1 is now FULLY DONE — both halves**: the wage slice (`0046` people_compensation) and the contact
+  slice (`0048`). It is **no longer an open / remaining item.**
+- Verified: `list_migrations` → `20260622000048`; **pgTAP 421/421** (Docker-free shim harness), all green.
+- **Prod is now at `0048`, in sync with `main`.**
+- **Remaining (Owner-decision / human-only):** #157 chart-of-accounts, #199 reserveQty semantics, #239 registry
+  data (open Owner decisions), 🔴 **key rotation** (only red item). *(#173 phone/email is DONE — removed from this list.)*
+
 ## 2026-06-26 — ✅ `0047` engine null-date guard PUSHED + verified; prod now `0047`, in sync with `main`; app swept clean
 - **#198 — ENGINE null-date guard** → **`0047`** engine_nulldate_guard: `fn_stock_coverage` now coalesces a
   NULL `planned_at` to period 1, so null-dated demand is never silently dropped. Pushed to prod + verified —

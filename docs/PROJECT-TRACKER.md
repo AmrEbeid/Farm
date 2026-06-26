@@ -8,7 +8,7 @@
 > `FOR UPDATE` lock present; `authorize` is now the 2-arg org-scoped overload (1-arg dropped) and all 7
 > policies + the 2 RPCs call it (`multi_org_members = 0`, so zero behavior change on current data);
 > baseline coverage correct; `get_advisors` shows only pre-existing WARNs (no new regressions).
-> **Authoritative current prod state: `0047`** — after the `0035` push, **`0036`** (FK perf indexes, #230)
+> **Authoritative current prod state: `0048`** — after the `0035` push, **`0036`** (FK perf indexes, #230)
 > and **`0037`** (`authz3_reserve_wrapper`, AUTHZ-3 #182 — `fn_post_movement` made internal + gated
 > `fn_reserve_stock` wrapper) were also applied + verified (fn_post_movement no longer
 > authenticated-executable; the wrapper enforces inventory.write); then **`0038`** (`fn_add_plan_operation`,
@@ -22,13 +22,17 @@
 > column-UPDATE lockdown), **`0046`** people_compensation (PII-1 #173 wage slice — `payroll.read` perm,
 > `people_compensation` table, `people.rate` dropped). **Then `0047`** engine_nulldate_guard (#198 — `fn_stock_coverage`
 > now coalesces a NULL `planned_at` to period 1 so null-dated demand is never silently dropped) was applied + verified
-> (no-op for dated ops; potassium recommendation unchanged at 600). Verified (`list_migrations` → `20260622000047`); pgTAP 415/415.
+> (no-op for dated ops; potassium recommendation unchanged at 600). **Then `0048`** contact_pii_lockdown (PII-1 #173
+> phone/email slice — deny-by-default: `revoke select on people from authenticated` + re-grant all columns except phone/email;
+> phone column retained for service-role linking) was applied + verified (members can no longer read phone/email; non-PII still
+> readable). **#173/PII-1 is now FULLY DONE — both the wage slice `0046` and the contact slice `0048`.**
+> Verified (`list_migrations` → `20260622000048`); pgTAP 421/421.
 > Also merged app-only (no migration): the `/m` field-view fixes (#268 — dropped a hardcoded plot name, corrected the
 > "today" heading, subtype-derived execute defaults) and the plans-page fixes (#269 — plan-block labeled by real cause
 > budget-vs-stock, not-found guard, stepper state). A comprehensive app bug-sweep this session confirmed
 > auth/middleware/inventory/farm-sector/all action files clean.
 > A duplicate non-repo perf-index record (`20260626053743`) was removed so prod history matches the repo exactly.
-> *(This session prod went stale-docs→`0031`→`0034`→`0035`→`0037`→`0038`→`0041`→`0046`→`0047`.)*
+> *(This session prod went stale-docs→`0031`→`0034`→`0035`→`0037`→`0038`→`0041`→`0046`→`0047`→`0048`.)*
 > This supersedes the stale figures elsewhere — the `0028`/`0029` prod claims in older entries (and `0023`
 > in the READMEs) were mid-push or lagging snapshots, now corrected. No code/schema changed in this
 > reconciliation. (Also surfaced this session: a local-only branch `feat/stage-2-farm-structure` holds
@@ -152,12 +156,12 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
 | 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | Todo | Financial integrity |
-| 8 | People & labor/payroll | Execution | **High** | Todo | PII / regulated data. **PII-1 #173 wage slice DONE** (`0046`: `payroll.read` + `people_compensation`, `people.rate` dropped); phone/email half still open (Owner PII decision) |
+| 8 | People & labor/payroll | Execution | **High** | Todo | PII / regulated data. **PII-1 #173 FULLY DONE** — wage slice (`0046`: `payroll.read` + `people_compensation`, `people.rate` dropped) **and** contact slice (`0048`: deny-by-default on `people`, phone/email no longer member-readable). Broader Stage-8 build (attendance/payroll runs) still Todo |
 | 9 | Weather integration | Execution | Medium | Todo | External API = untrusted + key |
 | 10 | Care Academy content | Documentation | Med/High | Todo | Agronomy liability → expert sign-off |
 | 11 | AI assistant عبدالجليل | Execution | **High** | Todo | Lethal-trifecta control required |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
-| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0047`** (`0001–0013` + `0015–0047`, **in sync with `main`**; `0032`–`0047` pushed + live-verified via `list_migrations`, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` #155 + wage-confidentiality `0046` PII-1 #173 + engine null-date guard `0047` #198) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied); pgTAP 415/415. Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
+| P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0048`** (`0001–0013` + `0015–0048`, **in sync with `main`**; `0032`–`0048` pushed + live-verified via `list_migrations`, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` #155 + wage-confidentiality `0046` PII-1 #173 wage slice + engine null-date guard `0047` #198 + contact-PII lockdown `0048` PII-1 #173 phone/email slice) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied); pgTAP 421/421. Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 
 Status legend: Todo / Active / Blocked / In review / Done
 
