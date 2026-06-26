@@ -1,5 +1,11 @@
 -- 10 — B2 / #158: the stock ledger is INSERT-only via the bypassrls RPCs — NO client direct INSERT,
--- for any role; reads stay open to the org; execution via fn_post_movement is unaffected.
+-- for any role; reads stay open to the org.
+--
+-- AUTHZ-3 (#182, migration 0036): fn_post_movement is now an INTERNAL primitive (EXECUTE revoked from
+-- `authenticated`) — a client can no longer call it directly. The client-facing reserve path is the
+-- role-gated wrapper fn_reserve_stock (inventory.write). This test now pins: a non-write role
+-- (supervisor) gets 42501 on the direct primitive, while a write role (storekeeper) reserves via the
+-- gated wrapper — the legitimate RPC write path stays open.
 --
 -- Originally (migration 0015) direct inserts were gated to `inventory.write` (supervisor denied,
 -- storekeeper allowed). Migration 0030 REVOKEs INSERT on inventory_movements from authenticated|anon
@@ -30,8 +36,9 @@ $$, '42501', null, '#158: supervisor cannot direct-insert inventory_movements (l
 
 select isnt((select count(*) from public.inventory_bin), 0::bigint,
   'B2: supervisor can still read inventory_bin');
-select isnt(public.fn_post_movement(:'pot', 'issue', 1), null,
-  'B2: supervisor can still issue stock via fn_post_movement (execution unaffected)');
+select throws_ok($$ select public.fn_post_movement('39e22867-fbe2-5cd9-8a76-ce5871a8e8f4', 'issue', 1) $$,
+  '42501', null,
+  'AUTHZ-3 #182: fn_post_movement is internal — authenticated cannot call it directly (42501)');
 
 reset role;
 
@@ -46,9 +53,9 @@ select throws_ok($$
 $$, '42501', null,
   '#158: storekeeper (inventory.write) ALSO cannot direct-insert inventory_movements (RPC-only ledger)');
 
--- but legit append via the bypassrls RPC is unaffected
-select isnt(public.fn_post_movement(:'pot', 'issue', 1), null,
-  'B2: storekeeper can still issue stock via fn_post_movement (RPC path unaffected)');
+-- but legit reserve via the gated bypassrls wrapper is unaffected (storekeeper HAS inventory.write)
+select isnt(public.fn_reserve_stock(:'pot', 1, null), null,
+  'AUTHZ-3 #182: storekeeper (inventory.write) reserves via the gated fn_reserve_stock wrapper (RPC path unaffected)');
 
 reset role;
 select * from finish();

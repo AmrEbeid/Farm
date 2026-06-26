@@ -31,16 +31,19 @@ select set_config('test.ownerA', (select user_id::text from public.organization_
   where org_id = :'orgA' and role = 'owner'), false);
 
 -- ---------------------------------------------------------------------------------------------
--- (1) audit-on-write for a SECOND entity type: a reserve movement (via the RPC used in test 09)
--- writes an inventory_movements row → the audit_movement trigger records it on audit_log.
--- This generalises "an approve writes an audit row" (test 02) to a different, unrelated entity.
+-- (1) audit-on-write for a SECOND entity type: a reserve movement (via the gated reserve RPC) writes
+-- an inventory_movements row → the audit_movement trigger records it on audit_log. This generalises
+-- "an approve writes an audit row" (test 02) to a different, unrelated entity. AUTHZ-3 (#182, migration
+-- 0036): fn_post_movement is internal; the client-facing reserve path is fn_reserve_stock
+-- (inventory.write), which the owner holds — and it delegates to the same primitive that fires the
+-- audit trigger.
 -- ---------------------------------------------------------------------------------------------
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('test.ownerA'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 
-select lives_ok($$ select public.fn_post_movement('dddd0025-0000-0000-0000-0000000000a0', 'reserve', 50) $$,
-  'a reserve movement is posted (fires the inventory_movement audit trigger)');
+select lives_ok($$ select public.fn_reserve_stock('dddd0025-0000-0000-0000-0000000000a0', 50, null) $$,
+  'a reserve movement is posted via the gated fn_reserve_stock wrapper (fires the inventory_movement audit trigger)');
 
 select isnt(
   (select count(*) from public.audit_log

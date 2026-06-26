@@ -17,21 +17,20 @@ async function reserveStock(
   qty: number,
   planId: string,
 ) {
-  // D2: reserve via the transactional RPC — posts a `reserve` movement and recomputes
-  // bin.reserved = Σ(reserve)−Σ(release) from the ledger (no racy read-modify-write; the
-  // RPC derives org from the item server-side).
-  const { error } = await sb.rpc("fn_post_movement", {
+  // D2 / AUTHZ-3 (#182): reserve via the role-gated wrapper fn_reserve_stock — posts a `reserve`
+  // movement and recomputes bin.reserved = Σ(reserve)−Σ(release) from the ledger (no racy
+  // read-modify-write; the RPC derives org from the item server-side). fn_post_movement is now an
+  // INTERNAL primitive (no client EXECUTE); fn_reserve_stock enforces inventory.write before
+  // delegating to it, and raises the SAME 42501/22023 SQLSTATEs.
+  const { error } = await sb.rpc("fn_reserve_stock", {
     p_item: itemId,
-    p_type: "reserve",
     p_qty: qty,
-    p_location: "main",
-    p_unit: "kg",
     p_plan_id: planId,
   });
   // Return a structured result rather than throwing: the caller propagates this as
   // `{ ok: false, error }` so a reserve failure surfaces in the UI (CreatePrButton
   // reads `res.ok`) instead of becoming an unhandled server-action rejection.
-  // Map fn_post_movement's SQLSTATEs to Arabic (non-negotiable #2; consistent with
+  // Map fn_reserve_stock's SQLSTATEs to Arabic (non-negotiable #2; consistent with
   // executeOperation/recordReceipt) — never leak the raw English DB message to the field UI.
   if (error) {
     const msg = toArabicError(error, {
@@ -58,6 +57,18 @@ export async function createPurchaseRequestFromShortage(
 ) {
   const m = await requireMembership();
   const sb = await createClient();
+
+  // AUTHZ-3 (#182 / #188 interaction): gate UP FRONT on inventory.write — the same permission the
+  // downstream reserve (fn_reserve_stock) requires. Without this, a non-inventory.write member could
+  // create a PR + line and only fail at the reserve step, leaving an ORPHANED draft PR behind. Checked
+  // before any insert so a forbidden caller mutates nothing.
+  const { data: canWrite } = await sb.rpc("authorize", {
+    perm: "inventory.write",
+    p_org: m.orgId,
+  });
+  if (!canWrite) {
+    return { ok: false, error: "ليس لديك صلاحية لإنشاء طلب شراء وحجز المخزون" };
+  }
 
   // CREATE-1: idempotency. A double-submit / network retry would otherwise create a duplicate draft
   // PR AND post a second `reserve` movement (over-stating `reserved`). If an OPEN (draft/submitted) PR

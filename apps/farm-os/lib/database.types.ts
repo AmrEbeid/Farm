@@ -2040,6 +2040,10 @@ export type Database = {
         Args: { p_pr_id: string }
         Returns: Json
       }
+      fn_reserve_stock: {
+        Args: { p_item: string; p_plan_id: string; p_qty: number }
+        Returns: number
+      }
       fn_stock_coverage: {
         Args: { p_horizon_weeks?: number; p_item: string; p_location?: string }
         Returns: Json

@@ -12,9 +12,12 @@ insert into public.inventory_items (id, org_id, name, unit) values (:'item', :'o
 
 select set_config('test.ownerA', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role='owner'), false);
+-- AUTHZ-3 (#182): fn_post_movement is now an INTERNAL primitive (EXECUTE revoked from `authenticated`,
+-- migration 0036). This test exercises its reserve/release ledger math directly in the OWNER context
+-- (the local superuser test role) — the same context its definer callers use. The reserve/release pair
+-- has no client wrapper (fn_reserve_stock covers only reserve), so the primitive is tested directly.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('test.ownerA'), 'role','authenticated')::text, true);
-set role authenticated;
 
 -- reserve 200 → reserved 200
 select public.fn_post_movement(:'item', 'reserve', 200);
@@ -40,6 +43,5 @@ select public.fn_post_movement(:'item', 'release', 1000);
 select is((select reserved from public.inventory_bin where item_id = :'item' and location = 'main'),
   0::numeric, 'over-release clamps reserved to 0');
 
-reset role;
 select * from finish();
 rollback;
