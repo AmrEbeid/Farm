@@ -1296,7 +1296,6 @@ export type Database = {
           org_id: string
           phone: string | null
           position: string | null
-          rate: number | null
           reports_to_person_id: string | null
           user_id: string | null
         }
@@ -1310,7 +1309,6 @@ export type Database = {
           org_id: string
           phone?: string | null
           position?: string | null
-          rate?: number | null
           reports_to_person_id?: string | null
           user_id?: string | null
         }
@@ -1324,7 +1322,6 @@ export type Database = {
           org_id?: string
           phone?: string | null
           position?: string | null
-          rate?: number | null
           reports_to_person_id?: string | null
           user_id?: string | null
         }
@@ -1339,6 +1336,45 @@ export type Database = {
           {
             foreignKeyName: "people_reports_to_person_id_fkey"
             columns: ["reports_to_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_compensation: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          person_id: string
+          rate: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          person_id: string
+          rate?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          person_id?: string
+          rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_compensation_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_compensation_person_id_fkey"
+            columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
             referencedColumns: ["id"]
