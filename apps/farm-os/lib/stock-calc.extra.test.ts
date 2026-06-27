@@ -117,16 +117,17 @@ describe("firstShortagePeriod — edges", () => {
 });
 
 describe("recommendPurchase — edges", () => {
-  it("zero shortfall and zero SS → nothing to order", () => {
-    const r = recommendPurchase({ shortfall: 0, safetyStock: 0, scheduledReceipts: 0, packSize: 50 });
+  it("zero deficit and zero SS → nothing to order", () => {
+    const r = recommendPurchase({ maxDeficit: 0, safetyStock: 0, packSize: 50 });
     expect(r.rawQty).toBe(0);
     expect(r.qty).toBe(0);
     expect(r.orderToday).toBe(false);
     expect(r.message_ar).toContain("كافٍ");
   });
 
-  it("floors raw qty at 0 when receipts exceed need (never recommends negative)", () => {
-    const r = recommendPurchase({ shortfall: 100, safetyStock: 50, scheduledReceipts: 500, packSize: 50 });
+  it("floors raw qty at 0 for a non-negative deficit basis (never recommends negative)", () => {
+    // maxDeficit is a non-negative magnitude by construction; with no deficit and no SS → 0.
+    const r = recommendPurchase({ maxDeficit: 0, safetyStock: 0, packSize: 50 });
     expect(r.rawQty).toBe(0);
     expect(r.qty).toBe(0);
     expect(r.orderToday).toBe(false);
@@ -134,37 +135,37 @@ describe("recommendPurchase — edges", () => {
 
   it("rounds UP to the pack size", () => {
     // need 274, pack 50 → ceil(274/50)*50 = 300
-    const r = recommendPurchase({ shortfall: 200, safetyStock: 74, scheduledReceipts: 0, packSize: 50 });
+    const r = recommendPurchase({ maxDeficit: 200, safetyStock: 74, packSize: 50 });
     expect(r.rawQty).toBe(274);
     expect(r.qty).toBe(300);
     expect(r.orderToday).toBe(true);
   });
 
   it("does not over-round when need is an exact pack multiple", () => {
-    const r = recommendPurchase({ shortfall: 100, safetyStock: 0, scheduledReceipts: 0, packSize: 50 });
+    const r = recommendPurchase({ maxDeficit: 100, safetyStock: 0, packSize: 50 });
     expect(r.qty).toBe(100); // ceil(100/50)*50 = 100, no extra pack
   });
 
   it("falls back to pack size 1 when pack size is zero", () => {
-    const r = recommendPurchase({ shortfall: 7, safetyStock: 0, scheduledReceipts: 0, packSize: 0 });
+    const r = recommendPurchase({ maxDeficit: 7, safetyStock: 0, packSize: 0 });
     expect(r.qty).toBe(7); // ceil(7/1)*1
     expect(r.orderToday).toBe(true);
   });
 
   it("falls back to pack size 1 when pack size is negative", () => {
-    const r = recommendPurchase({ shortfall: 3, safetyStock: 0, scheduledReceipts: 0, packSize: -50 });
+    const r = recommendPurchase({ maxDeficit: 3, safetyStock: 0, packSize: -50 });
     expect(r.qty).toBe(3);
   });
 
-  it("embeds the order quantity and shortfall in the Arabic message", () => {
-    const r = recommendPurchase({ shortfall: 200, safetyStock: 74, scheduledReceipts: 0, packSize: 50 });
+  it("embeds the order quantity and the deficit basis in the Arabic message", () => {
+    const r = recommendPurchase({ maxDeficit: 200, safetyStock: 74, packSize: 50 });
     expect(r.message_ar).toContain("نقص متوقع");
-    expect(r.message_ar).toContain("200"); // shortfall
+    expect(r.message_ar).toContain("200"); // deficit basis (maxDeficit)
     expect(r.message_ar).toContain("300"); // ordered qty
   });
 
   it("handles large values without overflow surprises", () => {
-    const r = recommendPurchase({ shortfall: 1_000_000, safetyStock: 0, scheduledReceipts: 0, packSize: 25 });
+    const r = recommendPurchase({ maxDeficit: 1_000_000, safetyStock: 0, packSize: 25 });
     expect(r.qty).toBe(1_000_000); // already a multiple of 25
     expect(r.orderToday).toBe(true);
   });

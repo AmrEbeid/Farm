@@ -48,11 +48,11 @@ describe("stock-coverage engine — SPEC-0001 Ebeid oracle", () => {
     expect(cov).toBeLessThan(5);
   });
 
-  it("Recommended purchase ≈ shortfall 200 + SS 74 − receipts 0 = 274 → round up to pack 50 = 300 kg; order today", () => {
+  it("Recommended purchase = maxDeficit 200 + SS 74 = 274 → round up to pack 50 = 300 kg; order today", () => {
+    // Single-period dip: deepest deficit == first-dip shortfall = 200 (PAB1 = 300−500 = −200).
     const r = recommendPurchase({
-      shortfall: 200,
+      maxDeficit: 200,
       safetyStock: 74,
-      scheduledReceipts: 0,
       packSize: 50,
     });
     expect(r.rawQty).toBe(274);
@@ -75,18 +75,33 @@ describe("stock-coverage engine — SPEC-0001 Ebeid oracle", () => {
   });
 
   it("edge: lead time > horizon does not crash recommendation", () => {
-    const r = recommendPurchase({ shortfall: 0, safetyStock: 0, scheduledReceipts: 0, packSize: 50 });
+    const r = recommendPurchase({ maxDeficit: 0, safetyStock: 0, packSize: 50 });
     expect(r.qty).toBe(0);
     expect(r.orderToday).toBe(false);
   });
 
-  it("edge: scheduled receipts net into PAB and reduce the recommendation", () => {
-    // 300 opening, period1 issue 500 + receipt 300 → PAB1 = 100 (covered)
+  it("edge: scheduled receipts net into PAB (not subtracted again in the recommendation)", () => {
+    // 300 opening, period1 issue 500 + receipt 300 → PAB1 = 100 (covered, no deficit).
+    // Receipts are netted ONCE, in the PAB — they are NOT a recommendPurchase input.
     const pab = projectedAvailableBalance(300, [500, 0], [300, 0]);
     expect(pab[1]).toBe(100);
-    // recommendation nets scheduled receipts: shortfall 200 + SS 74 − 300 = negative → 0
-    const r = recommendPurchase({ shortfall: 200, safetyStock: 74, scheduledReceipts: 300, packSize: 50 });
+    const maxDeficit = Math.max(0, -Math.min(...pab.slice(1)));
+    expect(maxDeficit).toBe(0); // never dips below zero
+    // The SQL gates the whole recommendation on v_warn (PAB breaches safety stock). With no
+    // breach there is no order — modelled here by a zero SS basis, the un-warned path.
+    const r = recommendPurchase({ maxDeficit, safetyStock: 0, packSize: 50 });
     expect(r.qty).toBe(0);
+  });
+
+  it("parity: sizes off the DEEPEST deficit, not the first dip (SQL v_maxdef)", () => {
+    // Deepening shortage: PAB dips to −100 in period 1, then to −300 in period 2.
+    // First-dip shortfall = 100, but the order must cover the deepest deficit = 300.
+    const pab = projectedAvailableBalance(0, [100, 200], [0, 0]);
+    expect(pab).toEqual([0, -100, -300]);
+    const maxDeficit = -Math.min(...pab.slice(1)); // 300, the worst point
+    const r = recommendPurchase({ maxDeficit, safetyStock: 0, packSize: 1 });
+    expect(r.rawQty).toBe(300); // not 100 — the pre-fix first-dip basis under-ordered ~3×
+    expect(r.qty).toBe(300);
   });
 
   it("edge: expiry is netted into on_hand, not subtracted twice (ENGINE-C1)", () => {
