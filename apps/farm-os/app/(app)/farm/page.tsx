@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/components/ui";
@@ -125,6 +126,10 @@ export default async function FarmStructurePage() {
         <KpiCard label="نخيل برحي" value={num(totalBarhi)} />
         <KpiCard label="ذكور" value={num(totalMale)} />
       </section>
+
+      <Link href="/farm/croquis" className="inline-flex w-fit items-center gap-2 text-sm font-medium text-[var(--brand,#2f7d49)] hover:underline">
+        🗺️ عرض كروكي المزرعة
+      </Link>
 
       {canEditStructure && farm?.id && (
         <StructureForm
