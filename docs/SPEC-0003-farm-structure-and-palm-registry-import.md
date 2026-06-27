@@ -1,6 +1,9 @@
 # SPEC-0003 — Farm structure + real palm-registry import (Stage 2)
 
-*Status: **DRAFT for Owner review** — design + decision-support only. No code, no migration, no data
+*Status: **RATIFIED — Owner (Amr Ebeid), 2026-06-27 (in-session).** Scope + both §6 open decisions
+ratified; **§6.1 settled → 5 sectors** (S22 / HSW / BAB / SHF / KHT, matching prod + the registry).
+Real-data import beyond aggregate counts (slice 4 / Stage M) remains an Owner-gated apply-layer action.
+Originally: design + decision-support only. No code, no migration, no data
 import is performed by this document. Importing real Ebeid data is an Owner-gated apply-layer action
 (PROJECT RULES hard stop), and Stage 2 must not start before the Stage 1 gate is closed. This spec
 exists so the Owner can ratify scope + the open decisions before any import migration is written.*
@@ -39,7 +42,7 @@ The **Nov-2025 palm registry** is the single source of truth for counts:
 | Barhi palms (برحي) | **4,380** |
 | Male palms (ذكور) | **299** |
 | Hawshat (حوش) | **28** |
-| Sectors | **5** (recommended 2026-06-26, pending Owner ratification: S22 / HSW / BAB / SHF / KHT) |
+| Sectors | **5** — **RATIFIED 2026-06-27** (S22 / HSW / BAB / SHF / KHT) |
 
 Every other document (the 7-yr accounting sheet, prior tallies) reconciles **to** the registry, never
 the reverse. If the registry file itself is internally inconsistent, **stop and report** — do not pick
@@ -91,9 +94,9 @@ all of these (Stage 1 / migrations `0010`/`0028`).
   against it roll up correctly (drive one operation via the wedge → it appears in the file).
 - **Arabic:** names/codes render RTL with no mojibake.
 
-## 6. Open decisions for the Owner (recommendations 2026-06-26 — pending Owner ratification)
+## 6. Open decisions for the Owner (RATIFIED 2026-06-27)
 
-1. **4 vs 5 sectors** — **RECOMMENDED: 5 sectors** (S22 / HSW / BAB / SHF / KHT), matching the seed
+1. **4 vs 5 sectors** — **RATIFIED: 5 sectors** (S22 / HSW / BAB / SHF / KHT), matching the seed
    structure and the registry; the enterprise/crop list is نخيل برحي for all five. (Was: the import
    can't proceed without the agreed sector partition.)
 2. **Materialize individual palm `assets`?** — **RECOMMENDED: aggregate-only this stage; per-tree
