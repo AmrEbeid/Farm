@@ -1,6 +1,9 @@
 # SPEC-0005 — عبدالجليل AI assistant: permission-aware, trifecta-safe (Stage 11)
 
-*Status: **DRAFT for Owner review** — security architecture + decision-support only. No code, no
+*Status: **RATIFIED — Owner (Amr Ebeid), 2026-06-27 (in-session)** — the trifecta-safe security
+architecture is approved as the basis to build on. ⚠️ **Ratifying the DESIGN ≠ skipping review:**
+independent security review of the BUILD remains REQUIRED per slice, and no AI touches real data until
+that review passes. Originally: security architecture + decision-support only. No code, no
 endpoint, no model integration. Stage 11 is **High risk** (the lethal trifecta) and the highest
 control-intensity component in the product; **independent security review is REQUIRED** before any
 build. This spec exists so the safety architecture is ratified *before* a line is written — the one
