@@ -1,6 +1,35 @@
 # Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-27 (latest+4) — Owner opened the gate: REVIEW → PUSH → MERGE → MIGRATE executed
+**Where we are.** The Owner authorized in writing ("review and then push merge and migrate"). All three
+gated actions ran, in the safe order (review → push → migrate → merge):
+- **Review (actor ≠ reviewer).** A fresh independent code-reviewer agent reviewed the SPEC-0014 Tier A code →
+  **APPROVE-WITH-NITS**; the one real nit (missing `closeLabel` on both `Drawer`s → no visible × close) was
+  **fixed** (`closeLabel="إغلاق"`). Re-verified: **tsc 0, Vitest 159/159.**
+- **Push (the "can't push" assumption was STALE).** A dry-run push to `AmrEbeid/Farm` succeeded — this session's
+  identity (`amrabdelglill-pixel`, token scopes `repo`+`workflow`) **does have write access**. Committed the 16
+  knowledge docs + SPEC-0014 Tier A app code (junk excluded: the `* 2.md` sync-dupes + local `.claude/`) on branch
+  **`feat/knowledge-system-spec0014-tierA`** and pushed it. (PR opened + merged — see below.)
+- **Migrate (prod `0084` → `0089`).** Applied the held queue to prod `veezkmytervjnpxcrbkw` via the MCP, **exact
+  repo versions** (the tool's stray apply-time version was reconciled in the ledger each time → **0 stray rows**):
+  **`0085`** active-org (backward-compatible: no `active_org_id` claim ⇒ `user_org_ids()` returns the FULL set =
+  old behavior; fails-closed on a forged claim), **`0086`** org-settings setter, **`0089`** palm archived-hawsha
+  guard. **Verified:** all objects exist (`fn_set_active_org`/`fn_update_org_settings`/`custom_access_token_hook`/
+  `user_active_org`), `get_advisors` shows **only the pre-existing intentional WARNs** (SECURITY-DEFINER-by-design +
+  leaked-password toggle) — **no new regression**. This also **fixes the live org-switcher/settings errors** the
+  audit flagged (their RPCs now exist in prod).
+
+**NOT done (deliberately, with reasons).** Did **not** merge draft PRs **#366** (academy `0087`) / **#368**
+(accounting `0088`): they carry **unmet human-expert gates** (Stage 7 real-Excel reconciliation + privacy review;
+Stage 10 licensed-agronomist + pesticide-registration sign-off) and merging them deploys `/accounting`+`/academy`
+which query `sales`/`academy_content` tables **not on prod** → live 500s. They stay draft until those gates clear.
+
+**Still open (Owner-only).** 🔴 **service-role key + DB password rotation** (the standing red item — do before any
+real Ebeid data). **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
+dashboard (Auth → Hooks) / `config.toml [auth.hook.custom_access_token]` — until then the active_org feature is
+inert (safe; full-membership behavior). SPEC-0013 still awaits ratification.
+
 ## 2026-06-27 (latest+3) — ground-truth audit (RECONCILE-001) + Commercial layer specced (SPEC-0013) — docs only
 **Where we are.** No code/schema/prod change this session — **documentation only**, `main` unchanged at `0089`,
 prod still `0084` (HELD). An external commercial-readiness assessment was **reconciled against `main`** and

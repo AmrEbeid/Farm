@@ -1,5 +1,14 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-27 (newest) — Owner-authorized PUSH + MIGRATE + MERGE.** Knowledge System (16 docs) + SPEC-0014
+> Tier A code committed/pushed/merged to `main` (branch `feat/knowledge-system-spec0014-tierA`, independent
+> review APPROVE-WITH-NITS, nit fixed, tsc 0 / Vitest 159/159). **Prod migrated `0084` → `0089`** (`0085`
+> active-org, `0086` org-settings, `0089` palm-guard) via MCP — exact repo versions, 0 stray rows, advisors show
+> only pre-existing intentional WARNs; this **fixes the live org-switcher/settings errors**. Draft PRs #366/#368
+> (academy `0087` / accounting `0088`) **deliberately NOT merged** — unmet human-expert gates + would 500 prod.
+> Still Owner-only: 🔴 service-role key rotation; enable the `custom_access_token_hook` in the dashboard to
+> activate active-org; ratify SPEC-0013.
+
 > **2026-06-27 (latest) — ground-truth audit + commercialization specced (docs only; no code/migration/prod).**
 > An external commercial-readiness assessment was **reconciled against `main`** and found to have evaluated a
 > **stale prototype schema**, not the live code: the operating loop (Plan→Coverage→Budget→Approval→Execute→
