@@ -1,0 +1,13 @@
+-- Security (grant-level defense-in-depth): people_compensation — the WAGE / PII table — was the ONLY
+-- public table still granting the `anon` (unauthenticated) role data DML (SELECT/INSERT/UPDATE/DELETE).
+-- Every other tenant table grants anon only the harmless schema privileges (REFERENCES/TRIGGER/TRUNCATE).
+-- Root cause: 0009 granted anon DML on all then-existing tables and 0010 revoked it (the lockdown), but
+-- people_compensation was created later (0046) and picked up the grant from Supabase's platform
+-- default-privileges, which 0010's table-by-table revoke didn't cover.
+--
+-- RLS + FORCE RLS already block anon (no org → comp_rw yields no rows), so this changes NO working
+-- behavior — the app uses the `authenticated` role (grants untouched, still gated by comp_rw's
+-- payroll.read). It removes the redundant grant so that the MOST sensitive table can't expose every wage
+-- to the public PostgREST endpoint if RLS were ever misconfigured. Idempotent (revoking an absent grant
+-- is a no-op), so it is also a harness no-op (the harness never had the platform default-privilege grant).
+revoke select, insert, update, delete on public.people_compensation from anon;
