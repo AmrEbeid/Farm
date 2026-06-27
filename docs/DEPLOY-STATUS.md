@@ -8,13 +8,18 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0073` — in sync with `main` (2026-06-26).** Two pushes via the Supabase MCP
-    (all versions match their files; verified head/recorded-count/triggers/constraints/policies, no dup
-    versions, `get_advisors` no new regressions): **`0049–0066`** (18: assets/PR/engine hardening +
-    cross-org FK sweep, #235/#270/#280/#306) then **`0067–0073`** (7: 0067 suppliers write-gate, 0068/0069
-    plan_checks write/delete gates, 0070 cross-org FK registry tail, 0071 people reports-to same-org
-    trigger, 0072 inventory_items safety_stock/pack_size CHECK [360-review], 0073 palm_status_history
-    write-gate [360-review]). PRs #318 + #321 merged. — Prior baseline: `0001–0013` + `0015–0048` applied and recorded
+  - **Migrations now at `0079` (2026-06-27).** Authoritative source = `schema_migrations` (max =
+    `20260622000079`). Pushes via the Supabase MCP (all versions match their files; verified
+    head/recorded-count/triggers/constraints/policies, no dup versions, `get_advisors` no new
+    regressions): **`0049–0066`** (18: assets/PR/engine hardening + cross-org FK sweep,
+    #235/#270/#280/#306) then **`0067–0073`** (7: 0067 suppliers write-gate, 0068/0069 plan_checks
+    write/delete gates, 0070 cross-org FK registry tail, 0071 people reports-to same-org trigger, 0072
+    inventory_items safety_stock/pack_size CHECK [360-review], 0073 palm_status_history write-gate
+    [360-review]). PRs #318 + #321 merged. Then **`0074–0079`** applied to prod (a mix: the parallel
+    session pushed through ~`0074`; `0075–0079` were applied via the Supabase MCP this session) — `0074`,
+    `0075` cross_org_fk_assets, `0076` pri_unique_pr_item, `0077` people_comp_org_index, `0078`
+    engine_msg_maxdef, `0079` people_comp_anon_revoke (the wage-table `anon` DML revoke — see
+    `SECURITY-FINDING-wage-table-anon-grant-2026-06-27.md`). — Prior baseline: `0001–0013` + `0015–0048` applied and recorded
     (`0036` FK perf indexes #230; `0037` AUTHZ-3 #182 — fn_post_movement made internal + gated fn_reserve_stock;
     `0038` fn_add_plan_operation #196 — atomic plan-operation RPC; `0039` fn_update_palm_status #238 — op.execute-gated
     atomic palm-status RPC; `0040` engine_rec1_fix #184 — removed the recommendation's period-1 receipts double-subtract;

@@ -1,8 +1,11 @@
 # Security Finding — `anon` holds data DML on the wage table (`people_compensation`)   (2026-06-27)
 
-Scope: `apps/farm-os` grant-level posture. Status: **✅ RESOLVED on `main`** — migration
-`20260622000079_people_comp_anon_revoke.sql` (PR #339, renumbered 0078→0079 per PR #340) +
-regression guard `tests/80_anon_dml_lockdown_test.sql`. **Prod-apply pending** (prod at `0077`).
+Scope: `apps/farm-os` grant-level posture. Status: **✅ RESOLVED + DEPLOYED** — migration
+`0079_people_comp_anon_revoke` applied to prod 2026-06-27 (verified:
+`has_table_privilege('anon','public.people_compensation','SELECT')` = false; `schema_migrations` max =
+`20260622000079`). Deployed via the Supabase MCP. (On `main`:
+`20260622000079_people_comp_anon_revoke.sql`, PR #339, renumbered 0078→0079 per PR #340 + regression
+guard `tests/80_anon_dml_lockdown_test.sql`.)
 
 ## Summary
 
@@ -88,6 +91,6 @@ all four; RLS + FORCE RLS both on.
 
 ## Prod-apply
 
-Prod is at `0077`. Apply `0079` on the next prod sync to close the live grant. Low-urgency (RLS gates
-it today), but it is the security-relevant item in the `0078`/`0079` pending pair (`0078` is a cosmetic
-engine-message change).
+**Done (2026-06-27).** `0079` is applied to prod — `schema_migrations` max = `20260622000079`, and
+`has_table_privilege('anon','public.people_compensation','SELECT')` = false — so the live grant is
+closed. Deployed via the Supabase MCP alongside `0078` (a cosmetic engine-message change).
