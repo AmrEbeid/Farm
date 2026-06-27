@@ -57,11 +57,16 @@ export async function runPlanChecks(planId: string) {
   // stock check: any shortage among the plan's materials blocks
   let stockResult: "ok" | "block" = "ok";
   const stockDetail: Record<string, Json> = {};
-  for (const itemId of materialIds) {
-    const { data, error: covErr } = await sb.rpc("fn_stock_coverage", {
-      p_item: itemId,
-      p_location: "main",
-    });
+  // fn_stock_coverage is a read-only projection per material and the calls are independent, so
+  // fire them in parallel instead of N serial round-trips. Semantics are unchanged: we still
+  // abort on any per-item error and the shortage/detail outcome is order-independent.
+  const itemIds = [...materialIds];
+  const coverages = await Promise.all(
+    itemIds.map((itemId) => sb.rpc("fn_stock_coverage", { p_item: itemId, p_location: "main" })),
+  );
+  for (let i = 0; i < itemIds.length; i++) {
+    const itemId = itemIds[i];
+    const { data, error: covErr } = coverages[i];
     // A failed coverage check must NOT silently count as "no shortage" — abort rather than
     // persist a passing stock check that could mask a shortage.
     if (covErr) return { ok: false, error: "تعذّر التحقق من تغطية المخزون، حاول مرة أخرى." };
