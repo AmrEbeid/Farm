@@ -55,8 +55,15 @@ export default function GlobalError({
             نعتذر عن هذا الخلل. يُرجى إعادة المحاولة، وإذا استمرت المشكلة تواصل مع
             الدعم.
           </p>
+          <style>{`
+            .global-error-retry:focus-visible {
+              outline: 2px solid #2f7d49;
+              outline-offset: 2px;
+            }
+          `}</style>
           <button
             type="button"
+            className="global-error-retry"
             onClick={() => reset()}
             style={{
               backgroundColor: "#2f7d49",
