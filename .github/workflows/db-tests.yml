@@ -30,6 +30,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # Guard against duplicate migration VERSION numbers (two files sharing the same
+      # 20260622NNNNNN_ prefix). git won't flag them (different filenames) and the
+      # Docker-free harness applies both if they create different objects — so pgTAP stays
+      # GREEN — but a prod `supabase db push` keys schema_migrations on the version and
+      # would skip/error on the second one, silently leaving it unapplied. Two parallel
+      # sessions auto-merging stale-base PRs repeatedly produced these (0048/0070-0074);
+      # fail fast so a duplicate can never merge.
+      - name: Check for duplicate migration versions
+        run: |
+          set -euo pipefail
+          dups="$(ls apps/farm-os/supabase/migrations/*.sql | xargs -n1 basename | sed -E 's/^([0-9]+)_.*/\1/' | sort | uniq -d)"
+          if [ -n "$dups" ]; then
+            echo "::error::Duplicate migration version number(s) — renumber before merge:"
+            for v in $dups; do ls apps/farm-os/supabase/migrations/"${v}"_*.sql; done
+            exit 1
+          fi
+          echo "OK: migration version numbers are unique"
+
       - name: Install PostgreSQL + pgTAP
         run: |
           set -euo pipefail
