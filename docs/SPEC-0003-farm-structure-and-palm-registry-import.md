@@ -1,6 +1,9 @@
 # SPEC-0003 — Farm structure + real palm-registry import (Stage 2)
 
-*Status: **DRAFT for Owner review** — design + decision-support only. No code, no migration, no data
+*Status: **RATIFIED — Owner (Amr Ebeid), 2026-06-27 (in-session).** Scope + both §6 open decisions
+ratified; **§6.1 settled → 5 sectors** (S22 / HSW / BAB / SHF / KHT, matching prod + the registry).
+Real-data import beyond aggregate counts (slice 4 / Stage M) remains an Owner-gated apply-layer action.
+Originally: design + decision-support only. No code, no migration, no data
 import is performed by this document. Importing real Ebeid data is an Owner-gated apply-layer action
 (PROJECT RULES hard stop), and Stage 2 must not start before the Stage 1 gate is closed. This spec
 exists so the Owner can ratify scope + the open decisions before any import migration is written.*
@@ -39,7 +42,7 @@ The **Nov-2025 palm registry** is the single source of truth for counts:
 | Barhi palms (برحي) | **4,380** |
 | Male palms (ذكور) | **299** |
 | Hawshat (حوش) | **28** |
-| Sectors | **5** (recommended 2026-06-26, pending Owner ratification: S22 / HSW / BAB / SHF / KHT) |
+| Sectors | **5** — **RATIFIED 2026-06-27** (S22 / HSW / BAB / SHF / KHT) |
 
 Every other document (the 7-yr accounting sheet, prior tallies) reconciles **to** the registry, never
 the reverse. If the registry file itself is internally inconsistent, **stop and report** — do not pick
@@ -91,9 +94,9 @@ all of these (Stage 1 / migrations `0010`/`0028`).
   against it roll up correctly (drive one operation via the wedge → it appears in the file).
 - **Arabic:** names/codes render RTL with no mojibake.
 
-## 6. Open decisions for the Owner (recommendations 2026-06-26 — pending Owner ratification)
+## 6. Open decisions for the Owner (RATIFIED 2026-06-27)
 
-1. **4 vs 5 sectors** — **RECOMMENDED: 5 sectors** (S22 / HSW / BAB / SHF / KHT), matching the seed
+1. **4 vs 5 sectors** — **RATIFIED: 5 sectors** (S22 / HSW / BAB / SHF / KHT), matching the seed
    structure and the registry; the enterprise/crop list is نخيل برحي for all five. (Was: the import
    can't proceed without the agreed sector partition.)
 2. **Materialize individual palm `assets`?** — **RECOMMENDED: aggregate-only this stage; per-tree
@@ -125,3 +128,33 @@ all of these (Stage 1 / migrations `0010`/`0028`).
 4. *(Optional, deferred)* per-tree `assets` materialization + status history.
 
 Each slice stops at its gate; **do not auto-advance** (PROJECT RULES).
+
+## 9. Editable structure + per-node 360 pages + media — BUILT (2026-06-26, Owner-directed)
+
+Per the Owner's 2026-06-26 directive (build to completion) and
+[`RESEARCH-farm-structure-crud-2026-06-26.md`](RESEARCH-farm-structure-crud-2026-06-26.md), the structure
+is now **fully editable** with per-node media — a deliberate expansion of §6's "aggregate-only, per-tree
+deferred" recommendation. **The Owner can add / edit / remove sub-farm (sector), حوشة, خط (line), and single
+نخلة, each with its own 360 page carrying details + the event timeline + photos & documents.**
+
+**Delivered (local; NOT yet on prod — prod is `0048`; `0049`–`0053` are an Owner-gated apply):**
+- **Migrations 0051–0053:** `archived` soft-delete on farms/sectors/hawshat/lines (+ audit triggers on all
+  structure tables); `structure.write` permission (owner/farm_manager) + the gated CRUD RPCs
+  (`fn_save_sector/hawsha/line/palm`, `fn_archive_structure` with **cascading soft-delete/restore that
+  preserves every row + its history**); the polymorphic `attachments` table + `fn_add_attachment`/
+  `fn_archive_attachment` (op.execute-gated). Direct-REST writes on sectors/hawshat/lines now also gated
+  (closes the same bypass class as `0049`).
+- **`supabase/storage-policies.sql`** — the private `farm-media` bucket + org-scoped `storage.objects` RLS,
+  kept OUT of `migrations/` (the pgTAP harness has no `storage` schema) → **Owner applies it once** to the
+  real project.
+- **App:** create/edit/remove forms for every level, the new `/farm/line/[id]` 360 page, edit + remove on
+  sector/hawsha/palm pages, and a `MediaGallery` (client-side compression → private upload → signed-URL
+  display) on every node. Arabic-RTL, role-gated affordances.
+- **Tests:** pgTAP `50_structure_crud_test.sql` (26 assertions: the role gate, CRUD, cascade soft-delete +
+  restore, direct-REST gate, media gates, audit). Full suite **454/454**; Vitest **83/83**; typecheck +
+  lint + `next build` green.
+
+**Remaining (Owner / apply-layer):** apply `0051`–`0053` to prod (after the standing `0049`–`0050` push),
+apply `storage-policies.sql`, then **regenerate `database.types.ts` from prod** — at which point
+`lib/database.types.ext.ts` (the augmentation bridging the as-yet-unpushed objects) becomes a no-op. Bulk
+import of the real 4,680 palms stays Stage-2 slice-4 / Stage M (real data + privacy review).

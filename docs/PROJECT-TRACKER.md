@@ -1,4 +1,39 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-26 by Claude (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
+
+> **2026-06-27 (latest) — back-half stages advanced to the buildable limit; Owner closed 4 ratification gates in-session.**
+> The Owner (Amr Ebeid) **ratified SPEC-0003 / 0005 / 0006 / 0007 + the 5-sector decision** in writing this session
+> (recorded → PR #363), closing the ratification gates for Stages 5/8/9/11. Delivered: **Stage 9 weather** (PR #350,
+> ready; needs API key); **Stage 5 croquis re-landed** (PR #364 — #347 had been orphaned when #344's base branch was
+> deleted on merge); the **payroll** + **P&L** + **academy** + **AI-policy** safe cores; and, per the Owner's "build on
+> synthetic, gated" directive, the **Stage 7 accounting framework** (PR #368 — `expenses.kind` #6 + `sales` + P&L report,
+> migration `0088`) and the **Stage 10 academy editor** (PR #366 — content store + #4 sign-off gate + `/academy`, migration
+> `0087`). All verified (pgTAP 660–666, tsc/eslint/build 0). **Two gates remain OPEN by design — they are real-world expert
+> acts no AI can perform or fabricate:** Stage 7's **7-yr Excel reconciliation + privacy review**, and Stage 10's
+> **licensed-agronomist + Egyptian pesticide-registration sign-off**. Also still binding: **independent review** before the
+> Stage 8 payroll RPC + the Stage 11 AI build reach prod. PRs are drafts; apply migrations `0087`/`0088` WITH the merge
+> (same ordering discipline that kept 2/3/4 from breaking prod); #366 & #368 need a trivial allowlist/types merge.
+>
+> **2026-06-27 (earlier) — Stages 2/3/4 SHIPPED + applied to prod; prod head = `0084`, in sync with `main`.**
+> Merged **#344** (Stages 2/3/4), **#346** + **#351** (list search/filter — reusable `FilterableTable` +
+> unit-tested `lib/filter.ts`, across inventory / purchase-requests / plans). Applied migrations
+> **`0080`–`0084`** to prod via the Supabase MCP under their exact repo versions (0 stray rows) +
+> **`storage-policies.sql`** (`farm-media` bucket + org-scoped storage RLS). Verified live: struct/event/plan
+> RPCs + `attachments` (forced RLS) present, ledger clean, `get_advisors` only pre-existing WARNs. A
+> frontend audit this session confirmed the MVP-0 UI is essentially complete (recommendation panel,
+> PR-approval UI, palm grid, #187 Arabic errors, loading skeleton were all already built). **Owner-gated
+> next:** independent review of the `0081`/`0084` RLS re-emits (access-control; actor ≠ reviewer); regen
+> `database.types.ts` vs prod `0084`. New stages (5/7/8/9/10/11) remain SPEC-ratification-gated — not started.
+
+> **2026-06-27 — Stages 2/3/4 BUILT + reconciled onto `main` (verified), on branch
+> `feat/stages-2-3-4-structure-events-plans`.** Editable farm structure + per-node 360 pages + photos/docs
+> (Stage 2, [`SPEC-0003`](SPEC-0003-farm-structure-and-palm-registry-import.md) §9); ad-hoc activity
+> recording (Stage 3, [`SPEC-0010`](SPEC-0010-activity-event-recording.md)); plan creation/assign/labor +
+> `/plans` (Stage 4, [`SPEC-0011`](SPEC-0011-planning-workspace.md)). Built on a stale 0050 base, then
+> **renumbered to migrations `0078`–`0082`** (tests `80`/`81`/`82`) and **rebased onto `origin/main`
+> (prod `0077`)** — 1 ahead/0 behind. Verified on the rebased branch: **pgTAP 627/627, tsc, Vitest 110/110,
+> `next build` green**. One real fix the reconcile caught: explicit `attachments` grant (audit-leak
+> invariant). **Owner-gated next:** push + PR; then apply `0078`–`0082` + `storage-policies.sql` to prod +
+> regen types. See [`RECONCILE-stages-2-3-4-to-0077.md`](RECONCILE-stages-2-3-4-to-0077.md).
 
 > **2026-06-26 — #155 / SPEC-0009 partial receipts COMPLETE end-to-end (model + UI):** the partial-receipt
 > UI (SPEC-0009 slice 5) merged as **#285** — `components/ReceiveForm.tsx` (per-line received-qty inputs,
@@ -157,19 +192,19 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | R | Research & strategy | Research | Low | **Done** | 4 cited streams; white-space confirmed (docs 01) |
 | D | Designs / prototypes | Documentation | Low | **Done** | `ebeid-farm-os-demo.html`, `farm-os-prototype.html`, `farm-os-full-demo.html` (mocks) |
 | DS | Design system + component library | Execution | Low/Med | **Done (v1.2.0 published)** | `@amrebeid/ui` ~40 components, white-label theming, token-purity gate, Changesets, **green CI**. **`1.2.0` published to npm + tagged (2026-06-25)** — a11y, datatable-mobile, recharts code-split, reduced-motion + **Storybook 10 toolchain upgrade** (PR #154). (Catalog expanded beyond the 9 synced to Claude Design — re-sync pending.) |
-| 0 | Security remediation & data cleanup | Execution+Apply | **Critical/High** | **OPEN — still required** | Legacy system: rotate exposed key, purge old-repo history, scrub Gmail/password, reconcile counts. Untouched by the new build. |
+| 0 | Security remediation & data cleanup | Execution+Apply | **Critical/High** | **Owner-deferred (2026-06-27)** | Prepped to the boundary by the agent: runbook (`STAGE-0-REMEDIATION-RUNBOOK.md`) complete, new repo verified secret-clean (gitleaks gate + manual scan), leaked-password protection confirmed OFF via advisor. The five remaining steps are Owner-only credential/external actions (rotate prod service_role + DB password, rotate/retire legacy keys, purge old-repo history, scrub spreadsheet + Google password, enable leaked-password protection) — **deferred by Owner decision; must be done before real Ebeid data**. Tracked with exact commands in issue #362. |
 | **MVP-0** | **Proof-of-value pilot (1 reference tenant)** | Execution | **Low/Med** | **BUILT (local) — pending review+validation** | `apps/farm-os`: all 14 screens, wedge loop e2e passing, 36 pgTAP + 11 Vitest. Plan: `docs/superpowers/plans/2026-06-21-farm-os-mvp0.md`. Local DB only; needs security review + pilot validation + deploy. |
-| 1 | SaaS foundation (orgs/RLS/roles/audit) | Execution | **High** | Todo | RLS is the tenant isolation gate |
-| 2 | Farm structure + palm registry import | Execution | Medium | Todo | Import real Nov-2025 registry |
-| 3 | Activity/event model + operations | Execution | Medium | Todo | asset+event+quantity spine |
-| 4 | Planning workspace | Execution | Low/Med | Todo | 6-step builder |
+| 1 | SaaS foundation (orgs/RLS/roles/audit) | Execution | **High** | **Done (2026-06-27)** | All four acceptance criteria met + independently reviewed. (a) **Cross-tenant isolation** — RLS deny-by-default `to authenticated`, `org_id` indexed, proven by `01_rls_isolation` + the invariants `08`/`22`/`24`/`27`/`81` (no-permissive-policy, every cross-org FK org-validated, every SECURITY DEFINER fn pins search_path); (b) **consultant multi-org per-org role** — **active-org** narrowing at the RLS layer (migration `0085`: `user_org_ids()` narrows to a membership-validated `active_org_id` JWT claim, fail-closed; `0086` org settings) + app **org switcher** + `getActiveMembership` reads the active claim (tests `82`); (c) **member removal revokes instantly** (membership-join RLS); (d) **audit_log immutable** (no update/delete policy + `02`/`79`). Org **settings** = owner-gated `fn_update_org_settings`. Farm-setup wizard covered by the editable structure feature. Independent adversarial review of the active-org core: no cross-org leak/escalation. |
+| 2 | Farm structure + palm registry import | Execution | Medium | **Done (2026-06-27, merged #344 + live)** | Editable structure (add/edit/remove sector/hawsha/line/palm) + per-node 360 pages + media + **croquis map** (re-landed #364); migrations `0080`–`0084` applied to prod. **SPEC-0003 RATIFIED (Owner 2026-06-27), 5 sectors.** Real Nov-2025 registry bulk import = Stage M. |
+| 3 | Activity/event model + operations | Execution | Medium | **Done (merged #344 + live)** | Ad-hoc event recording + follow-ups (SPEC-0010); migration `0083`. |
+| 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | Todo | Financial integrity |
-| 8 | People & labor/payroll | Execution | **High** | Todo | PII / regulated data. **PII-1 #173 FULLY DONE** — wage slice (`0046`: `payroll.read` + `people_compensation`, `people.rate` dropped) **and** contact slice (`0048`: deny-by-default on `people`, phone/email no longer member-readable). Broader Stage-8 build (attendance/payroll runs) still Todo |
-| 9 | Weather integration | Execution | Medium | Todo | External API = untrusted + key |
-| 10 | Care Academy content | Documentation | Med/High | Todo | Agronomy liability → expert sign-off |
-| 11 | AI assistant عبدالجليل | Execution | **High** | Todo | Lethal-trifecta control required |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Framework built on synthetic (2026-06-27, draft PR #368)** | `expenses.kind` (#6 drawings/capex separation) + `sales` + `fn_save_sale`/`fn_set_expense_kind` (budget.write) + the pure P&L engine (`lib/pnl.ts`) + `/accounting` report. Migration `0088` draft (Owner applies). pgTAP 660/660. **GATES STILL OPEN:** the dual-run reconciliation vs the real 7-yr Excel + privacy review (Stage M) + **independent review of the money logic** before prod. |
+| 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
+| 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
+| 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
+| 11 | AI assistant عبدالجليل | Execution | **High** | **SPEC-0005 RATIFIED (2026-06-27); boundary built, AI build review-gated** | Trifecta capability boundary (`lib/assistant-policy.ts`, draft PR #356) — deny-by-default, read-only/RLS-scoped/no-PII/no-outbound. **The AI itself (chat route, model, ingest) is NOT built — it requires independent security review per slice (highest risk).** |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
 | P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0048`** (`0001–0013` + `0015–0048`, **in sync with `main`**; `0032`–`0048` pushed + live-verified via `list_migrations`, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` #155 + wage-confidentiality `0046` PII-1 #173 wage slice + engine null-date guard `0047` #198 + contact-PII lockdown `0048` PII-1 #173 phone/email slice) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied); pgTAP 421/421. Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 

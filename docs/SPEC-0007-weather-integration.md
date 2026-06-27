@@ -1,8 +1,10 @@
 # SPEC-0007 — Weather integration: forecast ingest + operation gating (Stage 9)
 
-*Status: **DRAFT for Owner review** — design + decision-support only. No code/integration/key. Stage 9
-is **Medium risk** — an external API is *untrusted content + a secret key* (injection + secret
-surface). Mirrors SPEC-0001..0006.*
+*Status: **RATIFIED — Owner (Amr Ebeid), 2026-06-27 (in-session)** — design approved; the integration is
+built ([#350](https://github.com/AmrEbeid/Farm/pull/350)). Go-live needs only the Owner to set the
+server-side `WEATHER_API_KEY` / `WEATHER_API_URL` in Vercel. Originally: design + decision-support only.
+No code/integration/key. Stage 9 is **Medium risk** — an external API is *untrusted content + a secret
+key* (injection + secret surface). Mirrors SPEC-0001..0006.*
 
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 9 + §6 risks #3/#8, [`CLAUDE.md`](CLAUDE.md)
 (Security · untrusted input · lethal trifecta).*

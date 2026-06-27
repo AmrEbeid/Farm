@@ -1,6 +1,9 @@
 # SPEC-0006 — People, labor & payroll (Stage 8)
 
-*Status: **DRAFT for Owner review** — design + decision-support only. No code/migration/data. Stage 8
+*Status: **RATIFIED — Owner (Amr Ebeid), 2026-06-27 (in-session)** — design approved; build proceeds on
+**synthetic data**, gated. ⚠️ Still binding: **independent access review REQUIRED** for the payroll RPC,
+and real staff PII stays behind the **Stage-M privacy review** (no real PII in any env/model before it).
+Originally: design + decision-support only. No code/migration/data. Stage 8
 is **High risk** (PII + regulated payroll); **independent review of access is REQUIRED**, and real
 staff PII must not enter any environment or third-party model before the Stage M privacy review.
 Mirrors SPEC-0001..0005.*

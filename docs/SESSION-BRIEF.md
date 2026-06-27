@@ -1,5 +1,77 @@
-# Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-27 (latest) — back-half stages advanced to the buildable limit; Owner closed 4 gates; SAFE STOP
+**The Owner ratified SPEC-0003 / 0005 / 0006 / 0007 + the 5-sector decision in-session** (the in-writing
+Owner act that closes a ratification gate) → recorded in **PR #363**. That closes the gates for Stages
+5/8/9/11. Then, per the Owner's "build on synthetic, gated" directive, I built the Stage 7 + Stage 10
+frameworks. **Stopped on Owner request** ("safe stop, report, update docs").
+
+**Open PRs (all verified — pgTAP 660–666, tsc/eslint/build 0):**
+- **#363** — Owner ratifications (SPEC-0003/0005/0006/0007 + 5 sectors) — docs, ready.
+- **#364** — Stage 5 croquis, **re-landed** (the original #347 was orphaned/closed when #344's base branch was
+  deleted on merge — the croquis code was NOT on main; cherry-picked clean onto main). **Ready.**
+- **#350** — Stage 9 weather (SPEC-0007). **Ready**; go-live = Owner sets `WEATHER_API_KEY`/`WEATHER_API_URL`.
+- **#366** — Stage 10 Care Academy editor (migration **`0087`**, draft). Content store + the #4 sign-off gate
+  (`lib/academy.ts`) + `/academy`. Editing content RESETS its sign-off; chemical content needs a current reg.
+- **#368** — Stage 7 accounting framework (migration **`0088`**, draft). `expenses.kind` (#6) + `sales` +
+  P&L engine (`lib/pnl.ts`) + `/accounting`.
+- **#352** — payroll computation engine (`lib/payroll.ts`); **#356** — AI trifecta capability boundary
+  (`lib/assistant-policy.ts`). Both are the safe cores; the full builds are review-gated (below).
+
+**To merge (order + caveats):** apply migrations **with** the merges (prod was `0084`; `0085`/`0086`
+active-org/org-settings merged to main — confirm they're applied to prod first; then `0087` academy,
+`0088` accounting). **#366 and #368 both edit `lib/database.types.ext.ts` + `tests/22_security_invariants`
+(the SECURITY-DEFINER allowlist)** → whichever merges second needs a **trivial conflict resolution** (both
+just add distinct blocks). Closed/superseded: #347 (orphaned→#364), #354 (engine folded into #368), #355
+(gate folded into #366).
+
+**STILL OPEN — two real-world expert acts no AI can perform or fabricate (the honest stop line):**
+1. **Stage 7** — dual-run reconciliation of one closed season vs the **real 7-yr Ebeid Excel** + a **privacy
+   review** (real financials → Stage M). Framework is built + the #6 separation enforced; the figures are
+   synthetic (the UI says so).
+2. **Stage 10** — a **named licensed Egyptian agronomist** signs off the NPK/pesticide figures + confirms a
+   **current pesticide registration**. The workflow to RECORD it is built (`fn_signoff_academy_content`); when
+   the Owner has the real sign-off (name + date + registration expiry) it records in one call and Stage 10
+   closes. Until then content renders advisory ("قالب استرشادي — راجِع مهندسك الزراعي").
+
+**Also still binding (independent review — actor ≠ reviewer):** the **Stage 8 payroll-run RPC** (PII/payroll)
+and the **Stage 11 AI build** (chat route/model/ingest — highest risk) are **ratified but NOT built**; they
+need independent review per slice before prod. Stage 8's `labor_logs` + payroll-run RPC on synthetic is the
+next buildable slice once a reviewer is named.
+
+## 2026-06-27 (later) — Stages 2/3/4 SHIPPED + applied to prod (`0084`); list search live
+- **Frontend audit reconciled:** the MVP-0 UI is essentially complete — every "gap" a scout flagged
+  (purchase-recommendation panel, PR-approval UI, palm grid, #187 Arabic error-mapping, CLS loading
+  skeleton) was already built. The only genuinely-open, non-blocked polish was **list search/filter**.
+- **Merged to `main`:** **#346** (reusable `FilterableTable` + unit-tested `lib/filter.ts`; inventory +
+  purchase-request lists), **#344** (Stages 2/3/4 — editable structure, 360 media, ad-hoc events, plan
+  builder), and **#351** (plans-list search follow-up). Combined `main` build green.
+- **Prod DB pushed `0080`–`0084`** via the Supabase MCP (each under its **exact repo version** in a
+  `BEGIN/COMMIT` txn + ledger insert — **0 stray/off-version rows**). Then **`storage-policies.sql`** applied
+  (private `farm-media` bucket + 2 org-scoped `storage.objects` policies) so the media gallery works
+  end-to-end. **Prod head = `0084`, in sync with `main`.** Verified: 5/5 recorded, struct/event/plan RPCs +
+  `attachments` table + forced RLS live; `get_advisors` shows **only pre-existing WARNs** (the intentional
+  SECURITY-DEFINER-granted-to-authenticated pattern; gate enforced in-DB via `authorize()`).
+- **Owner-gated next (per PROJECT RULES — actor ≠ reviewer):** independent review on the `0081`/`0084` RLS
+  re-emits (structure/plans `tenant_all` now gate direct-REST writes on `structure.write`/`plan.write`);
+  regen `database.types.ts` against prod `0084` (new objects currently augmented in
+  `lib/database.types.ext.ts`). 🔴 still pending: rotate the service-role key + DB password before any REAL data.
+
+## 2026-06-27 — Stages 2/3/4 built + RECONCILED onto `main` (verified); branch ready to push
+- Built editable farm structure + 360 pages + media (Stage 2), ad-hoc activity recording (Stage 3), and
+  plan creation/assign/labor + `/plans` (Stage 4) — but on a **stale 0050 base** that collided with the
+  already-merged `0051`–`0077`. **Reconciled:** renumbered to migrations **`0078`–`0082`** (tests
+  `80`/`81`/`82`), **rebased onto `origin/main` (prod `0077`)** on branch
+  **`feat/stages-2-3-4-structure-events-plans`** (1 ahead / 0 behind).
+- **Verified on the rebased branch:** pgTAP **627/627**, `tsc` OK, Vitest **110/110**, `next build` green.
+  One real fix the reconcile caught: explicit `grant ... on attachments to authenticated` (audit-leak
+  invariant). Details: [`RECONCILE-stages-2-3-4-to-0077.md`](RECONCILE-stages-2-3-4-to-0077.md).
+- **Owner-gated next (NOT done — external):** push the branch + open a PR (CI incl. the duplicate-migration
+  guard now passes); after merge, apply `0078`–`0082` + `storage-policies.sql` to prod + regen
+  `database.types.ts`; independent review on the `0079` RLS re-emits per PROJECT RULES.
+- Prod/GitHub/Vercel are themselves in sync at `0077` (audited this session; `farm-ui-one.vercel.app` serves
+  the live app). `database.types.ts` reconciles to prod — the new objects live in `lib/database.types.ext.ts`.
 
 ## 2026-06-26 (latest) — PRs #318/#321 merged; prod pushed to `0073`; live site verified
 After the 360 review: **PR #318** (landing fabricated-KPI removal + 6-form offline handling + migration
