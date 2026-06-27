@@ -16,8 +16,8 @@ export const ASSISTANT_READ_TOOLS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const WRITE_RPC = /^fn_(save|archive|add|create|set|update|delete|execute|post|reserve|record|run|assign|revert|bin)_/i;
-const SENSITIVE = /(compensation|payroll|salary|wage|\brate\b|phone|email|pii)/i;
-const OUTBOUND = /(send|email|sms|whatsapp|notify|webhook|outbound|\bmail\b|broadcast)/i;
+const SENSITIVE = /(compensation|payroll|salary|wage|\brate\b|phone|email|pii|bank|iban|account_no|national_id)/i;
+const OUTBOUND = /(send|email|sms|whatsapp|notify|webhook|outbound|\bmail\b|broadcast|http_(post|get|put)|fetch|request|net\.)/i;
 const PRIVILEGED = /(service.?role|bypassrls|set.?role|admin|superuser)/i;
 
 export interface PolicyDecision {
@@ -31,7 +31,7 @@ export interface PolicyDecision {
  * The checks run refusal-first so a name that matches several forbidden classes still refuses.
  */
 export function assistantMayCall(tool: string): PolicyDecision {
-  const t = typeof tool === "string" ? tool.trim() : "";
+  const t = typeof tool === "string" ? tool.trim().toLowerCase() : "";
   if (t === "") return { allowed: false, reason: "empty tool name (deny-by-default)" };
   if (PRIVILEGED.test(t)) return { allowed: false, reason: "no elevated credentials (§2.1)" };
   if (OUTBOUND.test(t)) return { allowed: false, reason: "no outbound/send (§2.3 — breaks the trifecta)" };
