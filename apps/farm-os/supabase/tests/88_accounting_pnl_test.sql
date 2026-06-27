@@ -6,7 +6,7 @@
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(13);
+select plan(16);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.acct', (select user_id::text from public.organization_member
@@ -54,6 +54,19 @@ select throws_ok(
   '42501', null, 'direct-REST: a supervisor cannot INSERT a sale (budget.write RLS gate)');
 reset role;
 
+-- ===== 2b) revenue READ is owner/accountant only — must NOT leak to other org members =====
+-- (SPEC-0004 §3: financial rows visible to owner/accountant only; RLS read gate, not just app pages.)
+select pg_temp.as_user(current_setting('test.acct'));
+select cmp_ok(
+  (select count(*)::int from public.sales where id = current_setting('test.s1')::uuid),
+  '>=', 1, 'direct-REST: accountant (budget.write) CAN read a sale');
+reset role;
+select pg_temp.as_user(current_setting('test.sup'));
+select is(
+  (select count(*)::int from public.sales where org_id = :'org'),
+  0, 'direct-REST: a supervisor (no budget.write) reads ZERO sales (revenue read-leak gate)');
+reset role;
+
 -- ===== 3) #6: classify an expense as a DRAWING (separable from operating) =====
 select pg_temp.as_user(current_setting('test.acct'));
 select lives_ok(
@@ -95,6 +108,13 @@ reset role;
 select cmp_ok(
   (select count(*)::int from public.audit_log where entity_type = 'sale' and entity_id = current_setting('test.s1')),
   '>=', 1, 'a sale writes an audit_log row');
+-- the audit MIRROR must honor the same read gate: a supervisor cannot read the revenue row out of
+-- audit_log either (else the SELECT gate above is moot — the #270 H2 audit-leak class for `sale`).
+select pg_temp.as_user(current_setting('test.sup'));
+select is(
+  (select count(*)::int from public.audit_log where entity_type = 'sale' and org_id = :'org'),
+  0, 'audit-mirror: a supervisor reads ZERO sale audit rows (audit_read budget.write gate)');
+reset role;
 
 select * from finish();
 rollback;

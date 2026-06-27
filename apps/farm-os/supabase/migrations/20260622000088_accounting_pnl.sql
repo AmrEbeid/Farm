@@ -39,9 +39,23 @@ create index sales_org_idx on public.sales(org_id) where archived = false;
 alter table public.sales enable row level security;
 alter table public.sales force row level security;
 
--- reads: any org member (org-scoped; financial PAGES are app-gated to owner/accountant). writes:
+-- reads: budget.write authority only (owner/accountant) — financial revenue rows MUST NOT leak to other
+-- org members via PostgREST (SPEC-0004 §3; isolation enforced in Postgres, not just the app layer). writes:
 -- budget.write — same authority as expenses (0044). The NULL-tolerant parent-org predicate mirrors 0012.
-create policy tenant_all on public.sales for all to authenticated
+create policy tenant_read on public.sales for select to authenticated
+  using (
+    org_id in (select public.user_org_ids())
+    and public.authorize('budget.write', org_id)
+  );
+
+create policy tenant_write on public.sales for insert to authenticated
+  with check (
+    org_id in (select public.user_org_ids())
+    and public.authorize('budget.write', org_id)
+    and (sector_id is null or exists (select 1 from public.sectors s where s.id = sales.sector_id and s.org_id = sales.org_id))
+  );
+
+create policy tenant_update on public.sales for update to authenticated
   using (org_id in (select public.user_org_ids()))
   with check (
     org_id in (select public.user_org_ids())
@@ -136,3 +150,24 @@ grant  execute on function public.fn_save_sale(uuid, uuid, date, text, uuid, num
 revoke all     on function public.fn_set_expense_kind(uuid, text) from public;
 revoke execute on function public.fn_set_expense_kind(uuid, text) from anon;
 grant  execute on function public.fn_set_expense_kind(uuid, text) to authenticated;
+
+-- ── 4) gate `sale` audit rows on budget.write (mirror the base-table read rule onto the audit log) ───
+-- sales' base read is now budget.write-only (owner/accountant), but fn_audit('sale') mirrors the FULL
+-- before/after row into audit_log, whose audit_read is org-scoped — so without this, any org member could
+-- read revenue out of audit_log, re-opening the exact leak the SELECT gate closes (the #270 H2 wage class,
+-- pinned by test 56). Re-emit audit_read adding a `sale` arm alongside the existing people_compensation
+-- one; every other entity_type is unchanged (org-scoped). `is distinct from` is NULL-safe.
+drop policy if exists audit_read on public.audit_log;
+create policy audit_read on public.audit_log
+  for select to authenticated
+  using (
+    org_id in (select public.user_org_ids())
+    and (
+      entity_type is distinct from 'people_compensation'
+      or public.authorize('payroll.read', org_id)
+    )
+    and (
+      entity_type is distinct from 'sale'
+      or public.authorize('budget.write', org_id)
+    )
+  );
