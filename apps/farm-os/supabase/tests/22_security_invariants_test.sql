@@ -56,7 +56,15 @@ select is(
         'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
         'fn_reserve_stock',                       -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
         'fn_add_plan_operation',                  -- atomic plan-operation authoring RPC (CREATE-3 #196, migration 0038)
-        'fn_update_palm_status'                   -- gated + atomic palm status RPC (PALM-STATUS-1 #238, migration 0039)
+        'fn_update_palm_status',                  -- gated + atomic palm status RPC (PALM-STATUS-1 #238, migration 0039)
+        'fn_save_sector', 'fn_save_hawsha',       -- gated structure CRUD RPCs (STRUCT-1, migration 0081)
+        'fn_save_line', 'fn_save_palm',           -- gated structure CRUD RPCs (STRUCT-1, migration 0081)
+        'fn_archive_structure',                   -- gated cascade soft-delete/restore (STRUCT-1, migration 0081)
+        'fn_add_attachment', 'fn_archive_attachment', -- gated node-media RPCs (STRUCT-1, migration 0082)
+        'fn_record_event', 'fn_set_event_status',  -- gated ad-hoc event RPCs (STAGE 3 / SPEC-0010, migration 0083)
+        'fn_add_event_followup',                   -- gated event follow-up RPC (STAGE 3 / SPEC-0010, migration 0083)
+        'fn_create_plan', 'fn_set_plan_status',    -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
+        'fn_assign_plan_operation', 'fn_add_plan_labor' -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
         -- NB: fn_post_movement is deliberately NOT here — AUTHZ-3 (migration 0036) revoked its
         -- `authenticated` EXECUTE, making it an INTERNAL primitive. Pinned negatively below.
       )

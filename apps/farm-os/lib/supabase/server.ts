@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "@/lib/database.types";
+import type { Database } from "@/lib/database.types.ext";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 

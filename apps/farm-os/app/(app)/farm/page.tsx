@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { StructureForm } from "@/components/StructureForm";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
@@ -13,20 +14,25 @@ const ATTENTION_STATUS_AR: Record<string, string> = {
 };
 
 export default async function FarmStructurePage() {
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
+  // structure.write = owner/farm_manager (migration 0052) — the structural-edit authority.
+  const canEditStructure = ["owner", "farm_manager"].includes(m.role);
 
-  // sectors (the grid) and the farm-level event timeline are independent reads,
-  // both RLS-scoped to the caller's org — fetch in parallel.
+  // sectors (the grid), the farm row (for "add sector"), the farm-level event timeline, and the
+  // at-risk palms are independent reads, all RLS-scoped to the caller's org — fetch in parallel.
   const [
     { data: sectors, error },
+    { data: farm, error: farmError },
     { data: events, error: eventsError },
     { data: atRisk, error: atRiskError },
   ] = await Promise.all([
     sb
       .from("sectors")
-      .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male)")
+      .select("id, name, code, crop, hawshat(id, palm_count_barhi, palm_count_male, archived)")
+      .eq("archived", false)
       .order("code"),
+    sb.from("farms").select("id").eq("archived", false).order("code").limit(1).maybeSingle(),
     sb
       .from("farm_event")
       .select("id, subtype, status, occurred_at, notes")
@@ -38,6 +44,7 @@ export default async function FarmStructurePage() {
       .from("assets")
       .select("id, id_tag, name, status, hawshat(name), sectors(name)")
       .eq("type", "palm")
+      .eq("archived", false)
       .in("status", ["watch", "sick", "dead"])
       .order("status")
       .limit(100),
@@ -45,6 +52,7 @@ export default async function FarmStructurePage() {
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
   if (error) throw error;
+  if (farmError) throw farmError;
   if (eventsError) throw eventsError;
   if (atRiskError) throw atRiskError;
 
@@ -65,7 +73,9 @@ export default async function FarmStructurePage() {
   ];
 
   const tallied = (sectors ?? []).map((s) => {
-    const hawshat = (s.hawshat ?? []) as { palm_count_barhi?: number; palm_count_male?: number }[];
+    // exclude archived (removed) hawshat from the counts.
+    const hawshat = ((s.hawshat ?? []) as { palm_count_barhi?: number; palm_count_male?: number; archived?: boolean }[])
+      .filter((h) => !h.archived);
     const barhi = hawshat.reduce((sum, h) => sum + Number(h.palm_count_barhi ?? 0), 0);
     const male = hawshat.reduce((sum, h) => sum + Number(h.palm_count_male ?? 0), 0);
     return { id: s.id, name: s.name, code: s.code, hawshatCount: hawshat.length, barhi, male };
@@ -115,6 +125,16 @@ export default async function FarmStructurePage() {
         <KpiCard label="نخيل برحي" value={num(totalBarhi)} />
         <KpiCard label="ذكور" value={num(totalMale)} />
       </section>
+
+      {canEditStructure && farm?.id && (
+        <StructureForm
+          level="sector"
+          mode="create"
+          context={{ farmId: farm.id }}
+          triggerLabel="إضافة قطاع"
+          triggerVariant="primary"
+        />
+      )}
 
       <Card title="نخيل يحتاج عناية">
         {attentionRows.length === 0 ? (

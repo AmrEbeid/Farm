@@ -1,6 +1,21 @@
 # Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-27 — Stages 2/3/4 built + RECONCILED onto `main` (verified); branch ready to push
+- Built editable farm structure + 360 pages + media (Stage 2), ad-hoc activity recording (Stage 3), and
+  plan creation/assign/labor + `/plans` (Stage 4) — but on a **stale 0050 base** that collided with the
+  already-merged `0051`–`0077`. **Reconciled:** renumbered to migrations **`0078`–`0082`** (tests
+  `80`/`81`/`82`), **rebased onto `origin/main` (prod `0077`)** on branch
+  **`feat/stages-2-3-4-structure-events-plans`** (1 ahead / 0 behind).
+- **Verified on the rebased branch:** pgTAP **627/627**, `tsc` OK, Vitest **110/110**, `next build` green.
+  One real fix the reconcile caught: explicit `grant ... on attachments to authenticated` (audit-leak
+  invariant). Details: [`RECONCILE-stages-2-3-4-to-0077.md`](RECONCILE-stages-2-3-4-to-0077.md).
+- **Owner-gated next (NOT done — external):** push the branch + open a PR (CI incl. the duplicate-migration
+  guard now passes); after merge, apply `0078`–`0082` + `storage-policies.sql` to prod + regen
+  `database.types.ts`; independent review on the `0079` RLS re-emits per PROJECT RULES.
+- Prod/GitHub/Vercel are themselves in sync at `0077` (audited this session; `farm-ui-one.vercel.app` serves
+  the live app). `database.types.ts` reconciles to prod — the new objects live in `lib/database.types.ext.ts`.
+
 ## 2026-06-26 (latest) — PRs #318/#321 merged; prod pushed to `0073`; live site verified
 After the 360 review: **PR #318** (landing fabricated-KPI removal + 6-form offline handling + migration
 drafts) and **PR #321** (renumber, resolving a 0070/0071 dup-version collision with concurrent #319/#320)
