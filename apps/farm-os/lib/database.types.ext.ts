@@ -219,16 +219,70 @@ type StructFunctions = {
     };
     Returns: undefined;
   };
+  // ── STAGE 7 accounting, migration 0088 ──
+  fn_save_sale: {
+    Args: {
+      p_id: string | null;
+      p_org: string;
+      p_date?: string | null;
+      p_crop?: string | null;
+      p_sector_id?: string | null;
+      p_qty?: number | null;
+      p_unit?: string | null;
+      p_unit_price?: number | null;
+      p_total?: number | null;
+      p_buyer?: string | null;
+      p_season?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_set_expense_kind: {
+    Args: { p_id: string; p_kind: string };
+    Returns: Json;
+  };
+};
+
+// ── STAGE 7 sales (revenue), migration 0088 ──
+type SalesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    date: string | null;
+    crop: string | null;
+    sector_id: string | null;
+    qty: number | null;
+    unit: string | null;
+    unit_price: number | null;
+    total: number;
+    buyer: string | null;
+    season: string | null;
+    recorded_by: string | null;
+    created_at: string;
+    archived: boolean;
+  };
+  Insert: { org_id: string; total?: number };
+  Update: { total?: number; archived?: boolean };
+  Relationships: [];
+};
+
+/** Add the #6 expense `kind` (operating/drawing/capex) to the generated expenses table (migration 0088). */
+type WithKind<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { kind: string };
+  Insert: T["Insert"] & { kind?: string };
+  Update: T["Update"] & { kind?: string };
+  Relationships: T["Relationships"];
 };
 
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
-    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines"> & {
+    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses"> & {
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       attachments: AttachmentsTable;
+      expenses: WithKind<Tables["expenses"]>;
+      sales: SalesTable;
     };
     Functions: Public["Functions"] & StructFunctions;
   };
