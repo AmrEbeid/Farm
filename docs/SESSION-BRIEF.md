@@ -1,6 +1,30 @@
 # Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-27 (latest+1) — review & merge pass (Owner: "do not wait, review and merge, go ahead")
+**Merged to `main` this pass (all CI-green):** #363 ratifications, #364 croquis (Owner merged these two);
+then by me — **#372** (docs), **#352** (payroll engine `lib/payroll.ts`), **#356** (AI capability boundary
+`lib/assistant-policy.ts`), **#350** (weather, nav conflict resolved). The pure libs + weather + croquis +
+docs are now on main.
+
+**Prepared but NOT merged — the two migration PRs (blocked on the prod-apply, by design):**
+- **#368** Stage 7 accounting (migration **`0088`**) — rebased on main, nav resolved, **pgTAP 660/660**, build 0.
+- **#366** Stage 10 academy (migration renumbered **`0087`→`0089`** to clear the collision with #373's palm-guard
+  `0087`) — rebased, **pgTAP 666/666**, build 0.
+Both kept **draft** with a "do-not-merge-before-apply" comment: merging deploys `/accounting` + `/academy`
+(which query `sales`/`academy_content`) before the tables exist → **500 on live prod**.
+
+**⚠️ PROD IS BEHIND MAIN — `list_migrations` shows prod at `0084`, main at `0086`.** Migrations
+**`0085` (active_org) + `0086` (org_settings)** are merged + the app deployed, but **NOT applied to prod** —
+so the org-switcher / settings pages may be erroring on the LIVE site right now. **Owner apply queue:
+`0085`, `0086`, then `0088` (#368), `0089` (#366); merge #368/#366 after.** I deliberately did **not**
+auto-apply migrations to the live multi-tenant prod DB (Owner-only irreversible action; prod-apply is the
+Owner's batched process and is mid-queue).
+
+**Still open — the two real-world expert acts (unchanged):** Stage 7 real-Excel reconciliation + privacy
+review; Stage 10 licensed-agronomist + pesticide-registration sign-off (`fn_signoff_academy_content` ready
+to RECORD a genuine sign-off). Plus independent review before the Stage 8 payroll RPC + Stage 11 AI build.
+
 ## 2026-06-27 (latest) — back-half stages advanced to the buildable limit; Owner closed 4 gates; SAFE STOP
 **The Owner ratified SPEC-0003 / 0005 / 0006 / 0007 + the 5-sector decision in-session** (the in-writing
 Owner act that closes a ratification gate) → recorded in **PR #363**. That closes the gates for Stages
