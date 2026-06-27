@@ -1,6 +1,7 @@
 import { requireMembership, getUserOrgs, ROLE_LABEL_AR } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui";
+import { num } from "@/lib/money";
 
 /**
  * Profile / account page (SPEC-0012 S3). Read-only: shows the signed-in user's
@@ -25,7 +26,7 @@ export default async function ProfilePage() {
           <Row label="البريد الإلكتروني" value={user?.email ?? "—"} />
           <Row label="الدور" value={ROLE_LABEL_AR[m.role]} />
           <Row label="المزرعة" value={activeOrg?.name ?? "—"} />
-          {orgs.length > 1 && <Row label="عدد المزارع" value={String(orgs.length)} />}
+          {orgs.length > 1 && <Row label="عدد المزارع" value={num(orgs.length)} />}
         </dl>
       </Card>
       <p className="mt-4 text-sm" style={{ color: "var(--ink-muted)" }}>
