@@ -46,8 +46,10 @@ security definer
 set search_path = ''
 as $$
   with claim as (
+    -- nullif on the raw setting first so an empty-string GUC can't raise ''::jsonb; absent GUC →
+    -- current_setting(...,true) → NULL → NULL::jsonb → NULL. Either way: no active claim → full set.
     select nullif(
-      (current_setting('request.jwt.claims', true)::jsonb) ->> 'active_org_id', ''
+      nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'active_org_id', ''
     )::uuid as active
   )
   select m.org_id
