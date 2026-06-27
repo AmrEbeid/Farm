@@ -202,6 +202,11 @@ type StructFunctions = {
     };
     Returns: Json;
   };
+  // ── STAGE 1 active-org switcher, migration 0085 ──
+  fn_set_active_org: {
+    Args: { p_org: string };
+    Returns: undefined;
+  };
 };
 
 export type Database = Omit<Generated, "public"> & {
