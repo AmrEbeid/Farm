@@ -1,6 +1,31 @@
 # Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-27 (latest+2) — palm archived-hawsha guard (`0089`, prod HELD) + SPEC-0012 (profile + audit)
+**Where we are.** Two merges to `main`, **prod untouched at `0084`**:
+- **PR #373** — `fn_save_palm` data-integrity guard: migration **`0089`** (`palm_no_archived_hawsha`, rejects a
+  re-parent of a live palm into an *archived* hawsha → `22023`; `search_path=''` + all existing guards intact)
+  + pgTAP **test `89`** (9 assns). Independent review (fresh agent): APPROVE-WITH-NITS. Renumbered `0087`→`0089`
+  to avoid colliding with in-flight #366(0087)/#368(0088).
+- **PR #376** — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md) from a market/UX scan: **S3** read-only
+  `/profile` + nav; **S1** `/m` offline audit (offline-*tolerant*, NOT offline-*capable* — no SW/PWA/queue).
+
+**Approved next.** S2 (member/role admin) — role model ratified = **existing 5 roles**. Build as a focused PR:
+`fn_set_member_role`/`fn_remove_member` (migration **`0090`**, owner-gated, audited) + `/members` UI; the
+email-invite sub-task needs an invite-mechanism decision (pending-invite table vs Auth-admin Edge Function).
+Access-control → needs independent review.
+
+**NOT approved.** Applying `0089` (or the pending `0085`/`0086` access-control chain) to prod — **Owner HELD**;
+do that chain's independent review first. 🔴 service-role key rotation still outstanding (prior sessions).
+
+**Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md).
+
+**Reconcile-first notes.** Migration lanes are contested by parallel agents — `main` at `0089`; in-flight
+#366=`0087`, #368=`0088`; next free = `0090`. Re-check before authoring any migration. Prod head `0084` (2
+behind main's `0086`, plus `0089`).
+
+**Last evidence.** PRs [#373], [#376] merged; pgTAP 656/656, tsc clean, `next build` green this session.
+
 ## 2026-06-27 (latest+1) — review & merge pass (Owner: "do not wait, review and merge, go ahead")
 **Merged to `main` this pass (all CI-green):** #363 ratifications, #364 croquis (Owner merged these two);
 then by me — **#372** (docs), **#352** (payroll engine `lib/payroll.ts`), **#356** (AI capability boundary

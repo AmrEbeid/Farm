@@ -1,5 +1,17 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-27 (latest) — palm archived-hawsha guard merged (`0089`, prod HELD) + market scan → SPEC-0012 + profile page.**
+> (1) **`fn_save_palm` data-integrity fix** — an EDIT could re-parent a live palm into an *archived* hawsha
+> (vanishes from live views; NOT tenant-isolation). Merged as **PR #373**: migration **`0089`**
+> (`palm_no_archived_hawsha`, rejects re-parent into archived hawsha → `22023`) + pgTAP **test `89`** (9 assns).
+> Independent review: APPROVE-WITH-NITS. Renumbered `0087`→`0089` to yield to in-flight #366(0087)/#368(0088).
+> **Owner decision: prod apply HELD** — prod stays `0084`; `0089` + the pending `0085`/`0086` access-control
+> chain await that chain's independent review. (2) **Market/UX research** → [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md)
+> (member/role UI, profile, theme, `/m` offline audit). Owner ratified **role model = existing 5 roles**.
+> Shipped via **PR #376**: **S3 read-only `/profile`** + nav; **S1 `/m` offline audit** (offline-*tolerant*, not
+> offline-*capable* — no SW/PWA/queue). **Next:** S2 member/role admin (migration `0090` + invite-mechanism
+> decision + independent review).
+>
 > **2026-06-27 (product UI + Stage 1/0) — Stage 1 closed; four backend-but-no-UI gaps shipped as pages.**
 > **Stage 1 (SaaS foundation) is DONE** — active-org RLS narrowing + org switcher + org settings
 > (#348/#357/#359/#360, migrations `0085`/`0086`; independently reviewed, all four acceptance criteria met).
@@ -215,6 +227,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
 | 11 | AI assistant عبدالجليل | Execution | **High** | **SPEC-0005 RATIFIED (2026-06-27); boundary built, AI build review-gated** | Trifecta capability boundary (`lib/assistant-policy.ts`, draft PR #356) — deny-by-default, read-only/RLS-scoped/no-PII/no-outbound. **The AI itself (chat route, model, ingest) is NOT built — it requires independent security review per slice (highest risk).** |
+| UX | Account admin & UX-gap closure | Execution | Medium | **Active** | [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md) — from the 2026-06-27 market scan. **Done:** S1 `/m` offline audit, S3 read-only `/profile` (PR #376). **Next:** S2 member/role admin (5-role model ratified; migration `0090` + invite mechanism + review), S4 true offline, S5 theme. Does NOT rebuild Stage-1 items. |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
 | P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0048`** (`0001–0013` + `0015–0048`, **in sync with `main`**; `0032`–`0048` pushed + live-verified via `list_migrations`, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` #155 + wage-confidentiality `0046` PII-1 #173 wage slice + engine null-date guard `0047` #198 + contact-PII lockdown `0048` PII-1 #173 phone/email slice) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied); pgTAP 421/421. Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 
