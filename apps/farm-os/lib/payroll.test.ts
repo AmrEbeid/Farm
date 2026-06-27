@@ -47,6 +47,36 @@ describe("computePayroll — reconciliation oracle (SPEC-0006 §4.2)", () => {
     expect(run.total).toBe(0);
   });
 
+  it("FLAGS a zero rate — never silently pays logged hours nothing (non-negotiable #1)", () => {
+    const run = computePayroll([{ personId: "p1", hours: 7 }], new Map([["p1", 0]]));
+    expect(run.lines[0]).toEqual({ personId: "p1", hours: 7, rate: null, gross: 0, rateMissing: true });
+    expect(run.missingRates).toEqual(["p1"]);
+    expect(run.total).toBe(0);
+  });
+
+  it("reconciles fractional EGP rates across multiple lines (per-line rounding then sum)", () => {
+    // Hand-computed: p1 8.5h @ 37.50 = 318.75; p2 6.25h @ 24.00 = 150.00; total 468.75
+    const labor: LaborEntry[] = [
+      { personId: "p1", hours: 8.5 },
+      { personId: "p2", hours: 6.25 },
+    ];
+    const rates = new Map([
+      ["p1", 37.5],
+      ["p2", 24],
+    ]);
+    const run = computePayroll(labor, rates);
+    expect(run.lines).toEqual([
+      { personId: "p1", hours: 8.5, rate: 37.5, gross: 318.75, rateMissing: false },
+      { personId: "p2", hours: 6.25, rate: 24, gross: 150, rateMissing: false },
+    ]);
+    expect(run.total).toBe(468.75);
+    expect(run.missingRates).toEqual([]);
+  });
+
+  it("empty labor array → empty run (idempotency base case)", () => {
+    expect(computePayroll([], new Map())).toEqual({ lines: [], total: 0, missingRates: [] });
+  });
+
   it("rounds gross + total to 2 decimals", () => {
     const run = computePayroll([{ personId: "p1", hours: 1.5 }], new Map([["p1", 33.33]]));
     expect(run.lines[0].gross).toBe(50); // 1.5 × 33.33 = 49.995 → 50.00
