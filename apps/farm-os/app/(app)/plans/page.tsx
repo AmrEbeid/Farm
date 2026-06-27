@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Card, EmptyState } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
 import { PlanCreateForm } from "@/components/PlanCreateForm";
 import { fmtDate } from "@/lib/dates";
 
@@ -68,7 +69,13 @@ export default async function PlansListPage() {
             description={canCreate ? "أنشئ خطة جديدة للبدء." : undefined}
           />
         ) : (
-          <SimpleTable columns={columns} rows={rows} empty="لا توجد خطط" />
+          <FilterableTable
+            columns={columns}
+            rows={rows}
+            empty="لا توجد خطط"
+            searchColumns={["type", "period", "scope", "status"]}
+            placeholder="ابحث في الخطط…"
+          />
         )}
       </Card>
     </div>
