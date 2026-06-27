@@ -38,6 +38,9 @@ const DEFAULT_AR: Record<string, string> = {
   "57014": "استغرقت العملية وقتًا طويلًا، يُرجى المحاولة مرة أخرى.", // query_canceled (statement timeout)
 };
 
+/** The SQLSTATE codes with a known Arabic mapping — the set the "Why?" surface must cover. */
+export const AR_ERROR_CODES: readonly string[] = Object.keys(DEFAULT_AR);
+
 /**
  * Map a DB error to a field-safe Arabic message. Resolution order:
  *   1. caller `overrides[code]`  2. `DEFAULT_AR[code]`  3. `fallback` (generic Arabic).

@@ -32,6 +32,7 @@
 - Run the listed checks and **paste the output** — evidence, not assertions.
 - Produce a **full record of changes**; report remaining risks and the stop point.
 - **Independent review required** on any change to: RLS/access, money/voucher/budget logic, payroll/PII, the stock-coverage engine, the AI assistant, and any deploy.
+- **Documentation Health Score (part of Done).** A **user-facing page/workflow** is not Done until it has: a `pageMeta` definition (the five questions — what / why / when / how / common-mistakes), linked spec(s), permissions/roles, a "Why?" entry for any rule it can be blocked by, and a changelog/release note. **Blocking for user-facing surfaces; advisory for internal/admin-only or infrastructure work.** Enforced by a CI lint, not a prompt sentence. See [`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md). (Rule-based "Why?" only; AI help is gated behind Stage 11.)
 
 ## Project-specific non-negotiables (THIS project)
 1. **Never fabricate farm or financial data.** Use the real registry / accounting / offshoot records; if data is missing, say so — do not invent numbers.
