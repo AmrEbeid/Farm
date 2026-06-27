@@ -1,5 +1,15 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-27 (product UI + Stage 1/0) — Stage 1 closed; four backend-but-no-UI gaps shipped as pages.**
+> **Stage 1 (SaaS foundation) is DONE** — active-org RLS narrowing + org switcher + org settings
+> (#348/#357/#359/#360, migrations `0085`/`0086`; independently reviewed, all four acceptance criteria met).
+> **Stage 0 is Owner-deferred** (#365): runbook ready, new repo verified secret-clean, leaked-password
+> protection confirmed off; the five credential/external steps are tracked in issue **#362** (to be done
+> before real data). Filled four product-surface gaps that had schema but no front-end — live, RLS-enforced,
+> role-gated: **Suppliers** (#367), **Expenses** (#369), **Team/People** read-only directory (#370),
+> **Budgets** overview (#371). **24 in-app pages** now. Note: prod DB is behind `main` (active-org `0085`/`0086`
+> + later not yet pushed) — a prod `db push` + redeploy is needed for these to go live.
+>
 > **2026-06-27 (latest) — back-half stages advanced to the buildable limit; Owner closed 4 ratification gates in-session.**
 > The Owner (Amr Ebeid) **ratified SPEC-0003 / 0005 / 0006 / 0007 + the 5-sector decision** in writing this session
 > (recorded → PR #363), closing the ratification gates for Stages 5/8/9/11. Delivered: **Stage 9 weather** (PR #350,
