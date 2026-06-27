@@ -8,7 +8,15 @@ out-of-band and must be rotated (see "Security follow-ups").
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0079` (2026-06-27).** Authoritative source = `schema_migrations` (max =
+  - **Migrations now at `0084` (2026-06-27, later).** Stages 2/3/4 applied via the Supabase MCP:
+    `0080` structure_soft_delete_audit, `0081` structure_write_rpcs (+ `structure.write` on `authorize`;
+    structure `tenant_all` re-emit), `0082` attachments (table + RLS + RPCs), `0083` record_event (3 RPCs),
+    `0084` plan_builder (4 RPCs + plans `tenant_all` re-emit). Each recorded under its **exact repo version**
+    (BEGIN/COMMIT txn + ledger insert; **0 stray/off-version rows**). Also applied **`storage-policies.sql`**
+    (private `farm-media` bucket + 2 org-scoped `storage.objects` policies — node media now works). `main`
+    in sync (#344/#346/#351 merged). `get_advisors`: only pre-existing WARNs. **Independent review of the
+    `0081`/`0084` access-control re-emits is still Owner-gated (actor ≠ reviewer).**
+  - **Prior: migrations at `0079` (2026-06-27).** Authoritative source = `schema_migrations` (max =
     `20260622000079`). Pushes via the Supabase MCP (all versions match their files; verified
     head/recorded-count/triggers/constraints/policies, no dup versions, `get_advisors` no new
     regressions): **`0049–0066`** (18: assets/PR/engine hardening + cross-org FK sweep,
