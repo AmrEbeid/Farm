@@ -148,13 +148,15 @@ begin
 end;
 $$;
 
--- The Supabase auth admin role runs the hook. Guard the grant so the Docker-free test harness
--- (which has no supabase_auth_admin role) still applies this migration cleanly.
+-- Lock the hook to NOTHING by default — it must never be a client-reachable code path (it would
+-- let a client forge claims). Revoke UNCONDITIONALLY (so the Docker-free harness, which has no
+-- supabase_auth_admin role, still sees it locked and INV-1/INV-2 hold); grant to the auth admin
+-- only when that role exists.
+revoke execute on function public.custom_access_token_hook(jsonb) from public, anon, authenticated;
 do $$
 begin
   if exists (select 1 from pg_roles where rolname = 'supabase_auth_admin') then
     execute 'grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin';
-    execute 'revoke execute on function public.custom_access_token_hook(jsonb) from authenticated, anon, public';
   end if;
 end
 $$;
