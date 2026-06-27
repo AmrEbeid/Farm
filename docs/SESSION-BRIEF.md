@@ -1,6 +1,107 @@
 # Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-27 (latest+3) — ground-truth audit (RECONCILE-001) + Commercial layer specced (SPEC-0013) — docs only
+**Where we are.** No code/schema/prod change this session — **documentation only**, `main` unchanged at `0089`,
+prod still `0084` (HELD). An external commercial-readiness assessment was **reconciled against `main`** and
+found to have judged a **stale prototype schema** (the `payment_vouchers`/`farm_tasks`/`seedling_inventory`/
+"simple roles, no org isolation"/"Lovable useState prompt" it critiqued exist **only in `docs/03`** or **not at
+all** — verified by grep; no `lovable` anywhere). The live product (multi-tenant + RLS + inventory/coverage +
+event ledger + planning + PR/approval + attachments + the full operating loop) is **already built + live**.
+Produced three artifacts:
+- **[`RECONCILE-001-main-ground-truth-2026-06-27.md`](RECONCILE-001-main-ground-truth-2026-06-27.md)** — the new
+  **canonical capability map** (37 tables, ~38 RPCs, 26 pages, 89 pgTAP files; capability → evidence + status +
+  confidence). Future audits/AI reviews reconcile here, not to legacy docs.
+- **[`SPEC-0013-commercial-saas-layer.md`](SPEC-0013-commercial-saas-layer.md)** — the one genuinely-missing
+  layer (billing/tiers/limits/onboarding/import/demo/admin/trials/flags), **Draft**, High risk, 8 slices.
+- Registered both in PROJECT-TRACKER (new banner + Stage **C** + open gates); a Commercial-Readiness matrix was
+  added to the tracker artifact.
+
+**Approved next.** Nothing new built. The standing approved slice remains **SPEC-0012 S2** (member/role admin,
+migration `0090`). SPEC-0013 is **Draft — not approved to build** until the Owner ratifies it.
+
+**NOT approved.** Building any SPEC-0013 slice; signing up for any billing provider; touching prod. Applying
+`0089`/`0085`/`0086` to prod still Owner-HELD. 🔴 service-role key rotation still outstanding. Adding the
+`docs/03` legacy banner = done this session (doc-only, Owner-recommended text).
+
+**Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md). New: Stage **C** —
+[`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) (Draft, awaiting ratification).
+
+**Reconcile-first notes.** RECONCILE-001 is the canonical schema reference — use it before trusting `docs/03`
+(now banner-marked as carrying legacy/migration-from examples). Migration lanes: `main` at `0089`; SPEC-0012 S2
+= next free `0090`; SPEC-0013 lanes come after that.
+
+**Also this session (Owner: "go for both, keep scope tight").** Specced the living-documentation idea as
+**[`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)** — **Tier A only** (per-page `pageMeta` help drawer
+answering the 5 questions + **rule-based "Why?"** over `lib/errors.ts` + a Documentation Health Score CI lint);
+manual-gen, walkthroughs, videos = deferred Tier B/C; **AI Expert / AI "Why?" hard-gated behind Stage 11**.
+Substrate already exists (`lib/nav.ts` page registry, `lib/errors.ts` ~19 rule codes, `docs/user-manual/`).
+Amended **CLAUDE.md Definition of Done** to add the Documentation Health Score — **blocking for user-facing
+pages/workflows, advisory for internal/admin/infra**, enforced by CI not prose. Registered SPEC-0014 in the
+tracker (banner + Stage **K** + open gate). **Still Draft — no build authorised** (no app code/migration/AI).
+
+**Also this session.** Wrote canonical **[`PRODUCT-MASTER-FILE.md`](PRODUCT-MASTER-FILE.md)** (20 sections,
+reconciled to `main`) — the single product description for business/product/design/eng/onboarding/AI.
+**Reconcile corrections it records (use the master file + RECONCILE-001 as ground truth):** (1) **planned-vs-actual
+IS built** (`reports/[planId]/pva`) → RECONCILE-001's "⬜ not built" line is **superseded** (worth a 1-line fix in
+RECONCILE-001); (2) **`/accounting`+`lib/pnl.ts`+`sales` and `/academy` are NOT on `main`** — draft PRs #368/#366,
+migrations `0087`/`0088` unapplied (RECONCILE-001 cited them as if present → also superseded); (3) **README prod
+"`0048`" is stale** — prod `0084` (HELD), `main` `0089`; README needs refresh. Tracker references the master file.
+
+**Also this session.** Wrote **[`SPEC-0015` Product Knowledge System](SPEC-0015-product-knowledge-system.md)** —
+a 6-phase "Knowledge Operating System" with a **FEAT/BR/TERM traceability model** + **L0–L5 maturity levels**,
+**Tier 1 scoped for build only** (Feature Registry + Business Rules Catalog + Domain Dictionary, code-anchored),
+everything else phase-gated by a concrete consumer. Made **[`PRODUCT-MASTER-FILE.md`](PRODUCT-MASTER-FILE.md)** the
+**hub** (added §0 Knowledge System Index; body not expanded). **Then (under Owner `/goal` "go ahead, don't stop") — Tier-1 catalogs BUILT (L3).** Via 3 read-only Explore
+agents: **[`FEATURE-REGISTRY.md`](FEATURE-REGISTRY.md)** (27 FEAT-IDs), **[`BUSINESS-RULES-CATALOG.md`](BUSINESS-RULES-CATALOG.md)**
+(~50 BR-IDs ← ~68 extracted constraints, each → enforcing object + migration + test + FEAT), **[`DOMAIN-DICTIONARY.md`](DOMAIN-DICTIONARY.md)**
+(~40 terms, Arabic verified from `lib/labels.ts`/`StructureForm`/`auth.ts`). Master-file hub flipped to ✅; SPEC-0015
+tasks T0–T1.3 marked done. **Reconcile fixes:** RECONCILE-001 corrected (planned-vs-actual IS built `reports/[planId]/pva`;
+`/accounting`+`lib/pnl.ts` are draft-PR #368, not `main`); README ground-truth banner added (stale "`0048`").
+**Did NOT do (Owner-gated / out of safe scope):** any app code/migration/AI/deploy; git commit/push (outward +
+this GitHub account can't push to `AmrEbeid/Farm`); the deferred catalogs (Notification/Automation/Import-Export/
+Metrics/Training/Customer-Success/AI-Knowledge-Graph) remain Phase-gated. **Then (still under `/goal`) — Knowledge System Phase 2 BUILT (5 engineering catalogs, L3).** Via 3 parallel Explore
+agents (RPC signatures, table columns, report internals): [`RPC-CATALOG.md`](RPC-CATALOG.md) (28 RPCs + 9 triggers,
+RPC-IDs→BR/FEAT), [`DATA-DICTIONARY.md`](DATA-DICTIONARY.md) (38 tables incl. `user_active_org`, TBL-IDs),
+[`PERMISSIONS-MATRIX.md`](PERMISSIONS-MATRIX.md) (perm→roles map + page guards + SoD), [`EVENT-CATALOG.md`](EVENT-CATALOG.md),
+[`REPORT-CATALOG.md`](REPORT-CATALOG.md). Surfaced limitations (now documented): dashboards/budget-check use a
+hardcoded `SEED_PLAN_ID`; budget-check hardcoded to `أسمدة`; `FilterableTable` exists but isn't wired onto list
+pages; no report export. Component catalog = Storybook (linked, not duplicated). **Phases 3–6 remain
+consumer-gated** (ops/customer-success/intelligence/executive) — not built.
+
+**Then (still under `/goal`) — SPEC-0014 Tier A content drafted as docs (no app wiring).** [`PAGE-HELP.md`](PAGE-HELP.md)
+(5-question help blocks for all pages, A1 content), [`WHY-CATALOG.md`](WHY-CATALOG.md) (rule-based "Why?" mapped from
+the real `lib/errors.ts` codes + situations → BR refs, A3 content), [`DOCUMENTATION-HEALTH.md`](DOCUMENTATION-HEALTH.md)
+(per-page DoD scorecard; core-loop pages L3; systemic gap = no per-page changelog ⑧, partial manual ⑦).
+**16 knowledge docs total.**
+
+**Then (still under `/goal`) — SPEC-0014 Tier A BUILT in app code + verified (first code this session).** Low-risk
+(presentational + pure logic; no schema/AI/access): `lib/page-help.ts` (Arabic `pageMeta`), `lib/why.ts` (rule-based
+"Why?"; `lib/errors.ts` got an additive `AR_ERROR_CODES` export), `components/HelpDrawer.tsx` + `components/WhyButton.tsx`
+(via `@amrebeid/ui` `Drawer`), wired ONCE into `components/AppChrome.tsx` topbar (`activeNavId`). A4 Health-Score =
+**Vitest drift-guards** (`lib/page-help.test.ts`, `lib/why.test.ts`). **Verified: tsc 0, ESLint 0, Vitest 159/159.**
+**Local/uncommitted; NOT deployed** (commit/deploy Owner-gated; this GitHub identity can't push to `AmrEbeid/Farm`).
+Interactive in-browser check pending a logged-in session (shell is auth-gated). Tier C (AI "Why?"/Expert) stays
+behind Stage 11.
+
+**Quality gate:** a 4th Explore agent **adversarially verified** 12 high-stakes Business Rules against the actual
+migration SQL + tests — **12/12 enforcement claims VERIFIED**; only 2 test-number typos found + fixed (BR-040 test
+`33` not `32`; BR-104 test `83` not `81`; FEAT-011 likewise). A 5th agent verified the page access-gates (now in
+the master file §6, NV markers removed). **Approved-next:** Owner review/accept of the built Tier-1 catalogs;
+decide Phase-2 sequencing vs SPEC-0013.
+
+**Last evidence.** New docs: RECONCILE-001, SPEC-0013, SPEC-0014, SPEC-0015, **PRODUCT-MASTER-FILE.md**,
+**FEATURE-REGISTRY.md**, **BUSINESS-RULES-CATALOG.md**, **DOMAIN-DICTIONARY.md**, **RPC-CATALOG.md**,
+**DATA-DICTIONARY.md**, **PERMISSIONS-MATRIX.md**, **EVENT-CATALOG.md**, **REPORT-CATALOG.md**, **PAGE-HELP.md**,
+**WHY-CATALOG.md**, **DOCUMENTATION-HEALTH.md** (16 knowledge docs); edits: PROJECT-TRACKER (banners +
+Stages C/K + gates + master-file/SPEC-0015 refs + Tier-1-built note), CLAUDE.md (DoD), `docs/03` legacy banner,
+master-file §0 hub index (+ Tier-1 ✅), SPEC-0015 tasks T0–T1.3 done, **RECONCILE-001 corrections** (PvA built;
+`/accounting` draft-only), **README ground-truth banner**, SESSION-BRIEF. Consistency pass: no stale PvA claim,
+all hub links resolve, catalog cross-refs dense (FEAT/BR). **Plus SPEC-0014 Tier A app code** (`lib/page-help.ts`,
+`lib/why.ts`, `lib/errors.ts` export, `HelpDrawer.tsx`, `WhyButton.tsx`, `AppChrome.tsx` wiring, 2 test files) —
+**checks run: tsc 0, ESLint 0, Vitest 159/159 green.** All changes (16 docs + the code) are **local/uncommitted; not
+deployed** — commit/push/deploy is Owner-gated + outward (and this GitHub identity can't push to `AmrEbeid/Farm`).
+
 ## 2026-06-27 (latest+2) — palm archived-hawsha guard (`0089`, prod HELD) + SPEC-0012 (profile + audit)
 **Where we are.** Two merges to `main`, **prod untouched at `0084`**:
 - **PR #373** — `fn_save_palm` data-integrity guard: migration **`0089`** (`palm_no_archived_hawsha`, rejects a
