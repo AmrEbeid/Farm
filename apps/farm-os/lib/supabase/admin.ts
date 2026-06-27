@@ -4,7 +4,7 @@
 // lib/seed-auth.ts. The service-role key must never reach the browser bundle.
 import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Database } from "@/lib/database.types.ext";
 
 /**
  * Service-role Supabase client — SERVER ONLY. Bypasses RLS, so it must never

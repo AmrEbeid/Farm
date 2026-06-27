@@ -1,4 +1,15 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-26 by Claude (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
+
+> **2026-06-27 — Stages 2/3/4 BUILT + reconciled onto `main` (verified), on branch
+> `feat/stages-2-3-4-structure-events-plans`.** Editable farm structure + per-node 360 pages + photos/docs
+> (Stage 2, [`SPEC-0003`](SPEC-0003-farm-structure-and-palm-registry-import.md) §9); ad-hoc activity
+> recording (Stage 3, [`SPEC-0010`](SPEC-0010-activity-event-recording.md)); plan creation/assign/labor +
+> `/plans` (Stage 4, [`SPEC-0011`](SPEC-0011-planning-workspace.md)). Built on a stale 0050 base, then
+> **renumbered to migrations `0078`–`0082`** (tests `80`/`81`/`82`) and **rebased onto `origin/main`
+> (prod `0077`)** — 1 ahead/0 behind. Verified on the rebased branch: **pgTAP 627/627, tsc, Vitest 110/110,
+> `next build` green**. One real fix the reconcile caught: explicit `attachments` grant (audit-leak
+> invariant). **Owner-gated next:** push + PR; then apply `0078`–`0082` + `storage-policies.sql` to prod +
+> regen types. See [`RECONCILE-stages-2-3-4-to-0077.md`](RECONCILE-stages-2-3-4-to-0077.md).
 
 > **2026-06-26 — #155 / SPEC-0009 partial receipts COMPLETE end-to-end (model + UI):** the partial-receipt
 > UI (SPEC-0009 slice 5) merged as **#285** — `components/ReceiveForm.tsx` (per-line received-qty inputs,

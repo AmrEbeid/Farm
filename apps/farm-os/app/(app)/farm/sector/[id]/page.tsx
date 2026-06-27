@@ -1,8 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Card } from "@/components/ui";
+import { Breadcrumbs, Card, Alert } from "@/components/ui";
 import { SectorFile } from "@/components/SectorFile";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { StructureForm } from "@/components/StructureForm";
+import { StructureArchiveButton } from "@/components/StructureArchiveButton";
+import { MediaGallery } from "@/components/MediaGallery";
+import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
+import { getAttachments } from "@/app/(app)/farm/structure-actions";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -31,32 +36,35 @@ export default async function SectorFilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
+  const canEditStructure = ["owner", "farm_manager"].includes(m.role);
+  const canAttach = ["owner", "farm_manager", "agri_engineer", "supervisor"].includes(m.role);
 
-  // sector, the sector's event_locations, and its palm assets are all keyed on
-  // the sector id and independent of each other, so fetch them in parallel. The
-  // farm_event read below is dependent (it filters by the ids from locs), so it
-  // stays sequential.
   const [
     { data: sector, error: sectorError },
     { data: locs, error: locsError },
     { data: assets, error: assetsError },
+    attachments,
   ] = await Promise.all([
     sb
       .from("sectors")
-      .select("id, name, code, crop, hawshat(id, name, code, palm_count_barhi, palm_count_male)")
+      .select(
+        "id, name, code, crop, area_feddan, planting_date, notes, archived, hawshat(id, name, code, palm_count_barhi, palm_count_male, archived)",
+      )
       .eq("id", id)
       .maybeSingle(),
     // timeline from done/planned farm_events located in this sector (FF-1 rollup)
     sb.from("event_locations").select("event_id").eq("sector_id", id),
-    // palm grid: assets in this sector, grouped by line
+    // palm grid: live palm assets in this sector, grouped by line
     sb
       .from("assets")
       .select("id, id_tag, status, sex, line_id, lines(line_no)")
       .eq("sector_id", id)
       .eq("type", "palm")
+      .eq("archived", false)
       .order("id_tag"),
+    getAttachments("sector", id),
   ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
@@ -66,13 +74,14 @@ export default async function SectorFilePage({
 
   if (!sector) return <div className="p-6">القطاع غير موجود.</div>;
 
-  const hawshat = (sector.hawshat ?? []) as {
+  const hawshat = ((sector.hawshat ?? []) as {
     id: string;
     name: string;
     code: string;
     palm_count_barhi?: number;
     palm_count_male?: number;
-  }[];
+    archived?: boolean;
+  }[]).filter((h) => !h.archived);
   const barhi = hawshat.reduce((s, h) => s + Number(h.palm_count_barhi ?? 0), 0);
   const male = hawshat.reduce((s, h) => s + Number(h.palm_count_male ?? 0), 0);
 
@@ -111,6 +120,13 @@ export default async function SectorFilePage({
     description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status,
   }));
 
+  const activities: ActivityItem[] = (events ?? []).map((e) => ({
+    id: e.id,
+    title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "نشاط",
+    status: e.status ?? "done",
+    time: fmtDate(e.occurred_at),
+  }));
+
   const lineMap = new Map<string, PalmLine>();
   for (const a of assets ?? []) {
     const lineNo = (a.lines as { line_no?: number } | null)?.line_no ?? 0;
@@ -136,11 +152,15 @@ export default async function SectorFilePage({
         ]}
       />
       <h1 className="text-2xl font-bold">{sector.name}</h1>
+
+      {sector.archived && <Alert tone="warning" title="هذا القطاع مُزال (مؤرشف)" />}
+
       <SectorFile
         name={sector.name}
         meta={[
           { id: "code", term: "الرمز", description: sector.code },
           { id: "crop", term: "المحصول", description: sector.crop ?? "—" },
+          { id: "area", term: "المساحة", description: sector.area_feddan != null ? `${num(sector.area_feddan)} فدان` : "—" },
           { id: "hawshat", term: "عدد الحوشات", description: num(hawshat.length) },
           { id: "barhi", term: "نخيل برحي", description: num(barhi) },
           { id: "male", term: "ذكور", description: num(male) },
@@ -148,9 +168,51 @@ export default async function SectorFilePage({
         events={timeline}
         palmLines={palmLines}
       />
+
+      {canEditStructure && (
+        <Card title="إدارة القطاع">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              <StructureForm
+                level="sector"
+                mode="edit"
+                initial={{
+                  id: sector.id,
+                  name: sector.name,
+                  code: sector.code,
+                  crop: sector.crop,
+                  areaFeddan: sector.area_feddan,
+                  plantingDate: sector.planting_date,
+                  notes: sector.notes,
+                }}
+                triggerLabel="تعديل بيانات القطاع"
+              />
+              <StructureForm
+                level="hawsha"
+                mode="create"
+                context={{ sectorId: sector.id }}
+                triggerLabel="إضافة حوشة"
+                triggerVariant="primary"
+              />
+            </div>
+            <StructureArchiveButton type="sector" id={sector.id} archived={!!sector.archived} redirectTo="/farm" />
+          </div>
+        </Card>
+      )}
+
       <Card title="الحوشات">
         <SimpleTable columns={hawshaColumns} rows={hawshaRows} empty="لا توجد حوشات" />
       </Card>
+
+      <RecordActivity locationType="sector" locationId={sector.id} canRecord={canAttach} activities={activities} />
+
+      <MediaGallery
+        entityType="sector"
+        entityId={sector.id}
+        orgId={m.orgId}
+        initial={attachments}
+        canAttach={canAttach}
+      />
     </div>
   );
 }
