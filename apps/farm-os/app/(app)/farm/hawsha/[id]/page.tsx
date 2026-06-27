@@ -175,9 +175,7 @@ export default async function HawshaFilePage({
           {
             id: "planting",
             term: "تاريخ الزراعة",
-            description: hawsha.planting_date
-              ? new Date(hawsha.planting_date).toLocaleDateString("ar-EG")
-              : "—",
+            description: fmtDate(hawsha.planting_date),
           },
         ]}
         events={timeline}
