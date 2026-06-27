@@ -34,11 +34,13 @@ Changesets, the GitHub Actions workflows, and the package-registry config live a
   Avoid running `npm install` inside `packages/ui` or `apps/farm-os` directly; installing
   from a sub-package can re-resolve and nest a second copy of React (the root `overrides`
   pins a single React 19), which breaks context-based tests. Always install from root.
-- **Supabase CLI** — for the app's local database (Postgres, Auth, PostgREST) via Docker.
-  See <https://supabase.com/docs/guides/local-development>. Docker (or Docker Desktop)
-  must be running for `supabase start`.
-- **Homebrew Postgres 17 + pgTAP** *(optional, for the Docker-free DB test shim)* — only
-  needed if you want to run the pgTAP suite without Docker (see Testing below). On macOS:
+- **Supabase CLI** — for remote operations (`supabase db push`, `supabase link`) against the
+  cloud project. See <https://supabase.com/docs/guides/cli>. The local Docker-based
+  `supabase start` stack has been **removed**; schema changes are applied to the remote (or a
+  Supabase branch) project via the Supabase MCP / migrations (see `docs/DEPLOY-RUNBOOK.md`).
+- **Homebrew Postgres 17 + pgTAP** *(for the DB test shim — the primary local DB-test path)* —
+  needed to run the pgTAP suite locally; the same harness is the authoritative DB gate in CI
+  (see Testing below). On macOS:
   ```bash
   brew install postgresql@17
   # build pgTAP from source:
@@ -71,7 +73,8 @@ App scripts are defined in `apps/farm-os/package.json`.
 
 ### 1. Environment variables
 
-Copy the example and fill in values from your local Supabase stack:
+Copy the example and fill in values from the remote (or a Supabase branch) project
+(Supabase dashboard → Project Settings → API):
 
 ```bash
 cd apps/farm-os
@@ -80,26 +83,25 @@ cp .env.example .env.local      # never commit .env.local
 
 `.env.example` documents:
 
-- `NEXT_PUBLIC_SUPABASE_URL` — defaults to `http://127.0.0.1:54321` for the local stack.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — RLS-scoped public key; from `supabase status`.
-- `SUPABASE_SERVICE_ROLE_KEY` — **server-only, bypasses RLS**; from `supabase status`.
+- `NEXT_PUBLIC_SUPABASE_URL` — the remote (or branch) project URL (dashboard → Settings → API).
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — RLS-scoped public key; from the project's API settings.
+- `SUPABASE_SERVICE_ROLE_KEY` — **server-only, bypasses RLS**; from the project's API settings.
   Never expose to the client or commit a real value.
 
 (`.env.production.example` documents the deployed-environment variables — for Owner-gated
 deploy only; see `docs/DEPLOY-RUNBOOK.md`.)
 
-### 2. Start the local Supabase stack and load the schema + seed
+### 2. Database — remote project (no local Docker stack)
 
-From `apps/farm-os` (Docker must be running):
+The local Docker-based Supabase stack (`supabase start`) has been **removed**. Point
+`.env.local` (above) at the remote project, or at a per-developer **Supabase branch** if you
+need an isolated database. Schema changes are applied to the remote/branch project via the
+**Supabase MCP** / migrations — not a local `supabase db reset` — and prod pushes remain
+Owner-gated (see `docs/DEPLOY-RUNBOOK.md`).
 
-```bash
-supabase start            # boots Postgres + Auth + PostgREST locally
-supabase status           # prints the URL + anon/service_role keys for .env.local
-supabase db reset         # applies supabase/migrations/* and runs supabase/seed.sql
-```
-
-`supabase db reset` rebuilds the local DB from the migration set and re-runs the seed
-(synthetic pilot demo data — not real farm data).
+To exercise the migration set + seed locally for a fast correctness check (no Docker), use
+the pgTAP shim — it applies `supabase/migrations/*` + `supabase/seed.sql` (synthetic pilot
+demo data, not real farm data) to a throwaway local Postgres (see Testing below).
 
 ### 3. Run the app
 
@@ -117,8 +119,10 @@ npm run start --workspace farm-os   # next start (serves the production build)
 
 ## Testing
 
-The repo has three test layers. CI runs the unit and pgTAP layers on every PR; the
-Playwright e2e + authoritative `supabase test db` are run against the Docker stack.
+The repo has three test layers. CI runs the unit and pgTAP layers on every PR — the pgTAP
+harness is the authoritative **automated** DB gate. With the local Docker stack removed, the
+full-stack `supabase test db` + Playwright e2e are run against the remote (or a Supabase
+branch) project rather than a local stack.
 
 ### Library unit + a11y tests (vitest)
 
@@ -143,18 +147,16 @@ The DB tests live in `apps/farm-os/supabase/tests/*.sql` (RLS isolation, audit
 immutability, seed invariants, the SPEC-0001 stock-coverage engine, and the
 security-remediation regressions). Two ways to run them:
 
-**Authoritative — Docker stack** (the real gate; exercises RLS / PostgREST / GoTrue):
-
-```bash
-cd apps/farm-os
-supabase start && supabase db reset && supabase test db
-```
-
-**Fast inner loop — Docker-free shim** (needs Homebrew Postgres 17 + pgTAP):
+**Authoritative automated gate — Docker-free pgTAP shim** (needs Homebrew Postgres 17 +
+pgTAP; this is the same harness CI runs):
 
 ```bash
 apps/farm-os/supabase/test-shims/run-pgtap-local.sh
 ```
+
+**Full-stack verification (FORCE RLS / PostgREST / GoTrue)** — with the local Docker stack
+removed, run `supabase test db` against the remote (or a Supabase branch) project, managed
+via the Supabase MCP (see `docs/DEPLOY-RUNBOOK.md`).
 
 The shim spins up a throwaway local Postgres, applies `bootstrap.sql` (minimal Supabase
 role/`auth` shims) → all migrations → seed → every test, and prints a TAP summary. It is
@@ -164,12 +166,12 @@ a **convenience, not a replacement**: a local superuser bypasses RLS, so it cann
 
 ### End-to-end (Playwright)
 
-The wedge-loop e2e runs against a **production build** of the app plus the already-running
-local Supabase (`apps/farm-os/playwright.config.ts`):
+The wedge-loop e2e runs against a **production build** of the app plus a Supabase backend
+(`apps/farm-os/playwright.config.ts`). With the local Docker stack removed, point it at the
+remote (or a Supabase branch) project seeded via the Supabase MCP (see `docs/DEPLOY-RUNBOOK.md`):
 
 ```bash
 cd apps/farm-os
-supabase start && supabase db reset      # local stack with seed
 npx playwright test                      # builds & serves on :3100, runs e2e
 ```
 
@@ -187,11 +189,10 @@ When you change the schema:
 1. **Add a migration file** under `apps/farm-os/supabase/migrations/`.
 2. **Add (or extend) a pgTAP test** under `apps/farm-os/supabase/tests/` that pins the new
    behaviour — RLS, audit, invariants, etc.
-3. **Apply locally** and run the suite:
+3. **Run the suite** with the Docker-free pgTAP shim (and, for full-stack checks, apply the
+   migration to a Supabase branch via the MCP and run `supabase test db` there):
    ```bash
-   cd apps/farm-os
-   supabase db reset            # re-applies all migrations + seed
-   supabase test db             # or the Docker-free shim for a fast check
+   apps/farm-os/supabase/test-shims/run-pgtap-local.sh   # applies all migrations + seed, runs tests
    ```
 4. Commit the migration and its test together. The pgTAP gate runs in CI on every PR.
 
@@ -231,8 +232,9 @@ Three workflows run on every PR to `main` (and on push to `main`):
   - **app** (`farm-os`): typecheck (`tsc --noEmit`) → unit tests → `next build --webpack`.
 - **`db-tests.yml`** — runs the pgTAP suite via the Docker-free shim
   (`apps/farm-os/supabase/test-shims/run-pgtap-local.sh`) on a plain Postgres + pgTAP
-  runner. (This does not verify `FORCE ROW LEVEL SECURITY` or the HTTP API — the
-  Docker `supabase test db` + Playwright runs remain authoritative.)
+  runner; this is the authoritative **automated** DB gate. (It does not verify `FORCE ROW
+  LEVEL SECURITY` or the HTTP API — those full-stack checks run against the remote/branch
+  project via the Supabase MCP, the local Docker stack having been removed.)
 - **`release.yml`** — on push to `main`, runs `changesets/action`: opens/updates a
   **"Version Packages"** PR when unreleased changesets exist, and on its merge publishes
   `@amrebeid/ui` to GitHub Packages (`@amrebeid` scope, `npm.pkg.github.com`).

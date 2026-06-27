@@ -29,15 +29,16 @@ npm run build     # tsup + token-purity gate + bundled styles.css
 
 ```bash
 cd apps/farm-os
-supabase start          # local Supabase (requires Docker)
-supabase db reset       # apply migrations + Ebeid seed
-npm run dev             # http://localhost:3000
-supabase test db        # 421 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
-npx playwright test     # the end-to-end wedge loop
+cp .env.example .env.local   # point at the remote (or a Supabase branch) project
+npm run dev                  # http://localhost:3000
 ```
 
-No Docker? Run the pgTAP suite against a plain local Postgres via
-[`apps/farm-os/supabase/test-shims/run-pgtap-local.sh`](apps/farm-os/supabase/test-shims).
+The local Docker-based `supabase start` stack has been **removed**. Schema changes are
+applied to the remote (or a Supabase branch) project via the Supabase MCP / migrations
+(see [`docs/DEPLOY-RUNBOOK.md`](docs/DEPLOY-RUNBOOK.md); prod pushes stay Owner-gated). Run
+the pgTAP suite locally against a plain Postgres (no Docker) via
+[`apps/farm-os/supabase/test-shims/run-pgtap-local.sh`](apps/farm-os/supabase/test-shims) —
+the same harness CI runs as the authoritative DB gate.
 
 ## Deploy
 Live on Vercel + a dedicated (non-Zeal) Supabase project. Step-by-step in

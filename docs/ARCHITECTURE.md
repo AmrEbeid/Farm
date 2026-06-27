@@ -198,8 +198,10 @@ two of these as `optionalDependencies`.
 the security-remediation regressions) via a **Docker-free harness**
 (`supabase/test-shims/run-pgtap-local.sh`) on plain Postgres + pgTAP. Caveat (documented in the
 workflow): a local superuser bypasses RLS, so this does **not** verify `FORCE ROW LEVEL SECURITY`
-nor exercise PostgREST/GoTrue/Playwright — the authoritative integration run is
-`supabase test db` + Playwright on the Docker stack.
+nor exercise PostgREST/GoTrue/Playwright. The Docker-free pgTAP harness is the authoritative
+**automated** DB gate; with the local Docker stack removed, full-stack integration
+(`supabase test db` + Playwright, exercising FORCE RLS / PostgREST / GoTrue) is verified against
+the remote (or a Supabase branch) project, managed via the Supabase MCP (see `docs/DEPLOY-RUNBOOK.md`).
 
 **Release — `.github/workflows/release.yml`**: Changesets versions and publishes `@amrebeid/ui` to
 GitHub Packages.
