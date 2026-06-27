@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell, Tag, Button, type NavItemData } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
+import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { APP_NAV } from "@/lib/nav";
 
 export function AppChrome({
@@ -11,11 +12,15 @@ export function AppChrome({
   role,
   roleLabel,
   name,
+  orgs,
+  activeOrgId,
 }: {
   children: React.ReactNode;
   role: string;
   roleLabel: string;
   name: string | null;
+  orgs: { id: string; name: string }[];
+  activeOrgId: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -61,6 +66,7 @@ export function AppChrome({
       brand={<span className="font-bold">نظام تشغيل المزارع</span>}
       topbar={
         <div className="flex items-center gap-3">
+          <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
           <Tag tone="accent">{roleLabel}</Tag>
           {name && <span className="text-sm">{name}</span>}
           <Button variant="ghost" size="sm" onClick={signOut}>
