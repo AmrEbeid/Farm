@@ -1,4 +1,5 @@
--- 20260622000087 — fn_save_palm: reject re-parenting a palm into an ARCHIVED hawsha (data integrity).
+-- 20260622000089 — fn_save_palm: reject re-parenting a palm into an ARCHIVED hawsha (data integrity).
+-- (Renumbered 0087→0089 to yield to in-flight draft PRs #366 (academy, 0087) and #368 (accounting, 0088).)
 --
 -- Gap surfaced by an independent review (2026-06-27): on an EDIT (p_id not null) with a non-null
 -- p_hawsha_id, fn_save_palm re-parents the palm to the target hawsha (`v_hawsha := p_hawsha_id`) but never

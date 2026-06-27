@@ -3,7 +3,7 @@
 -- re-parents the palm to the target hawsha without checking archived. A live palm could be moved under an
 -- archived hawsha and then vanish from every live view (which all filter archived=false) — a data-integrity
 -- hole, not a tenant-isolation one (the cross-org guard, asserted in 82_structure_crud_test, is sound).
--- Verifies migration 20260622000087: the new guard rejects (22023) re-parenting into an archived hawsha,
+-- Verifies migration 20260622000089: the new guard rejects (22023) re-parenting into an archived hawsha,
 -- still ALLOWS re-parent into a live hawsha, and does NOT block an in-place edit of a palm whose own hawsha
 -- is archived (the guard is gated on p_hawsha_id, so it only fires on an explicit re-parent target).
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
