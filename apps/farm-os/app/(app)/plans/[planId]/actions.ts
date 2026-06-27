@@ -99,7 +99,11 @@ export async function runPlanChecks(planId: string) {
   const checks = [
     { kind: "stock", result: stockResult, detail: stockDetail },
     { kind: "budget", result: budgetResult, detail: budgetDetail },
-    { kind: "weather", result: "ok", detail: { note: "deferred in MVP-0" } },
+    // SPEC-0007 §2(4)/§4(3): weather is advisory and NOT yet wired into runPlanChecks. It must not
+    // assert green ("ok"→"سليم") as if a forecast was verified. The plans page renders only
+    // block/warn/(default-green) — there is no "unknown" branch, so "unknown" would still show green.
+    // Use "warn" (the only supported non-green status → amber "منخفض") to signal not-yet-evaluated/advisory.
+    { kind: "weather", result: "warn", detail: { note: "لم يُقيَّم الطقس بعد (إرشادي)" } },
     { kind: "labor", result: "ok", detail: {} },
     { kind: "responsibility", result: "ok", detail: {} },
   ];
