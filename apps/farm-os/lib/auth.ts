@@ -71,10 +71,15 @@ export const getActiveMembership = cache(
     if (!user) return null;
 
     const activeOrgId = await readActiveOrgId(sb);
+    // `order` makes the no-claim fallback (`memberSel.limit(1)`, below) DETERMINISTIC
+    // — the oldest membership — instead of an arbitrary row. Harmless on the
+    // claim path, which narrows to a single org. Until the 0085 hook is enabled,
+    // `activeOrgId` is null and this fallback is the live path for every request.
     const memberSel = sb
       .from("organization_member")
       .select("org_id, role")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
 
     const [{ data: member }, { data: person }] = await Promise.all([
       (activeOrgId
@@ -97,6 +102,7 @@ export const getActiveMembership = cache(
         .from("organization_member")
         .select("org_id, role")
         .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
       chosen = fallback;
