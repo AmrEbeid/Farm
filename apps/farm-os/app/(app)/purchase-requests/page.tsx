@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
 import { fmtDate } from "@/lib/dates";
 
 const PR_STATUS_AR: Record<string, string> = {
@@ -48,7 +49,12 @@ export default async function PurchaseRequestsPage() {
           description="تُنشأ الطلبات تلقائيًا من شاشة تغطية المخزون عند وجود نقص."
         />
       ) : (
-        <SimpleTable columns={columns} rows={rows} />
+        <FilterableTable
+          columns={columns}
+          rows={rows}
+          searchColumns={["code", "reason", "status"]}
+          placeholder="ابحث عن طلب…"
+        />
       )}
     </div>
   );

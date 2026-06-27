@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { num } from "@/lib/money";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
 
 export default async function InventoryListPage() {
   await requireMembership();
@@ -51,7 +52,13 @@ export default async function InventoryListPage() {
         <h1 className="text-2xl font-bold">المخزون</h1>
         <p style={{ color: "var(--ink-muted)" }}>اضغط على الصنف لعرض تغطيته</p>
       </header>
-      <SimpleTable columns={columns} rows={rows} empty="لا توجد أصناف" />
+      <FilterableTable
+        columns={columns}
+        rows={rows}
+        empty="لا توجد أصناف"
+        searchColumns={["name", "category"]}
+        placeholder="ابحث عن صنف…"
+      />
     </div>
   );
 }
