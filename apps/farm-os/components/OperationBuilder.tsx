@@ -25,7 +25,7 @@ export function OperationBuilder({
   const [error, setError] = useState<string | null>(null);
 
   const [subtype, setSubtype] = useState("fertilization");
-  const [plannedAt, setPlannedAt] = useState("2025-07-08");
+  const [plannedAt, setPlannedAt] = useState(() => new Date().toISOString().split("T")[0]);
   const [estCost, setEstCost] = useState("42000");
   const [itemId, setItemId] = useState(items[0]?.id ?? "");
   const [qty, setQty] = useState("500");
@@ -114,6 +114,8 @@ export function OperationBuilder({
             <Input
               type="number"
               inputMode="numeric"
+              min={0}
+              step="any"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
             />
@@ -122,6 +124,7 @@ export function OperationBuilder({
             <Input
               type="number"
               inputMode="numeric"
+              min={0}
               value={estCost}
               onChange={(e) => setEstCost(e.target.value)}
             />

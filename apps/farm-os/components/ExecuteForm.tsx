@@ -33,10 +33,10 @@ export function ExecuteForm({
         {error && <Alert tone="danger" title={error} />}
       </div>
       <FormRow id="qty" label={`الكمية المستخدمة (${unit})`}>
-        <Input type="number" inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} />
+        <Input type="number" inputMode="numeric" min={0} step="any" value={qty} onChange={(e) => setQty(e.target.value)} />
       </FormRow>
       <FormRow id="labor" label="عدد العمال">
-        <Input type="number" inputMode="numeric" value={labor} onChange={(e) => setLabor(e.target.value)} />
+        <Input type="number" inputMode="numeric" min={0} step="any" value={labor} onChange={(e) => setLabor(e.target.value)} />
       </FormRow>
       <FormRow id="note" label="ملاحظة">
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
