@@ -1,7 +1,7 @@
--- 80 — engine display fix (0078): the coverage WARNING message must show the deficit consistent with
+-- 81 — engine display fix (0079): the coverage WARNING message must show the deficit consistent with
 -- the recommend_qty sizing basis. Since 0055 (#280 F4) recommend_qty is sized off v_maxdef (the DEEPEST
 -- projected deficit in the horizon), but the Arabic v_msg printed v_shortfall (the FIRST/shallowest dip).
--- 0078 changes ONLY the v_msg display to trim_scale(greatest(v_shortfall, v_maxdef)) so the predicted
+-- 0079 changes ONLY the v_msg display to trim_scale(greatest(v_shortfall, v_maxdef)) so the predicted
 -- shortage shown matches what is being ordered. recommend_qty and all JSON outputs are unchanged.
 --
 -- Reuses the deepening scenario from test 55 (independent fresh item):
@@ -38,17 +38,17 @@ insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty,
 -- recommend_qty unchanged: still sized off the deepest deficit (1050).
 select is(
   (public.fn_stock_coverage(:'item', 'main') ->> 'recommend_qty')::numeric, 1050::numeric,
-  '0078: recommend_qty unchanged — still covers the deepest deficit (1050)');
+  '0079: recommend_qty unchanged — still covers the deepest deficit (1050)');
 
 -- the fix: the message now shows the maxdef shortfall (1050), matching what is ordered.
 select ok(
   (public.fn_stock_coverage(:'item', 'main') ->> 'message_ar') like '%نقص متوقع: 1050 كجم%',
-  '0078: message_ar shows the max-deficit shortfall (1050 كجم), consistent with recommend_qty');
+  '0079: message_ar shows the max-deficit shortfall (1050 كجم), consistent with recommend_qty');
 
 -- 'shortfall' JSON field is unchanged (still the first crossing) — display-only change.
 select is(
   (public.fn_stock_coverage(:'item', 'main') ->> 'shortfall')::numeric, 50::numeric,
-  '0078: shortfall JSON field unchanged — still the first-crossing deficit (50)');
+  '0079: shortfall JSON field unchanged — still the first-crossing deficit (50)');
 
 select * from finish();
 rollback;
