@@ -1,5 +1,23 @@
-# Session Brief — Farm OS      Updated: 2026-06-26 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-27 (later) — Stages 2/3/4 SHIPPED + applied to prod (`0084`); list search live
+- **Frontend audit reconciled:** the MVP-0 UI is essentially complete — every "gap" a scout flagged
+  (purchase-recommendation panel, PR-approval UI, palm grid, #187 Arabic error-mapping, CLS loading
+  skeleton) was already built. The only genuinely-open, non-blocked polish was **list search/filter**.
+- **Merged to `main`:** **#346** (reusable `FilterableTable` + unit-tested `lib/filter.ts`; inventory +
+  purchase-request lists), **#344** (Stages 2/3/4 — editable structure, 360 media, ad-hoc events, plan
+  builder), and **#351** (plans-list search follow-up). Combined `main` build green.
+- **Prod DB pushed `0080`–`0084`** via the Supabase MCP (each under its **exact repo version** in a
+  `BEGIN/COMMIT` txn + ledger insert — **0 stray/off-version rows**). Then **`storage-policies.sql`** applied
+  (private `farm-media` bucket + 2 org-scoped `storage.objects` policies) so the media gallery works
+  end-to-end. **Prod head = `0084`, in sync with `main`.** Verified: 5/5 recorded, struct/event/plan RPCs +
+  `attachments` table + forced RLS live; `get_advisors` shows **only pre-existing WARNs** (the intentional
+  SECURITY-DEFINER-granted-to-authenticated pattern; gate enforced in-DB via `authorize()`).
+- **Owner-gated next (per PROJECT RULES — actor ≠ reviewer):** independent review on the `0081`/`0084` RLS
+  re-emits (structure/plans `tenant_all` now gate direct-REST writes on `structure.write`/`plan.write`);
+  regen `database.types.ts` against prod `0084` (new objects currently augmented in
+  `lib/database.types.ext.ts`). 🔴 still pending: rotate the service-role key + DB password before any REAL data.
 
 ## 2026-06-27 — Stages 2/3/4 built + RECONCILED onto `main` (verified); branch ready to push
 - Built editable farm structure + 360 pages + media (Stage 2), ad-hoc activity recording (Stage 3), and

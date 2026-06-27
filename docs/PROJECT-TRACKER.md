@@ -1,5 +1,16 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-27 (later) — Stages 2/3/4 SHIPPED + applied to prod; prod head = `0084`, in sync with `main`.**
+> Merged **#344** (Stages 2/3/4), **#346** + **#351** (list search/filter — reusable `FilterableTable` +
+> unit-tested `lib/filter.ts`, across inventory / purchase-requests / plans). Applied migrations
+> **`0080`–`0084`** to prod via the Supabase MCP under their exact repo versions (0 stray rows) +
+> **`storage-policies.sql`** (`farm-media` bucket + org-scoped storage RLS). Verified live: struct/event/plan
+> RPCs + `attachments` (forced RLS) present, ledger clean, `get_advisors` only pre-existing WARNs. A
+> frontend audit this session confirmed the MVP-0 UI is essentially complete (recommendation panel,
+> PR-approval UI, palm grid, #187 Arabic errors, loading skeleton were all already built). **Owner-gated
+> next:** independent review of the `0081`/`0084` RLS re-emits (access-control; actor ≠ reviewer); regen
+> `database.types.ts` vs prod `0084`. New stages (5/7/8/9/10/11) remain SPEC-ratification-gated — not started.
+
 > **2026-06-27 — Stages 2/3/4 BUILT + reconciled onto `main` (verified), on branch
 > `feat/stages-2-3-4-structure-events-plans`.** Editable farm structure + per-node 360 pages + photos/docs
 > (Stage 2, [`SPEC-0003`](SPEC-0003-farm-structure-and-palm-registry-import.md) §9); ad-hoc activity
