@@ -12,10 +12,15 @@ export interface AppNavItem {
 export const APP_NAV: AppNavItem[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: "🏠", href: "/dashboard" },
   { id: "farm", label: "المزرعة", icon: "🌴", href: "/farm" },
+  { id: "weather", label: "الطقس", icon: "🌤️", href: "/weather" },
   { id: "plans", label: "الخطط", icon: "🗓️", href: "/plans" },
   { id: "inventory", label: "المخزون", icon: "📦", href: "/inventory" },
   { id: "purchase", label: "طلبات الشراء", icon: "🧾", href: "/purchase-requests" },
-  { id: "accounting", label: "الحسابات", icon: "📊", href: "/accounting", roles: ["owner", "accountant"] },
+  { id: "suppliers", label: "الموردون", icon: "🏷️", href: "/suppliers" },
+  { id: "expenses", label: "المصروفات", icon: "💸", href: "/expenses", roles: ["owner", "accountant", "farm_manager"] },
+  { id: "budgets", label: "الموازنات", icon: "📊", href: "/budgets", roles: ["owner", "accountant", "farm_manager"] },
+  { id: "accounting", label: "الحسابات", icon: "🧮", href: "/accounting", roles: ["owner", "accountant"] },
+  { id: "people", label: "الفريق", icon: "👥", href: "/people", roles: ["owner", "farm_manager", "agri_engineer", "accountant"] },
   { id: "mobile", label: "الميدان", icon: "📱", href: "/m", roles: ["supervisor", "agri_engineer", "owner", "farm_manager"] },
   { id: "settings", label: "الإعدادات", icon: "⚙️", href: "/settings", roles: ["owner"] },
 ];
