@@ -16,6 +16,7 @@ export const APP_NAV: AppNavItem[] = [
   { id: "inventory", label: "المخزون", icon: "📦", href: "/inventory" },
   { id: "purchase", label: "طلبات الشراء", icon: "🧾", href: "/purchase-requests" },
   { id: "mobile", label: "الميدان", icon: "📱", href: "/m", roles: ["supervisor", "agri_engineer", "owner", "farm_manager"] },
+  { id: "settings", label: "الإعدادات", icon: "⚙️", href: "/settings", roles: ["owner"] },
 ];
 
 export const SEED_PLAN_ID = "5d5d302e-c385-5d0b-94f5-3dc2c9948e79";

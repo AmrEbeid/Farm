@@ -207,6 +207,18 @@ type StructFunctions = {
     Args: { p_org: string };
     Returns: undefined;
   };
+  // ── STAGE 1 org settings, migration 0086 ──
+  fn_update_org_settings: {
+    Args: {
+      p_org: string;
+      p_name: string;
+      p_locale?: string | null;
+      p_currency?: string | null;
+      p_area_unit?: string | null;
+      p_fiscal_year_start?: string | null;
+    };
+    Returns: undefined;
+  };
 };
 
 export type Database = Omit<Generated, "public"> & {

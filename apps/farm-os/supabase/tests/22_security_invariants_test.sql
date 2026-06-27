@@ -53,6 +53,7 @@ select is(
         'authorize', 'user_org_ids',             -- RLS helpers
         'user_member_org_ids',                    -- RLS helper: full membership set (active-org, 0085)
         'fn_set_active_org',                       -- active-org switcher RPC (migration 0085)
+        'fn_update_org_settings',                 -- owner-gated org settings RPC (migration 0086)
         'fn_stock_coverage',                      -- read RPC
         'fn_bin_rebuild', 'fn_execute_operation', -- intended authenticated RPC surface
         'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
