@@ -46,6 +46,9 @@ create table public.academy_content (
   category text not null default 'general'
     check (category in ('npk','irrigation','pesticide','pollination','general')),
   has_chemical boolean not null default false,        -- names a pesticide/chemical → needs registration
+  -- #4 integrity: pesticide-category content is ALWAYS chemical → it can never be saved has_chemical=false
+  -- and thereby slip past the registration gate in fn_signoff_academy_content.
+  constraint academy_content_pesticide_chemical check (category <> 'pesticide' or has_chemical),
   -- sign-off record (#4): all NULL ⇒ advisory. The gate (lib/academy.ts) reads these three.
   agronomist_name text,
   signed_at timestamptz,
@@ -86,7 +89,7 @@ create or replace function public.fn_save_academy_content(
   p_category text default 'general',
   p_has_chemical boolean default false)
 returns jsonb language plpgsql volatile security definer set search_path = '' as $$
-declare v_org uuid; v_id uuid;
+declare v_org uuid; v_id uuid; v_has_chemical boolean;
 begin
   if p_id is not null then
     select org_id into v_org from public.academy_content where id = p_id;
@@ -105,19 +108,22 @@ begin
   if p_title is null or btrim(p_title) = '' then raise exception 'title required' using errcode = '23502'; end if;
   if coalesce(p_category, '') not in ('npk','irrigation','pesticide','pollination','general') then
     raise exception 'invalid category: %', p_category using errcode = '22023'; end if;
+  -- #4 integrity: pesticide content is ALWAYS chemical → force the flag so it can never be saved false
+  -- and slip past the registration gate in sign-off (mirrors the table CHECK as defense-in-depth).
+  v_has_chemical := coalesce(p_has_chemical, false) or p_category = 'pesticide';
 
   if p_id is not null then
     -- editing the figures invalidates any prior sign-off → back to advisory until re-signed.
     update public.academy_content
        set title = btrim(p_title), body = coalesce(p_body, ''), category = p_category,
-           has_chemical = coalesce(p_has_chemical, false),
+           has_chemical = v_has_chemical,
            agronomist_name = null, signed_at = null, pesticide_reg_valid_until = null,
            updated_at = now()
      where id = p_id;
     v_id := p_id;
   else
     insert into public.academy_content(org_id, title, body, category, has_chemical, created_by)
-    values (v_org, btrim(p_title), coalesce(p_body, ''), p_category, coalesce(p_has_chemical, false), (select auth.uid()))
+    values (v_org, btrim(p_title), coalesce(p_body, ''), p_category, v_has_chemical, (select auth.uid()))
     returning id into v_id;
   end if;
   return jsonb_build_object('id', v_id, 'authoritative', false);

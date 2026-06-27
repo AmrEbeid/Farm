@@ -6,7 +6,7 @@
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(19);
+select plan(22);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.owner', (select user_id::text from public.organization_member
@@ -83,6 +83,24 @@ select throws_ok(
 select lives_ok(
   format($$ select public.fn_signoff_academy_content(%L, 'م. أحمد', now(), current_date + 365) $$, current_setting('test.c2')),
   '#4: chemical content WITH a current registration signs off');
+reset role;
+
+-- ===== 5b) pesticide category can NEVER bypass the chemical gate via has_chemical=false (#4) =====
+-- A caller with academy.write tries to author pesticide content but flag it non-chemical. The save must
+-- FORCE has_chemical=true; signing it off with a null registration must then be rejected by the gate.
+select pg_temp.as_user(current_setting('test.eng'));
+select set_config('test.c3',
+  (public.fn_save_academy_content(null, :'org', 'مكافحة المنّ', 'رش مبيد', 'pesticide', false))->>'id', false);
+select is(
+  (select has_chemical from public.academy_content where id = current_setting('test.c3')::uuid),
+  true, '#4: pesticide content saved has_chemical=false is FORCED to true');
+select throws_ok(
+  format($$ select public.fn_signoff_academy_content(%L, 'م. أحمد', now(), null) $$, current_setting('test.c3')),
+  '23502', null, '#4: forced-chemical pesticide content cannot be signed off without a registration');
+-- the table CHECK is the last line of defense: a direct REST PATCH of pesticide → has_chemical=false fails.
+select throws_ok(
+  format($$ update public.academy_content set has_chemical = false where id = %L $$, current_setting('test.c3')),
+  '23514', null, '#4: table CHECK rejects pesticide content with has_chemical=false');
 reset role;
 
 -- ===== 6) soft-delete + audit =====
