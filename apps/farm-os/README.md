@@ -12,10 +12,14 @@ data. See [`../../docs/DEPLOY-RUNBOOK.md`](../../docs/DEPLOY-RUNBOOK.md) and
 ## Getting Started
 
 ```bash
-supabase start          # local Supabase (requires Docker)
-supabase db reset       # apply migrations (latest: 0048; prod is at 0048) + Ebeid seed
-npm run dev             # http://localhost:3000
+cp .env.example .env.local   # point at the remote (or a Supabase branch) project
+npm run dev                  # http://localhost:3000
 ```
+
+The local Docker-based `supabase start` stack has been **removed**; schema changes go to the
+remote (or a Supabase branch) project via the Supabase MCP / migrations (see
+[`../../docs/DEPLOY-RUNBOOK.md`](../../docs/DEPLOY-RUNBOOK.md)). Run the DB tests with no
+Docker via [`supabase/test-shims/run-pgtap-local.sh`](supabase/test-shims).
 
 Open [http://localhost:3000](http://localhost:3000) with your browser. The page
 auto-updates as you edit files under `app/`.

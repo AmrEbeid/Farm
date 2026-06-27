@@ -6,8 +6,10 @@ name: db-tests
 # PostgreSQL + pgTAP with Supabase shims — so it needs neither Docker nor the Supabase CLI.
 #
 # NOTE: a local superuser bypasses RLS, so this does NOT verify FORCE ROW LEVEL SECURITY,
-# and it does not exercise PostgREST/GoTrue or the Playwright e2e. The authoritative
-# integration run is still `supabase test db` + `npx playwright test` on the Docker stack.
+# and it does not exercise PostgREST/GoTrue or the Playwright e2e. With the local Docker
+# stack removed, this harness is the authoritative AUTOMATED DB gate; full-stack integration
+# (`supabase test db` + `npx playwright test`) is verified against the remote (or a Supabase
+# branch) project via the Supabase MCP.
 
 on:
   pull_request:

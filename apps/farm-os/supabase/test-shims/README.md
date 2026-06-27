@@ -1,8 +1,9 @@
 # test-shims — run the pgTAP suite without Docker
 
 A Docker-free way to run the Farm OS database tests (`supabase/tests/*.sql`) against a
-throwaway local PostgreSQL. Built when the Docker/Supabase stack was unavailable; kept as a
-fast inner-loop check and a reproducible way to verify the security-remediation suite.
+throwaway local PostgreSQL. With the local Docker/Supabase stack removed, this is the
+primary local DB-test path, and the same harness is the authoritative automated database
+gate in CI (`.github/workflows/db-tests.yml`).
 
 ```bash
 # from anywhere; needs PostgreSQL 15+ and pgTAP installed (see the script header)
@@ -17,17 +18,15 @@ apps/farm-os/supabase/test-shims/run-pgtap-local.sh
 - `run-pgtap-local.sh` — spins an ephemeral cluster, applies shims → migrations → seed →
   tests, and tears it down.
 
-## Not a replacement for `supabase test db`
+## Coverage caveat
 
-This is a **local convenience**, not the authoritative gate:
+This harness is the authoritative **automated** DB gate (CI runs it on every PR/push), but a
+plain local Postgres can't cover everything:
 
-- A local **superuser bypasses RLS**, so this cannot verify `FORCE ROW LEVEL SECURITY`.
+- A local **superuser bypasses RLS**, so it cannot verify `FORCE ROW LEVEL SECURITY`.
 - It does **not** run PostgREST or GoTrue, so it cannot exercise the HTTP API or the
   Playwright e2e (the wedge-loop integration test).
 
-For the authoritative run use the Docker stack:
-
-```bash
-cd apps/farm-os
-supabase start && supabase db reset && supabase test db && npx playwright test
-```
+With the local Docker stack removed, those full-stack checks (`supabase test db` + the
+Playwright e2e) are verified against the remote (or a Supabase branch) project, managed via
+the Supabase MCP — see `docs/DEPLOY-RUNBOOK.md`.

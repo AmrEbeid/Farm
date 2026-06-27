@@ -3,8 +3,9 @@
 -- uses: the anon/authenticated/service_role roles, the auth schema + auth.users, and
 -- auth.uid()/auth.role() reading request.jwt.claims (matching Supabase's definitions).
 --
--- This is a LOCAL DEV CONVENIENCE for fast correctness checks. `supabase test db` on the
--- real Docker stack remains the authoritative gate (it exercises PostgREST/GoTrue too).
+-- This harness is the authoritative AUTOMATED DB gate (CI runs it). With the local Docker
+-- stack removed, full-stack checks (`supabase test db` exercising FORCE RLS / PostgREST /
+-- GoTrue) run against the remote (or a Supabase branch) project via the Supabase MCP.
 -- See README.md in this directory.
 
 -- Supabase client roles. service_role bypasses RLS (matches Supabase). Idempotent:

@@ -9,8 +9,10 @@
 #   Debian/Ubuntu:  apt-get install postgresql postgresql-<v>-pgtap
 #
 # NOTE: a local superuser bypasses RLS, so this CANNOT verify FORCE ROW LEVEL SECURITY
-# behaviour, and it does not exercise PostgREST/GoTrue. `supabase test db` + the Playwright
-# e2e on the Docker stack remain the authoritative gates. This is a fast correctness check.
+# behaviour, and it does not exercise PostgREST/GoTrue. With the local Docker stack removed,
+# this harness is the authoritative AUTOMATED DB gate (CI runs it); the full-stack checks
+# (`supabase test db` + the Playwright e2e, exercising FORCE RLS / PostgREST / GoTrue) are
+# verified against the remote (or a Supabase branch) project via the Supabase MCP.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
