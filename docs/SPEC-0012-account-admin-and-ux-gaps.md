@@ -109,13 +109,20 @@ expected-everywhere, while the tracker shows others are *already handled* and mu
 
 ---
 
-## 3. Tasks (small, reviewable slices — none start before Owner ratification)
-- [ ] **S1 — Offline/field-UX audit of `/m`** *(Low; read-only; os-audit).* Confirm current offline behavior,
-      sunlight/glove readiness; output a pass/fail memo. **Do this first — it may shrink or grow S4.**
-- [ ] **S2 — Member/role management** *(Medium; access-control; review-gated).* `fn_invite_member` /
-      `fn_set_member_role` / `fn_remove_member` (+ RLS/grants/audit) + `/members` list & forms. Blocked on the
-      Owner **role-model** decision. Cross-link Stage 1.
-- [ ] **S3 — Profile/account page** *(Low).* `/profile`: identity, role, basic preferences.
+## 3. Tasks (small, reviewable slices)
+- [x] **S1 — Offline/field-UX audit of `/m`** *(Low; read-only)* — **DONE 2026-06-27.** Result: `/m` is
+      *offline-tolerant* (failed mutations show a retryable Arabic message) but **NOT offline-capable** — no
+      service worker / PWA cache / write queue; `/m` + `/m/execute` are server components that fetch at request
+      time, so with no signal the page can't load (`if (error) throw` → error boundary). Viewport allows
+      pinch-zoom (accessible); no sunlight/high-contrast mode (theme pinned light). True offline = a real S4
+      build (cache reads + queue writes + sync), not a patch.
+- [ ] **S2 — Member/role management** *(Medium; access-control; review-gated).* `fn_set_member_role` /
+      `fn_remove_member` (+ RLS/grants/audit) + `/members` list & forms over the **existing 5 roles** (role
+      model ratified — see decisions). **Invite-by-email is a sub-task needing service-role/Auth-admin design**
+      (a pure-SQL RPC cannot create an auth user) — scope as a pending-invite table or Edge Function. New
+      migration lane = next free past in-flight #366(0087)/#368(0088)/merged 0089 → **0090**. Cross-link Stage 1.
+- [x] **S3 — Profile/account page** *(Low)* — **DONE 2026-06-27** (read-only): `/profile` shows name, email,
+      role, active org + nav entry. Self-service edits deferred into S2.
 - [ ] **S4 — Field-UX + offline hardening for `/m`** *(scope set by S1).* High-contrast/large-target pass;
       offline-tolerant core actions if S1 finds gaps.
 - [ ] **S5 — Theme toggle (light/dark)** *(Low; cosmetic).* Wire the existing dark token set + per-user persist.
@@ -135,9 +142,15 @@ expected-everywhere, while the tracker shows others are *already handled* and mu
 ## Decisions log
 - 2026-06-27 — Spec created from a market/UX research pass (user-requested). Synthesis stage of the
   deep-research workflow failed; report salvaged via direct source fetch. Gaps tiered against verified code
-  state, not an audit list. **Awaiting Owner ratification; nothing started.**
+  state, not an audit list.
+- 2026-06-27 — **Owner ratified: role model = the existing 5 roles** (owner / farm_manager / supervisor /
+  storekeeper / agri_engineer; `accountant` also defined). S2 builds member-admin UI over these — no
+  role-model redesign. **Unblocks S2.**
+- 2026-06-27 — **Owner: prod apply HELD.** Prod stays at `0084`; `0089` (and the pending `0085`/`0086`
+  access-control chain) is not applied until that chain gets its own independent review. See tracker.
+- 2026-06-27 — S1 done (audit above); S3 done (read-only `/profile`). S2/S4/S5/S6 remain.
 
 ## Open Owner decisions (carry into the tracker)
-- [ ] **Ratify the role model** (role set + per-role permissions) — unblocks S2.
-- [ ] **Confirm scope:** which slices (S1–S6) are in, and priority order.
-- [ ] **Theme** — is dark mode wanted at all, or keep light-only?
+- [ ] **Confirm S2 invite mechanism** — pending-invite table vs Edge Function (service-role) for email invites.
+- [ ] **Theme (S5)** — is dark mode wanted at all, or keep light-only?
+- [ ] **Prioritize remaining slices** — S2 (member/role admin), S4 (true offline for `/m`), S5 (theme), S6.
