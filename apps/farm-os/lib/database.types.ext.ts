@@ -69,6 +69,41 @@ type AttachmentsTable = {
   Relationships: [];
 };
 
+// ── STAGE 10 Care Academy content, migration 0087 ──
+type AcademyContentTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    title: string;
+    body: string;
+    category: string;
+    has_chemical: boolean;
+    agronomist_name: string | null;
+    signed_at: string | null;
+    pesticide_reg_valid_until: string | null;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+    archived: boolean;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    title: string;
+    body?: string;
+    category?: string;
+    has_chemical?: boolean;
+  };
+  Update: {
+    title?: string;
+    body?: string;
+    category?: string;
+    has_chemical?: boolean;
+    archived?: boolean;
+  };
+  Relationships: [];
+};
+
 type StructFunctions = {
   fn_save_sector: {
     Args: {
@@ -219,6 +254,31 @@ type StructFunctions = {
     };
     Returns: undefined;
   };
+  // ── STAGE 10 Care Academy, migration 0087 ──
+  fn_save_academy_content: {
+    Args: {
+      p_id: string | null;
+      p_org: string;
+      p_title: string;
+      p_body?: string;
+      p_category?: string;
+      p_has_chemical?: boolean;
+    };
+    Returns: Json;
+  };
+  fn_signoff_academy_content: {
+    Args: {
+      p_id: string;
+      p_agronomist_name: string;
+      p_signed_at?: string;
+      p_pesticide_reg_valid_until?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_archive_academy_content: {
+    Args: { p_id: string; p_archived?: boolean };
+    Returns: Json;
+  };
 };
 
 export type Database = Omit<Generated, "public"> & {
@@ -229,6 +289,7 @@ export type Database = Omit<Generated, "public"> & {
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       attachments: AttachmentsTable;
+      academy_content: AcademyContentTable;
     };
     Functions: Public["Functions"] & StructFunctions;
   };
