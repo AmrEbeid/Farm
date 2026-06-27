@@ -25,7 +25,7 @@ select is(
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.prosecdef
-      and p.proname not in ('authorize', 'user_org_ids')
+      and p.proname not in ('authorize', 'user_org_ids', 'user_member_org_ids')
       and has_function_privilege('anon', p.oid, 'EXECUTE')),
   0,
   'INV-1: no public SECURITY DEFINER fn (other than authorize/user_org_ids) is EXECUTE-able by anon');
@@ -51,6 +51,8 @@ select is(
       and p.prosecdef
       and p.proname not in (
         'authorize', 'user_org_ids',             -- RLS helpers
+        'user_member_org_ids',                    -- RLS helper: full membership set (active-org, 0085)
+        'fn_set_active_org',                       -- active-org switcher RPC (migration 0085)
         'fn_stock_coverage',                      -- read RPC
         'fn_bin_rebuild', 'fn_execute_operation', -- intended authenticated RPC surface
         'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
