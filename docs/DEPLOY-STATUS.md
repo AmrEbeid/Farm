@@ -3,17 +3,19 @@
 First cloud deploy of the MVP-0 app. **No secrets in this file** — credentials were shared
 out-of-band and must be rotated (see "Security follow-ups").
 
-> **CURRENT STATE (2026-06-28).** Prod is at migration **`0089`** (the 06-27 apply took it `0084`→`0089`;
-> the "What's live" section below predates that and reads `0084` — treat `0089` as authoritative). **8 new
-> migrations are queued as draft PRs and NOT yet applied:** `0088` (#368 accounting) · `0090`+`0093` (#399
-> operations) · `0091` (#366 academy) · `0092` (#400 export) · `0094` (#401 **C2 engine fix — apply BEFORE
-> go-live**) · `0095` (#402 org-switcher) · `0096` (#404 FK indexes). Ordered apply bundle:
-> scratchpad `farm-prod-migrations-0088-0096.sql`. **Apply order = migrate-FIRST, then merge the PRs**
-> (`main` auto-deploys via Vercel; merging before the schema is applied would deploy code ahead of the
-> prod schema and break the live app). ⚠️ This session could NOT apply: the connected Supabase MCP reaches
-> only the **Zeal org** (must not touch); the Farm project `veezkmytervjnpxcrbkw` is not reachable here —
-> the apply needs a Farm-scoped connector or an Owner-run `supabase db push`. Also still pending in the
-> dashboard: enable `custom_access_token_hook` (activates active-org) + leaked-password protection.
+> **CURRENT STATE (2026-06-28, late — PR sweep).** Prod is at migration **`0096`**. Applied this session
+> via the Supabase MCP, each recorded under its **exact repo version** (**0 stray/off-version rows**;
+> prod head `20260622000096`): `0094` (#401 **C2 engine fix — the go-live blocker, now LIVE on prod**),
+> `0095` (#402 org-switcher anon-lock + fiscal-year coalesce), `0096` (#404 FK covering indexes — 0
+> unindexed FKs remain). **PRs #401 / #402 / #404 merged** → repo↔prod ledger in sync at `0096`.
+> ✅ **Correction:** the Farm project `veezkmytervjnpxcrbkw` **IS reachable from the connected Supabase
+> MCP** (same org as `ai-math-tutor`); the earlier "MCP reaches only the Zeal org / Farm not reachable"
+> note was **stale** — verify with `list_projects`, don't assume.
+> **Still queued as draft PRs, NOT applied (migrate-FIRST, then merge):** `0088` (#368 accounting) ·
+> `0090`+`0093` (#399 operations) · `0091` (#366 academy) · `0092` (#400 export). These sit in the
+> contested `0090–0093` band being **actively renumbered by concurrent sessions** and/or behind **expert
+> gates** (#368 accounting-privacy, #366 academy sign-off) — do **not** race that lane. Also still pending
+> in the dashboard: enable `custom_access_token_hook` + leaked-password protection.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
