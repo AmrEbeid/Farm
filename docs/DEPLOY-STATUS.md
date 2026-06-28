@@ -1,7 +1,19 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-06-28)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file** — credentials were shared
 out-of-band and must be rotated (see "Security follow-ups").
+
+> **CURRENT STATE (2026-06-28).** Prod is at migration **`0089`** (the 06-27 apply took it `0084`→`0089`;
+> the "What's live" section below predates that and reads `0084` — treat `0089` as authoritative). **8 new
+> migrations are queued as draft PRs and NOT yet applied:** `0088` (#368 accounting) · `0090`+`0093` (#399
+> operations) · `0091` (#366 academy) · `0092` (#400 export) · `0094` (#401 **C2 engine fix — apply BEFORE
+> go-live**) · `0095` (#402 org-switcher) · `0096` (#404 FK indexes). Ordered apply bundle:
+> scratchpad `farm-prod-migrations-0088-0096.sql`. **Apply order = migrate-FIRST, then merge the PRs**
+> (`main` auto-deploys via Vercel; merging before the schema is applied would deploy code ahead of the
+> prod schema and break the live app). ⚠️ This session could NOT apply: the connected Supabase MCP reaches
+> only the **Zeal org** (must not touch); the Farm project `veezkmytervjnpxcrbkw` is not reachable here —
+> the apply needs a Farm-scoped connector or an Owner-run `supabase db push`. Also still pending in the
+> dashboard: enable `custom_access_token_hook` (activates active-org) + leaked-password protection.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
