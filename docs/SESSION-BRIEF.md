@@ -1,5 +1,12 @@
-# Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-27 by Claude (parallel app-quality session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-27 (latest+5) — parallel app-quality + gated-stage-CRITICAL session
+**Where we are.** A second session ran the app-quality lane in parallel with the knowledge-system session — all NON-migration / NON-prod. **9 PRs merged to `main`** (#378 i18n, #380 payroll rate-flag, #379 stock-calc↔SQL parity, #381 assistant-gate hardening, #382 weather hardening, #384 display, #385 rtl/a11y, #386 form-validation, #387 perf) — every one CI-green, `main` re-verified green after each merge. Both gated draft PRs **hardened but kept DRAFT**: **#368** CRITICAL sales RLS read-leak + audit-mirror leak fixed (pgTAP 663✓); **#366** CRITICAL pesticide-gate bypass fixed + migration renumbered **`0089→0091`** (collision with the merged palm-guard `0089`; `0090` left free for S2) (pgTAP 669✓).
+**Unblocked next.** **#388** (researched wage-model memo) unblocks the SPEC-0006 §5 decision → Stage 8 payroll persistence can proceed once the Owner ratifies the 4-mode / daily-rate-default recommendation.
+**⚠️ Verify/fix-forward on prod.** **#383**: the now-applied `0085`/`0086` carry two verified issues — `user_member_org_ids` lacks the explicit `revoke/grant` (anon-executable; low exposure) and `fn_update_org_settings` nulls `fiscal_year_start` when omitted (data-loss). Both are advisor-invisible; verify against deployed prod `0089` and fix-forward if present.
+**Not done (deferred).** No migration/prod-apply by this session; #368/#366 left for the deploy-owner to merge+apply after their human-expert gates; #157 budget + #89 pricing remain Owner decisions.
+**Last evidence.** `main` green incl. the 9 PRs + #389; pgTAP 663/669 on the two hardened draft branches; tsc/lint/build 0 across all merged PRs.
 
 ## 2026-06-27 (latest+4) — Owner opened the gate: REVIEW → PUSH → MERGE → MIGRATE executed
 **Where we are.** The Owner authorized in writing ("review and then push merge and migrate"). All three
