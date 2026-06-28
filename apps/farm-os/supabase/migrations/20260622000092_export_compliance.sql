@@ -28,6 +28,7 @@ as $$
          or (perm = 'budget.write'    and m.role in ('owner','accountant'))
          or (perm = 'payroll.read'    and m.role in ('owner','accountant'))
          or (perm = 'structure.write' and m.role in ('owner','farm_manager'))
+         or (perm = 'academy.write'   and m.role in ('owner','agri_engineer'))  -- union w/ #366 (0091): a later re-emit must not drop it
          or (perm = 'export.write'    and m.role in ('owner','farm_manager')) )
   )
 $$;
