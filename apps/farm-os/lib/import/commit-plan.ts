@@ -2,7 +2,7 @@
  * Pure commit orchestration for the import framework (spec §6 step 5). Turns validated
  * rows into an ordered list of gated-RPC calls, applies the descriptor's dedupe key, and
  * splits the calls into chunks for the background writer. No DB here — the server route
- * (`app/api/import`) executes these calls through the service-role client per row.
+ * (`app/api/import`) executes these calls through the user-session server client per row (RLS/role gates honored; service-role would bypass them).
  */
 import type { ImportDescriptor } from "./types";
 
