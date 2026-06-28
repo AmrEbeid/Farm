@@ -48,6 +48,7 @@ export default async function SuppliersListPage() {
         empty="لا يوجد موردون بعد"
         searchColumns={["name", "phone"]}
         placeholder="ابحث عن مورّد…"
+        exportFilename="suppliers"
       />
     </div>
   );

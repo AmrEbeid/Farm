@@ -58,6 +58,7 @@ export default async function InventoryListPage() {
         empty="لا توجد أصناف"
         searchColumns={["name", "category"]}
         placeholder="ابحث عن صنف…"
+        exportFilename="inventory"
       />
     </div>
   );
