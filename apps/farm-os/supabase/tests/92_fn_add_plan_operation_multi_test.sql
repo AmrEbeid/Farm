@@ -16,10 +16,10 @@ select plan(11);
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
 select ok(not has_function_privilege('anon',
   'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid)', 'EXECUTE'),
-  '0091: anon cannot EXECUTE fn_add_plan_operation_multi');
+  '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
   'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid)', 'EXECUTE'),
-  '0091: authenticated CAN EXECUTE fn_add_plan_operation_multi');
+  '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────
 insert into public.plans (id, org_id, type, status, scope_type) values (:'plan', :'orgA', 'monthly', 'approved', 'sector');
