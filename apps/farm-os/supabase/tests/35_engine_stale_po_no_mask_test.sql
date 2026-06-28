@@ -42,10 +42,15 @@ insert into public.purchase_request_items (pr_id, org_id, item_id, qty, unit)
   values ('b0000000-0000-0000-0000-000000000197', :'orgA', :'potassium', 500, 'kg');
 set local session_replication_role = origin;
 
--- ── t3: a PO within the window still counts → shortage clears (the fix does not over-exclude) ──────
+-- ── t3: #270 C2 forward-anchor — this PO's needed_by (2025-07-08 = v_period_start) is in the PAST
+--    relative to today, so it is OVERDUE and no longer projected as guaranteed supply → it does NOT
+--    mask the shortage. SUPERSEDES the old #197-era assertion that a needed_by == v_period_start PO
+--    always counts: that enshrined C2 whenever the plan window itself is in the past. (Migration 0094:
+--    receipts filter is needed_by >= greatest(v_period_start, current_date). A genuinely-future PO of a
+--    current plan still counts — see the self-contained current_date setups in tests 16/40/45.)
 select is(
-  (public.fn_stock_coverage(:'potassium', 'main') ->> 'shortage')::boolean, false,
-  '#197 precision: a PO due within the window (needed_by >= v_period_start) still counts as supply');
+  (public.fn_stock_coverage(:'potassium', 'main') ->> 'shortage')::boolean, true,
+  '#270 C2: an overdue PO (needed_by < today, even if == v_period_start) does NOT mask the shortage');
 
 select * from finish();
 rollback;
