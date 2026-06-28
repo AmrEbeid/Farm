@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import { SimpleTable, type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
+import { ExportButton } from "@/components/ExportButton";
 import { filterRows } from "@/lib/filter";
 import { num } from "@/lib/money";
 
@@ -21,6 +22,7 @@ export function FilterableTable({
   searchColumns,
   placeholder = "بحث…",
   minRowsForSearch = 8,
+  exportFilename,
 }: {
   columns: SimpleColumn[];
   rows: SimpleRow[];
@@ -31,6 +33,8 @@ export function FilterableTable({
   placeholder?: string;
   /** Hide the search box until the list has at least this many rows. */
   minRowsForSearch?: number;
+  /** When set, show a CSV Export button (SPEC-0017) that exports the CURRENT (filtered) view. */
+  exportFilename?: string;
 }) {
   const [query, setQuery] = useState("");
   const baseId = useId();
@@ -43,43 +47,55 @@ export function FilterableTable({
   );
   const filtered = useMemo(() => filterRows(rows, cols, query), [rows, cols, query]);
 
-  // Short lists don't need a search affordance.
-  if (rows.length < minRowsForSearch) {
+  // Search box appears once a list is long enough; export can appear for any length.
+  const showSearch = rows.length >= minRowsForSearch;
+  const visible = showSearch ? filtered : rows;
+  const searching = showSearch && query.trim().length > 0;
+
+  // Nothing extra to show → plain table (unchanged behavior for short, non-exportable lists).
+  if (!showSearch && !exportFilename) {
     return <SimpleTable columns={columns} rows={rows} caption={caption} empty={empty} />;
   }
 
-  const searching = query.trim().length > 0;
-
   return (
     <div className="flex flex-col gap-3">
-      <div role="search" className="flex flex-wrap items-center gap-3">
-        <label htmlFor={inputId} className="sr-only">
-          {placeholder}
-        </label>
-        <input
-          id={inputId}
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={placeholder}
-          aria-controls={resultsId}
-          className="w-full max-w-xs rounded-md px-3 py-2 text-sm"
-          style={{
-            border: "1px solid var(--border, rgba(0,0,0,0.15))",
-            backgroundColor: "var(--surface, #fff)",
-            color: "var(--ink, inherit)",
-          }}
-        />
-        <span aria-live="polite" className="text-sm tabular-nums" style={{ color: "var(--ink-muted)" }}>
-          {searching
-            ? `${num(filtered.length)} من ${num(rows.length)} نتيجة`
-            : `${num(rows.length)} عنصر`}
-        </span>
+      <div className="flex flex-wrap items-center gap-3">
+        {showSearch && (
+          <div role="search" className="flex flex-wrap items-center gap-3">
+            <label htmlFor={inputId} className="sr-only">
+              {placeholder}
+            </label>
+            <input
+              id={inputId}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={placeholder}
+              aria-controls={resultsId}
+              className="w-full max-w-xs rounded-md px-3 py-2 text-sm"
+              style={{
+                border: "1px solid var(--border, rgba(0,0,0,0.15))",
+                backgroundColor: "var(--surface, #fff)",
+                color: "var(--ink, inherit)",
+              }}
+            />
+            <span aria-live="polite" className="text-sm tabular-nums" style={{ color: "var(--ink-muted)" }}>
+              {searching
+                ? `${num(filtered.length)} من ${num(rows.length)} نتيجة`
+                : `${num(rows.length)} عنصر`}
+            </span>
+          </div>
+        )}
+        {exportFilename && (
+          <div className="ms-auto">
+            <ExportButton rows={visible} columns={columns} filename={exportFilename} />
+          </div>
+        )}
       </div>
       <div id={resultsId}>
         <SimpleTable
           columns={columns}
-          rows={filtered}
+          rows={visible}
           caption={caption}
           empty={searching ? "لا نتائج مطابقة للبحث" : empty}
         />

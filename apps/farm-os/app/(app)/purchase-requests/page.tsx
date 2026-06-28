@@ -54,6 +54,7 @@ export default async function PurchaseRequestsPage() {
           rows={rows}
           searchColumns={["code", "reason", "status"]}
           placeholder="ابحث عن طلب…"
+          exportFilename="purchase-requests"
         />
       )}
     </div>
