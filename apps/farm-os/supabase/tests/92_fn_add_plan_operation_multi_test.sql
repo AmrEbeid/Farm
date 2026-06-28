@@ -3,7 +3,7 @@
 -- (c) multi-day validation, (d) plan.write authz refusal, (e) anon EXECUTE lockdown. Mirrors test 38's
 -- JWT-claim role simulation. Run via supabase test db or test-shims/run-pgtap-local.sh.
 begin;
-select plan(11);
+select plan(12);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set plan  'c9200000-0000-0000-0000-000000000092'
@@ -57,6 +57,16 @@ select is(
   (select count(*) from public.plan_operation_assignees
      where plan_op_id = ((current_setting('t.res')::jsonb)->>'operationId')::uuid and is_lead),
   1::bigint, 'exactly one assignee is flagged lead');
+
+-- ── (a2) CREATE-2 dedup: a second identical call (same plan+subtype+planned_at) returns deduped, no 2nd op
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select is(
+  (public.fn_add_plan_operation_multi(:'plan', 'fertilization', '2026-07-01'::date, null, 1000,
+    '[]'::jsonb, '[]'::jsonb, null, null) ->> 'deduped'), 'true',
+  'dedup: a second identical (plan+subtype+planned_at) call is deduped, not duplicated');
+reset role;
 
 -- ── (b) atomicity: a cross-org/non-existent material item rolls the WHOLE op back ──────────────────
 select set_config('request.jwt.claims',

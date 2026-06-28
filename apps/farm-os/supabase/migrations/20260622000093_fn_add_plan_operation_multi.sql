@@ -39,6 +39,7 @@ declare
   v_mat        jsonb;
   v_lab        jsonb;
   v_pid        uuid;
+  v_dup        uuid;
   v_n_mat      int := 0;
   v_n_lab      int := 0;
   v_n_asg      int := 0;
@@ -70,6 +71,18 @@ begin
   -- a named lead must be one of the assignees.
   if p_lead_id is not null and (p_assignee_ids is null or not (p_lead_id = any (p_assignee_ids))) then
     raise exception 'lead % must be one of the assignees', p_lead_id using errcode = '22023';
+  end if;
+
+  -- CREATE-2 dedup (preserved from 0038; #399 review): a double-submit / network retry that committed
+  -- server-side but failed to return would otherwise create a DUPLICATE op that over-counts the budget
+  -- while its lines duplicate the demand. Find-or-create on the natural key (plan + subtype +
+  -- planned_at): if such an op already exists, return it as deduped — no duplicate op/lines/assignees.
+  select po.id into v_dup from public.plan_operations po
+    where po.plan_id = p_plan_id and po.subtype = p_subtype
+      and po.planned_at is not distinct from p_planned_at
+    limit 1;
+  if v_dup is not null then
+    return jsonb_build_object('operationId', v_dup, 'deduped', true, 'materials', 0, 'labor', 0, 'assignees', 0);
   end if;
 
   insert into public.plan_operations (org_id, plan_id, subtype, target_type, target_id, planned_at,
