@@ -8,6 +8,12 @@
 -- guaranteed forward supply. Errs SAFE (excluding a PO can only RAISE a projected shortage, never hide
 -- one). Demand/period origin unchanged → ONLY change from the 0078 definition is the one receipts WHERE
 -- clause. Re-emitted VERBATIM from 0078 except that line. Independent review required (engine surface).
+--
+-- Residual (SAFE, documented): the receipts BUCKET origin is still v_period_start (= min(planned_at)).
+-- When that origin is itself in the past for a live plan, an included future PO buckets LATER than its
+-- true period (supply projected later than reality) — which errs safe (delaying projected relief can
+-- only keep/deepen a near-term shortage, never hide one). A full forward re-anchor of the timeline
+-- origin would tighten this but also shifts demand bucketing — out of scope here.
 create or replace function public.fn_stock_coverage(
   p_item uuid,
   p_location text default 'main',

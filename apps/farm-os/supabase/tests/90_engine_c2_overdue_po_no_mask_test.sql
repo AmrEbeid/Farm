@@ -18,7 +18,7 @@ insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved)
 insert into public.plans (id, org_id, type, status) values (:'plan', :'orgA', 'monthly', 'approved');
 -- the plan's only demanding op is PAST-dated → v_period_start is in the past
 insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, status)
-  values (:'op', :'orgA', :'plan', 'fertilization', date '2025-08-01', 'planned');
+  values (:'op', :'orgA', :'plan', 'fertilization', (current_date - 60), 'planned');
 insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
   values (:'orgA', :'op', :'item', 500, 'kg');
 select is(
@@ -26,7 +26,7 @@ select is(
   'C2 baseline: 300 on hand vs 500 need → shortage=true');
 set local session_replication_role = replica;
 insert into public.purchase_requests (id, org_id, code, requested_by, needed_by, reason, plan_id, status, version)
-  values (:'pr', :'orgA', 'PR-C2-REG', gen_random_uuid(), date '2025-08-01', 'overdue never-received PO', :'plan', 'approved', 1);
+  values (:'pr', :'orgA', 'PR-C2-REG', gen_random_uuid(), (current_date - 60), 'overdue never-received PO', :'plan', 'approved', 1);
 insert into public.purchase_request_items (pr_id, org_id, item_id, qty, unit)
   values (:'pr', :'orgA', :'item', 500, 'kg');
 set local session_replication_role = origin;
