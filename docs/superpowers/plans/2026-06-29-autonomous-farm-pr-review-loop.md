@@ -351,6 +351,13 @@ cleanup is already tracked in #362; L3/L4 were split to #431 (`transfer` destina
 `inventory_bin.ordered`); L6 was split to #430 (`fn_bin_rebuild` authenticated EXECUTE decision). No code, DDL,
 migration, prod apply, or production data change was run.
 
+- [x] **Step 11: Close #235 after splitting the remaining approval-copy residual**
+
+Result recorded 2026-06-29: #235 was re-verified against current `main` and closed. The original high-risk findings
+are fixed or covered by focused issues/held PRs. Created #433 for the one untracked residual:
+`approvePurchaseRequest` zero-row failure copy conflates stale version/status/authz. Remaining live work stays in
+#89, #157, #188/#199, #229/#317, and #314. No code, DDL, migration, prod apply, or production data change was run.
+
 ## Self-Review
 
 - Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.
