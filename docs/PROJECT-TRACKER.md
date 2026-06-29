@@ -10,6 +10,12 @@
 > because #396 merged the reserve-aware app-layer dedup fix, but the issue still tracks the migration-gated
 > fully atomic PR-line+reserve RPC follow-up. No DDL, migration, or production data change was performed.
 
+> **2026-06-29 — #362 Stage 0 issue corrected; Supabase rotation no longer open.** Retitled and edited
+> **#362** so it no longer asks for Farm Supabase DB password + `service_role` key rotation. That checklist item is
+> now marked complete per Owner confirmation. #362 remains open only for the remaining Owner/external cleanup:
+> legacy Supabase project keys, old repo history, spreadsheet/Google password, leaked-password protection, and demo
+> login cleanup before real data.
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads

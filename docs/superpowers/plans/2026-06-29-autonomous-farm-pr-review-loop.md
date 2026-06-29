@@ -281,7 +281,7 @@ Owner review; no schema, migration, prod apply, or real financial/PII import.
 ### Task 7: Audit Issue Hygiene Pass
 
 **Files:**
-- Read: GitHub issues #188, #229, #317, #383
+- Read: GitHub issues #188, #229, #317, #362, #383
 - Read: `docs/PROJECT-TRACKER.md`, `docs/SESSION-BRIEF.md`, `docs/DEPLOY-STATUS.md`
 - Modify: issue comments/state only when evidence is conclusive
 - Modify: docs only after issue state changes materially
@@ -315,6 +315,13 @@ the explicitly retained migration-gated fully atomic PR-line+reserve RPC follow-
 - [x] **Step 5: Update living docs after issue-state changes**
 
 This docs PR records #383 closed, #188 narrowed, and #317/#229 kept open with current production evidence.
+
+- [x] **Step 6: Correct #362 so completed Supabase rotation is not reopened**
+
+Result recorded 2026-06-29: #362 was retitled and its body was edited so Farm Supabase DB password +
+`service_role` key rotation is checked off per Owner confirmation. The issue remains open only for the remaining
+Owner/external cleanup: legacy keys/project, old repo history, spreadsheet/Google password, leaked-password
+protection, and demo login cleanup before real data.
 
 ## Self-Review
 
