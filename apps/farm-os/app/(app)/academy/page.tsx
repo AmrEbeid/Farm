@@ -12,13 +12,16 @@ import { authoritativeness, type AcademyContent } from "@/lib/academy";
 export default async function AcademyPage() {
   const m = await requireMembership();
   const sb = await createClient();
-  const { data } = await sb
+  const { data, error } = await sb
     .from("academy_content")
     .select(
       "id, title, body, category, has_chemical, agronomist_name, signed_at, pesticide_reg_valid_until",
     )
     .eq("archived", false)
     .order("category");
+  if (error) {
+    throw new Error("academy_content query failed");
+  }
 
   const canEdit = m.role === "owner" || m.role === "agri_engineer";
   const asOf = new Date().toISOString();
