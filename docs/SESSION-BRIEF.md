@@ -31,6 +31,36 @@ Local validation passed: import suite **41/41**, `tsc`, focused eslint, full Vit
 Fresh GitHub CI passed, independent re-review approved, and #412 was squash-merged to `main` as `d7b832d`. No
 migration or production apply was involved.
 
+## 2026-06-29 — remaining draft migration PRs reviewed; no merge/migrate
+**What was reviewed.** Three parallel agents reviewed the remaining open draft migration PRs against current remote
+`main` (`0767513`) and prod migration head `0096`: **#366** academy (`0091`), **#368** accounting (`0088` + `0097`),
+and **#400** export compliance (`0092`).
+
+**Decision.** Keep all three draft. Do not migrate any of them yet.
+
+**#366 academy.** No obvious current code/security defect found: FORCE RLS, org-scoped policies, `academy.write`
+gate, pinned `SECURITY DEFINER` RPCs, anon revoke, authenticated-only execute, and pesticide sign-off controls look
+materially fixed. It remains blocked by the real Stage 10 gate: licensed-agronomist + current Egyptian
+pesticide-registration sign-off. Merge-before-migrate is also undesirable because `/academy` would be visible while
+prod lacks `academy_content`/RPCs; it likely renders empty rather than 500ing because errors are ignored, which is
+misleading. Low-risk later fixes: update stale comments that still say "migration 0089" and fail visibly on academy
+query errors.
+
+**#368 accounting.** RLS/privacy state looks acceptable after current fixes: `sales` reads and sale audit rows are
+budget-write gated, and `0097` closes the symmetric expenses read/audit leak. It remains blocked by the Stage 7
+finance gate: real 7-year Excel reconciliation + privacy review. Migration sequencing is also special: prod is
+already at `0096` but lacks `0088`, so `0088` is an explicit out-of-order gap-fill and must be handled with `0097`
+rather than assumed to flow through a normal latest-migration path. Low-risk later fixes: fail fast on `/accounting`
+Supabase query errors and align `/expenses` navigation with the owner/accountant-only read gate in `0097`.
+
+**#400 export.** The `0092` export migration itself is materially review-clean on RLS/schema and now includes
+`academy.write` in its `authorize()` union. The blocker is ordering: if `0092` is applied first, then #366's current
+`0091` later re-emits `public.authorize()` without `export.write`, export writes would silently break. Safe paths
+are: apply #366 `0091` before #400 `0092`; patch #366 `0091` to preserve `export.write`; or add a post-`0096`
+repair/backfill migration pinning the final permission union after both features.
+
+**No prod action.** No migration, deploy, or production apply was performed from this review.
+
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
 
