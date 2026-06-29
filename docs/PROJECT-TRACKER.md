@@ -1,5 +1,14 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #441 custody frontend aligned with hardened #438; still held.** Patched draft frontend PR
+> **#441** at `fa17350`: custody account creation now uses `fn_save_custody_account`, custody dashboard/detail
+> routes are owner/accountant-only until an owner-ratified farm-manager finance-read scope exists, query/RPC failures
+> now throw to the route error boundary instead of rendering fabricated zero/empty financial totals, and the lifecycle
+> UI no longer advertises farm-manager custody actions while broad finance read is withheld. Local validation:
+> focused nav/page-help **17/17**, full Vitest **230/230**, `tsc --noEmit`, touched-file ESLint, production build,
+> and `git diff --check` all passed. **Held:** no merge until #438 is independently reviewed, prod-applied
+> migrate-first, and merged; no migration, prod apply, or production data change was performed.
+
 > **2026-06-29 — #438 custody backend hardened; still held for independent review and migration gate.** Patched
 > draft backend PR **#438** at `8fb7f69`: renamed its collided `0098`/`0099` draft migrations to timestamped
 > migrations, added `finance.read` plus preserved `responsibility.write` in the `authorize()` re-emit, restored
@@ -7,17 +16,14 @@
 > read RPCs to owner/accountant, mirrored those gates onto `audit_log.audit_read`, carried the `expenses.kind`
 > drawing split in this apply path, and excluded/rejected non-operating expenses from payment-request math. Local
 > validation: `git diff --check` clean; full pgTAP **735/735**. **Held:** no merge, prod migration, or production
-> data change until independent money/RLS/audit review and pre-migration review. **Downstream:** #441 must switch
-> custody account creation to the new RPC and remove/fix broad farm-manager finance reads before it can merge.
+> data change until independent money/RLS/audit review and pre-migration review. **Downstream:** #441 is now patched
+> to align with the new RPC/read contract, but remains held behind the #438 migrate-first path.
 
 > **2026-06-29 — #441 custody frontend reviewed; CI drift fix pushed; still held behind #438.** Reviewed draft
 > frontend PR **#441** for the SPEC-0018 custody/payment UI. Pushed a narrow fix (`e08562f`) adding route-specific
 > help for `/custody/request/[requestId]`, which restored local page-help coverage (**7/7**) and full app tests
-> (**230/230**). Review blockers remain: #441 depends on backend **#438** being independently reviewed and applied
-> migrate-first; custody account creation must use `fn_save_custody_account` instead of direct table DML; broad
-> farm-manager finance reads need an owner-ratified scope model or removal; and finance query/RPC errors currently
-> render as zero/empty values. **Held:** no merge until #438 is reviewed/applied and the #441 review findings are
-> resolved.
+> (**230/230**). A later #441 patch (`fa17350`, see top entry) aligned the frontend with #438's RPC-only and
+> finance-read contract. **Held:** no merge until #438 is reviewed, applied migrate-first, and merged.
 
 > **2026-06-29 — #314 responsibility-assignment write gate drafted; held for migration gate.** Draft PR
 > **#444** adds `responsibility.write` to `authorize(perm, org)` for owner/farm_manager and re-emits
