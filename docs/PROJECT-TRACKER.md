@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #442 inventory transfer/ordered guard reviewed; still held.** Reviewed draft PR **#442**
+> at `9b9cac3`: it blocks new `transfer` ledger rows at the RPC and table-constraint layers, pins
+> `inventory_bin.ordered = 0`, and preserves `fn_post_movement` internal-only EXECUTE posture. Local validation
+> repeated: `git diff --check` clean; full pgTAP **691/691**. No local code findings. **Held:** no merge,
+> prod migration, or production data change until pre-migration review. Before apply, run read-only prod probes
+> for existing `inventory_movements.type = 'transfer'` and `inventory_bin.ordered <> 0`; `NOT VALID` avoids the
+> initial validation scan but future updates to nonconforming rows still obey the constraints.
+
 > **2026-06-29 — #444 responsibility-write gate reviewed; still held.** Reviewed draft PR **#444** at
 > `67146ea`: the migration narrows `responsibility_assignments` writes to `responsibility.write`
 > (owner/farm_manager) while preserving org-member reads and the #306 same-org `people` guard. Local validation
@@ -57,8 +65,9 @@
 > model exists, and `inventory_bin.ordered` is pinned at zero until a real purchase-order writer owns it. Re-emitted
 > `fn_post_movement` without re-opening authenticated EXECUTE, preserving the internal-only AUTHZ-3 posture. Added
 > pgTAP coverage for transfer rejection, direct table constraint protection, `ordered=0`, and projected semantics.
-> Local pgTAP passed **691/691**. **Held:** no merge, migration, prod apply, or production data change until review
-> and a separate pre-migration review.
+> Local pgTAP passed **691/691**; a later review pass found no local code findings and added the required pre-apply
+> probe for existing transfer/ordered rows. **Held:** no merge, migration, prod apply, or production data change
+> until a separate pre-migration review.
 
 > **2026-06-29 — #439 grant-default drift fix drafted/green/held; #438 custody backend pre-patch review recorded.**
 > Draft PR **#439** closes the remaining #317/#229 DB grant hygiene slice: current public tables lose
