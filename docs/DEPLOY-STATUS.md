@@ -1,7 +1,6 @@
 # Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-06-28)
 
-First cloud deploy of the MVP-0 app. **No secrets in this file** — credentials were shared
-out-of-band and must be rotated (see "Security follow-ups").
+First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
 > **CURRENT STATE (2026-06-28, late — PR sweep).** Prod is at migration **`0096`**. Applied this session
 > via the Supabase MCP, each recorded under its **exact repo version** (**0 stray/off-version rows**;
@@ -15,7 +14,8 @@ out-of-band and must be rotated (see "Security follow-ups").
 > `0090`+`0093` (#399 operations) · `0091` (#366 academy) · `0092` (#400 export). These sit in the
 > contested `0090–0093` band being **actively renumbered by concurrent sessions** and/or behind **expert
 > gates** (#368 accounting-privacy, #366 academy sign-off) — do **not** race that lane. Also still pending
-> in the dashboard: enable `custom_access_token_hook` + leaked-password protection.
+> in the dashboard: enable `custom_access_token_hook` + leaked-password protection. **Rotation note:** Owner
+> confirmed 2026-06-29 that Supabase DB password + service-role key rotation is complete; do not raise again.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
@@ -78,13 +78,12 @@ out-of-band and must be rotated (see "Security follow-ups").
   *(2026-06-25: auth is **email + password only** — phone-OTP / Twilio removed from MVP-0 scope;
   `[auth.sms]` stays disabled.)*
 
-## Security follow-ups (REQUIRED — credentials were shared in chat)
-1. **Reset the Supabase DB password** (Settings → Database) — it was used over chat for `db push`.
-2. **Roll the `service_role` (secret) key** (Settings → API) — shared in chat; then **update the
-   Vercel env** (`SUPABASE_SERVICE_ROLE_KEY`) and redeploy. (The publishable/anon key is lower-risk
-   but can be rolled too.)
-3. **Rotate the demo login password** (or delete the demo users) before real users.
-4. **De-hardcode the demo password** — it is committed in `lib/seed-auth.ts` + `app/login/page.tsx`
+## Security follow-ups
+**2026-06-29 Owner correction:** Supabase DB password + `service_role` key rotation is complete; do not list it
+as an open gate again unless the Owner reopens it.
+
+1. **Rotate the demo login password** (or delete the demo users) before real users, if still applicable.
+2. **De-hardcode the demo password** — it is committed in `lib/seed-auth.ts` + `app/login/page.tsx`
    (client-bundled, prefilled). Move it to a (server-side for seed, `NEXT_PUBLIC_` for the prefill) env
    var and stop pre-filling the field, then rotate (#3). *(A gitleaks CI gate now blocks NEW committed
    secrets — `.gitleaks.toml` + `ci.yml` `secret-scan` job — but this pre-existing one needs the manual
@@ -184,11 +183,9 @@ B2 attempt; harmless, applied by version.)
 guard fix (`0029`), no longer convention-only. *(AP-5 insert-side SoD — #76 item 2 — closed by `0023`;
 receipt-posting atomicity — closed by `0024`.)* No queued security caveats remain from the assurance.
 
-## 🔴 Security follow-ups (Owner — do now)
-- **Rotate the Supabase DB password and the `service_role` (secret) key** — both were pasted in the
-  setup chat. (Supabase → Settings → Database / API → roll.) After rotating the DB password, the
-  committed migrations still apply via a fresh connection string; the app uses only the publishable
-  + service-role keys (service-role only server-side on Vercel).
+## Security follow-ups
+- **Supabase DB password + `service_role` key rotation is complete** — Owner correction 2026-06-29. Do not list
+  this as an open gate again unless the Owner reopens it.
 - The **demo login password is known** (shared in chat **and committed** in `lib/seed-auth.ts` +
   `app/login/page.tsx`, client-bundled). Fine for the pilot (synthetic data only),
   but reset it before any real Ebeid data, and consider per-user passwords.
