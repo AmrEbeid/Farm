@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #438 custody backend reroute guard pushed; still held.** Follow-up patch on draft
+> backend PR **#438** at `1288a23` prevents a custody-paid expense from being silently rerouted to another
+> `payment_status` after a cash out-movement exists; operators must post an explicit reversal before rerouting.
+> The same patch corrected stale migration comments. Local validation: `git diff --check` clean; full pgTAP
+> **736/736**. **Held:** no merge, prod migration, or production data change until independent money/RLS/audit
+> review and a separate pre-migration review. #441 remains the dependent frontend slice and still waits behind
+> the #438 migrate-first path.
+
 > **2026-06-29 — #441 custody frontend aligned with hardened #438; still held.** Patched draft frontend PR
 > **#441** at `fa17350`: custody account creation now uses `fn_save_custody_account`, custody dashboard/detail
 > routes are owner/accountant-only until an owner-ratified farm-manager finance-read scope exists, query/RPC failures
@@ -10,12 +18,14 @@
 > migrate-first, and merged; no migration, prod apply, or production data change was performed.
 
 > **2026-06-29 — #438 custody backend hardened; still held for independent review and migration gate.** Patched
-> draft backend PR **#438** at `8fb7f69`: renamed its collided `0098`/`0099` draft migrations to timestamped
+> draft backend PR **#438** at `8fb7f69`, then follow-up `1288a23`: renamed its collided `0098`/`0099` draft
+> migrations to timestamped
 > migrations, added `finance.read` plus preserved `responsibility.write` in the `authorize()` re-emit, restored
 > RPC-only custody account writes with `fn_save_custody_account`, finance-gated custody/payment table reads and
 > read RPCs to owner/accountant, mirrored those gates onto `audit_log.audit_read`, carried the `expenses.kind`
-> drawing split in this apply path, and excluded/rejected non-operating expenses from payment-request math. Local
-> validation: `git diff --check` clean; full pgTAP **735/735**. **Held:** no merge, prod migration, or production
+> drawing split in this apply path, excluded/rejected non-operating expenses from payment-request math, and rejects
+> rerouting a custody-paid expense without an explicit reversal. Local validation: `git diff --check` clean; full
+> pgTAP **736/736**. **Held:** no merge, prod migration, or production
 > data change until independent money/RLS/audit review and pre-migration review. **Downstream:** #441 is now patched
 > to align with the new RPC/read contract, but remains held behind the #438 migrate-first path.
 
