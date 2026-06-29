@@ -1,5 +1,19 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — remaining draft migration PRs independently reviewed; all HELD.** Parallel agents reviewed
+> **#366 academy (`0091`)**, **#368 accounting (`0088` + `0097`)**, and **#400 export (`0092`)** against current
+> remote `main` and prod ledger `0096`. Recommendation is unchanged but now sharper: keep all three draft and do
+> **not** migrate. #366 is RLS/security-clean but still needs agronomist + Egyptian pesticide-registration sign-off;
+> low-risk follow-ups are stale "0089" comments and surfacing `/academy` query errors instead of rendering empty
+> content if schema is absent. #368 is RLS/privacy-clean after the sales/expenses read gates, but still needs
+> 7-year Excel reconciliation + privacy review, and prod's ledger requires an explicit `0088` gap-fill then `0097`
+> path; low-risk follow-ups are fail-fast `/accounting` query errors and aligning `/expenses` nav visibility with
+> `0097`. #400 is schema/RLS-clean, but migration ordering is unsafe if `0092` is applied before #366's current
+> `0091`, because `0091` re-emits `public.authorize()` without `export.write` and would silently drop export write
+> permission. Safe choices: apply #366 `0091` before #400 `0092`, patch #366 `0091` to include the final permission
+> union, or add a post-`0096` repair migration that pins the final union after both features. No merge or migration
+> was performed from this review.
+
 > **2026-06-29 — autonomous loop started; PR #400 reviewed/fixed/held; PR #412 reviewed/fixed/merged.** Owner instructed
 > the agent to keep working without waiting, while preserving plan-first, docs-updated, review-before-merge, and
 > review-before-migrate gates. Created

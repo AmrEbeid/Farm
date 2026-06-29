@@ -4,18 +4,29 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
 > **CURRENT STATE (2026-06-28, late — PR sweep).** Prod is at migration **`0096`**. Applied this session
 > via the Supabase MCP, each recorded under its **exact repo version** (**0 stray/off-version rows**;
-> prod head `20260622000096`): `0094` (#401 **C2 engine fix — the go-live blocker, now LIVE on prod**),
-> `0095` (#402 org-switcher anon-lock + fiscal-year coalesce), `0096` (#404 FK covering indexes — 0
-> unindexed FKs remain). **PRs #401 / #402 / #404 merged** → repo↔prod ledger in sync at `0096`.
+> prod head `20260622000096`): earlier-applied `0090` + `0093` (#399 operations), `0094` (#401 **C2 engine
+> fix — the go-live blocker, now LIVE on prod**), `0095` (#402 org-switcher anon-lock + fiscal-year coalesce),
+> `0096` (#404 FK covering indexes — 0 unindexed FKs remain). **PRs #399 / #401 / #402 / #404 merged** →
+> repo↔prod ledger in sync at `0096`.
 > ✅ **Correction:** the Farm project `veezkmytervjnpxcrbkw` **IS reachable from the connected Supabase
 > MCP** (same org as `ai-math-tutor`); the earlier "MCP reaches only the Zeal org / Farm not reachable"
 > note was **stale** — verify with `list_projects`, don't assume.
-> **Still queued as draft PRs, NOT applied (migrate-FIRST, then merge):** `0088` (#368 accounting) ·
-> `0090`+`0093` (#399 operations) · `0091` (#366 academy) · `0092` (#400 export). These sit in the
-> contested `0090–0093` band being **actively renumbered by concurrent sessions** and/or behind **expert
-> gates** (#368 accounting-privacy, #366 academy sign-off) — do **not** race that lane. Also still pending
+> **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting), `0091` (#366 academy),
+> and `0092` (#400 export). These are behind expert gates and/or the `authorize()` ordering risk recorded
+> below — do **not** race that lane. Also still pending
 > in the dashboard: enable `custom_access_token_hook` + leaked-password protection. **Rotation note:** Owner
 > confirmed 2026-06-29 that Supabase DB password + service-role key rotation is complete; do not raise again.
+
+> **CURRENT REVIEW UPDATE (2026-06-29 — draft migration lane).** Fresh independent reviews of the three remaining
+> draft migration PRs all recommend **keep draft / do not migrate**:
+> **#366 academy `0091`** is security/RLS-clean but still gated by licensed-agronomist + Egyptian
+> pesticide-registration sign-off; merging before migrating would expose `/academy` against missing prod tables.
+> **#368 accounting `0088` + `0097`** is privacy/RLS-clean after current fixes, but remains gated by real Excel
+> reconciliation + privacy review; prod is already at `0096`, so `0088` is an out-of-order gap-fill and `0097`
+> must be handled explicitly with it. **#400 export `0092`** is review-clean on RLS/schema, but must not be applied
+> alone while #366's `0091` re-emits `public.authorize()` without `export.write`; safe paths are `0091` before
+> `0092`, patch `0091` to preserve the final permission union, or add a post-`0096` repair migration that pins the
+> final union after both features. No production migration is approved from these reviews.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel

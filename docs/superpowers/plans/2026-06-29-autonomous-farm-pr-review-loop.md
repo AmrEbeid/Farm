@@ -204,8 +204,45 @@ Use the Supabase connector or CLI only after confirming the Farm project id is `
 
 Update `PROJECT-TRACKER.md`, `SESSION-BRIEF.md`, and `DEPLOY-STATUS.md` with exact PR, migration, validation, and residual risk.
 
+### Task 5: Reconcile Remaining Draft Migration Lane
+
+**Files:**
+- Read: PR #366 migration/tests/app files
+- Read: PR #368 migration/tests/app files
+- Read: PR #400 migration/tests/app files
+- Modify: docs first; modify PR branches only after a scoped plan and review.
+
+**Interfaces:**
+- Consumes: prod migration ledger at `0096`, draft PRs #366/#368/#400, independent review findings from 2026-06-29.
+- Produces: a safe merge/migration order or branch patches that remove ordering traps.
+
+- [x] **Step 1: Run independent draft-lane reviews**
+
+Result recorded 2026-06-29: #366, #368, and #400 all remain draft. No merge or migration is approved.
+
+- [ ] **Step 2: Choose the #366/#400 `authorize()` strategy before any export/academy migration**
+
+Allowed safe strategies:
+
+1. Apply #366 `0091` before #400 `0092`.
+2. Patch #366 `0091` to preserve the final `authorize()` permission union including `export.write`.
+3. Add a post-`0096` repair/backfill migration that pins the final union after both features.
+
+Do not apply #400 `0092` alone while #366 `0091` can later drop `export.write`.
+
+- [ ] **Step 3: Preserve #368 accounting gates**
+
+Before #368 can merge or migrate, confirm real 7-year Excel reconciliation and privacy review. Treat `0088` as an
+explicit out-of-order prod gap-fill because prod is already at `0096`, and pair it with `0097` in the reviewed
+apply path.
+
+- [ ] **Step 4: Queue low-risk branch fixes**
+
+Candidate fixes from review: surface `/academy` and `/accounting` Supabase query errors instead of silently showing
+empty/zero data; align `/expenses` navigation with `0097`; update stale #366 comments that still say "0089".
+
 ## Self-Review
 
-- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, and merge/migration gates.
+- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, and merge/migration gates.
 - Placeholder scan: no TBD/TODO placeholders; every task has exact commands and expected outcomes.
 - Type consistency: no new code interfaces are defined; process interfaces are explicit.
