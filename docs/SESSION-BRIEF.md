@@ -78,6 +78,22 @@ focused independent check found no blockers.
 pesticide-registration sign-off. #368 remains draft pending real 7-year Excel reconciliation + privacy review and
 explicit `0088` gap-fill plus `0097` apply planning. No migration or production apply was performed.
 
+## 2026-06-29 — #366 authorize union patched for #400 ordering safety
+**Change.** Patched held draft #366 (`feat/stage-10-academy-backend`) so migration `0091` includes `export.write`
+in the `public.authorize(perm, p_org)` re-emit alongside `academy.write`. Test `89_academy_content_test.sql` now
+pins the intended mapping: owner and farm_manager keep `export.write`; supervisor does not.
+
+**Why.** This removes the specific #366/#400 ordering trap where applying export `0092` first and backfilling
+academy `0091` later would have dropped `export.write`. Adding the permission before export tables exist is inert;
+it only preserves the final permission union.
+
+**Evidence.** #366 branch head `86dfa6e`; GitHub checks green (`pgTAP`, app/typecheck/lint/test/build, gitleaks,
+Vercel); focused independent check found no blockers.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #366 still needs the external
+agronomist + Egyptian pesticide-registration sign-off; #400 still needs fresh pre-migration review of exact apply
+order before any merge/migrate.
+
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
 

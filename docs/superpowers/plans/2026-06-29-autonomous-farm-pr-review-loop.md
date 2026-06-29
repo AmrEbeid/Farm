@@ -220,7 +220,7 @@ Update `PROJECT-TRACKER.md`, `SESSION-BRIEF.md`, and `DEPLOY-STATUS.md` with exa
 
 Result recorded 2026-06-29: #366, #368, and #400 all remain draft. No merge or migration is approved.
 
-- [ ] **Step 2: Choose the #366/#400 `authorize()` strategy before any export/academy migration**
+- [x] **Step 2: Choose the #366/#400 `authorize()` strategy before any export/academy migration**
 
 Allowed safe strategies:
 
@@ -229,6 +229,10 @@ Allowed safe strategies:
 3. Add a post-`0096` repair/backfill migration that pins the final union after both features.
 
 Do not apply #400 `0092` alone while #366 `0091` can later drop `export.write`.
+
+Completed 2026-06-29: chose strategy 2. #366 `0091` now preserves the final known permission union including
+`export.write` (head `86dfa6e`, CI green, focused independent check found no blockers). This reduces the out-of-order
+gap-fill trap but does not approve any merge or migration.
 
 - [ ] **Step 3: Preserve #368 accounting gates**
 

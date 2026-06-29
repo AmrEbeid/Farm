@@ -27,6 +27,9 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > alone while #366's `0091` re-emits `public.authorize()` without `export.write`; safe paths are `0091` before
 > `0092`, patch `0091` to preserve the final permission union, or add a post-`0096` repair migration that pins the
 > final union after both features. No production migration is approved from these reviews.
+> **Follow-up:** #366 now uses the "patch `0091` to preserve the final permission union" path at head `86dfa6e`;
+> CI is green and a focused independent check found no blockers. This reduces the `0091`/`0092` ordering trap, but
+> #366/#400 remain unmigrated and require a fresh pre-migration review before any apply.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
