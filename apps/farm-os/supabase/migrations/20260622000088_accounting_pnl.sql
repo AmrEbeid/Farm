@@ -2,8 +2,7 @@
 -- Owner-ratified path 2026-06-27 ("build framework on synthetic, gated"). This adds the data model the
 -- P&L needs: an explicit expense `kind` so owner DRAWINGS (مسحوبات) and capex are SEPARABLE from
 -- operating expenses (non-negotiable #6 — never a free-text category), and a `sales` table for revenue.
--- The P&L itself is computed by the pure engine (apps/farm-os/lib/pnl.ts), which excludes drawings/capex
--- from the operating P&L by construction.
+-- The UI reads the P&L through a DB-side aggregate RPC so totals are not capped by PostgREST row limits.
 --
 -- GATE INTACT: the acceptance oracle is still the dual-run reconciliation of one closed season against
 -- the real 7-yr Excel (real financials → Stage M / privacy review) — NOT in this migration. Money logic
@@ -144,12 +143,77 @@ begin
   return jsonb_build_object('id', p_id, 'kind', p_kind);
 end $$;
 
+-- ── 3c) fn_accounting_pnl_summary — DB-side aggregate for uncapped P&L totals (budget.write) ─────────
+create or replace function public.fn_accounting_pnl_summary(p_org uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_revenue numeric := 0;
+  v_operating numeric := 0;
+  v_drawings numeric := 0;
+  v_capex numeric := 0;
+  v_by_category jsonb := '[]'::jsonb;
+begin
+  if p_org is null then
+    raise exception 'org required' using errcode = '23502';
+  end if;
+
+  if not public.authorize('budget.write', p_org) then
+    raise exception 'forbidden: budget.write is required (owner/accountant)' using errcode = '42501';
+  end if;
+  if (select auth.role()) = 'anon'
+     or ((select auth.uid()) is not null and p_org not in (select public.user_org_ids())) then
+    raise exception 'forbidden: cross-org accounting summary' using errcode = '42501';
+  end if;
+
+  select coalesce(sum(s.total) filter (where s.total >= 0), 0)
+    into v_revenue
+    from public.sales s
+   where s.org_id = p_org
+     and s.archived = false;
+
+  select
+    coalesce(sum(e.total) filter (where e.kind = 'operating' and e.total >= 0), 0),
+    coalesce(sum(e.total) filter (where e.kind = 'drawing' and e.total >= 0), 0),
+    coalesce(sum(e.total) filter (where e.kind = 'capex' and e.total >= 0), 0)
+    into v_operating, v_drawings, v_capex
+    from public.expenses e
+   where e.org_id = p_org;
+
+  select coalesce(
+    jsonb_agg(jsonb_build_object('category', c.category, 'operating', c.operating) order by c.category),
+    '[]'::jsonb
+  )
+    into v_by_category
+    from (
+      select
+        coalesce(nullif(e.category, ''), 'غير مصنّف') as category,
+        round(sum(e.total)::numeric, 2) as operating
+        from public.expenses e
+       where e.org_id = p_org
+         and e.kind = 'operating'
+         and e.total >= 0
+       group by 1
+    ) c;
+
+  return jsonb_build_object(
+    'revenue', round(v_revenue, 2),
+    'operatingExpenses', round(v_operating, 2),
+    'drawings', round(v_drawings, 2),
+    'capex', round(v_capex, 2),
+    'netOperating', round(v_revenue - v_operating, 2),
+    'byCategory', v_by_category
+  );
+end $$;
+
 revoke all     on function public.fn_save_sale(uuid, uuid, date, text, uuid, numeric, text, numeric, numeric, text, text) from public;
 revoke execute on function public.fn_save_sale(uuid, uuid, date, text, uuid, numeric, text, numeric, numeric, text, text) from anon;
 grant  execute on function public.fn_save_sale(uuid, uuid, date, text, uuid, numeric, text, numeric, numeric, text, text) to authenticated;
 revoke all     on function public.fn_set_expense_kind(uuid, text) from public;
 revoke execute on function public.fn_set_expense_kind(uuid, text) from anon;
 grant  execute on function public.fn_set_expense_kind(uuid, text) to authenticated;
+revoke all     on function public.fn_accounting_pnl_summary(uuid) from public;
+revoke execute on function public.fn_accounting_pnl_summary(uuid) from anon;
+grant  execute on function public.fn_accounting_pnl_summary(uuid) to authenticated;
 
 -- ── 4) gate `sale` audit rows on budget.write (mirror the base-table read rule onto the audit log) ───
 -- sales' base read is now budget.write-only (owner/accountant), but fn_audit('sale') mirrors the FULL

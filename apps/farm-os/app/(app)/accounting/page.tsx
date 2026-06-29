@@ -1,7 +1,34 @@
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { computePnl, type ExpenseEntry, type ExpenseKind } from "@/lib/pnl";
+import type { ExpenseKind, PnlSummary } from "@/lib/pnl";
 import { AccountingView } from "@/components/AccountingView";
+
+function toMoney(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parsePnlSummary(value: unknown): PnlSummary {
+  const row = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  const byCategory = Array.isArray(row.byCategory)
+    ? row.byCategory.map((item) => {
+        const category = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        return {
+          category: typeof category.category === "string" && category.category ? category.category : "غير مصنّف",
+          operating: toMoney(category.operating),
+        };
+      })
+    : [];
+
+  return {
+    revenue: toMoney(row.revenue),
+    operatingExpenses: toMoney(row.operatingExpenses),
+    drawings: toMoney(row.drawings),
+    capex: toMoney(row.capex),
+    netOperating: toMoney(row.netOperating),
+    byCategory,
+  };
+}
 
 /**
  * Accounting / P&L (Stage 7 / SPEC-0004). Owner/accountant only (financial confidentiality). Computes
@@ -14,21 +41,16 @@ export default async function AccountingPage() {
   const sb = await createClient();
 
   const [
-    { data: summaryExpenseRows, error: summaryExpensesError },
-    { data: summarySaleRows, error: summarySalesError },
+    { data: summary, error: summaryError },
     { data: expenseRows, error: expensesError },
     { data: saleRows, error: salesError },
   ] = await Promise.all([
-    sb.from("expenses").select("category, total, kind"),
-    sb.from("sales").select("crop, total").eq("archived", false),
+    sb.rpc("fn_accounting_pnl_summary", { p_org: m.orgId }),
     sb.from("expenses").select("id, category, total, kind, date").order("date", { ascending: false }).limit(200),
     sb.from("sales").select("id, crop, total, date").eq("archived", false).order("date", { ascending: false }).limit(200),
   ]);
-  if (summaryExpensesError) {
-    throw new Error("expenses summary query failed");
-  }
-  if (summarySalesError) {
-    throw new Error("sales summary query failed");
+  if (summaryError) {
+    throw new Error("accounting summary query failed");
   }
   if (expensesError) {
     throw new Error("expenses query failed");
@@ -37,14 +59,7 @@ export default async function AccountingPage() {
     throw new Error("sales query failed");
   }
 
-  const expenses: ExpenseEntry[] = (summaryExpenseRows ?? []).map((e) => ({
-    category: e.category ?? "",
-    amount: Number(e.total ?? 0),
-    kind: (e.kind as ExpenseKind) ?? "operating",
-  }));
-  const sales = (summarySaleRows ?? []).map((s) => ({ amount: Number(s.total ?? 0), crop: s.crop ?? undefined }));
-
-  const pnl = computePnl(expenses, sales);
+  const pnl = parsePnlSummary(summary);
 
   return (
     <AccountingView

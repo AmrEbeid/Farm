@@ -14,6 +14,7 @@ import type { Database as Generated, Json } from "./database.types";
 
 type Public = Generated["public"];
 type Tables = Public["Tables"];
+type ExpenseKindValue = "operating" | "drawing" | "capex";
 
 /** Add the soft-delete flag to an existing generated table entry, preserving its relationships. */
 type WithArchived<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
@@ -253,7 +254,11 @@ type StructFunctions = {
     Returns: Json;
   };
   fn_set_expense_kind: {
-    Args: { p_id: string; p_kind: string };
+    Args: { p_id: string; p_kind: ExpenseKindValue };
+    Returns: Json;
+  };
+  fn_accounting_pnl_summary: {
+    Args: { p_org: string };
     Returns: Json;
   };
 };
@@ -283,9 +288,9 @@ type SalesTable = {
 
 /** Add the #6 expense `kind` (operating/drawing/capex) to the generated expenses table (migration 0088). */
 type WithKind<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
-  Row: T["Row"] & { kind: string };
-  Insert: T["Insert"] & { kind?: string };
-  Update: T["Update"] & { kind?: string };
+  Row: T["Row"] & { kind: ExpenseKindValue };
+  Insert: T["Insert"] & { kind?: ExpenseKindValue };
+  Update: T["Update"] & { kind?: ExpenseKindValue };
   Relationships: T["Relationships"];
 };
 

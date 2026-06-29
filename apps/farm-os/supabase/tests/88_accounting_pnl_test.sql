@@ -6,7 +6,7 @@
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(16);
+select plan(24);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.acct', (select user_id::text from public.organization_member
@@ -80,6 +80,45 @@ select pg_temp.as_user(current_setting('test.sup'));
 select throws_ok(
   format($$ select public.fn_set_expense_kind(%L, 'capex') $$, current_setting('test.exp')),
   '42501', null, 'fn_set_expense_kind: a supervisor (no budget.write) is FORBIDDEN');
+reset role;
+
+-- ===== 3b) DB-side P&L summary is uncapped by page row limits and keeps #6 separation =====
+insert into public.expenses(org_id, category, total, kind) values
+  (:'org', 'أسمدة', 100, 'operating'),
+  (:'org', 'أسمدة', 25, 'operating'),
+  (:'org', 'عمالة', 50, 'operating'),
+  (:'org', 'أصول', 200, 'capex');
+insert into public.sales(org_id, crop, total, archived) values
+  (:'org', 'برحي', 1000, false),
+  (:'org', 'برحي', 999, true);
+
+select pg_temp.as_user(current_setting('test.acct'));
+select lives_ok(
+  format($$ select set_config('test.pnl_summary', public.fn_accounting_pnl_summary(%L)::text, false) $$, :'org'),
+  'fn_accounting_pnl_summary: accountant can read the DB-side aggregate');
+select is(
+  (current_setting('test.pnl_summary')::jsonb->>'revenue')::numeric,
+  6000::numeric, 'P&L summary: revenue excludes archived sales and is aggregated in the DB');
+select is(
+  (current_setting('test.pnl_summary')::jsonb->>'operatingExpenses')::numeric,
+  175::numeric, 'P&L summary: operating expenses include operating rows only');
+select is(
+  (current_setting('test.pnl_summary')::jsonb->>'drawings')::numeric,
+  100::numeric, 'P&L summary: drawings are reported separately');
+select is(
+  (current_setting('test.pnl_summary')::jsonb->>'capex')::numeric,
+  200::numeric, 'P&L summary: capex is reported separately');
+select is(
+  (current_setting('test.pnl_summary')::jsonb->>'netOperating')::numeric,
+  5825::numeric, 'P&L summary: net operating excludes drawings and capex');
+select ok(
+  (current_setting('test.pnl_summary')::jsonb->'byCategory') @> '[{"category":"أسمدة","operating":125}]'::jsonb,
+  'P&L summary: category totals include operating rows only');
+reset role;
+select pg_temp.as_user(current_setting('test.sup'));
+select throws_ok(
+  format($$ select public.fn_accounting_pnl_summary(%L) $$, :'org'),
+  '42501', null, 'fn_accounting_pnl_summary: a supervisor (no budget.write) is FORBIDDEN');
 reset role;
 
 -- ===== 4) validation: non-negative amounts; cross-org sector guard =====

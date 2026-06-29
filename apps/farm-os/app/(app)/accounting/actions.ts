@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import type { ExpenseKind } from "@/lib/pnl";
 
 /**
  * Server actions for the accounting framework (Stage 7 / SPEC-0004). Revenue entry + the #6 expense
@@ -14,8 +15,13 @@ import { toArabicError } from "@/lib/errors";
  */
 
 const NO_PERM = "ليس لديك صلاحية مالية (تتطلب مالك أو محاسب)";
+const EXPENSE_KINDS = new Set<string>(["operating", "drawing", "capex"]);
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
+
+function isExpenseKind(kind: string): kind is ExpenseKind {
+  return EXPENSE_KINDS.has(kind);
+}
 
 export async function saveSale(input: {
   id?: string | null;
@@ -44,6 +50,9 @@ export async function saveSale(input: {
 
 export async function setExpenseKind(input: { id: string; kind: string }): Promise<Result> {
   await requireMembership();
+  if (!isExpenseKind(input.kind)) {
+    return { ok: false, error: "تصنيف المصروف غير صالح" };
+  }
   const sb = await createClient();
   const { error } = await sb.rpc("fn_set_expense_kind", { p_id: input.id, p_kind: input.kind });
   if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
