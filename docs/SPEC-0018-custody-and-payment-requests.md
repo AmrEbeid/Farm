@@ -2,9 +2,11 @@
 
 *Status: **DRAFT for Owner review** — design only; no schema applied, no prod mutation. Digitizes the
 paper «إذن صرف المزارع» into a live, auditable custody + payment-request
-module. Builds on existing Farm OS surfaces — the `expenses` table + `kind` operating/drawing/capex split
-(SPEC-0004 / migration `0088`), the `attachments` table (`0082`), and the org-scoped `authorize()` model —
-rather than duplicating them. Companion to [`SPEC-0004`](SPEC-0004-accounting-and-pnl.md) (P&L),
+module. Builds on existing Farm OS surfaces — the `expenses` table, the `attachments` table (`0082`), and the
+org-scoped `authorize()` model — rather than duplicating them. It also depends on the draft SPEC-0004 accounting
+lane for the `expenses.kind` operating/drawing/capex split (`0088` / PR #368); if that lane is not merged/applied
+first, this module's first migration must include the same #6 split before any custody/request math ships.
+Companion to [`SPEC-0004`](SPEC-0004-accounting-and-pnl.md) (P&L),
 [`SPEC-0006`](SPEC-0006-people-labor-payroll.md) (labor/PII), [`CLAUDE.md`](CLAUDE.md) non-negotiables #1/#6.*
 
 *An immediate Google-Sheets/Excel tool ships first (Deliverable A — `إذن-الصرف-والعهدة-Ebeid-Farm-v1.xlsx`);
@@ -44,8 +46,9 @@ no live balance, proof is loose paper, no approval trail, double-count risk betw
   `post_paid_unpaid` (requested) — its `payment_status` decides which bucket; the request sums only the
   unpaid bucket + the top-up.
 - **Flags:** missing receipt, duplicate receipt number, negative custody balance, unapproved expense.
-- **#6 non-negotiable:** owner **drawings (مسحوبات)** are `kind='drawing'` and are **excluded** from
-  operating-expense and custody-request math (they are a separate owner transfer).
+- **#6 non-negotiable:** owner **drawings (مسحوبات)** must be classified separately (`kind='drawing'` once the
+  SPEC-0004 split lands) and are **excluded** from operating-expense and custody-request math (they are a separate
+  owner transfer).
 
 ## 4. Database tables (Postgres, all org-scoped + RLS + FORCE RLS + audited)
 Extend, don't duplicate. New tables:
@@ -63,10 +66,13 @@ Extend, don't duplicate. New tables:
 
 Reuse/extend existing:
 - **`expenses`** (SPEC-0004) — add `payment_status text` (`paid_from_custody|post_paid_unpaid|paid_by_owner|
-  cancelled`), `category text`, `location text`, `paid_by`, `custody_account_id null`. Keep `kind`
-  (operating/drawing/capex) for the #6 drawings split. Money total stays on the line.
-- **`attachments`** (`0082`) — receipts via `entity_type='expense'`, `entity_id=expense.id`; the
-  missing-proof/duplicate-number flags are computed views.
+  cancelled`), `location text`, `paid_by`, `custody_account_id null`. Keep or add `kind`
+  (operating/drawing/capex) for the #6 drawings split before any request totals are enabled. Money total stays on
+  the line.
+- **`attachments`** (`0082`) — extend the existing node-media attachment model for finance receipts before use:
+  allow `entity_type='expense'`, update the resolver RPC/storage path validation, and add finance-confidential RLS
+  / read gates for receipt media. Receipts then use `entity_id=expense.id`; the missing-proof/duplicate-number flags
+  are computed views.
 - **labor / tasmeed detail** — reuse `plan_operations` + `plan_labor_requirements` where an expense ties to a
   planned operation; otherwise a lightweight `expense_detail (expense_id, kind, qty, unit_price, …)` for the
   ad-hoc lines (labor matrix, fertilization breakdown). Detail **reconciles to** its expense
@@ -142,7 +148,8 @@ hard stop). The sheet stays the source of truth until import is verified, then t
 - Custody balance = Σin−Σout at all times; a cash-paid expense moves it; negative balance flags.
 - `net_request = post_paid_unpaid + MAX(0, target − current)`; **a paid-cash expense never appears in the
   request** (no double-count) — proven by a pgTAP oracle.
-- Drawings (`kind='drawing'`) are excluded from operating + request math (#6).
+- Drawings are excluded from operating + request math (#6), with a hard test for the `kind='drawing'` classification
+  once the SPEC-0004 split exists in the same apply path.
 - Every write is audited (`audit_log`); approvals carry approver + timestamp; the period locks on close.
 - A non-finance member cannot read wages, receipts, custody balances, payment requests, or write any
   custody/expense/request row (RLS, FORCE RLS).
