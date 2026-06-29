@@ -59,6 +59,19 @@
 > (`fn_bin_rebuild` authenticated EXECUTE decision). Closed #161 to remove the stale grab-bag while preserving the
 > surviving LOW inventory/RPC cleanup issues. No code, DDL, migration, prod apply, or production data change.
 
+> **2026-06-29 — #235 pre-pilot bug-hunt bucket closed; one residual split.** Re-verified **#235** against
+> current `main` and closed it because the original high-risk findings are fixed or tracked in focused lanes.
+> Created **#433** for the one untracked residual: `approvePurchaseRequest` zero-row failure copy conflates stale
+> version/status/authz. Remaining live work stays in focused issues/PRs: **#89** price source, **#157** budget gate,
+> **#188/#199** engine/RPC follow-ups, **#229/#317** prod grant/advisor hygiene, and **#314** responsibility
+> assignment RBAC. No code, DDL, migration, prod apply, or production data change.
+
+> **2026-06-29 — #433 approval-failure copy implemented; no enforcement change.** Added a small app-layer
+> classifier so `approvePurchaseRequest` distinguishes stale version, wrong status, self-approval, missing owner
+> permission, and missing/unreadable request after a zero-row approval update. Enforcement remains in RLS/DB
+> triggers; this only improves Arabic diagnostic copy. Local validation: focused Vitest **5/5**, full Vitest
+> **220/220**, focused eslint, `tsc --noEmit`, and production build (existing Next/Supabase warning only).
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
