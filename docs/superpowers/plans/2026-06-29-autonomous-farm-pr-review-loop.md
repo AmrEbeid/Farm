@@ -239,9 +239,9 @@ apply path.
 - [x] **Step 4: Queue low-risk branch fixes**
 
 Completed 2026-06-29: #366 now surfaces `/academy` query failures and corrects stale `0089` comments to `0091`
-(head `ca915dc`, CI green, focused re-review approved). #368 now surfaces `/accounting` `expenses`/`sales` query
+(head `ca915dc`, CI green, focused independent check found no blockers). #368 now surfaces `/accounting` `expenses`/`sales` query
 failures and aligns `/expenses` nav with the `0097` owner/accountant read gate (head `a4d1c7f`, CI green, focused
-re-review approved). Both PRs remain draft and unmigrated.
+independent check found no blockers). Both PRs remain draft and unmigrated.
 
 ## Self-Review
 
