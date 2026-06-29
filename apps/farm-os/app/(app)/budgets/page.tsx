@@ -57,6 +57,7 @@ export default async function BudgetsPage() {
         empty="لا توجد موازنات"
         searchColumns={["name", "category", "period"]}
         placeholder="ابحث في الموازنات…"
+        exportFilename="budgets"
       />
     </div>
   );

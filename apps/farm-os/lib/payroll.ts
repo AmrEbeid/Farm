@@ -50,7 +50,9 @@ export function computePayroll(labor: LaborEntry[], rates: Map<string, number>):
   for (const personId of [...hoursByPerson.keys()].sort()) {
     const hours = r2(hoursByPerson.get(personId)!);
     const rate = rates.get(personId);
-    if (rate === undefined || typeof rate !== "number" || !Number.isFinite(rate) || rate < 0) {
+    // A zero or negative rate is invalid: paying logged hours nothing without flagging is the harmful
+    // direction (non-negotiable #1). Flag it (rate: null, rateMissing: true) so a human supplies it.
+    if (rate === undefined || typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) {
       missingRates.push(personId);
       lines.push({ personId, hours, rate: null, gross: 0, rateMissing: true });
       continue;

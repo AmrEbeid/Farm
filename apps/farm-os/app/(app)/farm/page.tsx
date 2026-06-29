@@ -5,6 +5,7 @@ import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/c
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StructureForm } from "@/components/StructureForm";
 import { num } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 // Palm asset statuses that need attention (assets.status — migration 0003).
@@ -61,7 +62,7 @@ export default async function FarmStructurePage() {
     id: e.id,
     kind: "operation",
     title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
-    time: e.occurred_at ? new Date(e.occurred_at).toLocaleDateString("ar-EG") : "—",
+    time: fmtDate(e.occurred_at),
     description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status ?? "—",
   }));
 

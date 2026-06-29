@@ -1,0 +1,39 @@
+# Guardian: auto-reopen blocker PRs closed unmerged.
+#
+# Problem: AmrEbeid/Farm runs a large concurrent agent fleet that all act through
+#   one shared push identity (amrabdelglill-pixel). On 2026-06-28 the go-live
+#   blocker PR #401 (migration 0094) was closed unmerged 1s after an unrelated
+#   merge, with no attribution possible (shared token, no commit ref).
+# Intent: any PR labeled `go-live-blocker` or `do-not-close` that is closed
+#   WITHOUT being merged is automatically reopened, with a loud comment. The
+#   guardian acts as github-actions[bot], so its action is always attributable.
+# Security: uses pull_request_target (runs from the default branch, never checks
+#   out PR head code) so no untrusted code executes with the write token.
+# Rollback: delete this file.
+
+name: Guard blocker PRs
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  reopen-if-blocker-closed-unmerged:
+    if: >-
+      github.event.pull_request.merged == false &&
+      (contains(github.event.pull_request.labels.*.name, 'go-live-blocker') ||
+       contains(github.event.pull_request.labels.*.name, 'do-not-close'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reopen and alert
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          ACTOR: ${{ github.event.sender.login }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr reopen "$PR" --repo "$REPO"
+          gh pr comment "$PR" --repo "$REPO" --body "🔴 **Auto-reopened by guardian.** This PR is labeled \`go-live-blocker\`/\`do-not-close\` and was closed **unmerged** by @${ACTOR}. Blocker PRs must not be closed until they are resolved and merged by the Owner. If this close was intentional, **remove the label first**, then close."

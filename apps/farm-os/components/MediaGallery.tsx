@@ -152,7 +152,7 @@ export function MediaGallery({
                 accept="image/*,application/pdf"
                 onChange={onPick}
                 disabled={pending}
-                className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-accent,#2563eb)] file:px-4 file:py-2 file:text-white"
+                className="block w-full text-sm file:me-3 file:rounded-md file:border-0 file:bg-[var(--color-accent,#2563eb)] file:px-4 file:py-2 file:text-white"
                 aria-label="إضافة صورة أو مستند"
               />
             </label>

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { egp } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { AddExpense } from "@/components/AddExpense";
@@ -33,7 +34,7 @@ export default async function ExpensesListPage() {
 
   const rows = (expenses ?? []).map((e) => ({
     id: e.id,
-    date: e.date ?? "—",
+    date: e.date ? fmtDate(e.date) : "—",
     category: e.category ?? "—",
     description: e.description ?? "—",
     supplier: e.supplier_id ? supMap.get(e.supplier_id) ?? "—" : "—",
@@ -57,6 +58,7 @@ export default async function ExpensesListPage() {
         empty="لا توجد مصروفات مسجّلة"
         searchColumns={["category", "description", "supplier"]}
         placeholder="ابحث في المصروفات…"
+        exportFilename="expenses"
       />
     </div>
   );

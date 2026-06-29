@@ -117,6 +117,7 @@ export default function LoginPage() {
             <button
               key={a.email}
               type="button"
+              aria-label={`استخدم حساب ${a.role}`}
               onClick={() => {
                 setEmail(a.email);
                 setPassword(DEMO_PASSWORD);

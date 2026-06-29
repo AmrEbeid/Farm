@@ -1,5 +1,201 @@
-# Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-28 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
+**Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
+
+**Held (NOT merged) — and why:**
+- **Migration PRs need migrate-FIRST (prod apply = Owner's act; not doable from this session — Farm Supabase `veezkmytervjnpxcrbkw` unreachable here, MCP reaches only the Zeal org).** Clean + apply-ready: **#401** `0094` (🔴 C2 go-live blocker), **#402** `0095` (org-switcher), **#404** `0096` (FK indexes). Ordered apply bundle written to scratchpad **`farm-prod-apply-0094-0095-0096.sql`**. Sequence: apply `0094`→`0095`→`0096` → confirm → then merge #401/#402/#404.
+- **Blocked on their own issues:** **#399** (`0090`/`0093`) REQUEST-CHANGES — coarse dedup key silently drops a 2nd distinct same-day op (returns success); **#403** REQUEST-CHANGES — seed writes out-of-domain `sex='ذكر'` (must be `'male'`); **#400** (`0092`) apply-coupled to #366's `academy.write`; **#391** needs an Owner design decision (flips the **app-wide** font token).
+- **Expert-gated (cannot finish regardless):** **#368** accounting — `0088` is BROKEN (sorts behind `0089`; must renumber ≥`0097`) + real-Excel reconciliation + privacy review; **#366** academy (`0091`; label refs say `0089`/`0087` — reconcile) + licensed-agronomist + Egyptian pesticide-registration sign-off. Both would 500 on prod (tables absent) if merged before migrate. Code quality itself is sound (drawings-vs-opex separation ✓; template-not-prescription ✓).
+
+**Open Owner items.** (1) Apply the 3-migration bundle, then I merge #401/#402/#404. (2) Decide #399 / #391; fix #403. (3) Renumber/reconcile #368/#366 + clear their expert gates. (4) Enable `custom_access_token_hook` + leaked-password protection (dashboard). (5) Standing 🔴 key/DB-password rotation. (6) There are also uncommitted state-doc edits in the local `main` worktree (README/DEPLOY-STATUS/PRODUCT-MASTER/ROADMAP → prod `0089`) — reconcile or discard.
+
+## 2026-06-27 (latest+5) — parallel app-quality + gated-stage-CRITICAL session
+**Where we are.** A second session ran the app-quality lane in parallel with the knowledge-system session — all NON-migration / NON-prod. **9 PRs merged to `main`** (#378 i18n, #380 payroll rate-flag, #379 stock-calc↔SQL parity, #381 assistant-gate hardening, #382 weather hardening, #384 display, #385 rtl/a11y, #386 form-validation, #387 perf) — every one CI-green, `main` re-verified green after each merge. Both gated draft PRs **hardened but kept DRAFT**: **#368** CRITICAL sales RLS read-leak + audit-mirror leak fixed (pgTAP 663✓); **#366** CRITICAL pesticide-gate bypass fixed + migration renumbered **`0089→0091`** (collision with the merged palm-guard `0089`; `0090` left free for S2) (pgTAP 669✓).
+**Unblocked next.** **#388** (researched wage-model memo) unblocks the SPEC-0006 §5 decision → Stage 8 payroll persistence can proceed once the Owner ratifies the 4-mode / daily-rate-default recommendation.
+**⚠️ Verify/fix-forward on prod.** **#383**: the now-applied `0085`/`0086` carry two verified issues — `user_member_org_ids` lacks the explicit `revoke/grant` (anon-executable; low exposure) and `fn_update_org_settings` nulls `fiscal_year_start` when omitted (data-loss). Both are advisor-invisible; verify against deployed prod `0089` and fix-forward if present. *(Now addressed by #402 `0095` — held for migrate-first apply.)*
+**Not done (deferred).** No migration/prod-apply by this session; #368/#366 left for the deploy-owner to merge+apply after their human-expert gates; #157 budget + #89 pricing remain Owner decisions.
+**Last evidence.** `main` green incl. the 9 PRs + #389; pgTAP 663/669 on the two hardened draft branches; tsc/lint/build 0 across all merged PRs.
+
+## 2026-06-27 (latest+4) — Owner opened the gate: REVIEW → PUSH → MERGE → MIGRATE executed
+**Where we are.** The Owner authorized in writing ("review and then push merge and migrate"). All three
+gated actions ran, in the safe order (review → push → migrate → merge):
+- **Review (actor ≠ reviewer).** A fresh independent code-reviewer agent reviewed the SPEC-0014 Tier A code →
+  **APPROVE-WITH-NITS**; the one real nit (missing `closeLabel` on both `Drawer`s → no visible × close) was
+  **fixed** (`closeLabel="إغلاق"`). Re-verified: **tsc 0, Vitest 159/159.**
+- **Push (the "can't push" assumption was STALE).** A dry-run push to `AmrEbeid/Farm` succeeded — this session's
+  identity (`amrabdelglill-pixel`, token scopes `repo`+`workflow`) **does have write access**. Committed the 16
+  knowledge docs + SPEC-0014 Tier A app code (junk excluded: the `* 2.md` sync-dupes + local `.claude/`) on branch
+  **`feat/knowledge-system-spec0014-tierA`** and pushed it. (PR opened + merged — see below.)
+- **Migrate (prod `0084` → `0089`).** Applied the held queue to prod `veezkmytervjnpxcrbkw` via the MCP, **exact
+  repo versions** (the tool's stray apply-time version was reconciled in the ledger each time → **0 stray rows**):
+  **`0085`** active-org (backward-compatible: no `active_org_id` claim ⇒ `user_org_ids()` returns the FULL set =
+  old behavior; fails-closed on a forged claim), **`0086`** org-settings setter, **`0089`** palm archived-hawsha
+  guard. **Verified:** all objects exist (`fn_set_active_org`/`fn_update_org_settings`/`custom_access_token_hook`/
+  `user_active_org`), `get_advisors` shows **only the pre-existing intentional WARNs** (SECURITY-DEFINER-by-design +
+  leaked-password toggle) — **no new regression**. This also **fixes the live org-switcher/settings errors** the
+  audit flagged (their RPCs now exist in prod).
+
+**NOT done (deliberately, with reasons).** Did **not** merge draft PRs **#366** (academy `0087`) / **#368**
+(accounting `0088`): they carry **unmet human-expert gates** (Stage 7 real-Excel reconciliation + privacy review;
+Stage 10 licensed-agronomist + pesticide-registration sign-off) and merging them deploys `/accounting`+`/academy`
+which query `sales`/`academy_content` tables **not on prod** → live 500s. They stay draft until those gates clear.
+
+**Still open (Owner-only).** 🔴 **service-role key + DB password rotation** (the standing red item — do before any
+real Ebeid data). **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
+dashboard (Auth → Hooks) / `config.toml [auth.hook.custom_access_token]` — until then the active_org feature is
+inert (safe; full-membership behavior). SPEC-0013 still awaits ratification.
+
+## 2026-06-27 (latest+3) — ground-truth audit (RECONCILE-001) + Commercial layer specced (SPEC-0013) — docs only
+**Where we are.** No code/schema/prod change this session — **documentation only**, `main` unchanged at `0089`,
+prod still `0084` (HELD). An external commercial-readiness assessment was **reconciled against `main`** and
+found to have judged a **stale prototype schema** (the `payment_vouchers`/`farm_tasks`/`seedling_inventory`/
+"simple roles, no org isolation"/"Lovable useState prompt" it critiqued exist **only in `docs/03`** or **not at
+all** — verified by grep; no `lovable` anywhere). The live product (multi-tenant + RLS + inventory/coverage +
+event ledger + planning + PR/approval + attachments + the full operating loop) is **already built + live**.
+Produced three artifacts:
+- **[`RECONCILE-001-main-ground-truth-2026-06-27.md`](RECONCILE-001-main-ground-truth-2026-06-27.md)** — the new
+  **canonical capability map** (37 tables, ~38 RPCs, 26 pages, 89 pgTAP files; capability → evidence + status +
+  confidence). Future audits/AI reviews reconcile here, not to legacy docs.
+- **[`SPEC-0013-commercial-saas-layer.md`](SPEC-0013-commercial-saas-layer.md)** — the one genuinely-missing
+  layer (billing/tiers/limits/onboarding/import/demo/admin/trials/flags), **Draft**, High risk, 8 slices.
+- Registered both in PROJECT-TRACKER (new banner + Stage **C** + open gates); a Commercial-Readiness matrix was
+  added to the tracker artifact.
+
+**Approved next.** Nothing new built. The standing approved slice remains **SPEC-0012 S2** (member/role admin,
+migration `0090`). SPEC-0013 is **Draft — not approved to build** until the Owner ratifies it.
+
+**NOT approved.** Building any SPEC-0013 slice; signing up for any billing provider; touching prod. Applying
+`0089`/`0085`/`0086` to prod still Owner-HELD. 🔴 service-role key rotation still outstanding. Adding the
+`docs/03` legacy banner = done this session (doc-only, Owner-recommended text).
+
+**Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md). New: Stage **C** —
+[`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) (Draft, awaiting ratification).
+
+**Reconcile-first notes.** RECONCILE-001 is the canonical schema reference — use it before trusting `docs/03`
+(now banner-marked as carrying legacy/migration-from examples). Migration lanes: `main` at `0089`; SPEC-0012 S2
+= next free `0090`; SPEC-0013 lanes come after that.
+
+**Also this session (Owner: "go for both, keep scope tight").** Specced the living-documentation idea as
+**[`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)** — **Tier A only** (per-page `pageMeta` help drawer
+answering the 5 questions + **rule-based "Why?"** over `lib/errors.ts` + a Documentation Health Score CI lint);
+manual-gen, walkthroughs, videos = deferred Tier B/C; **AI Expert / AI "Why?" hard-gated behind Stage 11**.
+Substrate already exists (`lib/nav.ts` page registry, `lib/errors.ts` ~19 rule codes, `docs/user-manual/`).
+Amended **CLAUDE.md Definition of Done** to add the Documentation Health Score — **blocking for user-facing
+pages/workflows, advisory for internal/admin/infra**, enforced by CI not prose. Registered SPEC-0014 in the
+tracker (banner + Stage **K** + open gate). **Still Draft — no build authorised** (no app code/migration/AI).
+
+**Also this session.** Wrote canonical **[`PRODUCT-MASTER-FILE.md`](PRODUCT-MASTER-FILE.md)** (20 sections,
+reconciled to `main`) — the single product description for business/product/design/eng/onboarding/AI.
+**Reconcile corrections it records (use the master file + RECONCILE-001 as ground truth):** (1) **planned-vs-actual
+IS built** (`reports/[planId]/pva`) → RECONCILE-001's "⬜ not built" line is **superseded** (worth a 1-line fix in
+RECONCILE-001); (2) **`/accounting`+`lib/pnl.ts`+`sales` and `/academy` are NOT on `main`** — draft PRs #368/#366,
+migrations `0087`/`0088` unapplied (RECONCILE-001 cited them as if present → also superseded); (3) **README prod
+"`0048`" is stale** — prod `0084` (HELD), `main` `0089`; README needs refresh. Tracker references the master file.
+
+**Also this session.** Wrote **[`SPEC-0015` Product Knowledge System](SPEC-0015-product-knowledge-system.md)** —
+a 6-phase "Knowledge Operating System" with a **FEAT/BR/TERM traceability model** + **L0–L5 maturity levels**,
+**Tier 1 scoped for build only** (Feature Registry + Business Rules Catalog + Domain Dictionary, code-anchored),
+everything else phase-gated by a concrete consumer. Made **[`PRODUCT-MASTER-FILE.md`](PRODUCT-MASTER-FILE.md)** the
+**hub** (added §0 Knowledge System Index; body not expanded). **Then (under Owner `/goal` "go ahead, don't stop") — Tier-1 catalogs BUILT (L3).** Via 3 read-only Explore
+agents: **[`FEATURE-REGISTRY.md`](FEATURE-REGISTRY.md)** (27 FEAT-IDs), **[`BUSINESS-RULES-CATALOG.md`](BUSINESS-RULES-CATALOG.md)**
+(~50 BR-IDs ← ~68 extracted constraints, each → enforcing object + migration + test + FEAT), **[`DOMAIN-DICTIONARY.md`](DOMAIN-DICTIONARY.md)**
+(~40 terms, Arabic verified from `lib/labels.ts`/`StructureForm`/`auth.ts`). Master-file hub flipped to ✅; SPEC-0015
+tasks T0–T1.3 marked done. **Reconcile fixes:** RECONCILE-001 corrected (planned-vs-actual IS built `reports/[planId]/pva`;
+`/accounting`+`lib/pnl.ts` are draft-PR #368, not `main`); README ground-truth banner added (stale "`0048`").
+**Did NOT do (Owner-gated / out of safe scope):** any app code/migration/AI/deploy; git commit/push (outward +
+this GitHub account can't push to `AmrEbeid/Farm`); the deferred catalogs (Notification/Automation/Import-Export/
+Metrics/Training/Customer-Success/AI-Knowledge-Graph) remain Phase-gated. **Then (still under `/goal`) — Knowledge System Phase 2 BUILT (5 engineering catalogs, L3).** Via 3 parallel Explore
+agents (RPC signatures, table columns, report internals): [`RPC-CATALOG.md`](RPC-CATALOG.md) (28 RPCs + 9 triggers,
+RPC-IDs→BR/FEAT), [`DATA-DICTIONARY.md`](DATA-DICTIONARY.md) (38 tables incl. `user_active_org`, TBL-IDs),
+[`PERMISSIONS-MATRIX.md`](PERMISSIONS-MATRIX.md) (perm→roles map + page guards + SoD), [`EVENT-CATALOG.md`](EVENT-CATALOG.md),
+[`REPORT-CATALOG.md`](REPORT-CATALOG.md). Surfaced limitations (now documented): dashboards/budget-check use a
+hardcoded `SEED_PLAN_ID`; budget-check hardcoded to `أسمدة`; `FilterableTable` exists but isn't wired onto list
+pages; no report export. Component catalog = Storybook (linked, not duplicated). **Phases 3–6 remain
+consumer-gated** (ops/customer-success/intelligence/executive) — not built.
+
+**Then (still under `/goal`) — SPEC-0014 Tier A content drafted as docs (no app wiring).** [`PAGE-HELP.md`](PAGE-HELP.md)
+(5-question help blocks for all pages, A1 content), [`WHY-CATALOG.md`](WHY-CATALOG.md) (rule-based "Why?" mapped from
+the real `lib/errors.ts` codes + situations → BR refs, A3 content), [`DOCUMENTATION-HEALTH.md`](DOCUMENTATION-HEALTH.md)
+(per-page DoD scorecard; core-loop pages L3; systemic gap = no per-page changelog ⑧, partial manual ⑦).
+**16 knowledge docs total.**
+
+**Then (still under `/goal`) — SPEC-0014 Tier A BUILT in app code + verified (first code this session).** Low-risk
+(presentational + pure logic; no schema/AI/access): `lib/page-help.ts` (Arabic `pageMeta`), `lib/why.ts` (rule-based
+"Why?"; `lib/errors.ts` got an additive `AR_ERROR_CODES` export), `components/HelpDrawer.tsx` + `components/WhyButton.tsx`
+(via `@amrebeid/ui` `Drawer`), wired ONCE into `components/AppChrome.tsx` topbar (`activeNavId`). A4 Health-Score =
+**Vitest drift-guards** (`lib/page-help.test.ts`, `lib/why.test.ts`). **Verified: tsc 0, ESLint 0, Vitest 159/159.**
+**Local/uncommitted; NOT deployed** (commit/deploy Owner-gated; this GitHub identity can't push to `AmrEbeid/Farm`).
+Interactive in-browser check pending a logged-in session (shell is auth-gated). Tier C (AI "Why?"/Expert) stays
+behind Stage 11.
+
+**Quality gate:** a 4th Explore agent **adversarially verified** 12 high-stakes Business Rules against the actual
+migration SQL + tests — **12/12 enforcement claims VERIFIED**; only 2 test-number typos found + fixed (BR-040 test
+`33` not `32`; BR-104 test `83` not `81`; FEAT-011 likewise). A 5th agent verified the page access-gates (now in
+the master file §6, NV markers removed). **Approved-next:** Owner review/accept of the built Tier-1 catalogs;
+decide Phase-2 sequencing vs SPEC-0013.
+
+**Last evidence.** New docs: RECONCILE-001, SPEC-0013, SPEC-0014, SPEC-0015, **PRODUCT-MASTER-FILE.md**,
+**FEATURE-REGISTRY.md**, **BUSINESS-RULES-CATALOG.md**, **DOMAIN-DICTIONARY.md**, **RPC-CATALOG.md**,
+**DATA-DICTIONARY.md**, **PERMISSIONS-MATRIX.md**, **EVENT-CATALOG.md**, **REPORT-CATALOG.md**, **PAGE-HELP.md**,
+**WHY-CATALOG.md**, **DOCUMENTATION-HEALTH.md** (16 knowledge docs); edits: PROJECT-TRACKER (banners +
+Stages C/K + gates + master-file/SPEC-0015 refs + Tier-1-built note), CLAUDE.md (DoD), `docs/03` legacy banner,
+master-file §0 hub index (+ Tier-1 ✅), SPEC-0015 tasks T0–T1.3 done, **RECONCILE-001 corrections** (PvA built;
+`/accounting` draft-only), **README ground-truth banner**, SESSION-BRIEF. Consistency pass: no stale PvA claim,
+all hub links resolve, catalog cross-refs dense (FEAT/BR). **Plus SPEC-0014 Tier A app code** (`lib/page-help.ts`,
+`lib/why.ts`, `lib/errors.ts` export, `HelpDrawer.tsx`, `WhyButton.tsx`, `AppChrome.tsx` wiring, 2 test files) —
+**checks run: tsc 0, ESLint 0, Vitest 159/159 green.** All changes (16 docs + the code) are **local/uncommitted; not
+deployed** — commit/push/deploy is Owner-gated + outward (and this GitHub identity can't push to `AmrEbeid/Farm`).
+
+## 2026-06-27 (latest+2) — palm archived-hawsha guard (`0089`, prod HELD) + SPEC-0012 (profile + audit)
+**Where we are.** Two merges to `main`, **prod untouched at `0084`**:
+- **PR #373** — `fn_save_palm` data-integrity guard: migration **`0089`** (`palm_no_archived_hawsha`, rejects a
+  re-parent of a live palm into an *archived* hawsha → `22023`; `search_path=''` + all existing guards intact)
+  + pgTAP **test `89`** (9 assns). Independent review (fresh agent): APPROVE-WITH-NITS. Renumbered `0087`→`0089`
+  to avoid colliding with in-flight #366(0087)/#368(0088).
+- **PR #376** — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md) from a market/UX scan: **S3** read-only
+  `/profile` + nav; **S1** `/m` offline audit (offline-*tolerant*, NOT offline-*capable* — no SW/PWA/queue).
+
+**Approved next.** S2 (member/role admin) — role model ratified = **existing 5 roles**. Build as a focused PR:
+`fn_set_member_role`/`fn_remove_member` (migration **`0090`**, owner-gated, audited) + `/members` UI; the
+email-invite sub-task needs an invite-mechanism decision (pending-invite table vs Auth-admin Edge Function).
+Access-control → needs independent review.
+
+**NOT approved.** Applying `0089` (or the pending `0085`/`0086` access-control chain) to prod — **Owner HELD**;
+do that chain's independent review first. 🔴 service-role key rotation still outstanding (prior sessions).
+
+**Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md).
+
+**Reconcile-first notes.** Migration lanes are contested by parallel agents — `main` at `0089`; in-flight
+#366=`0087`, #368=`0088`; next free = `0090`. Re-check before authoring any migration. Prod head `0084` (2
+behind main's `0086`, plus `0089`).
+
+**Last evidence.** PRs [#373], [#376] merged; pgTAP 656/656, tsc clean, `next build` green this session.
+
+## 2026-06-27 (latest+1) — review & merge pass (Owner: "do not wait, review and merge, go ahead")
+**Merged to `main` this pass (all CI-green):** #363 ratifications, #364 croquis (Owner merged these two);
+then by me — **#372** (docs), **#352** (payroll engine `lib/payroll.ts`), **#356** (AI capability boundary
+`lib/assistant-policy.ts`), **#350** (weather, nav conflict resolved). The pure libs + weather + croquis +
+docs are now on main.
+
+**Prepared but NOT merged — the two migration PRs (blocked on the prod-apply, by design):**
+- **#368** Stage 7 accounting (migration **`0088`**) — rebased on main, nav resolved, **pgTAP 660/660**, build 0.
+- **#366** Stage 10 academy (migration renumbered **`0087`→`0089`** to clear the collision with #373's palm-guard
+  `0087`) — rebased, **pgTAP 666/666**, build 0.
+Both kept **draft** with a "do-not-merge-before-apply" comment: merging deploys `/accounting` + `/academy`
+(which query `sales`/`academy_content`) before the tables exist → **500 on live prod**.
+
+**⚠️ PROD IS BEHIND MAIN — `list_migrations` shows prod at `0084`, main at `0086`.** Migrations
+**`0085` (active_org) + `0086` (org_settings)** are merged + the app deployed, but **NOT applied to prod** —
+so the org-switcher / settings pages may be erroring on the LIVE site right now. **Owner apply queue:
+`0085`, `0086`, then `0088` (#368), `0089` (#366); merge #368/#366 after.** I deliberately did **not**
+auto-apply migrations to the live multi-tenant prod DB (Owner-only irreversible action; prod-apply is the
+Owner's batched process and is mid-queue).
+
+**Still open — the two real-world expert acts (unchanged):** Stage 7 real-Excel reconciliation + privacy
+review; Stage 10 licensed-agronomist + pesticide-registration sign-off (`fn_signoff_academy_content` ready
+to RECORD a genuine sign-off). Plus independent review before the Stage 8 payroll RPC + Stage 11 AI build.
 
 ## 2026-06-27 (latest) — back-half stages advanced to the buildable limit; Owner closed 4 gates; SAFE STOP
 **The Owner ratified SPEC-0003 / 0005 / 0006 / 0007 + the 5-sector decision in-session** (the in-writing

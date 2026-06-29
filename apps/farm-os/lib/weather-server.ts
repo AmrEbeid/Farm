@@ -1,3 +1,7 @@
+import "server-only"; // §2 control 1: importing this (WEATHER_API_KEY-bearing) module into a Client
+// Component FAILS the build — the key is server-only enforced, not just documented. Mirrors
+// lib/supabase/admin.ts and lib/seed-auth.ts.
+
 // Stage 9 (SPEC-0007) — server-side forecast fetch. SECRET HYGIENE (§2.1): the key lives in
 // WEATHER_API_KEY (no NEXT_PUBLIC_ prefix → Next never bundles it to the client); the browser calls OUR
 // server component, never the provider. The provider response is parsed through parseForecast (the
@@ -49,7 +53,13 @@ export async function getForecast(): Promise<WeatherResult> {
   const url = process.env.WEATHER_API_URL; // e.g. https://api.openweathermap.org/...&appid={key}
   if (!key || !url) return { configured: false, forecasts: [] };
   try {
-    const res = await fetch(url.replace("{key}", key), { next: { revalidate: 1800 } });
+    // §2 control 4 (graceful degradation): cap the fetch at 8s so a hung provider can't stall the
+    // Server-Component-rendered /weather page indefinitely. AbortSignal.timeout fires an AbortError,
+    // which the catch below turns into a graceful configured:true/fetch_failed result (never a throw).
+    const res = await fetch(url.replace("{key}", key), {
+      next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(8000),
+    });
     if (!res.ok) return { configured: true, forecasts: [], error: "provider_error" };
     const json: unknown = await res.json();
     const root = json as { daily?: unknown };

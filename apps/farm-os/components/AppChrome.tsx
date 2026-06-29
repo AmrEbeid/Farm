@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AppShell, Tag, Button, type NavItemData } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
+import { HelpDrawer } from "@/components/HelpDrawer";
 import { APP_NAV } from "@/lib/nav";
 
 export function AppChrome({
@@ -66,6 +67,7 @@ export function AppChrome({
       brand={<span className="font-bold">نظام تشغيل المزارع</span>}
       topbar={
         <div className="flex items-center gap-3">
+          <HelpDrawer navId={activeNavId} />
           <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
           <Tag tone="accent">{roleLabel}</Tag>
           {name && <span className="text-sm">{name}</span>}

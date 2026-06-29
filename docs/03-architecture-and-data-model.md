@@ -1,5 +1,10 @@
 # 03 — Architecture & Data Model
 
+> ⚠️ Legacy / migration-history note  
+> Some schema examples in this document describe earlier prototype or migration-from structures.  
+> For current production ground truth, use:
+> `docs/RECONCILE-001-main-ground-truth-2026-06-27.md`
+
 Stack: **Next.js (App Router) + TypeScript + Tailwind** · **Supabase** (Postgres + PostGIS + Auth + Storage + Realtime + RLS) · **Vercel**. Arabic RTL-first, mobile/offline-tolerant PWA.
 
 `[V]` verified from cited source · `[I]` recommended.
