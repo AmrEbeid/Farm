@@ -75,6 +75,11 @@ read-scoped follow-up only after a zero-row approval update, returning distinct 
 wrong status, self-approval, missing owner permission, and missing/unreadable request. Validation passed: focused
 Vitest **5/5**, full Vitest **220/220**, focused eslint, `tsc --noEmit`, and production build.
 
+**#430/#436 draft.** Opened draft #436 with migration `0098` to make `fn_bin_rebuild` internal by revoking
+authenticated EXECUTE, updating the SECURITY DEFINER allowlist, and pinning the negative grant. Verified no
+app/client direct caller; local pgTAP passed **687/687** and draft GitHub checks are green. Held for Owner migration
+gate: no merge, prod apply, or production data change.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
