@@ -1,12 +1,23 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #438 custody backend hardened; still held for independent review and migration gate.** Patched
+> draft backend PR **#438** at `8fb7f69`: renamed its collided `0098`/`0099` draft migrations to timestamped
+> migrations, added `finance.read` plus preserved `responsibility.write` in the `authorize()` re-emit, restored
+> RPC-only custody account writes with `fn_save_custody_account`, finance-gated custody/payment table reads and
+> read RPCs to owner/accountant, mirrored those gates onto `audit_log.audit_read`, carried the `expenses.kind`
+> drawing split in this apply path, and excluded/rejected non-operating expenses from payment-request math. Local
+> validation: `git diff --check` clean; full pgTAP **735/735**. **Held:** no merge, prod migration, or production
+> data change until independent money/RLS/audit review and pre-migration review. **Downstream:** #441 must switch
+> custody account creation to the new RPC and remove/fix broad farm-manager finance reads before it can merge.
+
 > **2026-06-29 — #441 custody frontend reviewed; CI drift fix pushed; still held behind #438.** Reviewed draft
 > frontend PR **#441** for the SPEC-0018 custody/payment UI. Pushed a narrow fix (`e08562f`) adding route-specific
 > help for `/custody/request/[requestId]`, which restored local page-help coverage (**7/7**) and full app tests
-> (**230/230**). Review blockers remain: #441 depends on backend **#438**, which is still blocked; custody account
-> creation uses direct table DML while the backend/security wording says custody writes are RPC-only; and finance
-> query/RPC errors currently render as zero/empty values. **Held:** no merge until #438 is fixed/reviewed/applied
-> and the #441 review findings are resolved.
+> (**230/230**). Review blockers remain: #441 depends on backend **#438** being independently reviewed and applied
+> migrate-first; custody account creation must use `fn_save_custody_account` instead of direct table DML; broad
+> farm-manager finance reads need an owner-ratified scope model or removal; and finance query/RPC errors currently
+> render as zero/empty values. **Held:** no merge until #438 is reviewed/applied and the #441 review findings are
+> resolved.
 
 > **2026-06-29 — #314 responsibility-assignment write gate drafted; held for migration gate.** Draft PR
 > **#444** adds `responsibility.write` to `authorize(perm, org)` for owner/farm_manager and re-emits
@@ -24,15 +35,14 @@
 > Local pgTAP passed **691/691**. **Held:** no merge, migration, prod apply, or production data change until review
 > and a separate pre-migration review.
 
-> **2026-06-29 — #439 grant-default drift fix drafted/green/held; #438 custody backend reviewed/blocked.**
+> **2026-06-29 — #439 grant-default drift fix drafted/green/held; #438 custody backend pre-patch review recorded.**
 > Draft PR **#439** closes the remaining #317/#229 DB grant hygiene slice: current public tables lose
 > client-role `TRUNCATE`, public tables lose client-role `DELETE` except authenticated `plan_checks`, and future
 > public tables created by the prod-observed `postgres` grantor no longer inherit table privileges for
 > `anon`/`authenticated`. Local pgTAP passed **689/689** and GitHub checks are green; **held** for review and a
-> separate pre-migration review. Reviewed draft **#438** (SPEC-0018 custody/payment backend, `0098`/`0099`) and
-> kept it held: finance-confidential reads are all-member readable, #6 drawings/opex split is missing while #368
-> remains draft, lifecycle scope claims `paid`/`closed` without RPCs/tests, and `0098` collides with held #436.
-> No merge, migration, prod apply, or production data change.
+> separate pre-migration review. Also completed the pre-patch review of draft **#438** and found the blockers later
+> addressed by the 2026-06-29 #438 hardening entry at the top of this tracker. No merge, migration, prod apply, or
+> production data change.
 
 > **2026-06-29 — module dashboards/360 batch locally committed and merged with current `origin/main`.** Built and
 > reviewed the grouped module navigator, dashboard-first module entries, and read-only 360 pages for Inventory,

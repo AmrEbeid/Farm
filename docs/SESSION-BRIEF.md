@@ -96,11 +96,15 @@ recompute path, and revokes future public-table default privileges from `anon`/`
 **689/689**; GitHub checks are green. Held for PR review and separate pre-migration review; no merge, prod apply, or
 production data change. #229 still remains open for leaked-password-protection Auth/dashboard verification.
 
-**#438 custody/payment backend review.** Reviewed draft #438 (SPEC-0018 backend, migrations `0098`/`0099`) and
-posted blockers. It must remain draft: finance-confidential custody/payment reads are all-member readable, #6
-drawings-vs-opex split is missing while #368 is still draft/unapplied, lifecycle scope claims `paid`/`closed` but
-implements/tests only through final approval, and migration `0098` collides with held #436. No merge, migration,
-prod apply, or production data change.
+**#438 custody/payment backend hardening.** Patched draft #438 at `8fb7f69` after the review blockers. The branch now
+uses timestamped draft migrations (`20260629150000`, `20260629150100`) instead of the collided `0098`/`0099` names,
+adds `finance.read`, preserves `responsibility.write` in the `authorize()` union, makes custody/payment table reads
+and read RPCs owner/accountant-only, mirrors those restrictions onto `audit_log.audit_read`, adds
+`fn_save_custody_account` for RPC-only custody-account writes, carries `expenses.kind`, and rejects/excludes
+drawings/capex from payment-request math. Lifecycle wording now only claims the implemented
+`draft → submitted → approved_operational → approved_final` path; `paid`/`closed` stay reserved. Local validation:
+`git diff --check` clean; full pgTAP **735/735**. #438 remains draft/held for independent money/RLS/audit review and
+separate pre-migration review; no merge, prod apply, migration, or production data change.
 
 **#431 inventory transfer/ordered draft.** Drafted a conservative migration for the latent #431 cleanup. It does not
 invent transfer destination semantics; instead it rejects new `transfer` ledger rows until an atomic source/destination
@@ -122,10 +126,10 @@ review; no merge, prod apply, or production data change. Migration-order warning
 **#441 custody frontend review/fix.** Reviewed draft #441 after #438 backend blockers were posted. Pushed
 `e08562f` to fix the failing page-help drift guard by adding `payment-request-360` help and a `/custody/request/:id`
 route mapping. Local validation in `/tmp/farm-pr-441`: focused page-help test **7/7**, full app Vitest **230/230**.
-Posted a held review: #441 still cannot merge before #438 is fixed/reviewed/applied; custody account creation needs
-to align with the module's RPC-only write model or the backend docs/tests must explicitly allow direct RLS DML; and
-finance query/RPC errors must render an error state instead of zeros/empty tables. No merge, migration, prod apply,
-or production data change.
+Posted a held review: #441 still cannot merge before #438 is independently reviewed and applied migrate-first.
+After #438 hardening, #441 specifically needs custody account creation moved to `fn_save_custody_account`, broad
+farm-manager finance reads removed or owner-scoped, and finance query/RPC errors rendered as errors instead of
+zeros/empty tables. No merge, migration, prod apply, or production data change.
 
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
