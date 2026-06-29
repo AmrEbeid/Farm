@@ -25,6 +25,11 @@ remaining low ExecuteForm cleared-input behavior was split to #426 because decid
 for all operation types needs a narrow product/validation decision. No code, DDL, migration, or production data
 change was run.
 
+**#426 implementation.** Opened #428 to reject blank/invalid/negative ExecuteForm actual quantity/labor inputs before
+calling `executeOperation`, while still allowing an explicit typed `0`. Added pure parser coverage. Local isolated
+validation passed: focused Vitest **3/3**, full Vitest **215/215**, focused eslint, `tsc --noEmit`, and production
+build. No migration or DDL.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
