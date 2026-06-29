@@ -13,10 +13,23 @@ export default async function AccountingPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
-  const [{ data: expenseRows, error: expensesError }, { data: saleRows, error: salesError }] = await Promise.all([
+  const [
+    { data: summaryExpenseRows, error: summaryExpensesError },
+    { data: summarySaleRows, error: summarySalesError },
+    { data: expenseRows, error: expensesError },
+    { data: saleRows, error: salesError },
+  ] = await Promise.all([
+    sb.from("expenses").select("category, total, kind"),
+    sb.from("sales").select("crop, total").eq("archived", false),
     sb.from("expenses").select("id, category, total, kind, date").order("date", { ascending: false }).limit(200),
     sb.from("sales").select("id, crop, total, date").eq("archived", false).order("date", { ascending: false }).limit(200),
   ]);
+  if (summaryExpensesError) {
+    throw new Error("expenses summary query failed");
+  }
+  if (summarySalesError) {
+    throw new Error("sales summary query failed");
+  }
   if (expensesError) {
     throw new Error("expenses query failed");
   }
@@ -24,12 +37,12 @@ export default async function AccountingPage() {
     throw new Error("sales query failed");
   }
 
-  const expenses: ExpenseEntry[] = (expenseRows ?? []).map((e) => ({
+  const expenses: ExpenseEntry[] = (summaryExpenseRows ?? []).map((e) => ({
     category: e.category ?? "",
     amount: Number(e.total ?? 0),
     kind: (e.kind as ExpenseKind) ?? "operating",
   }));
-  const sales = (saleRows ?? []).map((s) => ({ amount: Number(s.total ?? 0), crop: s.crop ?? undefined }));
+  const sales = (summarySaleRows ?? []).map((s) => ({ amount: Number(s.total ?? 0), crop: s.crop ?? undefined }));
 
   const pnl = computePnl(expenses, sales);
 
