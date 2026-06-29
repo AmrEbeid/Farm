@@ -18,14 +18,17 @@ windows and negative area/quantity/residue values. Pushed commit `2e2183d` to th
 local pgTAP **670/670**, `tsc`, focused eslint, Vitest **175/175**, production build, and GitHub checks. Decision:
 keep #400 draft; do **not** merge or migrate `0092` until the lower-number migration lane is reconciled.
 
-**PR #412 reviewed and fix published.** In isolated worktree `.worktrees/review-pr-412`, reviewed draft PR #412
+**PR #412 reviewed, cleaned, and review blockers fixed.** In isolated worktree `.worktrees/review-pr-412`, reviewed draft PR #412
 (import reference resolution). The signed-in-user/RLS commit path and formula-injection template sanitizer looked
 sound for this slice, but dry-run validation accepted impossible dates such as `2026-02-31`. Added a failing test,
 prepared local commit `21467ad`, and published the same three file contents to `feat/import-refs` through GitHub's
-Contents API because local `git push` stalls in `send-pack`/`pack-objects`; PR #412 now points at `15fcbdd`.
-Local validation passed: validate test **6/6**, import suite **38/38**, `tsc`, focused eslint, full Vitest
-**209/209**, and production build. GitHub checks are green, but #412 remains **draft + DIRTY**; do **not** merge
-until it is rebased/cleaned and freshly reviewed.
+Contents API because local `git push` stalls in `send-pack`/`pack-objects`. Then rebuilt #412 on current `main`
+to drop already-merged #410 stacked history, producing a tight import-reference diff. Independent review found two
+blockers: archived structure parents could be resolved by code, and row numbers could drift after validation filtered
+bad rows. Fixed both at PR head `08e925a`: ref specs for farms/sectors filter `archived=false`, and hidden source-row
+metadata preserves original spreadsheet row numbers through ref resolution, dedupe, and RPC failure reporting.
+Local validation passed: import suite **41/41**, `tsc`, focused eslint, full Vitest **212/212**, and production build.
+#412 remains **draft** until fresh GitHub CI and re-review are complete; do **not** merge before that.
 
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
