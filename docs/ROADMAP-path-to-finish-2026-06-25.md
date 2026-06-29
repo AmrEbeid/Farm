@@ -56,8 +56,9 @@ The autonomous pipeline builds fast; what gates the finish:
    templates, **gated on the agronomist + Egyptian pesticide-registration sign-off**. *(Med/High.)*
 8. **عبدالجليل AI** — ratify [`SPEC-0005`](SPEC-0005-ai-assistant-abduljalil.md) (Stage 11). Build
    last; highest-risk; security review each slice; recommend the no-ingest version first. *(High.)*
-9. **Stage M real-data migration** + **Stage 0** legacy remediation + **key rotation** — the
-   project-end apply-layer items (privacy review first). *(High/Critical.)*
+9. **Stage M real-data migration** + **Stage 0** legacy remediation — the project-end apply-layer items
+   (privacy review first). Supabase DB password + service-role key rotation is complete per Owner 2026-06-29;
+   do not raise it again unless reopened. *(High/Critical.)*
 
 ## Specs status
 
@@ -79,5 +80,6 @@ complete; the project is decision-bound, not design-bound — see the gates abov
 
 1. ~~Push `0032`/`0033`/`0034` to prod~~ ✅ DONE 2026-06-26 (prod now `0038`, in sync with `main`).
 2. Ratify SPEC-0002 → build. 3. Decide the HIGH forks (#155/#157, #89; #156 closed). 4. Confirm 4-vs-5 sectors
-(Stage 2 #186 merged with **5** — confirm intended). 5. 🔴 rotate the service-role key + DB password.
+(Stage 2 #186 merged with **5** — confirm intended). Supabase DB password + service-role key rotation is complete
+per Owner 2026-06-29.
 Everything else sequences behind these + the external sign-offs.

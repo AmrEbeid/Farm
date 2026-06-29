@@ -1,5 +1,31 @@
-# Session Brief — Farm OS      Updated: 2026-06-28 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-29 — autonomous loop + PR #400/#412 reviews; held before merge/migrate
+**Owner instruction.** Keep working in Farm OS until stopped; always plan first, update docs, do deep research when
+needed, review before merge, review before migrate, and proceed using recommendations without waiting for more input.
+Recorded as a Codex goal and captured in
+[`docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`](superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md).
+
+**Status correction.** Owner confirmed Supabase DB password + service-role key rotation has already been done
+several times. Active docs and the durable operating-method skill now mark rotation complete; do not raise it as an
+open gate again unless Owner reopens it.
+
+**PR #400 reviewed and fixed.** In isolated worktree `.worktrees/review-pr-400`, reviewed draft PR #400
+(SPEC-0016 export compliance, migration `0092`). Found and fixed impossible compliance-value handling: negative
+residue values could pass the pure readiness check, and the schema lacked CHECK constraints for inverted validity
+windows and negative area/quantity/residue values. Pushed commit `2e2183d` to the PR branch. Validation passed:
+local pgTAP **670/670**, `tsc`, focused eslint, Vitest **175/175**, production build, and GitHub checks. Decision:
+keep #400 draft; do **not** merge or migrate `0092` until the lower-number migration lane is reconciled.
+
+**PR #412 reviewed and fix published.** In isolated worktree `.worktrees/review-pr-412`, reviewed draft PR #412
+(import reference resolution). The signed-in-user/RLS commit path and formula-injection template sanitizer looked
+sound for this slice, but dry-run validation accepted impossible dates such as `2026-02-31`. Added a failing test,
+prepared local commit `21467ad`, and published the same three file contents to `feat/import-refs` through GitHub's
+Contents API because local `git push` stalls in `send-pack`/`pack-objects`; PR #412 now points at `15fcbdd`.
+Local validation passed: validate test **6/6**, import suite **38/38**, `tsc`, focused eslint, full Vitest
+**209/209**, and production build. GitHub checks are green, but #412 remains **draft + DIRTY**; do **not** merge
+until it is rebased/cleaned and freshly reviewed.
 
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
@@ -9,7 +35,7 @@
 - **Blocked on their own issues:** **#399** (`0090`/`0093`) REQUEST-CHANGES — coarse dedup key silently drops a 2nd distinct same-day op (returns success); **#403** REQUEST-CHANGES — seed writes out-of-domain `sex='ذكر'` (must be `'male'`); **#400** (`0092`) apply-coupled to #366's `academy.write`; **#391** needs an Owner design decision (flips the **app-wide** font token).
 - **Expert-gated (cannot finish regardless):** **#368** accounting — `0088` is BROKEN (sorts behind `0089`; must renumber ≥`0097`) + real-Excel reconciliation + privacy review; **#366** academy (`0091`; label refs say `0089`/`0087` — reconcile) + licensed-agronomist + Egyptian pesticide-registration sign-off. Both would 500 on prod (tables absent) if merged before migrate. Code quality itself is sound (drawings-vs-opex separation ✓; template-not-prescription ✓).
 
-**Open Owner items.** (1) Apply the 3-migration bundle, then I merge #401/#402/#404. (2) Decide #399 / #391; fix #403. (3) Renumber/reconcile #368/#366 + clear their expert gates. (4) Enable `custom_access_token_hook` + leaked-password protection (dashboard). (5) Standing 🔴 key/DB-password rotation. (6) There are also uncommitted state-doc edits in the local `main` worktree (README/DEPLOY-STATUS/PRODUCT-MASTER/ROADMAP → prod `0089`) — reconcile or discard.
+**Open Owner items.** (1) Apply the 3-migration bundle, then I merge #401/#402/#404. (2) Decide #399 / #391; fix #403. (3) Renumber/reconcile #368/#366 + clear their expert gates. (4) Enable `custom_access_token_hook` + leaked-password protection (dashboard). (5) There are also uncommitted state-doc edits in the local `main` worktree (README/DEPLOY-STATUS/PRODUCT-MASTER/ROADMAP → prod `0089`) — reconcile or discard. **Supabase DB password + service-role key rotation is complete per Owner correction 2026-06-29; do not raise again unless reopened.**
 
 ## 2026-06-27 (latest+5) — parallel app-quality + gated-stage-CRITICAL session
 **Where we are.** A second session ran the app-quality lane in parallel with the knowledge-system session — all NON-migration / NON-prod. **9 PRs merged to `main`** (#378 i18n, #380 payroll rate-flag, #379 stock-calc↔SQL parity, #381 assistant-gate hardening, #382 weather hardening, #384 display, #385 rtl/a11y, #386 form-validation, #387 perf) — every one CI-green, `main` re-verified green after each merge. Both gated draft PRs **hardened but kept DRAFT**: **#368** CRITICAL sales RLS read-leak + audit-mirror leak fixed (pgTAP 663✓); **#366** CRITICAL pesticide-gate bypass fixed + migration renumbered **`0089→0091`** (collision with the merged palm-guard `0089`; `0090` left free for S2) (pgTAP 669✓).
@@ -42,10 +68,11 @@ gated actions ran, in the safe order (review → push → migrate → merge):
 Stage 10 licensed-agronomist + pesticide-registration sign-off) and merging them deploys `/accounting`+`/academy`
 which query `sales`/`academy_content` tables **not on prod** → live 500s. They stay draft until those gates clear.
 
-**Still open (Owner-only).** 🔴 **service-role key + DB password rotation** (the standing red item — do before any
-real Ebeid data). **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
+**Still open (Owner-only).** **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
 dashboard (Auth → Hooks) / `config.toml [auth.hook.custom_access_token]` — until then the active_org feature is
 inert (safe; full-membership behavior). SPEC-0013 still awaits ratification.
+**2026-06-29 Owner correction:** Supabase DB password + service-role key rotation is complete; do not list it as
+an open gate again unless the Owner reopens it.
 
 ## 2026-06-27 (latest+3) — ground-truth audit (RECONCILE-001) + Commercial layer specced (SPEC-0013) — docs only
 **Where we are.** No code/schema/prod change this session — **documentation only**, `main` unchanged at `0089`,
@@ -67,8 +94,9 @@ Produced three artifacts:
 migration `0090`). SPEC-0013 is **Draft — not approved to build** until the Owner ratifies it.
 
 **NOT approved.** Building any SPEC-0013 slice; signing up for any billing provider; touching prod. Applying
-`0089`/`0085`/`0086` to prod still Owner-HELD. 🔴 service-role key rotation still outstanding. Adding the
+`0089`/`0085`/`0086` to prod was Owner-HELD at this point in the timeline. Adding the
 `docs/03` legacy banner = done this session (doc-only, Owner-recommended text).
+**Superseded 2026-06-29:** Supabase DB password + service-role key rotation is complete; do not raise again unless reopened.
 
 **Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md). New: Stage **C** —
 [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) (Draft, awaiting ratification).
@@ -163,7 +191,8 @@ email-invite sub-task needs an invite-mechanism decision (pending-invite table v
 Access-control → needs independent review.
 
 **NOT approved.** Applying `0089` (or the pending `0085`/`0086` access-control chain) to prod — **Owner HELD**;
-do that chain's independent review first. 🔴 service-role key rotation still outstanding (prior sessions).
+do that chain's independent review first. **Superseded 2026-06-29:** Supabase DB password + service-role key
+rotation is complete; do not raise again unless reopened.
 
 **Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md).
 
@@ -252,7 +281,8 @@ next buildable slice once a reviewer is named.
 - **Owner-gated next (per PROJECT RULES — actor ≠ reviewer):** independent review on the `0081`/`0084` RLS
   re-emits (structure/plans `tenant_all` now gate direct-REST writes on `structure.write`/`plan.write`);
   regen `database.types.ts` against prod `0084` (new objects currently augmented in
-  `lib/database.types.ext.ts`). 🔴 still pending: rotate the service-role key + DB password before any REAL data.
+  `lib/database.types.ext.ts`). **Superseded 2026-06-29:** Supabase DB password + service-role key rotation is
+  complete; do not raise again unless reopened.
 
 ## 2026-06-27 — Stages 2/3/4 built + RECONCILED onto `main` (verified); branch ready to push
 - Built editable farm structure + 360 pages + media (Stage 2), ad-hoc activity recording (Stage 3), and
