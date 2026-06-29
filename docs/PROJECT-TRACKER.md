@@ -1,6 +1,6 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
-> **2026-06-29 — autonomous loop started; PR #400 reviewed/fixed/held; PR #412 reviewed/fix published.** Owner instructed
+> **2026-06-29 — autonomous loop started; PR #400 reviewed/fixed/held; PR #412 reviewed/fixed/merged.** Owner instructed
 > the agent to keep working without waiting, while preserving plan-first, docs-updated, review-before-merge, and
 > review-before-migrate gates. Created
 > [`2026-06-29-autonomous-farm-pr-review-loop.md`](superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md).
