@@ -1,5 +1,14 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
+> draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
+> remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
+> finance-role gated, avoid inventing a broad `expense.write` permission, mark #368 `expenses.kind`/`0088` as a
+> prerequisite or same-apply-path dependency, and require an explicit `attachments` extension for expense receipts
+> (`entity_type='expense'`, resolver/storage validation, finance-confidential RLS). Branch head `2fa6694`; GitHub
+> checks green; focused re-review found no findings. **Still held:** #421 remains draft/design-only for Owner review;
+> no schema, migration, prod apply, or real financial/PII import.
+
 > **2026-06-29 — #368 accounting P&L summary moved DB-side; code blocker closed, gates still open.** Patched
 > held draft **#368 accounting** so `/accounting` no longer computes financial totals from capped PostgREST row
 > reads. Migration `0088` now includes `fn_accounting_pnl_summary`, a `SECURITY DEFINER` DB aggregate gated by
