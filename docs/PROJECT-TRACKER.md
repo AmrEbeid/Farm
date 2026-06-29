@@ -1,5 +1,23 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — SAFE STOP: current project status, remaining work, and timeline.** Local `main` was
+> fast-forwarded to current `origin/main` (`4a8e2de`) before stopping. Production Supabase remains at migration
+> `0096`; no migration, prod apply, draft-PR merge, or production data change was performed in this stop/report
+> pass. Current estimate: live MVP/pilot operating core is **~90-92% done**; pre-real-data pilot readiness is
+> **~80-85% done**; full commercial product vision is **~55-60% done**; finance/accounting maturity is
+> **~35-45% done**; advanced payroll/academy/AI stages are **~20-35% done**. Live strengths: core RLS/RPC
+> foundation, inventory/PR/receipt/coverage loop, farm structure/files, planning/operations, budgets/expenses,
+> people/weather/settings, module dashboards, CSV/MasterTable/import framework, and Help Drawer/docs health.
+> Remaining critical path: (1) review/order/apply held DB hardening drafts #436/#439/#442/#444; (2) finish SPEC-0018
+> custody backend #438 and dependent frontend #441 after independent money/RLS/audit review; (3) resolve
+> accounting/P&L #368 with real Excel reconciliation + privacy review; (4) close product correctness gaps #157,
+> #89, #188/#199; (5) Stage 0 residual cleanup/leaked-password-protection verification; (6) payroll, academy,
+> AI, and Stage-M real-data migration. Timeline, assuming active Owner review and no external-signoff delay:
+> **1-2 days** for small DB hardening reviews/apply planning, **3-5 days** to unblock a safe custody first slice,
+> **1-2 weeks** for finance/accounting foundation after ratification/reconciliation path, **2-4 weeks** for
+> real-data readiness, and **4-8 weeks** for broader commercial maturity. All open PRs are currently draft/held;
+> no merge-ready PR lane should be treated as approved without a fresh review + pre-migration gate.
+
 > **2026-06-29 — #439 grant/default-privilege review posted; still held.** Reviewed draft PR **#439**
 > at `e2ca96f`: it removes client-role `TRUNCATE`/broad `DELETE` on current public tables, preserves only
 > authenticated `plan_checks` DELETE, and revokes future public-table defaults to `anon`/`authenticated` for the

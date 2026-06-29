@@ -1,6 +1,36 @@
 # Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-29 — SAFE STOP: status snapshot and next-session handoff
+**Stop point.** Local `main` was fast-forwarded to current `origin/main` (`4a8e2de`) before stopping. Production
+Supabase remains at migration `0096`. No migration, prod apply, draft-PR merge, or production data change was
+performed in this stop/report pass. The worktree is clean except the unrelated untracked local stale file
+`docs/SPEC-0018-custody-and-payment-requests.md`.
+
+**Percent snapshot.** Live MVP/pilot operating core is **~90-92% done**. Pre-real-data pilot readiness is
+**~80-85% done**. Full commercial product vision is **~55-60% done**. Finance/accounting maturity is **~35-45% done**.
+Advanced payroll/academy/AI stages are **~20-35% done**.
+
+**What is live/solid.** Core Supabase RLS/RPC/audit foundation; inventory, purchase requests, receipts,
+reservations, and stock coverage; farm structure and 360 files; planning/multi-day operations; budgets/expenses;
+people/weather/settings; module dashboards live on production; CSV export, MasterTable, import framework, Help
+Drawer, and docs-health tests.
+
+**Remaining critical path.** First, review/order/apply the small held DB hardening drafts (#436, #439, #442, #444).
+Second, finish SPEC-0018 custody backend #438 and dependent frontend #441 after independent money/RLS/audit review.
+Third, resolve accounting/P&L #368 with the real 7-year Excel reconciliation and Stage-M privacy path. Fourth,
+close product correctness gaps #157, #89, #188/#199. Fifth, finish Stage 0 residual cleanup/leaked-password
+protection verification. Payroll, academy, AI, and real-data migration remain later high-risk stages.
+
+**Timeline.** If Owner review is active and external sign-offs do not delay: **1-2 days** for small DB hardening
+review/apply planning; **3-5 days** to unblock a safe custody first slice; **1-2 weeks** for finance/accounting
+foundation after ratification/reconciliation path; **2-4 weeks** for real-data readiness; **4-8 weeks** for broader
+commercial maturity.
+
+**Next recommended action.** Do not merge or migrate a draft lane blindly. Start with the smallest reviewed DB
+hardening batch, likely #436/#439/#442/#444, and run a fresh pre-migration review with prod read-only probes before
+any Supabase apply.
+
 ## 2026-06-29 — module dashboards/360 batch live
 **Change.** Completed the module navigator/dashboard/360 batch and committed it locally as `30fdd26`
 (`feat(farm-os): add module dashboards and 360 pages`). The batch adds grouped module navigation, dashboard-first
