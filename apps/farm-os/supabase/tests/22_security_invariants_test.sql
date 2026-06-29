@@ -69,8 +69,8 @@ select is(
         'fn_add_event_followup',                   -- gated event follow-up RPC (STAGE 3 / SPEC-0010, migration 0083)
         'fn_create_plan', 'fn_set_plan_status',    -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
         'fn_assign_plan_operation', 'fn_add_plan_labor', -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
-        'fn_save_academy_content', 'fn_signoff_academy_content', -- gated Care Academy RPCs (STAGE 10 / SPEC-0008, migration 0089)
-        'fn_archive_academy_content'               -- gated Care Academy RPC (STAGE 10 / SPEC-0008, migration 0089)
+        'fn_save_academy_content', 'fn_signoff_academy_content', -- gated Care Academy RPCs (STAGE 10 / SPEC-0008, migration 0091)
+        'fn_archive_academy_content'               -- gated Care Academy RPC (STAGE 10 / SPEC-0008, migration 0091)
         -- NB: fn_post_movement is deliberately NOT here — AUTHZ-3 (migration 0036) revoked its
         -- `authenticated` EXECUTE, making it an INTERNAL primitive. Pinned negatively below.
       )
