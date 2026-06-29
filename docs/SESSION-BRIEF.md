@@ -93,8 +93,11 @@ prod grant/default-privilege drift. The draft revokes client-role `TRUNCATE` on 
 client-role `DELETE` on all current public tables, restores the single intended authenticated `plan_checks` DELETE
 recompute path, and revokes future public-table default privileges from `anon`/`authenticated` for the prod-observed
 `postgres` grantor. Added catalog pgTAP coverage for destructive grants and `pg_default_acl`. Local pgTAP passed
-**689/689**; GitHub checks are green. Held for PR review and separate pre-migration review; no merge, prod apply, or
-production data change. #229 still remains open for leaked-password-protection Auth/dashboard verification.
+**689/689**; GitHub checks are green. Review pass at `e2ca96f` found no local code findings and updated the PR notes
+with the pre-migration default-ACL probe requirement: before apply, confirm prod's public-table default ACL grantor(s);
+if any grantor besides `postgres` grants future table privileges to `PUBLIC`/`anon`/`authenticated`, add matching
+`ALTER DEFAULT PRIVILEGES FOR ROLE <grantor>` revokes first. Held for separate pre-migration review; no merge, prod
+apply, or production data change. #229 still remains open for leaked-password-protection Auth/dashboard verification.
 
 **#438 custody/payment backend hardening.** Patched draft #438 at `8fb7f69` after the review blockers, then pushed
 follow-up `1288a23` after finding a money-state reroute bug. The branch now uses timestamped draft migrations
