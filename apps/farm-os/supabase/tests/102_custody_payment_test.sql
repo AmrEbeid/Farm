@@ -6,7 +6,7 @@
 -- equal to its total, idempotently (no double-count, #6). Impersonation via request.jwt.claims (the JWT
 -- harness used by tests 36/82). Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(27);
+select plan(28);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set acct 'a0c0a000-0000-0000-0000-0000000000c0'
@@ -110,6 +110,9 @@ select lives_ok(
 select lives_ok(
   format($$ select public.fn_set_expense_payment_status(%L,'paid_from_custody',%L) $$, current_setting('test.exp_id'), current_setting('test.acct_id')),
   'mark expense paid_from_custody again (idempotent)');
+select throws_ok(
+  format($$ select public.fn_set_expense_payment_status(%L,'post_paid_unpaid',null) $$, current_setting('test.exp_id')),
+  '22023', null, 'reject rerouting a custody-paid expense without an explicit reversal');
 reset role;
 
 -- 5) the cardinal rule: exactly ONE out-movement = the expense total, even after the repeat call

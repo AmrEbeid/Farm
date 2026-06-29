@@ -4,8 +4,8 @@
 -- Lifecycle:
 --   implemented in this slice: draft → submitted → approved_operational → approved_final
 --   paid/closed are reserved for the later disbursement/month-close slice and intentionally have no RPC here.
--- gated: prepare/submit = request.prepare (accountant/manager); operational approval = request.approve.op
--- (manager); FINAL approval = request.approve.final (owner only). Lines are RPC-only (cross-org FK safety).
+-- gated: prepare/submit = request.prepare (owner/accountant/manager); operational approval = request.approve.op
+-- (owner/manager); FINAL approval = request.approve.final (owner only). Lines are RPC-only (cross-org FK safety).
 -- Money (#6): net request = Σ(post_paid_unpaid expenses in the request) + MAX(0, target_float − current custody);
 -- paid-from-custody and non-operating expenses are NOT in the request math. Owner-gated draft.
 begin;

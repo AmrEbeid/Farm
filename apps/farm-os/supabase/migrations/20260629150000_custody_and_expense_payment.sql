@@ -6,9 +6,9 @@
 -- ledger and links each expense to how it was paid, so the balance and the owner-request are always derived.
 --
 -- INTENT (this slice): (1) custody_accounts + custody_movements (cash truth, balance = Σin − Σout, derived);
--- (2) extend the existing public.expenses with payment_status / custody_account_id / paid_by (the existing
+-- (2) extend the existing public.expenses with payment_status / paid_by / kind (the existing
 -- table already carries category + sector/hawsha/plan links + total + budget.write gate, migrations 0007/0044);
--- (3) two gated RPCs; (4) re-emit authorize() pinning the FULL permission union (forward-compat for the
+-- (3) gated custody/payment RPCs; (4) re-emit authorize() pinning the FULL permission union (forward-compat for the
 -- in-flight academy.write/export.write so a later re-emit can't drop them — see DEPLOY-STATUS ordering note).
 -- Payment-requests + lifecycle are slice 2; frontend + import descriptors are slice 3.
 --
@@ -250,6 +250,11 @@ begin
     raise exception 'invalid payment_status: %', p_status using errcode = '22023'; end if;
   if p_status in ('paid_from_custody','post_paid_unpaid') and coalesce(v_kind, 'operating') <> 'operating' then
     raise exception 'only operating expenses can use custody/request routing (kind=%)', v_kind using errcode = '22023'; end if;
+  select count(*) into v_existing from public.custody_movements
+    where expense_id = p_expense and amount_out > 0;
+  if p_status <> 'paid_from_custody' and v_existing > 0 then
+    raise exception 'expense already has a custody cash out-movement; post a reversal before rerouting payment_status' using errcode = '22023';
+  end if;
   update public.expenses
      set payment_status = p_status,
          paid_by = p_paid_by
@@ -260,8 +265,6 @@ begin
       raise exception 'custody account required for paid_from_custody' using errcode = '22023'; end if;
     if (select org_id from public.custody_accounts where id = p_custody_account) is distinct from v_org then
       raise exception 'forbidden: cross-org custody account' using errcode = '42501'; end if;
-    select count(*) into v_existing from public.custody_movements
-      where expense_id = p_expense and amount_out > 0;
     if v_existing = 0 and coalesce(v_total,0) > 0 then
       perform public.fn_record_custody_movement(
         p_custody_account, 'صرف نقدي', 0, v_total, current_date, p_expense,
