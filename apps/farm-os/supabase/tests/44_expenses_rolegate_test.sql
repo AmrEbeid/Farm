@@ -41,14 +41,17 @@ select throws_ok(
   '42501', null,
   '#235: a storekeeper (no budget.write) cannot INSERT an expense (financial-data integrity)');
 
-select throws_ok(
-  $$ update public.expenses set total = 1 where org_id = '00000000-0000-0000-0000-000000000001' $$,
-  '42501', null,
-  '#235: a storekeeper cannot UPDATE an expense record');
+select is(
+  (with u as (update public.expenses set total = 1
+              where org_id = '00000000-0000-0000-0000-000000000001' returning 1)
+   select count(*)::int from u),
+  0,
+  '#235: a storekeeper UPDATE affects 0 rows — the expense is invisible (reads now budget.write-gated)');
 
-select lives_ok(
-  $$ select count(*) from public.expenses where org_id = '00000000-0000-0000-0000-000000000001' $$,
-  '#235: a storekeeper can still READ expenses (USING unchanged)');
+select is(
+  (select count(*)::int from public.expenses where org_id = '00000000-0000-0000-0000-000000000001'),
+  0,
+  '#235: a storekeeper now sees 0 expenses — reads gated on budget.write (symmetric with sales, 0097)');
 
 reset role;
 
