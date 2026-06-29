@@ -441,6 +441,46 @@ Result recorded 2026-06-29: opened draft #436 with migration `0098` to revoke au
 19/22. Verified no app direct `rpc("fn_bin_rebuild")` caller. Local pgTAP passed **687/687** and draft GitHub checks
 are green. Held for migration review/apply; no merge, prod apply, or production data change.
 
+### Task 10: Draft #431 Inventory Transfer/Ordered Guard
+
+**Files:**
+- Add: `apps/farm-os/supabase/migrations/20260629140248_inventory_transfer_ordered_guard.sql`
+- Add: `apps/farm-os/supabase/tests/100_inventory_transfer_ordered_guard_test.sql`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: issue #431 and the existing inventory ledger/rebuild/RPC posture.
+- Produces: held migration draft; no prod mutation.
+
+- [x] **Step 1: Read #431 and current inventory semantics**
+
+Completed 2026-06-29: `transfer` is allowed by the original movement type check and subtracted by
+`fn_bin_rebuild`, but no destination bin/location exists and no app path posts it. `inventory_bin.ordered` exists and
+is included in `projected`, but no writer maintains it.
+
+- [x] **Step 2: Choose conservative behavior**
+
+Completed 2026-06-29: do not invent transfer semantics. Disable new transfer rows until an atomic paired
+source/destination model exists. Pin `ordered=0` until a real purchase-order writer maintains it.
+
+- [x] **Step 3: Implement migration + tests**
+
+Completed 2026-06-29: added NOT VALID constraints to enforce new writes (`type <> 'transfer'`, `ordered = 0`),
+re-emitted latest `fn_post_movement` to reject `transfer` with 22023 while preserving internal-only EXECUTE posture,
+and added pgTAP coverage for RPC rejection, direct table protection, ordered pinning, and projected semantics.
+
+- [x] **Step 4: Verify locally**
+
+Completed 2026-06-29: `bash apps/farm-os/supabase/test-shims/run-pgtap-local.sh` passed **691/691** with
+`not_ok=0` and `file_failures=0`.
+
+- [ ] **Step 5: Publish held PR and review before any merge/migrate**
+
+Required gates: GitHub checks green, focused review of the `fn_post_movement` re-emit and inventory semantics, and
+separate pre-migration review before any prod apply.
+
 ## Self-Review
 
 - Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.

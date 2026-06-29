@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #431 inventory transfer/ordered guard drafted; held for migration gate.** Drafted a defensive
+> migration for the latent inventory cleanup: new `transfer` movements are rejected until an atomic destination-bin
+> model exists, and `inventory_bin.ordered` is pinned at zero until a real purchase-order writer owns it. Re-emitted
+> `fn_post_movement` without re-opening authenticated EXECUTE, preserving the internal-only AUTHZ-3 posture. Added
+> pgTAP coverage for transfer rejection, direct table constraint protection, `ordered=0`, and projected semantics.
+> Local pgTAP passed **691/691**. **Held:** no merge, migration, prod apply, or production data change until review
+> and a separate pre-migration review.
+
 > **2026-06-29 — #439 grant-default drift fix drafted/green/held; #438 custody backend reviewed/blocked.**
 > Draft PR **#439** closes the remaining #317/#229 DB grant hygiene slice: current public tables lose
 > client-role `TRUNCATE`, public tables lose client-role `DELETE` except authenticated `plan_checks`, and future

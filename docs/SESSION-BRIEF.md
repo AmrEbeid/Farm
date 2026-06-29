@@ -102,6 +102,14 @@ drawings-vs-opex split is missing while #368 is still draft/unapplied, lifecycle
 implements/tests only through final approval, and migration `0098` collides with held #436. No merge, migration,
 prod apply, or production data change.
 
+**#431 inventory transfer/ordered draft.** Drafted a conservative migration for the latent #431 cleanup. It does not
+invent transfer destination semantics; instead it rejects new `transfer` ledger rows until an atomic source/destination
+model exists, and pins `inventory_bin.ordered` at zero until a real purchase-order writer maintains it. Re-emitted
+`fn_post_movement` while preserving authenticated EXECUTE revoked/internal-only posture. Added pgTAP coverage for RPC
+transfer rejection, direct table protection, `ordered=0`, and `projected = on_hand - reserved` while ordered is pinned.
+Local pgTAP passed **691/691**. Held for review and separate pre-migration review; no merge, prod apply, or production
+data change.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
