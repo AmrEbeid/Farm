@@ -6,13 +6,15 @@
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(22);
+select plan(25);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.owner', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'owner' limit 1), false);
 select set_config('test.eng', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'agri_engineer' limit 1), false);
+select set_config('test.manager', (select user_id::text from public.organization_member
+  where org_id = :'org' and role = 'farm_manager' limit 1), false);
 select set_config('test.sup', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'supervisor' limit 1), false);
 
@@ -29,6 +31,15 @@ select is(public.authorize('academy.write', :'org'), true, 'academy.write: agri_
 reset role;
 select pg_temp.as_user(current_setting('test.sup'));
 select is(public.authorize('academy.write', :'org'), false, 'academy.write: supervisor does NOT');
+reset role;
+select pg_temp.as_user(current_setting('test.owner'));
+select is(public.authorize('export.write', :'org'), true, 'authorize union: owner keeps export.write');
+reset role;
+select pg_temp.as_user(current_setting('test.manager'));
+select is(public.authorize('export.write', :'org'), true, 'authorize union: farm_manager keeps export.write');
+reset role;
+select pg_temp.as_user(current_setting('test.sup'));
+select is(public.authorize('export.write', :'org'), false, 'authorize union: supervisor does NOT get export.write');
 reset role;
 
 -- ===== 2) agri_engineer creates content; it starts ADVISORY (no sign-off) =====
