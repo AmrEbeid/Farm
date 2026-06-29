@@ -167,6 +167,13 @@ so the same three file contents were published through GitHub's Contents API; Gi
 `15fcbdd`. Keep #412 draft/DIRTY and do not merge until it is rebased/cleaned, independently reviewed, and green on
 GitHub.
 
+Follow-up recorded 2026-06-29: rebuilt #412 on current `main` to remove already-merged #410 stacked history. A fresh
+review found two blockers: ref lookups could resolve archived structure parents, and ref errors could report the
+wrong spreadsheet row after validation filtered earlier rows. Fixed both at head `08e925a`: farm/sector refs now
+filter `archived=false`, and hidden source-row metadata preserves original spreadsheet row numbers through validation,
+ref resolution, dedupe, and RPC failure reporting. Local validation passed: import suite **41/41**, `tsc`, focused
+eslint, full Vitest **212/212**, and production build. Keep #412 draft until fresh GitHub CI and re-review are green.
+
 ### Task 4: Pre-Merge and Pre-Migration Gate
 
 **Files:**
