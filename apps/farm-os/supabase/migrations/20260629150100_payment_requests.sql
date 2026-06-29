@@ -1,11 +1,13 @@
--- Farm OS — SPEC-0018 «العهدة وطلبات الصرف» slice 2: payment requests + approval lifecycle (migration 0099).
--- Builds on 0098 (custody + the request.* permissions). A payment request groups a period's expenses into the
--- monthly «إذن صرف»; its totals are DERIVED (never stored) so it is always live. Lifecycle:
---   draft → submitted → approved_operational → approved_final → paid → closed
+-- Farm OS — SPEC-0018 «العهدة وطلبات الصرف» slice 2: payment requests + approval lifecycle.
+-- Builds on the custody/payment-status migration (custody + the request.* permissions). A payment request groups
+-- a period's expenses into the monthly «إذن صرف»; its totals are DERIVED (never stored) so it is always live.
+-- Lifecycle:
+--   implemented in this slice: draft → submitted → approved_operational → approved_final
+--   paid/closed are reserved for the later disbursement/month-close slice and intentionally have no RPC here.
 -- gated: prepare/submit = request.prepare (accountant/manager); operational approval = request.approve.op
 -- (manager); FINAL approval = request.approve.final (owner only). Lines are RPC-only (cross-org FK safety).
 -- Money (#6): net request = Σ(post_paid_unpaid expenses in the request) + MAX(0, target_float − current custody);
--- paid-from-custody expenses are NOT in the request (counted once on the custody side). Owner-gated draft.
+-- paid-from-custody and non-operating expenses are NOT in the request math. Owner-gated draft.
 begin;
 
 -- ── 1) payment_requests ─────────────────────────────────────────────────────────────────────────────────
@@ -32,10 +34,9 @@ create index payment_requests_acct_idx on public.payment_requests(custody_accoun
 create unique index payment_requests_org_no_uniq on public.payment_requests(org_id, request_no);
 alter table public.payment_requests enable row level security;
 alter table public.payment_requests force row level security;
-create policy tenant_all on public.payment_requests for all to authenticated
-  using (org_id in (select public.user_org_ids()))
-  with check (org_id in (select public.user_org_ids()) and public.authorize('request.prepare', org_id));
-grant  select on public.payment_requests to authenticated;  -- RPC-only writes (create/submit/approve…); reads org-scoped. (custody_account_id FK not member-writable → cross-org-FK invariant 74 satisfied)
+create policy tenant_read on public.payment_requests for select to authenticated
+  using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
+grant  select on public.payment_requests to authenticated;  -- RPC-only writes (create/submit/approve…); reads finance-gated. (custody_account_id FK not member-writable → cross-org-FK invariant 74 satisfied)
 revoke insert, update, delete on public.payment_requests from authenticated, anon;
 create trigger audit_payment_request after insert or update or delete on public.payment_requests
   for each row execute function public.fn_audit('payment_request');
@@ -54,12 +55,33 @@ create index prl_request_idx on public.payment_request_lines(payment_request_id)
 create index prl_expense_idx on public.payment_request_lines(expense_id);
 alter table public.payment_request_lines enable row level security;
 alter table public.payment_request_lines force row level security;
-create policy tenant_all on public.payment_request_lines for all to authenticated
-  using (org_id in (select public.user_org_ids()));
+create policy tenant_read on public.payment_request_lines for select to authenticated
+  using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
 grant  select on public.payment_request_lines to authenticated;
 revoke insert, update, delete on public.payment_request_lines from authenticated, anon;  -- RPC-only
 create trigger audit_prl after insert or update or delete on public.payment_request_lines
   for each row execute function public.fn_audit('payment_request_line');
+
+-- Mirror finance-confidential base-table reads onto audit_log. The generic audit trigger stores full rows, so
+-- audit rows for custody/payment entities must be at least as restricted as the source tables. Preserve the
+-- existing people_compensation payroll gate from 0053.
+drop policy if exists audit_read on public.audit_log;
+create policy audit_read on public.audit_log
+  for select to authenticated
+  using (
+    org_id in (select public.user_org_ids())
+    and (
+      (
+        entity_type is distinct from 'people_compensation'
+        and entity_type not in ('custody_account','custody_movement','payment_request','payment_request_line')
+      )
+      or (entity_type = 'people_compensation' and public.authorize('payroll.read', org_id))
+      or (
+        entity_type in ('custody_account','custody_movement','payment_request','payment_request_line')
+        and public.authorize('finance.read', org_id)
+      )
+    )
+  );
 
 -- ── 3) derived totals — always live, never stored ───────────────────────────────────────────────────────
 create or replace function public.fn_payment_request_totals(p_request uuid)
@@ -75,10 +97,15 @@ begin
   if v_org is null then raise exception 'payment request % not found', p_request using errcode='P0002'; end if;
   if v_org not in (select public.user_org_ids()) then
     raise exception 'forbidden: cross-org request' using errcode='42501'; end if;
-  -- Σ of post_paid_unpaid expenses linked to this request (paid-from-custody are excluded → no double-count)
+  if not public.authorize('finance.read', v_org) then
+    raise exception 'forbidden: finance.read is required' using errcode='42501'; end if;
+  -- Σ of operating post_paid_unpaid expenses linked to this request
+  -- (paid-from-custody and drawings/capex are excluded → no double-count and #6).
   select coalesce(sum(e.total),0) into v_unpaid
     from public.payment_request_lines l join public.expenses e on e.id = l.expense_id
-    where l.payment_request_id = p_request and e.payment_status = 'post_paid_unpaid';
+    where l.payment_request_id = p_request
+      and e.payment_status = 'post_paid_unpaid'
+      and e.kind = 'operating';
   select coalesce(target_float,0) into v_target from public.custody_accounts where id = v_acct;
   v_current := coalesce(public.fn_custody_balance(v_acct), 0);
   v_topup := greatest(0, coalesce(v_target,0) - v_current);
@@ -127,7 +154,7 @@ create or replace function public.fn_add_expense_to_request(p_request uuid, p_ex
 returns uuid
 language plpgsql volatile security definer set search_path = ''
 as $$
-declare v_org uuid; v_status text; v_exp_org uuid; v_id uuid;
+declare v_org uuid; v_status text; v_exp_org uuid; v_exp_kind text; v_id uuid;
 begin
   select org_id, status into v_org, v_status from public.payment_requests where id = p_request;
   if v_org is null then raise exception 'request % not found', p_request using errcode='P0002'; end if;
@@ -135,8 +162,10 @@ begin
   if not public.authorize('request.prepare', v_org) then
     raise exception 'forbidden: request.prepare is required' using errcode='42501'; end if;
   if v_status <> 'draft' then raise exception 'request is not draft (%)', v_status using errcode='22023'; end if;
-  select org_id into v_exp_org from public.expenses where id = p_expense;
+  select org_id, kind into v_exp_org, v_exp_kind from public.expenses where id = p_expense;
   if v_exp_org is distinct from v_org then raise exception 'forbidden: cross-org expense' using errcode='42501'; end if;
+  if coalesce(v_exp_kind, 'operating') <> 'operating' then
+    raise exception 'only operating expenses can be added to a payment request (kind=%)', v_exp_kind using errcode='22023'; end if;
   insert into public.payment_request_lines(org_id, payment_request_id, expense_id)
     values (v_org, p_request, p_expense)
     on conflict (payment_request_id, expense_id) do nothing

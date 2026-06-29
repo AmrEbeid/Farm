@@ -13,10 +13,11 @@
 -- Payment-requests + lifecycle are slice 2; frontend + import descriptors are slice 3.
 --
 -- SECURITY: RLS + FORCE RLS + deny-by-default; writes ONLY via SECURITY DEFINER RPCs (search_path='',
--- schema-qualified, EXECUTE revoked from public/anon, granted authenticated); audited via fn_audit (0008).
+-- schema-qualified, EXECUTE revoked from public/anon, granted authenticated); finance reads are owner/accountant
+-- only; audited via fn_audit (0008).
 -- Money rule (#6): a cash-paid expense posts EXACTLY ONE custody out-movement = its total; the expense still
--- hits the P&L once (no double-count). Owner drawings stay separable (category 'مسحوبات المالك'; the richer
--- `kind` column arrives with the gated accounting PR #368/0088 and reconciles then).
+-- hits the P&L once (no double-count). Owner drawings stay separable via expenses.kind and are rejected from
+-- custody/request routing in this apply path even if the accounting P&L branch has not landed first.
 -- Owner-gated apply (drafts only). Validate with test-shims/run-pgtap-local.sh.
 
 begin;
@@ -45,6 +46,8 @@ as $$
          or (perm = 'structure.write'        and m.role in ('owner','farm_manager'))
          or (perm = 'academy.write'          and m.role in ('owner','agri_engineer'))   -- in-flight #366 (forward-compat)
          or (perm = 'export.write'           and m.role in ('owner','farm_manager'))     -- in-flight #400 (forward-compat)
+         or (perm = 'responsibility.write'   and m.role in ('owner','farm_manager'))     -- in-flight #444 (forward-compat)
+         or (perm = 'finance.read'           and m.role in ('owner','accountant'))        -- SPEC-0018 confidential finance reads
          or (perm = 'custody.write'          and m.role in ('owner','farm_manager','accountant'))   -- SPEC-0018
          or (perm = 'request.prepare'        and m.role in ('owner','farm_manager','accountant'))   -- SPEC-0018
          or (perm = 'request.approve.op'     and m.role in ('owner','farm_manager'))     -- SPEC-0018 operational approval
@@ -68,13 +71,64 @@ create table public.custody_accounts (
 create index custody_accounts_org_idx on public.custody_accounts(org_id);
 alter table public.custody_accounts enable row level security;
 alter table public.custody_accounts force row level security;
-create policy tenant_all on public.custody_accounts for all to authenticated
-  using (org_id in (select public.user_org_ids()))
-  with check (org_id in (select public.user_org_ids()) and public.authorize('custody.write', org_id));
-revoke delete on public.custody_accounts from authenticated, anon;  -- soft via active=false
-grant  select, insert, update on public.custody_accounts to authenticated;  -- 0009 blanket grant doesn't inherit; explicit
+create policy tenant_read on public.custody_accounts for select to authenticated
+  using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
+revoke insert, update, delete on public.custody_accounts from authenticated, anon;  -- writes via fn_save_custody_account; soft-delete via active=false
+grant  select on public.custody_accounts to authenticated;  -- 0009 blanket grant doesn't inherit; explicit
 create trigger audit_custody_account after insert or update or delete on public.custody_accounts
   for each row execute function public.fn_audit('custody_account');
+
+-- RPC-only account create/update path. Direct DML stays revoked so frontend writes cannot bypass validation/audit.
+create or replace function public.fn_save_custody_account(
+  p_id uuid,
+  p_org uuid,
+  p_holder_label text,
+  p_holder_user_id uuid default null,
+  p_target_float numeric default 0,
+  p_active boolean default true)
+returns uuid
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare v_org uuid; v_id uuid;
+begin
+  if p_id is not null then
+    select org_id into v_org from public.custody_accounts where id = p_id;
+    if v_org is null then raise exception 'custody account % not found', p_id using errcode = 'P0002'; end if;
+  else
+    v_org := p_org;
+    if v_org is null then raise exception 'org required' using errcode = '23502'; end if;
+  end if;
+  if v_org not in (select public.user_org_ids()) then
+    raise exception 'forbidden: cross-org custody account' using errcode = '42501'; end if;
+  if not public.authorize('custody.write', v_org) then
+    raise exception 'forbidden: custody.write is required' using errcode = '42501'; end if;
+  if nullif(trim(coalesce(p_holder_label, '')), '') is null then
+    raise exception 'holder_label is required' using errcode = '23502'; end if;
+  if coalesce(p_target_float, 0) < 0 then
+    raise exception 'target_float must be non-negative' using errcode = '22023'; end if;
+
+  if p_id is null then
+    insert into public.custody_accounts(org_id, holder_label, holder_user_id, target_float, active)
+    values (v_org, trim(p_holder_label), p_holder_user_id, coalesce(p_target_float, 0), coalesce(p_active, true))
+    returning id into v_id;
+  else
+    update public.custody_accounts
+       set holder_label = trim(p_holder_label),
+           holder_user_id = p_holder_user_id,
+           target_float = coalesce(p_target_float, 0),
+           active = coalesce(p_active, true)
+     where id = p_id
+     returning id into v_id;
+  end if;
+  return v_id;
+end;
+$$;
+revoke all     on function public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean) from public;
+revoke execute on function public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean) from anon;
+grant  execute on function public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean) to authenticated;
 
 -- ── 3) custody_movements (cash in/out; running balance is DERIVED, never stored) ────────────────────────
 create table public.custody_movements (
@@ -97,10 +151,9 @@ create index custody_movements_acct_idx on public.custody_movements(custody_acco
 create index custody_movements_expense_idx on public.custody_movements(expense_id);
 alter table public.custody_movements enable row level security;
 alter table public.custody_movements force row level security;
-create policy tenant_all on public.custody_movements for all to authenticated
-  using (org_id in (select public.user_org_ids()))
-  with check (org_id in (select public.user_org_ids()) and public.authorize('custody.write', org_id));
-grant  select on public.custody_movements to authenticated;  -- reads org-scoped via tenant_all; audited table must be readable (no audit-leak)
+create policy tenant_read on public.custody_movements for select to authenticated
+  using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
+grant  select on public.custody_movements to authenticated;  -- reads finance-gated via tenant_read; audited table must be readable (no audit-leak)
 revoke insert, update, delete on public.custody_movements from authenticated, anon;  -- append-only, RPC-ONLY ledger (writes via fn_record_custody_movement; correct via reversal)
 create trigger audit_custody_movement after insert or update or delete on public.custody_movements
   for each row execute function public.fn_audit('custody_movement');
@@ -108,19 +161,33 @@ create trigger audit_custody_movement after insert or update or delete on public
 -- ── 4) extend expenses with payment routing (cash vs owner-request) ─────────────────────────────────────
 alter table public.expenses add column if not exists payment_status text;      -- paid_from_custody|post_paid_unpaid|paid_by_owner|cancelled
 alter table public.expenses add column if not exists paid_by text;             -- free label of who paid
+alter table public.expenses add column if not exists kind text not null default 'operating'
+  check (kind in ('operating','drawing','capex'));
 -- (the expense→custody link lives on custody_movements.expense_id — avoids a cross-org FK on expenses)
 -- balance helper: current custody = Σin − Σout for an account (derived; SECURITY DEFINER so RLS-safe read).
 create or replace function public.fn_custody_balance(p_account uuid)
 returns numeric
-language sql
+language plpgsql
 stable
 security definer
 set search_path = ''
 as $$
+declare v_org uuid; v_balance numeric;
+begin
+  select org_id into v_org from public.custody_accounts where id = p_account;
+  if v_org is null then raise exception 'custody account % not found', p_account using errcode = 'P0002'; end if;
+  if v_org not in (select public.user_org_ids()) then
+    raise exception 'forbidden: cross-org custody account' using errcode = '42501'; end if;
+  if not public.authorize('finance.read', v_org) then
+    raise exception 'forbidden: finance.read is required' using errcode = '42501'; end if;
+
   select coalesce(sum(amount_in),0) - coalesce(sum(amount_out),0)
-  from public.custody_movements m
-  where m.custody_account_id = p_account
-    and m.org_id in (select public.user_org_ids());
+    into v_balance
+    from public.custody_movements m
+   where m.custody_account_id = p_account
+     and m.org_id = v_org;
+  return coalesce(v_balance, 0);
+end;
 $$;
 revoke all     on function public.fn_custody_balance(uuid) from public;
 revoke execute on function public.fn_custody_balance(uuid) from anon;
@@ -171,9 +238,9 @@ volatile
 security definer
 set search_path = ''
 as $$
-declare v_org uuid; v_total numeric; v_existing int;
+declare v_org uuid; v_total numeric; v_kind text; v_existing int;
 begin
-  select org_id, total into v_org, v_total from public.expenses where id = p_expense;
+  select org_id, total, kind into v_org, v_total, v_kind from public.expenses where id = p_expense;
   if v_org is null then raise exception 'expense % not found', p_expense using errcode = 'P0002'; end if;
   if v_org not in (select public.user_org_ids()) then
     raise exception 'forbidden: cross-org expense' using errcode = '42501'; end if;
@@ -181,6 +248,8 @@ begin
     raise exception 'forbidden: budget.write is required' using errcode = '42501'; end if;
   if p_status not in ('paid_from_custody','post_paid_unpaid','paid_by_owner','cancelled') then
     raise exception 'invalid payment_status: %', p_status using errcode = '22023'; end if;
+  if p_status in ('paid_from_custody','post_paid_unpaid') and coalesce(v_kind, 'operating') <> 'operating' then
+    raise exception 'only operating expenses can use custody/request routing (kind=%)', v_kind using errcode = '22023'; end if;
   update public.expenses
      set payment_status = p_status,
          paid_by = p_paid_by
@@ -204,5 +273,25 @@ $$;
 revoke all     on function public.fn_set_expense_payment_status(uuid, text, uuid, text) from public;
 revoke execute on function public.fn_set_expense_payment_status(uuid, text, uuid, text) from anon;
 grant  execute on function public.fn_set_expense_payment_status(uuid, text, uuid, text) to authenticated;
+
+-- Keep the drawings split available in this apply path even when #368 has not landed first.
+create or replace function public.fn_set_expense_kind(p_id uuid, p_kind text)
+returns jsonb language plpgsql volatile security definer set search_path = '' as $$
+declare v_org uuid;
+begin
+  select org_id into v_org from public.expenses where id = p_id;
+  if v_org is null then raise exception 'expense % not found', p_id using errcode = 'P0002'; end if;
+  if not public.authorize('budget.write', v_org) then
+    raise exception 'forbidden: budget.write is required (owner/accountant)' using errcode = '42501'; end if;
+  if v_org not in (select public.user_org_ids()) then
+    raise exception 'forbidden: cross-org expense change' using errcode = '42501'; end if;
+  if coalesce(p_kind, '') not in ('operating','drawing','capex') then
+    raise exception 'invalid expense kind: %', p_kind using errcode = '22023'; end if;
+  update public.expenses set kind = p_kind where id = p_id;
+  return jsonb_build_object('id', p_id, 'kind', p_kind);
+end $$;
+revoke all     on function public.fn_set_expense_kind(uuid, text) from public;
+revoke execute on function public.fn_set_expense_kind(uuid, text) from anon;
+grant  execute on function public.fn_set_expense_kind(uuid, text) to authenticated;
 
 commit;

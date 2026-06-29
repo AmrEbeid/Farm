@@ -1,12 +1,12 @@
--- 98 — SPEC-0018 slice 1: custody ledger + expense payment routing (migration 0098).
+-- 102 — SPEC-0018 slice 1: custody ledger + expense payment routing.
 -- Verifies: authorize() carries the FULL permission union (incl. the new finance perms + the in-flight
 -- academy/export forward-compat — guards the re-emit drop-trap, since test 97 isn't on main); the
--- custody.write gate; anon EXECUTE lockdown on the new RPCs; balance = Σin − Σout; the one-direction
+-- finance.read/custody.write gates; anon EXECUTE lockdown on the new RPCs; balance = Σin − Σout; the one-direction
 -- guard; and the cardinal money rule — a paid_from_custody expense posts EXACTLY ONE custody out-movement
 -- equal to its total, idempotently (no double-count, #6). Impersonation via request.jwt.claims (the JWT
 -- harness used by tests 36/82). Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(15);
+select plan(27);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set acct 'a0c0a000-0000-0000-0000-0000000000c0'
@@ -22,6 +22,10 @@ select set_config('test.acct_id', :'acct', false);
 select set_config('test.exp_id', :'exp', false);
 select set_config('test.accountant', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'accountant' limit 1), false);
+select set_config('test.owner', (select user_id::text from public.organization_member
+  where org_id = :'org' and role = 'owner' limit 1), false);
+select set_config('test.manager', (select user_id::text from public.organization_member
+  where org_id = :'org' and role = 'farm_manager' limit 1), false);
 select set_config('test.supervisor', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'supervisor' limit 1), false);
 
@@ -31,7 +35,8 @@ select ok(exists(select 1 from public.custody_accounts where id = :'acct'), 'fix
 select is(
   (select count(*)::int from unnest(array[
      'pr.approve','plan.write','op.execute','inventory.write','budget.write','payroll.read','structure.write',
-     'academy.write','export.write','custody.write','request.prepare','request.approve.op','request.approve.final'
+     'academy.write','export.write','responsibility.write','finance.read','custody.write','request.prepare',
+     'request.approve.op','request.approve.final'
    ]) as perm
    where position(perm in pg_get_functiondef('public.authorize(text, uuid)'::regprocedure)) = 0),
   0, 'authorize() recognizes the full permission union incl. SPEC-0018 + in-flight academy/export');
@@ -45,6 +50,9 @@ select ok(not has_function_privilege('anon',
   'anon cannot EXECUTE fn_set_expense_payment_status');
 select ok(not has_function_privilege('anon', 'public.fn_custody_balance(uuid)', 'EXECUTE'),
   'anon cannot EXECUTE fn_custody_balance');
+select ok(not has_function_privilege('anon',
+  'public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean)', 'EXECUTE'),
+  'anon cannot EXECUTE fn_save_custody_account');
 
 -- helper: impersonate a member
 create or replace function pg_temp.as_user(uid text) returns void language plpgsql as $$
@@ -61,10 +69,34 @@ select pg_temp.as_user(current_setting('test.supervisor'));
 select is(public.authorize('custody.write', :'org'), false, 'custody.write: supervisor does NOT');
 reset role;
 
+-- 3b) finance.read is confidential: owner/accountant only until an owner-ratified manager scope exists
+select pg_temp.as_user(current_setting('test.owner'));
+select is(public.authorize('finance.read', :'org'), true, 'finance.read: owner HAS it');
+reset role;
+select pg_temp.as_user(current_setting('test.accountant'));
+select is(public.authorize('finance.read', :'org'), true, 'finance.read: accountant HAS it');
+reset role;
+select pg_temp.as_user(current_setting('test.manager'));
+select is(public.authorize('finance.read', :'org'), false, 'finance.read: manager does NOT have broad finance read');
+reset role;
+select pg_temp.as_user(current_setting('test.supervisor'));
+select is(public.authorize('finance.read', :'org'), false, 'finance.read: supervisor does NOT');
+reset role;
+
+select ok(not has_table_privilege('authenticated', 'public.custody_accounts', 'INSERT'),
+  'authenticated has no direct INSERT privilege on custody_accounts');
+select ok(not has_table_privilege('authenticated', 'public.custody_accounts', 'UPDATE'),
+  'authenticated has no direct UPDATE privilege on custody_accounts');
+select ok(not has_table_privilege('authenticated', 'public.custody_movements', 'INSERT'),
+  'authenticated has no direct INSERT privilege on custody_movements');
+
 -- 4) balance = Σin − Σout ; one-direction guard ; no-double-count idempotency — all as the accountant
 -- (values inlined via format(%L) — the proven harness pattern from test 82; current_setting() inside the
 --  executed string does not resolve reliably under pgTAP's lives_ok/throws_ok.)
 select pg_temp.as_user(current_setting('test.accountant'));
+select lives_ok(
+  format($$ select public.fn_save_custody_account(null, %L, 'المحاسب', null, 15000, true) $$, :'org'),
+  'accountant creates a custody account through the RPC-only path');
 select lives_ok(
   format($$ select public.fn_record_custody_movement(%L,'استلام عهدة من المالك',30000,0) $$, current_setting('test.acct_id')),
   'accountant records a 30,000 custody receipt');
@@ -93,6 +125,13 @@ select pg_temp.as_user(current_setting('test.supervisor'));
 select throws_ok(
   format($$ select public.fn_record_custody_movement(%L,'صرف نقدي',0,200) $$, current_setting('test.acct_id')),
   '42501', null, 'supervisor without custody.write is rejected (42501)');
+select throws_ok(
+  format($$ select public.fn_custody_balance(%L) $$, current_setting('test.acct_id')),
+  '42501', null, 'supervisor without finance.read cannot call fn_custody_balance');
+select is((select count(*)::int from public.custody_accounts where id = :'acct'), 0,
+  'supervisor cannot read custody_accounts rows');
+select is((select count(*)::int from public.custody_movements where custody_account_id = :'acct'), 0,
+  'supervisor cannot read custody_movements rows');
 reset role;
 
 select * from finish();
