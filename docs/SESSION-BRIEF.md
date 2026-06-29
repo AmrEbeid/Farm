@@ -126,10 +126,13 @@ review; no merge, prod apply, or production data change. Migration-order warning
 **#441 custody frontend review/fix.** Reviewed draft #441 after #438 backend blockers were posted. Pushed
 `e08562f` to fix the failing page-help drift guard by adding `payment-request-360` help and a `/custody/request/:id`
 route mapping. Local validation in `/tmp/farm-pr-441`: focused page-help test **7/7**, full app Vitest **230/230**.
-Posted a held review: #441 still cannot merge before #438 is independently reviewed and applied migrate-first.
-After #438 hardening, #441 specifically needs custody account creation moved to `fn_save_custody_account`, broad
-farm-manager finance reads removed or owner-scoped, and finance query/RPC errors rendered as errors instead of
-zeros/empty tables. No merge, migration, prod apply, or production data change.
+Posted a held review, then patched #441 again at `fa17350` after #438 hardening: custody account creation now calls
+`fn_save_custody_account`, custody routes/nav are owner/accountant-only while farm-manager broad finance read is
+withheld, finance query/RPC failures throw to the route error boundary instead of rendering zero/empty money totals,
+and lifecycle buttons no longer advertise farm-manager custody actions. Validation in `/tmp/farm-pr-441`: focused
+nav/page-help **17/17**, full Vitest **230/230**, `tsc --noEmit`, touched-file ESLint, production build, and
+`git diff --check` all passed. #441 still cannot merge before #438 is independently reviewed and applied
+migrate-first; no merge, migration, prod apply, or production data change.
 
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
