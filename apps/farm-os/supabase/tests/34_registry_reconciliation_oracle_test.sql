@@ -7,7 +7,7 @@
 -- assertion to make an import pass (SPEC-0003 §7).
 
 begin;
-select plan(18);
+select plan(19);
 
 -- ── Registry totals (the canonical source of truth, non-negotiable #5) ──────
 select is((select count(*) from public.sectors
@@ -72,6 +72,28 @@ select ok((select every(code is not null and char_length(code) > 0)
   from public.sectors), 'integrity: every sector has a non-empty code');
 select ok((select every(code is not null and char_length(code) > 0)
   from public.hawshat), 'integrity: every hawsha has a non-empty code');
+
+-- ── Per-tree ↔ aggregate reconciliation (anti-tautology, issue #239) ─────────
+--    The assertions above sum hawshat.palm_count_* — but seed.sql writes those
+--    exact constants into those aggregate columns by hand, so they reconcile
+--    fabricated columns against the same constants and CANNOT fail (tautology).
+--    The real Stage-2 deliverable (SPEC-0003) is the per-tree import into
+--    `assets (type='palm')`. This assertion reconciles the per-tree ROW COUNT
+--    against the aggregate columns — two independent sources — so it only holds
+--    once the real ~4,679-row registry is imported. Until then ~60 palm rows
+--    exist, so it is wrapped in `todo` (reports but does not fail CI).
+--    WHEN the Owner-gated real import lands (SPEC-0003 §5): delete the
+--    todo_start/todo_end wrapper so the oracle becomes a hard gate. Never weaken
+--    the assertion to make an import pass (SPEC-0003 §7).
+select todo_start('per-tree palm registry import pending — SPEC-0003 / issue #239');
+select is(
+  (select count(*) from public.assets
+     where org_id = '00000000-0000-0000-0000-000000000001' and type = 'palm'),
+  (select coalesce(sum(palm_count_barhi), 0) + coalesce(sum(palm_count_male), 0)
+     from public.hawshat
+     where org_id = '00000000-0000-0000-0000-000000000001')::bigint,
+  'reconcile: count(assets type=palm) == Σ(palm_count_barhi + palm_count_male) [4,679]');
+select todo_end();
 
 select * from finish();
 rollback;

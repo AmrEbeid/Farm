@@ -108,6 +108,32 @@ export async function createPurchaseRequestFromShortage(
       .maybeSingle();
     const existing = dup ? openPrs.find((p) => p.id === dup.pr_id) : undefined;
     if (existing) {
+      // CREATE-1-RESERVE (#188): the PR/line insert and the reserve are two NON-atomic writes. If a
+      // prior call inserted the PR + line but its reserveStock then failed (e.g. a transient
+      // fn_post_movement error), this dedup branch would otherwise return the existing PR as success
+      // WITHOUT the reserve ever being posted — an orphaned PR holding no `reserve` movement, so
+      // inventory_bin.reserved understates the true commitment and the coverage engine can miss a real
+      // shortage for that window (and every retry keeps masking it here). Make the dedup path
+      // reserve-aware: if no `reserve` movement exists for this (plan, item), the reserve never landed,
+      // so re-attempt it and propagate the result. (A reserve failure on the original FRESH-insert path
+      // does NOT roll back the committed PR/line, which is why the orphan is reachable; the fully
+      // race/atomicity-safe fix is to fold the line-insert + reserve into one SECURITY DEFINER RPC —
+      // tracked as the migration-gated follow-up in #188.)
+      const { data: existingReserve } = await sb
+        .from("inventory_movements")
+        .select("id")
+        .eq("org_id", m.orgId)
+        .eq("item_id", itemId)
+        .eq("plan_id", SEED_PLAN_ID)
+        .eq("type", "reserve")
+        .limit(1)
+        .maybeSingle();
+      if (!existingReserve) {
+        const reserve = await reserveStock(sb, itemId, reserveQty, SEED_PLAN_ID);
+        if (!reserve.ok) return { ok: false, error: reserve.error };
+        revalidatePath(`/inventory/${itemId}/coverage`);
+        revalidatePath(`/purchase-requests`);
+      }
       return { ok: true, prId: existing.id, code: existing.code, deduped: true };
     }
   }

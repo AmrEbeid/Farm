@@ -153,6 +153,30 @@ insert into public.assets (id, org_id, type, name, sector_id, hawsha_id, line_id
 insert into public.assets (id, org_id, type, name, sector_id, hawsha_id, line_id, variety, sex, status, health_status, planting_date, id_tag) values ('4cf9f064-3f23-5405-b8a3-b4beeee6c4fe','00000000-0000-0000-0000-000000000001','palm','نخلة EBD-HSW-H02-L08-P006','2aa10e7e-d6fe-5f6b-88f0-1c3c01bc1d23','69c0c855-c9c5-5994-a1bb-5c60955da15d','1b323bf5-2c04-5a64-afd5-306143209ac4','برحي','female','active','good','2015-03-01','EBD-HSW-H02-L08-P006');
 insert into public.assets (id, org_id, type, name, sector_id, hawsha_id, line_id, variety, sex, status, health_status, planting_date, id_tag) values ('7563ad29-5a1d-526f-bd2f-be7cb28b2560','00000000-0000-0000-0000-000000000001','palm','نخلة EBD-HSW-H02-L08-P007','2aa10e7e-d6fe-5f6b-88f0-1c3c01bc1d23','69c0c855-c9c5-5994-a1bb-5c60955da15d','1b323bf5-2c04-5a64-afd5-306143209ac4','برحي','female','active','good','2015-03-01','EBD-HSW-H02-L08-P007');
 
+-- ── SYNTHETIC DEMO palm registry (#239) ──────────────────────────────────────────────────────────────
+-- DUMMY data, NOT the real Nov-2025 registry: fills each hawsha up to its aggregate palm_count_barhi/male
+-- so the palm-map grid + the per-tree reconciliation have data in dev/demo. id_tags are prefixed
+-- EBD-DEMO- to mark them synthetic and avoid collision with the hand-entered sample palms above. The REAL
+-- per-tree import stays Owner-gated (#239) — this does NOT close it; it only populates the demo. Totals
+-- after seeding = Σ(palm_count_barhi)=4,380 برحي + Σ(palm_count_male)=299 ذكور = 4,679 palms across 28 حوش.
+insert into public.assets (org_id, type, name, sector_id, hawsha_id, variety, sex, status, health_status, planting_date, id_tag)
+select h.org_id, 'palm', 'نخلة برحي (تجريبي) ' || h.code || '-' || g,
+       h.sector_id, h.id, 'برحي', 'female', 'active', 'good', h.planting_date,
+       'EBD-DEMO-' || h.code || '-B' || lpad(g::text, 4, '0')
+from public.hawshat h
+cross join lateral generate_series(1, greatest(0, coalesce(h.palm_count_barhi, 0) - (
+  select count(*) from public.assets a
+  where a.hawsha_id = h.id and a.type = 'palm' and a.sex is distinct from 'male'))) as g;
+
+insert into public.assets (org_id, type, name, sector_id, hawsha_id, variety, sex, status, health_status, planting_date, id_tag)
+select h.org_id, 'palm', 'نخلة ذكر (تجريبي) ' || h.code || '-' || g,
+       h.sector_id, h.id, 'ذكر', 'male', 'active', 'good', h.planting_date,
+       'EBD-DEMO-' || h.code || '-M' || lpad(g::text, 3, '0')
+from public.hawshat h
+cross join lateral generate_series(1, greatest(0, coalesce(h.palm_count_male, 0) - (
+  select count(*) from public.assets a
+  where a.hawsha_id = h.id and a.type = 'palm' and a.sex = 'male'))) as g;
+
 -- Supplier
 insert into public.suppliers (id, org_id, name, phone, terms, lead_time_days) values ('40c8053d-c3ad-55a3-8e6b-39dd61066353','00000000-0000-0000-0000-000000000001','الدلتا للأسمدة','+201111111111','آجل 30 يوم',5);
 

@@ -40,8 +40,8 @@ export default async function InventoryListPage() {
       name: it.name,
       category: it.category ?? "—",
       on_hand: `${num(onHand)} ${it.unit ?? ""}`,
-      reserved: num(reserved),
-      available: num(available),
+      reserved: `${num(reserved)} ${it.unit ?? ""}`,
+      available: `${num(available)} ${it.unit ?? ""}`,
       flag: needsReorder ? "إعادة الطلب" : "",
     };
   });
@@ -58,6 +58,7 @@ export default async function InventoryListPage() {
         empty="لا توجد أصناف"
         searchColumns={["name", "category"]}
         placeholder="ابحث عن صنف…"
+        exportFilename="inventory"
       />
     </div>
   );

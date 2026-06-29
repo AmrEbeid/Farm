@@ -57,11 +57,16 @@ export async function runPlanChecks(planId: string) {
   // stock check: any shortage among the plan's materials blocks
   let stockResult: "ok" | "block" = "ok";
   const stockDetail: Record<string, Json> = {};
-  for (const itemId of materialIds) {
-    const { data, error: covErr } = await sb.rpc("fn_stock_coverage", {
-      p_item: itemId,
-      p_location: "main",
-    });
+  // fn_stock_coverage is a read-only projection per material and the calls are independent, so
+  // fire them in parallel instead of N serial round-trips. Semantics are unchanged: we still
+  // abort on any per-item error and the shortage/detail outcome is order-independent.
+  const itemIds = [...materialIds];
+  const coverages = await Promise.all(
+    itemIds.map((itemId) => sb.rpc("fn_stock_coverage", { p_item: itemId, p_location: "main" })),
+  );
+  for (let i = 0; i < itemIds.length; i++) {
+    const itemId = itemIds[i];
+    const { data, error: covErr } = coverages[i];
     // A failed coverage check must NOT silently count as "no shortage" — abort rather than
     // persist a passing stock check that could mask a shortage.
     if (covErr) return { ok: false, error: "تعذّر التحقق من تغطية المخزون، حاول مرة أخرى." };
@@ -99,7 +104,11 @@ export async function runPlanChecks(planId: string) {
   const checks = [
     { kind: "stock", result: stockResult, detail: stockDetail },
     { kind: "budget", result: budgetResult, detail: budgetDetail },
-    { kind: "weather", result: "ok", detail: { note: "deferred in MVP-0" } },
+    // SPEC-0007 §2(4)/§4(3): weather is advisory and NOT yet wired into runPlanChecks. It must not
+    // assert green ("ok"→"سليم") as if a forecast was verified. The plans page renders only
+    // block/warn/(default-green) — there is no "unknown" branch, so "unknown" would still show green.
+    // Use "warn" (the only supported non-green status → amber "منخفض") to signal not-yet-evaluated/advisory.
+    { kind: "weather", result: "warn", detail: { note: "لم يُقيَّم الطقس بعد (إرشادي)" } },
     { kind: "labor", result: "ok", detail: {} },
     { kind: "responsibility", result: "ok", detail: {} },
   ];
@@ -182,4 +191,93 @@ export async function addPlanOperation(planId: string, input: NewOperationInput)
   return result.deduped
     ? { ok: true, operationId: result.operationId, deduped: true }
     : { ok: true, operationId: result.operationId };
+}
+
+export interface MaterialLineInput {
+  item_id: string;
+  qty: number;
+  unit: string;
+}
+export interface LaborLineInput {
+  person_or_team: string;
+  count: number;
+  days: number;
+}
+export interface NewMultiOperationInput {
+  subtype: string;
+  planned_at: string; // yyyy-mm-dd (the start / demand date)
+  ends_on: string | null; // yyyy-mm-dd or null = single-day
+  est_cost: number;
+  materials: MaterialLineInput[]; // several needs: fertilizers, fuel/gas, any item
+  labor: LaborLineInput[];
+  assignee_ids: string[]; // one or more employees
+  lead_id: string | null; // which assignee is the lead (must be in assignee_ids)
+}
+
+/**
+ * Add a planned operation carrying SEVERAL needs (N materials + N labour lines), a multi-day span, and
+ * one-or-more employee assignees — all created atomically by fn_add_plan_operation_multi (#398, migration
+ * 0091). One transaction: any bad line rolls the whole op back (no orphan). The RPC enforces plan.write
+ * (org-scoped), the cross-org guard, item/person in-org validation, and the multi-day/lead invariants.
+ */
+export async function addPlanOperationMulti(planId: string, input: NewMultiOperationInput) {
+  await requireMembership();
+
+  // Validate at the action boundary (mirror addPlanOperation; the RPC re-checks server-side).
+  if (!Number.isFinite(input.est_cost) || input.est_cost < 0) {
+    return { ok: false, error: "التكلفة التقديرية غير صالحة" };
+  }
+  if (input.materials.length === 0 && input.labor.length === 0) {
+    return { ok: false, error: "أضف احتياجًا واحدًا على الأقل (خامة أو عمالة)" };
+  }
+  for (const m of input.materials) {
+    if (!m.item_id) return { ok: false, error: "اختر الصنف لكل سطر خامة" };
+    if (!Number.isFinite(m.qty) || m.qty < 0) {
+      return { ok: false, error: "كمية الخامة يجب ألا تكون سالبة" };
+    }
+  }
+  for (const l of input.labor) {
+    if (!Number.isFinite(l.count) || l.count < 0 || !Number.isFinite(l.days) || l.days < 0) {
+      return { ok: false, error: "عدد العمال والأيام يجب ألا يكونا سالبين" };
+    }
+  }
+  if (input.ends_on && input.ends_on < input.planned_at) {
+    return { ok: false, error: "تاريخ الانتهاء يجب ألا يسبق تاريخ البدء" };
+  }
+  if (input.lead_id && !input.assignee_ids.includes(input.lead_id)) {
+    return { ok: false, error: "المسؤول يجب أن يكون من بين المكلّفين" };
+  }
+
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_add_plan_operation_multi", {
+    p_plan_id: planId,
+    p_subtype: input.subtype,
+    p_planned_at: input.planned_at,
+    p_ends_on: input.ends_on,
+    p_est_cost: input.est_cost,
+    // line arrays serialize to jsonb; cast through Json (interfaces lack the index signature Json wants).
+    p_materials: input.materials as unknown as Json,
+    p_labor: input.labor as unknown as Json,
+    p_assignee_ids: input.assignee_ids,
+    p_lead_id: input.lead_id,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        {
+          "42501": "ليس لديك صلاحية تعديل الخطة",
+          P0002: "الخطة غير موجودة",
+          "22023": "بيانات العملية غير صالحة",
+        },
+        "تعذّر إنشاء العملية",
+      ),
+    };
+  }
+  const result = data as { operationId: string } | null;
+  if (!result?.operationId) return { ok: false, error: "تعذّر إنشاء العملية" };
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true, operationId: result.operationId };
 }

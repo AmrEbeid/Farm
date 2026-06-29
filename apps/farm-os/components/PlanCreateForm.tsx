@@ -27,6 +27,10 @@ export function PlanCreateForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (start && end && end < start) {
+      setError("تاريخ النهاية يجب أن يكون بعد البداية");
+      return;
+    }
     setPending(true);
     setError(null);
     const res = await createPlan({ type, periodStart: start || null, periodEnd: end || null });
@@ -67,7 +71,7 @@ export function PlanCreateForm() {
             <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
           </FormRow>
           <FormRow id="plan-end" label="إلى تاريخ">
-            <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+            <Input type="date" min={start || undefined} value={end} onChange={(e) => setEnd(e.target.value)} />
           </FormRow>
         </div>
         <div className="flex gap-2">

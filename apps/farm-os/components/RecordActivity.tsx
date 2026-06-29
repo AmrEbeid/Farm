@@ -84,6 +84,11 @@ export function RecordActivity({
     setPending(true);
     setError(null);
     const qv = qtyValue.trim() === "" ? null : Number(qtyValue);
+    if (qv != null && (!Number.isFinite(qv) || qv <= 0)) {
+      setPending(false);
+      setError("القيمة يجب أن تكون رقمًا أكبر من صفر");
+      return;
+    }
     const res = await recordEvent({
       locationType,
       locationId,
@@ -91,7 +96,7 @@ export function RecordActivity({
       subtype: subtype.trim() || null,
       status,
       note: note.trim() || null,
-      qtyValue: qv != null && Number.isFinite(qv) ? qv : null,
+      qtyValue: qv,
       qtyMeasure: qv != null ? "count" : null,
       qtyLabel: qtyLabel.trim() || null,
     });
@@ -141,7 +146,7 @@ export function RecordActivity({
               </FormRow>
               <div className="grid grid-cols-2 gap-2">
                 <FormRow id="ev-qty" label="قيمة (اختياري)">
-                  <Input value={qtyValue} inputMode="decimal" onChange={(e) => setQtyValue(e.target.value)} />
+                  <Input type="number" min={0} step="any" value={qtyValue} inputMode="decimal" onChange={(e) => setQtyValue(e.target.value)} />
                 </FormRow>
                 <FormRow id="ev-qtylabel" label="الوحدة">
                   <Input value={qtyLabel} onChange={(e) => setQtyLabel(e.target.value)} maxLength={40} />

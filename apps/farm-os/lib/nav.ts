@@ -22,6 +22,7 @@ export const APP_NAV: AppNavItem[] = [
   { id: "people", label: "الفريق", icon: "👥", href: "/people", roles: ["owner", "farm_manager", "agri_engineer", "accountant"] },
   { id: "academy", label: "الأكاديمية", icon: "📚", href: "/academy" },
   { id: "mobile", label: "الميدان", icon: "📱", href: "/m", roles: ["supervisor", "agri_engineer", "owner", "farm_manager"] },
+  { id: "profile", label: "الملف الشخصي", icon: "👤", href: "/profile" },
   { id: "settings", label: "الإعدادات", icon: "⚙️", href: "/settings", roles: ["owner"] },
 ];
 

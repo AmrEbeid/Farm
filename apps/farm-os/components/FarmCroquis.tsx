@@ -84,7 +84,7 @@ export function FarmCroquis({ sectors }: { sectors: CroquisSector[] }) {
                   <span className="text-[10px] opacity-90">{num(h.barhi + h.male)}</span>
                   {h.attentionCount > 0 && (
                     <span
-                      className="absolute -top-1.5 -left-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--surface,#fff)] px-1 text-[10px] font-bold text-[var(--danger-fg,#dc2626)] ring-1 ring-[var(--danger-fg,#dc2626)]"
+                      className="absolute -top-1.5 -end-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--surface,#fff)] px-1 text-[10px] font-bold text-[var(--danger-fg,#dc2626)] ring-1 ring-[var(--danger-fg,#dc2626)]"
                       aria-hidden
                     >
                       {num(h.attentionCount)}

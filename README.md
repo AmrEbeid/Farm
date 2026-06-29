@@ -2,6 +2,14 @@
 
 Monorepo for **Farm OS** — an Arabic-RTL-first, multi-tenant operating system for date-palm and fruit farms (Egypt/MENA). نظام تشغيل المزارع
 
+> ℹ️ **Ground truth:** for the canonical product/architecture state, see
+> [`docs/PRODUCT-MASTER-FILE.md`](docs/PRODUCT-MASTER-FILE.md) and
+> [`docs/RECONCILE-001-main-ground-truth-2026-06-27.md`](docs/RECONCILE-001-main-ground-truth-2026-06-27.md).
+> **Note:** migration numbers quoted below are historical — as of 2026-06-27, `main` is at migration **`0089`**
+> and **prod is now at `0089` too** (Owner-authorized apply of `0085` active-org, `0086` org-settings, `0089`
+> palm-guard — verified, exact repo versions, no new security regressions). The "`0048`" figures in this README
+> are stale. (`0087`/`0088` remain in draft PRs #366/#368 — not on prod by design.)
+
 ## Layout
 
 | Path | What |

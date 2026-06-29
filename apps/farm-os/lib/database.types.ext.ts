@@ -237,6 +237,22 @@ type StructFunctions = {
     };
     Returns: Json;
   };
+  // ── #398 slice 2: atomic multi-line operation create (multi-day + N materials + N labour +
+  //    assignees), migrations 0090 (schema) / 0093 (RPC). p_materials/p_labor are jsonb line arrays. ──
+  fn_add_plan_operation_multi: {
+    Args: {
+      p_plan_id: string;
+      p_subtype: string;
+      p_planned_at: string;
+      p_ends_on: string | null;
+      p_est_cost: number;
+      p_materials: Json;
+      p_labor: Json;
+      p_assignee_ids: string[];
+      p_lead_id: string | null;
+    };
+    Returns: Json;
+  };
   // ── STAGE 1 active-org switcher, migration 0085 ──
   fn_set_active_org: {
     Args: { p_org: string };

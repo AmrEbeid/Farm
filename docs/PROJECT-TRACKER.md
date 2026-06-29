@@ -1,5 +1,110 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-28 by Claude (for Owner: Amr Ebeid)
 
+> **2026-06-28 (newest) — Owner "push": 8 review-clean PRs MERGED; migration PRs HELD (prod still `0089`).**
+> All 18 open PRs independently reviewed (actor≠reviewer). **Merged to `main` (CI re-verified green):** SPEC-0017
+> frontend stack **#405**/**#406** (CSV export)/**#407** (palm-360)/**#409** (MasterTable, rebased onto main after
+> #406); **#395** (oracle test), **#396** (reserve-dedup), **#390** (session record), **#392** (SPEC-0004 plan).
+> **No migrations applied — prod stays `0089`** (FE/app-quality ships via Vercel auto-deploy; no schema change).
+> **Held:** migration PRs need migrate-FIRST (prod apply = Owner's act; Farm Supabase unreachable from the session).
+> Apply-ready bundle at scratchpad `farm-prod-apply-0094-0095-0096.sql` → apply `0094`(🔴 C2)/`0095`/`0096`, then
+> merge **#401**/**#402**/**#404**. Blocked on own issues: **#399** (dedup drop), **#403** (`sex` literal), **#400**
+> (coupled to #366), **#391** (app-wide font decision). Expert-gated: **#368** (`0088` BROKEN — renumber ≥`0097`;
+> accounting reconciliation+privacy) / **#366** (agronomist+pesticide sign-off). Still Owner: key rotation;
+> enable `custom_access_token_hook` + leaked-password protection; reconcile the uncommitted `main`-worktree state docs.
+
+> **2026-06-27 — parallel app-quality session: 9 PRs merged + both gated-stage CRITICALs fixed.** A second session ran the app-quality lane (NON-migration / NON-prod) alongside the knowledge-system work. **9 app-only PRs merged to `main`**, each CI-green with `main` re-verified green after merge: **#378** Arabic-Indic digit/date leaks; **#380** payroll zero/invalid-rate flag + tests; **#379** stock-coverage TS↔SQL parity (deepest-deficit basis, no double-subtracted receipts; independently reviewed); **#381** AI-assistant gate hardening (lowercase-normalize + broadened egress/PII regexes + adversarial tests); **#382** weather fetch-timeout + `server-only` guard + plan-check no-longer-false-green; **#384** expenses-date `fmtDate` + inventory column units; **#385** RTL physical→logical CSS + overspend text label + focus/aria; **#386** client-side form-validation (min bounds, date-order, default date); **#387** `runPlanChecks` N+1 → `Promise.all`. **Both gated draft PRs hardened (kept DRAFT, not merged):** **#368** — CRITICAL `sales` RLS read-leak fixed (reads now require `authorize('budget.write')` = owner/accountant) **+ the audit-mirror leak it exposed** (added a `sale` arm to `audit_read`), pgTAP 663✓; **#366** — CRITICAL pesticide sign-off bypass fixed (table CHECK `category <> 'pesticide' or has_chemical` + RPC forces the flag) **and migration renumbered `0089→0091`** to clear the duplicate-version collision with the merged palm-guard `0089` (left `0090` free for the planned member/role-admin migration), pgTAP 669✓. **Issues filed:** **#388** — researched wage-model decision memo (4 compensation modes, daily-rate default, Law 14/2025 compliance fields) → unblocks **SPEC-0006 §5 / Stage 8 payroll persistence**; **#383** — two verified issues in the now-applied `0085`/`0086`: `user_member_org_ids` is missing its explicit `revoke/grant` (anon-executable; low exposure) and `fn_update_org_settings` nulls `fiscal_year_start` when the arg is omitted (data-loss) — these are advisor-invisible, so **verify against the deployed prod `0089` and fix-forward if present.** Independent reviews posted on #389 / #368 / #366. No migration or prod-apply by this session (deferred to the deploy-owner lane).
+
+> **2026-06-27 (newest) — Owner-authorized PUSH + MIGRATE + MERGE.** Knowledge System (16 docs) + SPEC-0014
+> Tier A code committed/pushed/merged to `main` (branch `feat/knowledge-system-spec0014-tierA`, independent
+> review APPROVE-WITH-NITS, nit fixed, tsc 0 / Vitest 159/159). **Prod migrated `0084` → `0089`** (`0085`
+> active-org, `0086` org-settings, `0089` palm-guard) via MCP — exact repo versions, 0 stray rows, advisors show
+> only pre-existing intentional WARNs; this **fixes the live org-switcher/settings errors**. Draft PRs #366/#368
+> (academy `0087` / accounting `0088`) **deliberately NOT merged** — unmet human-expert gates + would 500 prod.
+> Still Owner-only: 🔴 service-role key rotation; enable the `custom_access_token_hook` in the dashboard to
+> activate active-org; ratify SPEC-0013.
+
+> **2026-06-27 (latest) — ground-truth audit + commercialization specced (docs only; no code/migration/prod).**
+> An external commercial-readiness assessment was **reconciled against `main`** and found to have evaluated a
+> **stale prototype schema**, not the live code: the operating loop (Plan→Coverage→Budget→Approval→Execute→
+> Cost→Report) and the multi-tenant / inventory / event / planning / PR foundation are **already built + live**.
+> Created **[`RECONCILE-001`](RECONCILE-001-main-ground-truth-2026-06-27.md)** — now the **canonical capability
+> map** (37 tables, ~38 RPCs, 26 pages, 89 pgTAP files; every capability → migration/RPC/route/lib + status +
+> confidence). The one genuinely-missing layer → **[`SPEC-0013` Commercial SaaS Layer](SPEC-0013-commercial-saas-layer.md)**
+> (subscriptions / tiers / limits / onboarding / import wizard / admin console / billing; **Draft**, High risk,
+> 8 reviewable slices; **per-farm not per-seat**; real-data import behind Stage M privacy review). Also
+> recommended (Owner-gated): a legacy banner on `docs/03` so its prototype schema examples aren't re-mistaken
+> for production. **Next real Owner decision: ratify SPEC-0013 — esp. plan tiers + billing provider.**
+> Also this session (Owner: "go for both, keep scope tight"): **[`SPEC-0014` Knowledge / Living Documentation
+> System](SPEC-0014-knowledge-living-documentation.md)** scoped to **Tier A only** (page-level `pageMeta` help
+> drawer + **rule-based** "Why?" over `lib/errors.ts` + a Documentation Health Score) — manual-generation,
+> walkthroughs, videos, and the **AI Expert (blocked behind Stage 11)** are explicitly deferred — and a
+> **CLAUDE.md Definition-of-Done amendment** adding the Documentation Health Score (blocking for user-facing
+> pages, advisory for internal/admin/infra). Docs only; no app code/migration/AI route.
+>
+> **2026-06-27 (also) — canonical [`PRODUCT-MASTER-FILE.md`](PRODUCT-MASTER-FILE.md) written** (reconciled to
+> `main`): the full product description (20 sections — modules, page-by-page manual of all ~26 verified routes,
+> personas, permissions, data model, RPCs, workflows, built/partial/missing, roadmap). **Reconcile corrections
+> it records vs older docs:** (1) **planned-vs-actual IS built** (`reports/[planId]/pva`) — corrects a stale
+> RECONCILE-001 line; (2) **`/accounting` P&L + `lib/pnl.ts` + `sales` and `/academy` are NOT on `main`** (draft
+> PRs #368/#366); (3) **README's prod "`0048`" is stale** — prod is `0084` (HELD), `main` `0089`. Treat the
+> master file + RECONCILE-001 as ground truth.
+>
+> **2026-06-27 (also) — [`SPEC-0015` Product Knowledge System](SPEC-0015-product-knowledge-system.md) written +
+> master file made the hub.** Designs a 6-phase "Knowledge Operating System" (FEAT/BR/TERM **traceability model**
+> + L0–L5 **maturity levels**), but **scopes only Tier 1** for build: **Feature Registry + Business Rules Catalog
+> + Domain Dictionary** (all code-anchored, Health-Score-tracked). Explicitly **deferred** (phase-gated by a real
+> consumer): Notification/Automation/Import-Export/Metrics/Training/Customer-Success/AI-Knowledge-Graph + the
+> RPC/Event/Report catalogs. Added a **Knowledge System Index** to [`PRODUCT-MASTER-FILE.md`](PRODUCT-MASTER-FILE.md)
+> (hub; body not expanded).
+>
+> **2026-06-27 (also, under Owner `/goal`) — Tier-1 catalogs BUILT (L3, code-anchored).** Via 3 read-only Explore
+> agents: **[`FEATURE-REGISTRY.md`](FEATURE-REGISTRY.md)** (27 FEAT-IDs), **[`BUSINESS-RULES-CATALOG.md`](BUSINESS-RULES-CATALOG.md)**
+> (~50 BR-IDs from ~68 extracted constraints, each → enforcing object + migration + test + FEAT; powers the
+> rule-based "Why?"), **[`DOMAIN-DICTIONARY.md`](DOMAIN-DICTIONARY.md)** (~40 terms, verified Arabic). Hub index
+> flipped to ✅. **Reconcile fixes applied this session:** RECONCILE-001 corrected (planned-vs-actual IS built at
+> `reports/[planId]/pva`; `/accounting`+`lib/pnl.ts` are draft-PR not on `main`); README given a ground-truth
+> banner (its "`0048`" was stale; `main`=`0089`, prod=`0084`). Docs only — no app code/migration/AI/deploy.
+>
+> **2026-06-27 (also, under `/goal`) — Knowledge System Phase 2 BUILT (5 engineering catalogs, L3).** Via parallel
+> Explore agents: [`RPC-CATALOG.md`](RPC-CATALOG.md) (28 RPCs + 9 trigger fns), [`DATA-DICTIONARY.md`](DATA-DICTIONARY.md)
+> (38 tables, TBL-IDs), [`PERMISSIONS-MATRIX.md`](PERMISSIONS-MATRIX.md) (roles×perms×pages + SoD),
+> [`EVENT-CATALOG.md`](EVENT-CATALOG.md), [`REPORT-CATALOG.md`](REPORT-CATALOG.md) (6 reports + 2 charts). Tier-1
+> catalogs also adversarially verified (12/12 BR claims; 2 test-number typos fixed). Component catalog = Storybook
+> (linked). Phases 3–6 remain consumer-gated. Docs only — no app code/migration/AI/deploy.
+>
+> **2026-06-27 (also, under `/goal`) — SPEC-0014 Tier A *content* drafted as docs.** [`PAGE-HELP.md`](PAGE-HELP.md)
+> (5-question block per page), [`WHY-CATALOG.md`](WHY-CATALOG.md) (rule-based "Why?" grounded in `lib/errors.ts`),
+> [`DOCUMENTATION-HEALTH.md`](DOCUMENTATION-HEALTH.md) (DoD scorecard baseline; core-loop pages at L3). 16 knowledge docs.
+>
+> **2026-06-27 (also, under `/goal`) — SPEC-0014 Tier A BUILT in app code + verified.** First running product this
+> session: `lib/page-help.ts` (Arabic `pageMeta`), `lib/why.ts` (rule-based "Why?"), `HelpDrawer.tsx`/`WhyButton.tsx`
+> (via `@amrebeid/ui` Drawer), wired once into `AppChrome` topbar; A4 Health-Score = **Vitest drift-guards**
+> (`page-help.test.ts`/`why.test.ts` — new nav page/error code fails CI until its help/Why exists). **Verified: tsc 0,
+> ESLint 0, Vitest 159/159.** Low-risk (presentational + pure logic; no schema/AI/access). **Local/uncommitted; not
+> deployed** (deploy/commit Owner-gated). Stage **K** now: SPEC-0014 Tier A done; Tiers B/C deferred (C behind Stage 11).
+>
+> **2026-06-27 (earlier) — palm archived-hawsha guard merged (`0089`, prod HELD) + market scan → SPEC-0012 + profile page.**
+> (1) **`fn_save_palm` data-integrity fix** — an EDIT could re-parent a live palm into an *archived* hawsha
+> (vanishes from live views; NOT tenant-isolation). Merged as **PR #373**: migration **`0089`**
+> (`palm_no_archived_hawsha`, rejects re-parent into archived hawsha → `22023`) + pgTAP **test `89`** (9 assns).
+> Independent review: APPROVE-WITH-NITS. Renumbered `0087`→`0089` to yield to in-flight #366(0087)/#368(0088).
+> **Owner decision: prod apply HELD** — prod stays `0084`; `0089` + the pending `0085`/`0086` access-control
+> chain await that chain's independent review. (2) **Market/UX research** → [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md)
+> (member/role UI, profile, theme, `/m` offline audit). Owner ratified **role model = existing 5 roles**.
+> Shipped via **PR #376**: **S3 read-only `/profile`** + nav; **S1 `/m` offline audit** (offline-*tolerant*, not
+> offline-*capable* — no SW/PWA/queue). **Next:** S2 member/role admin (migration `0090` + invite-mechanism
+> decision + independent review).
+>
+> **2026-06-27 (product UI + Stage 1/0) — Stage 1 closed; four backend-but-no-UI gaps shipped as pages.**
+> **Stage 1 (SaaS foundation) is DONE** — active-org RLS narrowing + org switcher + org settings
+> (#348/#357/#359/#360, migrations `0085`/`0086`; independently reviewed, all four acceptance criteria met).
+> **Stage 0 is Owner-deferred** (#365): runbook ready, new repo verified secret-clean, leaked-password
+> protection confirmed off; the five credential/external steps are tracked in issue **#362** (to be done
+> before real data). Filled four product-surface gaps that had schema but no front-end — live, RLS-enforced,
+> role-gated: **Suppliers** (#367), **Expenses** (#369), **Team/People** read-only directory (#370),
+> **Budgets** overview (#371). **24 in-app pages** now. Note: prod DB is behind `main` (active-org `0085`/`0086`
+> + later not yet pushed) — a prod `db push` + redeploy is needed for these to go live.
+>
 > **2026-06-27 (latest) — back-half stages advanced to the buildable limit; Owner closed 4 ratification gates in-session.**
 > The Owner (Amr Ebeid) **ratified SPEC-0003 / 0005 / 0006 / 0007 + the 5-sector decision** in writing this session
 > (recorded → PR #363), closing the ratification gates for Stages 5/8/9/11. Delivered: **Stage 9 weather** (PR #350,
@@ -205,6 +310,9 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
 | 11 | AI assistant عبدالجليل | Execution | **High** | **SPEC-0005 RATIFIED (2026-06-27); boundary built, AI build review-gated** | Trifecta capability boundary (`lib/assistant-policy.ts`, draft PR #356) — deny-by-default, read-only/RLS-scoped/no-PII/no-outbound. **The AI itself (chat route, model, ingest) is NOT built — it requires independent security review per slice (highest risk).** |
+| UX | Account admin & UX-gap closure | Execution | Medium | **Active** | [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md) — from the 2026-06-27 market scan. **Done:** S1 `/m` offline audit, S3 read-only `/profile` (PR #376). **Next:** S2 member/role admin (5-role model ratified; migration `0090` + invite mechanism + review), S4 true offline, S5 theme. Does NOT rebuild Stage-1 items. |
+| C | Commercial SaaS layer (subscriptions/onboarding/admin) | Execution | **High** | **Todo — [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) DRAFT** | The largest remaining product gap (RECONCILE-001): billing/plan-tiers/tenant-limits/self-serve signup/onboarding/import wizard/demo tenant/admin console/trials/feature-flags. **None in schema/app today.** 8 slices; per-farm not per-seat; entitlements enforced in Postgres; real-data import gated on Stage M. Prereq: SPEC-0012 S2 invite (`0090`). |
+| K | Knowledge / living documentation system | Execution | Low/Med | **Tier A BUILT + verified (2026-06-27, local)** | [`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md): in-app Help drawer (`pageMeta`, 5 questions) + **rule-based "Why?"** (`lib/page-help.ts`/`lib/why.ts`/`HelpDrawer.tsx`/`WhyButton.tsx`, wired in `AppChrome`) + Health-Score **Vitest drift-guards**. tsc/lint/159 green; not deployed (Owner-gated). Plus the full knowledge system ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md), 16 docs). **Deferred:** manual-gen/walkthroughs/videos (Tier B) + **AI Expert (Stage 11)** (Tier C). |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
 | P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; **prod DB at `0048`** (`0001–0013` + `0015–0048`, **in sync with `main`**; `0032`–`0048` pushed + live-verified via `list_migrations`, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` #155 + wage-confidentiality `0046` PII-1 #173 wage slice + engine null-date guard `0047` #198 + contact-PII lockdown `0048` PII-1 #173 phone/email slice) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied); pgTAP 421/421. Pending: **🔴 security rotation (DB pw + service key shared in chat) — only red item left** + enable Leaked Password Protection. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |
 
@@ -233,6 +341,10 @@ Status legend: Todo / Active / Blocked / In review / Done
 - [ ] **Engage a local agronomist** to sign off Academy numbers + Egyptian pesticide registrations — owner: Amr
 - [ ] **Schedule 5 design-partner farm interviews** (close the Arabic customer-voice gap) — owner: Amr
 - [ ] **Decide EGP pricing & setup-fee** anchors with those farms — owner: Amr
+- [ ] **Ratify [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) (Commercial SaaS Layer)** — esp. **plan tiers + limit dimensions** (farms/area/assets/storage/AI — not per-seat) and **billing provider** (Paymob/Fawry/Kashier/Stripe, gated by EGP support); self-serve trial vs white-glove only; platform-operator identity model. — owner: Amr
+- [ ] **WhatsApp owner-approval** — wanted or not? Recurs in external assessments; it is a **Hard Stop** (external send + lethal-trifecta) and SMS/Twilio was dropped from MVP-0. — owner: Amr
+- [ ] **Review/accept the BUILT [`SPEC-0015`](SPEC-0015-product-knowledge-system.md) Tier-1 catalogs** ([Feature Registry](FEATURE-REGISTRY.md) + [Business Rules](BUSINESS-RULES-CATALOG.md) + [Domain Dictionary](DOMAIN-DICTIONARY.md), built 2026-06-27 under `/goal`); confirm L4–L5 maturity target (CI-validated/generated) as the long-term goal; sequence Phase 2+ vs SPEC-0013. — owner: Amr
+- [ ] **Review + deploy/commit [`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md) Tier A** (BUILT + verified local 2026-06-27 under `/goal`: Help drawer + rule-based "Why?" + Health-Score Vitest guards; tsc/lint/159 green). Remaining = the Owner-gated **commit/deploy** + (optional) a standalone CI lint config; interactive in-browser check pending a logged-in session. Tier C (AI) stays behind Stage 11. — owner: Amr
 
 ## Known risks (live register — full version in MASTER-PLAN.md §6)
 - **Exposed secret in public repo / accounting sheet** (Gmail + anon key + Vercel project id) — *status: OPEN, Stage 0 fixes it.* 🔴

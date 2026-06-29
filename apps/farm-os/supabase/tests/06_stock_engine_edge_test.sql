@@ -11,7 +11,7 @@ select plan(11);
 
 -- One plan to hang all the demand operations on (status active -> counted by the engine).
 insert into public.plans (id, org_id, type, period_start, status)
-  values ('cccc0000-0000-0000-0000-00000000e001', :'orgA', 'weekly', '2025-07-08', 'active');
+  values ('cccc0000-0000-0000-0000-00000000e001', :'orgA', 'weekly', current_date, 'active');
 
 -- Helper data: 4 items, each with a bin and (most) a demand op needing material.
 -- A: ample stock, no shortage/warning.   B: coverage < a >horizon lead time.
@@ -29,11 +29,11 @@ insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, 
 
 -- demand operations (period 1 = 2025-07-08, period 2 = 2025-07-15)
 insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, status) values
-  ('cccc0000-0000-0000-0000-0000000a0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- A
-  ('cccc0000-0000-0000-0000-0000000b0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- B
-  ('cccc0000-0000-0000-0000-0000000c0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- C
-  ('cccc0000-0000-0000-0000-0000000d0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-08','planned'), -- D op1
-  ('cccc0000-0000-0000-0000-0000000d0002', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation','2025-07-15','planned'); -- D op2
+  ('cccc0000-0000-0000-0000-0000000a0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation',current_date,'planned'), -- A
+  ('cccc0000-0000-0000-0000-0000000b0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation',current_date,'planned'), -- B
+  ('cccc0000-0000-0000-0000-0000000c0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation',current_date,'planned'), -- C
+  ('cccc0000-0000-0000-0000-0000000d0001', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation',current_date,'planned'), -- D op1
+  ('cccc0000-0000-0000-0000-0000000d0002', :'orgA','cccc0000-0000-0000-0000-00000000e001','irrigation',(current_date + 7),'planned'); -- D op2
 insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit) values
   (:'orgA','cccc0000-0000-0000-0000-0000000a0001','cccc0000-0000-0000-0000-0000000000a0', 50,'kg'),  -- A: 50/wk
   (:'orgA','cccc0000-0000-0000-0000-0000000b0001','cccc0000-0000-0000-0000-0000000000b0',150,'kg'),  -- B: 150 in P1 (> 100 on hand → shortfall 50)
@@ -45,8 +45,8 @@ insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty,
 -- in on_hand) bucketed by needed_by — NOT actual receipt movements (those are already in on_hand, and
 -- projecting them double-counted). on_hand and the forward projection stay disjoint by construction.
 insert into public.purchase_requests (id, org_id, code, needed_by, status) values
-  ('cccc0000-0000-0000-0000-0000000c00a1', :'orgA', 'PR-C-P1', '2025-07-08', 'approved'),
-  ('cccc0000-0000-0000-0000-0000000c00a2', :'orgA', 'PR-C-P2', '2025-07-15', 'approved');
+  ('cccc0000-0000-0000-0000-0000000c00a1', :'orgA', 'PR-C-P1', current_date, 'approved'),
+  ('cccc0000-0000-0000-0000-0000000c00a2', :'orgA', 'PR-C-P2', (current_date + 7), 'approved');
 insert into public.purchase_request_items (org_id, pr_id, item_id, qty, unit) values
   (:'orgA','cccc0000-0000-0000-0000-0000000c00a1','cccc0000-0000-0000-0000-0000000000c0',60,'kg'),
   (:'orgA','cccc0000-0000-0000-0000-0000000c00a2','cccc0000-0000-0000-0000-0000000000c0',80,'kg');

@@ -16,6 +16,7 @@
     "@amrebeid/ui": "*",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.45.4",
+    "exceljs": "^4.4.0",
     "next": "16.2.9",
     "react": "19.2.7",
     "react-dom": "19.2.7",

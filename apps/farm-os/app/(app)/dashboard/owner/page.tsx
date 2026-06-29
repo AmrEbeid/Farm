@@ -88,6 +88,7 @@ export default async function OwnerDashboard() {
             <Card key={b.category} title={`بند ${b.category}`}>
               <p style={{ color: over ? "var(--danger,#b91c1c)" : "var(--ink)" }}>
                 المستخدم {egp(used)} من {egp(Number(b.approved))}
+                {over && " (متجاوز)"}
               </p>
             </Card>
           );

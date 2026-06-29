@@ -104,3 +104,71 @@ Gmail/password — flag, don't propagate, #6); putting real financials into any 
 Each slice stops at its gate; **do not auto-advance** (PROJECT RULES). Stage 7 is the natural home for
 resolving re-audit finding **#157** (budget enforcement) and depends on **Stage M** for the real
 reconciliation.
+
+---
+
+## 7. Build-now plan + resolved decisions (2026-06-27, from the Farm × Zeal × market deep-dive)
+
+**Verdict — stay a management P&L, do NOT build a general ledger.** A three-way review (Farm's #368,
+the Zeal finance OS, and the ag-software market — Figured/Conservis/Granular/QuickBooks-for-farms)
+converges: every farm tool that works is a **cost-center-tagged management P&L that sits on top of
+QuickBooks/Xero or an accountant**, not its own double-entry GL. Building a real GL is ~$200k+ and
+"impossibly hard to retrofit" — the wrong altitude for a single-farm pilot. #368 is **already the
+right shape** (single-entry, `kind`-classified, owner-drawings separated, no-fabrication P&L). The
+job is to close the cheap dimensional gaps, **not** to add a ledger.
+
+**Build now (fold into Stage 7 slices 2–3) · Defer (statutory / finance-owned):**
+
+| Build now | Defer (integrate to an accountant instead) |
+|---|---|
+| crop + season dimension on `expenses` (§7.2) | double-entry GL, trial balance, balance sheet |
+| lean chart of accounts (§7.1) | full accrual (offer a year-end accrual-adjustment *export*) |
+| live budget actuals via an atomic posting RPC (§7.3, #157) | depreciation schedules + IAS 41 fair value |
+| `vouchers` (payment/receipt doc) | multi-currency FX (farm is EGP-only) |
+| period scoping on the P&L (§7.4) | VAT / ETA e-invoicing (fresh dates are largely VAT-exempt; triggers on VAT registration → post-pilot) |
+| bearer-plant data capture (§7.5) | payroll engine (Stage 8) |
+
+**Borrow from Zeal (patterns, not the system):** the **atomic single-transaction posting RPC** (its
+"never DELETE+UPSERT in two calls" lesson — Farm already does this in `fn_post_movement`/
+`fn_execute_operation`); a **lightweight period lock** (one `open/locked` flag + owner unlock — not
+Zeal's multi-stage close); **server-side-only audit** (Farm has `fn_audit` ✅). **Do not** borrow
+Zeal's GL, trial-balance tieout, FX engine, or QBO sync orchestration.
+
+### 7.1 Decision #1 RESOLVED — proposed lean chart of accounts (~25 lines, date-palm-tailored)
+A starting canonical list to replace free-text `category` (Owner reconciles these to the real Excel's
+categories — that mapping *is* the reconciliation step). Each row maps to a `kind`.
+
+- **Revenue (`sale`):** تمور برحي · تمور/منتجات الذكور · فاكهة أخرى · **فسائل/خلفات** (offshoots — a real Ebeid line) · إيرادات أخرى
+- **Operating (`operating`):** أسمدة · **مبيدات ومكافحة** (incl. سوسة النخيل/RPW) · ري ومياه · **تلقيح** (manual pollination — date-palm-specific) · عمالة دائمة · عمالة موسمية/يومية · وقود وطاقة · صيانة معدات وآبار · إيجارات · نقل وشحن · تعبئة وتغليف · مصاريف إدارية (overhead — pooled, **not** force-allocated) · أخرى تشغيلية
+- **Capex (`capex`):** إنشاء/توسعة بساتين (grove establishment — bearer-plant cost) · معدات وآلات · شبكات ري وآبار · مباني ومنشآت
+- **Owner drawings (`drawing`, مسحوبات — excluded from opex per #6):** مسحوبات نقدية · مسحوبات عينية
+
+Implementation: a small `account_categories` reference table (org-scoped, seeded with the above) with
+`code · name_ar · kind`, and `expenses.category` / `sales.crop` referencing it — **or** keep `category`
+text but constrain to this seeded set. Keeps reconciliation honest (no typo-split lines).
+
+### 7.2 Decision #2 — crop + season dimension on `expenses` (the keystone)
+Add `crop text` + `season text` to `expenses` (mirroring `sales`), and group the P&L by them in
+`lib/pnl.ts`. This is the single most-used farm-accounting number (profit per crop/season). Recommend
+plain text columns now (matches `sales`), a dimension table only if a crop master emerges.
+
+### 7.3 Live budget actuals (#157) — the atomic posting RPC (Zeal pattern #1)
+`fn_post_expense` / `fn_post_sale` (SECURITY DEFINER, `budget.write`-gated) that, in **one
+transaction**, writes the row **and** increments `budget_lines.actual` for the matching category —
+mirroring `fn_post_movement`. Makes budget-vs-actual live (closes #157 step-2's prerequisite) without
+the racy two-call pattern. Idempotent + independent review (money logic).
+
+### 7.4 Period scoping (app-layer note from the #368 review)
+`accounting/page.tsx` sums all rows up to `limit(200)` with no period filter — fine for the synthetic
+framework, but a real P&L must scope to a fiscal period/season. Add a period selector + a
+`date`-range filter to the fetch before the dual-run.
+
+### 7.5 Bearer-plant data capture (market insight — capture now, account later)
+Date palms are **bearer plants**: under IFRS the *palms* are IAS 16 depreciable PP&E, the *fruit on
+them* is IAS 41 (fair value), and *harvested dates* are IAS 2 inventory. **Do not build depreciation
+or fair-value remeasurement** (accountant/statutory territory) — but **capture grove establishment
+cost + a maturity flag per hawsha/sector** (ties to Stage 2 palm registry) so an accountant can later
+capitalize/depreciate. It's cheap now and expensive to retrofit.
+
+*All of §7 is design only — no enforcement changes here. Slices land via the gated flow (independent
+review + Owner gate); the real-data reconciliation stays behind Stage M.*
