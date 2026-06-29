@@ -1,7 +1,7 @@
 # Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-29 — autonomous loop + PR #400/#412 reviews; held before merge/migrate
+## 2026-06-29 — autonomous loop + PR #400 review held; PR #412 merged
 **Owner instruction.** Keep working in Farm OS until stopped; always plan first, update docs, do deep research when
 needed, review before merge, review before migrate, and proceed using recommendations without waiting for more input.
 Recorded as a Codex goal and captured in
