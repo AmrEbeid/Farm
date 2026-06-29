@@ -4,7 +4,8 @@
 stable `BR-NNN` id, the enforcing object (RPC / trigger / RLS policy / constraint / grant) with its migration, a
 test reference, and the `FEAT-NNN` it belongs to. **This is the source for the rule-based "Why?" surface**
 ([`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)). Reconciled to `main` 2026-06-27 (migrations
-`0001`–`0089` + pgTAP suite). Maturity **L3**. IDs stable + append-only.*
+`0001`–`0089` + pgTAP suite), plus draft #314 responsibility-write gate on this branch. Maturity **L3**.
+IDs stable + append-only.*
 
 Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supabase/tests/`.
 
@@ -73,6 +74,7 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-063** | Budgets/lines/expenses writable only with `budget.write` (owner/accountant). | RLS WITH CHECK (`0043`/`0044`) | `43_budget_rolegate`, `44_expenses_rolegate` | FEAT-008/013 |
 | **BR-064** | Farm structure writable only with `structure.write` (owner/farm_manager). | RLS + `fn_save_*` (`0081`) | `82_structure_crud` | FEAT-003 |
 | **BR-065** | Palm status history writes only via `fn_update_palm_status`. | write-gate (`0073`) | `73_palm_history_write_gate` | FEAT-004 |
+| **BR-066** | Responsibility assignments writable only with `responsibility.write` (owner/farm_manager). | RLS WITH CHECK (`20260629141650`) | `101_responsibility_assignments_write_gate` | FEAT-019 |
 
 ## PII & confidentiality
 | BR | Rule | Enforced by | Test | FEAT |

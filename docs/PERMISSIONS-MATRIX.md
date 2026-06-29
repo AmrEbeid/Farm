@@ -2,8 +2,8 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). The authoritative
 role × permission × page × action map. **Enforcement is in Postgres** (RLS + `authorize()` + SoD triggers), not the
-UI. Reconciled to `main` 2026-06-27 (`lib/auth.ts`, `authorize()` `0035`, role-gates, verified page guards).
-Maturity **L3**.*
+UI. Reconciled to `main` 2026-06-27 (`lib/auth.ts`, `authorize()` `0035`, role-gates, verified page guards),
+plus draft #314 responsibility-write gate on this branch. Maturity **L3**.*
 
 ## Roles (verified `lib/auth.ts`)
 `owner` (المالك) · `farm_manager` (مدير المزرعة) · `agri_engineer` (مهندس زراعي) · `accountant` (محاسب) ·
@@ -20,6 +20,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `budget.write` | owner, accountant | Write budgets, budget lines, expenses | BR-063 |
 | `payroll.read` | owner, accountant | Read `people_compensation` (wages) | BR-071 |
 | `structure.write` | owner, farm_manager | Create/edit/archive farm structure | BR-064 |
+| `responsibility.write` | owner, farm_manager | Assign/reassign people responsibility labels | BR-066 |
 
 ## Role × capability (✓ = allowed, via the permission above)
 | Capability | owner | farm_manager | agri_engineer | accountant | supervisor | storekeeper |
@@ -28,6 +29,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | Create/edit plan | ✓ | ✓ | | | | |
 | Execute operation / record event | ✓ | ✓ | ✓ | | ✓ | |
 | Edit farm structure | ✓ | ✓ | | | | |
+| Assign responsibility labels | ✓ | ✓ | | | | |
 | Write inventory / receive / reserve | ✓ | ✓ | | | | ✓ |
 | Write budget / expenses | ✓ | | | ✓ | | |
 | Read wages (payroll) | ✓ | | | ✓ | | |
@@ -47,7 +49,8 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `/farm*`, `/plans*`, `/inventory*`, `/purchase-requests*`, `/suppliers`, `/weather`, `/budget/[planId]/check`, `/reports/[planId]/pva`, `/profile` | `requireMembership()` | any member (writes still gated server-side) |
 
 > **Read-broad, write-gated:** most detail pages are readable by any member; the *mutations* are gated in the RPC/RLS
-> (e.g. `/suppliers` read = any member, but `createSupplier` is rejected unless `authorize('inventory.write')`).
+> (e.g. `/suppliers` read = any member, but `createSupplier` is rejected unless `authorize('inventory.write')`;
+> `responsibility_assignments` read = any org member, but writes require `authorize('responsibility.write')`).
 
 ## Separation of Duties & isolation invariants
 | Invariant | Rule | BR |

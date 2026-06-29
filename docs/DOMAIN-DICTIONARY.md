@@ -4,7 +4,7 @@
 business/domain term, with the verified Arabic↔English mapping, source of truth, relationships, and common
 confusion. Merges the proposed Glossary-for-AI + Localization terms. Arabic labels are **verified against the
 code** (file:symbol cited) or marked **NV** (no Arabic label found in code — proposed, needs verification).
-Reconciled to `main` 2026-06-27. Maturity **L3**.*
+Reconciled to `main` 2026-06-27, plus draft #314 responsibility-write gate on this branch. Maturity **L3**.*
 
 Arabic-first is a product non-negotiable (CLAUDE.md #2). Where a term has no UI label yet, the English/DB term is
 the identifier and the Arabic is a recommendation (NV).
@@ -31,7 +31,7 @@ the identifier and the Arabic is a recommendation (NV).
 | Accountant | محاسب | `ROLE_LABEL_AR` |
 | Field supervisor | مشرف ميداني | `ROLE_LABEL_AR` |
 | Storekeeper | أمين مخزن | `ROLE_LABEL_AR` |
-| Permission | صلاحية *(NV)* | Verified strings: `structure.write`, `inventory.write`, `plan.write`, `op.execute`, `budget.write`, `payroll.read` (+ `pr.approve`). Source: `authorize()` (`0035`). |
+| Permission | صلاحية *(NV)* | Verified strings: `responsibility.write`, `structure.write`, `inventory.write`, `plan.write`, `op.execute`, `budget.write`, `payroll.read` (+ `pr.approve`). Source: `authorize()`. |
 
 ## Events & operations
 | Term (EN) | Arabic | Definition | Source | Confusion |
