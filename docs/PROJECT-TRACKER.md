@@ -57,6 +57,12 @@
 > triggers; this only improves Arabic diagnostic copy. Local validation: focused Vitest **5/5**, full Vitest
 > **220/220**, focused eslint, `tsc --noEmit`, and production build (existing Next/Supabase warning only).
 
+> **2026-06-29 — #430 fn_bin_rebuild internalization drafted; held for migration gate.** Prepared migration
+> `0098` to revoke `authenticated` EXECUTE on `fn_bin_rebuild(uuid,text)`, remove it from the authenticated
+> SECURITY DEFINER allowlist, and pin the negative grant in pgTAP. No app/client caller uses direct
+> `rpc("fn_bin_rebuild")`; internal `fn_post_movement`/definer callers continue to work. Local pgTAP passed
+> **687/687**. **Held:** no merge, migration, prod apply, or production data change until migration review/apply.
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads

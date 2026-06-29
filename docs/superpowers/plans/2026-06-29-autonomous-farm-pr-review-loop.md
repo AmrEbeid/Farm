@@ -366,6 +366,13 @@ self-approval, missing owner permission, and missing/unreadable request without 
 validation passed: focused Vitest **5/5**, full Vitest **220/220**, focused eslint, `tsc --noEmit`, and production
 build.
 
+- [x] **Step 13: Draft #430 fn_bin_rebuild internalization**
+
+Result recorded 2026-06-29: prepared migration `0098` to revoke authenticated EXECUTE on `fn_bin_rebuild`, remove
+it from the authenticated SECURITY DEFINER allowlist, and pin the negative grant in tests 19/22. Verified no app
+direct `rpc("fn_bin_rebuild")` caller. Local pgTAP passed **687/687**. Held for migration review/apply; no merge,
+prod apply, or production data change.
+
 ## Self-Review
 
 - Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.
