@@ -20,6 +20,11 @@ ran no DDL, migration, or production data change.
 `service_role` key rotation. That item is now checked off per Owner confirmation; #362 stays open for legacy keys,
 old repo history, spreadsheet/Google password, leaked-password protection, and demo login cleanup before real data.
 
+**UI issue closeout.** Re-checked #282/#206 against current `main` and closed both as resolved/superseded. The
+remaining low ExecuteForm cleared-input behavior was split to #426 because deciding whether zero actuals are invalid
+for all operation types needs a narrow product/validation decision. No code, DDL, migration, or production data
+change was run.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent

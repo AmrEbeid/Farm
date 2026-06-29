@@ -281,7 +281,7 @@ Owner review; no schema, migration, prod apply, or real financial/PII import.
 ### Task 7: Audit Issue Hygiene Pass
 
 **Files:**
-- Read: GitHub issues #188, #229, #317, #362, #383
+- Read: GitHub issues #188, #206, #229, #282, #317, #362, #383
 - Read: `docs/PROJECT-TRACKER.md`, `docs/SESSION-BRIEF.md`, `docs/DEPLOY-STATUS.md`
 - Modify: issue comments/state only when evidence is conclusive
 - Modify: docs only after issue state changes materially
@@ -322,6 +322,13 @@ Result recorded 2026-06-29: #362 was retitled and its body was edited so Farm Su
 `service_role` key rotation is checked off per Owner confirmation. The issue remains open only for the remaining
 Owner/external cleanup: legacy keys/project, old repo history, spreadsheet/Google password, leaked-password
 protection, and demo login cleanup before real data.
+
+- [x] **Step 7: Close stale UI/display audit issues and split the residual**
+
+Result recorded 2026-06-29: #206 and #282 were re-checked against current `main` and closed as resolved/superseded.
+The fixed items include hardcoded/fabricated KPI surfaces, Arabic label/date/number leaks, offline spinner hangs,
+and role-affordance dead ends. The only remaining LOW residual from #282, ExecuteForm cleared qty/labor fields
+submitting as zero actuals, was split to #426 for a narrow product/validation decision.
 
 ## Self-Review
 
