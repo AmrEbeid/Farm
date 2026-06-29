@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #444 responsibility-write gate reviewed; still held.** Reviewed draft PR **#444** at
+> `67146ea`: the migration narrows `responsibility_assignments` writes to `responsibility.write`
+> (owner/farm_manager) while preserving org-member reads and the #306 same-org `people` guard. Local validation
+> repeated: `git diff --check` clean; full pgTAP **697/697**. No local code findings. **Held:** no merge,
+> prod migration, or production data change until pre-migration review. Apply-order caveat: if batched with
+> #438, apply #444's `20260629141650` before #438's later timestamped custody migrations; if #444 ever applies
+> after #438, it must first preserve #438's final `authorize()` permission union.
+
 > **2026-06-29 — #438 custody backend reroute guard pushed; still held.** Follow-up patch on draft
 > backend PR **#438** at `1288a23` prevents a custody-paid expense from being silently rerouted to another
 > `payment_status` after a cash out-movement exists; operators must post an explicit reversal before rerouting.
@@ -39,9 +47,10 @@
 > **#444** adds `responsibility.write` to `authorize(perm, org)` for owner/farm_manager and re-emits
 > `responsibility_assignments` RLS so org-member reads remain broad while direct REST insert/update requires the
 > new permission. The migration preserves the same-org `people` guard from #306. Local pgTAP passed **697/697** and
-> the issue handoff was posted. **Held:** no merge, migration, prod apply, or production data change until review
-> and a separate pre-migration review. Migration-order warning: in-flight draft migrations **#366/#400/#438**
-> re-emit `authorize()` and must preserve `responsibility.write` if they are rebased/applied after #444.
+> the issue handoff was posted; a later review pass found no local code findings and made the #438 apply-order
+> caveat explicit. **Held:** no merge, migration, prod apply, or production data change until separate
+> pre-migration review. Migration-order warning: in-flight draft migrations **#366/#400/#438** re-emit
+> `authorize()` and must preserve `responsibility.write` if they are rebased/applied after #444.
 
 > **2026-06-29 — #431 inventory transfer/ordered guard drafted; held for migration gate.** Drafted a defensive
 > migration for the latent inventory cleanup: new `transfer` movements are rejected until an atomic destination-bin
