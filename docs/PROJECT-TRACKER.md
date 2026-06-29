@@ -13,9 +13,12 @@
 > Reviewed draft PR **#412** (import reference resolution). Found a dry-run validation bug: JavaScript date parsing
 > accepted impossible dates such as `2026-02-31`, letting bad import rows reach the gated commit path. Prepared local
 > commit `21467ad`; because local `git push` stalls in `send-pack`, published the same file contents through GitHub's
-> Contents API, ending at PR head `15fcbdd`. Validation: focused import tests **38/38**, full Vitest **209/209**,
-> `tsc`, focused eslint, production build; GitHub checks green. **Current gate:** #412 remains **draft + DIRTY**; do
-> **not** merge until the branch is rebased/cleaned and freshly reviewed.
+> Contents API, ending first at PR head `15fcbdd`. Then rebuilt the branch on current `main` to remove already-merged
+> stacked #410 history and fixed the independent review blockers at head `08e925a`: ref lookups now require live
+> structure parents (`archived=false`) and row numbers remain the original spreadsheet rows through validation,
+> ref resolution, dedupe, and RPC failure reporting. Validation: focused import tests **41/41**, full Vitest
+> **212/212**, `tsc`, focused eslint, production build. **Current gate:** #412 remains **draft** while fresh GitHub
+> CI/re-review complete; do **not** merge until it is green and approved.
 
 > **2026-06-28 (newest) — Owner "push": 8 review-clean PRs MERGED; migration PRs HELD (prod still `0089`).**
 > All 18 open PRs independently reviewed (actor≠reviewer). **Merged to `main` (CI re-verified green):** SPEC-0017
