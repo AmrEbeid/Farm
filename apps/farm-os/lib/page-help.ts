@@ -231,6 +231,15 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "لا يُحتسب المصروف المدفوع من العهدة ضمن المطلوب من المالك (يُحسب مرة واحدة)؛ التغذية = المستهدف − الرصيد الحالي.",
     related: ["finance-dashboard", "expenses"],
   },
+  "payment-request-360": {
+    title: "إذن الصرف 360",
+    what: "ملف تفصيلي لطلب صرف واحد يعرض الفترة والحالة والبنود والتغذية المطلوبة للعهدة.",
+    why: "ليكون إذن الصرف قابلًا للمراجعة والطباعة من نفس مصدر البيانات بدل تجميعه يدويًا.",
+    when: "عند إرسال طلب صرف أو مراجعته أو طباعته للاعتماد.",
+    how: "راجع الملخص والبنود، ثم نفّذ إجراء الاعتماد المتاح حسب دورك وحالة الطلب.",
+    avoid: "لا تعتبره كشف حساب مالي كامل؛ هو يوضح بنود الطلب والتغذية المرتبطة بالعهدة فقط.",
+    related: ["custody", "finance-dashboard", "expenses"],
+  },
   "expense-360": {
     title: "ملف المصروف 360",
     what: "ملف تفصيلي لمصروف واحد يوضح التصنيف والمبلغ والربط بالمورد أو الحدث إن وجد.",
@@ -389,6 +398,7 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/inventory\/(?!dashboard(?:\/|$))[^/]+(?:\/)?$/, helpId: "item-360" },
   { pattern: /^\/plans\/(?!dashboard(?:\/|$))[^/]+(?:\/)?$/, helpId: "plan-360" },
   { pattern: /^\/purchase-requests\/[^/]+(?:\/)?$/, helpId: "purchase-request-360" },
+  { pattern: /^\/custody\/request\/[^/]+(?:\/)?$/, helpId: "payment-request-360" },
   { pattern: /^\/suppliers\/[^/]+(?:\/)?$/, helpId: "supplier-360" },
   { pattern: /^\/budgets\/[^/]+(?:\/)?$/, helpId: "budget-360" },
   { pattern: /^\/expenses\/[^/]+(?:\/)?$/, helpId: "expense-360" },
