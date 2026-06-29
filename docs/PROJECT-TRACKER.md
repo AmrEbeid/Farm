@@ -4,9 +4,9 @@
 > reviews, applied the non-migration follow-ups that reduce future operator confusion without clearing expert gates.
 > **#366 academy** now fails visibly if the `academy_content` query errors instead of rendering an empty academy,
 > and stale migration comments now say `0091`; branch head `ca915dc`, GitHub checks green, focused independent
-> re-review approved. **#368 accounting** now fails visibly on `expenses`/`sales` query errors instead of showing
+> check found no blockers. **#368 accounting** now fails visibly on `expenses`/`sales` query errors instead of showing
 > misleading zero/partial P&L, and `/expenses` nav visibility now matches the `0097` owner/accountant read gate;
-> branch head `a4d1c7f`, GitHub checks green, focused independent re-review approved. Both PRs remain **draft**:
+> branch head `a4d1c7f`, GitHub checks green, focused independent check found no blockers. Both PRs remain **draft**:
 > #366 still needs agronomist/pesticide-registration sign-off, and #368 still needs 7-year Excel reconciliation +
 > privacy review plus explicit `0088`/`0097` apply planning.
 
