@@ -1,6 +1,21 @@
 # Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-29 — audit issue hygiene; docs-only status update
+**Change.** Reconciled high-signal open audit issues against current `main` and production evidence, then updated
+issue threads. Closed #383 as fixed/applied: #402 is merged, migration `0095` is on `main`, `95_org_switcher_preapply`
+pgTAP coverage exists, and prod's migration ledger includes `20260622000095 org_switcher_preapply_hardening`.
+
+**Kept open.** #317 remains open because a read-only prod grant probe still shows broad grant/default-privilege
+hygiene gaps (`TRUNCATE` on 38 public tables for anon and authenticated, plus limited `DELETE` grants). #229 remains
+open as the umbrella for remaining prod-config/advisor cleanup: FK indexes are fixed by `0096`, but grant/default
+privilege cleanup and leaked-password protection remain. #188 remains open because #396 merged the reserve-aware
+dedup app-layer fix, but the issue still explicitly tracks the migration-gated fully atomic PR-line+reserve RPC
+follow-up.
+
+**No prod action.** Deleted one malformed duplicate #317 comment, posted corrected evidence notes on #188/#229, and
+ran no DDL, migration, or production data change.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
@@ -463,7 +478,8 @@ substantive holes closed; short precise remainder.
 - Verified: `list_migrations` → `20260622000048`; **pgTAP 421/421** (Docker-free shim harness), all green.
 - **Prod is now at `0048`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only):** #157 chart-of-accounts, #199 reserveQty semantics, #239 registry
-  data (open Owner decisions), 🔴 **key rotation** (only red item). *(#173 phone/email is DONE — removed from this list.)*
+  data (open Owner decisions). *(#173 phone/email is DONE; the old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-26 — ✅ `0047` engine null-date guard PUSHED + verified; prod now `0047`, in sync with `main`; app swept clean
 - **#198 — ENGINE null-date guard** → **`0047`** engine_nulldate_guard: `fn_stock_coverage` now coalesces a
@@ -477,7 +493,8 @@ substantive holes closed; short precise remainder.
 - Verified: `list_migrations` → `20260622000047`; **pgTAP 415/415** (Docker-free shim harness), all green.
 - **Prod is now at `0047`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only, unchanged):** #199/reserveQty + #173 phone/email half + #157
-  chart-of-accounts (open Owner decisions), #239 registry data, 🔴 **key rotation** (only red).
+  chart-of-accounts (open Owner decisions), #239 registry data. *(The old key-rotation red item was superseded by
+  the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-26 — ✅ the `0042`–`0046` batch MERGED + PUSHED to prod + verified; prod now `0046`, in sync with `main`
 Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, and verified:
@@ -492,7 +509,9 @@ Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`
 - Verified: `list_migrations` → `20260622000046`; **pgTAP 411/411** (Docker-free shim harness), all green.
 - **Prod is now at `0046`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only):** #173 **phone/email half** (open PII-access decision), #157
-  chart-of-accounts, #239 registry import, #199/#198 held low-value/design items, 🔴 **key rotation** (only red).
+  chart-of-accounts, #239 registry import, #199/#198 held low-value/design items. *(The old key-rotation red item
+  was superseded by the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is
+  complete.)*
 
 ## 2026-06-26 — ✅ palm-status RPC `0039` + ENGINE-REC1 `0040` + unit_cost `0041` MERGED + PUSHED; prod now `0041`; #241 app-fix batch
 Three migrations + one app-only batch closed and live in prod; prod is back in sync with `main`:
@@ -508,7 +527,9 @@ Three migrations + one app-only batch closed and live in prod; prod is back in s
   RPCs present + gated, `get_advisors` only pre-existing WARNs. **Prod is now at `0041`, in sync with `main`.**
 - **pgTAP is now 356** (Docker-free shim harness + CI), all green.
 - **Remaining is now Owner-decision / human-only:** #155/#157 chart-of-accounts, #239 registry import, #173
-  PII, 🔴 key rotation; plus held low-value/design items #198/#199/#188. Nothing auto-buildable is open.
+  PII, plus held low-value/design items #198/#199/#188. *(The old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)* Nothing
+  auto-buildable is open.
 
 ## 2026-06-26 — ✅ #196 atomic plan-op (migration `0038`) MERGED + PUSHED; prod `0038`; review-sweep actioned
 The atomic plan-operation RPC is closed and live in prod:
@@ -520,7 +541,9 @@ The atomic plan-operation RPC is closed and live in prod:
 - **Review-sweep findings actioned:** the budget wrong-ops fix is **in flight**; **#238** (palm-status) and
   **#239** (registry-import) filed for follow-up.
 - **pgTAP is now 338** (Docker-free shim harness + CI), all green.
-- **Next:** the budget wrong-ops fix (in flight); then triage #238 / #239; key rotation still the only 🔴.
+- **Next:** the budget wrong-ops fix (in flight); then triage #238 / #239. *(The old key-rotation red item was
+  superseded by the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is
+  complete.)*
 
 ## 2026-06-26 — ✅ AUTHZ-3 (#182) fixed + MERGED + PUSHED; prod now `0037`; SPEC-0002 set COMPLETE
 The full SPEC-0002 authorization-enforcement set is now closed and live in prod:
@@ -580,9 +603,10 @@ recorded under their exact repo versions:
   (security) shows only **pre-existing** WARNs (SECURITY DEFINER RPCs by design / #182 / leaked-pw toggle)
   — no new regressions. **Prod is now in sync with `main` at `0034`.** No prod data was mutated to test
   (verified via function definitions, not by injecting rows).
-- **Remaining Owner-only items:** 🔴 rotate the Supabase service-role key + DB password + reset the demo
-  password (now the only red item); enable Leaked-Password-Protection; ratify SPEC-0002/0003; the HIGH
+- **Remaining Owner-only items:** reset the demo password; enable Leaked-Password-Protection; ratify SPEC-0002/0003; the HIGH
   product forks (#155/#157/#173/#89/#181/#182/#184); the gated engine follow-ups (#188/#196/#198/#199).
+  *(Supabase service-role key + DB password rotation was superseded by the 2026-06-29 Owner correction confirming
+  completion.)*
 - Docs (this PR) bumped prod `0031`→`0034` across README / TRACKER / DEPLOY-STATUS / ROADMAP.
 
 ## 2026-06-26 (later) — autonomous fixes MERGED to main + ENGINE-STALE-1 fixed; prod push (now done above)
@@ -660,8 +684,10 @@ reconciliation (un-merged PR) + filed issues. Key results:
 - **State:** `main` unchanged (origin HEAD `e35c46b`); **4 open PRs, all un-merged for the Owner gate:**
   **#183** (SPEC-0002 consolidation, DRAFT, green), **#189** (this docs reconciliation), **#191** (AR-ERR-1
   fix, CI green), **#195** (op-status/date Arabic + plan-check safety). New issues this session: **#187**
-  (fixed by #191), **#188**, **#196**. Owner-gated next moves unchanged: 🔴 key rotation; push `0032`/`0033`;
+  (fixed by #191), **#188**, **#196**. Owner-gated next moves unchanged: push `0032`/`0033`;
   ratify SPEC-0002/0003; merge the 3 ready fix/docs PRs; the HIGH forks (#155/#157/#173/#89/#181).
+  *(The old key-rotation red item was superseded by the 2026-06-29 Owner correction confirming Supabase DB
+  password + service-role key rotation is complete.)*
 
 ## 2026-06-25 — adopted amr-operating-method + independent review (5 findings) + repo relocation
 **Working method:** adopted **`amr-operating-method`** (the gated protocol — propose → validate →
@@ -777,9 +803,10 @@ only `@storybook/react-vite` was bumped while the rest of the 8.6.x stack stayed
   (`#159`, floor `on_hand` at 0 in `fn_post_movement` — no negative stock). Both stock-engine/security
   fixes are merged on `main` (HEAD `52fa7b0`); confirm prod DB migration state separately.
 - **Safe stop:** the upgrade + release are complete. **No agent-doable, non-gated task remains on the
-  critical path** — everything left is Owner-gated (🔴 key rotation; Leaked Password Protection toggle;
+  critical path** — everything left is Owner-gated (Leaked Password Protection toggle;
   pricing #89; Stage-0 ratification; Stage M) or "do not start the next stage automatically" per
-  `docs/CLAUDE.md`. Stopping per project rules.
+  `docs/CLAUDE.md`. Stopping per project rules. *(The old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-25 — phone-OTP removed (email/password only)
 Auth is now **email + password only**. The phone-OTP UI skeleton (the login footnote) was removed and
@@ -810,11 +837,12 @@ items/bins/movements, 1 plan w/ 3 operations + checks + budget). Transactional t
   `quantities` at the REST layer, not only the `0020` RPC); **AP-5 insert-side SoD** (#76 item 2 —
   a born-approved PR sidesteps the BEFORE UPDATE trigger); **ENGINE-DC** disjointness is
   convention-enforced, not DB-constraint-enforced.
-- **Still OWNER-GATED / open:** 🔴 rotate the Supabase `service_role` key + DB password + reset the
-  demo password (the **only red item** from the assurance); ~~Twilio phone-OTP~~ (resolved 2026-06-25 —
+- **Still OWNER-GATED / open:** reset the demo password; ~~Twilio phone-OTP~~ (resolved 2026-06-25 —
   dropped; email/password only); Stage-0 legacy
   remediation; real Ebeid data (Stage M); per-farm EGP pricing; agronomist sign-off; **merging PRs
   #75 and #77** (both green) — a merge = prod deploy = Owner gate.
+  *(Supabase `service_role` key + DB password rotation was superseded by the 2026-06-29 Owner correction confirming
+  completion.)*
 - Note: the local Docker DB was found empty after a reboot (volume not persisted) — irrelevant; the
   **cloud DB is the source of truth**.
 
