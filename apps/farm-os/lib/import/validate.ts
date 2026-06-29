@@ -12,6 +12,13 @@ function isEmpty(v: unknown): boolean {
   return v == null || (typeof v === "string" && v.trim() === "");
 }
 
+function isValidIsoDate(s: string): boolean {
+  if (!ISO_DATE.test(s)) return false;
+  const [year, month, day] = s.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+}
+
 /** Coerce one cell. Returns { value } on success or { reason } (Arabic) on failure. */
 function coerce(col: ImportColumn, raw: unknown): { value: unknown } | { reason: string } {
   const s = typeof raw === "string" ? raw.trim() : raw;
@@ -34,8 +41,7 @@ function coerce(col: ImportColumn, raw: unknown): { value: unknown } | { reason:
       return { reason: "يجب أن يكون صح/خطأ" };
     }
     case "date": {
-      if (typeof s === "string" && ISO_DATE.test(s) && !Number.isNaN(Date.parse(s)))
-        return { value: s };
+      if (typeof s === "string" && isValidIsoDate(s)) return { value: s };
       return { reason: "يجب أن يكون التاريخ بصيغة YYYY-MM-DD" };
     }
     case "enum": {

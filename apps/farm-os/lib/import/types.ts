@@ -2,6 +2,14 @@
 
 export type ColumnType = "string" | "int" | "decimal" | "bool" | "date" | "enum";
 
+/** A reference column: the user types a human code; the engine resolves it to an id by
+ * looking it up in `table` where `codeColumn = value` (RLS-scoped). See resolve.ts. */
+export interface RefSpec {
+  table: string; // e.g. "sectors"
+  codeColumn: string; // e.g. "code"
+  idColumn?: string; // default "id"
+}
+
 export interface ImportColumn {
   key: string; // canonical field name (also the data-sheet header key)
   labelAr: string; // Arabic RTL header shown in the template
@@ -10,6 +18,7 @@ export interface ImportColumn {
   enumValues?: string[]; // enum → data-validation dropdown in the .xlsx
   format?: string; // date format, e.g. "YYYY-MM-DD"
   example: string; // shown in the example row
+  ref?: RefSpec; // if set, the cell holds a code resolved to an id before commit
 }
 
 export interface ImportDescriptor {

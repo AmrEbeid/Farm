@@ -4,14 +4,12 @@ import { validateRows } from "../validate";
 import { buildTemplateSpec, DATA_SHEET } from "../workbook-spec";
 
 describe("sectorsDescriptor", () => {
-  it("maps a validated row to the fn_save_sector arg shape", () => {
-    const { okRows } = validateRows(sectorsDescriptor, [
-      { name: "القطاع الشمالي", code: "S-01", areaFeddan: "12.5", plantingDate: "2020-03-01" },
-    ]);
-    expect(okRows).toHaveLength(1);
-    expect(sectorsDescriptor.toRpcArgs(okRows[0])).toEqual({
+  it("maps a validated + ref-resolved row to the fn_save_sector arg shape", () => {
+    // farmId arrives already resolved to an id (resolveRefs runs before toRpcArgs).
+    const row = { farmId: "farm-uuid", name: "القطاع الشمالي", code: "S-01", areaFeddan: 12.5, plantingDate: "2020-03-01" };
+    expect(sectorsDescriptor.toRpcArgs(row)).toEqual({
       p_id: null,
-      p_farm_id: null,
+      p_farm_id: "farm-uuid",
       p_name: "القطاع الشمالي",
       p_code: "S-01",
       p_crop: null,
@@ -21,10 +19,15 @@ describe("sectorsDescriptor", () => {
     });
   });
 
-  it("requires name and code", () => {
-    const { errors } = validateRows(sectorsDescriptor, [{ name: "", code: "" }]);
+  it("requires the farm code, name and code", () => {
+    const { errors } = validateRows(sectorsDescriptor, [{ farmId: "", name: "", code: "" }]);
     const cols = errors.map((e) => e.column).sort();
-    expect(cols).toEqual(["code", "name"]);
+    expect(cols).toEqual(["code", "farmId", "name"]);
+  });
+
+  it("declares farmId as a ref to farms.code", () => {
+    const farmCol = sectorsDescriptor.columns.find((c) => c.key === "farmId");
+    expect(farmCol?.ref).toEqual({ table: "farms", codeColumn: "code" });
   });
 
   it("produces a template with a data sheet", () => {
