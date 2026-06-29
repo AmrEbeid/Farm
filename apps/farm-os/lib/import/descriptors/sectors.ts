@@ -14,7 +14,7 @@ export const sectorsDescriptor: ImportDescriptor = {
   rpc: "fn_save_sector",
   role: "structure.write",
   columns: [
-    { key: "farmId", labelAr: "كود المزرعة", type: "string", required: true, example: "F-01", ref: { table: "farms", codeColumn: "code" } },
+    { key: "farmId", labelAr: "كود المزرعة", type: "string", required: true, example: "F-01", ref: { table: "farms", codeColumn: "code", activeColumn: "archived", activeValue: false } },
     { key: "name", labelAr: "الاسم", type: "string", required: true, example: "القطاع الشمالي" },
     { key: "code", labelAr: "الكود", type: "string", required: true, example: "S-01" },
     { key: "crop", labelAr: "المحصول", type: "string", required: false, example: "نخيل برحي" },

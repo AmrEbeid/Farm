@@ -4,7 +4,7 @@
  * `okRows` ready for the gated RPC; invalid rows produce Arabic `errors`. Writes nothing.
  * Partial success: one bad row never invalidates the good rows.
  */
-import type { ImportColumn, ImportDescriptor, DryRunResult, RowError } from "./types";
+import { setSourceRow, type ImportColumn, type ImportDescriptor, type DryRunResult, type RowError } from "./types";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -83,7 +83,7 @@ export function validateRows(
     }
 
     if (rowHasError) errorCount += 1;
-    else okRows.push(coerced);
+    else okRows.push(setSourceRow(coerced, rowNum));
   });
 
   return { okRows, errors, okCount: okRows.length, errorCount };

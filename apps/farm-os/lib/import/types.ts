@@ -8,6 +8,8 @@ export interface RefSpec {
   table: string; // e.g. "sectors"
   codeColumn: string; // e.g. "code"
   idColumn?: string; // default "id"
+  activeColumn?: string; // e.g. "archived"; when set, lookup filters it to activeValue
+  activeValue?: boolean | string | number; // default false
 }
 
 export interface ImportColumn {
@@ -42,4 +44,21 @@ export interface DryRunResult {
   errors: RowError[];
   okCount: number;
   errorCount: number; // count of ROWS with >=1 error (not total errors)
+}
+
+const SOURCE_ROW = Symbol.for("farm.import.sourceRow");
+
+type RowWithSource = Record<string, unknown> & { [SOURCE_ROW]?: number };
+
+export function setSourceRow<T extends Record<string, unknown>>(row: T, sourceRow: number): T {
+  Object.defineProperty(row, SOURCE_ROW, {
+    value: sourceRow,
+    enumerable: false,
+    configurable: true,
+  });
+  return row;
+}
+
+export function getSourceRow(row: Record<string, unknown>, fallback: number): number {
+  return (row as RowWithSource)[SOURCE_ROW] ?? fallback;
 }

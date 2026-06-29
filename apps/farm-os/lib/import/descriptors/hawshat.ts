@@ -12,7 +12,7 @@ export const hawshatDescriptor: ImportDescriptor = {
   rpc: "fn_save_hawsha",
   role: "structure.write",
   columns: [
-    { key: "sectorId", labelAr: "كود القطاع", type: "string", required: true, example: "S-01", ref: { table: "sectors", codeColumn: "code" } },
+    { key: "sectorId", labelAr: "كود القطاع", type: "string", required: true, example: "S-01", ref: { table: "sectors", codeColumn: "code", activeColumn: "archived", activeValue: false } },
     { key: "name", labelAr: "الاسم", type: "string", required: true, example: "الحوش 1" },
     { key: "code", labelAr: "الكود", type: "string", required: true, example: "H-01" },
     { key: "areaQirat", labelAr: "المساحة (قيراط)", type: "decimal", required: false, example: "6" },

@@ -30,6 +30,6 @@ describe("hawshatDescriptor", () => {
 
   it("declares sectorId as a ref to sectors.code", () => {
     const col = hawshatDescriptor.columns.find((c) => c.key === "sectorId");
-    expect(col?.ref).toEqual({ table: "sectors", codeColumn: "code" });
+    expect(col?.ref).toEqual({ table: "sectors", codeColumn: "code", activeColumn: "archived", activeValue: false });
   });
 });

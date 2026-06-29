@@ -75,13 +75,20 @@ export async function POST(req: Request): Promise<Response> {
     table: string,
   ) => {
     select: (cols: string) => {
-      in: (col: string, vals: string[]) => Promise<{ data: Record<string, unknown>[] | null }>;
+      in: (col: string, vals: string[]) => RefQuery;
     };
   };
+  type RefQuery = Promise<{ data: Record<string, unknown>[] | null }> & {
+    eq: (col: string, val: unknown) => RefQuery;
+  };
   const refLookup: RefLookup = async (spec, codes) => {
-    const { data } = await fromLoose(spec.table)
+    let query = fromLoose(spec.table)
       .select(`${spec.idColumn},${spec.codeColumn}`)
       .in(spec.codeColumn, codes);
+    if (spec.activeColumn != null) {
+      query = query.eq(spec.activeColumn, spec.activeValue ?? false);
+    }
+    const { data } = await query;
     const map = new Map<string, string>();
     const ambiguous = new Set<string>();
     for (const r of data ?? []) {

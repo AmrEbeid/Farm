@@ -6,16 +6,18 @@
  * supplies the real Supabase-backed lookup.
  *
  * Runs AFTER validateRows, on its okRows. A code that resolves to no row (or is ambiguous)
- * becomes a row error and the row is dropped from the commit set. Row numbers are 1-based
- * within the passed (already-valid) rows.
+ * becomes a row error and the row is dropped from the commit set. Row numbers remain the
+ * original 1-based data-row indexes from the spreadsheet, even after earlier validation
+ * failures have filtered rows out.
  */
-import type { ImportColumn, ImportDescriptor, RowError, RefSpec } from "./types";
+import { getSourceRow, setSourceRow, type ImportColumn, type ImportDescriptor, type RowError, type RefSpec } from "./types";
 
 /** Given a ref spec and a set of distinct codes, return code→id for the ones that resolve
  * to exactly one row. Missing or ambiguous codes are simply absent from the map. */
-export type RefLookup = (spec: Required<RefSpec>, codes: string[]) => Promise<Map<string, string>>;
+export type ResolvedRefSpec = RefSpec & { idColumn: string };
+export type RefLookup = (spec: ResolvedRefSpec, codes: string[]) => Promise<Map<string, string>>;
 
-function refColumns(d: ImportDescriptor): { col: ImportColumn; spec: Required<RefSpec> }[] {
+function refColumns(d: ImportDescriptor): { col: ImportColumn; spec: ResolvedRefSpec }[] {
   return d.columns
     .filter((c): c is ImportColumn & { ref: RefSpec } => c.ref != null)
     .map((c) => ({ col: c, spec: { idColumn: "id", ...c.ref } }));
@@ -39,8 +41,8 @@ export async function resolveRefs(
   const out: Record<string, unknown>[] = [];
   const errors: RowError[] = [];
   rows.forEach((row, i) => {
-    const rowNum = i + 1;
-    const resolved: Record<string, unknown> = { ...row };
+    const rowNum = getSourceRow(row, i + 1);
+    const resolved = setSourceRow({ ...row }, rowNum);
     let ok = true;
     for (const { col } of refs) {
       const code = String(row[col.key] ?? "");

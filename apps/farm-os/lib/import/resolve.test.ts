@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { resolveRefs, type RefLookup } from "./resolve";
-import type { ImportDescriptor } from "./types";
+import { setSourceRow, type ImportDescriptor } from "./types";
 
 const withRef: ImportDescriptor = {
   key: "hawshat",
@@ -50,6 +50,19 @@ describe("resolveRefs", () => {
     expect(r.errors).toEqual([{ row: 2, column: "sectorId", reason: "لم يتم العثور على هذا الكود" }]);
   });
 
+  it("reports unresolved refs against the original spreadsheet row number", async () => {
+    const r = await resolveRefs(
+      withRef,
+      [
+        setSourceRow({ sectorId: "S-01", name: "ok" }, 1),
+        setSourceRow({ sectorId: "MISSING", name: "bad" }, 3),
+      ],
+      fakeLookup,
+    );
+    expect(r.rows).toEqual([{ sectorId: "sectors:S-01", name: "ok" }]);
+    expect(r.errors).toEqual([{ row: 3, column: "sectorId", reason: "لم يتم العثور على هذا الكود" }]);
+  });
+
   it("looks up each ref column once over the distinct codes", async () => {
     const spy = vi.fn(fakeLookup);
     await resolveRefs(
@@ -59,5 +72,24 @@ describe("resolveRefs", () => {
     );
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0][1]).toEqual(["S-01"]); // deduped
+  });
+
+  it("passes active-row filters through to the lookup spec", async () => {
+    const descriptor: ImportDescriptor = {
+      ...withRef,
+      columns: [
+        {
+          key: "sectorId",
+          labelAr: "كود القطاع",
+          type: "string",
+          required: true,
+          example: "S-01",
+          ref: { table: "sectors", codeColumn: "code", activeColumn: "archived", activeValue: false },
+        },
+      ],
+    };
+    const spy = vi.fn(fakeLookup);
+    await resolveRefs(descriptor, [{ sectorId: "S-01" }], spy);
+    expect(spy.mock.calls[0][0]).toMatchObject({ table: "sectors", activeColumn: "archived", activeValue: false });
   });
 });

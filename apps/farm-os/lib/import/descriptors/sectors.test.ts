@@ -27,7 +27,7 @@ describe("sectorsDescriptor", () => {
 
   it("declares farmId as a ref to farms.code", () => {
     const farmCol = sectorsDescriptor.columns.find((c) => c.key === "farmId");
-    expect(farmCol?.ref).toEqual({ table: "farms", codeColumn: "code" });
+    expect(farmCol?.ref).toEqual({ table: "farms", codeColumn: "code", activeColumn: "archived", activeValue: false });
   });
 
   it("produces a template with a data sheet", () => {
