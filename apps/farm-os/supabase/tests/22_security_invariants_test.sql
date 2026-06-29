@@ -70,7 +70,10 @@ select is(
         'fn_create_plan', 'fn_set_plan_status',    -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
         'fn_assign_plan_operation', 'fn_add_plan_labor', -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
         'fn_record_custody_movement', 'fn_set_expense_payment_status', -- gated custody/expense RPCs (SPEC-0018, migration 0098)
-        'fn_custody_balance'                       -- derived custody balance read RPC (SPEC-0018, migration 0098)
+        'fn_custody_balance',                      -- derived custody balance read RPC (SPEC-0018, migration 0098)
+        'fn_create_payment_request', 'fn_add_expense_to_request', -- payment-request RPCs (SPEC-0018, migration 0099)
+        'fn_submit_payment_request', 'fn_approve_request_operational', 'fn_approve_request_final', -- lifecycle (0099)
+        'fn_payment_request_totals'                -- derived request totals read RPC (SPEC-0018, migration 0099)
         -- NB: fn_post_movement is deliberately NOT here — AUTHZ-3 (migration 0036) revoked its
         -- `authenticated` EXECUTE, making it an INTERNAL primitive. Pinned negatively below.
       )
