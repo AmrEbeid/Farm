@@ -259,7 +259,75 @@ Completed 2026-06-29: #366 now surfaces `/academy` query failures and corrects s
 failures and aligns `/expenses` nav with the `0097` owner/accountant read gate (head `a4d1c7f`, CI green, focused
 independent check found no blockers). Both PRs remain draft and unmigrated.
 
-### Task 6: Review Docs-Only Finance Specs Without Clearing Gates
+### Task 6: Draft #317/#229 Grant Hygiene Fix
+
+**Files:**
+- Add in #439: `apps/farm-os/supabase/migrations/20260629135038_grant_hygiene_default_privileges.sql`
+- Add in #439: `apps/farm-os/supabase/tests/97_grant_hygiene_default_privileges_test.sql`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: issue #317 prod evidence, issue #229 prod-config/advisor umbrella, Supabase/Postgres privilege rules.
+- Produces: held migration draft and pgTAP invariants; no prod mutation.
+
+- [x] **Step 1: Re-read Supabase/Postgres guardrails**
+
+Completed 2026-06-29: used Supabase guidance and PostgreSQL `ALTER DEFAULT PRIVILEGES` documentation. Important
+design constraint: default-privilege changes affect only future objects and only the targeted grantor role, so #439
+targets the prod-observed `postgres` grantor and leaves a review note to repeat the revoke if a future prod probe
+finds another grantor.
+
+- [x] **Step 2: Implement narrow migration + invariants**
+
+Completed 2026-06-29: #439 removes current destructive client-role grants (`TRUNCATE`, broad `DELETE`), restores
+authenticated `plan_checks` DELETE for the recompute path, and revokes future public-table default privileges from
+`anon`/`authenticated` for role `postgres`. Test 97 checks TRUNCATE, DELETE exception preservation, and
+`pg_default_acl`.
+
+- [x] **Step 3: Verify and publish as held draft**
+
+Completed 2026-06-29: local pgTAP passed **689/689**; GitHub checks are green; #439 is draft/held. Required gates:
+focused review of migration blast radius and separate pre-migration review against the Farm Supabase project. #229's
+leaked-password protection remains a separate Owner dashboard/Auth setting and is not closed by #439.
+
+### Task 7: Review SPEC-0018 Backend Draft PR #438
+
+**Files:**
+- Read: `apps/farm-os/supabase/migrations/20260622000098_custody_and_expense_payment.sql`
+- Read: `apps/farm-os/supabase/migrations/20260622000099_payment_requests.sql`
+- Read: `apps/farm-os/supabase/tests/98_custody_payment_test.sql`
+- Read: `apps/farm-os/supabase/tests/99_payment_request_test.sql`
+- Modify: docs only after review result is known.
+
+**Interfaces:**
+- Consumes: draft PR #438, SPEC-0018 design in #421, current open migration queue (#436/#439/#366/#368/#400).
+- Produces: review decision; no prod mutation.
+
+- [x] **Step 1: Check CI and migration lane**
+
+Completed 2026-06-29: #438 CI is green, but it introduces `0098`/`0099` while held #436 already uses `0098`. This
+is a migration-order blocker; the PR body statement that those numbers are free is stale.
+
+- [x] **Step 2: Review access control and money invariants**
+
+Completed 2026-06-29: posted a blocking review. #438 keeps all-member org-scoped reads for custody/payment tables
+and totals, which conflicts with SPEC-0018's finance-confidential read gate. It also ships request math without the
+#6 drawings/opex split while #368 is still draft/unapplied.
+
+- [x] **Step 3: Review lifecycle scope**
+
+Completed 2026-06-29: #438 describes `paid`/`closed` lifecycle and `fn_close_month`, but implements/tests only
+through final approval. Keep draft until scope is either implemented/tested or the enum/body/spec are reduced.
+
+- [ ] **Step 4: Patch or wait for #438 author response**
+
+Recommended path: fix finance-role read gates first, add/require the drawings split before request math, renumber or
+stack migrations with #436, and either implement paid/closed/close-month or reduce scope. Do not merge/migrate #438
+while these blockers remain.
+
+### Task 8: Review Docs-Only Finance Specs Without Clearing Gates
 
 **Files:**
 - Read/modify: draft spec PR docs only.
@@ -278,7 +346,7 @@ for expense receipts before use (`entity_type='expense'`, resolver/storage valid
 Branch head `2fa6694`; GitHub CI green; focused re-review found no findings. #421 remains draft/design-only for
 Owner review; no schema, migration, prod apply, or real financial/PII import.
 
-### Task 7: Audit Issue Hygiene Pass
+### Task 9: Audit Issue Hygiene Pass
 
 **Files:**
 - Read: GitHub issues #188, #206, #229, #282, #317, #362, #383
