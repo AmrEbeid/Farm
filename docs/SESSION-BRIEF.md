@@ -96,15 +96,17 @@ recompute path, and revokes future public-table default privileges from `anon`/`
 **689/689**; GitHub checks are green. Held for PR review and separate pre-migration review; no merge, prod apply, or
 production data change. #229 still remains open for leaked-password-protection Auth/dashboard verification.
 
-**#438 custody/payment backend hardening.** Patched draft #438 at `8fb7f69` after the review blockers. The branch now
-uses timestamped draft migrations (`20260629150000`, `20260629150100`) instead of the collided `0098`/`0099` names,
-adds `finance.read`, preserves `responsibility.write` in the `authorize()` union, makes custody/payment table reads
-and read RPCs owner/accountant-only, mirrors those restrictions onto `audit_log.audit_read`, adds
-`fn_save_custody_account` for RPC-only custody-account writes, carries `expenses.kind`, and rejects/excludes
-drawings/capex from payment-request math. Lifecycle wording now only claims the implemented
-`draft → submitted → approved_operational → approved_final` path; `paid`/`closed` stay reserved. Local validation:
-`git diff --check` clean; full pgTAP **735/735**. #438 remains draft/held for independent money/RLS/audit review and
-separate pre-migration review; no merge, prod apply, migration, or production data change.
+**#438 custody/payment backend hardening.** Patched draft #438 at `8fb7f69` after the review blockers, then pushed
+follow-up `1288a23` after finding a money-state reroute bug. The branch now uses timestamped draft migrations
+(`20260629150000`, `20260629150100`) instead of the collided `0098`/`0099` names, adds `finance.read`, preserves
+`responsibility.write` in the `authorize()` union, makes custody/payment table reads and read RPCs
+owner/accountant-only, mirrors those restrictions onto `audit_log.audit_read`, adds `fn_save_custody_account` for
+RPC-only custody-account writes, carries `expenses.kind`, rejects/excludes drawings/capex from payment-request math,
+and rejects rerouting a custody-paid expense after a cash out-movement exists unless an explicit reversal is posted
+first. Lifecycle wording now only claims the implemented `draft → submitted → approved_operational → approved_final`
+path; `paid`/`closed` stay reserved. Local validation: `git diff --check` clean; full pgTAP **736/736**. #438 remains
+draft/held for independent money/RLS/audit review and separate pre-migration review; no merge, prod apply, migration,
+or production data change.
 
 **#431 inventory transfer/ordered draft.** Drafted a conservative migration for the latent #431 cleanup. It does not
 invent transfer destination semantics; instead it rejects new `transfer` ledger rows until an atomic source/destination
