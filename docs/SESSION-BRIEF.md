@@ -61,6 +61,23 @@ repair/backfill migration pinning the final permission union after both features
 
 **No prod action.** No migration, deploy, or production apply was performed from this review.
 
+## 2026-06-29 — safe branch follow-ups on held #366/#368
+**#366 academy branch updated.** Applied the low-risk review follow-ups: `/academy` now checks the Supabase query
+`error` and throws a generic failure instead of silently rendering empty content when `academy_content` is absent or
+unreadable, and stale migration comments were corrected from `0089` to `0091`. Published through the GitHub API to
+branch head `ca915dc`. GitHub checks are green (`pgTAP`, app/typecheck/lint/test/build, gitleaks, Vercel), and a
+focused independent check found no blockers.
+
+**#368 accounting branch updated.** `/accounting` now checks both `expenses` and `sales` query errors and throws a
+generic failure rather than computing misleading zero/partial P&L. The `/expenses` nav item now matches the `0097`
+read gate by showing only to owner/accountant instead of also `farm_manager`. Published through the GitHub API to
+branch head `a4d1c7f`. GitHub checks are green (`pgTAP`, app/typecheck/lint/test/build, gitleaks, Vercel), and a
+focused independent check found no blockers.
+
+**Still held.** These branch fixes do **not** clear the real gates. #366 remains draft pending agronomist +
+pesticide-registration sign-off. #368 remains draft pending real 7-year Excel reconciliation + privacy review and
+explicit `0088` gap-fill plus `0097` apply planning. No migration or production apply was performed.
+
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
 
