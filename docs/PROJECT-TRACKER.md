@@ -1,5 +1,15 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — low-risk draft-branch fixes applied to #366/#368; both still HELD.** After the draft-lane
+> reviews, applied the non-migration follow-ups that reduce future operator confusion without clearing expert gates.
+> **#366 academy** now fails visibly if the `academy_content` query errors instead of rendering an empty academy,
+> and stale migration comments now say `0091`; branch head `ca915dc`, GitHub checks green, focused independent
+> re-review approved. **#368 accounting** now fails visibly on `expenses`/`sales` query errors instead of showing
+> misleading zero/partial P&L, and `/expenses` nav visibility now matches the `0097` owner/accountant read gate;
+> branch head `a4d1c7f`, GitHub checks green, focused independent re-review approved. Both PRs remain **draft**:
+> #366 still needs agronomist/pesticide-registration sign-off, and #368 still needs 7-year Excel reconciliation +
+> privacy review plus explicit `0088`/`0097` apply planning.
+
 > **2026-06-29 — remaining draft migration PRs independently reviewed; all HELD.** Parallel agents reviewed
 > **#366 academy (`0091`)**, **#368 accounting (`0088` + `0097`)**, and **#400 export (`0092`)** against current
 > remote `main` and prod ledger `0096`. Recommendation is unchanged but now sharper: keep all three draft and do
