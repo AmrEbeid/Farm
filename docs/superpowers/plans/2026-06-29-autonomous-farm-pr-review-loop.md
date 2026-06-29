@@ -337,6 +337,13 @@ invalid, or negative actual quantity/labor values fail client-side with Arabic c
 An explicit typed `0` remains valid. Local validation passed: focused Vitest **3/3**, full Vitest **215/215**,
 focused eslint, `tsc --noEmit`, and production build.
 
+- [x] **Step 9: Close #398 after verifying #399 delivery**
+
+Result recorded 2026-06-29: #398 was re-checked against current `main` and closed as delivered by merged #399
+(`02b5da3`). Evidence: `plan_operations.ends_on`, `plan_operation_assignees`, `fn_add_plan_operation_multi`, pgTAP
+coverage, and the richer `OperationBuilder` UI are all present, and deploy status says prod includes `0090` and
+`0093`. No DDL, migration, prod apply, or production data change was run in this closeout.
+
 ## Self-Review
 
 - Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.

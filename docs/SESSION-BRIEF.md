@@ -30,6 +30,12 @@ calling `executeOperation`, while still allowing an explicit typed `0`. Added pu
 validation passed: focused Vitest **3/3**, full Vitest **215/215**, focused eslint, `tsc --noEmit`, and production
 build. No migration or DDL.
 
+**#398 closeout.** Re-checked #398 against current `main` and closed it as delivered by merged #399
+(`02b5da3`): `plan_operations.ends_on`, `plan_operation_assignees`, `fn_add_plan_operation_multi`, pgTAP coverage,
+and the `OperationBuilder` UI for repeatable material/labor rows, multi-day dates, employee checkboxes, and lead
+selection are all present. Deploy status says prod includes `0090` and `0093`. No DDL, migration, prod apply, or
+production data change was run for this closeout.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
