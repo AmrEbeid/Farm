@@ -2,10 +2,9 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-06-29 — SAFE STOP: status snapshot and next-session handoff
-**Stop point.** Local `main` was fast-forwarded to current `origin/main` (`4a8e2de`) before stopping. Production
+**Stop point.** Local `main` was fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production
 Supabase remains at migration `0096`. No migration, prod apply, draft-PR merge, or production data change was
-performed in this stop/report pass. The worktree is clean except the unrelated untracked local stale file
-`docs/SPEC-0018-custody-and-payment-requests.md`.
+performed in this stop/report pass.
 
 **Percent snapshot.** Live MVP/pilot operating core is **~90-92% done**. Pre-real-data pilot readiness is
 **~80-85% done**. Full commercial product vision is **~55-60% done**. Finance/accounting maturity is **~35-45% done**.
@@ -27,9 +26,19 @@ review/apply planning; **3-5 days** to unblock a safe custody first slice; **1-2
 foundation after ratification/reconciliation path; **2-4 weeks** for real-data readiness; **4-8 weeks** for broader
 commercial maturity.
 
-**Next recommended action.** Do not merge or migrate a draft lane blindly. Start with the smallest reviewed DB
-hardening batch, likely #436/#439/#442/#444, and run a fresh pre-migration review with prod read-only probes before
-any Supabase apply.
+**Open PR queue.** All remaining open PRs are draft/held. Clean merge-state PRs: #444 responsibility-write gate,
+#442 inventory transfer/ordered guard, #441 custody frontend, #439 grant/default-privilege hygiene, #438 custody
+backend, #421 SPEC-0018 docs, and #400 export compliance. Dirty/stale PRs: #436 `fn_bin_rebuild` internal, #368
+accounting backend, and #366 academy backend.
+
+**Active gates.** #438/#441 remain held behind independent money/RLS/audit review and migrate-first sequencing.
+#444/#442/#439 have review comments and docs entries but still need separate pre-migration review before any apply.
+#436/#368/#366 need refresh/review before they can be considered for any migration bundle. Supabase DB password and
+service-role key rotation remains Owner-complete and must not be reopened unless Owner explicitly reopens it.
+
+**Recommended resume point.** Start with #436 because it is dirty/stale and narrow: refresh it against current
+`origin/main`, re-check the `fn_bin_rebuild` internalization diff, run local pgTAP, then update PR/docs. Do not
+plan or apply any production migration bundle until the dirty draft branches are refreshed and reviewed.
 
 ## 2026-06-29 — module dashboards/360 batch live
 **Change.** Completed the module navigator/dashboard/360 batch and committed it locally as `30fdd26`
