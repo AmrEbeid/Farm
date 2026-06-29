@@ -237,16 +237,75 @@ type StructFunctions = {
   };
 };
 
+// ── SPEC-0018 «العهدة وطلبات الصرف» — custody + payment requests (migrations 0098/0099). ──
+// Augmented here until prod is migrated + database.types.ts regenerated (then a harmless no-op).
+type CustodyAccountsTable = {
+  Row: { id: string; org_id: string; holder_label: string; holder_user_id: string | null; target_float: number; active: boolean; created_at: string; created_by: string | null };
+  Insert: { id?: string; org_id: string; holder_label: string; holder_user_id?: string | null; target_float?: number; active?: boolean };
+  Update: { holder_label?: string; target_float?: number; active?: boolean };
+  Relationships: [];
+};
+type CustodyMovementsTable = {
+  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; note: string | null; created_at: string; created_by: string | null };
+  Insert: { org_id: string; custody_account_id: string; movement_type: string; amount_in?: number; amount_out?: number; occurred_at?: string; expense_id?: string | null; note?: string | null };
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type PaymentRequestsTable = {
+  Row: { id: string; org_id: string; request_no: number; period_start: string | null; period_end: string | null; status: string; custody_account_id: string | null; note: string | null; prepared_by: string | null; approved_op_by: string | null; approved_final_by: string | null; submitted_at: string | null; approved_op_at: string | null; approved_final_at: string | null; created_at: string };
+  Insert: { org_id: string; request_no: number };
+  Update: { status?: string; note?: string | null };
+  Relationships: [];
+};
+type PaymentRequestLinesTable = {
+  Row: { id: string; org_id: string; payment_request_id: string; expense_id: string; created_at: string };
+  Insert: { org_id: string; payment_request_id: string; expense_id: string };
+  Update: Record<string, never>;
+  Relationships: [];
+};
+/** Add the SPEC-0018 payment-routing columns to the generated expenses table (migration 0098). */
+type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { payment_status: string | null; paid_by: string | null };
+  Insert: T["Insert"] & { payment_status?: string | null; paid_by?: string | null };
+  Update: T["Update"] & { payment_status?: string | null; paid_by?: string | null };
+  Relationships: T["Relationships"];
+};
+type CustodyFunctions = {
+  fn_record_custody_movement: {
+    Args: { p_account: string; p_movement_type: string; p_amount_in: number; p_amount_out: number; p_occurred_at?: string; p_expense_id?: string | null; p_note?: string | null };
+    Returns: string;
+  };
+  fn_set_expense_payment_status: {
+    Args: { p_expense: string; p_status: string; p_custody_account?: string | null; p_paid_by?: string | null };
+    Returns: undefined;
+  };
+  fn_custody_balance: { Args: { p_account: string }; Returns: number };
+  fn_create_payment_request: {
+    Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null; p_custody_account?: string | null; p_note?: string | null };
+    Returns: string;
+  };
+  fn_add_expense_to_request: { Args: { p_request: string; p_expense: string }; Returns: string };
+  fn_submit_payment_request: { Args: { p_request: string }; Returns: undefined };
+  fn_approve_request_operational: { Args: { p_request: string }; Returns: undefined };
+  fn_approve_request_final: { Args: { p_request: string }; Returns: undefined };
+  fn_payment_request_totals: { Args: { p_request: string }; Returns: Json };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
-    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines"> & {
+    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses"> & {
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
+      expenses: WithPaymentStatus<Tables["expenses"]>;
       attachments: AttachmentsTable;
+      custody_accounts: CustodyAccountsTable;
+      custody_movements: CustodyMovementsTable;
+      payment_requests: PaymentRequestsTable;
+      payment_request_lines: PaymentRequestLinesTable;
     };
-    Functions: Public["Functions"] & StructFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions;
   };
 };
 
