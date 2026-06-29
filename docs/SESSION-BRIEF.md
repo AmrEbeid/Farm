@@ -113,8 +113,11 @@ invent transfer destination semantics; instead it rejects new `transfer` ledger 
 model exists, and pins `inventory_bin.ordered` at zero until a real purchase-order writer maintains it. Re-emitted
 `fn_post_movement` while preserving authenticated EXECUTE revoked/internal-only posture. Added pgTAP coverage for RPC
 transfer rejection, direct table protection, `ordered=0`, and `projected = on_hand - reserved` while ordered is pinned.
-Local pgTAP passed **691/691**. Held for review and separate pre-migration review; no merge, prod apply, or production
-data change.
+Local pgTAP passed **691/691**. Review pass at `9b9cac3` found no local code findings and updated the PR notes with
+the pre-migration probe requirement: before any prod apply, check for existing `inventory_movements.type = 'transfer'`
+and `inventory_bin.ordered <> 0`, because `NOT VALID` avoids the initial validation scan but future updates to
+nonconforming rows still obey the constraints. Held for separate pre-migration review; no merge, prod apply, or
+production data change.
 
 **#314 responsibility-assignment write gate draft.** Opened draft #444 to close the direct-REST governance gap without
 turning RACI labels into authorization. The migration adds `responsibility.write` to `authorize(perm, org)` for
