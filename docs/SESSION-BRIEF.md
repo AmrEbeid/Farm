@@ -94,6 +94,18 @@ Vercel); focused independent check found no blockers.
 agronomist + Egyptian pesticide-registration sign-off; #400 still needs fresh pre-migration review of exact apply
 order before any merge/migrate.
 
+## 2026-06-29 — #400 export draft status wording refreshed
+**Change.** Updated held draft #400 (`docs/spec-0016-export-compliance`) to remove stale "design only" wording from
+SPEC-0016 and the PR body. The branch now states the actual scope: slice 1 schema/RLS/audit and pure readiness code
+are implemented on the draft branch, but are not merged or applied to production. The `0092` migration comment now
+describes the `authorize()` re-emit as the final known permission union including #366 `academy.write`.
+
+**Evidence.** #400 branch head `dbcfeb8`; GitHub checks green (`pgTAP`, app/typecheck/lint/test/build, gitleaks,
+Vercel); focused independent check found no wording blockers.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #400 remains draft and still needs
+fresh pre-migration review of exact prod apply order before any apply.
+
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
 

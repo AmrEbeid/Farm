@@ -234,6 +234,9 @@ Completed 2026-06-29: chose strategy 2. #366 `0091` now preserves the final know
 `export.write` (head `86dfa6e`, CI green, focused independent check found no blockers). This reduces the out-of-order
 gap-fill trap but does not approve any merge or migration.
 
+Follow-up completed 2026-06-29: #400 wording now matches its current draft scope (schema/readiness code implemented
+but not merged or applied; head `dbcfeb8`, CI green, focused independent check found no wording blockers).
+
 - [ ] **Step 3: Preserve #368 accounting gates**
 
 Before #368 can merge or migrate, confirm real 7-year Excel reconciliation and privacy review. Treat `0088` as an

@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #400 export draft wording refreshed; still held.** Updated held draft **#400 export** so the
+> SPEC and PR body no longer claim "design only": they now correctly say slice 1 schema/RLS/audit plus pure
+> readiness code are implemented on the draft branch, but not merged or applied to prod. Also refreshed the `0092`
+> migration comment to say `authorize()` re-emits the final known permission union including #366 `academy.write`.
+> Branch head `dbcfeb8`; GitHub checks green; focused independent check found no wording blockers. **Still held:**
+> no production action is approved, and #400 needs a fresh pre-migration review of exact apply order before any
+> merge/migrate.
+
 > **2026-06-29 — #366 patched to preserve `export.write`; migration-order trap reduced, gates still open.**
 > Applied a narrow fix to held draft **#366 academy** so migration `0091` re-emits `public.authorize()` with the
 > final known permission union, including `export.write`. Test `89_academy_content_test.sql` now asserts
