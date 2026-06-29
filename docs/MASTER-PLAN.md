@@ -84,6 +84,10 @@ Each stage scored on **impact × probability × reversibility → highest tier w
 ### Stage 7 — Accounting (expenses / sales / vouchers) · Type: Execution · **Risk: High**
 - **Why:** financial integrity; cost allocation feeds owner decisions.
 - **Scope:** expenses/sales/vouchers, cost allocation to farm/sector/crop/operation/season, P&L. **Acceptance:** expenses/sales link correctly; P&L by sector reconciles to a known closed season (dual-run vs the Excel totals); drawings excluded from operating P&L. **Checks:** reconciliation/total checks (the finance oracle). **Independent review REQUIRED.**
+- **Current SPEC-0018 note (2026-06-29):** draft backend PR #438 now enforces owner/accountant finance reads,
+  RPC-only custody account writes, audit-log finance gating, and the `expenses.kind` drawings split for custody/payment
+  request math. It remains **held** until independent money/RLS/audit review and a separate pre-migration review; the
+  frontend PR #441 must use `fn_save_custody_account` and avoid broad farm-manager finance reads before merge.
 
 ### Stage 8 — People & labor / payroll · Type: Execution · **Risk: High**
 - **Why:** PII + regulated payroll data.
