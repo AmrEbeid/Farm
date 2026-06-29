@@ -13,8 +13,9 @@
 -- Reads open to all org members (shared agronomy knowledge); soft-delete (0027); audited (0008).
 
 -- ── 1) extend the org-scoped authorize() with academy.write (owner + agri_engineer — the agronomist
--- role). Re-stated in full from 0081 (the latest definition); the 1-arg authorize(text) stays dropped
--- (0035 AUTHZ-2). ────────────────────────────────────────────────────────────────────────────────────
+-- role). Re-stated with the final known permission union so an out-of-order prod gap-fill cannot drop
+-- export.write if export compliance (0092) is applied before this lower-numbered migration. The 1-arg
+-- authorize(text) stays dropped (0035 AUTHZ-2). ────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.authorize(perm text, p_org uuid)
 returns boolean
 language sql
@@ -33,7 +34,8 @@ as $$
          or (perm = 'budget.write'    and m.role in ('owner','accountant'))
          or (perm = 'payroll.read'    and m.role in ('owner','accountant'))
          or (perm = 'structure.write' and m.role in ('owner','farm_manager'))
-         or (perm = 'academy.write'   and m.role in ('owner','agri_engineer')) )
+         or (perm = 'academy.write'   and m.role in ('owner','agri_engineer'))
+         or (perm = 'export.write'    and m.role in ('owner','farm_manager')) )
   )
 $$;
 
