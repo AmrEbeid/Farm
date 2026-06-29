@@ -110,6 +110,15 @@ transfer rejection, direct table protection, `ordered=0`, and `projected = on_ha
 Local pgTAP passed **691/691**. Held for review and separate pre-migration review; no merge, prod apply, or production
 data change.
 
+**#314 responsibility-assignment write gate draft.** Opened draft #444 to close the direct-REST governance gap without
+turning RACI labels into authorization. The migration adds `responsibility.write` to `authorize(perm, org)` for
+owner/farm_manager, re-emits `responsibility_assignments` RLS so reads stay org-wide but insert/update require the new
+permission, and preserves the same-org `people` guard. Added pgTAP coverage for owner/farm_manager allow, storekeeper/
+supervisor deny, read preservation, manager same-org writes, cross-org person rejection, policy structure, and the
+authorize union. Local pgTAP passed **697/697**; `git diff --check` clean. Held for review and separate pre-migration
+review; no merge, prod apply, or production data change. Migration-order warning: #366/#400/#438 also re-emit
+`authorize()` and must preserve `responsibility.write` if rebased/applied after #444.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent

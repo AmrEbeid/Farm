@@ -476,13 +476,51 @@ and added pgTAP coverage for RPC rejection, direct table protection, ordered pin
 Completed 2026-06-29: `bash apps/farm-os/supabase/test-shims/run-pgtap-local.sh` passed **691/691** with
 `not_ok=0` and `file_failures=0`.
 
-- [ ] **Step 5: Publish held PR and review before any merge/migrate**
+- [x] **Step 5: Publish held PR and review before any merge/migrate**
 
-Required gates: GitHub checks green, focused review of the `fn_post_movement` re-emit and inventory semantics, and
+Completed 2026-06-29: opened draft #442. Local pgTAP passed **691/691**; GitHub checks are green; issue #431 was
+updated. Required gates remain: focused review of the `fn_post_movement` re-emit and inventory semantics, and
 separate pre-migration review before any prod apply.
+
+### Task 11: Draft #314 Responsibility Assignment Write Gate
+
+**Files:**
+- Add in #444: `apps/farm-os/supabase/migrations/20260629141650_responsibility_assignments_write_gate.sql`
+- Add in #444: `apps/farm-os/supabase/tests/101_responsibility_assignments_write_gate_test.sql`
+- Modify in #444: `apps/farm-os/supabase/tests/64_cross_org_fk_sweep_test.sql`
+- Modify in #444: `docs/BUSINESS-RULES-CATALOG.md`
+- Modify in #444: `docs/PERMISSIONS-MATRIX.md`
+- Modify in #444: `docs/DOMAIN-DICTIONARY.md`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: issue #314, People & Responsibility screen map, current `responsibility_assignments` RLS, current
+  `authorize()` union, and open migration queue.
+- Produces: held migration draft; no prod mutation.
+
+- [x] **Step 1: Review issue and product basis**
+
+Completed 2026-06-29: #314 is a governance/data-integrity gap, not privilege escalation, because
+`responsibility_assignments` does not feed `authorize()`. Product docs already say People & Responsibility is
+owner/farm_manager managed, so a bounded write gate is justified without waiting for the future UI.
+
+- [x] **Step 2: Implement migration + tests**
+
+Completed 2026-06-29: #444 adds `responsibility.write` for owner/farm_manager, re-emits
+`responsibility_assignments` RLS so reads remain org-wide while writes require the permission, and preserves the
+same-org `people` guard. Test 101 pins allow/deny/read/cross-org/policy/function invariants; test 64 now exercises
+the responsibility cross-org case as farm_manager so the same-org guard remains proven after the role gate.
+
+- [x] **Step 3: Verify locally and publish as held draft**
+
+Completed 2026-06-29: local pgTAP passed **697/697**; `git diff --check` clean; opened draft #444 and posted the
+#314 handoff. Held for review and separate pre-migration review. Migration-order warning: #366/#400/#438 also
+re-emit `authorize()` and must preserve `responsibility.write` if rebased/applied after #444.
 
 ## Self-Review
 
-- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.
+- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, held #431/#314 DB drafts, and merge/migration gates.
 - Placeholder scan: no TBD/TODO placeholders; every task has exact commands and expected outcomes.
 - Type consistency: no new code interfaces are defined; process interfaces are explicit.

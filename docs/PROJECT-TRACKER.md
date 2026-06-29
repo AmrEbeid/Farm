@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #314 responsibility-assignment write gate drafted; held for migration gate.** Draft PR
+> **#444** adds `responsibility.write` to `authorize(perm, org)` for owner/farm_manager and re-emits
+> `responsibility_assignments` RLS so org-member reads remain broad while direct REST insert/update requires the
+> new permission. The migration preserves the same-org `people` guard from #306. Local pgTAP passed **697/697** and
+> the issue handoff was posted. **Held:** no merge, migration, prod apply, or production data change until review
+> and a separate pre-migration review. Migration-order warning: in-flight draft migrations **#366/#400/#438**
+> re-emit `authorize()` and must preserve `responsibility.write` if they are rebased/applied after #444.
+
 > **2026-06-29 — #431 inventory transfer/ordered guard drafted; held for migration gate.** Drafted a defensive
 > migration for the latent inventory cleanup: new `transfer` movements are rejected until an atomic destination-bin
 > model exists, and `inventory_bin.ordered` is pinned at zero until a real purchase-order writer owns it. Re-emitted
