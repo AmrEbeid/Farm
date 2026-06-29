@@ -30,6 +30,10 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > **Follow-up:** #366 now uses the "patch `0091` to preserve the final permission union" path at head `86dfa6e`;
 > CI is green and a focused independent check found no blockers. This reduces the `0091`/`0092` ordering trap, but
 > #366/#400 remain unmigrated and require a fresh pre-migration review before any apply.
+> **#368 follow-up:** #368 now computes P&L totals through `fn_accounting_pnl_summary` on the DB side at head
+> `0625150`, closing the capped-row totals bug; CI is green and focused review found no RLS/authz/audit blocker.
+> It still remains unmigrated and draft-gated by real Excel reconciliation + privacy review and the explicit
+> `0088` gap-fill + `0097` apply plan.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel

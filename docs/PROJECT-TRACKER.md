@@ -1,5 +1,15 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #368 accounting P&L summary moved DB-side; code blocker closed, gates still open.** Patched
+> held draft **#368 accounting** so `/accounting` no longer computes financial totals from capped PostgREST row
+> reads. Migration `0088` now includes `fn_accounting_pnl_summary`, a `SECURITY DEFINER` DB aggregate gated by
+> `budget.write`; the page uses that RPC for totals and keeps the 200-row queries only for recent-detail previews.
+> Added pgTAP coverage for the aggregate, supervisor denial, drawings/capex separation, and category totals; typed
+> the RPC and expense-kind action guard. Branch head `0625150`; local validation passed pgTAP **709/709**, `tsc`,
+> focused eslint, P&L unit test **5/5**, production build; GitHub checks green; focused independent review found
+> no blocker and no new RLS/authz/audit issue. **Still held:** no merge/migration/prod apply; #368 still needs the
+> real 7-year Excel reconciliation + privacy review and explicit `0088` gap-fill plus `0097` apply planning.
+
 > **2026-06-29 — #400 export draft wording refreshed; still held.** Updated held draft **#400 export** so the
 > SPEC and PR body no longer claim "design only": they now correctly say slice 1 schema/RLS/audit plus pure
 > readiness code are implemented on the draft branch, but not merged or applied to prod. Also refreshed the `0092`
