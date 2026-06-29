@@ -16,6 +16,10 @@ follow-up.
 **No prod action.** Deleted one malformed duplicate #317 comment, posted corrected evidence notes on #188/#229, and
 ran no DDL, migration, or production data change.
 
+**Follow-up issue hygiene.** Retitled and edited #362 so it no longer reopens Farm Supabase DB password +
+`service_role` key rotation. That item is now checked off per Owner confirmation; #362 stays open for legacy keys,
+old repo history, spreadsheet/Google password, leaked-password protection, and demo login cleanup before real data.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
