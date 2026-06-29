@@ -330,6 +330,13 @@ The fixed items include hardcoded/fabricated KPI surfaces, Arabic label/date/num
 and role-affordance dead ends. The only remaining LOW residual from #282, ExecuteForm cleared qty/labor fields
 submitting as zero actuals, was split to #426 for a narrow product/validation decision.
 
+- [x] **Step 8: Patch the #426 blank-input path without changing zero semantics**
+
+Result recorded 2026-06-29: #428 adds a pure `parseExecuteInput` helper and wires `ExecuteForm` through it so blank,
+invalid, or negative actual quantity/labor values fail client-side with Arabic copy before the server action runs.
+An explicit typed `0` remains valid. Local validation passed: focused Vitest **3/3**, full Vitest **215/215**,
+focused eslint, `tsc --noEmit`, and production build.
+
 ## Self-Review
 
 - Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.

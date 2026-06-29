@@ -23,6 +23,13 @@
 > Opened narrow residual **#426** for the one remaining LOW data-quality decision: cleared ExecuteForm qty/labor
 > fields submit as zero because `Number("") === 0`. No code, DDL, migration, or production data change was performed.
 
+> **2026-06-29 — #426 fixed in #428; explicit zero preserved.** Opened **#428** to close the narrow ExecuteForm
+> residual: blank/invalid/negative actual quantity or labor inputs now fail client-side with an Arabic error before
+> `fn_execute_operation` is called, so clearing a field no longer silently submits `0`. An explicit typed `0` remains
+> valid because zero-material or zero-labor executions may be intentional and need a separate product decision before
+> DB semantics change. Local validation in an isolated temp copy: focused Vitest **3/3**, full Vitest **215/215**,
+> focused eslint, `tsc --noEmit`, and production build (existing Next/Supabase warning only). No migration or DDL.
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
