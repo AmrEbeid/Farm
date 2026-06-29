@@ -1,7 +1,7 @@
 # SPEC-0018 — العهدة وطلبات الصرف (Custody & Payment Requests)
 
 *Status: **DRAFT for Owner review** — design only; no schema applied, no prod mutation. Digitizes the
-paper «إذن صرف المزارع» (e.g. #6, 2026/06/07, 289,000 ج.م) into a live, auditable custody + payment-request
+paper «إذن صرف المزارع» into a live, auditable custody + payment-request
 module. Builds on existing Farm OS surfaces — the `expenses` table + `kind` operating/drawing/capex split
 (SPEC-0004 / migration `0088`), the `attachments` table (`0082`), and the org-scoped `authorize()` model —
 rather than duplicating them. Companion to [`SPEC-0004`](SPEC-0004-accounting-and-pnl.md) (P&L),
@@ -10,6 +10,10 @@ rather than duplicating them. Companion to [`SPEC-0004`](SPEC-0004-accounting-an
 *An immediate Google-Sheets/Excel tool ships first (Deliverable A — `إذن-الصرف-والعهدة-Ebeid-Farm-v1.xlsx`);
 this spec is the Farm OS module it migrates into (Deliverable B). The two share the same data model so the
 sheet's CSVs import cleanly (§11).*
+
+> Privacy note: this spec intentionally avoids embedding the real line-item amounts, worker-level matrix, receipt
+> details, or bank/payment identifiers. Those stay in the offline workbook until the Stage-M privacy review and
+> import dry-run approve their handling.
 
 ---
 
@@ -23,11 +27,11 @@ sheet's CSVs import cleanly (§11).*
   workflow are proven in the sheet and the team is ready for role-based, audited, multi-device use.
 
 ## 2. The current process (from إذن صرف #6) and its failures
-Owner gives the Farm Manager a **permanent custody float** (~25–30k). The Manager hands cash custody to the
+Owner gives the Farm Manager a **permanent custody float**. The Manager hands cash custody to the
 Accountant as needed. Some expenses are **paid from custody** (cash); the big ones — **labor and
 tasmeed/fertilization** — are **post-paid** and requested from the Owner. Today this is a hand-totaled paper
-form with category subtotals, a 340-worker labor matrix, loose attached receipts, and the **custody top-up
-scribbled in the margin** (#6 shows ٣٠٧,٤٦٧ "المطلوب" reconciled by hand). Failures: never "always-ready",
+form with category subtotals, labor/tasmeed detail, loose attached receipts, and the **custody top-up
+scribbled in the margin**. Failures: never "always-ready",
 no live balance, proof is loose paper, no approval trail, double-count risk between "paid cash" and
 "requested from owner".
 
@@ -65,7 +69,7 @@ Reuse/extend existing:
   missing-proof/duplicate-number flags are computed views.
 - **labor / tasmeed detail** — reuse `plan_operations` + `plan_labor_requirements` where an expense ties to a
   planned operation; otherwise a lightweight `expense_detail (expense_id, kind, qty, unit_price, …)` for the
-  ad-hoc lines (the 340-worker matrix, the fertilization breakdown). Detail **reconciles to** its expense
+  ad-hoc lines (labor matrix, fertilization breakdown). Detail **reconciles to** its expense
   line; it is never summed again (anti-double-count).
 
 ## 5. Secure RPCs (SECURITY DEFINER, `search_path=''`, EXECUTE locked, internal `authorize()` check)
@@ -79,18 +83,25 @@ the only path; audit is server-side via the `fn_audit` trigger.
 > perms (the re-emit footgun). Run `tests/22` + `tests/97` after.
 
 ## 6. Roles & permissions (maps onto the existing 6 roles)
-| Capability | Owner | Farm Manager / super_admin | Accountant | Viewer/Auditor |
+Existing roles are `owner`, `farm_manager`, `agri_engineer`, `accountant`, `supervisor`, and `storekeeper`.
+This finance module is **not all-member readable**: custody, payment requests, receipts, and wage/tasmeed detail
+are finance-confidential. A future auditor role requires a separate role-model decision; until then, read-only audit
+access is owner/accountant only.
+
+| Capability | Owner | Farm Manager | Accountant | Agri engineer / Supervisor / Storekeeper |
 |---|---|---|---|---|
-| View all custody/expenses/requests | ✅ | ✅ | ✅ | ✅ (read-only) |
+| View custody/payment requests/receipts | ✅ | ⬜ Owner-ratified scope only | ✅ | |
 | Enter expenses, attach receipts, prepare requests, record custody | | ✅ | ✅ | |
 | Approve **operational** expenses | ✅ | ✅ | | |
 | **Final approve** a payment request | ✅ | | | |
 | Close the month | ✅ | ✅ (then Owner final) | | |
-New `authorize()` perms: **`custody.write`** (owner/farm_manager/accountant), **`expense.write`**
-(owner/farm_manager/accountant), **`request.prepare`** (accountant/farm_manager), **`request.approve.op`**
-(owner/farm_manager), **`request.approve.final`** (owner). Reads are org-scoped to all members; the
-auditor/viewer role is write-denied everywhere. Compensation/PII stays gated per SPEC-0006 (labor *wages* in
-the detail are visible to the finance roles only, not all members).
+New `authorize()` perms: **`custody.write`** (owner/farm_manager/accountant), **`request.prepare`**
+(accountant/farm_manager), **`request.approve.op`** (owner/farm_manager), **`request.approve.final`** (owner).
+Do **not** add a broad `expense.write` permission unless a later migration intentionally replaces the existing
+`budget.write` expense gate; the current expense privacy posture is owner/accountant by default, with any
+farm_manager entry path needing a narrow RPC and explicit tests. Reads remain org-scoped **and finance-role gated**.
+Compensation/PII stays gated per SPEC-0006 (labor *wages* in the detail are visible to finance roles only, not all
+members).
 
 ## 7. Dashboard (module home — mirrors the sheet's لوحة التحكم)
 KPIs: current custody balance, target float, required top-up, post-paid unpaid total, **total owner payment
@@ -133,7 +144,8 @@ hard stop). The sheet stays the source of truth until import is verified, then t
   request** (no double-count) — proven by a pgTAP oracle.
 - Drawings (`kind='drawing'`) are excluded from operating + request math (#6).
 - Every write is audited (`audit_log`); approvals carry approver + timestamp; the period locks on close.
-- A non-finance member cannot read wages or write any custody/expense/request row (RLS, FORCE RLS).
+- A non-finance member cannot read wages, receipts, custody balances, payment requests, or write any
+  custody/expense/request row (RLS, FORCE RLS).
 - The printable request reconciles to the line items and shows the missing-proof warning when proof is absent.
 - `authorize()` after the new perms passes `tests/22` + `tests/97` (no permission dropped).
 
