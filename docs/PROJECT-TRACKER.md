@@ -1,5 +1,14 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #366 patched to preserve `export.write`; migration-order trap reduced, gates still open.**
+> Applied a narrow fix to held draft **#366 academy** so migration `0091` re-emits `public.authorize()` with the
+> final known permission union, including `export.write`. Test `89_academy_content_test.sql` now asserts
+> `export.write` remains available to owner/farm_manager and unavailable to supervisor. Branch head `86dfa6e`;
+> GitHub checks green; focused independent check found no blockers. This means if export `0092` is applied before
+> a later `0091` gap-fill, `0091` no longer silently drops export write permission. **Still held:** #366 remains
+> draft pending agronomist/pesticide-registration sign-off, and #400 still needs a fresh pre-migration review of
+> exact apply order before any merge/migrate.
+
 > **2026-06-29 — low-risk draft-branch fixes applied to #366/#368; both still HELD.** After the draft-lane
 > reviews, applied the non-migration follow-ups that reduce future operator confusion without clearing expert gates.
 > **#366 academy** now fails visibly if the `academy_content` query errors instead of rendering an empty academy,
