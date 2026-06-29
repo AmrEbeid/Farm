@@ -243,13 +243,14 @@ Before #368 can merge or migrate, confirm real 7-year Excel reconciliation and p
 explicit out-of-order prod gap-fill because prod is already at `0096`, and pair it with `0097` in the reviewed
 apply path.
 
-Completed 2026-06-29: fixed the accepted code blocker without clearing the real gates. #368 now computes P&L totals
-through DB-side `fn_accounting_pnl_summary` instead of capped PostgREST row reads; the page keeps capped queries only
-for recent-detail previews. Added pgTAP coverage for aggregate totals, supervisor denial, drawings/capex separation,
-and category totals; local validation passed pgTAP **709/709**, `tsc`, focused eslint, P&L unit test **5/5**, and
-production build. GitHub CI green and focused independent review found no blocker at head `0625150`. #368 remains
-draft/unmigrated pending real Excel reconciliation + privacy review and fresh pre-migration review of `0088` + `0097`
-apply order.
+Completed 2026-06-29: implemented the DB-side summary fix without clearing the real gates. #368 now computes P&L
+totals through DB-side `fn_accounting_pnl_summary` instead of capped PostgREST row reads; the page keeps capped
+queries only for recent-detail previews. Added pgTAP coverage for aggregate totals, supervisor denial,
+drawings/capex separation, and category totals; local validation passed pgTAP **709/709**, `tsc`, focused eslint,
+P&L unit test **5/5**, and production build. GitHub CI green at head `0625150`; a session reviewer check found no
+obvious blocker, but this is not a substitute for the fresh visible final review required before any merge/migrate.
+#368 remains draft/unmigrated pending real Excel reconciliation + privacy review and fresh pre-migration review of
+`0088` + `0097` apply order.
 
 - [x] **Step 4: Queue low-risk branch fixes**
 

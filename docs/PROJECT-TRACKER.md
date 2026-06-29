@@ -6,8 +6,8 @@
 > `budget.write`; the page uses that RPC for totals and keeps the 200-row queries only for recent-detail previews.
 > Added pgTAP coverage for the aggregate, supervisor denial, drawings/capex separation, and category totals; typed
 > the RPC and expense-kind action guard. Branch head `0625150`; local validation passed pgTAP **709/709**, `tsc`,
-> focused eslint, P&L unit test **5/5**, production build; GitHub checks green; focused independent review found
-> no blocker and no new RLS/authz/audit issue. **Still held:** no merge/migration/prod apply; #368 still needs the
+> focused eslint, P&L unit test **5/5**, production build; GitHub checks green. Session reviewer check found no obvious
+> blocker, but the durable merge gate still requires a fresh visible final review before merge/migrate. **Still held:** no merge/migration/prod apply; #368 still needs the
 > real 7-year Excel reconciliation + privacy review and explicit `0088` gap-fill plus `0097` apply planning.
 
 > **2026-06-29 — #400 export draft wording refreshed; still held.** Updated held draft **#400 export** so the
@@ -379,7 +379,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Framework built on synthetic (2026-06-27, draft PR #368)** | `expenses.kind` (#6 drawings/capex separation) + `sales` + `fn_save_sale`/`fn_set_expense_kind` (budget.write) + the pure P&L engine (`lib/pnl.ts`) + `/accounting` report. Migration `0088` draft (Owner applies). pgTAP 660/660. **GATES STILL OPEN:** the dual-run reconciliation vs the real 7-yr Excel + privacy review (Stage M) + **independent review of the money logic** before prod. |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Framework built on synthetic (2026-06-27, draft PR #368)** | `expenses.kind` (#6 drawings/capex separation) + `sales` + `fn_save_sale`/`fn_set_expense_kind`/`fn_accounting_pnl_summary` (budget.write) + the pure P&L engine (`lib/pnl.ts`) + `/accounting` report. Migration `0088` + `0097` draft (Owner applies after gates). Latest #368 validation: pgTAP 709/709, app CI green at `0625150`. **GATES STILL OPEN:** the dual-run reconciliation vs the real 7-yr Excel + privacy review (Stage M) + fresh visible final review of money/RLS logic before merge/migrate. |
 | 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |

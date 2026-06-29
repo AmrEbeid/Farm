@@ -1,7 +1,7 @@
 # Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-29 — #368 accounting DB-side summary fix accepted; PR still held
+## 2026-06-29 — #368 accounting DB-side summary fix implemented; PR still held
 **Change.** Patched held draft #368 (`feat/stage-7-accounting-backend`) so `/accounting` no longer computes P&L
 totals from capped PostgREST row reads. Migration `0088` now adds `fn_accounting_pnl_summary`, a
 `SECURITY DEFINER` DB aggregate RPC gated by `budget.write`; the page uses that RPC for P&L totals while keeping
@@ -11,8 +11,9 @@ operating category totals.
 
 **Evidence.** #368 branch head `0625150`. Local validation passed: pgTAP **709/709**, `npx tsc --noEmit`,
 focused eslint, `lib/pnl.test.ts` **5/5**, and `npm run build`. GitHub checks passed: pgTAP, app/typecheck/lint/
-test/build, token/storybook build, gitleaks, Vercel. Focused independent review found no blockers: capped-row P&L
-bug fixed and no new RLS/authz/audit issue found. PR body was refreshed to match this state.
+test/build, token/storybook build, gitleaks, Vercel. A session reviewer check found no obvious blocker, but this is
+not a substitute for the fresh visible final review required before any merge/migrate. PR body was refreshed to match
+this state.
 
 **Still held.** No merge, migration, deploy, or production apply was performed. #368 remains draft pending the real
 7-year Excel reconciliation + privacy review, plus fresh pre-migration review of exact `0088` gap-fill and `0097`
