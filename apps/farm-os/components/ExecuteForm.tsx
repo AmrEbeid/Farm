@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, FormRow, Input, Textarea, Alert } from "@/components/ui";
 import { executeOperation } from "@/app/(app)/m/execute/[opId]/actions";
+import { parseExecuteInput } from "@/lib/execute-input";
 
 export function ExecuteForm({
   opId,
@@ -47,10 +48,16 @@ export function ExecuteForm({
         onClick={async () => {
           setPending(true);
           setError(null);
+          const parsed = parseExecuteInput(qty, labor);
+          if (!parsed.ok) {
+            setError(parsed.error);
+            setPending(false);
+            return;
+          }
           try {
             const res = await executeOperation(opId, {
-              actualQty: Number(qty),
-              laborCount: Number(labor),
+              actualQty: parsed.value.actualQty,
+              laborCount: parsed.value.laborCount,
               note,
             });
             if (res.ok) {

@@ -1,431 +1,223 @@
-# Session Brief — Farm OS      Updated: 2026-06-29 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-29 — Owner-review packaging checklist + final code-readiness pass
-**Where we are.** Inventoried the full local worktree for the module navigator/dashboard/360 batch and added
-`docs/superpowers/plans/2026-06-29-module-dashboard-360-owner-review-checklist.md`. The checklist separates included
-scope, explicit exclusions, owner review gates, validation evidence, the browser/auth visual-smoke limitation, and
-safe selective staging guidance. Final code-readiness review then patched the remaining farm timeline/status raw enum
-fallbacks on the farm list/dashboard and sector/hawsha/line/palm 360 pages; line/palm now use the shared
-`SUBTYPE_AR` label map. A follow-up independent explorer-agent audit found and fixed three more readiness issues:
-storekeeper `/dashboard` now routes to `/inventory/dashboard`, expense list/detail pages enforce the same finance
-roles as the sidebar, and `/farm`, `/plans`, and `/inventory` now present as secondary structure/list surfaces with
-links back to their module dashboards. `lib/nav.test.ts` now also checks role-filtered modules start with their
-dashboard and explicitly covers current 360 active-nav routes. The legacy mutating Playwright wedge setup now refuses
-non-local Supabase URLs unless an explicit local-reset env flag is present, preventing accidental data resets against
-a direct Supabase target. Final standards/spec review found and fixed four issues: settings role fallback no longer
-shows raw unknown role codes; planning's due-operations KPI now filters to the due queue; the Farm Barhi total is no
-longer a fake filter; and finance now separates displayed operating expenses from owner drawings using existing
-expense text fields until a stronger schema discriminator exists.
-
-**Scope audit.** No dependency manifests, env files, Vercel/proxy files, or Supabase migration/test/config files are
-in this batch. A secret-pattern scan over the app/docs diff returned no hits. `docs/SPEC-0018-custody-and-payment-requests.md`
-is unrelated and should not be staged with the module dashboard/360 batch.
-
-**Validation.** Targeted blocker searches clean for invalid nested controls, placeholder links, hardcoded KPI
-literals, and farm event/status enum leaks. The remaining `health_status` raw fallback is intentional because that
-field can contain field-entered Arabic free text. Touched-file ESLint clean; `npx tsc --noEmit` clean; nav/help
-Vitest **17/17**; full Vitest **177/177**; `npm run build` green; `git diff --check` clean.
-
-**Still open.** Browser/auth visual smoke remains blocked. Owner clarified that Farm OS should not use the
-Docker-backed Supabase local stack and that migrations are handled directly in Supabase. Use an already-authenticated
-browser/session or define a separate non-Docker smoke path. No migrations, RPCs, production mutation, commit, merge,
-or deploy.
-
-## 2026-06-29 — 360 table drill-through hardening
-**Where we are.** Reviewed `SimpleTable`/`FilterableTable` row-link behavior and dashboard/360 row definitions for
-missing canonical detail affordances. Budget 360 and Supplier 360 expense tables now link each expense row to
-Expense 360 (`/expenses/[expenseId]`). Rows that do not have a backing detail route, such as weather reason rows or
-farm event rows, remain non-clickable.
-
-**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean;
-`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**;
-`npm run build` green.
-
-**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
-path. No migrations, RPCs, production mutation, commit, merge, or deploy.
-
-## 2026-06-29 — Mobile/accessibility layout hardening
-**Where we are.** Ran a focused review of the module sidebar, topbar, KPI grids, and dashboard/360 responsive
-layout. KPI sections now default to one column on the smallest screens, then two columns from `sm`, then desktop
-four-column layouts where already intended. Module toggles now expose controlled page-list regions with
-`aria-controls`; active KPI filter links use `aria-current="page"`; topbar controls can wrap; and long Arabic nav
-labels can wrap inside the sidebar/drawer instead of pushing the layout width.
-
-**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean;
-`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**;
-`npm run build` green.
-
-**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
-path. No migrations, RPCs, production mutation, commit, merge, or deploy.
-
-## 2026-06-29 — Pre-merge UX label/markup hardening
-**Where we are.** Ran a focused pre-merge review over the dashboard/360 batch for invalid nested controls,
-placeholder links, duplicated Arabic label maps, and raw DB enum fallbacks. Fixed the remaining `Link > Button`
-patterns on `/m` and the manager dashboard. Centralized employment-type and purchase-request status labels in
-`lib/labels.ts`, then removed raw fallback rendering from people, planning, purchasing, inventory item, budget,
-supplier, expense, and field dashboard surfaces.
-
-**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean;
-`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**;
-`npm run build` green.
-
-**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
-path. No migrations, RPCs, production mutation, commit, merge, or deploy.
-
-## 2026-06-29 — Module navigator spec aligned with guards
-**Where we are.** Updated
-`docs/superpowers/specs/2026-06-29-module-navigator-dashboards-360-design.md` to match the implementation now in
-the worktree. The spec now explicitly requires URL-addressable dashboard KPI filters, shared filter UI primitives,
-route-specific Help Drawer coverage for dynamic 360/workflow pages, and active-nav coverage for dynamic pages.
-
-**Validation.** Docs-only alignment pass. Latest code validation remains: `npx vitest run lib/nav.test.ts` **9/9**,
-touched-file ESLint clean, `npx tsc --noEmit` clean, full `npx vitest run` **176/176**, and `npm run build` green.
-
-**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
-path. No migrations, RPCs, production mutation, commit, merge, or deploy.
-
-## 2026-06-29 — Dynamic active-nav drift guard
-**Where we are.** Added a filesystem-backed `lib/nav.test.ts` guard that samples every dynamic `app/(app)` page and
-asserts it resolves to an active nav item. This protects 360/workflow routes from losing module/sidebar context as
-more dynamic pages are added.
-
-**Validation.** `npx vitest run lib/nav.test.ts` **9/9**; touched-file ESLint clean; `npx tsc --noEmit` clean;
-full `npx vitest run` **176/176**; `npm run build` green.
-
-## 2026-06-29 — Workflow active-nav aliases
-**Where we are.** Added active-nav aliases for dynamic workflow pages that live outside normal nav prefixes:
-`/budget/[planId]/check` now highlights `budgets`, and `/reports/[planId]/pva` highlights `plans` in the module
-sidebar instead of defaulting to the global dashboard. This keeps workflow pages in the right module context.
-
-**Validation.** `npx vitest run lib/nav.test.ts lib/page-help.test.ts` **15/15**; touched-file ESLint clean;
-`npx tsc --noEmit` clean; full `npx vitest run` **175/175**; `npm run build` green.
-
-## 2026-06-29 — Workflow Arabic fallback hardening
-**Where we are.** Removed raw DB/string fallback leaks from dynamic workflow pages touched by the Help Drawer pass:
-`/m/execute/[opId]` now falls back to Arabic labels for unknown subtype/status/unit, `/reports/[planId]/pva` uses
-Arabic "عملية" for unknown operation subtypes in tables/charts, and `/inventory/[itemId]/coverage` uses `كجم` when
-an item unit is missing.
-
-**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **175/175**;
-`npm run build` green.
-
-## 2026-06-29 — Dynamic route-help drift guard strengthened
-**Where we are.** Strengthened `lib/page-help.test.ts` with a filesystem-backed guard that samples every dynamic
-`app/(app)` page and asserts it gets route-specific Help Drawer content instead of generic dashboard fallback.
-This protects the 360/workflow help coverage as new dynamic pages are added.
-
-**Validation.** `npx vitest run lib/page-help.test.ts` **7/7**; touched-file ESLint clean; `npx tsc --noEmit`
-clean; full `npx vitest run` **175/175**; `npm run build` green.
-
-## 2026-06-29 — Workflow detail help coverage
-**Where we are.** Added route-specific Help Drawer entries for remaining dynamic workflow pages:
-`/inventory/[itemId]/coverage`, `/m/execute/[opId]`, `/budget/[planId]/check`, and `/reports/[planId]/pva`.
-These now show stock-coverage, field-execution, budget-check, and planned-vs-actual guidance instead of generic
-parent help. `lib/page-help.test.ts` covers these paths.
-
-**Review fix.** While reading `/budget/[planId]/check`, fixed the existing invalid `Link > Button` CTA by replacing
-it with a styled link to the purchase-request approval page.
-
-**Validation.** `npx vitest run lib/page-help.test.ts` **6/6**; touched-file ESLint clean; `npx tsc --noEmit`
-clean; full `npx vitest run` **174/174**; `npm run build` green. No migrations/RPC/prod changes.
-
-## 2026-06-29 — Dashboard filter UI factored
-**Where we are.** Added shared `CurrentFilterCard` and replaced duplicated current-filter/clear-filter markup across
-inventory, farm, finance, planning, people, weather, and settings dashboards. Behavior is unchanged from the KPI
-filter slice; this reduces drift between dashboard modules.
-
-**Validation.** Touched-dashboard ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **174/174**;
-`npm run build` green.
-
-## 2026-06-29 — Farm structure 360 help coverage
-**Where we are.** Added route-specific Help Drawer entries for the existing farm structure detail pages:
-`/farm/sector/[id]`, `/farm/hawsha/[id]`, `/farm/line/[id]`, and `/farm/palm/[id]`. These now show sector,
-hawsha, line, and palm 360 guidance instead of generic farm-structure help. The route-help drift test covers all
-four paths.
-
-**Validation.** `npx vitest run lib/page-help.test.ts` **6/6**; touched-file ESLint clean; `npx tsc --noEmit`
-clean; full `npx vitest run` **174/174**; `npm run build` green. No migrations/RPC/prod changes.
-
-## 2026-06-29 — Dashboard KPI filters across modules
-**Where we are.** Added a shared `DashboardKpiLink` wrapper and made KPI cards interactive across the module
-dashboards. Inventory now uses the shared wrapper; farm, finance, planning, people, weather, and settings use
-`?filter=` state to narrow the relevant table sections and show an Arabic current-filter card plus a clear-filter
-link. No writes, RPCs, migrations, dependencies, or charts were added.
-
-**Validation.** Touched-dashboard ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **174/174**;
-`npm run build` green. Browser/auth visual smoke is still not completed because the local authenticated app path
-needs a working local Supabase/seed session.
-
-**Still open.** Visual review in a logged-in browser session before commit/push/merge. Longer-term polish: factor
-the repeated current-filter card/inline-link pattern if dashboard filtering grows further.
-
-## 2026-06-29 — Module dashboard/360 hardening review
-**Where we are.** The module navigator/dashboard/360 batch is still local and uncommitted, but now has a stronger
-review pass on top of the build work. Dynamic 360/detail routes get specific Help Drawer content via
-`helpForPath(pathname, fallbackHelpId)` while the sidebar active state still comes from the parent nav item. New
-360 help entries cover item, plan, purchase request, supplier, budget, expense, and person files.
-
-**Review fixes.** Addressed the independent review findings that could mislead users: raw English/database labels
-were removed from the new dashboard/360 surfaces through shared Arabic label maps in `lib/labels.ts`; inventory's
-current-filter text is Arabic; supplier movement types, budget status, expense status/payment method, and plan type
-labels no longer render raw enum values. KPI wording/sources were tightened where rows are capped: farm attention
-uses exact count, finance budget totals no longer use a 30-row cap, planning labels say "معروضة" for capped queues,
-and supplier PR-line KPI uses exact count with a note when the table is capped.
-
-**Validation.** `npx eslint` on touched shared/dashboard/360 files clean; `npx tsc --noEmit` clean;
-`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **14/14**; full `npx vitest run` **174/174**; `npm run build`
-green and route list includes all dashboard/360 routes. No migrations, no RPC changes, no production mutation, no
-commit/merge.
-
-**Still open.** Browser/auth visual smoke remains blocked unless local Supabase/auth can seed a session. Next
-recommended slice: make dashboard KPI cards interactive filters across farm, finance, planning, people, weather,
-and settings; inventory already has that pattern.
-
-## 2026-06-29 — Module navigator + Inventory/Purchasing dashboard first slice
-**Where we are.** Built the read-only first slice of the module navigator/dashboard/360 direction. New docs:
-[`docs/superpowers/specs/2026-06-29-module-navigator-dashboards-360-design.md`](superpowers/specs/2026-06-29-module-navigator-dashboards-360-design.md)
-and
-[`docs/superpowers/plans/2026-06-29-module-navigator-inventory-dashboard.md`](superpowers/plans/2026-06-29-module-navigator-inventory-dashboard.md).
-Code changes: `APP_MODULES` registry in `lib/nav.ts`, grouped app-side `ModuleSidebar`, `AppChrome` wiring,
-`/inventory/dashboard` with query-derived KPI-card filters + work table, and page-help entries for
-`inventory-dashboard` + `farm-croquis`. The first slice deliberately avoided migrations/RPCs/prod changes,
-`@amrebeid/ui` package edits, accounting, academy, AI, and real registry import.
-
-**Review.** Independent review found two real sidebar CSS blockers: undefined custom shell dimension variables and
-a breakpoint mismatch with `@amrebeid/ui`'s `48rem` AppShell drawer breakpoint. Fixed with explicit 240px/sidebar
-and topbar fallbacks, matching `48rem`, plus RTL desktop grid alignment so the module nav sits in the shell sidebar
-column instead of covering main content.
-
-**Validation.** `npx eslint components/AppChrome.tsx components/ModuleSidebar.tsx lib/nav.ts lib/nav.test.ts
-lib/page-help.ts 'app/(app)/inventory/dashboard/page.tsx'` clean; `npx vitest run` **170/170**; `npm run build`
-green and route list includes `/inventory/dashboard`; `npx tsc --noEmit` clean when run serially after build.
-Running `tsc` in parallel with `next build` produces transient `.next/types` missing-file errors because build
-rewrites generated types; the serial command is clean. Browser smoke was attempted with Playwright, but the app
-redirected to `/login` because `/api/dev/seed-auth` self-disables unless `NEXT_PUBLIC_SUPABASE_URL` points at local
-Supabase.
-
-**Still open.** No migration needed. Do an owner/visual review before commit/push/merge. Next recommended build
-slice: item 360 shell under Inventory/Purchasing, or Farm/Structure module dashboard after this first slice is
-visually accepted.
-
-## 2026-06-29 — Item 360 shell under Inventory/Purchasing
-**Where we are.** Built `/inventory/[itemId]` as the canonical read-only Item 360 overview. Inventory list and
-`/inventory/dashboard` item rows now link to that overview; `/inventory/[itemId]/coverage` remains the Health/Risk
-deep dive. The page reads existing RLS-scoped `inventory_items`, `inventory_bin`, `inventory_movements`, and
-`purchase_request_items`; it shows query-derived stock KPIs, item profile/reorder policy, recent movements, linked
-PRs, and a clear coverage CTA. No migrations/RPCs/charts/prod/data mutation.
-
-**Review.** Independent review returned no blocking findings, but flagged invalid nested `Link > Button`, stale
-inventory-list copy, and nondeterministic PR-line ordering. Fixed all three: header actions are styled links,
-inventory copy says items open their file, and linked PR lines now order deterministically.
-
-**Validation.** Targeted ESLint clean for inventory pages; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
-`npm run build` green and route list includes both `/inventory/[itemId]` and `/inventory/[itemId]/coverage`.
-
-**Still open.** No migration needed. Next recommended slice: Farm/Structure module dashboard, because palm/sector/
-hawsha/line 360 pages already exist and can demonstrate the module-dashboard pattern outside inventory.
-
-## 2026-06-29 — Farm Dashboard module entry
-**Where we are.** Built `/farm/dashboard` as the Farm module's read-only dashboard entry and kept `/farm` as the
-structure directory. The dashboard reads existing RLS-scoped `sectors`, `hawshat`, `assets`, and `farm_event` data;
-shows query-derived KPIs for sectors, hawshat, Barhi palms, and palms needing attention; and links table rows into
-existing sector, hawsha, and palm 360 pages. Updated the Farm module nav so the dashboard is first, added
-`farm-dashboard` page help, extended nav active-route tests, and added the third-slice note to the dashboard/360
-design spec.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation. The page uses read-only
-Supabase queries only and styled links for header/table navigation.
-
-**Validation.** Targeted ESLint clean for the farm dashboard/nav/help files; `npx tsc --noEmit` clean;
-`npx vitest run` **170/170**; `npm run build` green and route list includes `/farm/dashboard`.
-
-**Still open.** No migration needed. Next recommended slice: Planning/Operations module dashboard, reusing existing
-plans/operations data and linking rows into plan 360 pages.
-
-## 2026-06-29 — Planning/Operations Dashboard module entry
-**Where we are.** Built `/plans/dashboard` as the Planning/Operations module's read-only dashboard entry and kept
-`/plans` as the plan directory. The dashboard reads existing RLS-scoped `plans`, `plan_operations`, and
-`plan_checks`; shows query-derived KPIs for active plans, due/open operations, blocked checks, and estimated open
-cost; and links work rows into existing plan 360 pages. Updated module nav so the dashboard is first, added
-`plans-dashboard` page help, extended active-route tests, added a planning-dashboard plan, and recorded the
-fourth-slice note in the dashboard/360 design spec.
-
-**Research basis.** The slice reused the Admin Panel lesson (KPI cards over a work table, row to 360) and matched
-market patterns from Farmbrite task/work management, Agworld planning/execution/performance framing, and John
-Deere Operations Center planning/monitoring/analysis framing.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation. The page uses read-only
-Supabase queries only and styled links for header/table navigation.
-
-**Validation.** Targeted ESLint clean for the planning dashboard/nav/help files; `npx tsc --noEmit` clean;
-`npx vitest run` **170/170**; `npm run build` green and route list includes `/plans/dashboard`.
-
-**Still open.** No migration needed. Next recommended slice: Finance module dashboard or People module dashboard,
-depending on whether we want to prioritize owner financial review or operational staffing visibility next.
-
-## 2026-06-29 — Finance Dashboard module entry
-**Where we are.** Built `/finance/dashboard` as the Finance module's read-only dashboard entry and kept `/budgets`
-and `/expenses` as finance sub-pages. The dashboard reads existing RLS-scoped `budgets`, `expenses`, and
-`purchase_requests`; shows query-derived KPIs for approved budget, committed+actual spend, available budget, and
-submitted PRs; and surfaces budget pressure, recent expenses, and PR follow-up tables. Updated module nav so the
-dashboard is first, added `finance-dashboard` page help, extended active-route tests, added a finance-dashboard
-plan, and recorded the fifth-slice note in the dashboard/360 design spec.
-
-**Scope control.** The slice explicitly avoided accounting/P&L draft work that is not on `main`.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation. The page uses read-only
-Supabase queries only and styled links for header/table navigation.
-
-**Validation.** Targeted ESLint clean for the finance dashboard/nav/help files; `npx tsc --noEmit` clean;
-`npx vitest run` **170/170**; `npm run build` green and route list includes `/finance/dashboard`.
-
-**Still open.** No migration needed. Next recommended slice: People module dashboard, because team visibility is
-already a read-only page and can be expanded without touching compensation/PII.
-
-## 2026-06-29 — People Dashboard + Person 360
-**Where we are.** Built `/people/dashboard` as the People module's read-only dashboard entry, kept `/people` as the
-team directory, and added `/people/[personId]` as the canonical non-PII Person 360 page. The dashboard reads existing
-RLS-scoped `people` and `plan_operations`; shows query-derived KPIs for active headcount, employment mix, assigned
-work, and unassigned work; and links workload/directory rows into person files. Person 360 reads only non-PII
-`people`, `plan_operations`, and `farm_event` data; it shows profile metadata, assignment/event KPIs, assigned
-operations, performed events, and direct reports.
-
-**Scope control.** The slice does not select or render phone, email, or `people_compensation`.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and PII/compensation selects before
-validation. The only PII grep hit is the existing protective comment in `/people`.
-
-**Validation.** Targeted ESLint clean for people dashboard/360/directory/nav/help files; `npx tsc --noEmit` clean;
-`npx vitest run` **170/170**; `npm run build` green and route list includes `/people/dashboard` and
-`/people/[personId]`.
-
-**Still open.** No migration needed. Next recommended slice: Weather/Risk dashboard or Settings/Admin dashboard,
-depending on whether operational risk or admin governance is more important next.
-
-## 2026-06-29 — Weather/Risk Dashboard module entry
-**Where we are.** Built `/weather/dashboard` as the Weather/Risk module's read-only dashboard entry and kept
-`/weather` as the detailed forecast/advisory page. The dashboard reuses the existing server-only `getForecast()`
-boundary and pure `computeGates()` logic; it shows forecast-days, advisory-days, heat-stress, and service-state
-KPIs, plus daily operation-gate and advisory-reason tables.
-
-**Scope control.** The slice does not change provider configuration, thresholds, or hard-block behavior. Provider
-unconfigured/unavailable states remain explicit, not fabricated.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation.
-
-**Validation.** Targeted ESLint clean for weather dashboard/nav/help files; `npx tsc --noEmit` clean;
-`npx vitest run` **170/170**; `npm run build` green and route list includes `/weather/dashboard`.
-
-**Still open.** No migration needed. Next recommended slice: Settings/Admin dashboard, or a budget/request 360
-follow-up if the priority is to complete finance entity files.
-
-## 2026-06-29 — Settings/Admin Dashboard module entry
-**Where we are.** Built `/settings/dashboard` as the Settings/Admin module's read-only dashboard entry and kept
-`/profile` and `/settings` as sub-pages. The dashboard reads existing membership/org/team data; shows query-derived
-KPIs for accessible orgs, current role, active team members, and settings availability; and surfaces organization
-profile, role distribution, and admin quick-link tables.
-
-**Scope control.** The slice does not add member management, auth-hook changes, or settings mutation.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and protected-field references before
-validation.
-
-**Validation.** Targeted ESLint clean for settings dashboard/nav/help files; `npx tsc --noEmit` clean;
-`npx vitest run` **170/170**; `npm run build` green and route list includes `/settings/dashboard`.
-
-**Still open.** No migration needed. Next recommended work: entity 360 follow-ups for finance/purchasing objects
-that do not yet have canonical 360 routes, starting with budget or supplier.
-
-## 2026-06-29 — Supplier 360
-**Where we are.** Built `/suppliers/[supplierId]` as the canonical read-only Supplier 360 page and linked supplier
-list rows to it. The page reads existing RLS-scoped supplier, preferred inventory item, PR line, expense, and
-inventory movement data; shows query-derived KPIs for preferred items, purchase lines, recent expenses, and
-movements; and links rows back to Item 360 and PR 360 where available.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation.
-
-**Validation.** Targeted ESLint clean for supplier list/360 files; `npx tsc --noEmit` clean; `npx vitest run`
-**170/170**; `npm run build` green and route list includes `/suppliers/[supplierId]`.
-
-**Still open.** No migration needed. Next recommended entity 360 follow-up: Budget 360, because Finance now has a
-dashboard but budget rows still do not open a canonical budget file.
-
-## 2026-06-29 — Budget 360
-**Where we are.** Built `/budgets/[budgetId]` as the canonical read-only Budget 360 page and linked budget list rows
-to it. The page reads existing RLS-scoped `budgets`, `budget_lines`, `expenses`, and `purchase_requests`; shows
-query-derived KPIs for planned, approved, committed+actual, and available budget; and surfaces budget lines,
-same-category expenses, and linked PRs.
-
-**Scope control.** The slice does not use draft accounting/P&L work that is not on `main`.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and accounting/P&L references before
-validation.
-
-**Validation.** Targeted ESLint clean for budget list/360 files; `npx tsc --noEmit` clean; `npx vitest run`
-**170/170**; `npm run build` green and route list includes `/budgets/[budgetId]`.
-
-**Still open.** No migration needed. Next recommended entity follow-up: purchase request 360 polish or finance
-dashboard row links into Budget 360 if desired.
-
-## 2026-06-29 — Expense 360
-**Where we are.** Built `/expenses/[expenseId]` as the canonical read-only Expense 360 page and linked expense list
-rows to it. The page reads existing RLS-scoped `expenses` plus supplier, plan, farm/sector/hawsha, and linked event
-data; shows query-derived KPIs for total, quantity, unit price, and linked scope count; and surfaces profile,
-related links, and linked event details. Finance Dashboard recent-expense rows now open Expense 360.
-
-**Scope control.** The slice does not use draft accounting/P&L work that is not on `main`.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and accounting/P&L references before
-validation.
-
-**Validation.** Targeted ESLint clean for expense list/360 files; `npx tsc --noEmit` clean; `npx vitest run`
-**170/170**; `npm run build` green and route list includes `/expenses/[expenseId]`.
-
-**Still open.** No migration needed. Next recommended work: polish existing Purchase Request 360 so it follows the
-same dashboard/360 conventions as the new entity files.
-
-## 2026-06-29 — Purchase Request 360 polish
-**Where we are.** Updated existing `/purchase-requests/[prId]` so it follows the same dashboard/360 convention as
-the new entity files. It now shows query-derived KPI cards for line count, estimated cost, received quantity, and
-remaining quantity/open lines; PR line rows now link to Item 360 (`/inventory/[itemId]`). Mixed-unit requests do
-not sum incompatible units; they show an explicit mixed-unit state.
-
-**Scope control.** Approval and receipt actions were not changed.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and accounting/P&L references before
-validation.
-
-**Validation.** Targeted ESLint clean for the PR 360 file; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
-`npm run build` green.
-
-**Still open.** No migration needed. Next recommended work: final aggregate review of the dashboard/360 batch, then
-visual/browser smoke once local auth/Supabase is available.
-
-## 2026-06-29 — Plan 360 polish
-**Where we are.** Updated existing `/plans/[planId]` to follow the same dashboard/360 convention. It now shows
-query-derived KPI cards for operation count, estimated cost, checks run, and blocked checks. The quick-action links
-no longer use nested `Link > Button` markup; they are styled links.
-
-**Scope control.** Operation creation and check-running behavior were not changed.
-
-**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation.
-
-**Validation.** Targeted ESLint clean for the plan 360 file; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
-`npm run build` green.
-
-**Still open.** No migration needed. Next recommended work: final aggregate review/visual smoke, then prepare the
-batch for owner review without committing until explicitly approved.
-
-## 2026-06-29 — Navigator drift guards strengthened
-**Where we are.** Added nav unit coverage that every module starts with its configured `dashboardHref` and every nav
-href has a backing route file under `app/(app)`. This protects the new module dashboard pattern from drifting.
-
-**Validation.** Targeted nav/page-help Vitest **12/12**; full `npx vitest run` **172/172**; `npx tsc --noEmit`
-clean; `npm run build` green.
-
-**Still open.** No migration needed. Browser/visual smoke remains blocked unless local auth/Supabase can seed an
-authenticated session; prior seed-auth attempts redirected to `/login` in this environment.
+## 2026-06-29 — module dashboards/360 batch committed and locally merged
+**Change.** Completed the module navigator/dashboard/360 batch and committed it locally as `30fdd26`
+(`feat(farm-os): add module dashboards and 360 pages`). The batch adds grouped module navigation, dashboard-first
+module entries, KPI/filter interactions, route-specific Help Drawer coverage, and read-only 360/detail surfaces
+across inventory, farm, planning, finance, people, suppliers, budgets, expenses, settings, and weather/risk.
+
+**Review fixes included.** Final standards/spec review issues were fixed before the commit: settings does not show
+raw unknown role codes, planning's due-operations KPI targets the due queue, Farm Barhi total is no longer a fake
+filter link, and Finance separates displayed operating expenses from owner drawings using existing expense text
+fields until a stronger schema exists.
+
+**Merge status.** After fetch, local `main` was `ahead 1, behind 45`, so the local batch was merged with current
+`origin/main`. Remote work brought in the already-merged import framework, CSV export/MasterTable/PalmFile work,
+and migrations `0090`/`0093`/`0094`/`0095`/`0096`. Conflict resolution keeps upstream `PalmFile` and landing-page
+CSS while preserving the module sidebar CSS and page-help/dashboard entries. No new Supabase migration was authored
+by the module batch, and no direct Supabase/prod mutation was run here.
+
+**Validation.** `npx eslint .` clean; `npx tsc --noEmit` clean after installing the merged dependency set;
+`npx vitest run` **225/225**; `npm run build` green with only the existing Next `middleware` deprecation warning;
+`git diff --check` clean.
+
+**Still open.** The local merge commit is not pushed. No direct Supabase migration/prod mutation was run from this
+batch. `docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+
+## 2026-06-29 — audit issue hygiene; docs-only status update
+**Change.** Reconciled high-signal open audit issues against current `main` and production evidence, then updated
+issue threads. Closed #383 as fixed/applied: #402 is merged, migration `0095` is on `main`, `95_org_switcher_preapply`
+pgTAP coverage exists, and prod's migration ledger includes `20260622000095 org_switcher_preapply_hardening`.
+
+**Kept open.** #317 remains open because a read-only prod grant probe still shows broad grant/default-privilege
+hygiene gaps (`TRUNCATE` on 38 public tables for anon and authenticated, plus limited `DELETE` grants). #229 remains
+open as the umbrella for remaining prod-config/advisor cleanup: FK indexes are fixed by `0096`, but grant/default
+privilege cleanup and leaked-password protection remain. #188 remains open because #396 merged the reserve-aware
+dedup app-layer fix, but the issue still explicitly tracks the migration-gated fully atomic PR-line+reserve RPC
+follow-up.
+
+**No prod action.** Deleted one malformed duplicate #317 comment, posted corrected evidence notes on #188/#229, and
+ran no DDL, migration, or production data change.
+
+**Follow-up issue hygiene.** Retitled and edited #362 so it no longer reopens Farm Supabase DB password +
+`service_role` key rotation. That item is now checked off per Owner confirmation; #362 stays open for legacy keys,
+old repo history, spreadsheet/Google password, leaked-password protection, and demo login cleanup before real data.
+
+**UI issue closeout.** Re-checked #282/#206 against current `main` and closed both as resolved/superseded. The
+remaining low ExecuteForm cleared-input behavior was split to #426 because deciding whether zero actuals are invalid
+for all operation types needs a narrow product/validation decision. No code, DDL, migration, or production data
+change was run.
+
+**#426 implementation.** Opened #428 to reject blank/invalid/negative ExecuteForm actual quantity/labor inputs before
+calling `executeOperation`, while still allowing an explicit typed `0`. Added pure parser coverage. Local isolated
+validation passed: focused Vitest **3/3**, full Vitest **215/215**, focused eslint, `tsc --noEmit`, and production
+build. No migration or DDL.
+
+**#398 closeout.** Re-checked #398 against current `main` and closed it as delivered by merged #399
+(`02b5da3`): `plan_operations.ends_on`, `plan_operation_assignees`, `fn_add_plan_operation_multi`, pgTAP coverage,
+and the `OperationBuilder` UI for repeatable material/labor rows, multi-day dates, employee checkboxes, and lead
+selection are all present. Deploy status says prod includes `0090` and `0093`. No DDL, migration, prod apply, or
+production data change was run for this closeout.
+
+**#161 closeout.** Re-verified the consolidated LOW bucket and closed it. L2/L5 are fixed; L1 is tracked under #362
+demo-login cleanup; L3/L4 were split to #431 (`transfer` destination semantics + dead `inventory_bin.ordered`);
+L6 was split to #430 (`fn_bin_rebuild` authenticated EXECUTE decision). No code, DDL, migration, prod apply, or
+production data change was run for this closeout.
+
+## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
+**Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
+module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
+roles, keep custody/payment/receipt reads finance-role gated, avoid a broad new `expense.write` permission, make
+#368 `expenses.kind`/`0088` an explicit prerequisite or same-apply-path dependency, and require extending
+`attachments` for expense receipts before use (`entity_type='expense'`, resolver/storage validation,
+finance-confidential RLS).
+
+**Evidence.** #421 branch head `2fa6694`. GitHub checks passed: pgTAP, app/typecheck/lint/test/build,
+token/storybook build, gitleaks, Vercel. Focused re-review found no findings.
+
+**Still held.** No merge, migration, deploy, production apply, or real financial/PII import was performed. #421
+remains draft/design-only for Owner review and Stage-M privacy gating.
+
+## 2026-06-29 — #368 accounting DB-side summary fix implemented; PR still held
+**Change.** Patched held draft #368 (`feat/stage-7-accounting-backend`) so `/accounting` no longer computes P&L
+totals from capped PostgREST row reads. Migration `0088` now adds `fn_accounting_pnl_summary`, a
+`SECURITY DEFINER` DB aggregate RPC gated by `budget.write`; the page uses that RPC for P&L totals while keeping
+the 200-row queries only for recent expense/sale previews. Also added a typed RPC entry, tightened the expense-kind
+action guard, and extended pgTAP coverage for aggregate totals, supervisor denial, drawings/capex separation, and
+operating category totals.
+
+**Evidence.** #368 branch head `0625150`. Local validation passed: pgTAP **709/709**, `npx tsc --noEmit`,
+focused eslint, `lib/pnl.test.ts` **5/5**, and `npm run build`. GitHub checks passed: pgTAP, app/typecheck/lint/
+test/build, token/storybook build, gitleaks, Vercel. A session reviewer check found no obvious blocker, but this is
+not a substitute for the fresh visible final review required before any merge/migrate. PR body was refreshed to match
+this state.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #368 remains draft pending the real
+7-year Excel reconciliation + privacy review, plus fresh pre-migration review of exact `0088` gap-fill and `0097`
+apply order.
+
+## 2026-06-29 — autonomous loop + PR #400 review held; PR #412 merged
+**Owner instruction.** Keep working in Farm OS until stopped; always plan first, update docs, do deep research when
+needed, review before merge, review before migrate, and proceed using recommendations without waiting for more input.
+Recorded as a Codex goal and captured in
+[`docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`](superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md).
+
+**Status correction.** Owner confirmed Supabase DB password + service-role key rotation has already been done
+several times. Active docs and the durable operating-method skill now mark rotation complete; do not raise it as an
+open gate again unless Owner reopens it.
+
+**PR #400 reviewed and fixed.** In isolated worktree `.worktrees/review-pr-400`, reviewed draft PR #400
+(SPEC-0016 export compliance, migration `0092`). Found and fixed impossible compliance-value handling: negative
+residue values could pass the pure readiness check, and the schema lacked CHECK constraints for inverted validity
+windows and negative area/quantity/residue values. Pushed commit `2e2183d` to the PR branch. Validation passed:
+local pgTAP **670/670**, `tsc`, focused eslint, Vitest **175/175**, production build, and GitHub checks. Decision:
+keep #400 draft; do **not** merge or migrate `0092` until the lower-number migration lane is reconciled.
+
+**PR #412 reviewed, cleaned, and review blockers fixed.** In isolated worktree `.worktrees/review-pr-412`, reviewed draft PR #412
+(import reference resolution). The signed-in-user/RLS commit path and formula-injection template sanitizer looked
+sound for this slice, but dry-run validation accepted impossible dates such as `2026-02-31`. Added a failing test,
+prepared local commit `21467ad`, and published the same three file contents to `feat/import-refs` through GitHub's
+Contents API because local `git push` stalls in `send-pack`/`pack-objects`. Then rebuilt #412 on current `main`
+to drop already-merged #410 stacked history, producing a tight import-reference diff. Independent review found two
+blockers: archived structure parents could be resolved by code, and row numbers could drift after validation filtered
+bad rows. Fixed both at PR head `08e925a`: ref specs for farms/sectors filter `archived=false`, and hidden source-row
+metadata preserves original spreadsheet row numbers through ref resolution, dedupe, and RPC failure reporting.
+Local validation passed: import suite **41/41**, `tsc`, focused eslint, full Vitest **212/212**, and production build.
+Fresh GitHub CI passed, independent re-review approved, and #412 was squash-merged to `main` as `d7b832d`. No
+migration or production apply was involved.
+
+## 2026-06-29 — remaining draft migration PRs reviewed; no merge/migrate
+**What was reviewed.** Three parallel agents reviewed the remaining open draft migration PRs against current remote
+`main` (`0767513`) and prod migration head `0096`: **#366** academy (`0091`), **#368** accounting (`0088` + `0097`),
+and **#400** export compliance (`0092`).
+
+**Decision.** Keep all three draft. Do not migrate any of them yet.
+
+**#366 academy.** No obvious current code/security defect found: FORCE RLS, org-scoped policies, `academy.write`
+gate, pinned `SECURITY DEFINER` RPCs, anon revoke, authenticated-only execute, and pesticide sign-off controls look
+materially fixed. It remains blocked by the real Stage 10 gate: licensed-agronomist + current Egyptian
+pesticide-registration sign-off. Merge-before-migrate is also undesirable because `/academy` would be visible while
+prod lacks `academy_content`/RPCs; it likely renders empty rather than 500ing because errors are ignored, which is
+misleading. Low-risk later fixes: update stale comments that still say "migration 0089" and fail visibly on academy
+query errors.
+
+**#368 accounting.** RLS/privacy state looks acceptable after current fixes: `sales` reads and sale audit rows are
+budget-write gated, and `0097` closes the symmetric expenses read/audit leak. It remains blocked by the Stage 7
+finance gate: real 7-year Excel reconciliation + privacy review. Migration sequencing is also special: prod is
+already at `0096` but lacks `0088`, so `0088` is an explicit out-of-order gap-fill and must be handled with `0097`
+rather than assumed to flow through a normal latest-migration path. Low-risk later fixes: fail fast on `/accounting`
+Supabase query errors and align `/expenses` navigation with the owner/accountant-only read gate in `0097`.
+
+**#400 export.** The `0092` export migration itself is materially review-clean on RLS/schema and now includes
+`academy.write` in its `authorize()` union. The blocker is ordering: if `0092` is applied first, then #366's current
+`0091` later re-emits `public.authorize()` without `export.write`, export writes would silently break. Safe paths
+are: apply #366 `0091` before #400 `0092`; patch #366 `0091` to preserve `export.write`; or add a post-`0096`
+repair/backfill migration pinning the final permission union after both features.
+
+**No prod action.** No migration, deploy, or production apply was performed from this review.
+
+## 2026-06-29 — safe branch follow-ups on held #366/#368
+**#366 academy branch updated.** Applied the low-risk review follow-ups: `/academy` now checks the Supabase query
+`error` and throws a generic failure instead of silently rendering empty content when `academy_content` is absent or
+unreadable, and stale migration comments were corrected from `0089` to `0091`. Published through the GitHub API to
+branch head `ca915dc`. GitHub checks are green (`pgTAP`, app/typecheck/lint/test/build, gitleaks, Vercel), and a
+focused independent check found no blockers.
+
+**#368 accounting branch updated.** `/accounting` now checks both `expenses` and `sales` query errors and throws a
+generic failure rather than computing misleading zero/partial P&L. The `/expenses` nav item now matches the `0097`
+read gate by showing only to owner/accountant instead of also `farm_manager`. Published through the GitHub API to
+branch head `a4d1c7f`. GitHub checks are green (`pgTAP`, app/typecheck/lint/test/build, gitleaks, Vercel), and a
+focused independent check found no blockers.
+
+**Still held.** These branch fixes do **not** clear the real gates. #366 remains draft pending agronomist +
+pesticide-registration sign-off. #368 remains draft pending real 7-year Excel reconciliation + privacy review and
+explicit `0088` gap-fill plus `0097` apply planning. No migration or production apply was performed.
+
+## 2026-06-29 — #366 authorize union patched for #400 ordering safety
+**Change.** Patched held draft #366 (`feat/stage-10-academy-backend`) so migration `0091` includes `export.write`
+in the `public.authorize(perm, p_org)` re-emit alongside `academy.write`. Test `89_academy_content_test.sql` now
+pins the intended mapping: owner and farm_manager keep `export.write`; supervisor does not.
+
+**Why.** This removes the specific #366/#400 ordering trap where applying export `0092` first and backfilling
+academy `0091` later would have dropped `export.write`. Adding the permission before export tables exist is inert;
+it only preserves the final permission union.
+
+**Evidence.** #366 branch head `86dfa6e`; GitHub checks green (`pgTAP`, app/typecheck/lint/test/build, gitleaks,
+Vercel); focused independent check found no blockers.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #366 still needs the external
+agronomist + Egyptian pesticide-registration sign-off; #400 still needs fresh pre-migration review of exact apply
+order before any merge/migrate.
+
+## 2026-06-29 — #400 export draft status wording refreshed
+**Change.** Updated held draft #400 (`docs/spec-0016-export-compliance`) to remove stale "design only" wording from
+SPEC-0016 and the PR body. The branch now states the actual scope: slice 1 schema/RLS/audit and pure readiness code
+are implemented on the draft branch, but are not merged or applied to production. The `0092` migration comment now
+describes the `authorize()` re-emit as the final known permission union including #366 `academy.write`.
+
+**Evidence.** #400 branch head `dbcfeb8`; GitHub checks green (`pgTAP`, app/typecheck/lint/test/build, gitleaks,
+Vercel); focused independent check found no wording blockers.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #400 remains draft and still needs
+fresh pre-migration review of exact prod apply order before any apply.
+
+## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
+**Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
+
+**Held (NOT merged) — and why:**
+- **Migration PRs need migrate-FIRST (prod apply = Owner's act; not doable from this session — Farm Supabase `veezkmytervjnpxcrbkw` unreachable here, MCP reaches only the Zeal org).** Clean + apply-ready: **#401** `0094` (🔴 C2 go-live blocker), **#402** `0095` (org-switcher), **#404** `0096` (FK indexes). Ordered apply bundle written to scratchpad **`farm-prod-apply-0094-0095-0096.sql`**. Sequence: apply `0094`→`0095`→`0096` → confirm → then merge #401/#402/#404.
+- **Blocked on their own issues:** **#399** (`0090`/`0093`) REQUEST-CHANGES — coarse dedup key silently drops a 2nd distinct same-day op (returns success); **#403** REQUEST-CHANGES — seed writes out-of-domain `sex='ذكر'` (must be `'male'`); **#400** (`0092`) apply-coupled to #366's `academy.write`; **#391** needs an Owner design decision (flips the **app-wide** font token).
+- **Expert-gated (cannot finish regardless):** **#368** accounting — `0088` is BROKEN (sorts behind `0089`; must renumber ≥`0097`) + real-Excel reconciliation + privacy review; **#366** academy (`0091`; label refs say `0089`/`0087` — reconcile) + licensed-agronomist + Egyptian pesticide-registration sign-off. Both would 500 on prod (tables absent) if merged before migrate. Code quality itself is sound (drawings-vs-opex separation ✓; template-not-prescription ✓).
+
+**Open Owner items.** (1) Apply the 3-migration bundle, then I merge #401/#402/#404. (2) Decide #399 / #391; fix #403. (3) Renumber/reconcile #368/#366 + clear their expert gates. (4) Enable `custom_access_token_hook` + leaked-password protection (dashboard). (5) There are also uncommitted state-doc edits in the local `main` worktree (README/DEPLOY-STATUS/PRODUCT-MASTER/ROADMAP → prod `0089`) — reconcile or discard. **Supabase DB password + service-role key rotation is complete per Owner correction 2026-06-29; do not raise again unless reopened.**
+
+## 2026-06-27 (latest+5) — parallel app-quality + gated-stage-CRITICAL session
+**Where we are.** A second session ran the app-quality lane in parallel with the knowledge-system session — all NON-migration / NON-prod. **9 PRs merged to `main`** (#378 i18n, #380 payroll rate-flag, #379 stock-calc↔SQL parity, #381 assistant-gate hardening, #382 weather hardening, #384 display, #385 rtl/a11y, #386 form-validation, #387 perf) — every one CI-green, `main` re-verified green after each merge. Both gated draft PRs **hardened but kept DRAFT**: **#368** CRITICAL sales RLS read-leak + audit-mirror leak fixed (pgTAP 663✓); **#366** CRITICAL pesticide-gate bypass fixed + migration renumbered **`0089→0091`** (collision with the merged palm-guard `0089`; `0090` left free for S2) (pgTAP 669✓).
+**Unblocked next.** **#388** (researched wage-model memo) unblocks the SPEC-0006 §5 decision → Stage 8 payroll persistence can proceed once the Owner ratifies the 4-mode / daily-rate-default recommendation.
+**⚠️ Verify/fix-forward on prod.** **#383**: the now-applied `0085`/`0086` carry two verified issues — `user_member_org_ids` lacks the explicit `revoke/grant` (anon-executable; low exposure) and `fn_update_org_settings` nulls `fiscal_year_start` when omitted (data-loss). Both are advisor-invisible; verify against deployed prod `0089` and fix-forward if present. *(Now addressed by #402 `0095` — held for migrate-first apply.)*
+**Not done (deferred).** No migration/prod-apply by this session; #368/#366 left for the deploy-owner to merge+apply after their human-expert gates; #157 budget + #89 pricing remain Owner decisions.
+**Last evidence.** `main` green incl. the 9 PRs + #389; pgTAP 663/669 on the two hardened draft branches; tsc/lint/build 0 across all merged PRs.
 
 ## 2026-06-27 (latest+4) — Owner opened the gate: REVIEW → PUSH → MERGE → MIGRATE executed
 **Where we are.** The Owner authorized in writing ("review and then push merge and migrate"). All three
@@ -451,10 +243,11 @@ gated actions ran, in the safe order (review → push → migrate → merge):
 Stage 10 licensed-agronomist + pesticide-registration sign-off) and merging them deploys `/accounting`+`/academy`
 which query `sales`/`academy_content` tables **not on prod** → live 500s. They stay draft until those gates clear.
 
-**Still open (Owner-only).** 🔴 **service-role key + DB password rotation** (the standing red item — do before any
-real Ebeid data). **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
+**Still open (Owner-only).** **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
 dashboard (Auth → Hooks) / `config.toml [auth.hook.custom_access_token]` — until then the active_org feature is
 inert (safe; full-membership behavior). SPEC-0013 still awaits ratification.
+**2026-06-29 Owner correction:** Supabase DB password + service-role key rotation is complete; do not list it as
+an open gate again unless the Owner reopens it.
 
 ## 2026-06-27 (latest+3) — ground-truth audit (RECONCILE-001) + Commercial layer specced (SPEC-0013) — docs only
 **Where we are.** No code/schema/prod change this session — **documentation only**, `main` unchanged at `0089`,
@@ -476,8 +269,9 @@ Produced three artifacts:
 migration `0090`). SPEC-0013 is **Draft — not approved to build** until the Owner ratifies it.
 
 **NOT approved.** Building any SPEC-0013 slice; signing up for any billing provider; touching prod. Applying
-`0089`/`0085`/`0086` to prod still Owner-HELD. 🔴 service-role key rotation still outstanding. Adding the
+`0089`/`0085`/`0086` to prod was Owner-HELD at this point in the timeline. Adding the
 `docs/03` legacy banner = done this session (doc-only, Owner-recommended text).
+**Superseded 2026-06-29:** Supabase DB password + service-role key rotation is complete; do not raise again unless reopened.
 
 **Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md). New: Stage **C** —
 [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) (Draft, awaiting ratification).
@@ -572,7 +366,8 @@ email-invite sub-task needs an invite-mechanism decision (pending-invite table v
 Access-control → needs independent review.
 
 **NOT approved.** Applying `0089` (or the pending `0085`/`0086` access-control chain) to prod — **Owner HELD**;
-do that chain's independent review first. 🔴 service-role key rotation still outstanding (prior sessions).
+do that chain's independent review first. **Superseded 2026-06-29:** Supabase DB password + service-role key
+rotation is complete; do not raise again unless reopened.
 
 **Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md).
 
@@ -661,7 +456,8 @@ next buildable slice once a reviewer is named.
 - **Owner-gated next (per PROJECT RULES — actor ≠ reviewer):** independent review on the `0081`/`0084` RLS
   re-emits (structure/plans `tenant_all` now gate direct-REST writes on `structure.write`/`plan.write`);
   regen `database.types.ts` against prod `0084` (new objects currently augmented in
-  `lib/database.types.ext.ts`). 🔴 still pending: rotate the service-role key + DB password before any REAL data.
+  `lib/database.types.ext.ts`). **Superseded 2026-06-29:** Supabase DB password + service-role key rotation is
+  complete; do not raise again unless reopened.
 
 ## 2026-06-27 — Stages 2/3/4 built + RECONCILED onto `main` (verified); branch ready to push
 - Built editable farm structure + 360 pages + media (Stage 2), ad-hoc activity recording (Stage 3), and
@@ -687,7 +483,8 @@ queries too); the advisor 0028/0029 WARN is a known false-positive. Then **appli
 via the MCP — prod head now **`0073`, in sync with `main`** (verified: 7/7 recorded, 0 dup/stray versions,
 CHECKs/trigger/policies live, `get_advisors` no new regressions). **Live site verified:** Vercel prod
 deploy on the merge succeeded; landing page now shows no fabricated KPI tiles, login renders clean, no
-errors. The remaining tracked items are unchanged (#270 C1/C2 engine, #157 budget, #317 grants, #161 parity).
+errors. The remaining tracked items at that point were unchanged (#270 C1/C2 engine, #157 budget, #317 grants,
+#161 parity). #161 was later re-verified and closed on 2026-06-29 after splitting live LOW remainders to #430/#431.
 
 ## 2026-06-26 — prod push 0049→0066 + deep 360 review
 **Local was 97 commits behind origin** (HEAD #185 vs origin #311) — fast-forwarded to `4ac73b1`. The
@@ -717,7 +514,7 @@ substantive holes closed; short precise remainder.
   phantom on_hand with duplicate same-item lines) + **C2** (overdue PO projected as supply) — both
   verified real, need a tested PR; #157 (budget guardrail not table-backed + NULL est_cost=0); **#317
   (new)** (default privileges re-grant anon/authenticated CRUD+TRUNCATE on post-0027 tables); #161
-  (SQL↔TS engine parity drift, latent).
+  (SQL↔TS engine parity drift, latent; later closed on 2026-06-29 after splitting live LOW remainders to #430/#431).
 - **Recommended next (one PR each):** merge this PR + apply 0070–0071 → #270 C1/C2 engine fix (pgTAP)
   → #157 budget → #317 grant lockdown.
 
@@ -731,7 +528,8 @@ substantive holes closed; short precise remainder.
 - Verified: `list_migrations` → `20260622000048`; **pgTAP 421/421** (Docker-free shim harness), all green.
 - **Prod is now at `0048`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only):** #157 chart-of-accounts, #199 reserveQty semantics, #239 registry
-  data (open Owner decisions), 🔴 **key rotation** (only red item). *(#173 phone/email is DONE — removed from this list.)*
+  data (open Owner decisions). *(#173 phone/email is DONE; the old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-26 — ✅ `0047` engine null-date guard PUSHED + verified; prod now `0047`, in sync with `main`; app swept clean
 - **#198 — ENGINE null-date guard** → **`0047`** engine_nulldate_guard: `fn_stock_coverage` now coalesces a
@@ -745,7 +543,8 @@ substantive holes closed; short precise remainder.
 - Verified: `list_migrations` → `20260622000047`; **pgTAP 415/415** (Docker-free shim harness), all green.
 - **Prod is now at `0047`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only, unchanged):** #199/reserveQty + #173 phone/email half + #157
-  chart-of-accounts (open Owner decisions), #239 registry data, 🔴 **key rotation** (only red).
+  chart-of-accounts (open Owner decisions), #239 registry data. *(The old key-rotation red item was superseded by
+  the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-26 — ✅ the `0042`–`0046` batch MERGED + PUSHED to prod + verified; prod now `0046`, in sync with `main`
 Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, and verified:
@@ -760,7 +559,9 @@ Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`
 - Verified: `list_migrations` → `20260622000046`; **pgTAP 411/411** (Docker-free shim harness), all green.
 - **Prod is now at `0046`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only):** #173 **phone/email half** (open PII-access decision), #157
-  chart-of-accounts, #239 registry import, #199/#198 held low-value/design items, 🔴 **key rotation** (only red).
+  chart-of-accounts, #239 registry import, #199/#198 held low-value/design items. *(The old key-rotation red item
+  was superseded by the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is
+  complete.)*
 
 ## 2026-06-26 — ✅ palm-status RPC `0039` + ENGINE-REC1 `0040` + unit_cost `0041` MERGED + PUSHED; prod now `0041`; #241 app-fix batch
 Three migrations + one app-only batch closed and live in prod; prod is back in sync with `main`:
@@ -776,7 +577,9 @@ Three migrations + one app-only batch closed and live in prod; prod is back in s
   RPCs present + gated, `get_advisors` only pre-existing WARNs. **Prod is now at `0041`, in sync with `main`.**
 - **pgTAP is now 356** (Docker-free shim harness + CI), all green.
 - **Remaining is now Owner-decision / human-only:** #155/#157 chart-of-accounts, #239 registry import, #173
-  PII, 🔴 key rotation; plus held low-value/design items #198/#199/#188. Nothing auto-buildable is open.
+  PII, plus held low-value/design items #198/#199/#188. *(The old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)* Nothing
+  auto-buildable is open.
 
 ## 2026-06-26 — ✅ #196 atomic plan-op (migration `0038`) MERGED + PUSHED; prod `0038`; review-sweep actioned
 The atomic plan-operation RPC is closed and live in prod:
@@ -788,7 +591,9 @@ The atomic plan-operation RPC is closed and live in prod:
 - **Review-sweep findings actioned:** the budget wrong-ops fix is **in flight**; **#238** (palm-status) and
   **#239** (registry-import) filed for follow-up.
 - **pgTAP is now 338** (Docker-free shim harness + CI), all green.
-- **Next:** the budget wrong-ops fix (in flight); then triage #238 / #239; key rotation still the only 🔴.
+- **Next:** the budget wrong-ops fix (in flight); then triage #238 / #239. *(The old key-rotation red item was
+  superseded by the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is
+  complete.)*
 
 ## 2026-06-26 — ✅ AUTHZ-3 (#182) fixed + MERGED + PUSHED; prod now `0037`; SPEC-0002 set COMPLETE
 The full SPEC-0002 authorization-enforcement set is now closed and live in prod:
@@ -848,9 +653,10 @@ recorded under their exact repo versions:
   (security) shows only **pre-existing** WARNs (SECURITY DEFINER RPCs by design / #182 / leaked-pw toggle)
   — no new regressions. **Prod is now in sync with `main` at `0034`.** No prod data was mutated to test
   (verified via function definitions, not by injecting rows).
-- **Remaining Owner-only items:** 🔴 rotate the Supabase service-role key + DB password + reset the demo
-  password (now the only red item); enable Leaked-Password-Protection; ratify SPEC-0002/0003; the HIGH
+- **Remaining Owner-only items:** reset the demo password; enable Leaked-Password-Protection; ratify SPEC-0002/0003; the HIGH
   product forks (#155/#157/#173/#89/#181/#182/#184); the gated engine follow-ups (#188/#196/#198/#199).
+  *(Supabase service-role key + DB password rotation was superseded by the 2026-06-29 Owner correction confirming
+  completion.)*
 - Docs (this PR) bumped prod `0031`→`0034` across README / TRACKER / DEPLOY-STATUS / ROADMAP.
 
 ## 2026-06-26 (later) — autonomous fixes MERGED to main + ENGINE-STALE-1 fixed; prod push (now done above)
@@ -928,8 +734,10 @@ reconciliation (un-merged PR) + filed issues. Key results:
 - **State:** `main` unchanged (origin HEAD `e35c46b`); **4 open PRs, all un-merged for the Owner gate:**
   **#183** (SPEC-0002 consolidation, DRAFT, green), **#189** (this docs reconciliation), **#191** (AR-ERR-1
   fix, CI green), **#195** (op-status/date Arabic + plan-check safety). New issues this session: **#187**
-  (fixed by #191), **#188**, **#196**. Owner-gated next moves unchanged: 🔴 key rotation; push `0032`/`0033`;
+  (fixed by #191), **#188**, **#196**. Owner-gated next moves unchanged: push `0032`/`0033`;
   ratify SPEC-0002/0003; merge the 3 ready fix/docs PRs; the HIGH forks (#155/#157/#173/#89/#181).
+  *(The old key-rotation red item was superseded by the 2026-06-29 Owner correction confirming Supabase DB
+  password + service-role key rotation is complete.)*
 
 ## 2026-06-25 — adopted amr-operating-method + independent review (5 findings) + repo relocation
 **Working method:** adopted **`amr-operating-method`** (the gated protocol — propose → validate →
@@ -1045,9 +853,10 @@ only `@storybook/react-vite` was bumped while the rest of the 8.6.x stack stayed
   (`#159`, floor `on_hand` at 0 in `fn_post_movement` — no negative stock). Both stock-engine/security
   fixes are merged on `main` (HEAD `52fa7b0`); confirm prod DB migration state separately.
 - **Safe stop:** the upgrade + release are complete. **No agent-doable, non-gated task remains on the
-  critical path** — everything left is Owner-gated (🔴 key rotation; Leaked Password Protection toggle;
+  critical path** — everything left is Owner-gated (Leaked Password Protection toggle;
   pricing #89; Stage-0 ratification; Stage M) or "do not start the next stage automatically" per
-  `docs/CLAUDE.md`. Stopping per project rules.
+  `docs/CLAUDE.md`. Stopping per project rules. *(The old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-25 — phone-OTP removed (email/password only)
 Auth is now **email + password only**. The phone-OTP UI skeleton (the login footnote) was removed and
@@ -1078,11 +887,12 @@ items/bins/movements, 1 plan w/ 3 operations + checks + budget). Transactional t
   `quantities` at the REST layer, not only the `0020` RPC); **AP-5 insert-side SoD** (#76 item 2 —
   a born-approved PR sidesteps the BEFORE UPDATE trigger); **ENGINE-DC** disjointness is
   convention-enforced, not DB-constraint-enforced.
-- **Still OWNER-GATED / open:** 🔴 rotate the Supabase `service_role` key + DB password + reset the
-  demo password (the **only red item** from the assurance); ~~Twilio phone-OTP~~ (resolved 2026-06-25 —
+- **Still OWNER-GATED / open:** reset the demo password; ~~Twilio phone-OTP~~ (resolved 2026-06-25 —
   dropped; email/password only); Stage-0 legacy
   remediation; real Ebeid data (Stage M); per-farm EGP pricing; agronomist sign-off; **merging PRs
   #75 and #77** (both green) — a merge = prod deploy = Owner gate.
+  *(Supabase `service_role` key + DB password rotation was superseded by the 2026-06-29 Owner correction confirming
+  completion.)*
 - Note: the local Docker DB was found empty after a reboot (volume not persisted) — irrelevant; the
   **cloud DB is the source of truth**.
 
@@ -1144,8 +954,9 @@ closed off-canvas drawer peeked ~90px) → **`@amrebeid/ui@1.1.1` published**; d
 (dashboard/coverage/inventory/plan) reviewed clean. ⚠️ **(prod-DB note superseded — prod is now at
 `0022`; see the 2026-06-25 (latest) entry above)** at the time of this entry prod was at migrations
 0001–0013 with `0015` (B2) verified on `main` but not yet `db push`ed. Remaining is unchanged:
-project-end deferred (key rotation, Stage 0, real-data) + decision-gated minors (B3 actual-paid
-pricing; D1 FORCE RLS — low value).
+Stage 0 legacy cleanup + real-data privacy remain project-end deferred; Supabase DB password/service-role key
+rotation was later completed per the 2026-06-29 Owner correction. Decision-gated minors remain B3 actual-paid
+pricing and D1 FORCE RLS (low value).
 
 ## 2026-06-24 — DEPLOYED + LIVE 🎉
 Farm OS MVP-0 is **deployed and verified end-to-end on production**: **farm-ui-one.vercel.app**
@@ -1160,15 +971,16 @@ isolation (owner sees «مزارع عبيد» + 28 hawshat, anon denied), and th
   resilient middleware. Full record: `docs/DEPLOY-STATUS.md`.
 - **Auth:** 6 demo email/password accounts (`<role>@ebeid.test`) minted on prod via the admin API;
   password held by the Owner (not in repo).
-- **Security key rotation — DEFERRED to project end (Owner decision, 2026-06-24).** The Supabase
-  **DB password** + **service_role key** were pasted in the deploy chat; Owner will rotate at the
-  end of the project. ⚠️ Caveat (Claude): rotate **before any real Ebeid data** regardless — the
-  exposed service_role key bypasses RLS. Fine for now (synthetic data only). Also reset the demo password then.
+- **Security key rotation — SUPERSEDED 2026-06-29.** This older note said the Supabase **DB password** +
+  **service_role key** rotation was deferred; the Owner later confirmed both have been rotated several times.
+  Do not raise Supabase DB password/service-role key rotation again unless the Owner reopens it. Demo password
+  cleanup and leaked-password protection remain separate follow-ups.
 - **Pilot validation — considered DONE (Owner, 2026-06-24):** the customer research was completed
   *before* the project (it produced the plan + the dummy/seed data), so the pilot-validation gate is satisfied.
 - **Near-term: nothing required** — MVP-0 is deployed, live, and stable on synthetic data.
-  **Deferred to project end (Owner):** key rotation (above), legacy **Stage 0** secret remediation,
-  and real-Ebeid-data migration (after a privacy review). **Optional, agent-doable anytime:**
+  **Deferred to project end (Owner):** legacy **Stage 0** secret remediation and real-Ebeid-data migration
+  (after a privacy review). Supabase DB password/service-role key rotation is complete per the 2026-06-29 Owner
+  correction. **Optional, agent-doable anytime:**
   in-browser wedge-loop walkthrough; D1 FORCE RLS check on the real Supabase roles (low value).
 
 ## This session (2026-06-23) — security review DONE + **MERGED**; lib **published 1.1.0**

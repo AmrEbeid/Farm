@@ -59,6 +59,7 @@ export default async function ExpensesListPage() {
         empty="لا توجد مصروفات مسجّلة"
         searchColumns={["category", "description", "supplier"]}
         placeholder="ابحث في المصروفات…"
+        exportFilename="expenses"
       />
     </div>
   );

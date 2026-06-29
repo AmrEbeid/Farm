@@ -50,6 +50,7 @@ export default async function PeopleDirectoryPage() {
         empty="لا يوجد عاملون مسجّلون"
         searchColumns={["name", "position"]}
         placeholder="ابحث عن عامل…"
+        exportFilename="people"
       />
     </div>
   );

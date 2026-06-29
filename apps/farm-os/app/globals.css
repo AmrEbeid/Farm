@@ -1,6 +1,19 @@
 @import "tailwindcss";
 
 /*
+ * Typographic voice (Direction A "The Registry"). layout.tsx loads Readex Pro
+ * (--font-readex, display) + Tajawal (--font-tajawal, body) via next/font. We
+ * OVERRIDE the design-system's --font-family token here (globals.css is imported
+ * after farm-os-ui.css, so this :root wins) → every @amrebeid/ui component, which
+ * inherits --font-family, picks up Tajawal app-wide. --font-display is for headings
+ * that opt in. System stack stays as the graceful fallback before the font swaps in.
+ */
+:root {
+  --font-family: var(--font-tajawal), system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-display: var(--font-readex), var(--font-tajawal), system-ui, "Segoe UI", sans-serif;
+}
+
+/*
  * Theming is owned by @amrebeid/ui's ThemeProvider (role tokens: --surface,
  * --ink, --line, --brand, status pairs). This app only maps page background
  * and text to those tokens so plain Tailwind layout sits on the design system.
@@ -8,8 +21,7 @@
 body {
   background: var(--surface, #ffffff);
   color: var(--ink, #171717);
-  font-family:
-    system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: var(--font-family);
 }
 
 /*
@@ -182,5 +194,129 @@ body {
     display: block;
     inline-size: min(80vw, 300px);
     z-index: calc(var(--z-drawer) + 1);
+  }
+}
+
+/* =====================================================================
+ * Landing page — Direction A ("The Registry"). Registry-grade hero: the
+ * wedge as the thesis, hairline rules, green-led with a date-gold accent,
+ * and the hawsha-grid signature (an ABSTRACT brand motif — no asserted
+ * counts, so the public page stays figure-free per non-negotiable #1).
+ * Scoped under .landing so it can't leak into the app shell.
+ * ===================================================================== */
+.landing {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 5vw, 4rem);
+}
+.landing__inner {
+  width: 100%;
+  max-width: 64rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 6vw, 4.5rem);
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .landing__inner { grid-template-columns: 1.15fr 0.85fr; }
+}
+
+.landing__eyebrow {
+  font-size: var(--text-sm, 0.8rem);
+  font-weight: var(--weight-bold, 700);
+  letter-spacing: 0.02em;
+  color: var(--brand, #2f7d49);
+  border-inline-start: 2px solid var(--gold-500, #c8922a);
+  padding-inline-start: 0.625rem;
+  margin-block-end: 1.25rem;
+}
+.landing__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 5.2vw, 3.1rem);
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  color: var(--ink, #18241d);
+  margin: 0;
+  text-wrap: balance;
+}
+.landing__title-accent {
+  color: var(--gold-700, #a9761d);
+}
+.landing__lede {
+  margin-block: 1.25rem 1.75rem;
+  max-width: 38ch;
+  font-size: clamp(1rem, 2vw, 1.1rem);
+  line-height: var(--leading, 1.6);
+  color: var(--ink-muted, #6b7d72);
+}
+.landing__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+/* Three pillars of the wedge — labels only, no figures. Hairline-ruled list. */
+.landing__pillars {
+  list-style: none;
+  margin: 2.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border-block-start: 1px solid var(--line, #e3e9e4);
+}
+.landing__pillars li {
+  padding-block: 0.8rem;
+  border-block-end: 1px solid var(--line, #e3e9e4);
+  font-size: var(--text-sm, 0.85rem);
+  color: var(--ink-muted, #6b7d72);
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+.landing__pillars li span {
+  font-weight: var(--weight-bold, 700);
+  color: var(--ink, #18241d);
+  min-width: 8.5rem;
+}
+
+/* The signature: an abstract grid evoking the farm's hawsha registry — a
+ * dense plot map, a few cells accented (active=green, watch=gold). Decorative
+ * only (aria-hidden); asserts no count. */
+.landing__signature { display: flex; flex-direction: column; gap: 0.9rem; }
+.hawsha-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  padding: 1rem;
+  border: 1px solid var(--line, #e3e9e4);
+  border-radius: var(--radius-2, 11px);
+  background: var(--surface-sunken, #f3f6f3);
+  aspect-ratio: 7 / 4;
+}
+.hawsha-grid span {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--green-300, #7fc298) 28%, var(--surface, #fff));
+  border: 1px solid color-mix(in srgb, var(--green-300, #7fc298) 40%, transparent);
+}
+.hawsha-grid span[data-state="active"] { background: var(--green-600, #2f7d49); border-color: var(--green-700, #236138); }
+.hawsha-grid span[data-state="watch"]  { background: var(--gold-500, #c8922a);  border-color: var(--gold-700, #a9761d); }
+.landing__signature-label {
+  font-size: var(--text-xs, 0.72rem);
+  color: var(--ink-muted, #6b7d72);
+  text-align: center;
+  margin: 0;
+}
+
+/* Quiet, reduced-motion-safe reveal — a single orchestrated load, not scattered effects. */
+@media (prefers-reduced-motion: no-preference) {
+  .landing__hero > *, .landing__signature {
+    animation: landing-rise 0.5s var(--ease, cubic-bezier(.2,.7,.3,1)) both;
+  }
+  .landing__hero > *:nth-child(2) { animation-delay: 0.05s; }
+  .landing__hero > *:nth-child(3) { animation-delay: 0.1s; }
+  .landing__hero > *:nth-child(4) { animation-delay: 0.15s; }
+  .landing__hero > *:nth-child(5) { animation-delay: 0.2s; }
+  .landing__signature { animation-delay: 0.12s; }
+  @keyframes landing-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 }

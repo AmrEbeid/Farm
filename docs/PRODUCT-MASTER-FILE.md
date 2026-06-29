@@ -11,8 +11,8 @@ Last updated: 2026-06-27. Maintainers: Product + Owner (Amr Ebeid).
 > **Reconcile note (reading this vs older docs):** three claims that float around older docs/PRs are corrected
 > here against `main`: (1) **planned-vs-actual is built** (`reports/[planId]/pva`); (2) **Accounting P&L
 > (`/accounting`, `lib/pnl.ts`, `sales`) and Care Academy (`/academy`) are NOT on `main`** — they are in
-> unmerged **draft PRs #368 / #366** (migrations `0087`/`0088` not applied); (3) **prod is at migration `0084`
-> (Owner-HELD), `main` at `0089`** — the README's "`0048`" is stale.
+> unmerged **draft PRs #368 / #366** (migrations `0087`/`0088` not applied); (3) **prod is now at migration `0096`
+> per DEPLOY-STATUS**; the README's "`0048`" body line is historical.
 
 ---
 
@@ -403,8 +403,9 @@ actions via `authorize(perm, org)` (`0035`). Verified permission strings: `struc
   (`assistant-policy.ts`; CLAUDE.md).
 - **External-send restriction:** any WhatsApp/email-at-scale is a **Hard Stop** (CLAUDE.md).
 - **Audit:** immutable `audit_log`; org-member + people changes audited.
-- **🔴 Open security item:** rotate the Supabase `service_role` key + DB password (shared in deploy chat); enable
-  Leaked-Password Protection. **Open compliance:** Stage 0 legacy-secret remediation; Stage M privacy review.
+- **Security status:** Supabase `service_role` key + DB password rotation is complete per Owner correction
+  (2026-06-29; do not raise again unless reopened). Remaining admin hardening: enable Leaked-Password Protection.
+  **Open compliance:** Stage 0 legacy-secret remediation; Stage M privacy review.
 
 ---
 
@@ -503,7 +504,7 @@ lives in the market-research docs; this file stays product-focused.)*
 
 - **Near term:** commercial readiness (SPEC-0013: billing/onboarding/import/admin), member invites (SPEC-0012 S2),
   help/manual (SPEC-0014 Tier A), offline hardening (SPEC-0012 S4), merge the accounting P&L draft (#368) behind
-  its gates, 🔴 key rotation.
+  its gates. Supabase DB password + service-role key rotation is complete per Owner 2026-06-29.
 - **Mid term:** cross-cutting planned-vs-actual analytics, procurement depth (PO/quote/invoice), the AI assistant
   (Stage 11, reviewed per slice), labor/payroll build (Stage 8), advanced/exportable reports.
 - **Long term:** per-palm digital twin, benchmarking across tenants, marketplace/integrations, enterprise

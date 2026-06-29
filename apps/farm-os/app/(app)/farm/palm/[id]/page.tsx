@@ -1,14 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Card, DescriptionList, FileTimeline, EmptyState, Alert } from "@/components/ui";
+import { Breadcrumbs, Alert } from "@/components/ui";
 import type { TimelineEvent } from "@/components/ui";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
-import { PalmStatusForm } from "@/components/PalmStatusForm";
-import { StructureForm } from "@/components/StructureForm";
-import { StructureArchiveButton } from "@/components/StructureArchiveButton";
-import { MediaGallery } from "@/components/MediaGallery";
-import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
+import { PalmFile } from "@/components/PalmFile";
+import { type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
 import { SUBTYPE_AR } from "@/lib/labels";
 
@@ -127,83 +124,38 @@ export default async function PalmFilePage({
 
       {asset.archived && <Alert tone="warning" title="هذه النخلة مُزالة (مؤرشفة)" />}
 
-      <Card title="بيانات النخلة">
-        <DescriptionList
-          layout="inline"
-          items={[
-            { id: "tag", term: "الرمز", description: asset.id_tag ?? "—" },
-            { id: "variety", term: "الصنف", description: asset.variety ?? "—" },
-            {
-              id: "sex",
-              term: "النوع",
-              // sex is nullable; don't render unknown as "أنثى" — sex drives pollination role.
-              description: asset.sex === "male" ? "ذكر" : asset.sex === "female" ? "أنثى" : "—",
-            },
-            { id: "status", term: "الحالة", description: asset.status ? STATUS_AR[asset.status] ?? "غير معروف" : "—" },
-            { id: "health", term: "الحالة الصحية", description: HEALTH_STATUS_AR[asset.health_status ?? ""] ?? asset.health_status ?? "—" },
-            { id: "line", term: "الخط", description: line?.line_no != null ? `خط ${num(line.line_no)}` : "—" },
-            {
-              id: "planting",
-              term: "تاريخ الزراعة",
-              description: asset.planting_date ? fmtDate(asset.planting_date) : "—",
-            },
-          ]}
-        />
-      </Card>
-
-      <Card title="سجل الحالة">
-        {timeline.length === 0 ? (
-          <EmptyState title="لا يوجد سجل حالة لهذه النخلة بعد" />
-        ) : (
-          <FileTimeline events={timeline} ariaLabel={`سجل حالة ${label}`} />
-        )}
-      </Card>
-
-      {canEdit && (
-        <Card title="تحديث حالة النخلة">
-          <PalmStatusForm assetId={asset.id} currentStatus={asset.status} />
-        </Card>
-      )}
-
-      {canEditStructure && (
-        <Card title="إدارة النخلة">
-          <div className="flex flex-col gap-3">
-            <StructureForm
-              level="palm"
-              mode="edit"
-              context={{
-                hawshaId: asset.hawsha_id ?? undefined,
-                lineId: asset.line_id ?? undefined,
-              }}
-              initial={{
-                id: asset.id,
-                name: asset.name,
-                variety: asset.variety,
-                sex: asset.sex,
-                idTag: asset.id_tag,
-                plantingDate: asset.planting_date,
-                healthStatus: asset.health_status,
-              }}
-              triggerLabel="تعديل بيانات النخلة"
-            />
-            <StructureArchiveButton
-              type="palm"
-              id={asset.id}
-              archived={!!asset.archived}
-              redirectTo={hawsha?.id ? `/farm/hawsha/${hawsha.id}` : "/farm"}
-            />
-          </div>
-        </Card>
-      )}
-
-      <RecordActivity locationType="palm" locationId={asset.id} canRecord={canEdit} activities={activities} />
-
-      <MediaGallery
-        entityType="palm"
-        entityId={asset.id}
+      <PalmFile
+        label={label}
+        meta={[
+          { id: "tag", term: "الرمز", description: asset.id_tag ?? "—" },
+          { id: "variety", term: "الصنف", description: asset.variety ?? "—" },
+          // sex is nullable; don't render unknown as "أنثى" — sex drives pollination role.
+          { id: "sex", term: "النوع", description: asset.sex === "male" ? "ذكر" : asset.sex === "female" ? "أنثى" : "—" },
+          { id: "status", term: "الحالة", description: STATUS_AR[asset.status ?? ""] ?? asset.status ?? "—" },
+          { id: "health", term: "الحالة الصحية", description: HEALTH_STATUS_AR[asset.health_status ?? ""] ?? asset.health_status ?? "—" },
+          { id: "line", term: "الخط", description: line?.line_no != null ? `خط ${num(line.line_no)}` : "—" },
+          { id: "planting", term: "تاريخ الزراعة", description: asset.planting_date ? fmtDate(asset.planting_date) : "—" },
+        ]}
+        timeline={timeline}
+        activities={activities}
+        canEdit={canEdit}
+        canEditStructure={canEditStructure}
+        asset={{
+          id: asset.id,
+          status: asset.status,
+          name: asset.name,
+          variety: asset.variety,
+          sex: asset.sex,
+          id_tag: asset.id_tag,
+          planting_date: asset.planting_date,
+          health_status: asset.health_status,
+          hawsha_id: asset.hawsha_id,
+          line_id: asset.line_id,
+          archived: !!asset.archived,
+        }}
         orgId={m.orgId}
-        initial={attachments}
-        canAttach={canEdit}
+        hawshaRedirect={hawsha?.id ? `/farm/hawsha/${hawsha.id}` : "/farm"}
+        attachments={attachments}
       />
     </div>
   );

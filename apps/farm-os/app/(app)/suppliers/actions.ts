@@ -43,3 +43,19 @@ export async function createSupplier(
   revalidatePath("/suppliers");
   return { ok: true };
 }
+
+/**
+ * Adapter so the generic MasterTable (SPEC-0017) can call the gated createSupplier with its
+ * key→value form payload. Stays a server action (gated path preserved); maps the loose record to the
+ * typed SupplierInput. Keys match the MasterTable `fields` declared on the suppliers page.
+ */
+export async function createSupplierFromForm(
+  values: Record<string, string | number | null>,
+): Promise<{ ok: boolean; error?: string }> {
+  return createSupplier({
+    name: values.name != null ? String(values.name) : "",
+    phone: values.phone != null ? String(values.phone) : null,
+    terms: values.terms != null ? String(values.terms) : null,
+    leadTimeDays: values.leadTimeDays != null ? Number(values.leadTimeDays) : null,
+  });
+}

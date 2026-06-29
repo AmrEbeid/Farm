@@ -44,6 +44,7 @@ export default async function MonthlyPlanPage({
     { data: ops, error: opsError },
     { data: checks, error: checksError },
     { data: items, error: itemsError },
+    { data: people, error: peopleError },
   ] = await Promise.all([
     sb
       .from("plans")
@@ -60,6 +61,8 @@ export default async function MonthlyPlanPage({
       .select("kind, result, detail")
       .eq("plan_id", planId),
     sb.from("inventory_items").select("id, name, unit").order("name"),
+    // Active employees for the operation-assignee picker (#398). Org-scoped by RLS; names only.
+    sb.from("people").select("id, name").eq("active", true).order("name"),
   ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
@@ -67,6 +70,7 @@ export default async function MonthlyPlanPage({
   if (opsError) throw opsError;
   if (checksError) throw checksError;
   if (itemsError) throw itemsError;
+  if (peopleError) throw peopleError;
 
   // .maybeSingle() returns null (no error) for a bogus or RLS-hidden id — show a
   // not-found message instead of rendering a blank "الخطة " header (mirrors farm/sector).
@@ -122,7 +126,7 @@ export default async function MonthlyPlanPage({
         {canEditPlan && (
           <div className="flex gap-2">
             <PlanChecksRunner planId={planId} />
-            <OperationBuilder planId={planId} items={items ?? []} />
+            <OperationBuilder planId={planId} items={items ?? []} people={people ?? []} />
           </div>
         )}
       </header>

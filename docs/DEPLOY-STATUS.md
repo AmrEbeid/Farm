@@ -1,14 +1,56 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-06-28)
 
-First cloud deploy of the MVP-0 app. **No secrets in this file** — credentials were shared
-out-of-band and must be rotated (see "Security follow-ups").
+First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **CURRENT STATE (2026-06-28, late — PR sweep).** Prod is at migration **`0096`**. Applied this session
+> via the Supabase MCP, each recorded under its **exact repo version** (**0 stray/off-version rows**;
+> prod head `20260622000096`): earlier-applied `0090` + `0093` (#399 operations), `0094` (#401 **C2 engine
+> fix — the go-live blocker, now LIVE on prod**), `0095` (#402 org-switcher anon-lock + fiscal-year coalesce),
+> `0096` (#404 FK covering indexes — 0 unindexed FKs remain). **PRs #399 / #401 / #402 / #404 merged** →
+> repo↔prod ledger in sync at `0096`.
+> ✅ **Correction:** the Farm project `veezkmytervjnpxcrbkw` **IS reachable from the connected Supabase
+> MCP** (same org as `ai-math-tutor`); the earlier "MCP reaches only the Zeal org / Farm not reachable"
+> note was **stale** — verify with `list_projects`, don't assume.
+> **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting), `0091` (#366 academy),
+> and `0092` (#400 export). These are behind expert gates and/or the `authorize()` ordering risk recorded
+> below — do **not** race that lane. Also still pending
+> in the dashboard: enable `custom_access_token_hook` + leaked-password protection. **Rotation note:** Owner
+> confirmed 2026-06-29 that Supabase DB password + service-role key rotation is complete; do not raise again.
+
+> **CURRENT REVIEW UPDATE (2026-06-29 — draft migration lane).** Fresh independent reviews of the three remaining
+> draft migration PRs all recommend **keep draft / do not migrate**:
+> **#366 academy `0091`** is security/RLS-clean but still gated by licensed-agronomist + Egyptian
+> pesticide-registration sign-off; merging before migrating would expose `/academy` against missing prod tables.
+> **#368 accounting `0088` + `0097`** is privacy/RLS-clean after current fixes, but remains gated by real Excel
+> reconciliation + privacy review; prod is already at `0096`, so `0088` is an out-of-order gap-fill and `0097`
+> must be handled explicitly with it. **#400 export `0092`** is review-clean on RLS/schema, but must not be applied
+> alone while #366's `0091` re-emits `public.authorize()` without `export.write`; safe paths are `0091` before
+> `0092`, patch `0091` to preserve the final permission union, or add a post-`0096` repair migration that pins the
+> final union after both features. No production migration is approved from these reviews.
+> **Follow-up:** #366 now uses the "patch `0091` to preserve the final permission union" path at head `86dfa6e`;
+> CI is green and a focused independent check found no blockers. This reduces the `0091`/`0092` ordering trap, but
+> #366/#400 remain unmigrated and require a fresh pre-migration review before any apply.
+> **#368 follow-up:** #368 now computes P&L totals through `fn_accounting_pnl_summary` on the DB side at head
+> `0625150`, closing the capped-row totals bug; CI is green. A session reviewer check found no obvious blocker,
+> but #368 still needs a fresh visible final review before any merge/migrate.
+> It still remains unmigrated and draft-gated by real Excel reconciliation + privacy review and the explicit
+> `0088` gap-fill + `0097` apply plan.
+
+> **CURRENT ISSUE-HYGIENE UPDATE (2026-06-29).** #383 is closed as fixed/applied: #402 merged, migration `0095`
+> exists on `main`, pgTAP coverage exists, and prod includes `20260622000095 org_switcher_preapply_hardening`.
+> #317 remains open after a read-only prod grant probe still showed broad default/table grant hygiene gaps
+> (`TRUNCATE` on 38 public tables for anon and authenticated, plus limited `DELETE` grants). #229 remains open
+> for the remaining prod-config/advisor cleanup: FK covering indexes are fixed by `0096`, but grant hygiene and
+> leaked-password protection are not closed. No DDL or production data change was run during this hygiene pass.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0084` (2026-06-27, later).** Stages 2/3/4 applied via the Supabase MCP:
+  - **Migrations now at `0096` (current).** The live ledger includes `0090`, `0093`, `0094`, `0095`, and `0096`;
+    draft PR migrations `0088`, `0091`, `0092`, and `0097` are **not** applied. Historical note: by
+    2026-06-27, Stages 2/3/4 had been applied via the Supabase MCP:
     `0080` structure_soft_delete_audit, `0081` structure_write_rpcs (+ `structure.write` on `authorize`;
     structure `tenant_all` re-emit), `0082` attachments (table + RLS + RPCs), `0083` record_event (3 RPCs),
     `0084` plan_builder (4 RPCs + plans `tenant_all` re-emit). Each recorded under its **exact repo version**
@@ -64,13 +106,12 @@ out-of-band and must be rotated (see "Security follow-ups").
   *(2026-06-25: auth is **email + password only** — phone-OTP / Twilio removed from MVP-0 scope;
   `[auth.sms]` stays disabled.)*
 
-## Security follow-ups (REQUIRED — credentials were shared in chat)
-1. **Reset the Supabase DB password** (Settings → Database) — it was used over chat for `db push`.
-2. **Roll the `service_role` (secret) key** (Settings → API) — shared in chat; then **update the
-   Vercel env** (`SUPABASE_SERVICE_ROLE_KEY`) and redeploy. (The publishable/anon key is lower-risk
-   but can be rolled too.)
-3. **Rotate the demo login password** (or delete the demo users) before real users.
-4. **De-hardcode the demo password** — it is committed in `lib/seed-auth.ts` + `app/login/page.tsx`
+## Security follow-ups
+**2026-06-29 Owner correction:** Supabase DB password + `service_role` key rotation is complete; do not list it
+as an open gate again unless the Owner reopens it.
+
+1. **Rotate the demo login password** (or delete the demo users) before real users, if still applicable.
+2. **De-hardcode the demo password** — it is committed in `lib/seed-auth.ts` + `app/login/page.tsx`
    (client-bundled, prefilled). Move it to a (server-side for seed, `NEXT_PUBLIC_` for the prefill) env
    var and stop pre-filling the field, then rotate (#3). *(A gitleaks CI gate now blocks NEW committed
    secrets — `.gitleaks.toml` + `ci.yml` `secret-scan` job — but this pre-existing one needs the manual
@@ -170,11 +211,9 @@ B2 attempt; harmless, applied by version.)
 guard fix (`0029`), no longer convention-only. *(AP-5 insert-side SoD — #76 item 2 — closed by `0023`;
 receipt-posting atomicity — closed by `0024`.)* No queued security caveats remain from the assurance.
 
-## 🔴 Security follow-ups (Owner — do now)
-- **Rotate the Supabase DB password and the `service_role` (secret) key** — both were pasted in the
-  setup chat. (Supabase → Settings → Database / API → roll.) After rotating the DB password, the
-  committed migrations still apply via a fresh connection string; the app uses only the publishable
-  + service-role keys (service-role only server-side on Vercel).
+## Security follow-ups
+- **Supabase DB password + `service_role` key rotation is complete** — Owner correction 2026-06-29. Do not list
+  this as an open gate again unless the Owner reopens it.
 - The **demo login password is known** (shared in chat **and committed** in `lib/seed-auth.ts` +
   `app/login/page.tsx`, client-bundled). Fine for the pilot (synthetic data only),
   but reset it before any real Ebeid data, and consider per-user passwords.

@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { num } from "@/lib/money";
 import { type SimpleColumn } from "@/components/SimpleTable";
-import { FilterableTable } from "@/components/FilterableTable";
-import { AddSupplier } from "@/components/AddSupplier";
+import { MasterTable, type MasterField } from "@/components/MasterTable";
+import { createSupplierFromForm } from "@/app/(app)/suppliers/actions";
 
 // Roles that pass authorize('inventory.write') — the same gate the suppliers RLS WITH CHECK enforces.
 const WRITE_ROLES = ["owner", "farm_manager", "storekeeper"];
@@ -34,21 +34,30 @@ export default async function SuppliersListPage() {
     lead_time: s.lead_time_days != null ? num(s.lead_time_days) : "—",
   }));
 
+  // SPEC-0017: the whole screen is one MasterTable declaration — list + search + CSV export + a
+  // role-gated inline create form, writing through the gated createSupplier server action (keys match).
+  const fields: MasterField[] = [
+    { key: "name", label: "اسم المورّد", required: true, maxLength: 120 },
+    { key: "phone", label: "الهاتف", maxLength: 40 },
+    { key: "terms", label: "شروط التعامل", maxLength: 200 },
+    { key: "leadTimeDays", label: "مدة التوريد (أيام)", type: "number" },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">الموردون</h1>
-        <p style={{ color: "var(--ink-muted)" }}>
-          موردو المزرعة المستخدمون في طلبات الشراء
-        </p>
-      </header>
-      {WRITE_ROLES.includes(m.role) && <AddSupplier />}
-      <FilterableTable
+      <MasterTable
+        title="الموردون"
+        description="موردو المزرعة المستخدمون في طلبات الشراء"
         columns={columns}
         rows={rows}
-        empty="لا يوجد موردون بعد"
+        fields={fields}
+        canWrite={WRITE_ROLES.includes(m.role)}
+        onCreate={createSupplierFromForm}
+        addLabel="+ إضافة مورّد"
         searchColumns={["name", "phone"]}
         placeholder="ابحث عن مورّد…"
+        exportFilename="suppliers"
+        empty="لا يوجد موردون بعد"
       />
     </div>
   );

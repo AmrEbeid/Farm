@@ -79,6 +79,7 @@ export default async function PlansListPage() {
             empty="لا توجد خطط"
             searchColumns={["type", "period", "scope", "status"]}
             placeholder="ابحث في الخطط…"
+            exportFilename="plans"
           />
         )}
       </Card>

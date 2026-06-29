@@ -37,6 +37,7 @@
 - Run the listed checks and **paste the output** — evidence, not assertions.
 - Produce a **full record of changes**; report remaining risks and the stop point.
 - **Independent review required** on any change to: RLS/access, money/voucher/budget logic, payroll/PII, the stock-coverage engine, the AI assistant, and any deploy.
+- **Bulk-import descriptors.** Any new user-data write-RPC that should be bulk-importable must ship an `ImportDescriptor` in `apps/farm-os/lib/import/descriptors/` (registered in `descriptors/index.ts`) and be listed in `apps/farm-os/lib/import/importable-rpcs.ts` — `lib/import/convention.test.ts` fails otherwise. Imports go through the gated `fn_*` RPC via the user-session server client (never service-role); money/authoritative imports stay non-authoritative until their existing gate clears. See the bulk-import-templates spec.
 - **Documentation Health Score (part of Done).** A **user-facing page/workflow** is not Done until it has: a `pageMeta` definition (the five questions — what / why / when / how / common-mistakes), linked spec(s), permissions/roles, a "Why?" entry for any rule it can be blocked by, and a changelog/release note. **Blocking for user-facing surfaces; advisory for internal/admin-only or infrastructure work.** Enforced by a CI lint, not a prompt sentence. See [`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md). (Rule-based "Why?" only; AI help is gated behind Stage 11.)
 
 ## Project-specific non-negotiables (THIS project)

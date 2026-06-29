@@ -24,9 +24,14 @@ select plan(20);
 \set prC   'ccab4242-4242-4242-4242-ccab42420003'
 \set prD   'ccab4242-4242-4242-4242-ccab42420005'
 
--- the seed potassium item + its actors
-select set_config('t.item',
-  (select id::text from public.inventory_items where org_id = :'orgA' and name ilike '%بوتاس%' limit 1), false);
+-- a FRESH potash-like item for cases (1)+(2): opened via a receipt movement (so the §4.2 reconciliation
+-- oracle Σ(receipts)==on_hand holds) with a current_date demand op — so the in-window PO is genuinely
+-- future under the #270 C2 forward-anchor (migration 0094), not a now-overdue 2025 date. (Cases (3)+(5)
+-- use their own fresh items below.)
+\set itemPot 'c0000000-0000-0000-0000-000000000242'
+\set planPot 'c0000000-0000-0000-0000-000000000342'
+\set opPot   'c0000000-0000-0000-0000-000000000442'
+select set_config('t.item', :'itemPot', false);
 select set_config('t.store', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
 select set_config('t.mgr', (select user_id::text from public.organization_member
@@ -45,12 +50,28 @@ insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, 
   values (:'orgA', :'itemC', 'main', 0, 0, 0, 0),
          (:'orgA', :'itemD', 'main', 0, 0, 0, 0);
 
+-- itemPot (cases 1+2): fresh item, opening 300 via a receipt movement (NOT a direct on_hand write — so
+-- fn_post_receipt's rebuild keeps Σ(receipts)==on_hand), and a current_date fertilization op needing 500
+-- → v_period_start = current_date, so a needed_by=current_date PO is in-window under the forward-anchor.
+insert into public.inventory_items (id, org_id, name, unit, pack_size, safety_stock, lead_time_days)
+  values (:'itemPot', :'orgA', 'صنف بوتاس استلام جزئي', 'kg', 50, 0, 5);
+insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, ordered, projected)
+  values (:'orgA', :'itemPot', 'main', 0, 0, 0, 0);
+insert into public.inventory_movements (org_id, item_id, type, qty, location, occurred_at)
+  values (:'orgA', :'itemPot', 'receipt', 300, 'main', current_date - 30);   -- opening stock
+select public.fn_bin_rebuild(:'itemPot', 'main');                            -- on_hand → 300
+insert into public.plans (id, org_id, type, status) values (:'planPot', :'orgA', 'monthly', 'approved');
+insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, status)
+  values (:'opPot', :'orgA', :'planPot', 'fertilization', current_date, 'planned');
+insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
+  values (:'orgA', :'opPot', :'itemPot', 500, 'kg');
+
 -- approved PRs (created as superuser, before any JWT is set):
 --   prPot — 500 kg potash needed in period 1 (2025-07-08)        → cases (1)+(2)
 --   prC   — 500 kg itemC                                          → case  (3) over-receipt
 --   prD   — 100 kg itemD                                          → case  (5) idempotency
 insert into public.purchase_requests (id, org_id, code, needed_by, requested_by, approved_by, status)
-  values (:'prPot', :'orgA', 'PR-42-POT', '2025-07-08',
+  values (:'prPot', :'orgA', 'PR-42-POT', current_date,
           current_setting('t.mgr')::uuid, current_setting('t.owner')::uuid, 'approved'),
          (:'prC',   :'orgA', 'PR-42-C',  '2025-07-08',
           current_setting('t.mgr')::uuid, current_setting('t.owner')::uuid, 'approved'),
