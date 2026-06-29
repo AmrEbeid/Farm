@@ -41,7 +41,7 @@ export default async function ExecutePage({
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6 p-4">
       <header>
-        <h1 className="text-xl font-bold">تنفيذ العملية — {SUBTYPE_AR[op.subtype ?? ""] ?? op.subtype}</h1>
+        <h1 className="text-xl font-bold">تنفيذ العملية — {SUBTYPE_AR[op.subtype ?? ""] ?? "عملية"}</h1>
         <p style={{ color: "var(--ink-muted)" }}>{fmtDate(op.planned_at)}</p>
       </header>
 
@@ -52,7 +52,7 @@ export default async function ExecutePage({
             defaultQty={req?.qty != null ? Number(req.qty) : null}
             defaultLabor={laborReq?.count != null ? Number(laborReq.count) : null}
             defaultNote={SUBTYPE_NOTE_AR[op.subtype ?? ""] ?? ""}
-            unit={req?.unit ?? "kg"}
+            unit={req?.unit ?? "كجم"}
           />
         </Card>
       ) : op.status === "done" ? (
@@ -65,7 +65,7 @@ export default async function ExecutePage({
         <Card title="غير قابلة للتنفيذ">
           <p>
             لا يمكن تنفيذ هذه العملية في حالتها الحالية (
-            {OP_STATUS_AR[op.status ?? ""] ?? op.status}).
+            {OP_STATUS_AR[op.status ?? ""] ?? "غير معروف"}).
           </p>
         </Card>
       )}

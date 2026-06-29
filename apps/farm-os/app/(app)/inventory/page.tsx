@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { num } from "@/lib/money";
@@ -36,7 +37,7 @@ export default async function InventoryListPage() {
     const needsReorder = threshold > 0 && available < threshold;
     return {
       id: it.id,
-      href: `/inventory/${it.id}/coverage`,
+      href: `/inventory/${it.id}`,
       name: it.name,
       category: it.category ?? "—",
       on_hand: `${num(onHand)} ${it.unit ?? ""}`,
@@ -49,8 +50,23 @@ export default async function InventoryListPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold">المخزون</h1>
-        <p style={{ color: "var(--ink-muted)" }}>اضغط على الصنف لعرض تغطيته</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">المخزون</h1>
+            <p style={{ color: "var(--ink-muted)" }}>دليل الأصناف؛ ابدأ من لوحة المخزون للمخاطر وطلبات الشراء.</p>
+          </div>
+          <Link
+            href="/inventory/dashboard"
+            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+            style={{
+              color: "var(--brand)",
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+            }}
+          >
+            لوحة المخزون
+          </Link>
+        </div>
       </header>
       <FilterableTable
         columns={columns}

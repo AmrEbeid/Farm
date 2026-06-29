@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { type SimpleColumn } from "@/components/SimpleTable";
@@ -10,7 +10,7 @@ import { AddExpense } from "@/components/AddExpense";
 const WRITE_ROLES = ["owner", "accountant"];
 
 export default async function ExpensesListPage() {
-  const m = await requireMembership();
+  const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
 
   const [{ data: expenses, error }, { data: suppliers }] = await Promise.all([
@@ -34,6 +34,7 @@ export default async function ExpensesListPage() {
 
   const rows = (expenses ?? []).map((e) => ({
     id: e.id,
+    href: `/expenses/${e.id}`,
     date: e.date ? fmtDate(e.date) : "—",
     category: e.category ?? "—",
     description: e.description ?? "—",

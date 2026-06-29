@@ -43,3 +43,72 @@ export const SUBTYPE_AR: Record<string, string> = {
   pollination: "تلقيح",
   inspection: "تفتيش",
 };
+
+export const PLAN_TYPE_AR: Record<string, string> = {
+  weekly: "أسبوعية",
+  monthly: "شهرية",
+  quarterly: "ربع سنوية",
+  annual: "سنوية",
+};
+
+export const PLAN_STATUS_AR: Record<string, string> = {
+  draft: "مسودة",
+  active: "نشطة",
+  closed: "مغلقة",
+  abandoned: "ملغاة",
+};
+
+export const MOVEMENT_TYPE_AR: Record<string, string> = {
+  receipt: "استلام",
+  issue: "صرف",
+  return: "مرتجع",
+  adjustment: "تسوية",
+  transfer: "تحويل",
+  loss: "فاقد",
+  expiry: "منتهي",
+  reserve: "حجز",
+  release: "فك حجز",
+};
+
+export const BUDGET_STATUS_AR: Record<string, string> = {
+  draft: "مسودة",
+  active: "نشطة",
+  approved: "معتمدة",
+  closed: "مغلقة",
+  archived: "مؤرشفة",
+};
+
+export const EXPENSE_STATUS_AR: Record<string, string> = {
+  draft: "مسودة",
+  posted: "مرحّلة",
+  paid: "مدفوعة",
+  approved: "معتمدة",
+  void: "ملغاة",
+  cancelled: "ملغاة",
+};
+
+export const PAYMENT_METHOD_AR: Record<string, string> = {
+  cash: "نقدي",
+  bank: "تحويل بنكي",
+  transfer: "تحويل",
+  card: "بطاقة",
+  check: "شيك",
+  cheque: "شيك",
+  credit: "آجل",
+};
+
+export const EMP_TYPE_AR: Record<string, string> = {
+  permanent: "دائم",
+  seasonal: "موسمي",
+  daily: "يومي",
+  contractor: "مقاول",
+};
+
+export const PR_STATUS_AR: Record<string, string> = {
+  draft: "مسودة",
+  submitted: "مرسل",
+  approved: "معتمد",
+  rejected: "مرفوض",
+  received: "مُستلم",
+  partially_received: "مُستلم جزئيًا",
+};

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { KpiCard, Card, Progress, Button } from "@/components/ui";
+import { KpiCard, Card, Progress } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { SEED_PLAN_ID } from "@/lib/nav";
 import { egp, num, pct } from "@/lib/money";
@@ -45,17 +45,17 @@ export default async function ManagerDashboard() {
   ];
   const rows = (ops ?? []).map((o) => ({
     id: o.id,
-    subtype: SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype ?? "—",
+    subtype: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
     planned_at: fmtDate(o.planned_at),
     cost: egp(Number(o.est_cost ?? 0)),
-    status: OP_STATUS_AR[o.status ?? "planned"] ?? o.status ?? "—",
+    status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
   }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">لوحة تحكم المدير</h1>
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عمليات الخطة" value={num(total)} />
         <KpiCard label="منفّذة" value={num(done)} />
         <KpiCard label="فحوصات محظورة" value={num(blocked)} deltaDirection={blocked ? "down" : "none"} />
@@ -69,8 +69,16 @@ export default async function ManagerDashboard() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">خطة الحصوة — يوليو</h2>
-          <Link href={`/plans/${SEED_PLAN_ID}`}>
-            <Button variant="ghost" size="sm">فتح الخطة</Button>
+          <Link
+            href={`/plans/${SEED_PLAN_ID}`}
+            className="inline-flex min-h-8 items-center justify-center rounded-md px-3 text-sm font-semibold"
+            style={{
+              color: "var(--brand)",
+              background: "transparent",
+              border: "1px solid var(--line)",
+            }}
+          >
+            فتح الخطة
           </Link>
         </div>
         <SimpleTable columns={columns} rows={rows} empty="لا توجد عمليات مجدولة." />

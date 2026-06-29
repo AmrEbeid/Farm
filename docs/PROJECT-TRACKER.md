@@ -1,4 +1,247 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-27 by Claude (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-29 by Claude (for Owner: Amr Ebeid)
+
+> **2026-06-29 — Owner-review packaging checklist + final code-readiness pass.** Inventoried the full local
+> worktree for the module navigator/dashboard/360 batch, confirmed no dependency manifests, env files, Vercel/proxy
+> files, or Supabase migration/test/config files are in scope, and ran a secret-pattern scan over the app/docs diff
+> with no hits. Added `docs/superpowers/plans/2026-06-29-module-dashboard-360-owner-review-checklist.md` to separate
+> included scope, explicit exclusions, review gates, validation evidence, known browser-auth limitation, and safe
+> selective staging guidance. Final review then patched the remaining farm timeline/status raw enum fallbacks on the
+> farm list/dashboard and sector/hawsha/line/palm 360 pages; line/palm now use the shared `SUBTYPE_AR` label map.
+> Independent explorer-agent audit then found and fixed three readiness issues: storekeeper `/dashboard` now routes
+> to `/inventory/dashboard`, expense list/detail pages enforce the same finance roles as the sidebar, and `/farm`,
+> `/plans`, and `/inventory` now present as secondary structure/list surfaces with links back to their module
+> dashboards. Added a role-filtered dashboard-first nav guard plus explicit active-nav assertions for current 360
+> routes. The legacy mutating Playwright wedge setup now refuses non-local Supabase URLs unless an explicit local
+> reset env flag is present, preventing accidental data resets against a direct Supabase target.
+> Final standards/spec review found and fixed four issues: settings role fallback no longer shows raw unknown role
+> codes; planning's due-operations KPI now filters to the due queue; the Farm Barhi total is no longer a fake filter;
+> and finance now separates displayed operating expenses from owner drawings using existing expense text fields until
+> a stronger schema discriminator exists.
+> Targeted blocker searches are clean for invalid nested controls, placeholder links, hardcoded KPI literals, and
+> farm event/status enum leaks (the `health_status` raw fallback remains intentionally allowed for field-entered
+> free-text Arabic). **Validation:** touched-file ESLint clean; `npx tsc --noEmit` clean; `npx vitest run
+> lib/nav.test.ts lib/page-help.test.ts` **17/17**; full `npx vitest run` **177/177**; `npm run build` green.
+> Browser/auth visual smoke remains open; Owner clarified not to use the Docker-backed local Supabase stack and that
+> migrations are handled directly in Supabase, so any remaining visual pass should use an already-authenticated
+> browser/session or a separately approved non-Docker path.
+> `docs/SPEC-0018-custody-and-payment-requests.md` remains unrelated and must not be staged with this batch. No
+> migrations, RPCs, prod mutation, commit, merge, or deploy.
+
+> **2026-06-29 — 360 table drill-through hardening.** Reviewed `SimpleTable`/`FilterableTable` row-link behavior and
+> dashboard/360 row definitions for missing canonical detail affordances. Budget 360 and Supplier 360 expense rows
+> now link to Expense 360 (`/expenses/[expenseId]`), matching the dashboard/360 contract that operational table rows
+> drill into the relevant file when one exists. Rows without a backing detail route remain non-clickable.
+> **Validation:** touched-file ESLint clean; `npx tsc --noEmit` clean; `npx vitest run lib/nav.test.ts
+> lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**; `npm run build` green. No migrations, RPCs,
+> prod mutation, commit, merge, or deploy.
+
+> **2026-06-29 — Mobile/accessibility layout hardening.** Ran a focused review of the module sidebar, topbar, KPI
+> grids, and dashboard/360 responsive layout. Changed KPI sections from two columns on the smallest screens to
+> one-column default / two-column `sm` / four-column desktop, added `aria-controls` to module toggles, changed active
+> KPI filter links to `aria-current="page"`, allowed the topbar controls to wrap, and added sidebar label
+> overflow wrapping so long Arabic labels do not push the drawer width. **Validation:** touched-file ESLint clean;
+> `npx tsc --noEmit` clean; `npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full
+> `npx vitest run` **176/176**; `npm run build` green. No migrations, RPCs, prod mutation, commit, merge, or deploy.
+
+> **2026-06-29 — Pre-merge UX label/markup hardening.** Ran a focused review over the module dashboard/360 batch for
+> nested interactive markup, placeholder links, duplicated label maps, and raw DB enum fallbacks. Fixed remaining
+> `Link > Button` patterns on `/m` and the manager dashboard, centralized `EMP_TYPE_AR` and `PR_STATUS_AR` in
+> `lib/labels.ts`, and replaced raw fallback rendering for unknown people, plan, operation, PR, movement, and expense
+> event statuses with Arabic-safe labels. **Validation:** touched-file ESLint clean; `npx tsc --noEmit` clean;
+> `npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**;
+> `npm run build` green. No migrations, RPCs, prod mutation, commit, merge, or deploy.
+
+> **2026-06-29 — Module navigator spec aligned with enforced guards.** Updated the module navigator/dashboard/360
+> design spec so it now documents the implemented dashboard filter contract, shared dashboard filter primitives,
+> route-specific Help Drawer requirement, dynamic active-nav requirement, and the filesystem-backed Vitest guards in
+> `lib/nav.test.ts` and `lib/page-help.test.ts`. This was a docs-only alignment pass after the latest validated code
+> state; no migrations, RPCs, prod mutation, commit, merge, or deploy.
+
+> **2026-06-29 — Dynamic active-nav drift guard added.** Added a filesystem-backed `lib/nav.test.ts` guard that
+> samples every dynamic `app/(app)` page and asserts it resolves to an active nav item, preventing future 360 or
+> workflow routes from silently losing module/sidebar context. **Validation:** `npx vitest run lib/nav.test.ts`
+> **9/9**; touched-file ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **176/176**; `npm run build`
+> green.
+
+> **2026-06-29 — Workflow active-nav aliases added.** Added explicit active-nav aliases so dynamic workflow pages
+> outside normal nav prefixes keep the correct module/sidebar context: `/budget/[planId]/check` now highlights
+> `budgets`, and `/reports/[planId]/pva` highlights `plans` instead of falling back to the global dashboard. Covered
+> by `lib/nav.test.ts`. **Validation:** `npx vitest run lib/nav.test.ts lib/page-help.test.ts` **15/15**;
+> touched-file ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **175/175**; `npm run build` green.
+
+> **2026-06-29 — Workflow Arabic fallback hardening.** Removed raw DB/string fallbacks from the dynamic workflow
+> pages touched by the Help Drawer pass: `/m/execute/[opId]` now falls back to Arabic labels for unknown subtype,
+> status, and unit; `/reports/[planId]/pva` falls back to Arabic "عملية" in table/chart labels; and
+> `/inventory/[itemId]/coverage` uses Arabic `كجم` as the missing-unit fallback. **Validation:** touched-file
+> ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **175/175**; `npm run build` green.
+
+> **2026-06-29 — Dynamic route-help drift guard strengthened.** Added a filesystem-backed
+> `lib/page-help.test.ts` guard that samples every dynamic `app/(app)` page and fails if it falls back to generic
+> dashboard help. This converts route-specific Help Drawer coverage from a manually reviewed checklist into an
+> enforced test as new 360/workflow pages are added. **Validation:** `npx vitest run lib/page-help.test.ts` **7/7**;
+> touched-file ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **175/175**; `npm run build` green.
+
+> **2026-06-29 — Workflow detail help coverage added.** Closed more Documentation Health gaps for dynamic
+> user-facing workflow pages: `/inventory/[itemId]/coverage`, `/m/execute/[opId]`, `/budget/[planId]/check`, and
+> `/reports/[planId]/pva` now resolve to route-specific Arabic Help Drawer content instead of generic parent help.
+> Added route drift tests for all four. Also fixed an existing invalid `Link > Button` pattern on
+> `/budget/[planId]/check` by using a styled link for the PR approval CTA. **Validation:** `npx vitest run
+> lib/page-help.test.ts` **6/6**; touched-file ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run`
+> **174/174**; `npm run build` green. No migrations, no RPC changes, no prod mutation.
+
+> **2026-06-29 — Dashboard filter UI factored.** Added shared `CurrentFilterCard` and replaced duplicated
+> current-filter/clear-filter markup across inventory, farm, finance, planning, people, weather, and settings
+> dashboards. This keeps the newly interactive KPI-filter behavior consistent without changing data access or route
+> behavior. **Validation:** touched-dashboard ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run`
+> **174/174**; `npm run build` green.
+
+> **2026-06-29 — Farm structure 360 help coverage added.** Closed the remaining Help Drawer gap for existing
+> farm structure detail pages: `/farm/sector/[id]`, `/farm/hawsha/[id]`, `/farm/line/[id]`, and `/farm/palm/[id]`
+> now resolve to route-specific Arabic 360 help instead of inheriting generic farm-structure help. Added drift
+> coverage in `lib/page-help.test.ts` for all four routes. **Validation:** `npx vitest run lib/page-help.test.ts`
+> **6/6**; touched-file ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **174/174**; `npm run build`
+> green. No migrations, no RPC changes, no prod mutation.
+
+> **2026-06-29 — Dashboard KPI filters added across modules.** Completed the follow-up UX hardening from the
+> aggregate review: added shared `DashboardKpiLink` and wired KPI cards to `?filter=` section filters on
+> `/farm/dashboard`, `/finance/dashboard`, `/plans/dashboard`, `/people/dashboard`, `/weather/dashboard`, and
+> `/settings/dashboard`; `/inventory/dashboard` now uses the shared wrapper while preserving its existing work-table
+> filters. Each dashboard shows an Arabic "current filter" card and a clear-filter link. This makes KPI cards
+> interactive across modules without adding writes, RPCs, migrations, dependencies, or charts. **Validation:**
+> touched-dashboard ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **174/174**; `npm run build`
+> green.
+
+> **2026-06-29 — Module dashboard/360 hardening review.** Performed an aggregate review of the current
+> module navigator/dashboard/360 batch, including an independent explorer-agent pass. Fixed the main review
+> findings before stopping: dynamic 360 routes now get route-specific Help Drawer content (`item`, `plan`,
+> `purchase request`, `supplier`, `budget`, `expense`, `person`) while the sidebar still highlights the parent
+> module/list; `PAGE_HELP`/`helpForPath` tests now cover 360 routing and dashboard fallback. Added shared Arabic
+> labels for plan type/status, movement type, budget status, expense status, and payment method; removed raw
+> filter/status/type leaks from the new dashboard/360 surfaces. Tightened misleading capped KPI wording/sources:
+> farm attention uses an exact count, finance budget totals no longer use the 30-row cap, planning labels say
+> "معروضة" for capped work queues, and supplier PR-line count uses exact count with a capped-table note. **Validation:** touched-file ESLint clean; `npx tsc --noEmit` clean; targeted nav/page-help Vitest
+> **14/14**; full `npx vitest run` **174/174**; `npm run build` green. No migrations, no RPC changes, no prod
+> mutation, no commit/merge.
+
+> **2026-06-29 — Module navigator + Inventory/Purchasing dashboard first slice.** Added
+> [`2026-06-29-module-navigator-dashboards-360-design`](superpowers/specs/2026-06-29-module-navigator-dashboards-360-design.md)
+> and
+> [`2026-06-29-module-navigator-inventory-dashboard`](superpowers/plans/2026-06-29-module-navigator-inventory-dashboard.md),
+> then built the read-only first slice: typed `APP_MODULES` registry, grouped app-side sidebar, and
+> `/inventory/dashboard` with query-derived KPI filters over inventory items and purchase requests. Also added
+> page-help coverage for the new dashboard and croquis sub-page. **No migrations, no RPC changes, no prod mutation,
+> no `@amrebeid/ui` package changes.** Independent review found two sidebar CSS blockers (undefined shell vars +
+> breakpoint mismatch); both fixed by explicit shell fallbacks and matching the UI package's `48rem` drawer
+> breakpoint. **Validation:** ESLint touched TS/TSX clean; `npx vitest run` **170/170**; `npx tsc --noEmit` clean
+> when run serially after build; `npm run build` green and includes `/inventory/dashboard`. Browser smoke was
+> attempted, but authenticated app smoke is blocked in this environment because the dev seed-auth route is disabled
+> unless `NEXT_PUBLIC_SUPABASE_URL` points at local Supabase.
+
+> **2026-06-29 — Item 360 shell added under Inventory/Purchasing.** Built the next read-only slice:
+> `/inventory/[itemId]` is now the canonical item overview, while existing `/inventory/[itemId]/coverage` remains
+> the Health/Risk deep dive. Inventory list and dashboard item rows now land on the item 360 page. The page reads
+> existing RLS-scoped `inventory_items`, `inventory_bin`, `inventory_movements`, and `purchase_request_items` data;
+> shows query-derived stock KPIs, item profile/reorder policy, recent movements, linked PRs, and a coverage CTA.
+> Independent review found invalid nested `Link > Button`, stale list copy, and nondeterministic PR-line ordering;
+> all fixed. **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
+> `npm run build` green and route list includes `/inventory/[itemId]`. No migrations, no RPC changes, no charts,
+> no prod mutation.
+
+> **2026-06-29 — Farm Dashboard module entry added.** Built the next read-only module dashboard:
+> `/farm/dashboard` is now the Farm module entry point, while `/farm` remains the structure directory. The dashboard
+> reads existing RLS-scoped `sectors`, `hawshat`, `assets`, and `farm_event` data; shows query-derived KPIs for
+> sectors, hawshat, Barhi palms, and palms needing attention; and links tables into the existing sector, hawsha,
+> and palm 360 pages. Updated module nav, active-route tests, page help, and the dashboard/360 design spec.
+> **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**; `npm run build`
+> green and route list includes `/farm/dashboard`. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Planning/Operations Dashboard module entry added.** Built the next read-only module dashboard:
+> `/plans/dashboard` is now the Planning/Operations module entry point, while `/plans` remains the plan directory.
+> The dashboard follows the Admin Panel + market pattern of status KPIs over a work table: active plans, due/open
+> operations, blocked checks, and estimated open cost from existing RLS-scoped `plans`, `plan_operations`, and
+> `plan_checks` reads. Rows link into existing plan 360 pages and the field surface remains available via `/m`.
+> Updated module nav, active-route tests, page help, plan, and the dashboard/360 design spec. **Validation:**
+> targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**; `npm run build` green and route
+> list includes `/plans/dashboard`. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Finance Dashboard module entry added.** Built the next read-only module dashboard:
+> `/finance/dashboard` is now the Finance module entry point, while `/budgets` and `/expenses` remain sub-pages.
+> The dashboard reads existing RLS-scoped `budgets`, `expenses`, and `purchase_requests`; shows query-derived KPIs
+> for approved budget, committed+actual spend, available budget, and submitted PRs; and surfaces budget pressure,
+> recent expenses, and PR follow-up tables. It explicitly avoids draft accounting/P&L work that is not on `main`.
+> Updated module nav, active-route tests, page help, plan, and the dashboard/360 design spec. **Validation:**
+> targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**; `npm run build` green and route
+> list includes `/finance/dashboard`. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — People Dashboard + Person 360 added.** Built the next read-only module slice:
+> `/people/dashboard` is now the People module entry point, `/people` remains the team directory, and
+> `/people/[personId]` is the canonical non-PII person 360 page. The dashboard reads existing RLS-scoped `people`
+> and `plan_operations` data; shows query-derived active-headcount/work-assignment KPIs; and surfaces workload,
+> unassigned operations, and directory tables. Person 360 reads only non-PII `people`, `plan_operations`, and
+> `farm_event` data; it does not select phone, email, or compensation. Updated directory row links, module nav,
+> active-route tests, page help, plan, and the dashboard/360 design spec. **Validation:** targeted ESLint clean;
+> `npx tsc --noEmit` clean; `npx vitest run` **170/170**; `npm run build` green and route list includes
+> `/people/dashboard` and `/people/[personId]`. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Weather/Risk Dashboard module entry added.** Built the next read-only module dashboard:
+> `/weather/dashboard` is now the Weather/Risk module entry point, while `/weather` remains the detailed forecast
+> page. The dashboard reuses the existing server-only `getForecast()` boundary and pure `computeGates()` logic;
+> shows query/provider-derived KPIs for forecast days, advisory days, heat-stress days, and service state; and
+> surfaces daily operation-gate and advisory-reason tables. It does not change provider config, thresholds, or
+> hard-block operations. Updated module nav, active-route tests, page help, plan, and the dashboard/360 design spec.
+> **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**; `npm run build`
+> green and route list includes `/weather/dashboard`. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Settings/Admin Dashboard module entry added.** Built the next read-only module dashboard:
+> `/settings/dashboard` is now the Settings/Admin module entry point, while `/profile` and `/settings` remain
+> sub-pages. The dashboard reads existing membership/org/team data; shows query-derived KPIs for accessible orgs,
+> current role, active team members, and settings availability; and surfaces organization profile, role
+> distribution, and admin quick-link tables. It does not add member management, auth-hook changes, or settings
+> mutation. Updated module nav, active-route tests, page help, plan, and the dashboard/360 design spec.
+> **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**; `npm run build`
+> green and route list includes `/settings/dashboard`. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Supplier 360 added.** Built the next read-only entity 360:
+> `/suppliers/[supplierId]` is now the canonical supplier file and supplier list rows open it. The page reads
+> existing RLS-scoped supplier, preferred inventory item, PR line, expense, and inventory movement data; shows
+> query-derived KPIs for preferred items, purchase lines, recent expenses, and movements; and links rows back to
+> item 360 and PR 360 where available. **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean;
+> `npx vitest run` **170/170**; `npm run build` green and route list includes `/suppliers/[supplierId]`.
+> No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Budget 360 added.** Built the next read-only finance entity 360:
+> `/budgets/[budgetId]` is now the canonical budget file and budget list rows open it. The page reads existing
+> RLS-scoped `budgets`, `budget_lines`, `expenses`, and `purchase_requests`; shows query-derived KPIs for planned,
+> approved, committed+actual, and available budget; and surfaces budget lines, same-category expenses, and linked
+> PRs. It does not use draft accounting/P&L work. **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean;
+> `npx vitest run` **170/170**; `npm run build` green and route list includes `/budgets/[budgetId]`.
+> No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Expense 360 added.** Built the next read-only finance entity 360:
+> `/expenses/[expenseId]` is now the canonical expense file and expense list rows open it. The page reads existing
+> RLS-scoped `expenses` plus supplier, plan, farm/sector/hawsha, and linked event data; shows query-derived KPIs
+> for total, quantity, unit price, and linked scope count; and surfaces profile, related links, and linked event
+> details. Finance Dashboard recent-expense rows now open Expense 360. It does not use draft accounting/P&L work. **Validation:** targeted ESLint clean; `npx tsc --noEmit`
+> clean; `npx vitest run` **170/170**; `npm run build` green and route list includes `/expenses/[expenseId]`.
+> No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Purchase Request 360 polished.** Updated existing `/purchase-requests/[prId]` to match the
+> dashboard/360 convention: added query-derived KPI cards for line count, estimated cost, received quantity, and
+> remaining quantity/open lines, and linked PR line rows to Item 360 (`/inventory/[itemId]`). Mixed-unit requests
+> do not sum incompatible units; they show an explicit mixed-unit state. Approval and receipt actions were not
+> changed. **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
+> `npm run build` green. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Plan 360 polished.** Updated existing `/plans/[planId]` to match the dashboard/360 convention:
+> added query-derived KPI cards for operation count, estimated cost, checks run, and blocked checks, and replaced
+> invalid nested `Link > Button` quick actions with styled links. Operation creation/check-running behavior was not
+> changed. **Validation:** targeted ESLint clean; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
+> `npm run build` green. No migrations, no RPC changes, no charts, no prod mutation.
+
+> **2026-06-29 — Navigator drift guards strengthened.** Added unit coverage that every module's first page matches
+> its `dashboardHref` and every nav href has a backing route file under `app/(app)`. **Validation:** targeted
+> nav/page-help Vitest **12/12**, full `npx vitest run` **172/172**, `npx tsc --noEmit` clean, `npm run build`
+> green. No runtime behavior, migration, RPC, or prod changes.
 
 > **2026-06-27 (newest) — Owner-authorized PUSH + MIGRATE + MERGE.** Knowledge System (16 docs) + SPEC-0014
 > Tier A code committed/pushed/merged to `main` (branch `feat/knowledge-system-spec0014-tierA`, independent

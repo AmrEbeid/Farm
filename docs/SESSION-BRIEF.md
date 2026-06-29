@@ -1,5 +1,431 @@
-# Session Brief — Farm OS      Updated: 2026-06-27 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-29 by Claude (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-29 — Owner-review packaging checklist + final code-readiness pass
+**Where we are.** Inventoried the full local worktree for the module navigator/dashboard/360 batch and added
+`docs/superpowers/plans/2026-06-29-module-dashboard-360-owner-review-checklist.md`. The checklist separates included
+scope, explicit exclusions, owner review gates, validation evidence, the browser/auth visual-smoke limitation, and
+safe selective staging guidance. Final code-readiness review then patched the remaining farm timeline/status raw enum
+fallbacks on the farm list/dashboard and sector/hawsha/line/palm 360 pages; line/palm now use the shared
+`SUBTYPE_AR` label map. A follow-up independent explorer-agent audit found and fixed three more readiness issues:
+storekeeper `/dashboard` now routes to `/inventory/dashboard`, expense list/detail pages enforce the same finance
+roles as the sidebar, and `/farm`, `/plans`, and `/inventory` now present as secondary structure/list surfaces with
+links back to their module dashboards. `lib/nav.test.ts` now also checks role-filtered modules start with their
+dashboard and explicitly covers current 360 active-nav routes. The legacy mutating Playwright wedge setup now refuses
+non-local Supabase URLs unless an explicit local-reset env flag is present, preventing accidental data resets against
+a direct Supabase target. Final standards/spec review found and fixed four issues: settings role fallback no longer
+shows raw unknown role codes; planning's due-operations KPI now filters to the due queue; the Farm Barhi total is no
+longer a fake filter; and finance now separates displayed operating expenses from owner drawings using existing
+expense text fields until a stronger schema discriminator exists.
+
+**Scope audit.** No dependency manifests, env files, Vercel/proxy files, or Supabase migration/test/config files are
+in this batch. A secret-pattern scan over the app/docs diff returned no hits. `docs/SPEC-0018-custody-and-payment-requests.md`
+is unrelated and should not be staged with the module dashboard/360 batch.
+
+**Validation.** Targeted blocker searches clean for invalid nested controls, placeholder links, hardcoded KPI
+literals, and farm event/status enum leaks. The remaining `health_status` raw fallback is intentional because that
+field can contain field-entered Arabic free text. Touched-file ESLint clean; `npx tsc --noEmit` clean; nav/help
+Vitest **17/17**; full Vitest **177/177**; `npm run build` green; `git diff --check` clean.
+
+**Still open.** Browser/auth visual smoke remains blocked. Owner clarified that Farm OS should not use the
+Docker-backed Supabase local stack and that migrations are handled directly in Supabase. Use an already-authenticated
+browser/session or define a separate non-Docker smoke path. No migrations, RPCs, production mutation, commit, merge,
+or deploy.
+
+## 2026-06-29 — 360 table drill-through hardening
+**Where we are.** Reviewed `SimpleTable`/`FilterableTable` row-link behavior and dashboard/360 row definitions for
+missing canonical detail affordances. Budget 360 and Supplier 360 expense tables now link each expense row to
+Expense 360 (`/expenses/[expenseId]`). Rows that do not have a backing detail route, such as weather reason rows or
+farm event rows, remain non-clickable.
+
+**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean;
+`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**;
+`npm run build` green.
+
+**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
+path. No migrations, RPCs, production mutation, commit, merge, or deploy.
+
+## 2026-06-29 — Mobile/accessibility layout hardening
+**Where we are.** Ran a focused review of the module sidebar, topbar, KPI grids, and dashboard/360 responsive
+layout. KPI sections now default to one column on the smallest screens, then two columns from `sm`, then desktop
+four-column layouts where already intended. Module toggles now expose controlled page-list regions with
+`aria-controls`; active KPI filter links use `aria-current="page"`; topbar controls can wrap; and long Arabic nav
+labels can wrap inside the sidebar/drawer instead of pushing the layout width.
+
+**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean;
+`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**;
+`npm run build` green.
+
+**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
+path. No migrations, RPCs, production mutation, commit, merge, or deploy.
+
+## 2026-06-29 — Pre-merge UX label/markup hardening
+**Where we are.** Ran a focused pre-merge review over the dashboard/360 batch for invalid nested controls,
+placeholder links, duplicated Arabic label maps, and raw DB enum fallbacks. Fixed the remaining `Link > Button`
+patterns on `/m` and the manager dashboard. Centralized employment-type and purchase-request status labels in
+`lib/labels.ts`, then removed raw fallback rendering from people, planning, purchasing, inventory item, budget,
+supplier, expense, and field dashboard surfaces.
+
+**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean;
+`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **16/16**; full `npx vitest run` **176/176**;
+`npm run build` green.
+
+**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
+path. No migrations, RPCs, production mutation, commit, merge, or deploy.
+
+## 2026-06-29 — Module navigator spec aligned with guards
+**Where we are.** Updated
+`docs/superpowers/specs/2026-06-29-module-navigator-dashboards-360-design.md` to match the implementation now in
+the worktree. The spec now explicitly requires URL-addressable dashboard KPI filters, shared filter UI primitives,
+route-specific Help Drawer coverage for dynamic 360/workflow pages, and active-nav coverage for dynamic pages.
+
+**Validation.** Docs-only alignment pass. Latest code validation remains: `npx vitest run lib/nav.test.ts` **9/9**,
+touched-file ESLint clean, `npx tsc --noEmit` clean, full `npx vitest run` **176/176**, and `npm run build` green.
+
+**Still open.** Browser/auth visual smoke requires an already-authenticated browser/session or an approved non-Docker
+path. No migrations, RPCs, production mutation, commit, merge, or deploy.
+
+## 2026-06-29 — Dynamic active-nav drift guard
+**Where we are.** Added a filesystem-backed `lib/nav.test.ts` guard that samples every dynamic `app/(app)` page and
+asserts it resolves to an active nav item. This protects 360/workflow routes from losing module/sidebar context as
+more dynamic pages are added.
+
+**Validation.** `npx vitest run lib/nav.test.ts` **9/9**; touched-file ESLint clean; `npx tsc --noEmit` clean;
+full `npx vitest run` **176/176**; `npm run build` green.
+
+## 2026-06-29 — Workflow active-nav aliases
+**Where we are.** Added active-nav aliases for dynamic workflow pages that live outside normal nav prefixes:
+`/budget/[planId]/check` now highlights `budgets`, and `/reports/[planId]/pva` highlights `plans` in the module
+sidebar instead of defaulting to the global dashboard. This keeps workflow pages in the right module context.
+
+**Validation.** `npx vitest run lib/nav.test.ts lib/page-help.test.ts` **15/15**; touched-file ESLint clean;
+`npx tsc --noEmit` clean; full `npx vitest run` **175/175**; `npm run build` green.
+
+## 2026-06-29 — Workflow Arabic fallback hardening
+**Where we are.** Removed raw DB/string fallback leaks from dynamic workflow pages touched by the Help Drawer pass:
+`/m/execute/[opId]` now falls back to Arabic labels for unknown subtype/status/unit, `/reports/[planId]/pva` uses
+Arabic "عملية" for unknown operation subtypes in tables/charts, and `/inventory/[itemId]/coverage` uses `كجم` when
+an item unit is missing.
+
+**Validation.** Touched-file ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **175/175**;
+`npm run build` green.
+
+## 2026-06-29 — Dynamic route-help drift guard strengthened
+**Where we are.** Strengthened `lib/page-help.test.ts` with a filesystem-backed guard that samples every dynamic
+`app/(app)` page and asserts it gets route-specific Help Drawer content instead of generic dashboard fallback.
+This protects the 360/workflow help coverage as new dynamic pages are added.
+
+**Validation.** `npx vitest run lib/page-help.test.ts` **7/7**; touched-file ESLint clean; `npx tsc --noEmit`
+clean; full `npx vitest run` **175/175**; `npm run build` green.
+
+## 2026-06-29 — Workflow detail help coverage
+**Where we are.** Added route-specific Help Drawer entries for remaining dynamic workflow pages:
+`/inventory/[itemId]/coverage`, `/m/execute/[opId]`, `/budget/[planId]/check`, and `/reports/[planId]/pva`.
+These now show stock-coverage, field-execution, budget-check, and planned-vs-actual guidance instead of generic
+parent help. `lib/page-help.test.ts` covers these paths.
+
+**Review fix.** While reading `/budget/[planId]/check`, fixed the existing invalid `Link > Button` CTA by replacing
+it with a styled link to the purchase-request approval page.
+
+**Validation.** `npx vitest run lib/page-help.test.ts` **6/6**; touched-file ESLint clean; `npx tsc --noEmit`
+clean; full `npx vitest run` **174/174**; `npm run build` green. No migrations/RPC/prod changes.
+
+## 2026-06-29 — Dashboard filter UI factored
+**Where we are.** Added shared `CurrentFilterCard` and replaced duplicated current-filter/clear-filter markup across
+inventory, farm, finance, planning, people, weather, and settings dashboards. Behavior is unchanged from the KPI
+filter slice; this reduces drift between dashboard modules.
+
+**Validation.** Touched-dashboard ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **174/174**;
+`npm run build` green.
+
+## 2026-06-29 — Farm structure 360 help coverage
+**Where we are.** Added route-specific Help Drawer entries for the existing farm structure detail pages:
+`/farm/sector/[id]`, `/farm/hawsha/[id]`, `/farm/line/[id]`, and `/farm/palm/[id]`. These now show sector,
+hawsha, line, and palm 360 guidance instead of generic farm-structure help. The route-help drift test covers all
+four paths.
+
+**Validation.** `npx vitest run lib/page-help.test.ts` **6/6**; touched-file ESLint clean; `npx tsc --noEmit`
+clean; full `npx vitest run` **174/174**; `npm run build` green. No migrations/RPC/prod changes.
+
+## 2026-06-29 — Dashboard KPI filters across modules
+**Where we are.** Added a shared `DashboardKpiLink` wrapper and made KPI cards interactive across the module
+dashboards. Inventory now uses the shared wrapper; farm, finance, planning, people, weather, and settings use
+`?filter=` state to narrow the relevant table sections and show an Arabic current-filter card plus a clear-filter
+link. No writes, RPCs, migrations, dependencies, or charts were added.
+
+**Validation.** Touched-dashboard ESLint clean; `npx tsc --noEmit` clean; full `npx vitest run` **174/174**;
+`npm run build` green. Browser/auth visual smoke is still not completed because the local authenticated app path
+needs a working local Supabase/seed session.
+
+**Still open.** Visual review in a logged-in browser session before commit/push/merge. Longer-term polish: factor
+the repeated current-filter card/inline-link pattern if dashboard filtering grows further.
+
+## 2026-06-29 — Module dashboard/360 hardening review
+**Where we are.** The module navigator/dashboard/360 batch is still local and uncommitted, but now has a stronger
+review pass on top of the build work. Dynamic 360/detail routes get specific Help Drawer content via
+`helpForPath(pathname, fallbackHelpId)` while the sidebar active state still comes from the parent nav item. New
+360 help entries cover item, plan, purchase request, supplier, budget, expense, and person files.
+
+**Review fixes.** Addressed the independent review findings that could mislead users: raw English/database labels
+were removed from the new dashboard/360 surfaces through shared Arabic label maps in `lib/labels.ts`; inventory's
+current-filter text is Arabic; supplier movement types, budget status, expense status/payment method, and plan type
+labels no longer render raw enum values. KPI wording/sources were tightened where rows are capped: farm attention
+uses exact count, finance budget totals no longer use a 30-row cap, planning labels say "معروضة" for capped queues,
+and supplier PR-line KPI uses exact count with a note when the table is capped.
+
+**Validation.** `npx eslint` on touched shared/dashboard/360 files clean; `npx tsc --noEmit` clean;
+`npx vitest run lib/nav.test.ts lib/page-help.test.ts` **14/14**; full `npx vitest run` **174/174**; `npm run build`
+green and route list includes all dashboard/360 routes. No migrations, no RPC changes, no production mutation, no
+commit/merge.
+
+**Still open.** Browser/auth visual smoke remains blocked unless local Supabase/auth can seed a session. Next
+recommended slice: make dashboard KPI cards interactive filters across farm, finance, planning, people, weather,
+and settings; inventory already has that pattern.
+
+## 2026-06-29 — Module navigator + Inventory/Purchasing dashboard first slice
+**Where we are.** Built the read-only first slice of the module navigator/dashboard/360 direction. New docs:
+[`docs/superpowers/specs/2026-06-29-module-navigator-dashboards-360-design.md`](superpowers/specs/2026-06-29-module-navigator-dashboards-360-design.md)
+and
+[`docs/superpowers/plans/2026-06-29-module-navigator-inventory-dashboard.md`](superpowers/plans/2026-06-29-module-navigator-inventory-dashboard.md).
+Code changes: `APP_MODULES` registry in `lib/nav.ts`, grouped app-side `ModuleSidebar`, `AppChrome` wiring,
+`/inventory/dashboard` with query-derived KPI-card filters + work table, and page-help entries for
+`inventory-dashboard` + `farm-croquis`. The first slice deliberately avoided migrations/RPCs/prod changes,
+`@amrebeid/ui` package edits, accounting, academy, AI, and real registry import.
+
+**Review.** Independent review found two real sidebar CSS blockers: undefined custom shell dimension variables and
+a breakpoint mismatch with `@amrebeid/ui`'s `48rem` AppShell drawer breakpoint. Fixed with explicit 240px/sidebar
+and topbar fallbacks, matching `48rem`, plus RTL desktop grid alignment so the module nav sits in the shell sidebar
+column instead of covering main content.
+
+**Validation.** `npx eslint components/AppChrome.tsx components/ModuleSidebar.tsx lib/nav.ts lib/nav.test.ts
+lib/page-help.ts 'app/(app)/inventory/dashboard/page.tsx'` clean; `npx vitest run` **170/170**; `npm run build`
+green and route list includes `/inventory/dashboard`; `npx tsc --noEmit` clean when run serially after build.
+Running `tsc` in parallel with `next build` produces transient `.next/types` missing-file errors because build
+rewrites generated types; the serial command is clean. Browser smoke was attempted with Playwright, but the app
+redirected to `/login` because `/api/dev/seed-auth` self-disables unless `NEXT_PUBLIC_SUPABASE_URL` points at local
+Supabase.
+
+**Still open.** No migration needed. Do an owner/visual review before commit/push/merge. Next recommended build
+slice: item 360 shell under Inventory/Purchasing, or Farm/Structure module dashboard after this first slice is
+visually accepted.
+
+## 2026-06-29 — Item 360 shell under Inventory/Purchasing
+**Where we are.** Built `/inventory/[itemId]` as the canonical read-only Item 360 overview. Inventory list and
+`/inventory/dashboard` item rows now link to that overview; `/inventory/[itemId]/coverage` remains the Health/Risk
+deep dive. The page reads existing RLS-scoped `inventory_items`, `inventory_bin`, `inventory_movements`, and
+`purchase_request_items`; it shows query-derived stock KPIs, item profile/reorder policy, recent movements, linked
+PRs, and a clear coverage CTA. No migrations/RPCs/charts/prod/data mutation.
+
+**Review.** Independent review returned no blocking findings, but flagged invalid nested `Link > Button`, stale
+inventory-list copy, and nondeterministic PR-line ordering. Fixed all three: header actions are styled links,
+inventory copy says items open their file, and linked PR lines now order deterministically.
+
+**Validation.** Targeted ESLint clean for inventory pages; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
+`npm run build` green and route list includes both `/inventory/[itemId]` and `/inventory/[itemId]/coverage`.
+
+**Still open.** No migration needed. Next recommended slice: Farm/Structure module dashboard, because palm/sector/
+hawsha/line 360 pages already exist and can demonstrate the module-dashboard pattern outside inventory.
+
+## 2026-06-29 — Farm Dashboard module entry
+**Where we are.** Built `/farm/dashboard` as the Farm module's read-only dashboard entry and kept `/farm` as the
+structure directory. The dashboard reads existing RLS-scoped `sectors`, `hawshat`, `assets`, and `farm_event` data;
+shows query-derived KPIs for sectors, hawshat, Barhi palms, and palms needing attention; and links table rows into
+existing sector, hawsha, and palm 360 pages. Updated the Farm module nav so the dashboard is first, added
+`farm-dashboard` page help, extended nav active-route tests, and added the third-slice note to the dashboard/360
+design spec.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation. The page uses read-only
+Supabase queries only and styled links for header/table navigation.
+
+**Validation.** Targeted ESLint clean for the farm dashboard/nav/help files; `npx tsc --noEmit` clean;
+`npx vitest run` **170/170**; `npm run build` green and route list includes `/farm/dashboard`.
+
+**Still open.** No migration needed. Next recommended slice: Planning/Operations module dashboard, reusing existing
+plans/operations data and linking rows into plan 360 pages.
+
+## 2026-06-29 — Planning/Operations Dashboard module entry
+**Where we are.** Built `/plans/dashboard` as the Planning/Operations module's read-only dashboard entry and kept
+`/plans` as the plan directory. The dashboard reads existing RLS-scoped `plans`, `plan_operations`, and
+`plan_checks`; shows query-derived KPIs for active plans, due/open operations, blocked checks, and estimated open
+cost; and links work rows into existing plan 360 pages. Updated module nav so the dashboard is first, added
+`plans-dashboard` page help, extended active-route tests, added a planning-dashboard plan, and recorded the
+fourth-slice note in the dashboard/360 design spec.
+
+**Research basis.** The slice reused the Admin Panel lesson (KPI cards over a work table, row to 360) and matched
+market patterns from Farmbrite task/work management, Agworld planning/execution/performance framing, and John
+Deere Operations Center planning/monitoring/analysis framing.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation. The page uses read-only
+Supabase queries only and styled links for header/table navigation.
+
+**Validation.** Targeted ESLint clean for the planning dashboard/nav/help files; `npx tsc --noEmit` clean;
+`npx vitest run` **170/170**; `npm run build` green and route list includes `/plans/dashboard`.
+
+**Still open.** No migration needed. Next recommended slice: Finance module dashboard or People module dashboard,
+depending on whether we want to prioritize owner financial review or operational staffing visibility next.
+
+## 2026-06-29 — Finance Dashboard module entry
+**Where we are.** Built `/finance/dashboard` as the Finance module's read-only dashboard entry and kept `/budgets`
+and `/expenses` as finance sub-pages. The dashboard reads existing RLS-scoped `budgets`, `expenses`, and
+`purchase_requests`; shows query-derived KPIs for approved budget, committed+actual spend, available budget, and
+submitted PRs; and surfaces budget pressure, recent expenses, and PR follow-up tables. Updated module nav so the
+dashboard is first, added `finance-dashboard` page help, extended active-route tests, added a finance-dashboard
+plan, and recorded the fifth-slice note in the dashboard/360 design spec.
+
+**Scope control.** The slice explicitly avoided accounting/P&L draft work that is not on `main`.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation. The page uses read-only
+Supabase queries only and styled links for header/table navigation.
+
+**Validation.** Targeted ESLint clean for the finance dashboard/nav/help files; `npx tsc --noEmit` clean;
+`npx vitest run` **170/170**; `npm run build` green and route list includes `/finance/dashboard`.
+
+**Still open.** No migration needed. Next recommended slice: People module dashboard, because team visibility is
+already a read-only page and can be expanded without touching compensation/PII.
+
+## 2026-06-29 — People Dashboard + Person 360
+**Where we are.** Built `/people/dashboard` as the People module's read-only dashboard entry, kept `/people` as the
+team directory, and added `/people/[personId]` as the canonical non-PII Person 360 page. The dashboard reads existing
+RLS-scoped `people` and `plan_operations`; shows query-derived KPIs for active headcount, employment mix, assigned
+work, and unassigned work; and links workload/directory rows into person files. Person 360 reads only non-PII
+`people`, `plan_operations`, and `farm_event` data; it shows profile metadata, assignment/event KPIs, assigned
+operations, performed events, and direct reports.
+
+**Scope control.** The slice does not select or render phone, email, or `people_compensation`.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and PII/compensation selects before
+validation. The only PII grep hit is the existing protective comment in `/people`.
+
+**Validation.** Targeted ESLint clean for people dashboard/360/directory/nav/help files; `npx tsc --noEmit` clean;
+`npx vitest run` **170/170**; `npm run build` green and route list includes `/people/dashboard` and
+`/people/[personId]`.
+
+**Still open.** No migration needed. Next recommended slice: Weather/Risk dashboard or Settings/Admin dashboard,
+depending on whether operational risk or admin governance is more important next.
+
+## 2026-06-29 — Weather/Risk Dashboard module entry
+**Where we are.** Built `/weather/dashboard` as the Weather/Risk module's read-only dashboard entry and kept
+`/weather` as the detailed forecast/advisory page. The dashboard reuses the existing server-only `getForecast()`
+boundary and pure `computeGates()` logic; it shows forecast-days, advisory-days, heat-stress, and service-state
+KPIs, plus daily operation-gate and advisory-reason tables.
+
+**Scope control.** The slice does not change provider configuration, thresholds, or hard-block behavior. Provider
+unconfigured/unavailable states remain explicit, not fabricated.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation.
+
+**Validation.** Targeted ESLint clean for weather dashboard/nav/help files; `npx tsc --noEmit` clean;
+`npx vitest run` **170/170**; `npm run build` green and route list includes `/weather/dashboard`.
+
+**Still open.** No migration needed. Next recommended slice: Settings/Admin dashboard, or a budget/request 360
+follow-up if the priority is to complete finance entity files.
+
+## 2026-06-29 — Settings/Admin Dashboard module entry
+**Where we are.** Built `/settings/dashboard` as the Settings/Admin module's read-only dashboard entry and kept
+`/profile` and `/settings` as sub-pages. The dashboard reads existing membership/org/team data; shows query-derived
+KPIs for accessible orgs, current role, active team members, and settings availability; and surfaces organization
+profile, role distribution, and admin quick-link tables.
+
+**Scope control.** The slice does not add member management, auth-hook changes, or settings mutation.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and protected-field references before
+validation.
+
+**Validation.** Targeted ESLint clean for settings dashboard/nav/help files; `npx tsc --noEmit` clean;
+`npx vitest run` **170/170**; `npm run build` green and route list includes `/settings/dashboard`.
+
+**Still open.** No migration needed. Next recommended work: entity 360 follow-ups for finance/purchasing objects
+that do not yet have canonical 360 routes, starting with budget or supplier.
+
+## 2026-06-29 — Supplier 360
+**Where we are.** Built `/suppliers/[supplierId]` as the canonical read-only Supplier 360 page and linked supplier
+list rows to it. The page reads existing RLS-scoped supplier, preferred inventory item, PR line, expense, and
+inventory movement data; shows query-derived KPIs for preferred items, purchase lines, recent expenses, and
+movements; and links rows back to Item 360 and PR 360 where available.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation.
+
+**Validation.** Targeted ESLint clean for supplier list/360 files; `npx tsc --noEmit` clean; `npx vitest run`
+**170/170**; `npm run build` green and route list includes `/suppliers/[supplierId]`.
+
+**Still open.** No migration needed. Next recommended entity 360 follow-up: Budget 360, because Finance now has a
+dashboard but budget rows still do not open a canonical budget file.
+
+## 2026-06-29 — Budget 360
+**Where we are.** Built `/budgets/[budgetId]` as the canonical read-only Budget 360 page and linked budget list rows
+to it. The page reads existing RLS-scoped `budgets`, `budget_lines`, `expenses`, and `purchase_requests`; shows
+query-derived KPIs for planned, approved, committed+actual, and available budget; and surfaces budget lines,
+same-category expenses, and linked PRs.
+
+**Scope control.** The slice does not use draft accounting/P&L work that is not on `main`.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and accounting/P&L references before
+validation.
+
+**Validation.** Targeted ESLint clean for budget list/360 files; `npx tsc --noEmit` clean; `npx vitest run`
+**170/170**; `npm run build` green and route list includes `/budgets/[budgetId]`.
+
+**Still open.** No migration needed. Next recommended entity follow-up: purchase request 360 polish or finance
+dashboard row links into Budget 360 if desired.
+
+## 2026-06-29 — Expense 360
+**Where we are.** Built `/expenses/[expenseId]` as the canonical read-only Expense 360 page and linked expense list
+rows to it. The page reads existing RLS-scoped `expenses` plus supplier, plan, farm/sector/hawsha, and linked event
+data; shows query-derived KPIs for total, quantity, unit price, and linked scope count; and surfaces profile,
+related links, and linked event details. Finance Dashboard recent-expense rows now open Expense 360.
+
+**Scope control.** The slice does not use draft accounting/P&L work that is not on `main`.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and accounting/P&L references before
+validation.
+
+**Validation.** Targeted ESLint clean for expense list/360 files; `npx tsc --noEmit` clean; `npx vitest run`
+**170/170**; `npm run build` green and route list includes `/expenses/[expenseId]`.
+
+**Still open.** No migration needed. Next recommended work: polish existing Purchase Request 360 so it follows the
+same dashboard/360 conventions as the new entity files.
+
+## 2026-06-29 — Purchase Request 360 polish
+**Where we are.** Updated existing `/purchase-requests/[prId]` so it follows the same dashboard/360 convention as
+the new entity files. It now shows query-derived KPI cards for line count, estimated cost, received quantity, and
+remaining quantity/open lines; PR line rows now link to Item 360 (`/inventory/[itemId]`). Mixed-unit requests do
+not sum incompatible units; they show an explicit mixed-unit state.
+
+**Scope control.** Approval and receipt actions were not changed.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues and accounting/P&L references before
+validation.
+
+**Validation.** Targeted ESLint clean for the PR 360 file; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
+`npm run build` green.
+
+**Still open.** No migration needed. Next recommended work: final aggregate review of the dashboard/360 batch, then
+visual/browser smoke once local auth/Supabase is available.
+
+## 2026-06-29 — Plan 360 polish
+**Where we are.** Updated existing `/plans/[planId]` to follow the same dashboard/360 convention. It now shows
+query-derived KPI cards for operation count, estimated cost, checks run, and blocked checks. The quick-action links
+no longer use nested `Link > Button` markup; they are styled links.
+
+**Scope control.** Operation creation and check-running behavior were not changed.
+
+**Review.** Checked the route for writes/RPCs/charts/nested anchor issues before validation.
+
+**Validation.** Targeted ESLint clean for the plan 360 file; `npx tsc --noEmit` clean; `npx vitest run` **170/170**;
+`npm run build` green.
+
+**Still open.** No migration needed. Next recommended work: final aggregate review/visual smoke, then prepare the
+batch for owner review without committing until explicitly approved.
+
+## 2026-06-29 — Navigator drift guards strengthened
+**Where we are.** Added nav unit coverage that every module starts with its configured `dashboardHref` and every nav
+href has a backing route file under `app/(app)`. This protects the new module dashboard pattern from drifting.
+
+**Validation.** Targeted nav/page-help Vitest **12/12**; full `npx vitest run` **172/172**; `npx tsc --noEmit`
+clean; `npm run build` green.
+
+**Still open.** No migration needed. Browser/visual smoke remains blocked unless local auth/Supabase can seed an
+authenticated session; prior seed-auth attempts redirected to `/login` in this environment.
 
 ## 2026-06-27 (latest+4) — Owner opened the gate: REVIEW → PUSH → MERGE → MIGRATE executed
 **Where we are.** The Owner authorized in writing ("review and then push merge and migrate"). All three

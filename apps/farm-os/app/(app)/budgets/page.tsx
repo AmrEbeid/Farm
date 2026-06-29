@@ -32,6 +32,7 @@ export default async function BudgetsPage() {
     const actual = Number(b.actual ?? 0);
     return {
       id: b.id,
+      href: `/budgets/${b.id}`,
       name: b.name ?? "—",
       period: b.period ?? "—",
       category: b.category ?? "—",

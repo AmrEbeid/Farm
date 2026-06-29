@@ -10,13 +10,7 @@ import { StructureArchiveButton } from "@/components/StructureArchiveButton";
 import { MediaGallery } from "@/components/MediaGallery";
 import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  inspection: "تفتيش",
-};
+import { SUBTYPE_AR } from "@/lib/labels";
 
 // assets.status — the closed set from migration 0003.
 const STATUS_AR: Record<string, string> = {
@@ -92,7 +86,7 @@ export default async function PalmFilePage({
   const timeline: TimelineEvent[] = (history ?? []).map((h) => ({
     id: h.id,
     kind: "operation",
-    title: STATUS_AR[h.status ?? ""] ?? h.status ?? "تغيير الحالة",
+    title: h.status ? STATUS_AR[h.status] ?? "تغيير الحالة" : "تغيير الحالة",
     time: fmtDate(h.changed_at),
     description: h.reason ?? HEALTH_STATUS_AR[h.health_status ?? ""] ?? h.health_status ?? "—",
   }));
@@ -109,7 +103,7 @@ export default async function PalmFilePage({
     : { data: [] };
   const activities: ActivityItem[] = (palmEvents ?? []).map((e) => ({
     id: e.id,
-    title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "نشاط",
+    title: e.subtype ? SUBTYPE_AR[e.subtype] ?? "نشاط" : "نشاط",
     status: e.status ?? "done",
     time: fmtDate(e.occurred_at),
   }));
@@ -145,7 +139,7 @@ export default async function PalmFilePage({
               // sex is nullable; don't render unknown as "أنثى" — sex drives pollination role.
               description: asset.sex === "male" ? "ذكر" : asset.sex === "female" ? "أنثى" : "—",
             },
-            { id: "status", term: "الحالة", description: STATUS_AR[asset.status ?? ""] ?? asset.status ?? "—" },
+            { id: "status", term: "الحالة", description: asset.status ? STATUS_AR[asset.status] ?? "غير معروف" : "—" },
             { id: "health", term: "الحالة الصحية", description: HEALTH_STATUS_AR[asset.health_status ?? ""] ?? asset.health_status ?? "—" },
             { id: "line", term: "الخط", description: line?.line_no != null ? `خط ${num(line.line_no)}` : "—" },
             {

@@ -4,14 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { egp, num } from "@/lib/money";
-
-const PR_STATUS_AR: Record<string, string> = {
-  draft: "مسودة",
-  submitted: "مرسل",
-  approved: "معتمد",
-  received: "مُستلم",
-  rejected: "مرفوض",
-};
+import { PR_STATUS_AR } from "@/lib/labels";
 
 export default async function OwnerDashboard() {
   // Role-gate: owner/accountant land here via the dashboard router; a wrong role
@@ -52,7 +45,7 @@ export default async function OwnerDashboard() {
     href: `/purchase-requests/${p.id}`,
     code: p.code,
     reason: p.reason ?? "—",
-    status: PR_STATUS_AR[p.status] ?? p.status,
+    status: PR_STATUS_AR[p.status] ?? "غير معروف",
   }));
 
   return (
@@ -67,7 +60,7 @@ export default async function OwnerDashboard() {
         registry; stock-risk count from the coverage engine) — that derivation is a
         separate, reviewed slice. The two tiles below are derived from real rows.
       */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
         <KpiCard label="موافقات معلّقة" value={num(pending.length)} deltaDirection={pending.length ? "up" : "none"} />
         <KpiCard label="بنود متجاوزة" value={num(overLines.length)} deltaDirection={overLines.length ? "down" : "none"} />
       </section>
