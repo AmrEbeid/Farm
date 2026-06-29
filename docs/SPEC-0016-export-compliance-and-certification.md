@@ -40,16 +40,17 @@ The Owner's 2025 certificates demonstrate the three record shapes (sensitive fie
 > here is the **export-accredited block for the season**, not the whole farm. Reconcile, do not conflate.
 
 ## 3. Scope (allowed) — data model
-All tenant-scoped (`org_id`, RLS, FORCE RLS, audit), mirroring the existing conventions:
-- **`export_markets`** — destination market + a pointer to its MRL ruleset (e.g. *China / GACC*). Reference data.
+All tenant-scoped (`org_id`, RLS, FORCE RLS, audit), mirroring the existing conventions. Slice 1 stores the
+market as a code on each record; a dedicated `export_markets` reference table and MRL-ruleset catalog are deferred
+until the readiness panel needs a persisted source of market rules.
 - **`export_registrations`** — GACC/CIFER per (org, market): `registration_no`, `enterprise_name`, `product`,
   `status`, `valid_from`, `valid_to`.
 - **`farm_export_accreditations`** — CAPQ per (org, season): `farm_code`, `crop`, `variety`, `area`,
   `approved_qty`, `destination_market`, `valid_from`, `valid_to`, `responsible_person_id` (FK `people`;
   PII gated per SPEC-0006).
 - **`residue_tests`** + **`residue_test_results`** — per sample/lot: `lab`, `certificate_no`,
-  `received_at`, `crop`, `variety`; result lines `(compound, value_mg_kg, method)` + computed
-  `pass` vs the destination market's MRL.
+  `received_at`, `crop`, `variety`; result lines `(compound, value_mg_kg, method)`. Values are constrained
+  non-negative; pass/fail vs destination MRL is computed later from authoritative MRL inputs, not stored here.
 
 Ties: residue `compound` ↔ the agronomy pesticide model (SPEC-0008) and the spraying operations that
 applied it (PHI/REI); accreditation ↔ the farm block (SPEC-0003); destination market ↔ MRL ruleset.

@@ -57,6 +57,14 @@ describe("computeExportReadiness", () => {
     expect(r.reasons.find((x) => x.code === "residue")?.ok).toBe(false);
   });
 
+  it("fails closed when a residue value is negative", () => {
+    const i = base();
+    i.residueResults = [{ compound: "Hexythiazox", value_mg_kg: -0.01 }];
+    const r = computeExportReadiness(i);
+    expect(r.eligible).toBe(false);
+    expect(r.reasons.find((x) => x.code === "residue")?.ok).toBe(false);
+  });
+
   it("fails closed when there is no residue test on file", () => {
     const i = base();
     i.residueResults = [];

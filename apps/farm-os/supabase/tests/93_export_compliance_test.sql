@@ -3,7 +3,7 @@
 -- that writes are audited. Mirrors test 38/92's JWT-claim role simulation. Run via supabase test db or
 -- test-shims/run-pgtap-local.sh.
 begin;
-select plan(10);
+select plan(13);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set rtid '9e300001-0000-0000-0000-000000000093'
@@ -43,6 +43,18 @@ select lives_ok(
   format($$insert into public.residue_test_results (org_id, residue_test_id, compound, value_mg_kg, method)
            values (%L, %L, 'Hexythiazox', 0.01, 'QuEChERS')$$, :'orgA', :'rtid'),
   'export.write: a residue result line (same-org parent test) is accepted');
+select throws_ok(
+  format($$insert into public.export_registrations (org_id, market, product, valid_from, valid_to)
+           values (%L, 'CN', 'Dates', date '2025-12-31', date '2025-01-01')$$, :'orgA'),
+  '23514', null, 'export registrations reject inverted validity windows');
+select throws_ok(
+  format($$insert into public.farm_export_accreditations (org_id, crop, variety, area_feddan)
+           values (%L, 'dates', 'Barhi', -1)$$, :'orgA'),
+  '23514', null, 'farm export accreditations reject negative area');
+select throws_ok(
+  format($$insert into public.residue_test_results (org_id, residue_test_id, compound, value_mg_kg)
+           values (%L, %L, 'Hexythiazox', -0.01)$$, :'orgA', :'rtid'),
+  '23514', null, 'residue result lines reject negative measurements');
 reset role;
 
 -- ── export.write gate: a non-export role (storekeeper) is refused by RLS WITH CHECK ─────────────────

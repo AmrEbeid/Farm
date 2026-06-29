@@ -85,10 +85,10 @@ export function computeExportReadiness(input: ReadinessInput): ReadinessResult {
   });
 
   // residue: need at least one result, and EVERY result must have a known MRL and be ≤ it (fail-closed
-  // on an unknown MRL — we cannot certify a compound whose limit we don't have).
+  // on an unknown/invalid MRL or an invalid measurement — we cannot certify impossible evidence).
   const offending = residueResults.filter((r) => {
     const mrl = mrlByCompound[r.compound];
-    return mrl === undefined || (r.value_mg_kg ?? Infinity) > mrl;
+    return mrl === undefined || mrl < 0 || r.value_mg_kg == null || r.value_mg_kg < 0 || r.value_mg_kg > mrl;
   });
   const residueOk = residueResults.length > 0 && offending.length === 0;
   reasons.push({

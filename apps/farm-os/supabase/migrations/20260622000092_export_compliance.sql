@@ -44,7 +44,9 @@ create table public.export_registrations (
   status           text,
   valid_from       date,
   valid_to         date,
-  created_at       timestamptz not null default now()
+  created_at       timestamptz not null default now(),
+  constraint export_registrations_valid_window
+    check (valid_from is null or valid_to is null or valid_to >= valid_from)
 );
 
 -- ── 3) CAPQ seasonal farm-export accreditation ───────────────────────────────────────────────────────
@@ -61,7 +63,11 @@ create table public.farm_export_accreditations (
   valid_from            date,
   valid_to              date,
   responsible_person_id uuid references public.people(id) on delete set null, -- PII behind SPEC-0006
-  created_at            timestamptz not null default now()
+  created_at            timestamptz not null default now(),
+  constraint farm_export_accreditations_valid_window
+    check (valid_from is null or valid_to is null or valid_to >= valid_from),
+  constraint farm_export_accreditations_nonnegative
+    check ((area_feddan is null or area_feddan >= 0) and (approved_qty_ton is null or approved_qty_ton >= 0))
 );
 
 -- ── 4) QCAP residue test (header) + its result lines ─────────────────────────────────────────────────
@@ -83,7 +89,8 @@ create table public.residue_test_results (
   compound         text not null,
   value_mg_kg      numeric,
   method           text,
-  created_at       timestamptz not null default now()
+  created_at       timestamptz not null default now(),
+  constraint residue_test_results_nonnegative check (value_mg_kg is null or value_mg_kg >= 0)
 );
 
 -- ── FK indexes (migration 0036 convention) ───────────────────────────────────────────────────────────
