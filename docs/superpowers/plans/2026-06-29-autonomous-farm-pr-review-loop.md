@@ -236,10 +236,12 @@ Before #368 can merge or migrate, confirm real 7-year Excel reconciliation and p
 explicit out-of-order prod gap-fill because prod is already at `0096`, and pair it with `0097` in the reviewed
 apply path.
 
-- [ ] **Step 4: Queue low-risk branch fixes**
+- [x] **Step 4: Queue low-risk branch fixes**
 
-Candidate fixes from review: surface `/academy` and `/accounting` Supabase query errors instead of silently showing
-empty/zero data; align `/expenses` navigation with `0097`; update stale #366 comments that still say "0089".
+Completed 2026-06-29: #366 now surfaces `/academy` query failures and corrects stale `0089` comments to `0091`
+(head `ca915dc`, CI green, focused re-review approved). #368 now surfaces `/accounting` `expenses`/`sales` query
+failures and aligns `/expenses` nav with the `0097` owner/accountant read gate (head `a4d1c7f`, CI green, focused
+re-review approved). Both PRs remain draft and unmigrated.
 
 ## Self-Review
 
