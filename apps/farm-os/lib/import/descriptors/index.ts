@@ -6,7 +6,8 @@
  */
 import { registerDescriptor } from "../registry";
 import { sectorsDescriptor } from "./sectors";
+import { hawshatDescriptor } from "./hawshat";
 
-export const ALL_DESCRIPTORS = [sectorsDescriptor];
+export const ALL_DESCRIPTORS = [sectorsDescriptor, hawshatDescriptor];
 
 for (const d of ALL_DESCRIPTORS) registerDescriptor(d);

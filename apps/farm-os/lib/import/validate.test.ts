@@ -41,6 +41,13 @@ describe("validateRows", () => {
     expect(r.errors.find((e) => e.column === "on")?.reason).toBe("يجب أن يكون التاريخ بصيغة YYYY-MM-DD");
   });
 
+  it("rejects impossible calendar dates", () => {
+    const r = validateRows(descriptor, [{ name: "أحمد", qty: "5", price: "9.5", on: "2026-02-31", kind: "a" }]);
+    expect(r.errorCount).toBe(1);
+    expect(r.errors).toContainEqual({ row: 1, column: "on", reason: "يجب أن يكون التاريخ بصيغة YYYY-MM-DD" });
+    expect(r.okRows).toHaveLength(0);
+  });
+
   it("rejects an enum value outside the allowed set", () => {
     const r = validateRows(descriptor, [{ name: "أحمد", qty: "5", price: "9.5", on: "2026-01-31", kind: "z" }]);
     expect(r.errors).toContainEqual({ row: 1, column: "kind", reason: "قيمة غير مسموح بها" });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { planCommit } from "./commit-plan";
-import type { ImportDescriptor } from "./types";
+import { setSourceRow, type ImportDescriptor } from "./types";
 
 const base: ImportDescriptor = {
   key: "s",
@@ -32,6 +32,11 @@ describe("planCommit", () => {
     const plan = planCommit(d, [{ name: "أحمد" }, { name: "أحمد" }, { name: "سعد" }]);
     expect(plan.calls.map((c) => c.args.p_name)).toEqual(["أحمد", "سعد"]);
     expect(plan.skipped).toEqual([{ row: 2, reason: "صف مكرر" }]);
+  });
+
+  it("keeps original spreadsheet row numbers after validation filters rows", () => {
+    const plan = planCommit(base, [setSourceRow({ name: "أحمد" }, 1), setSourceRow({ name: "سعد" }, 3)]);
+    expect(plan.calls.map((c) => c.sourceRow)).toEqual([1, 3]);
   });
 
   it("keeps all rows when no dedupeKey is set", () => {
