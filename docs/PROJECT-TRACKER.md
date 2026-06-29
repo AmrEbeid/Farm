@@ -30,6 +30,14 @@
 > DB semantics change. Local validation in an isolated temp copy: focused Vitest **3/3**, full Vitest **215/215**,
 > focused eslint, `tsc --noEmit`, and production build (existing Next/Supabase warning only). No migration or DDL.
 
+> **2026-06-29 — #398 richer-operation design closed as delivered.** Re-checked **#398** against current `main`
+> and closed it as delivered by merged **#399** (`02b5da3`). The schema slice is present (`plan_operations.ends_on`,
+> `plan_operation_assignees` with RLS/FORCE RLS/audit/cross-org checks), the atomic RPC slice is present
+> (`fn_add_plan_operation_multi` for N materials + N labor + N assignees + multi-day), pgTAP coverage is present,
+> and `OperationBuilder` now supports repeatable material/labor rows, start/end dates, employee checkboxes, and a
+> lead selector. Deploy status says prod includes `0090` and `0093`; no DDL, migration, or production data change
+> was run during this closeout.
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
