@@ -158,14 +158,13 @@ Check formula injection sanitization, lazy `exceljs` import, RLS-scoped commit p
 
 If conflicts are trivial, rebase/fix in a scoped worktree. If import write path needs independent security review, keep draft and document exact blockers.
 
-Decision recorded 2026-06-29: PR #412 is reviewed but not mergeable. Found a dry-run validation bug where impossible
+Decision recorded 2026-06-29: PR #412 was initially reviewed but not mergeable. Found a dry-run validation bug where impossible
 calendar dates such as `2026-02-31` passed because `Date.parse` normalized them. Local commit `21467ad`
 (`fix(import): reject impossible calendar dates`) now enforces strict `YYYY-MM-DD` calendar dates and corrects a stale
 service-role-path comment. Local validation passed: focused validate test **6/6**, import suite **38/38**, `tsc`,
 focused eslint, full Vitest **209/209**, and production build. Local `git push` stalls in `send-pack`/`pack-objects`,
 so the same three file contents were published through GitHub's Contents API; GitHub PR #412 now points at remote head
-`15fcbdd`. Keep #412 draft/DIRTY and do not merge until it is rebased/cleaned, independently reviewed, and green on
-GitHub.
+`15fcbdd`. This intermediate hold was superseded by the follow-up below.
 
 Follow-up recorded 2026-06-29: rebuilt #412 on current `main` to remove already-merged #410 stacked history. A fresh
 review found two blockers: ref lookups could resolve archived structure parents, and ref errors could report the
@@ -207,6 +206,6 @@ Update `PROJECT-TRACKER.md`, `SESSION-BRIEF.md`, and `DEPLOY-STATUS.md` with exa
 
 ## Self-Review
 
-- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, open clean PR #400, dirty PR #412, and merge/migration gates.
+- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, and merge/migration gates.
 - Placeholder scan: no TBD/TODO placeholders; every task has exact commands and expected outcomes.
 - Type consistency: no new code interfaces are defined; process interfaces are explicit.
