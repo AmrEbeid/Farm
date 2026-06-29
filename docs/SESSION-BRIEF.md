@@ -46,6 +46,11 @@ are fixed or moved to focused lanes; created #433 for the one untracked residual
 copy conflates stale version/status/authz). Remaining live items stay in #89, #157, #188/#199, #229/#317, and #314.
 No code, DDL, migration, prod apply, or production data change was run.
 
+**#433 implementation.** Added an approval-failure classifier and wired `approvePurchaseRequest` to run a
+read-scoped follow-up only after a zero-row approval update, returning distinct Arabic messages for stale version,
+wrong status, self-approval, missing owner permission, and missing/unreadable request. Validation passed: focused
+Vitest **5/5**, full Vitest **220/220**, focused eslint, `tsc --noEmit`, and production build.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
