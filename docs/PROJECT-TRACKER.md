@@ -16,6 +16,13 @@
 > legacy Supabase project keys, old repo history, spreadsheet/Google password, leaked-password protection, and demo
 > login cleanup before real data.
 
+> **2026-06-29 — stale UI/display audit issues closed; residual split.** Re-checked current `main` and closed
+> **#282** and **#206** as resolved/superseded. The high/medium findings they tracked are now fixed: landing KPI
+> fabrication removed, palm health/status and `pollination` labels localized, dates/numbers routed through
+> `fmtDate`/`num`/`pct`, offline form hangs handled with try/catch/finally, and dead-end role affordances gated.
+> Opened narrow residual **#426** for the one remaining LOW data-quality decision: cleared ExecuteForm qty/labor
+> fields submit as zero because `Number("") === 0`. No code, DDL, migration, or production data change was performed.
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
