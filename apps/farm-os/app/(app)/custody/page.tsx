@@ -2,12 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { CustodyForms } from "@/components/CustodyForms";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 
-// SPEC-0018 «العهدة وطلبات الصرف» — read-only module dashboard (slice 3). Custody balance + the live
-// owner payment-request figures, derived from the RLS-scoped custody/expense/request tables (migrations
-// 0098/0099). Writes (record movement, prepare/approve a request) land in the next slice. Finance-gated.
+// SPEC-0018 «العهدة وطلبات الصرف» — module dashboard + write surface (slices 3+4). Custody balance + the
+// live owner payment-request figures, derived from the RLS-scoped custody/expense/request tables
+// (migrations 0098/0099); write actions (account, movement, request) gated via SECURITY DEFINER RPCs.
 const REQ_STATUS_AR: Record<string, string> = {
   draft: "مسودة",
   submitted: "مُرسل",
@@ -101,6 +102,8 @@ export default async function CustodyDashboardPage() {
           رصيد العهدة النقدية والمطلوب من المالك — محدّث لحظيًا من سجل العهدة والمصروفات.
         </p>
       </header>
+
+      <CustodyForms accounts={acctList.map((a) => ({ id: a.id, holder_label: a.holder_label }))} />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         <KpiCard label="الرصيد الحالي للعهدة" value={egp(totalBalance)} />
