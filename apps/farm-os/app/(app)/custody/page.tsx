@@ -7,8 +7,8 @@ import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 
 // SPEC-0018 «العهدة وطلبات الصرف» — module dashboard + write surface (slices 3+4). Custody balance + the
-// live owner payment-request figures, derived from the RLS-scoped custody/expense/request tables
-// (migrations 0098/0099); write actions (account, movement, request) gated via SECURITY DEFINER RPCs.
+// live owner payment-request figures, derived from the RLS-scoped custody/expense/request tables; write actions
+// (account, movement, request) are gated via SECURITY DEFINER RPCs.
 const REQ_STATUS_AR: Record<string, string> = {
   draft: "مسودة",
   submitted: "مُرسل",
@@ -19,10 +19,10 @@ const REQ_STATUS_AR: Record<string, string> = {
 };
 
 export default async function CustodyDashboardPage() {
-  await requireRole(["owner", "accountant", "farm_manager"]);
+  await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
-  const [{ data: accounts }, { data: movements }, { data: requests }, unpaidRes] = await Promise.all([
+  const [accountsRes, movementsRes, requestsRes, unpaidRes] = await Promise.all([
     sb.from("custody_accounts").select("id, holder_label, target_float, active").order("holder_label"),
     sb
       .from("custody_movements")
@@ -36,11 +36,19 @@ export default async function CustodyDashboardPage() {
       .limit(15),
     sb.from("expenses").select("total").eq("payment_status", "post_paid_unpaid"),
   ]);
+  if (accountsRes.error) throw accountsRes.error;
+  if (movementsRes.error) throw movementsRes.error;
+  if (requestsRes.error) throw requestsRes.error;
+  if (unpaidRes.error) throw unpaidRes.error;
 
   // current balance per account (derived, via the gated read RPC) — runs in parallel.
-  const acctList = accounts ?? [];
+  const acctList = accountsRes.data ?? [];
   const balances = await Promise.all(
-    acctList.map((a) => sb.rpc("fn_custody_balance", { p_account: a.id }).then((r) => Number(r.data ?? 0))),
+    acctList.map(async (a) => {
+      const { data, error } = await sb.rpc("fn_custody_balance", { p_account: a.id });
+      if (error) throw error;
+      return Number(data ?? 0);
+    }),
   );
   const byId = new Map(acctList.map((a, i) => [a.id, { ...a, balance: balances[i] }]));
 
@@ -71,7 +79,7 @@ export default async function CustodyDashboardPage() {
     { id: "in", header: "وارد", numeric: true },
     { id: "out", header: "صادر", numeric: true },
   ];
-  const moveRows = (movements ?? []).map((m) => ({
+  const moveRows = (movementsRes.data ?? []).map((m) => ({
     id: m.id,
     date: fmtDate(m.occurred_at),
     holder: byId.get(m.custody_account_id)?.holder_label ?? "—",
@@ -86,7 +94,7 @@ export default async function CustodyDashboardPage() {
     { id: "period", header: "الفترة" },
     { id: "created", header: "أُنشئ في" },
   ];
-  const reqRows = (requests ?? []).map((r) => ({
+  const reqRows = (requestsRes.data ?? []).map((r) => ({
     id: r.id,
     href: `/custody/request/${r.id}`,
     no: num(r.request_no),

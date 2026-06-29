@@ -117,7 +117,7 @@ export const APP_MODULES: AppModule[] = [
         label: "العهدة وطلبات الصرف",
         icon: "💰",
         href: "/custody",
-        roles: ["owner", "accountant", "farm_manager"],
+        roles: ["owner", "accountant"],
       },
     ],
   },

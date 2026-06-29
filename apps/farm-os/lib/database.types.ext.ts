@@ -237,7 +237,7 @@ type StructFunctions = {
   };
 };
 
-// ── SPEC-0018 «العهدة وطلبات الصرف» — custody + payment requests (migrations 0098/0099). ──
+// ── SPEC-0018 «العهدة وطلبات الصرف» — custody + payment requests. ──
 // Augmented here until prod is migrated + database.types.ts regenerated (then a harmless no-op).
 type CustodyAccountsTable = {
   Row: { id: string; org_id: string; holder_label: string; holder_user_id: string | null; target_float: number; active: boolean; created_at: string; created_by: string | null };
@@ -263,14 +263,25 @@ type PaymentRequestLinesTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
-/** Add the SPEC-0018 payment-routing columns to the generated expenses table (migration 0098). */
+/** Add the SPEC-0018 payment-routing columns to the generated expenses table. */
 type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
-  Row: T["Row"] & { payment_status: string | null; paid_by: string | null };
-  Insert: T["Insert"] & { payment_status?: string | null; paid_by?: string | null };
-  Update: T["Update"] & { payment_status?: string | null; paid_by?: string | null };
+  Row: T["Row"] & { payment_status: string | null; paid_by: string | null; kind: string };
+  Insert: T["Insert"] & { payment_status?: string | null; paid_by?: string | null; kind?: string };
+  Update: T["Update"] & { payment_status?: string | null; paid_by?: string | null; kind?: string };
   Relationships: T["Relationships"];
 };
 type CustodyFunctions = {
+  fn_save_custody_account: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_holder_label: string;
+      p_holder_user_id?: string | null;
+      p_target_float?: number;
+      p_active?: boolean;
+    };
+    Returns: string;
+  };
   fn_record_custody_movement: {
     Args: { p_account: string; p_movement_type: string; p_amount_in: number; p_amount_out: number; p_occurred_at?: string; p_expense_id?: string | null; p_note?: string | null };
     Returns: string;

@@ -21,14 +21,15 @@ type Totals = {
 
 export default async function PaymentRequestPage({ params }: { params: Promise<{ requestId: string }> }) {
   const { requestId } = await params;
-  const m = await requireRole(["owner", "accountant", "farm_manager"]);
+  const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
-  const { data: req } = await sb
+  const { data: req, error: reqError } = await sb
     .from("payment_requests")
     .select("id, request_no, status, period_start, period_end, custody_account_id, note")
     .eq("id", requestId)
     .maybeSingle();
+  if (reqError) throw reqError;
 
   if (!req) {
     return (
@@ -39,21 +40,28 @@ export default async function PaymentRequestPage({ params }: { params: Promise<{
     );
   }
 
-  const [{ data: lines }, totalsRes, { data: org }] = await Promise.all([
+  const [linesRes, totalsRes, orgRes] = await Promise.all([
     sb.from("payment_request_lines").select("expense_id").eq("payment_request_id", requestId),
     sb.rpc("fn_payment_request_totals", { p_request: requestId }),
     sb.from("organization").select("name").maybeSingle(),
   ]);
-  const ids = (lines ?? []).map((l) => l.expense_id);
-  const { data: expenses } = ids.length
+  if (linesRes.error) throw linesRes.error;
+  if (totalsRes.error) throw totalsRes.error;
+  if (orgRes.error) throw orgRes.error;
+
+  const ids = (linesRes.data ?? []).map((l) => l.expense_id);
+  const expensesRes = ids.length
     ? await sb.from("expenses").select("id, description, category, total, payment_status").in("id", ids)
-    : { data: [] as { id: string; description: string | null; category: string | null; total: number | null; payment_status: string | null }[] };
-  const acct = req.custody_account_id
-    ? (await sb.from("custody_accounts").select("holder_label").eq("id", req.custody_account_id).maybeSingle()).data
-    : null;
+    : { data: [] as { id: string; description: string | null; category: string | null; total: number | null; payment_status: string | null }[], error: null };
+  if (expensesRes.error) throw expensesRes.error;
+
+  const acctRes = req.custody_account_id
+    ? await sb.from("custody_accounts").select("holder_label").eq("id", req.custody_account_id).maybeSingle()
+    : { data: null, error: null };
+  if (acctRes.error) throw acctRes.error;
 
   const t: Totals = (totalsRes.data as Totals) ?? {};
-  const exp = expenses ?? [];
+  const exp = expensesRes.data ?? [];
 
   // summary by category (آجل vs من العهدة)
   const cats = new Map<string, { unpaid: number; custody: number }>();
@@ -90,14 +98,14 @@ export default async function PaymentRequestPage({ params }: { params: Promise<{
       <Link href="/custody" className="text-sm no-print" style={{ color: "var(--ink-muted)" }}>→ العودة للعهدة</Link>
 
       <header className="text-center">
-        <h1 className="text-2xl font-bold">{org?.name ?? "مزارع عبيد"}</h1>
+        <h1 className="text-2xl font-bold">{orgRes.data?.name ?? "مزارع عبيد"}</h1>
         <p className="text-lg font-semibold">
           إذن صرف رقم {num(req.request_no)} — {REQ_STATUS_AR[req.status] ?? req.status}
         </p>
         {req.period_start && (
           <p style={{ color: "var(--ink-muted)" }}>
             الفترة: {fmtDate(req.period_start)} → {req.period_end ? fmtDate(req.period_end) : "…"}
-            {acct ? ` — العهدة: ${acct.holder_label}` : ""}
+            {acctRes.data ? ` — العهدة: ${acctRes.data.holder_label}` : ""}
           </p>
         )}
       </header>

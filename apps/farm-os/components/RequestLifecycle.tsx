@@ -29,8 +29,8 @@ export function RequestLifecycle({ requestId, status, role }: { requestId: strin
     else setErr(r.error ?? "تعذّر تنفيذ الإجراء");
   }
 
-  const canPrepare = role === "owner" || role === "farm_manager" || role === "accountant";
-  const canApproveOp = role === "owner" || role === "farm_manager";
+  const canPrepare = role === "owner" || role === "accountant";
+  const canApproveOp = role === "owner";
   const canApproveFinal = role === "owner";
 
   return (
@@ -46,7 +46,7 @@ export function RequestLifecycle({ requestId, status, role }: { requestId: strin
         )}
         {status === "submitted" && canApproveOp && (
           <Button disabled={pending} onClick={() => run(() => approveRequestOperational(requestId))}>
-            {pending ? "…" : "اعتماد تشغيلي (مدير المزرعة)"}
+            {pending ? "…" : "اعتماد تشغيلي"}
           </Button>
         )}
         {status === "approved_operational" && canApproveFinal && (

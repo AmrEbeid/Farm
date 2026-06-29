@@ -13,16 +13,21 @@ const PERM: Record<string, string> = {
   "P0002": "العنصر غير موجود",
 };
 
-/** Create a custody account (holder + target float). RLS (custody_accounts WITH CHECK) enforces custody.write. */
+/** Create a custody account through the backend RPC-only write path. Gated by custody.write in Postgres. */
 export async function createCustodyAccount(input: { holderLabel: string; targetFloat: number }): Promise<Result> {
   const label = input.holderLabel?.trim();
   if (!label) return { ok: false, error: "اسم صاحب العهدة مطلوب" };
   if (!Number.isFinite(input.targetFloat) || input.targetFloat < 0) return { ok: false, error: "العهدة المستهدفة غير صالحة" };
   const m = await requireMembership();
   const sb = await createClient();
-  const { error } = await sb
-    .from("custody_accounts")
-    .insert({ org_id: m.orgId, holder_label: label, target_float: input.targetFloat });
+  const { error } = await sb.rpc("fn_save_custody_account", {
+    p_id: null,
+    p_org: m.orgId,
+    p_holder_label: label,
+    p_holder_user_id: null,
+    p_target_float: input.targetFloat,
+    p_active: true,
+  });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر إضافة حساب العهدة (تحقّق من صلاحياتك)") };
   revalidatePath("/custody");
   return { ok: true };
