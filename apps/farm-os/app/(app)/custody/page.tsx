@@ -88,6 +88,7 @@ export default async function CustodyDashboardPage() {
   ];
   const reqRows = (requests ?? []).map((r) => ({
     id: r.id,
+    href: `/custody/request/${r.id}`,
     no: num(r.request_no),
     status: REQ_STATUS_AR[r.status] ?? r.status,
     period: r.period_start ? `${fmtDate(r.period_start)} → ${r.period_end ? fmtDate(r.period_end) : "…"}` : "—",
