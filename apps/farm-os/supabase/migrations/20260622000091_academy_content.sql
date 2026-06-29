@@ -73,7 +73,14 @@ create policy tenant_all on public.academy_content for all to authenticated
 
 -- TABLE privileges for PostgREST (created after the 0009 blanket grant → grant explicitly; required by
 -- the audit-leak invariant — academy content carries no PII, so full authenticated read is safe).
-grant select, insert, update on public.academy_content to authenticated;
+-- #4 integrity (independent review): the sign-off columns (agronomist_name, signed_at,
+-- pesticide_reg_valid_until) must be RPC-ONLY. A table-wide UPDATE/INSERT grant let any academy.write
+-- holder PATCH them directly via PostgREST, forging an "approved" pesticide sign-off with no valid
+-- registration � bypassing every check in fn_signoff_academy_content. Scope the client grant to the
+-- editable columns; the SECURITY DEFINER sign-off RPC (runs as table owner) still writes the sign-off cols.
+grant select on public.academy_content to authenticated;
+grant insert (org_id, title, body, category, has_chemical) on public.academy_content to authenticated;
+grant update (title, body, category, has_chemical, archived) on public.academy_content to authenticated;
 revoke delete on public.academy_content from authenticated, anon;
 
 create trigger audit_academy after insert or update or delete on public.academy_content
