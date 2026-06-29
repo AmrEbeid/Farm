@@ -17,6 +17,17 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > in the dashboard: enable `custom_access_token_hook` + leaked-password protection. **Rotation note:** Owner
 > confirmed 2026-06-29 that Supabase DB password + service-role key rotation is complete; do not raise again.
 
+> **CURRENT REVIEW UPDATE (2026-06-29 — draft migration lane).** Fresh independent reviews of the three remaining
+> draft migration PRs all recommend **keep draft / do not migrate**:
+> **#366 academy `0091`** is security/RLS-clean but still gated by licensed-agronomist + Egyptian
+> pesticide-registration sign-off; merging before migrating would expose `/academy` against missing prod tables.
+> **#368 accounting `0088` + `0097`** is privacy/RLS-clean after current fixes, but remains gated by real Excel
+> reconciliation + privacy review; prod is already at `0096`, so `0088` is an out-of-order gap-fill and `0097`
+> must be handled explicitly with it. **#400 export `0092`** is review-clean on RLS/schema, but must not be applied
+> alone while #366's `0091` re-emits `public.authorize()` without `export.write`; safe paths are `0091` before
+> `0092`, patch `0091` to preserve the final permission union, or add a post-`0096` repair migration that pins the
+> final union after both features. No production migration is approved from these reviews.
+
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
