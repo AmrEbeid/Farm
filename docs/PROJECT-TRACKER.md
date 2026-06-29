@@ -1,7 +1,7 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
 > **2026-06-29 — SAFE STOP: current project status, remaining work, and timeline.** Local `main` was
-> fast-forwarded to current `origin/main` (`4a8e2de`) before stopping. Production Supabase remains at migration
+> fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production Supabase remains at migration
 > `0096`; no migration, prod apply, draft-PR merge, or production data change was performed in this stop/report
 > pass. Current estimate: live MVP/pilot operating core is **~90-92% done**; pre-real-data pilot readiness is
 > **~80-85% done**; full commercial product vision is **~55-60% done**; finance/accounting maturity is
@@ -16,7 +16,10 @@
 > **1-2 days** for small DB hardening reviews/apply planning, **3-5 days** to unblock a safe custody first slice,
 > **1-2 weeks** for finance/accounting foundation after ratification/reconciliation path, **2-4 weeks** for
 > real-data readiness, and **4-8 weeks** for broader commercial maturity. All open PRs are currently draft/held;
-> no merge-ready PR lane should be treated as approved without a fresh review + pre-migration gate.
+> no merge-ready PR lane should be treated as approved without a fresh review + pre-migration gate. Current open
+> PR queue is all draft/held: clean #444, #442, #441, #439, #438, #421, #400; dirty/stale #436, #368, #366.
+> Recent held reviews are recorded on #438/#444/#442/#439; their pre-migration caveats remain active. Recommended
+> next resume lane: refresh/review dirty #436 (`fn_bin_rebuild` internal) before any migration bundle planning.
 
 > **2026-06-29 — #439 grant/default-privilege review posted; still held.** Reviewed draft PR **#439**
 > at `e2ca96f`: it removes client-role `TRUNCATE`/broad `DELETE` on current public tables, preserves only
