@@ -13,10 +13,16 @@ export default async function AccountingPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
-  const [{ data: expenseRows }, { data: saleRows }] = await Promise.all([
+  const [{ data: expenseRows, error: expensesError }, { data: saleRows, error: salesError }] = await Promise.all([
     sb.from("expenses").select("id, category, total, kind, date").order("date", { ascending: false }).limit(200),
     sb.from("sales").select("id, crop, total, date").eq("archived", false).order("date", { ascending: false }).limit(200),
   ]);
+  if (expensesError) {
+    throw new Error("expenses query failed");
+  }
+  if (salesError) {
+    throw new Error("sales query failed");
+  }
 
   const expenses: ExpenseEntry[] = (expenseRows ?? []).map((e) => ({
     category: e.category ?? "",
