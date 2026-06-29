@@ -172,7 +172,8 @@ review found two blockers: ref lookups could resolve archived structure parents,
 wrong spreadsheet row after validation filtered earlier rows. Fixed both at head `08e925a`: farm/sector refs now
 filter `archived=false`, and hidden source-row metadata preserves original spreadsheet row numbers through validation,
 ref resolution, dedupe, and RPC failure reporting. Local validation passed: import suite **41/41**, `tsc`, focused
-eslint, full Vitest **212/212**, and production build. Keep #412 draft until fresh GitHub CI and re-review are green.
+eslint, full Vitest **212/212**, and production build. Fresh GitHub CI passed, independent re-review approved, and
+#412 was squash-merged to `main` as `d7b832d`. No migration or production apply was involved.
 
 ### Task 4: Pre-Merge and Pre-Migration Gate
 
