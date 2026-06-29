@@ -1,5 +1,15 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — issue hygiene pass: #383 closed; #317/#229/#188 kept open with current evidence.** Verified
+> audit issues against `main` and production evidence. Closed **#383** as fixed/applied: PR #402 is merged,
+> migration `0095` is present on `main`, its pgTAP coverage exists, and the production migration ledger includes
+> `20260622000095 org_switcher_preapply_hardening`. Left **#317** open after a read-only prod grant probe still
+> showed broad grant hygiene gaps (`TRUNCATE` on 38 public tables for both anon/authenticated, plus limited
+> `DELETE` grants). Left **#229** open as the umbrella for remaining prod-config/advisor cleanup: FK indexes are
+> fixed by `0096`, but default-privilege/grant hygiene and leaked-password protection remain. Left **#188** open
+> because #396 merged the reserve-aware app-layer dedup fix, but the issue still tracks the migration-gated
+> fully atomic PR-line+reserve RPC follow-up. No DDL, migration, or production data change was performed.
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
@@ -322,11 +332,10 @@
 > `farm-os-pilot`. **Prod hygiene:** dropped the stray `pgtap` extension from prod `public` (a Supabase
 > advisor WARN). **Dependabot majors DEFERRED** (open, commented): #128 TypeScript 6.0 (tsconfig
 > `baseUrl` deprecation hard-errors), #130 ESLint 10 (`eslint-plugin-react` incompatible with the v10
-> rule API), #131 Storybook 10 (ERESOLVE across the 8.6.x addon stack). **🔴 Still NOT done — KEY
-> ROTATION** (blocked on tooling: no `SUPABASE_ACCESS_TOKEN`, supabase not linked, no Vercel CLI, MCP
-> has no key-rotation tool) — needs the Owner to rotate `service_role` + DB password (+
-> `NEXT_PUBLIC_SUPABASE_ANON_KEY` if the JWT secret rotates), update Vercel env, redeploy; and to
-> enable **Leaked Password Protection** (HaveIBeenPwned) via the Auth dashboard toggle. Detail:
+> rule API), #131 Storybook 10 (ERESOLVE across the 8.6.x addon stack). **2026-06-29 correction:** Supabase
+> DB password + `service_role` key rotation is complete per Owner confirmation; do not reopen it unless the Owner
+> explicitly says so. Remaining auth/security follow-up here is to enable **Leaked Password Protection**
+> (HaveIBeenPwned) via the Auth dashboard toggle. Detail:
 > [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
 >
 > **2026-06-25 follow-up security review (merged):** a second independent pass closed **B2.1**
@@ -380,7 +389,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | R | Research & strategy | Research | Low | **Done** | 4 cited streams; white-space confirmed (docs 01) |
 | D | Designs / prototypes | Documentation | Low | **Done** | `ebeid-farm-os-demo.html`, `farm-os-prototype.html`, `farm-os-full-demo.html` (mocks) |
 | DS | Design system + component library | Execution | Low/Med | **Done (v1.2.0 published)** | `@amrebeid/ui` ~40 components, white-label theming, token-purity gate, Changesets, **green CI**. **`1.2.0` published to npm + tagged (2026-06-25)** — a11y, datatable-mobile, recharts code-split, reduced-motion + **Storybook 10 toolchain upgrade** (PR #154). (Catalog expanded beyond the 9 synced to Claude Design — re-sync pending.) |
-| 0 | Security remediation & data cleanup | Execution+Apply | **Critical/High** | **Owner-deferred (2026-06-27)** | Prepped to the boundary by the agent: runbook (`STAGE-0-REMEDIATION-RUNBOOK.md`) complete, new repo verified secret-clean (gitleaks gate + manual scan), leaked-password protection confirmed OFF via advisor. **2026-06-29 Owner correction:** Farm Supabase DB password + service-role key rotation is complete; do not list it as open again unless reopened. Remaining Owner-only external cleanup: rotate/retire legacy keys, purge old-repo history, scrub spreadsheet + Google password, enable leaked-password protection — **deferred by Owner decision; must be done before real Ebeid data**. Tracked with exact commands in issue #362. |
+| 0 | Security remediation & data cleanup | Execution+Apply | **Critical/High** | **Owner-deferred (2026-06-27)** | Prepped to the boundary by the agent: runbook (`STAGE-0-REMEDIATION-RUNBOOK.md`) complete, new repo verified secret-clean (gitleaks gate + manual scan), leaked-password protection confirmed OFF via advisor. **2026-06-29 Owner correction:** Farm Supabase DB password + service-role key rotation is complete; do not list it as open again unless reopened. Remaining Owner-only external cleanup: rotate/retire any non-Supabase legacy keys still identified in Stage 0, purge old-repo history, scrub spreadsheet + Google password, enable leaked-password protection — **deferred by Owner decision; must be done before real Ebeid data**. Tracked with exact commands in issue #362. |
 | **MVP-0** | **Proof-of-value pilot (1 reference tenant)** | Execution | **Low/Med** | **BUILT (local) — pending review+validation** | `apps/farm-os`: all 14 screens, wedge loop e2e passing, 36 pgTAP + 11 Vitest. Plan: `docs/superpowers/plans/2026-06-21-farm-os-mvp0.md`. Local DB only; needs security review + pilot validation + deploy. |
 | 1 | SaaS foundation (orgs/RLS/roles/audit) | Execution | **High** | **Done (2026-06-27)** | All four acceptance criteria met + independently reviewed. (a) **Cross-tenant isolation** — RLS deny-by-default `to authenticated`, `org_id` indexed, proven by `01_rls_isolation` + the invariants `08`/`22`/`24`/`27`/`81` (no-permissive-policy, every cross-org FK org-validated, every SECURITY DEFINER fn pins search_path); (b) **consultant multi-org per-org role** — **active-org** narrowing at the RLS layer (migration `0085`: `user_org_ids()` narrows to a membership-validated `active_org_id` JWT claim, fail-closed; `0086` org settings) + app **org switcher** + `getActiveMembership` reads the active claim (tests `82`); (c) **member removal revokes instantly** (membership-join RLS); (d) **audit_log immutable** (no update/delete policy + `02`/`79`). Org **settings** = owner-gated `fn_update_org_settings`. Farm-setup wizard covered by the editable structure feature. Independent adversarial review of the active-org core: no cross-org leak/escalation. |
 | 2 | Farm structure + palm registry import | Execution | Medium | **Done (2026-06-27, merged #344 + live)** | Editable structure (add/edit/remove sector/hawsha/line/palm) + per-node 360 pages + media + **croquis map** (re-landed #364); migrations `0080`–`0084` applied to prod. **SPEC-0003 RATIFIED (Owner 2026-06-27), 5 sectors.** Real Nov-2025 registry bulk import = Stage M. |
@@ -419,7 +428,7 @@ Status legend: Todo / Active / Blocked / In review / Done
 - [x] **AUTHZ-1 Option B + AP-5 insert-side SoD + ENGINE-DC DB-constraint — RESOLVED (2026-06-25).** AUTHZ-1 Option B = migration `0025` (#146, REST-layer role gate on `plan_operations`/`farm_event`/`event_locations`/`quantities`); ENGINE-DC = migration `0026` (#144, BEFORE INSERT receipt-vs-open-PO trigger); AP-5 insert-side SoD confirmed already merged (migration `0023`, test `21`). All applied to prod (`0028`), pgTAP 217 green. — owner: Amr
 - [x] **DELETE/role posture for tenant tables — RESOLVED (2026-06-25):** migration `0027` (#140) `REVOKE DELETE` from `authenticated,anon` on the **27** exposed tenant tables (keeping `plan_checks` deletable for the plan builder); migration `0028` (#142) also `FORCE`s RLS on all 35 RLS tables. Live-verified: DELETE `expenses` as manager → HTTP 403. Full finding in [`SECURITY-FINDING-delete-exposure-2026-06-25.md`](SECURITY-FINDING-delete-exposure-2026-06-25.md). — owner: Amr
 - [ ] **Owner sign-off on canonical palm count** (registry says 4,380/299) — owner: Amr
-- [ ] **Approve Stage 0 security remediation** (key rotation + history purge) — owner: Amr
+- [ ] **Approve remaining Stage 0 security remediation** (non-Supabase legacy key/history purge cleanup; Supabase DB password + service-role key rotation is complete) — owner: Amr
 - [ ] **Confirm 4-vs-5 sector labels** and enterprise/crop list — owner: Amr
 - [ ] **Engage a local agronomist** to sign off Academy numbers + Egyptian pesticide registrations — owner: Amr
 - [ ] **Schedule 5 design-partner farm interviews** (close the Arabic customer-voice gap) — owner: Amr

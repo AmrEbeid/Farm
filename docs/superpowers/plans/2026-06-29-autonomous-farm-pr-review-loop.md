@@ -278,8 +278,46 @@ for expense receipts before use (`entity_type='expense'`, resolver/storage valid
 Branch head `2fa6694`; GitHub CI green; focused re-review found no findings. #421 remains draft/design-only for
 Owner review; no schema, migration, prod apply, or real financial/PII import.
 
+### Task 7: Audit Issue Hygiene Pass
+
+**Files:**
+- Read: GitHub issues #188, #229, #317, #383
+- Read: `docs/PROJECT-TRACKER.md`, `docs/SESSION-BRIEF.md`, `docs/DEPLOY-STATUS.md`
+- Modify: issue comments/state only when evidence is conclusive
+- Modify: docs only after issue state changes materially
+
+**Interfaces:**
+- Consumes: current `main`, production migration ledger, read-only production grant probes, merged PR evidence.
+- Produces: issue state/comments that distinguish fixed code defects from still-open prod-config/security tasks.
+
+- [x] **Step 1: Verify #383 against main and prod before closing**
+
+Result recorded 2026-06-29: #383 was closed only after verifying PR #402 merged, migration `0095` exists on `main`,
+test `95_org_switcher_preapply_test.sql` pins the anon-lock/fiscal-year preserve behavior, and prod's migration
+ledger includes `20260622000095 org_switcher_preapply_hardening`.
+
+- [x] **Step 2: Re-probe #317 before any close**
+
+Result recorded 2026-06-29: read-only prod grant probes still showed broad default/table grant hygiene gaps
+(`TRUNCATE` on 38 public tables for anon and authenticated, plus limited `DELETE` grants). #317 stays open; no DDL
+was run.
+
+- [x] **Step 3: Split #229 into fixed vs remaining work**
+
+Result recorded 2026-06-29: FK indexes are fixed/applied by #404 / migration `0096`; #383's adjacent code defects
+are closed separately; #229 remains open for grant/default-privilege cleanup and leaked-password protection.
+
+- [x] **Step 4: Narrow #188 without closing the atomic follow-up**
+
+Result recorded 2026-06-29: #396 is merged and closes the reserve-aware app-layer dedup gap. #188 remains open for
+the explicitly retained migration-gated fully atomic PR-line+reserve RPC follow-up.
+
+- [x] **Step 5: Update living docs after issue-state changes**
+
+This docs PR records #383 closed, #188 narrowed, and #317/#229 kept open with current production evidence.
+
 ## Self-Review
 
-- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, and merge/migration gates.
+- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.
 - Placeholder scan: no TBD/TODO placeholders; every task has exact commands and expected outcomes.
 - Type consistency: no new code interfaces are defined; process interfaces are explicit.

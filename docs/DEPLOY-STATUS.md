@@ -36,6 +36,13 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > It still remains unmigrated and draft-gated by real Excel reconciliation + privacy review and the explicit
 > `0088` gap-fill + `0097` apply plan.
 
+> **CURRENT ISSUE-HYGIENE UPDATE (2026-06-29).** #383 is closed as fixed/applied: #402 merged, migration `0095`
+> exists on `main`, pgTAP coverage exists, and prod includes `20260622000095 org_switcher_preapply_hardening`.
+> #317 remains open after a read-only prod grant probe still showed broad default/table grant hygiene gaps
+> (`TRUNCATE` on 38 public tables for anon and authenticated, plus limited `DELETE` grants). #229 remains open
+> for the remaining prod-config/advisor cleanup: FK covering indexes are fixed by `0096`, but grant hygiene and
+> leaked-password protection are not closed. No DDL or production data change was run during this hygiene pass.
+
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
