@@ -28,7 +28,8 @@ blockers: archived structure parents could be resolved by code, and row numbers 
 bad rows. Fixed both at PR head `08e925a`: ref specs for farms/sectors filter `archived=false`, and hidden source-row
 metadata preserves original spreadsheet row numbers through ref resolution, dedupe, and RPC failure reporting.
 Local validation passed: import suite **41/41**, `tsc`, focused eslint, full Vitest **212/212**, and production build.
-#412 remains **draft** until fresh GitHub CI and re-review are complete; do **not** merge before that.
+Fresh GitHub CI passed, independent re-review approved, and #412 was squash-merged to `main` as `d7b832d`. No
+migration or production apply was involved.
 
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
