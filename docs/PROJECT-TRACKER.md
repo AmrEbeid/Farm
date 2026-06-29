@@ -14,6 +14,13 @@
 > green with only the existing Next `middleware` deprecation warning; `git diff --check` clean. No new Supabase
 > migration was authored by this batch; no direct Supabase migration/prod mutation has been run from this local
 > merge. `docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+> **Live follow-through:** Owner set goal to keep working until dashboards are live. The batch was merged with two
+> additional remote updates, revalidated (`eslint`, `tsc`, Vitest **230/230**, production build), and pushed to
+> `origin/main` at `ca24906`. GitHub recorded a successful Vercel **Production** deployment (`5240158021`,
+> `farm-gvyv0g2ut-amrabdelglill-7962s-projects.vercel.app`). Live probes on `https://ebeidfarm.business` confirm
+> `/farm/dashboard`, `/inventory/dashboard`, `/plans/dashboard`, `/finance/dashboard`, `/people/dashboard`,
+> `/weather/dashboard`, and `/settings/dashboard` all match their deployed routes and redirect unauthenticated users
+> to `/login`.
 
 > **2026-06-29 — issue hygiene pass: #383 closed; #317/#229/#188 kept open with current evidence.** Verified
 > audit issues against `main` and production evidence. Closed **#383** as fixed/applied: PR #402 is merged,

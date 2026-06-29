@@ -1,7 +1,7 @@
 # Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-29 — module dashboards/360 batch committed and locally merged
+## 2026-06-29 — module dashboards/360 batch live
 **Change.** Completed the module navigator/dashboard/360 batch and committed it locally as `30fdd26`
 (`feat(farm-os): add module dashboards and 360 pages`). The batch adds grouped module navigation, dashboard-first
 module entries, KPI/filter interactions, route-specific Help Drawer coverage, and read-only 360/detail surfaces
@@ -22,8 +22,16 @@ by the module batch, and no direct Supabase/prod mutation was run here.
 `npx vitest run` **225/225**; `npm run build` green with only the existing Next `middleware` deprecation warning;
 `git diff --check` clean.
 
-**Still open.** The local merge commit is not pushed. No direct Supabase migration/prod mutation was run from this
-batch. `docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+**Live status.** Owner set goal to keep working until dashboards are live. The batch was merged with two additional
+remote updates, revalidated (`eslint`, `tsc`, Vitest **230/230**, production build), and pushed to `origin/main` at
+`ca24906`. GitHub recorded a successful Vercel **Production** deployment (`5240158021`,
+`farm-gvyv0g2ut-amrabdelglill-7962s-projects.vercel.app`). Live probes on `https://ebeidfarm.business` confirm
+`/farm/dashboard`, `/inventory/dashboard`, `/plans/dashboard`, `/finance/dashboard`, `/people/dashboard`,
+`/weather/dashboard`, and `/settings/dashboard` all match their deployed routes and redirect unauthenticated users
+to `/login`.
+
+**Still open.** No direct Supabase migration/prod mutation was run from this batch.
+`docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
 
 ## 2026-06-29 — audit issue hygiene; docs-only status update
 **Change.** Reconciled high-signal open audit issues against current `main` and production evidence, then updated
