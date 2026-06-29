@@ -30,13 +30,20 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > **Follow-up:** #366 now uses the "patch `0091` to preserve the final permission union" path at head `86dfa6e`;
 > CI is green and a focused independent check found no blockers. This reduces the `0091`/`0092` ordering trap, but
 > #366/#400 remain unmigrated and require a fresh pre-migration review before any apply.
+> **#368 follow-up:** #368 now computes P&L totals through `fn_accounting_pnl_summary` on the DB side at head
+> `0625150`, closing the capped-row totals bug; CI is green. A session reviewer check found no obvious blocker,
+> but #368 still needs a fresh visible final review before any merge/migrate.
+> It still remains unmigrated and draft-gated by real Excel reconciliation + privacy review and the explicit
+> `0088` gap-fill + `0097` apply plan.
 
 ## What's live
 - **Vercel:** project `farm-ui` (personal scope `amrabdelglill-7962s-projects`); Supabase↔Vercel
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `0084` (2026-06-27, later).** Stages 2/3/4 applied via the Supabase MCP:
+  - **Migrations now at `0096` (current).** The live ledger includes `0090`, `0093`, `0094`, `0095`, and `0096`;
+    draft PR migrations `0088`, `0091`, `0092`, and `0097` are **not** applied. Historical note: by
+    2026-06-27, Stages 2/3/4 had been applied via the Supabase MCP:
     `0080` structure_soft_delete_audit, `0081` structure_write_rpcs (+ `structure.write` on `authorize`;
     structure `tenant_all` re-emit), `0082` attachments (table + RLS + RPCs), `0083` record_event (3 RPCs),
     `0084` plan_builder (4 RPCs + plans `tenant_all` re-emit). Each recorded under its **exact repo version**
