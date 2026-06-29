@@ -344,6 +344,13 @@ Result recorded 2026-06-29: #398 was re-checked against current `main` and close
 coverage, and the richer `OperationBuilder` UI are all present, and deploy status says prod includes `0090` and
 `0093`. No DDL, migration, prod apply, or production data change was run in this closeout.
 
+- [x] **Step 10: Close #161 after splitting the remaining LOW findings**
+
+Result recorded 2026-06-29: #161 was re-verified against current `main` and closed. L2/L5 are fixed; L1 demo-login
+cleanup is already tracked in #362; L3/L4 were split to #431 (`transfer` destination semantics + dead
+`inventory_bin.ordered`); L6 was split to #430 (`fn_bin_rebuild` authenticated EXECUTE decision). No code, DDL,
+migration, prod apply, or production data change was run.
+
 ## Self-Review
 
 - Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.

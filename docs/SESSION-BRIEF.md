@@ -36,6 +36,11 @@ and the `OperationBuilder` UI for repeatable material/labor rows, multi-day date
 selection are all present. Deploy status says prod includes `0090` and `0093`. No DDL, migration, prod apply, or
 production data change was run for this closeout.
 
+**#161 closeout.** Re-verified the consolidated LOW bucket and closed it. L2/L5 are fixed; L1 is tracked under #362
+demo-login cleanup; L3/L4 were split to #431 (`transfer` destination semantics + dead `inventory_bin.ordered`);
+L6 was split to #430 (`fn_bin_rebuild` authenticated EXECUTE decision). No code, DDL, migration, prod apply, or
+production data change was run for this closeout.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
@@ -454,7 +459,8 @@ queries too); the advisor 0028/0029 WARN is a known false-positive. Then **appli
 via the MCP — prod head now **`0073`, in sync with `main`** (verified: 7/7 recorded, 0 dup/stray versions,
 CHECKs/trigger/policies live, `get_advisors` no new regressions). **Live site verified:** Vercel prod
 deploy on the merge succeeded; landing page now shows no fabricated KPI tiles, login renders clean, no
-errors. The remaining tracked items are unchanged (#270 C1/C2 engine, #157 budget, #317 grants, #161 parity).
+errors. The remaining tracked items at that point were unchanged (#270 C1/C2 engine, #157 budget, #317 grants,
+#161 parity). #161 was later re-verified and closed on 2026-06-29 after splitting live LOW remainders to #430/#431.
 
 ## 2026-06-26 — prod push 0049→0066 + deep 360 review
 **Local was 97 commits behind origin** (HEAD #185 vs origin #311) — fast-forwarded to `4ac73b1`. The
@@ -484,7 +490,7 @@ substantive holes closed; short precise remainder.
   phantom on_hand with duplicate same-item lines) + **C2** (overdue PO projected as supply) — both
   verified real, need a tested PR; #157 (budget guardrail not table-backed + NULL est_cost=0); **#317
   (new)** (default privileges re-grant anon/authenticated CRUD+TRUNCATE on post-0027 tables); #161
-  (SQL↔TS engine parity drift, latent).
+  (SQL↔TS engine parity drift, latent; later closed on 2026-06-29 after splitting live LOW remainders to #430/#431).
 - **Recommended next (one PR each):** merge this PR + apply 0070–0071 → #270 C1/C2 engine fix (pgTAP)
   → #157 budget → #317 grant lockdown.
 

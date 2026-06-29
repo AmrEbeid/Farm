@@ -38,6 +38,12 @@
 > lead selector. Deploy status says prod includes `0090` and `0093`; no DDL, migration, or production data change
 > was run during this closeout.
 
+> **2026-06-29 — #161 consolidated LOW bucket closed after splitting live remainders.** Re-verified **#161**
+> against current `main`: L2/L5 are fixed, L1 demo-login cleanup is already tracked in **#362**, L3/L4 were split
+> to **#431** (transfer destination semantics + dead `inventory_bin.ordered`), and L6 was split to **#430**
+> (`fn_bin_rebuild` authenticated EXECUTE decision). Closed #161 to remove the stale grab-bag while preserving the
+> surviving LOW inventory/RPC cleanup issues. No code, DDL, migration, prod apply, or production data change.
+
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
