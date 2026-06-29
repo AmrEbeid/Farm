@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import { classifyApprovalFailure } from "@/lib/pr-approval-errors";
 
 /** Submit a draft PR for approval (draft → submitted). Any member with the org. */
 export async function submitPurchaseRequest(prId: string) {
@@ -41,7 +42,20 @@ export async function approvePurchaseRequest(prId: string, version: number) {
     .select("id");
   if (error) return { ok: false, error: toArabicError(error) };
   if (!data || data.length === 0) {
-    return { ok: false, error: "تعذّر الاعتماد: قد لا تملك صلاحية المالك أو أنك صاحب الطلب." };
+    const { data: pr, error: readError } = await sb
+      .from("purchase_requests")
+      .select("status, version, requested_by")
+      .eq("id", prId)
+      .maybeSingle();
+    if (readError) return { ok: false, error: toArabicError(readError) };
+    return {
+      ok: false,
+      error: classifyApprovalFailure(pr, {
+        expectedVersion: version,
+        userId: m.userId,
+        role: m.role,
+      }),
+    };
   }
   revalidatePath(`/purchase-requests/${prId}`);
   return { ok: true };

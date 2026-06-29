@@ -358,6 +358,14 @@ are fixed or covered by focused issues/held PRs. Created #433 for the one untrac
 `approvePurchaseRequest` zero-row failure copy conflates stale version/status/authz. Remaining live work stays in
 #89, #157, #188/#199, #229/#317, and #314. No code, DDL, migration, prod apply, or production data change was run.
 
+- [x] **Step 12: Implement #433 approval-failure diagnostics**
+
+Result recorded 2026-06-29: added a pure approval-failure classifier and wired `approvePurchaseRequest` to use a
+read-scoped follow-up after zero-row approval updates. The action now distinguishes stale version, wrong status,
+self-approval, missing owner permission, and missing/unreadable request without changing DB/RLS enforcement. Local
+validation passed: focused Vitest **5/5**, full Vitest **220/220**, focused eslint, `tsc --noEmit`, and production
+build.
+
 ## Self-Review
 
 - Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.
