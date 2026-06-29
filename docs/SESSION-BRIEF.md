@@ -1,6 +1,20 @@
 # Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
+**Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
+module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
+roles, keep custody/payment/receipt reads finance-role gated, avoid a broad new `expense.write` permission, make
+#368 `expenses.kind`/`0088` an explicit prerequisite or same-apply-path dependency, and require extending
+`attachments` for expense receipts before use (`entity_type='expense'`, resolver/storage validation,
+finance-confidential RLS).
+
+**Evidence.** #421 branch head `2fa6694`. GitHub checks passed: pgTAP, app/typecheck/lint/test/build,
+token/storybook build, gitleaks, Vercel. Focused re-review found no findings.
+
+**Still held.** No merge, migration, deploy, production apply, or real financial/PII import was performed. #421
+remains draft/design-only for Owner review and Stage-M privacy gating.
+
 ## 2026-06-29 — #368 accounting DB-side summary fix implemented; PR still held
 **Change.** Patched held draft #368 (`feat/stage-7-accounting-backend`) so `/accounting` no longer computes P&L
 totals from capped PostgREST row reads. Migration `0088` now adds `fn_accounting_pnl_summary`, a

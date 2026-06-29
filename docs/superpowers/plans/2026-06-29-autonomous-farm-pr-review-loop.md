@@ -259,8 +259,27 @@ Completed 2026-06-29: #366 now surfaces `/academy` query failures and corrects s
 failures and aligns `/expenses` nav with the `0097` owner/accountant read gate (head `a4d1c7f`, CI green, focused
 independent check found no blockers). Both PRs remain draft and unmigrated.
 
+### Task 6: Review Docs-Only Finance Specs Without Clearing Gates
+
+**Files:**
+- Read/modify: draft spec PR docs only.
+- Modify: living docs after the decision.
+
+**Interfaces:**
+- Consumes: docs-only finance/control PRs, current accounting/privacy posture, Stage-M data gate.
+- Produces: hardened spec wording and an explicit merge/hold decision.
+
+- [x] **Step 1: Review #421 SPEC-0018 custody/payment-request draft**
+
+Completed 2026-06-29: #421 was patched to remove precise real finance/worker figures, remove non-existent roles,
+keep custody/payment/receipt reads finance-role gated, avoid a broad new `expense.write` permission, make #368
+`expenses.kind`/`0088` an explicit prerequisite or same-apply-path dependency, and require extending `attachments`
+for expense receipts before use (`entity_type='expense'`, resolver/storage validation, finance-confidential RLS).
+Branch head `2fa6694`; GitHub CI green; focused re-review found no findings. #421 remains draft/design-only for
+Owner review; no schema, migration, prod apply, or real financial/PII import.
+
 ## Self-Review
 
-- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, and merge/migration gates.
+- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, and merge/migration gates.
 - Placeholder scan: no TBD/TODO placeholders; every task has exact commands and expected outcomes.
 - Type consistency: no new code interfaces are defined; process interfaces are explicit.
