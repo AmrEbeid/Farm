@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #441 custody frontend reviewed; CI drift fix pushed; still held behind #438.** Reviewed draft
+> frontend PR **#441** for the SPEC-0018 custody/payment UI. Pushed a narrow fix (`e08562f`) adding route-specific
+> help for `/custody/request/[requestId]`, which restored local page-help coverage (**7/7**) and full app tests
+> (**230/230**). Review blockers remain: #441 depends on backend **#438**, which is still blocked; custody account
+> creation uses direct table DML while the backend/security wording says custody writes are RPC-only; and finance
+> query/RPC errors currently render as zero/empty values. **Held:** no merge until #438 is fixed/reviewed/applied
+> and the #441 review findings are resolved.
+
 > **2026-06-29 — #314 responsibility-assignment write gate drafted; held for migration gate.** Draft PR
 > **#444** adds `responsibility.write` to `authorize(perm, org)` for owner/farm_manager and re-emits
 > `responsibility_assignments` RLS so org-member reads remain broad while direct REST insert/update requires the

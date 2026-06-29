@@ -519,8 +519,42 @@ Completed 2026-06-29: local pgTAP passed **697/697**; `git diff --check` clean; 
 #314 handoff. Held for review and separate pre-migration review. Migration-order warning: #366/#400/#438 also
 re-emit `authorize()` and must preserve `responsibility.write` if rebased/applied after #444.
 
+### Task 12: Review Draft #441 Custody Frontend
+
+**Files:**
+- Modify in #441: `apps/farm-os/lib/page-help.ts`
+- Read/review in #441: `apps/farm-os/app/(app)/custody/actions.ts`
+- Read/review in #441: `apps/farm-os/app/(app)/custody/page.tsx`
+- Read/review in #441: `apps/farm-os/app/(app)/custody/request/[requestId]/page.tsx`
+- Read/review in #441: `apps/farm-os/components/CustodyForms.tsx`
+- Read/review in #441: `apps/farm-os/components/RequestLifecycle.tsx`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: draft PR #441, backend draft PR #438, SPEC-0018 review findings.
+- Produces: CI fix and held review; no prod mutation.
+
+- [x] **Step 1: Check CI and review dependency**
+
+Completed 2026-06-29: #441 was draft and depended on #438. CI initially failed in `lib/page-help.test.ts` because
+the new dynamic route `/custody/request/[requestId]` fell back to dashboard help.
+
+- [x] **Step 2: Patch the mechanical CI drift**
+
+Completed 2026-06-29: pushed `e08562f`, adding `payment-request-360` help and a route-specific
+`/custody/request/:id` mapping. Local validation passed: focused page-help test **7/7** and full app Vitest
+**230/230**.
+
+- [x] **Step 3: Post held review**
+
+Completed 2026-06-29: posted a review keeping #441 draft/held. Blockers: backend #438 remains blocked; custody
+account creation uses direct table DML while #438/security wording says custody writes are RPC-only; financial
+query/RPC errors render zeros/empty tables instead of explicit error states.
+
 ## Self-Review
 
-- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, held #431/#314 DB drafts, and merge/migration gates.
+- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, held #431/#314 DB drafts, held #441 frontend review, and merge/migration gates.
 - Placeholder scan: no TBD/TODO placeholders; every task has exact commands and expected outcomes.
 - Type consistency: no new code interfaces are defined; process interfaces are explicit.

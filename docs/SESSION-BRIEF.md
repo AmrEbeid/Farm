@@ -119,6 +119,14 @@ authorize union. Local pgTAP passed **697/697**; `git diff --check` clean. Held 
 review; no merge, prod apply, or production data change. Migration-order warning: #366/#400/#438 also re-emit
 `authorize()` and must preserve `responsibility.write` if rebased/applied after #444.
 
+**#441 custody frontend review/fix.** Reviewed draft #441 after #438 backend blockers were posted. Pushed
+`e08562f` to fix the failing page-help drift guard by adding `payment-request-360` help and a `/custody/request/:id`
+route mapping. Local validation in `/tmp/farm-pr-441`: focused page-help test **7/7**, full app Vitest **230/230**.
+Posted a held review: #441 still cannot merge before #438 is fixed/reviewed/applied; custody account creation needs
+to align with the module's RPC-only write model or the backend docs/tests must explicitly allow direct RLS DML; and
+finance query/RPC errors must render an error state instead of zeros/empty tables. No merge, migration, prod apply,
+or production data change.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
