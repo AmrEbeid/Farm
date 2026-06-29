@@ -41,11 +41,12 @@ select throws_ok(
   '42501', null,
   '#235: a storekeeper (no budget.write) cannot INSERT an expense (financial-data integrity)');
 
-select is(
-  (with u as (update public.expenses set total = 1
-              where org_id = '00000000-0000-0000-0000-000000000001' returning 1)
-   select count(*)::int from u),
-  0,
+with u as (
+  update public.expenses set total = 1
+  where org_id = '00000000-0000-0000-0000-000000000001'
+  returning 1
+)
+select is((select count(*)::int from u), 0,
   '#235: a storekeeper UPDATE affects 0 rows — the expense is invisible (reads now budget.write-gated)');
 
 select is(
