@@ -1,5 +1,13 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #439 grant/default-privilege review posted; still held.** Reviewed draft PR **#439**
+> at `e2ca96f`: it removes client-role `TRUNCATE`/broad `DELETE` on current public tables, preserves only
+> authenticated `plan_checks` DELETE, and revokes future public-table defaults to `anon`/`authenticated` for the
+> prod-observed `postgres` grantor. Local validation repeated: `git diff --check` clean; full pgTAP **689/689**.
+> No local code findings. **Held:** no merge, prod migration, or production data change until pre-migration review.
+> Before apply, run a read-only prod `pg_default_acl` probe; if any grantor besides `postgres` grants future table
+> privileges to client roles, add matching `ALTER DEFAULT PRIVILEGES FOR ROLE <grantor>` revokes first.
+
 > **2026-06-29 — #442 inventory transfer/ordered guard reviewed; still held.** Reviewed draft PR **#442**
 > at `9b9cac3`: it blocks new `transfer` ledger rows at the RPC and table-constraint layers, pins
 > `inventory_bin.ordered = 0`, and preserves `fn_post_movement` internal-only EXECUTE posture. Local validation
@@ -73,8 +81,9 @@
 > Draft PR **#439** closes the remaining #317/#229 DB grant hygiene slice: current public tables lose
 > client-role `TRUNCATE`, public tables lose client-role `DELETE` except authenticated `plan_checks`, and future
 > public tables created by the prod-observed `postgres` grantor no longer inherit table privileges for
-> `anon`/`authenticated`. Local pgTAP passed **689/689** and GitHub checks are green; **held** for review and a
-> separate pre-migration review. Also completed the pre-patch review of draft **#438** and found the blockers later
+> `anon`/`authenticated`. Local pgTAP passed **689/689** and GitHub checks are green; a later review pass found no
+> local code findings and added the default-ACL grantor probe requirement. **Held** for a separate pre-migration
+> review. Also completed the pre-patch review of draft **#438** and found the blockers later
 > addressed by the 2026-06-29 #438 hardening entry at the top of this tracker. No merge, migration, prod apply, or
 > production data change.
 
