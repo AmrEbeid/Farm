@@ -1,5 +1,15 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — #439 grant-default drift fix drafted/green/held; #438 custody backend reviewed/blocked.**
+> Draft PR **#439** closes the remaining #317/#229 DB grant hygiene slice: current public tables lose
+> client-role `TRUNCATE`, public tables lose client-role `DELETE` except authenticated `plan_checks`, and future
+> public tables created by the prod-observed `postgres` grantor no longer inherit table privileges for
+> `anon`/`authenticated`. Local pgTAP passed **689/689** and GitHub checks are green; **held** for review and a
+> separate pre-migration review. Reviewed draft **#438** (SPEC-0018 custody/payment backend, `0098`/`0099`) and
+> kept it held: finance-confidential reads are all-member readable, #6 drawings/opex split is missing while #368
+> remains draft, lifecycle scope claims `paid`/`closed` without RPCs/tests, and `0098` collides with held #436.
+> No merge, migration, prod apply, or production data change.
+
 > **2026-06-29 — module dashboards/360 batch locally committed and merged with current `origin/main`.** Built and
 > reviewed the grouped module navigator, dashboard-first module entries, and read-only 360 pages for Inventory,
 > Farm, Planning, Finance, People, Weather/Risk, Settings/Admin, Supplier, Budget, Expense, Item, Plan, and PR

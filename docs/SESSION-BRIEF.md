@@ -88,6 +88,20 @@ authenticated EXECUTE, updating the SECURITY DEFINER allowlist, and pinning the 
 app/client direct caller; local pgTAP passed **687/687** and draft GitHub checks are green. Held for Owner migration
 gate: no merge, prod apply, or production data change.
 
+**#317/#229 grant hygiene draft.** Opened draft #439 with a Supabase-CLI timestamped migration for the remaining
+prod grant/default-privilege drift. The draft revokes client-role `TRUNCATE` on all current public tables, revokes
+client-role `DELETE` on all current public tables, restores the single intended authenticated `plan_checks` DELETE
+recompute path, and revokes future public-table default privileges from `anon`/`authenticated` for the prod-observed
+`postgres` grantor. Added catalog pgTAP coverage for destructive grants and `pg_default_acl`. Local pgTAP passed
+**689/689**; GitHub checks are green. Held for PR review and separate pre-migration review; no merge, prod apply, or
+production data change. #229 still remains open for leaked-password-protection Auth/dashboard verification.
+
+**#438 custody/payment backend review.** Reviewed draft #438 (SPEC-0018 backend, migrations `0098`/`0099`) and
+posted blockers. It must remain draft: finance-confidential custody/payment reads are all-member readable, #6
+drawings-vs-opex split is missing while #368 is still draft/unapplied, lifecycle scope claims `paid`/`closed` but
+implements/tests only through final approval, and migration `0098` collides with held #436. No merge, migration,
+prod apply, or production data change.
+
 ## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
