@@ -121,9 +121,12 @@ turning RACI labels into authorization. The migration adds `responsibility.write
 owner/farm_manager, re-emits `responsibility_assignments` RLS so reads stay org-wide but insert/update require the new
 permission, and preserves the same-org `people` guard. Added pgTAP coverage for owner/farm_manager allow, storekeeper/
 supervisor deny, read preservation, manager same-org writes, cross-org person rejection, policy structure, and the
-authorize union. Local pgTAP passed **697/697**; `git diff --check` clean. Held for review and separate pre-migration
-review; no merge, prod apply, or production data change. Migration-order warning: #366/#400/#438 also re-emit
-`authorize()` and must preserve `responsibility.write` if rebased/applied after #444.
+authorize union. Local pgTAP passed **697/697**; `git diff --check` clean. Review pass at `67146ea` found no local
+code findings and updated the PR notes with the exact #438 caveat: if #444 and #438 are applied in the same prod
+batch, apply #444's `20260629141650` before #438's later timestamped custody migrations; if #444 ever applies after
+#438, first preserve #438's final `authorize()` permission union. Held for separate pre-migration review; no merge,
+prod apply, or production data change. Migration-order warning: #366/#400/#438 also re-emit `authorize()` and must
+preserve `responsibility.write` if rebased/applied after #444.
 
 **#441 custody frontend review/fix.** Reviewed draft #441 after #438 backend blockers were posted. Pushed
 `e08562f` to fix the failing page-help drift guard by adding `payment-request-360` help and a `/custody/request/:id`
