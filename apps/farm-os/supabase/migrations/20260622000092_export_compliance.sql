@@ -9,7 +9,8 @@
 -- delete-posture/0027). Adds a new `export.write` permission (owner/farm_manager) to the authorize()
 -- map — the one access-control change here; reviewed at the gate.
 
--- ── 1) Extend authorize() with export.write (re-emitted VERBATIM from 0081 + the new clause) ──────────
+-- ── 1) Extend authorize() with export.write. Re-emits the final known permission union, including
+-- academy.write from #366/0091, so later authorize() re-emits must not drop either feature permission. ─────
 create or replace function public.authorize(perm text, p_org uuid)
 returns boolean
 language sql
