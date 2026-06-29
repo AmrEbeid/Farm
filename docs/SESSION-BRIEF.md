@@ -904,8 +904,9 @@ closed off-canvas drawer peeked ~90px) → **`@amrebeid/ui@1.1.1` published**; d
 (dashboard/coverage/inventory/plan) reviewed clean. ⚠️ **(prod-DB note superseded — prod is now at
 `0022`; see the 2026-06-25 (latest) entry above)** at the time of this entry prod was at migrations
 0001–0013 with `0015` (B2) verified on `main` but not yet `db push`ed. Remaining is unchanged:
-project-end deferred (key rotation, Stage 0, real-data) + decision-gated minors (B3 actual-paid
-pricing; D1 FORCE RLS — low value).
+Stage 0 legacy cleanup + real-data privacy remain project-end deferred; Supabase DB password/service-role key
+rotation was later completed per the 2026-06-29 Owner correction. Decision-gated minors remain B3 actual-paid
+pricing and D1 FORCE RLS (low value).
 
 ## 2026-06-24 — DEPLOYED + LIVE 🎉
 Farm OS MVP-0 is **deployed and verified end-to-end on production**: **farm-ui-one.vercel.app**
@@ -920,15 +921,16 @@ isolation (owner sees «مزارع عبيد» + 28 hawshat, anon denied), and th
   resilient middleware. Full record: `docs/DEPLOY-STATUS.md`.
 - **Auth:** 6 demo email/password accounts (`<role>@ebeid.test`) minted on prod via the admin API;
   password held by the Owner (not in repo).
-- **Security key rotation — DEFERRED to project end (Owner decision, 2026-06-24).** The Supabase
-  **DB password** + **service_role key** were pasted in the deploy chat; Owner will rotate at the
-  end of the project. ⚠️ Caveat (Claude): rotate **before any real Ebeid data** regardless — the
-  exposed service_role key bypasses RLS. Fine for now (synthetic data only). Also reset the demo password then.
+- **Security key rotation — SUPERSEDED 2026-06-29.** This older note said the Supabase **DB password** +
+  **service_role key** rotation was deferred; the Owner later confirmed both have been rotated several times.
+  Do not raise Supabase DB password/service-role key rotation again unless the Owner reopens it. Demo password
+  cleanup and leaked-password protection remain separate follow-ups.
 - **Pilot validation — considered DONE (Owner, 2026-06-24):** the customer research was completed
   *before* the project (it produced the plan + the dummy/seed data), so the pilot-validation gate is satisfied.
 - **Near-term: nothing required** — MVP-0 is deployed, live, and stable on synthetic data.
-  **Deferred to project end (Owner):** key rotation (above), legacy **Stage 0** secret remediation,
-  and real-Ebeid-data migration (after a privacy review). **Optional, agent-doable anytime:**
+  **Deferred to project end (Owner):** legacy **Stage 0** secret remediation and real-Ebeid-data migration
+  (after a privacy review). Supabase DB password/service-role key rotation is complete per the 2026-06-29 Owner
+  correction. **Optional, agent-doable anytime:**
   in-browser wedge-loop walkthrough; D1 FORCE RLS check on the real Supabase roles (low value).
 
 ## This session (2026-06-23) — security review DONE + **MERGED**; lib **published 1.1.0**

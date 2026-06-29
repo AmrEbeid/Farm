@@ -332,11 +332,10 @@
 > `farm-os-pilot`. **Prod hygiene:** dropped the stray `pgtap` extension from prod `public` (a Supabase
 > advisor WARN). **Dependabot majors DEFERRED** (open, commented): #128 TypeScript 6.0 (tsconfig
 > `baseUrl` deprecation hard-errors), #130 ESLint 10 (`eslint-plugin-react` incompatible with the v10
-> rule API), #131 Storybook 10 (ERESOLVE across the 8.6.x addon stack). **🔴 Still NOT done — KEY
-> ROTATION** (blocked on tooling: no `SUPABASE_ACCESS_TOKEN`, supabase not linked, no Vercel CLI, MCP
-> has no key-rotation tool) — needs the Owner to rotate `service_role` + DB password (+
-> `NEXT_PUBLIC_SUPABASE_ANON_KEY` if the JWT secret rotates), update Vercel env, redeploy; and to
-> enable **Leaked Password Protection** (HaveIBeenPwned) via the Auth dashboard toggle. Detail:
+> rule API), #131 Storybook 10 (ERESOLVE across the 8.6.x addon stack). **2026-06-29 correction:** Supabase
+> DB password + `service_role` key rotation is complete per Owner confirmation; do not reopen it unless the Owner
+> explicitly says so. Remaining auth/security follow-up here is to enable **Leaked Password Protection**
+> (HaveIBeenPwned) via the Auth dashboard toggle. Detail:
 > [`SECURITY-REVIEW-FOLLOWUP-2026-06-25.md`](SECURITY-REVIEW-FOLLOWUP-2026-06-25.md).
 >
 > **2026-06-25 follow-up security review (merged):** a second independent pass closed **B2.1**
@@ -429,7 +428,7 @@ Status legend: Todo / Active / Blocked / In review / Done
 - [x] **AUTHZ-1 Option B + AP-5 insert-side SoD + ENGINE-DC DB-constraint — RESOLVED (2026-06-25).** AUTHZ-1 Option B = migration `0025` (#146, REST-layer role gate on `plan_operations`/`farm_event`/`event_locations`/`quantities`); ENGINE-DC = migration `0026` (#144, BEFORE INSERT receipt-vs-open-PO trigger); AP-5 insert-side SoD confirmed already merged (migration `0023`, test `21`). All applied to prod (`0028`), pgTAP 217 green. — owner: Amr
 - [x] **DELETE/role posture for tenant tables — RESOLVED (2026-06-25):** migration `0027` (#140) `REVOKE DELETE` from `authenticated,anon` on the **27** exposed tenant tables (keeping `plan_checks` deletable for the plan builder); migration `0028` (#142) also `FORCE`s RLS on all 35 RLS tables. Live-verified: DELETE `expenses` as manager → HTTP 403. Full finding in [`SECURITY-FINDING-delete-exposure-2026-06-25.md`](SECURITY-FINDING-delete-exposure-2026-06-25.md). — owner: Amr
 - [ ] **Owner sign-off on canonical palm count** (registry says 4,380/299) — owner: Amr
-- [ ] **Approve Stage 0 security remediation** (key rotation + history purge) — owner: Amr
+- [ ] **Approve remaining Stage 0 security remediation** (non-Supabase legacy key/history purge cleanup; Supabase DB password + service-role key rotation is complete) — owner: Amr
 - [ ] **Confirm 4-vs-5 sector labels** and enterprise/crop list — owner: Amr
 - [ ] **Engage a local agronomist** to sign off Academy numbers + Egyptian pesticide registrations — owner: Amr
 - [ ] **Schedule 5 design-partner farm interviews** (close the Arabic customer-voice gap) — owner: Amr
