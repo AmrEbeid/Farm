@@ -76,12 +76,14 @@ or owner-timed). Delegated 9 worktree/research/hunter agents. Decision-free SHIP
 cleared (security/audit complete, perf, silent-failures, a11y table-names + status-colour, i18n, bundle hygiene,
 finance correctness, write-path concurrency verified).
 
-**Next candidates (decision-free):** module research (#216–226 — mostly surfaces Owner *product* decisions);
-deeper frontend/UX correctness hunts. The #215 first-slice settings-IA shell is BLOCKED on the 7 Owner
-decisions in the #215 comment — do NOT build it ahead of those answers. Owner-gated: #199, #157/#89 (pricing),
-#388/#366/#368 (wage/expert gates), #229(iii) leaked-password (Auth dashboard toggle).
-Owner-decision-gated items remain untouched: #199, #157/#89 (pricing), #366/#368 (expert gates), #229(iii)
-leaked-password (Auth dashboard toggle), and the 7 #215 open decisions.
+**DEFINITIVE STATE (end of session): the decision-free shippable surface is comprehensively cleared and
+verified.** 17 PRs merged; the whole research lane (#215–226) triaged with NO hidden defects (the consolidated
+sweep confirmed #206/#173/#181/#89/#155 already remediated); append-only event integrity verified clean. The
+single hub for everything — what shipped, the filed engineering backlog (#500/#502/#503), and the FULL Owner
+decision queue — is **issue #505**. All remaining high-value work is greenfield gated on Owner decisions:
+#199 (engine semantics), #157/#89 (pricing), #388 (wage), #366/#368 (expert gates), #229(iii) leaked-password
+(Auth toggle), the 7 #215 control-panel decisions, the 6 #216 inventory decisions, and the per-issue #217–226
+calls. Do NOT build any of these ahead of the Owner's answers.
 
 ## 2026-06-30 — SAFE STOP: #215 control-panel research paused
 **Stop point.** Stopped at Owner request. Local `main` is at `e567115` (`docs: record unknown cost display fix`).
