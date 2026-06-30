@@ -130,6 +130,7 @@ export function MasterTable({
       <FilterableTable
         columns={columns}
         rows={rows}
+        ariaLabel={title}
         empty={empty}
         searchColumns={searchColumns}
         placeholder={placeholder}

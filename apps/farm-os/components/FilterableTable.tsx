@@ -18,6 +18,7 @@ export function FilterableTable({
   columns,
   rows,
   caption,
+  ariaLabel,
   empty,
   searchColumns,
   placeholder = "بحث…",
@@ -27,6 +28,8 @@ export function FilterableTable({
   columns: SimpleColumn[];
   rows: SimpleRow[];
   caption?: string;
+  /** Accessible name for the table (forwarded to SimpleTable → `<table aria-label>`). Pass the page heading. */
+  ariaLabel?: string;
   empty?: string;
   /** Column ids to match against; defaults to every column. */
   searchColumns?: string[];
@@ -54,7 +57,7 @@ export function FilterableTable({
 
   // Nothing extra to show → plain table (unchanged behavior for short, non-exportable lists).
   if (!showSearch && !exportFilename) {
-    return <SimpleTable columns={columns} rows={rows} caption={caption} empty={empty} />;
+    return <SimpleTable columns={columns} rows={rows} caption={caption} ariaLabel={ariaLabel} empty={empty} />;
   }
 
   return (
@@ -97,6 +100,7 @@ export function FilterableTable({
           columns={columns}
           rows={visible}
           caption={caption}
+          ariaLabel={ariaLabel}
           empty={searching ? "لا نتائج مطابقة للبحث" : empty}
         />
       </div>
