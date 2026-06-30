@@ -6,7 +6,7 @@
 -- drawing/capex expenses EXCLUDED (no double-count). Impersonation via request.jwt.claims (harness pattern from
 -- tests 36/82).
 begin;
-select plan(23);
+select plan(30);
 
 -- (no trailing comments on \set lines — psql captures the rest of the line into the value)
 \set org '00000000-0000-0000-0000-000000000001'
@@ -65,12 +65,24 @@ select lives_ok(format($$ select public.fn_set_expense_payment_status(%L,'paid_f
   'mark expense B paid_from_custody (posts a 2,000 out-movement)');
 select lives_ok(format($$ select set_config('test.req', public.fn_create_payment_request(%L, null, null, %L, 'يونيو')::text, false) $$, current_setting('test.org'), current_setting('test.acct_id')),
   'accountant creates a payment request');
+select lives_ok(format($$ select set_config('test.req_null', public.fn_create_payment_request(%L, null, null, null, 'طلب بلا عهدة')::text, false) $$, current_setting('test.org')),
+  'accountant creates a payment request without a custody account');
 select is((select request_no from public.payment_requests where id = current_setting('test.req')::uuid), 1, 'request_no auto-increments to 1');
 -- add both expenses; submit
 select lives_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eA')),
   'add the post_paid_unpaid expense A to the request');
-select lives_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eB')),
-  'add the paid_from_custody expense B to the request');
+select throws_ok(format($$ update public.expenses set total = 6000 where id = %L $$, current_setting('test.eA')),
+  '22023', null, 'reject amount edits after a post-paid expense is added to a request');
+select throws_ok(format($$ select public.fn_set_expense_kind(%L, 'drawing') $$, current_setting('test.eA')),
+  '22023', null, 'reject kind reclassification after a post-paid expense is added to a request');
+select throws_ok(format($$ select public.fn_set_expense_payment_status(%L, 'paid_by_owner', null) $$, current_setting('test.eA')),
+  '22023', null, 'reject payment-status rerouting after a post-paid expense is added to a request');
+select lives_ok(format($$ select set_config('test.req2', public.fn_create_payment_request(%L, null, null, null, 'طلب ثان')::text, false) $$, current_setting('test.org')),
+  'accountant creates a second payment request');
+select throws_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req2'), current_setting('test.eA')),
+  '22023', null, 'reject adding the same expense to another payment request');
+select throws_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eB')),
+  '22023', null, 'reject a paid_from_custody expense from request lines');
 select throws_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eD')),
   '22023', null, 'reject owner drawing expense D from payment request lines');
 select lives_ok(format($$ select public.fn_submit_payment_request(%L) $$, current_setting('test.req')),
@@ -93,6 +105,8 @@ select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) -
   'totals: only the post_paid_unpaid expense counts (B paid_from_custody EXCLUDED — no double-count)');
 select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) ->> 'net_request')::numeric, 7000::numeric,
   'totals: net_request = 5,000 unpaid + 2,000 custody top-up (30,000 target − 28,000 balance)');
+select is((public.fn_payment_request_totals(current_setting('test.req_null')::uuid) ->> 'net_request')::numeric, 0::numeric,
+  'totals: request without a custody account has zero top-up instead of erroring');
 reset role;
 
 -- 6) non-finance org members cannot read the request tables or derived totals

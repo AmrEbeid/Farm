@@ -54,7 +54,7 @@ as $$
          or (perm = 'request.approve.final'  and m.role = 'owner') )                     -- SPEC-0018 owner final approval
   )
 $$;
-revoke all     on function public.authorize(text, uuid) from public;
+revoke execute on function public.authorize(text, uuid) from public, anon, authenticated;
 grant  execute on function public.authorize(text, uuid) to anon, authenticated;  -- RLS helper (anon needed for policy eval)
 
 -- ── 2) custody_accounts (one per custodian: Farm Manager / Accountant) ──────────────────────────────────
@@ -68,13 +68,15 @@ create table public.custody_accounts (
   created_at timestamptz not null default now(),
   created_by uuid default auth.uid()
 );
-create index custody_accounts_org_idx on public.custody_accounts(org_id);
+create index if not exists custody_accounts_org_idx on public.custody_accounts(org_id);
 alter table public.custody_accounts enable row level security;
 alter table public.custody_accounts force row level security;
+drop policy if exists tenant_read on public.custody_accounts;
 create policy tenant_read on public.custody_accounts for select to authenticated
   using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
 revoke insert, update, delete on public.custody_accounts from authenticated, anon;  -- writes via fn_save_custody_account; soft-delete via active=false
 grant  select on public.custody_accounts to authenticated;  -- 0009 blanket grant doesn't inherit; explicit
+drop trigger if exists audit_custody_account on public.custody_accounts;
 create trigger audit_custody_account after insert or update or delete on public.custody_accounts
   for each row execute function public.fn_audit('custody_account');
 
@@ -105,6 +107,11 @@ begin
     raise exception 'forbidden: cross-org custody account' using errcode = '42501'; end if;
   if not public.authorize('custody.write', v_org) then
     raise exception 'forbidden: custody.write is required' using errcode = '42501'; end if;
+  if p_holder_user_id is not null and not exists (
+       select 1 from public.organization_member m
+        where m.org_id = v_org and m.user_id = p_holder_user_id) then
+    raise exception 'forbidden: holder_user_id must be a member of the custody account org' using errcode = '42501';
+  end if;
   if nullif(trim(coalesce(p_holder_label, '')), '') is null then
     raise exception 'holder_label is required' using errcode = '23502'; end if;
   if coalesce(p_target_float, 0) < 0 then
@@ -126,8 +133,7 @@ begin
   return v_id;
 end;
 $$;
-revoke all     on function public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean) from public;
-revoke execute on function public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean) from anon;
+revoke execute on function public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean) from public, anon, authenticated;
 grant  execute on function public.fn_save_custody_account(uuid, uuid, text, uuid, numeric, boolean) to authenticated;
 
 -- ── 3) custody_movements (cash in/out; running balance is DERIVED, never stored) ────────────────────────
@@ -146,15 +152,17 @@ create table public.custody_movements (
   constraint custody_one_direction check ((amount_in > 0) <> (amount_out > 0))  -- exactly one side > 0
 );
 -- covering index leading EACH FK column (#229b invariant): org_id, custody_account_id, expense_id
-create index custody_movements_org_idx on public.custody_movements(org_id, occurred_at);
-create index custody_movements_acct_idx on public.custody_movements(custody_account_id, occurred_at);
-create index custody_movements_expense_idx on public.custody_movements(expense_id);
+create index if not exists custody_movements_org_idx on public.custody_movements(org_id, occurred_at);
+create index if not exists custody_movements_acct_idx on public.custody_movements(custody_account_id, occurred_at);
+create index if not exists custody_movements_expense_idx on public.custody_movements(expense_id);
 alter table public.custody_movements enable row level security;
 alter table public.custody_movements force row level security;
+drop policy if exists tenant_read on public.custody_movements;
 create policy tenant_read on public.custody_movements for select to authenticated
   using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
 grant  select on public.custody_movements to authenticated;  -- reads finance-gated via tenant_read; audited table must be readable (no audit-leak)
 revoke insert, update, delete on public.custody_movements from authenticated, anon;  -- append-only, RPC-ONLY ledger (writes via fn_record_custody_movement; correct via reversal)
+drop trigger if exists audit_custody_movement on public.custody_movements;
 create trigger audit_custody_movement after insert or update or delete on public.custody_movements
   for each row execute function public.fn_audit('custody_movement');
 
@@ -163,7 +171,62 @@ alter table public.expenses add column if not exists payment_status text;      -
 alter table public.expenses add column if not exists paid_by text;             -- free label of who paid
 alter table public.expenses add column if not exists kind text not null default 'operating'
   check (kind in ('operating','drawing','capex'));
+alter table public.expenses drop constraint if exists expenses_payment_status_check;
+alter table public.expenses
+  add constraint expenses_payment_status_check
+  check (payment_status is null or payment_status in ('paid_from_custody','post_paid_unpaid','paid_by_owner','cancelled'));
+-- `expenses` remains directly writable for ordinary budget.write expense entry, but the payment-routing
+-- fields are RPC-only so `paid_from_custody` cannot bypass the required custody out-movement side effect.
+revoke insert, update on public.expenses from authenticated, anon;
+grant insert (
+  id, org_id, date, farm_id, sector_id, hawsha_id, event_id, plan_id, category, description,
+  supplier_id, qty, unit, unit_price, total, payment_method, recorded_by, approved_by, status
+) on public.expenses to authenticated;
+grant update (
+  id, org_id, date, farm_id, sector_id, hawsha_id, event_id, plan_id, category, description,
+  supplier_id, qty, unit, unit_price, total, payment_method, recorded_by, approved_by, status
+) on public.expenses to authenticated;
 -- (the expense→custody link lives on custody_movements.expense_id — avoids a cross-org FK on expenses)
+
+-- Once an expense is routed into custody/request money flow, its amount/classification is immutable. Corrections
+-- must use an explicit reversal/new line so the custody ledger and payment request cannot drift from the expense.
+create or replace function public.expense_guard_routed_money_immutable()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_is_routed boolean; v_has_request_line boolean := false;
+begin
+  if old.total is not distinct from new.total and old.kind is not distinct from new.kind then
+    return new;
+  end if;
+
+  if to_regclass('public.payment_request_lines') is not null then
+    execute 'select exists (select 1 from public.payment_request_lines l where l.expense_id = $1)'
+      into v_has_request_line
+      using old.id;
+  end if;
+
+  v_is_routed :=
+       coalesce(old.payment_status, '') in ('paid_from_custody','post_paid_unpaid')
+    or exists (select 1 from public.custody_movements m where m.expense_id = old.id and m.amount_out > 0)
+    or v_has_request_line;
+
+  if v_is_routed then
+    raise exception 'routed expense amount/kind is immutable; post a reversal or create a new expense'
+      using errcode = '22023';
+  end if;
+
+  return new;
+end;
+$$;
+revoke execute on function public.expense_guard_routed_money_immutable() from public, anon, authenticated;
+drop trigger if exists expense_guard_routed_money_immutable on public.expenses;
+create trigger expense_guard_routed_money_immutable
+  before update of total, kind on public.expenses
+  for each row execute function public.expense_guard_routed_money_immutable();
+
 -- balance helper: current custody = Σin − Σout for an account (derived; SECURITY DEFINER so RLS-safe read).
 create or replace function public.fn_custody_balance(p_account uuid)
 returns numeric
@@ -189,8 +252,7 @@ begin
   return coalesce(v_balance, 0);
 end;
 $$;
-revoke all     on function public.fn_custody_balance(uuid) from public;
-revoke execute on function public.fn_custody_balance(uuid) from anon;
+revoke execute on function public.fn_custody_balance(uuid) from public, anon, authenticated;
 grant  execute on function public.fn_custody_balance(uuid) to authenticated;
 
 -- ── 5) fn_record_custody_movement — the ONLY client path to post a custody movement ─────────────────────
@@ -218,6 +280,11 @@ begin
   if p_expense_id is not null and not exists (
        select 1 from public.expenses e where e.id = p_expense_id and e.org_id = v_org) then
     raise exception 'forbidden: cross-org expense link' using errcode = '42501'; end if;
+  if p_expense_id is not null and coalesce(p_amount_out,0) > 0 and exists (
+       select 1 from public.custody_movements m
+        where m.expense_id = p_expense_id and m.amount_out > 0) then
+    raise exception 'expense already has a custody cash out-movement; post a reversal before another cash out' using errcode = '22023';
+  end if;
   insert into public.custody_movements(org_id, custody_account_id, occurred_at, movement_type, amount_in, amount_out, expense_id, note)
   values (v_org, p_account, coalesce(p_occurred_at, current_date), p_movement_type,
           coalesce(p_amount_in,0), coalesce(p_amount_out,0), p_expense_id, p_note)
@@ -225,8 +292,7 @@ begin
   return v_id;
 end;
 $$;
-revoke all     on function public.fn_record_custody_movement(uuid, text, numeric, numeric, date, uuid, text) from public;
-revoke execute on function public.fn_record_custody_movement(uuid, text, numeric, numeric, date, uuid, text) from anon;
+revoke execute on function public.fn_record_custody_movement(uuid, text, numeric, numeric, date, uuid, text) from public, anon, authenticated;
 grant  execute on function public.fn_record_custody_movement(uuid, text, numeric, numeric, date, uuid, text) to authenticated;
 
 -- ── 6) fn_set_expense_payment_status — sets routing; paid_from_custody posts ONE linked out-movement ────
@@ -238,9 +304,13 @@ volatile
 security definer
 set search_path = ''
 as $$
-declare v_org uuid; v_total numeric; v_kind text; v_existing int;
+declare v_org uuid; v_total numeric; v_kind text; v_payment_status text; v_existing int; v_has_request_line boolean := false;
 begin
-  select org_id, total, kind into v_org, v_total, v_kind from public.expenses where id = p_expense;
+  select org_id, total, kind, payment_status
+    into v_org, v_total, v_kind, v_payment_status
+    from public.expenses
+   where id = p_expense
+   for update;
   if v_org is null then raise exception 'expense % not found', p_expense using errcode = 'P0002'; end if;
   if v_org not in (select public.user_org_ids()) then
     raise exception 'forbidden: cross-org expense' using errcode = '42501'; end if;
@@ -254,6 +324,15 @@ begin
     where expense_id = p_expense and amount_out > 0;
   if p_status <> 'paid_from_custody' and v_existing > 0 then
     raise exception 'expense already has a custody cash out-movement; post a reversal before rerouting payment_status' using errcode = '22023';
+  end if;
+  if to_regclass('public.payment_request_lines') is not null then
+    execute 'select exists (select 1 from public.payment_request_lines l where l.expense_id = $1)'
+      into v_has_request_line
+      using p_expense;
+    if v_has_request_line and p_status is distinct from v_payment_status then
+      raise exception 'expense is already included in a payment request; remove/correct the request before rerouting payment_status'
+        using errcode = '22023';
+    end if;
   end if;
   update public.expenses
      set payment_status = p_status,
@@ -273,8 +352,7 @@ begin
   end if;
 end;
 $$;
-revoke all     on function public.fn_set_expense_payment_status(uuid, text, uuid, text) from public;
-revoke execute on function public.fn_set_expense_payment_status(uuid, text, uuid, text) from anon;
+revoke execute on function public.fn_set_expense_payment_status(uuid, text, uuid, text) from public, anon, authenticated;
 grant  execute on function public.fn_set_expense_payment_status(uuid, text, uuid, text) to authenticated;
 
 -- Keep the drawings split available in this apply path even when #368 has not landed first.
@@ -293,8 +371,7 @@ begin
   update public.expenses set kind = p_kind where id = p_id;
   return jsonb_build_object('id', p_id, 'kind', p_kind);
 end $$;
-revoke all     on function public.fn_set_expense_kind(uuid, text) from public;
-revoke execute on function public.fn_set_expense_kind(uuid, text) from anon;
+revoke execute on function public.fn_set_expense_kind(uuid, text) from public, anon, authenticated;
 grant  execute on function public.fn_set_expense_kind(uuid, text) to authenticated;
 
 commit;

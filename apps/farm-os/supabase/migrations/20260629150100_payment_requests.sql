@@ -29,15 +29,17 @@ create table public.payment_requests (
   approved_final_at timestamptz,
   created_at timestamptz not null default now()
 );
-create index payment_requests_org_idx on public.payment_requests(org_id, created_at);
-create index payment_requests_acct_idx on public.payment_requests(custody_account_id);
-create unique index payment_requests_org_no_uniq on public.payment_requests(org_id, request_no);
+create index if not exists payment_requests_org_idx on public.payment_requests(org_id, created_at);
+create index if not exists payment_requests_acct_idx on public.payment_requests(custody_account_id);
+create unique index if not exists payment_requests_org_no_uniq on public.payment_requests(org_id, request_no);
 alter table public.payment_requests enable row level security;
 alter table public.payment_requests force row level security;
+drop policy if exists tenant_read on public.payment_requests;
 create policy tenant_read on public.payment_requests for select to authenticated
   using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
 grant  select on public.payment_requests to authenticated;  -- RPC-only writes (create/submit/approve…); reads finance-gated. (custody_account_id FK not member-writable → cross-org-FK invariant 74 satisfied)
 revoke insert, update, delete on public.payment_requests from authenticated, anon;
+drop trigger if exists audit_payment_request on public.payment_requests;
 create trigger audit_payment_request after insert or update or delete on public.payment_requests
   for each row execute function public.fn_audit('payment_request');
 
@@ -50,15 +52,18 @@ create table public.payment_request_lines (
   created_at timestamptz not null default now(),
   unique (payment_request_id, expense_id)
 );
-create index prl_org_idx on public.payment_request_lines(org_id);
-create index prl_request_idx on public.payment_request_lines(payment_request_id);
-create index prl_expense_idx on public.payment_request_lines(expense_id);
+create index if not exists prl_org_idx on public.payment_request_lines(org_id);
+create index if not exists prl_request_idx on public.payment_request_lines(payment_request_id);
+create index if not exists prl_expense_idx on public.payment_request_lines(expense_id);
+create unique index if not exists prl_expense_once_uniq on public.payment_request_lines(expense_id);
 alter table public.payment_request_lines enable row level security;
 alter table public.payment_request_lines force row level security;
+drop policy if exists tenant_read on public.payment_request_lines;
 create policy tenant_read on public.payment_request_lines for select to authenticated
   using (org_id in (select public.user_org_ids()) and public.authorize('finance.read', org_id));
 grant  select on public.payment_request_lines to authenticated;
 revoke insert, update, delete on public.payment_request_lines from authenticated, anon;  -- RPC-only
+drop trigger if exists audit_prl on public.payment_request_lines;
 create trigger audit_prl after insert or update or delete on public.payment_request_lines
   for each row execute function public.fn_audit('payment_request_line');
 
@@ -106,8 +111,13 @@ begin
     where l.payment_request_id = p_request
       and e.payment_status = 'post_paid_unpaid'
       and e.kind = 'operating';
-  select coalesce(target_float,0) into v_target from public.custody_accounts where id = v_acct;
-  v_current := coalesce(public.fn_custody_balance(v_acct), 0);
+  if v_acct is null then
+    v_target := 0;
+    v_current := 0;
+  else
+    select coalesce(target_float,0) into v_target from public.custody_accounts where id = v_acct;
+    v_current := coalesce(public.fn_custody_balance(v_acct), 0);
+  end if;
   v_topup := greatest(0, coalesce(v_target,0) - v_current);
   return jsonb_build_object(
     'post_paid_unpaid', v_unpaid,
@@ -117,8 +127,7 @@ begin
     'net_request', v_unpaid + v_topup);
 end;
 $$;
-revoke all     on function public.fn_payment_request_totals(uuid) from public;
-revoke execute on function public.fn_payment_request_totals(uuid) from anon;
+revoke execute on function public.fn_payment_request_totals(uuid) from public, anon, authenticated;
 grant  execute on function public.fn_payment_request_totals(uuid) to authenticated;
 
 -- ── 4) lifecycle RPCs ───────────────────────────────────────────────────────────────────────────────────
@@ -129,15 +138,19 @@ create or replace function public.fn_create_payment_request(
 returns uuid
 language plpgsql volatile security definer set search_path = ''
 as $$
-declare v_id uuid; v_no int;
+declare v_id uuid; v_no int; v_acct_org uuid; v_acct_active boolean;
 begin
   if p_org not in (select public.user_org_ids()) then
     raise exception 'forbidden: cross-org' using errcode='42501'; end if;
   if not public.authorize('request.prepare', p_org) then
     raise exception 'forbidden: request.prepare is required' using errcode='42501'; end if;
-  if p_custody_account is not null and
-     (select org_id from public.custody_accounts where id = p_custody_account) is distinct from p_org then
-    raise exception 'forbidden: cross-org custody account' using errcode='42501'; end if;
+  if p_custody_account is not null then
+    select org_id, active into v_acct_org, v_acct_active from public.custody_accounts where id = p_custody_account;
+    if v_acct_org is distinct from p_org then
+      raise exception 'forbidden: cross-org custody account' using errcode='42501'; end if;
+    if not coalesce(v_acct_active, false) then
+      raise exception 'custody account is inactive' using errcode='22023'; end if;
+  end if;
   select coalesce(max(request_no),0)+1 into v_no from public.payment_requests where org_id = p_org;
   insert into public.payment_requests(org_id, request_no, period_start, period_end, custody_account_id, note)
     values (p_org, v_no, p_period_start, p_period_end, p_custody_account, p_note)
@@ -145,8 +158,7 @@ begin
   return v_id;
 end;
 $$;
-revoke all     on function public.fn_create_payment_request(uuid, date, date, uuid, text) from public;
-revoke execute on function public.fn_create_payment_request(uuid, date, date, uuid, text) from anon;
+revoke execute on function public.fn_create_payment_request(uuid, date, date, uuid, text) from public, anon, authenticated;
 grant  execute on function public.fn_create_payment_request(uuid, date, date, uuid, text) to authenticated;
 
 -- add an expense line (RPC-only path; validates same-org for both FKs); request must be draft.
@@ -154,7 +166,7 @@ create or replace function public.fn_add_expense_to_request(p_request uuid, p_ex
 returns uuid
 language plpgsql volatile security definer set search_path = ''
 as $$
-declare v_org uuid; v_status text; v_exp_org uuid; v_exp_kind text; v_id uuid;
+declare v_org uuid; v_status text; v_exp_org uuid; v_exp_kind text; v_exp_payment_status text; v_id uuid;
 begin
   select org_id, status into v_org, v_status from public.payment_requests where id = p_request;
   if v_org is null then raise exception 'request % not found', p_request using errcode='P0002'; end if;
@@ -162,10 +174,22 @@ begin
   if not public.authorize('request.prepare', v_org) then
     raise exception 'forbidden: request.prepare is required' using errcode='42501'; end if;
   if v_status <> 'draft' then raise exception 'request is not draft (%)', v_status using errcode='22023'; end if;
-  select org_id, kind into v_exp_org, v_exp_kind from public.expenses where id = p_expense;
+  select org_id, kind, payment_status
+    into v_exp_org, v_exp_kind, v_exp_payment_status
+    from public.expenses
+   where id = p_expense
+   for update;
   if v_exp_org is distinct from v_org then raise exception 'forbidden: cross-org expense' using errcode='42501'; end if;
   if coalesce(v_exp_kind, 'operating') <> 'operating' then
     raise exception 'only operating expenses can be added to a payment request (kind=%)', v_exp_kind using errcode='22023'; end if;
+  if coalesce(v_exp_payment_status, '') <> 'post_paid_unpaid' then
+    raise exception 'only post_paid_unpaid expenses can be added to a payment request (payment_status=%)', v_exp_payment_status using errcode='22023'; end if;
+  if exists (
+       select 1 from public.payment_request_lines l
+        where l.expense_id = p_expense
+          and l.payment_request_id <> p_request) then
+    raise exception 'expense is already included in another payment request' using errcode='22023';
+  end if;
   insert into public.payment_request_lines(org_id, payment_request_id, expense_id)
     values (v_org, p_request, p_expense)
     on conflict (payment_request_id, expense_id) do nothing
@@ -173,8 +197,7 @@ begin
   return v_id;
 end;
 $$;
-revoke all     on function public.fn_add_expense_to_request(uuid, uuid) from public;
-revoke execute on function public.fn_add_expense_to_request(uuid, uuid) from anon;
+revoke execute on function public.fn_add_expense_to_request(uuid, uuid) from public, anon, authenticated;
 grant  execute on function public.fn_add_expense_to_request(uuid, uuid) to authenticated;
 
 -- shared transition helper (one function per gated transition keeps the EXECUTE surface explicit).
@@ -189,8 +212,7 @@ begin
   if v_status <> 'draft' then raise exception 'only a draft can be submitted (is %)', v_status using errcode='22023'; end if;
   update public.payment_requests set status='submitted', submitted_at=now() where id=p_request;
 end; $$;
-revoke all on function public.fn_submit_payment_request(uuid) from public;
-revoke execute on function public.fn_submit_payment_request(uuid) from anon;
+revoke execute on function public.fn_submit_payment_request(uuid) from public, anon, authenticated;
 grant execute on function public.fn_submit_payment_request(uuid) to authenticated;
 
 create or replace function public.fn_approve_request_operational(p_request uuid)
@@ -204,8 +226,7 @@ begin
   if v_status <> 'submitted' then raise exception 'only a submitted request can be operationally approved (is %)', v_status using errcode='22023'; end if;
   update public.payment_requests set status='approved_operational', approved_op_by=(select auth.uid()), approved_op_at=now() where id=p_request;
 end; $$;
-revoke all on function public.fn_approve_request_operational(uuid) from public;
-revoke execute on function public.fn_approve_request_operational(uuid) from anon;
+revoke execute on function public.fn_approve_request_operational(uuid) from public, anon, authenticated;
 grant execute on function public.fn_approve_request_operational(uuid) to authenticated;
 
 create or replace function public.fn_approve_request_final(p_request uuid)
@@ -219,8 +240,7 @@ begin
   if v_status <> 'approved_operational' then raise exception 'only an operationally-approved request can be finalized (is %)', v_status using errcode='22023'; end if;
   update public.payment_requests set status='approved_final', approved_final_by=(select auth.uid()), approved_final_at=now() where id=p_request;
 end; $$;
-revoke all on function public.fn_approve_request_final(uuid) from public;
-revoke execute on function public.fn_approve_request_final(uuid) from anon;
+revoke execute on function public.fn_approve_request_final(uuid) from public, anon, authenticated;
 grant execute on function public.fn_approve_request_final(uuid) to authenticated;
 
 commit;

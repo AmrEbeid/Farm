@@ -20,6 +20,11 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `budget.write` | owner, accountant | Write budgets, budget lines, expenses | BR-063 |
 | `payroll.read` | owner, accountant | Read `people_compensation` (wages) | BR-071 |
 | `structure.write` | owner, farm_manager | Create/edit/archive farm structure | BR-064 |
+| `finance.read` | owner, accountant | Read finance-confidential custody/payment-request rows and derived balances | BR-066 |
+| `custody.write` | owner, farm_manager, accountant | Create custody accounts and post custody movements through RPCs | BR-067 |
+| `request.prepare` | owner, farm_manager, accountant | Create/submit payment requests and add eligible post-paid lines | BR-068 |
+| `request.approve.op` | owner, farm_manager | Operationally approve payment requests | BR-069 |
+| `request.approve.final` | owner | Final-approve payment requests | BR-069 |
 
 ## Role × capability (✓ = allowed, via the permission above)
 | Capability | owner | farm_manager | agri_engineer | accountant | supervisor | storekeeper |
@@ -31,6 +36,11 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | Write inventory / receive / reserve | ✓ | ✓ | | | | ✓ |
 | Write budget / expenses | ✓ | | | ✓ | | |
 | Read wages (payroll) | ✓ | | | ✓ | | |
+| Read custody/payment requests | ✓ | | | ✓ | | |
+| Record custody movements | ✓ | ✓ | | ✓ | | |
+| Prepare payment requests | ✓ | ✓ | | ✓ | | |
+| Operationally approve payment requests | ✓ | ✓ | | | | |
+| Final-approve payment requests | ✓ | | | | | |
 | Read core farm data (RLS, own org) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ## Page access (verified guards)

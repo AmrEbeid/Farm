@@ -6,9 +6,10 @@
 -- equal to its total, idempotently (no double-count, #6). Impersonation via request.jwt.claims (the JWT
 -- harness used by tests 36/82). Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(28);
+select plan(34);
 
 \set org '00000000-0000-0000-0000-000000000001'
+\set orgB 'c1020000-0000-0000-0000-00000000000b'
 \set acct 'a0c0a000-0000-0000-0000-0000000000c0'
 \set exp  'a0e00000-0000-0000-0000-0000000000e0'
 
@@ -18,6 +19,13 @@ insert into public.custody_accounts (id, org_id, holder_label, target_float)
   values (:'acct', :'org', 'مدير المزرعة', 30000);
 insert into public.expenses (id, org_id, date, category, description, total, status)
   values (:'exp', :'org', current_date, 'تسميد', 'بند اختبار', 5000, 'approved');
+insert into public.organization (id, name) values (:'orgB', 'مزرعة اختبار العهدة');
+select set_config('test.cross_holder', gen_random_uuid()::text, false);
+insert into auth.users (id, instance_id, aud, role, created_at, updated_at)
+  values (current_setting('test.cross_holder')::uuid, '00000000-0000-0000-0000-000000000000',
+          'authenticated', 'authenticated', now(), now());
+insert into public.organization_member (org_id, user_id, role)
+  values (:'orgB', current_setting('test.cross_holder')::uuid, 'accountant');
 select set_config('test.acct_id', :'acct', false);
 select set_config('test.exp_id', :'exp', false);
 select set_config('test.accountant', (select user_id::text from public.organization_member
@@ -97,6 +105,18 @@ select pg_temp.as_user(current_setting('test.accountant'));
 select lives_ok(
   format($$ select public.fn_save_custody_account(null, %L, 'المحاسب', null, 15000, true) $$, :'org'),
   'accountant creates a custody account through the RPC-only path');
+select throws_ok(
+  format($$ select public.fn_save_custody_account(null, %L, 'حامل عابر', %L, 1000, true) $$, :'org', current_setting('test.cross_holder')),
+  '42501', null, 'reject holder_user_id that belongs to another org');
+select lives_ok(
+  format($$ insert into public.expenses (org_id, date, category, description, total, status) values (%L, current_date, 'اختبار', 'مصروف مباشر عادي', 10, 'draft') $$, :'org'),
+  'accountant can still insert a plain expense through the direct budget.write path');
+select throws_ok(
+  format($$ insert into public.expenses (org_id, date, category, description, total, status, payment_status) values (%L, current_date, 'اختبار', 'مصروف مسار دفع مباشر', 10, 'approved', 'paid_from_custody') $$, :'org'),
+  '42501', null, 'direct INSERT cannot set payment routing columns');
+select throws_ok(
+  format($$ update public.expenses set payment_status = 'paid_from_custody' where id = %L $$, current_setting('test.exp_id')),
+  '42501', null, 'direct UPDATE cannot change payment routing columns');
 select lives_ok(
   format($$ select public.fn_record_custody_movement(%L,'استلام عهدة من المالك',30000,0) $$, current_setting('test.acct_id')),
   'accountant records a 30,000 custody receipt');
@@ -113,6 +133,12 @@ select lives_ok(
 select throws_ok(
   format($$ select public.fn_set_expense_payment_status(%L,'post_paid_unpaid',null) $$, current_setting('test.exp_id')),
   '22023', null, 'reject rerouting a custody-paid expense without an explicit reversal');
+select throws_ok(
+  format($$ select public.fn_record_custody_movement(%L,'صرف نقدي',0,100,current_date,%L) $$, current_setting('test.acct_id'), current_setting('test.exp_id')),
+  '22023', null, 'reject a duplicate custody cash out-movement for the same expense');
+select throws_ok(
+  format($$ update public.expenses set total = 6000 where id = %L $$, current_setting('test.exp_id')),
+  '22023', null, 'reject amount edits after custody cash posting');
 reset role;
 
 -- 5) the cardinal rule: exactly ONE out-movement = the expense total, even after the repeat call
