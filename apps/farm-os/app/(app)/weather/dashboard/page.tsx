@@ -61,9 +61,9 @@ export default async function WeatherDashboardPage({
   const gateRows = filteredRowsWithGates.slice(0, 7).map(({ forecast, gates }) => ({
     id: forecast.date,
     day: fmtDay(forecast.date),
-    temp: `${Math.round(forecast.tempC)}°م`,
-    wind: `${Math.round(forecast.windKph)} كم/س`,
-    rain: `${forecast.rainMm} مم`,
+    temp: `${num(Math.round(forecast.tempC))}°م`,
+    wind: `${num(Math.round(forecast.windKph))} كم/س`,
+    rain: `${num(forecast.rainMm)} مم`,
     spray: GATE_AR[gates.spray],
     pollinate: GATE_AR[gates.pollinate],
     harvest: GATE_AR[gates.harvest],
