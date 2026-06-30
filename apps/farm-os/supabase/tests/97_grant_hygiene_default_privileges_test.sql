@@ -11,7 +11,22 @@
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(4);
+select plan(5);
+
+-- anon is unauthenticated and must hold NO DML on any public table (writes go through SECURITY DEFINER
+-- RPCs, never anon client DML). #317 residual: attachments / plan_operation_assignees kept INSERT/UPDATE
+-- from the platform default ACL after the earlier per-table sweeps; 20260630090000 revokes them.
+select is(
+  (select coalesce(string_agg(n.nspname || '.' || c.relname || ':' || p.priv, ', '
+                              order by n.nspname, c.relname, p.priv), '(none)')
+     from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+     cross join (values ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) as p(priv)
+    where n.nspname = 'public'
+      and c.relkind in ('r', 'p')
+      and has_table_privilege('anon', c.oid, p.priv)),
+  '(none)',
+  'grant hygiene: anon holds no DML (INSERT/UPDATE/DELETE/TRUNCATE) on any public table');
 
 -- TRUNCATE is never a client-role operation. RLS policies do not make it an intended app path.
 select is(

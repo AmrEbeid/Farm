@@ -1,0 +1,38 @@
+-- Farm OS — #317 residual: close the last anon table-DML drift on prod.
+--
+-- Problem (prod evidence, 2026-06-30 read-only probe):
+--   The grant-hygiene migration `20260629135038` swept TRUNCATE + DELETE off the client roles but
+--   intentionally LEFT INSERT/UPDATE in place, reasoning those are row-policy-governed DML. That reasoning
+--   holds for `authenticated` (every write is RLS-gated and the app writes through SECURITY DEFINER RPCs),
+--   but it is wrong for `anon`: an unauthenticated role must hold NO DML at all. Two tables created after
+--   the earlier per-table anon sweeps (`0079`/`0080`) — `public.attachments` and
+--   `public.plan_operation_assignees` — still inherit `INSERT`/`UPDATE` for `anon` from the platform
+--   `supabase_admin` default ACL. Live grant probe confirmed `anon` holds INSERT,UPDATE,SELECT on both.
+--
+-- Why it matters / blast radius:
+--   FORCE RLS + deny-by-default policies prevent a live row write today, so this is defense-in-depth, not a
+--   live leak (severity MED, consistent with #317). But `anon` nominally holding INSERT/UPDATE on an
+--   attachments table is exactly the grant-layer drift #317 is about. Revoking it cannot affect authenticated
+--   users (different role) and the app performs all writes via SECURITY DEFINER RPCs, never anon client DML.
+--
+-- Security implications:
+--   Restores the established anon posture (REFERENCES/TRIGGER/MAINTAIN only — no DML) uniformly. Idempotent:
+--   revoking a privilege a role does not hold is a no-op, so this is safe to (re)apply over the whole schema.
+--
+-- Intentionally OUT OF SCOPE (documented follow-ups, not changed here):
+--   * `anon` SELECT still present on `attachments`, `plan_operation_assignees`, `user_active_org`. SELECT is
+--     RLS-gated; `user_active_org` sits on the fragile active-org/JWT path, so the SELECT sweep is deferred.
+--   * the platform `supabase_admin` default ACL remains a platform-owner remediation (see `20260629135038`).
+--
+-- Rollback: `grant insert, update on public.attachments, public.plan_operation_assignees to anon;`
+--   (not advised — that re-opens the drift).
+--
+-- Validation: local pgTAP `97_grant_hygiene_default_privileges_test.sql` (anon-no-DML invariant added);
+--   authoritative check is the prod re-probe of anon table privileges after apply.
+
+-- Existing public tables: anon must hold no DML. DELETE/TRUNCATE were already revoked by 20260629135038;
+-- this closes the remaining INSERT/UPDATE drift. Idempotent across the whole schema.
+revoke insert, update on all tables in schema public from anon;
+
+-- Future public tables created by the postgres grantor are already locked for anon by the
+-- `alter default privileges for role postgres ... revoke all ... from anon, authenticated` in 20260629135038.
