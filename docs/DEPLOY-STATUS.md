@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-06-30 — #317 residual anon table-DML lockdown applied to prod (migrate-first), PR #485.** A read-only
+> prod grant probe found `anon` still held `INSERT,UPDATE` on `public.attachments` + `public.plan_operation_assignees`
+> (created after the `0079`/`0080` anon sweeps; kept the broad grant from the platform `supabase_admin` default ACL;
+> the `20260629135038` grant-hygiene migration swept only TRUNCATE/DELETE). Authored migration **`20260630090000`**
+> (idempotent `revoke insert, update on all tables in schema public from anon`) + extended `tests/97` with an
+> anon-no-DML invariant (local pgTAP 826/826). **Applied to Farm prod first** (`execute_sql` + ledger row
+> `20260630090000`); post-apply re-probe confirms `anon` DML = none. PR #485 opened; merging after the prod apply.
+> Residual lower-priority follow-ups (unchanged): `anon` SELECT on a few internal tables, and the platform-owned
+> `supabase_admin` default ACL.
+
 > **CURRENT STATE (2026-06-30 — SPEC-0018 live; #400 export compliance applied; Entity-360 UI sweep complete + runtime fixes live).** Prod ledger includes the reviewed
 > custody/payment backend migrations **`20260629150000`** and **`20260629150100`**, applied with
 > `supabase db push --yes` after #468 preflight showed exactly those two pending versions and no existing remote
@@ -19,7 +29,9 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > a false-green budget advisory. Follow-up **#484** made remaining tracked UI/report cost displays preserve unknown
 > estimated/planned costs instead of rendering `0 ج.م`, including PVA chart suppression when planned cost is
 > incomplete. These changed no `supabase/` files, so migration/prod DB apply is N/A. Post-merge `main` at
-> `d603b1f` has `ci`, `db-tests`, and `release` green. #438 and #441 are closed as superseded by #468/#474.
+> `d603b1f` has `ci`, `db-tests`, and `release` green. The follow-up docs head `e567115` is also green on
+> `ci`, `db-tests`, and `release`; it changed no app/schema files and required no migration. #438 and #441 are
+> closed as superseded by #468/#474.
 > **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting) and `0091` (#366 academy).
 > These remain behind their expert/reconciliation/pre-migration gates. **Residual security/admin
 > follow-up:** #317/#229 remain open for the platform-owned `supabase_admin` default table ACL and leaked-password

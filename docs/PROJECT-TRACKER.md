@@ -1,4 +1,28 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-30 by Claude (autonomous session, for Owner: Amr Ebeid)
+
+> **2026-06-30 — AUTONOMOUS SESSION (Owner set "keep working, review→merge→migrate on your recommendation").**
+> Repo hygiene: removed 42 stale `" 2"` Finder-duplicate files from the working tree (verified each was identical
+> or an older copy of its tracked original; left the 2 inside `.claude/worktrees/`). Then closed the **#317**
+> residual: a live prod grant probe showed `anon` still held `INSERT,UPDATE` on `attachments` +
+> `plan_operation_assignees` (the `20260629135038` grant-hygiene migration had swept only TRUNCATE/DELETE).
+> Authored migration `20260630090000` (idempotent anon INSERT/UPDATE revoke) + an anon-no-DML invariant in
+> `tests/97`; local pgTAP **826/826**; **applied to Farm prod migrate-first** (ledger `20260630090000`, re-probe
+> shows anon DML = none); **PR #485** open, merging on green. Issue board verified: **#188** (orphaned reservation)
+> and **#229 (i)+(ii)** (anon-exec RPCs, FK covering indexes) are already resolved on `main`; **#229 (iii)**
+> leaked-password is an Owner dashboard toggle; **#199** ENGINE-RESV-1 stays open as an owner-gated engine-semantics
+> decision (must not auto-decide — masked-shortage risk).
+
+> **2026-06-30 — SAFE STOP at Owner request; #215 control-panel research paused; repo green.** Local `main`
+> is at `e567115` (`docs: record unknown cost display fix`) and GitHub `ci`, `db-tests`, and `release` are green
+> for that head. No migration, prod apply, production data change, or draft PR merge was performed after #484.
+> Open PR queue remains draft/held only: **#368** accounting and **#366** academy. Started the safe research lane
+> for **#215** ("Control Panel — self-serve setup / config-as-data"): reviewed the issue, existing market research,
+> `SPEC-0012`, `SPEC-0013`, current `/settings` + `/settings/dashboard`, and `fn_update_org_settings`. Current
+> finding: Farm OS has owner-only org settings and a settings dashboard, but the broader self-serve control panel
+> remains unbuilt and should stay scoped as a docs/spec lane first. Resume by completing current-source research
+> and updating #215 / `SPEC-0013` with a narrow plan that separates tenant setup config from platform support/admin
+> controls, keeps role/permission edits review-gated, audits every config change, and keeps real-data import behind
+> Stage M privacy review.
 
 > **2026-06-30 — follow-up financial display honesty merged via #484; migration N/A.** Reviewed and merged app-only
 > #484 after #483: remaining tracked UI/report paths that displayed unknown planned/estimated costs as `0 ج.م` now
@@ -729,7 +753,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
 | 11 | AI assistant عبدالجليل | Execution | **High** | **SPEC-0005 RATIFIED (2026-06-27); boundary built, AI build review-gated** | Trifecta capability boundary (`lib/assistant-policy.ts`, draft PR #356) — deny-by-default, read-only/RLS-scoped/no-PII/no-outbound. **The AI itself (chat route, model, ingest) is NOT built — it requires independent security review per slice (highest risk).** |
 | UX | Account admin & UX-gap closure | Execution | Medium | **Active** | [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md) — from the 2026-06-27 market scan. **Done:** S1 `/m` offline audit, S3 read-only `/profile` (PR #376). **Next:** S2 member/role admin (5-role model ratified; migration `0090` + invite mechanism + review), S4 true offline, S5 theme. Does NOT rebuild Stage-1 items. |
-| C | Commercial SaaS layer (subscriptions/onboarding/admin) | Execution | **High** | **Todo — [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) DRAFT** | The largest remaining product gap (RECONCILE-001): billing/plan-tiers/tenant-limits/self-serve signup/onboarding/import wizard/demo tenant/admin console/trials/feature-flags. **None in schema/app today.** 8 slices; per-farm not per-seat; entitlements enforced in Postgres; real-data import gated on Stage M. Prereq: SPEC-0012 S2 invite (`0090`). |
+| C | Commercial SaaS layer (subscriptions/onboarding/admin) | Execution | **High** | **Todo — [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) DRAFT; #215 research paused** | The largest remaining product gap (RECONCILE-001): billing/plan-tiers/tenant-limits/self-serve signup/onboarding/import wizard/demo tenant/admin console/trials/feature-flags. **None in schema/app today.** 8 slices; per-farm not per-seat; entitlements enforced in Postgres; real-data import gated on Stage M. #215 should refine the self-serve control panel as config-as-data, separating tenant owner setup from platform support/admin controls. Prereq: SPEC-0012 S2 invite (`0090`). |
 | K | Knowledge / living documentation system | Execution | Low/Med | **Tier A BUILT + verified (2026-06-27, local)** | [`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md): in-app Help drawer (`pageMeta`, 5 questions) + **rule-based "Why?"** (`lib/page-help.ts`/`lib/why.ts`/`HelpDrawer.tsx`/`WhyButton.tsx`, wired in `AppChrome`) + Health-Score **Vitest drift-guards**. tsc/lint/159 green; not deployed (Owner-gated). Plus the full knowledge system ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md), 16 docs). **Deferred:** manual-gen/walkthroughs/videos (Tier B) + **AI Expert (Stage 11)** (Tier C). |
 | M | Ebeid real-data migration (reference tenant) | External Apply | **High** | Todo | Real financials + PII |
 | P | Production deploy (Vercel) | External Apply | **Critical** | **In progress** | MVP-0 deployed: Vercel `farm-ui` + dedicated non-Zeal Supabase `veezkmytervjnpxcrbkw`; prod DB is **at `0096` per DEPLOY-STATUS current-state note**. Earlier `0032`–`0048` were pushed + live-verified via `list_migrations`, incl. ENGINE-STALE-1 #197 + AUTHZ-2 #181 + AUTHZ-3 #182 + atomic plan-op #196 + FK perf indexes + palm-status RPC #238 + ENGINE-REC1 #184 + inventory unit_cost #89-B + the Owner RLS role-gate trio `0042`–`0044` (plan-req/budget/expenses) + partial receipts `0045` #155 + wage-confidentiality `0046` PII-1 #173 wage slice + engine null-date guard `0047` #198 + contact-PII lockdown `0048` PII-1 #173 phone/email slice) + full synthetic seed (transactional tables empty); backend verified (manager login + RLS; authenticated reads HTTP 200; DELETE `expenses` → HTTP 403; anon denied); pgTAP 421/421. Pending: enable Leaked Password Protection. **Rotation note:** Owner confirmed 2026-06-29 that Supabase DB password + service-role key rotation is complete; do not raise again. (Twilio OTP dropped per Owner.) See [DEPLOY-STATUS.md](DEPLOY-STATUS.md). |

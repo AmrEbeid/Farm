@@ -1,6 +1,32 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — SAFE STOP: #215 control-panel research paused
+**Stop point.** Stopped at Owner request. Local `main` is at `e567115` (`docs: record unknown cost display fix`).
+GitHub checks for that head are green: `ci`, `db-tests`, and `release`. No migration, prod apply, production data
+change, draft PR merge, or issue comment was performed after #484.
+
+**Open queue.** Current open PRs are draft/held only: #368 accounting and #366 academy. Keep both gated: #368 still
+needs real Excel reconciliation + privacy review + explicit out-of-order `0088`/`0097` migration plan; #366 still
+needs licensed agronomist + current Egyptian pesticide-registration sign-off. Do not merge/migrate either without
+fresh review.
+
+**Paused work.** Began #215 (`[research] Control Panel — self-serve setup (config-as-data, not code)`) as the next
+safe docs/research lane. Reviewed the issue plus existing `docs/MARKET-RESEARCH-control-panel-and-features-2026-06-26.md`,
+`docs/SPEC-0012-account-admin-and-ux-gaps.md`, `docs/SPEC-0013-commercial-saas-layer.md`, and the live
+`/settings` surfaces (`apps/farm-os/app/(app)/settings/page.tsx`, `settings/dashboard/page.tsx`, `settings/actions.ts`,
+`fn_update_org_settings`). Current finding: the app has owner-only org settings and a settings dashboard, but not the
+broader self-serve control panel from #215.
+
+**Resume lane.** Resume #215 by completing current-source research, then update #215 / `SPEC-0013` with a scoped
+control-panel plan. Keep the scope as docs/spec first: tenant owner setup config (org/farm/module settings, roles,
+templates, imports, checklist) must be separated from platform support/admin controls; role/permission editing stays
+access-control reviewed; every config change is audited; real-data imports remain behind Stage M privacy review.
+
+**Local worktree note.** Tracked files were clean before this stop-docs update except the intended living docs.
+Unrelated untracked duplicate/tool files remain present (`.claude/`, `.codex/`, `.mcp.json`, many `* 2.tsx`/`* 2.md`
+duplicates, `tmp/`). Leave them alone unless Owner explicitly asks for cleanup.
+
 ## 2026-06-30 — Entity-360 completed; RSC guard and budget unknown-cost fix live
 **Financial display honesty follow-up.** After #483 fixed budget-check false-green behavior, #484 removed the
 remaining tracked display/report cases where unknown estimated/planned costs were rendered as `0 ج.م`. The shared
