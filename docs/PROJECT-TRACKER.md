@@ -1,5 +1,16 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — Entity-360 detail-page rollout completed via #479/#480; migration N/A.** Reviewed the
+> post-#400 UI-only 360 lanes. #479 applied the entity header/tabs pattern to farm structure, budget, expense,
+> custody request, and palm detail pages; post-merge review found finance tabs still owner/accountant-only,
+> custody add-line still draft-gated, structure edit/archive still owner/farm_manager-only, and palm map
+> click-through restored through `PalmMap`. #480 applied identity headers/status pills to the remaining report/action
+> `[id]` pages (`inventory/[itemId]/coverage`, `reports/[planId]/pva`, `m/execute/[opId]`,
+> `budget/[planId]/check`) with existing queries, charts, role gates, and action forms preserved. CodeRabbit was
+> rate-limited on #480, so the gate was manual; #480 was squash-merged at `818ecba`. No `supabase/` files changed
+> in either PR, so migration/prod DB apply is N/A. Post-merge `main` **ci**, **db-tests**, and **release** are green.
+> Current open queue is draft-only: **#368/#366**.
+
 > **2026-06-30 — SPEC-0016 export compliance reviewed, prod-applied, and merged via #400.** Rebased
 > **#400** onto current `main`, patched `computeExportReadiness()` so incomplete validity evidence fails closed
 > (missing GACC valid-from or incomplete seasonal accreditation window cannot pass), and kept the Stage-M privacy
@@ -11,6 +22,7 @@
 > `supabase db push --include-all --yes`; post-apply ledger records `20260622000092`. #400 was marked ready and
 > squash-merged at `55fafbc`; post-merge `main` **ci**, **db-tests**, and **release** are green. Concurrent UI-only
 > entity-360 PRs **#477/#478** also merged with green checks; post-merge scan found no obvious gate/action drift.
+> **Superseded by the #479/#480 entry above:** Entity-360 rollout is now complete across the remaining detail pages.
 > Current open queue is draft-only: **#368/#366**.
 
 > **2026-06-30 — #476 chart numeral pass reviewed and merged; migration N/A.** Reviewed non-draft

@@ -1,6 +1,22 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — Entity-360 rollout completed via #479/#480
+**Review.** After #400, #479 landed on `main` with the batch-2 Entity-360 detail pages. Post-merge review found no
+obvious regression: budget finance tabs stayed owner/accountant-only, payment-request add stayed draft-gated,
+structure edit/archive stayed owner/farm_manager-only, and `PalmMap` preserved palm-cell click-through to
+`/farm/palm/[id]`.
+
+**#480.** Non-draft #480 was reviewed as the final UI-only 360 piece for report/action `[id]` pages:
+`inventory/[itemId]/coverage`, `reports/[planId]/pva`, `m/execute/[opId]`, and `budget/[planId]/check`. It only
+adds `Entity360Header` identity/status treatment; existing queries, charts, role gates, and action forms are
+unchanged. CodeRabbit was rate-limited, so the review gate was manual. No `supabase/` files changed, so migration
+is N/A.
+
+**Validation and state.** #480 was squash-merged as `818ecba`; post-merge `main` `ci`, `db-tests`, and `release`
+all passed. Entity-360 is now complete across the detail/report/action pages. Current open PR queue is draft-only:
+#368 accounting and #366 academy.
+
 ## 2026-06-30 — SPEC-0016 export compliance live via #400
 **Review and fix.** #400 was rebased onto current `main` and reviewed as a real migration lane. The only code fix
 needed was in `computeExportReadiness()`: missing validity evidence now fails closed, so a GACC registration without
@@ -17,7 +33,8 @@ post-apply ledger now records `20260622000092`.
 `db-tests`, and `release` all passed. SPEC-0016 is now built for schema/RLS/audit plus pure readiness compute.
 No real certificate data was imported; responsible-person national ID and phone stay gated behind Stage-M privacy
 review. Concurrent UI-only entity-360 PRs #477/#478 also merged with green checks and a quick post-merge scan found
-no obvious role-gate/action drift. Current open PR queue is draft-only: #368 and #366.
+no obvious role-gate/action drift. **Superseded by the #479/#480 entry above:** the remaining Entity-360 lanes are
+now merged. Current open PR queue is draft-only: #368 and #366.
 
 ## 2026-06-30 — Chart Arabic-Indic numerals live via #476
 **Review.** Non-draft #476 was reviewed after the SPEC-0018 spec merge. The diff is UI-only: it adds an internal

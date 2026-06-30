@@ -2,7 +2,7 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **CURRENT STATE (2026-06-30 — SPEC-0018 live; #476 chart fix; #400 export compliance applied).** Prod ledger includes the reviewed
+> **CURRENT STATE (2026-06-30 — SPEC-0018 live; #400 export compliance applied; Entity-360 UI sweep complete).** Prod ledger includes the reviewed
 > custody/payment backend migrations **`20260629150000`** and **`20260629150100`**, applied with
 > `supabase db push --yes` after #468 preflight showed exactly those two pending versions and no existing remote
 > object/column collisions. `main` records the same backend migrations at merge `27065f1`; the frontend module
@@ -12,8 +12,9 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > database files, so migration/prod DB apply is N/A. Export-compliance #400 then applied
 > **`20260622000092_export_compliance`** with `supabase db push --include-all --yes` after a dry-run listed exactly
 > that migration; the prod ledger now records `20260622000092`, and #400 is merged on `main` at `55fafbc`. No real
-> certificate data or PII was imported. Post-merge `main` `ci`, `db-tests`, and `release` are green for the
-> SPEC-0018, #476, and #400 lanes. #438 and #441 are closed as superseded by #468/#474.
+> certificate data or PII was imported. UI-only Entity-360 PRs #477/#478/#479/#480 also merged; #479/#480 changed
+> no database files, so migration/prod DB apply is N/A. Post-merge `main` `ci`, `db-tests`, and `release` are green
+> for the SPEC-0018, #476, #400, and Entity-360 lanes. #438 and #441 are closed as superseded by #468/#474.
 > **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting) and `0091` (#366 academy).
 > These remain behind their expert/reconciliation/pre-migration gates. **Residual security/admin
 > follow-up:** #317/#229 remain open for the platform-owned `supabase_admin` default table ACL and leaked-password
