@@ -168,7 +168,9 @@ export async function createPurchaseRequestFromShortage(
     .from("plan_operations")
     .select("planned_at, plan_material_requirements!inner(item_id), plans!inner(status)")
     .eq("plan_id", SEED_PLAN_ID)
-    .in("status", ["planned", "reserved", "ready"])
+    // Live ops with un-issued demand = the app's LIVE_OP set; matches fn_stock_coverage's demand filter
+    // (migration 20260701130000) so the PR's needed_by reflects an in_progress/approved op's date too.
+    .in("status", ["planned", "approved", "reserved", "ready", "in_progress"])
     .eq("plan_material_requirements.item_id", itemId)
     .in("plans.status", ["draft", "active", "approved"])
     .order("planned_at", { ascending: true })
