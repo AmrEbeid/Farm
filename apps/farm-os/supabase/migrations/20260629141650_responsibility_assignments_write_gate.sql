@@ -10,8 +10,8 @@
 -- re-emit the table policy so reads stay org-wide while writes require the new permission. Preserve the
 -- 0063 same-org person guard. This is a direct-REST hardening change; no app writer exists yet.
 --
--- MIGRATION-ORDER NOTE. `authorize()` is re-emitted by in-flight draft migrations. Any later rebase of
--- #366/#400/#438 must preserve this new permission arm or it will silently drop.
+-- MIGRATION-ORDER NOTE. `authorize()` is re-emitted by in-flight draft migrations. Carry the full current
+-- in-flight union here so this migration is safe even if it is applied after #366/#400/#438.
 
 create or replace function public.authorize(perm text, p_org uuid)
 returns boolean
@@ -24,14 +24,21 @@ as $$
     select 1 from public.organization_member m
     where m.user_id = (select auth.uid())
       and m.org_id = p_org
-      and ( (perm = 'pr.approve'           and m.role = 'owner')
-         or (perm = 'plan.write'           and m.role in ('owner','farm_manager'))
-         or (perm = 'op.execute'           and m.role in ('owner','farm_manager','agri_engineer','supervisor'))
-         or (perm = 'inventory.write'      and m.role in ('owner','farm_manager','storekeeper'))
-         or (perm = 'budget.write'         and m.role in ('owner','accountant'))
-         or (perm = 'payroll.read'         and m.role in ('owner','accountant'))
-         or (perm = 'structure.write'      and m.role in ('owner','farm_manager'))
-         or (perm = 'responsibility.write' and m.role in ('owner','farm_manager')) )
+      and ( (perm = 'pr.approve'             and m.role = 'owner')
+         or (perm = 'plan.write'             and m.role in ('owner','farm_manager'))
+         or (perm = 'op.execute'             and m.role in ('owner','farm_manager','agri_engineer','supervisor'))
+         or (perm = 'inventory.write'        and m.role in ('owner','farm_manager','storekeeper'))
+         or (perm = 'budget.write'           and m.role in ('owner','accountant'))
+         or (perm = 'payroll.read'           and m.role in ('owner','accountant'))
+         or (perm = 'structure.write'        and m.role in ('owner','farm_manager'))
+         or (perm = 'academy.write'          and m.role in ('owner','agri_engineer'))   -- in-flight #366
+         or (perm = 'export.write'           and m.role in ('owner','farm_manager'))     -- in-flight #400
+         or (perm = 'responsibility.write'   and m.role in ('owner','farm_manager'))
+         or (perm = 'finance.read'           and m.role in ('owner','accountant'))        -- in-flight #438
+         or (perm = 'custody.write'          and m.role in ('owner','farm_manager','accountant'))   -- in-flight #438
+         or (perm = 'request.prepare'        and m.role in ('owner','farm_manager','accountant'))   -- in-flight #438
+         or (perm = 'request.approve.op'     and m.role in ('owner','farm_manager'))     -- in-flight #438
+         or (perm = 'request.approve.final'  and m.role = 'owner') )                     -- in-flight #438
   )
 $$;
 

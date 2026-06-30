@@ -6,7 +6,7 @@
 -- (owner/farm_manager) and still rejects cross-org people.
 
 begin;
-select plan(12);
+select plan(13);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set orgB '10100000-0000-0000-0000-0000000000b0'
@@ -113,6 +113,17 @@ select is(
        'g')),
   1,
   '#314: authorize() carries exactly one responsibility.write arm');
+
+select is(
+  (select count(*)::int
+     from unnest(array[
+       'pr.approve', 'plan.write', 'op.execute', 'inventory.write', 'budget.write',
+       'payroll.read', 'structure.write', 'academy.write', 'export.write', 'responsibility.write',
+       'finance.read', 'custody.write', 'request.prepare', 'request.approve.op', 'request.approve.final'
+     ]) as perm
+     where position(perm in pg_get_functiondef('public.authorize(text, uuid)'::regprocedure)) = 0),
+  0,
+  '#314: authorize() preserves the full in-flight permission union');
 
 select * from finish();
 rollback;
