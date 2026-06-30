@@ -6,6 +6,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { BudgetDoughnut, VarianceChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -68,6 +69,17 @@ export default async function FinanceDashboardPage({
   );
   const spentOrCommitted = budgetTotals.committed + budgetTotals.actual;
   const available = budgetTotals.approved - spentOrCommitted;
+
+  // Variance per budget category (planned = approved, actual = committed + actual).
+  const varianceByCategory = Object.values(
+    (budgets ?? []).reduce<Record<string, { category: string; planned: number; actual: number }>>((acc, b) => {
+      const key = b.category ?? "—";
+      acc[key] ??= { category: key, planned: 0, actual: 0 };
+      acc[key].planned += Number(b.approved ?? 0);
+      acc[key].actual += Number(b.committed ?? 0) + Number(b.actual ?? 0);
+      return acc;
+    }, {}),
+  );
   const submittedPrs = (prs ?? []).filter((p) => p.status === "submitted").length;
   const expenseKindRows = (expenses ?? []).map((expense) => ({
     expense,
@@ -205,6 +217,19 @@ export default async function FinanceDashboardPage({
         </DashboardKpiLink>
         <KpiCard label="تصنيف المسحوبات" value="من البيان" />
       </section>
+
+      {(filter === "all" || filter === "budgets") && budgetTotals.approved > 0 && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          <Card title="استخدام الموازنة">
+            <BudgetDoughnut used={spentOrCommitted} available={Math.max(0, available)} />
+          </Card>
+          {varianceByCategory.length > 0 && (
+            <Card title="المعتمد مقابل الفعلي حسب الفئة">
+              <VarianceChart data={varianceByCategory} />
+            </Card>
+          )}
+        </section>
+      )}
 
       <CurrentFilterCard
         label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}

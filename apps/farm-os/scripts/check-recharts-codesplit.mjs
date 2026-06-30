@@ -49,6 +49,9 @@ const ALLOWED_CHART_ROUTES = [
   // The strategic owner home (لوحة معلومات المالك) intentionally renders charts; recharts
   // stays in this route's own client chunk (loaded only here), never the global bundle.
   "/dashboard/owner/page",
+  // The finance dashboard renders budget-utilisation + variance charts; same code-split
+  // guarantee — recharts lives in this route's own client chunk, never the global bundle.
+  "/finance/dashboard/page",
 ];
 
 function die(msg) {
