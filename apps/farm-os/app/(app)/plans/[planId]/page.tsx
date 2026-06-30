@@ -1,15 +1,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { PillStatus, TabItem } from "@amrebeid/ui";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Alert, Card, KpiCard, LoopStepper, type LoopStep } from "@/components/ui";
+import { Alert, Card, KpiCard, LoopStepper, tabId, tabPanelId, type LoopStep } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { OperationBuilder } from "@/components/OperationBuilder";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { POTASSIUM_ID } from "@/lib/nav";
 import { egp, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
+import { OP_STATUS_AR, PLAN_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
 const PLAN_TYPE_AR: Record<string, string> = {
   weekly: "الأسبوعية",
@@ -26,12 +29,36 @@ const CHECK_AR: Record<string, string> = {
   responsibility: "المسؤولية",
 };
 
+// Plan status → semantic 360 pill. Real statuses live in PLAN_STATUS_AR
+// (draft/active/closed/abandoned); the legacy planned/scheduled/done/blocked
+// values are mapped too so the pill never falls through to a wrong colour.
+const PLAN_STATUS_PILL: Record<string, PillStatus> = {
+  draft: "draft",
+  active: "active",
+  approved: "active",
+  planned: "scheduled",
+  scheduled: "scheduled",
+  closed: "done",
+  done: "done",
+  abandoned: "blocked",
+  blocked: "blocked",
+};
+
+const TAB_IDS = ["overview", "operations", "checks"] as const;
+type PlanTab = (typeof TAB_IDS)[number];
+
 export default async function MonthlyPlanPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ planId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { planId } = await params;
+  const { tab: rawTab } = await searchParams;
+  const tab: PlanTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+    ? (rawTab as PlanTab)
+    : "overview";
   const m = await requireMembership();
   // Only plan.write roles can add operations / run plan checks (the actions 42501 otherwise) —
   // don't show the edit controls to the other roles as dead-end affordances.
@@ -103,6 +130,22 @@ export default async function MonthlyPlanPage({
   const blockedChecks = (checks ?? []).filter((c) => c.result === "block").length;
   const totalEstCost = (ops ?? []).reduce((sum, op) => sum + Number(op.est_cost ?? 0), 0);
 
+  // An operation is "due/overdue" when it is still executable (not done/blocked/
+  // abandoned/skipped) and its planned date is today or in the past — those need
+  // attention. Data is already in `ops`; this is presentation-only derivation.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const dueOps = (ops ?? []).filter(
+    (o) =>
+      isExecutableOpStatus(o.status) &&
+      o.planned_at != null &&
+      String(o.planned_at).slice(0, 10) <= todayStr,
+  );
+  const needsAttention = blockedChecks > 0 || dueOps.length > 0;
+
+  const planStatus = plan.status ?? "draft";
+  const pillStatus: PillStatus = PLAN_STATUS_PILL[planStatus] ?? "draft";
+  const pillLabel = PLAN_STATUS_AR[planStatus] ?? "غير معروف";
+
   const steps: LoopStep[] = [
     { id: "plan", label: "الخطة", state: "active" },
     // not-yet-run checks are pending, not "done" — the empty list must not read as a pass.
@@ -114,24 +157,40 @@ export default async function MonthlyPlanPage({
     { id: "report", label: "المخطط مقابل الفعلي", state: "pending" },
   ];
 
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "operations", label: `العمليات (${num(opRows.length)})` },
+    { id: "checks", label: `الفحوص (${num((checks ?? []).length)})` },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">الخطة {PLAN_TYPE_AR[plan?.type ?? ""] ?? ""}</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            {fmtDate(plan?.period_start)} إلى {fmtDate(plan?.period_end)}
-          </p>
-        </div>
-        {canEditPlan && (
-          <div className="flex gap-2">
-            <PlanChecksRunner planId={planId} />
-            <OperationBuilder planId={planId} items={items ?? []} people={people ?? []} />
-          </div>
-        )}
-      </header>
+      <Entity360Header
+        title={`الخطة ${PLAN_TYPE_AR[plan.type ?? ""] ?? ""}`}
+        subtitle={`${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`}
+        pills={[{ status: pillStatus, label: pillLabel }]}
+        actions={
+          canEditPlan ? (
+            <>
+              <PlanChecksRunner planId={planId} />
+              <OperationBuilder planId={planId} items={items ?? []} people={people ?? []} />
+            </>
+          ) : undefined
+        }
+      />
 
-      <LoopStepper steps={steps} ariaLabel="خطوات الدورة" />
+      {needsAttention && (
+        <Alert
+          tone="warning"
+          title="الخطة تتطلب انتباهًا"
+          description={[
+            blockedChecks > 0 ? `${num(blockedChecks)} فحص محظور` : null,
+            dueOps.length > 0 ? `${num(dueOps.length)} عملية مستحقة أو متأخرة` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        />
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عمليات الخطة" value={num((ops ?? []).length)} />
@@ -144,77 +203,111 @@ export default async function MonthlyPlanPage({
         />
       </section>
 
-      {blocked && (
-        <Alert
-          tone="danger"
-          // Title the block by its real cause — budget can block with stock OK, in which case the
-          // stock detail is {} and the old hardcoded "محظورة بفحص المخزون" showed an empty body.
-          title={
-            stockBlocked && budgetBlocked
-              ? "الخطة محظورة بفحص المخزون والميزانية"
-              : budgetBlocked
-                ? "الخطة محظورة بفحص الميزانية"
-                : "الخطة محظورة بفحص المخزون"
-          }
-          description={
-            stockBlocked
-              ? Object.values(
-                  (stockCheck?.detail as Record<string, { message_ar?: string }> | null) ?? {},
-                )
-                  .map((d) => d.message_ar)
-                  .filter(Boolean)
-                  .join(" · ") || "يوجد نقص متوقع في أحد الأصناف المطلوبة."
-              : "تتجاوز التكلفة المتوقعة الميزانية المتاحة لبنود الخطة."
-          }
-        />
+      <EntityTabs items={tabItems} value={tab} />
+
+      {tab === "overview" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("overview")}
+          aria-labelledby={tabId("overview")}
+          tabIndex={0}
+          className="flex flex-col gap-6"
+        >
+          <LoopStepper steps={steps} ariaLabel="خطوات الدورة" />
+
+          {blocked && (
+            <Alert
+              tone="danger"
+              // Title the block by its real cause — budget can block with stock OK, in which case the
+              // stock detail is {} and the old hardcoded "محظورة بفحص المخزون" showed an empty body.
+              title={
+                stockBlocked && budgetBlocked
+                  ? "الخطة محظورة بفحص المخزون والميزانية"
+                  : budgetBlocked
+                    ? "الخطة محظورة بفحص الميزانية"
+                    : "الخطة محظورة بفحص المخزون"
+              }
+              description={
+                stockBlocked
+                  ? Object.values(
+                      (stockCheck?.detail as Record<string, { message_ar?: string }> | null) ?? {},
+                    )
+                      .map((d) => d.message_ar)
+                      .filter(Boolean)
+                      .join(" · ") || "يوجد نقص متوقع في أحد الأصناف المطلوبة."
+                  : "تتجاوز التكلفة المتوقعة الميزانية المتاحة لبنود الخطة."
+              }
+            />
+          )}
+
+          <Card title="إجراءات سريعة">
+            <div className="flex flex-col gap-3">
+              <ActionLink href={`/inventory/${POTASSIUM_ID}/coverage`} primary>
+                عرض تغطية سلفات البوتاسيوم
+              </ActionLink>
+              <ActionLink href={`/budget/${planId}/check`}>فحص الموازنة</ActionLink>
+              <ActionLink href={`/reports/${planId}/pva`}>تقرير المخطط مقابل الفعلي</ActionLink>
+            </div>
+            {budgetCheck && (
+              <p className="mt-3 text-sm" style={{ color: "var(--ink-muted)" }}>
+                الموازنة:{" "}
+                {budgetCheck.result === "block"
+                  ? "تتطلب اعتماد المالك"
+                  : budgetCheck.result === "warn"
+                    ? "منخفضة"
+                    : "كافية"}
+              </p>
+            )}
+          </Card>
+        </div>
       )}
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Card title="فحوصات الخطة">
-          <ul className="flex flex-col gap-2">
-            {(checks ?? []).map((c) => (
-              <li key={c.kind} className="flex items-center justify-between">
-                <span>{CHECK_AR[c.kind] ?? "غير معروف"}</span>
-                <span
-                  style={{
-                    color:
-                      c.result === "block"
-                        ? "var(--danger,#b91c1c)"
-                        : c.result === "warn"
-                          ? "var(--warning,#b45309)"
-                          : "var(--ok,#15803d)",
-                  }}
-                >
-                  {c.result === "block" ? "محظور" : c.result === "warn" ? "منخفض" : "سليم"}
-                </span>
-              </li>
-            ))}
-            {(checks ?? []).length === 0 && (
-              <li style={{ color: "var(--ink-muted)" }}>لم تُشغّل الفحوصات بعد.</li>
-            )}
-          </ul>
-        </Card>
+      {tab === "operations" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("operations")}
+          aria-labelledby={tabId("operations")}
+          tabIndex={0}
+        >
+          <Card title="العمليات المخطّطة">
+            <SimpleTable columns={opColumns} rows={opRows} empty="لا توجد عمليات بعد" />
+          </Card>
+        </div>
+      )}
 
-        <Card title="إجراءات سريعة">
-          <div className="flex flex-col gap-3">
-            <ActionLink href={`/inventory/${POTASSIUM_ID}/coverage`} primary>
-              عرض تغطية سلفات البوتاسيوم
-            </ActionLink>
-            <ActionLink href={`/budget/${planId}/check`}>فحص الموازنة</ActionLink>
-            <ActionLink href={`/reports/${planId}/pva`}>تقرير المخطط مقابل الفعلي</ActionLink>
-          </div>
-          {budgetCheck && (
-            <p className="mt-3 text-sm" style={{ color: "var(--ink-muted)" }}>
-              الموازنة: {budgetCheck.result === "block" ? "تتطلب اعتماد المالك" : budgetCheck.result === "warn" ? "منخفضة" : "كافية"}
-            </p>
-          )}
-        </Card>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">العمليات المخطّطة</h2>
-        <SimpleTable columns={opColumns} rows={opRows} empty="لا توجد عمليات بعد" />
-      </section>
+      {tab === "checks" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("checks")}
+          aria-labelledby={tabId("checks")}
+          tabIndex={0}
+        >
+          <Card title="فحوصات الخطة">
+            <ul className="flex flex-col gap-2">
+              {(checks ?? []).map((c) => (
+                <li key={c.kind} className="flex items-center justify-between">
+                  <span>{CHECK_AR[c.kind] ?? "غير معروف"}</span>
+                  <span
+                    style={{
+                      color:
+                        c.result === "block"
+                          ? "var(--danger,#b91c1c)"
+                          : c.result === "warn"
+                            ? "var(--warning,#b45309)"
+                            : "var(--ok,#15803d)",
+                    }}
+                  >
+                    {c.result === "block" ? "محظور" : c.result === "warn" ? "منخفض" : "سليم"}
+                  </span>
+                </li>
+              ))}
+              {(checks ?? []).length === 0 && (
+                <li style={{ color: "var(--ink-muted)" }}>لم تُشغّل الفحوصات بعد.</li>
+              )}
+            </ul>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

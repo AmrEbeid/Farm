@@ -1,34 +1,49 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import type { PillStatus, TabItem } from "@amrebeid/ui";
 import {
+  Alert,
   Card,
   KpiCard,
-  StatusPill,
   ApprovalChain,
   DescriptionList,
+  tabId,
+  tabPanelId,
   type ApprovalStep,
 } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { PrActions } from "@/components/PrActions";
 import { egp, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { PR_STATUS_AR } from "@/lib/labels";
 
-function pillStatus(s: string): "draft" | "scheduled" | "active" | "done" | "blocked" {
-  if (s === "approved" || s === "received") return "done";
-  // partially_received is in-progress — supply still on order. Treat like an active state.
-  if (s === "partially_received") return "active";
+function pillStatus(s: string): PillStatus {
+  if (s === "received" || s === "closed") return "done";
+  if (s === "approved") return "active";
+  // partially_received is in-progress — supply still on order; flag it for attention.
+  if (s === "partially_received") return "warning";
   if (s === "submitted") return "scheduled";
-  if (s === "rejected") return "blocked";
+  if (s === "rejected" || s === "cancelled") return "blocked";
   return "draft";
 }
 
+const TAB_IDS = ["overview", "items"] as const;
+type PrTab = (typeof TAB_IDS)[number];
+
 export default async function PurchaseRequestPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ prId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { prId } = await params;
+  const { tab: rawTab } = await searchParams;
+  const tab: PrTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+    ? (rawTab as PrTab)
+    : "overview";
   const m = await requireMembership();
   const sb = await createClient();
 
@@ -97,6 +112,20 @@ export default async function PurchaseRequestPage({
   const canApprove = m.role === "owner" && pr.requested_by !== m.userId;
   const canReceive = ["storekeeper", "owner", "farm_manager"].includes(m.role);
 
+  // Attention surfacing: awaiting owner approval, or a needed-by date that has passed
+  // while the order is not yet fully received.
+  const awaitingApproval = pr.status === "submitted";
+  const isOpen = !["received", "closed", "rejected", "cancelled"].includes(pr.status);
+  const isOverdue =
+    isOpen &&
+    pr.needed_by != null &&
+    new Date(pr.needed_by) < new Date(new Date().toISOString().slice(0, 10));
+
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "items", label: `البنود (${num((items ?? []).length)})` },
+  ];
+
   const approvalSteps: ApprovalStep[] = [
     { id: "req", state: "approved", actor: "مقدّم الطلب", note: "أُنشئ الطلب" },
     {
@@ -118,13 +147,26 @@ export default async function PurchaseRequestPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">طلب شراء {pr.code}</h1>
-          <p style={{ color: "var(--ink-muted)" }}>{pr.reason}</p>
-        </div>
-        <StatusPill status={pillStatus(pr.status)}>{PR_STATUS_AR[pr.status] ?? "غير معروف"}</StatusPill>
-      </header>
+      <Entity360Header
+        title={`طلب شراء ${pr.code}`}
+        subtitle={`${pr.reason ?? "بدون سبب"} · مطلوب بحلول ${pr.needed_by ? fmtDate(pr.needed_by) : "—"}`}
+        pills={[{ status: pillStatus(pr.status), label: PR_STATUS_AR[pr.status] ?? "غير معروف" }]}
+      />
+
+      {awaitingApproval && (
+        <Alert
+          tone="warning"
+          title="بانتظار اعتماد المالك"
+          description="لم يُعتمد طلب الشراء بعد. الاعتماد متاح من تبويب نظرة عامة."
+        />
+      )}
+      {isOverdue && (
+        <Alert
+          tone="warning"
+          title="تجاوز موعد الاستلام المطلوب"
+          description={`كان مطلوبًا بحلول ${pr.needed_by ? fmtDate(pr.needed_by) : "—"} ولم يكتمل الاستلام.`}
+        />
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عدد البنود" value={num((items ?? []).length)} />
@@ -142,37 +184,52 @@ export default async function PurchaseRequestPage({
         />
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Card title="التفاصيل">
-          <DescriptionList
-            layout="inline"
-            items={[
-              { id: "code", term: "الرمز", description: pr.code },
-              { id: "needed", term: "مطلوب بحلول", description: pr.needed_by ? fmtDate(pr.needed_by) : "—" },
-              { id: "status", term: "الحالة", description: PR_STATUS_AR[pr.status] ?? "غير معروف" },
-            ]}
-          />
-        </Card>
-        <Card title="سلسلة الاعتماد">
-          <ApprovalChain steps={approvalSteps} ariaLabel="سلسلة اعتماد طلب الشراء" />
-        </Card>
-      </section>
+      <EntityTabs items={tabItems} value={tab} ariaLabel="أقسام طلب الشراء" />
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">الأصناف</h2>
-        <SimpleTable columns={columns} rows={rows} empty="لا توجد أصناف في هذا الطلب." />
-      </section>
+      {tab === "overview" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("overview")}
+          aria-labelledby={tabId("overview")}
+          tabIndex={0}
+          className="flex flex-col gap-6"
+        >
+          <section className="grid gap-4 md:grid-cols-2">
+            <Card title="التفاصيل">
+              <DescriptionList
+                layout="inline"
+                items={[
+                  { id: "code", term: "الرمز", description: pr.code },
+                  { id: "needed", term: "مطلوب بحلول", description: pr.needed_by ? fmtDate(pr.needed_by) : "—" },
+                  { id: "status", term: "الحالة", description: PR_STATUS_AR[pr.status] ?? "غير معروف" },
+                ]}
+              />
+            </Card>
+            <Card title="سلسلة الاعتماد">
+              <ApprovalChain steps={approvalSteps} ariaLabel="سلسلة اعتماد طلب الشراء" />
+            </Card>
+          </section>
 
-      <Card title="الإجراءات">
-        <PrActions
-          prId={prId}
-          status={pr.status}
-          version={pr.version ?? 1}
-          canApprove={canApprove}
-          canReceive={canReceive}
-          lines={receiveLines}
-        />
-      </Card>
+          <Card title="الإجراءات">
+            <PrActions
+              prId={prId}
+              status={pr.status}
+              version={pr.version ?? 1}
+              canApprove={canApprove}
+              canReceive={canReceive}
+              lines={receiveLines}
+            />
+          </Card>
+        </div>
+      )}
+
+      {tab === "items" && (
+        <div role="tabpanel" id={tabPanelId("items")} aria-labelledby={tabId("items")} tabIndex={0}>
+          <Card title="الأصناف">
+            <SimpleTable columns={columns} rows={rows} empty="لا توجد أصناف في هذا الطلب." />
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
