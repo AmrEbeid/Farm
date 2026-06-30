@@ -1,7 +1,7 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-30 — SPEC-0018 audit/authz follow-up; drafts still held
+## 2026-06-30 — SPEC-0018 audit/authz follow-up + #436 refresh; drafts still held
 **Start point.** Local `main` was fast-forwarded to current `origin/main` (`5db895b`) before updating this brief.
 No production migration, prod apply, draft-PR merge, or production data change was performed.
 
@@ -22,10 +22,18 @@ GitHub checks are green. #444 responsibility-write was patched at `304ba09` with
 `101_responsibility_assignments_write_gate_test.sql` coverage. Local pgTAP passed **707/707** and GitHub checks are
 green. Both PRs remain draft/held; no merge or migration.
 
+**#436 fn_bin_rebuild internalization.** Refreshed draft #436 onto current `main` without force-pushing by adding a
+two-parent branch-refresh commit at `cb8df8e`. The PR diff is now only the three DB files:
+`20260622000098_fn_bin_rebuild_internal.sql`, `19_definer_exec_grants_test.sql`, and
+`22_security_invariants_test.sql`. Rechecked app callers: no direct client/app `rpc("fn_bin_rebuild")` caller exists;
+only generated DB types mention the RPC. Local validation on the refreshed tree: `git diff --check` clean; full
+pgTAP **687/687**. GitHub checks are green. #436 remains draft/held for explicit pre-migration/Owner apply gate.
+
 **Updated gate status.** The specific stale-authz risk for #400/#444 is resolved, but the general rule remains:
 any later/older `authorize()` re-emit must carry the same final permission union before it is applied after #438.
-Do not apply the custody/payment migrations until the final pre-migration review is done. Recommended next lane is
-still to refresh/review dirty #436 (`fn_bin_rebuild` internal) before planning any migration bundle.
+Do not apply the custody/payment migrations until the final pre-migration review is done. #436 is now refreshed and
+green; recommended next lane is a fresh pre-migration review/probe pass for #439/#442, or review the new #462
+`plan_material_requirements.qty NOT NULL` draft before any migration bundle planning.
 
 ## 2026-06-29 — SAFE STOP: status snapshot and next-session handoff
 **Stop point.** Local `main` was fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production

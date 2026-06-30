@@ -1,6 +1,6 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
-> **2026-06-30 — SPEC-0018 audit/authz follow-up; #438/#400/#444 patched and still held.** Local `main`
+> **2026-06-30 — SPEC-0018 audit/authz follow-up; #438/#400/#444/#436 patched and still held.** Local `main`
 > was fast-forwarded to `origin/main` (`5db895b`) before this docs update. Reviewed draft backend **#438** and found
 > a cross-PR `audit_read` regression: the payment-request migration preserved payroll and custody/payment audit
 > gates but would drop #368's `sale/expense -> budget.write` audit restrictions if both migration sets were applied.
@@ -9,10 +9,13 @@
 > `finance.read`) and added pgTAP coverage for restricted audit mirrors. Local pgTAP passed **757/757**; GitHub
 > checks are green. Also patched the known stale older `authorize()` re-emits: **#400** at `8c1973c` and **#444**
 > at `304ba09`, with tests now pinning SPEC-0018 owner/accountant custody/request semantics. Local pgTAP passed
-> **681/681** on #400 and **707/707** on #444; both GitHub check sets are green. All three PRs remain draft/held.
-> No merge, migration, prod apply, deploy, or production data change was performed. Remaining gate: final
-> pre-migration review is still required before any custody/payment apply; any later/older `authorize()` re-emit
-> must carry the same final union before applying after #438.
+> **681/681** on #400 and **707/707** on #444; both GitHub check sets are green. Refreshed **#436** onto current
+> `main` without force-pushing at `cb8df8e`; the PR diff is now the three DB files only, no app caller uses direct
+> `rpc("fn_bin_rebuild")`, local pgTAP passed **687/687**, and GitHub checks are green. All four PRs remain
+> draft/held. No merge, migration, prod apply, deploy, or production data change was performed. Remaining gate:
+> final pre-migration review is still required before any custody/payment apply; any later/older `authorize()`
+> re-emit must carry the same final union before applying after #438. Next recommended lane: pre-migration
+> review/probe pass for #439/#442, or review new #462 before migration bundle planning.
 
 > **2026-06-29 — SAFE STOP: current project status, remaining work, and timeline.** Local `main` was
 > fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production Supabase remains at migration
