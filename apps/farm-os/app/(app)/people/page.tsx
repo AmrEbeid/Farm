@@ -2,16 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
+import { EMP_TYPE_AR } from "@/lib/labels";
 
 // Read-only team directory. Member-readable columns only — phone/email are PII-locked (0048) and the
 // wage `rate` was moved to people_compensation (0046), so neither is selected here.
-const EMP_TYPE_AR: Record<string, string> = {
-  permanent: "دائم",
-  seasonal: "موسمي",
-  daily: "يومي",
-  contractor: "مقاول",
-};
-
 export default async function PeopleDirectoryPage() {
   await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const sb = await createClient();
@@ -34,11 +28,10 @@ export default async function PeopleDirectoryPage() {
 
   const rows = (people ?? []).map((p) => ({
     id: p.id,
+    href: `/people/${p.id}`,
     name: p.name,
     position: p.position ?? "—",
-    type: p.employment_type
-      ? EMP_TYPE_AR[p.employment_type] ?? p.employment_type
-      : "—",
+    type: p.employment_type ? EMP_TYPE_AR[p.employment_type] ?? "غير معروف" : "—",
     manager: p.reports_to_person_id
       ? nameById.get(p.reports_to_person_id) ?? "—"
       : "—",

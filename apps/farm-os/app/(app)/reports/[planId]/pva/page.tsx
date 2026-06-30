@@ -60,7 +60,7 @@ export default async function PlannedVsActualPage({
     const varPct = plannedCost > 0 ? Math.round((varCost / plannedCost) * 1000) / 10 : 0;
     return {
       id: o.id,
-      op: SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype ?? "—",
+      op: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
       planned_qty: `${num(plannedQty)} ${req?.unit ?? ""}`,
       actual_qty: `${num(act.qty)} ${req?.unit ?? ""}`,
       planned_cost: egp(plannedCost),
@@ -88,7 +88,7 @@ export default async function PlannedVsActualPage({
     totalPlannedCost > 0 ? Math.round((totalVar / totalPlannedCost) * 1000) / 10 : 0;
 
   const chartData = executed.map((o) => ({
-    category: SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype ?? "—",
+    category: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
     planned: Number(o.est_cost ?? 0),
     actual: actualByOp.get(o.id)?.cost ?? 0,
   }));

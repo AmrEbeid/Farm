@@ -4,12 +4,19 @@
  * `okRows` ready for the gated RPC; invalid rows produce Arabic `errors`. Writes nothing.
  * Partial success: one bad row never invalidates the good rows.
  */
-import type { ImportColumn, ImportDescriptor, DryRunResult, RowError } from "./types";
+import { setSourceRow, type ImportColumn, type ImportDescriptor, type DryRunResult, type RowError } from "./types";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isEmpty(v: unknown): boolean {
   return v == null || (typeof v === "string" && v.trim() === "");
+}
+
+function isValidIsoDate(s: string): boolean {
+  if (!ISO_DATE.test(s)) return false;
+  const [year, month, day] = s.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
 }
 
 /** Coerce one cell. Returns { value } on success or { reason } (Arabic) on failure. */
@@ -34,8 +41,7 @@ function coerce(col: ImportColumn, raw: unknown): { value: unknown } | { reason:
       return { reason: "يجب أن يكون صح/خطأ" };
     }
     case "date": {
-      if (typeof s === "string" && ISO_DATE.test(s) && !Number.isNaN(Date.parse(s)))
-        return { value: s };
+      if (typeof s === "string" && isValidIsoDate(s)) return { value: s };
       return { reason: "يجب أن يكون التاريخ بصيغة YYYY-MM-DD" };
     }
     case "enum": {
@@ -77,7 +83,7 @@ export function validateRows(
     }
 
     if (rowHasError) errorCount += 1;
-    else okRows.push(coerced);
+    else okRows.push(setSourceRow(coerced, rowNum));
   });
 
   return { okRows, errors, okCount: okRows.length, errorCount };

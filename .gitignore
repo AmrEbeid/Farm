@@ -5,6 +5,7 @@ node_modules/
 dist/
 storybook-static/
 .next/
+.worktrees/
 
 # vercel (e.g. apps/*/.vercel/output from `vercel build`) — never commit
 .vercel

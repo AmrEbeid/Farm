@@ -6,7 +6,7 @@
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(26);
+select plan(36);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.owner', (select user_id::text from public.organization_member
@@ -15,6 +15,8 @@ select set_config('test.eng', (select user_id::text from public.organization_mem
   where org_id = :'org' and role = 'agri_engineer' limit 1), false);
 select set_config('test.manager', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'farm_manager' limit 1), false);
+select set_config('test.accountant', (select user_id::text from public.organization_member
+  where org_id = :'org' and role = 'accountant' limit 1), false);
 select set_config('test.sup', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'supervisor' limit 1), false);
 
@@ -34,9 +36,21 @@ select is(public.authorize('academy.write', :'org'), false, 'academy.write: supe
 reset role;
 select pg_temp.as_user(current_setting('test.owner'));
 select is(public.authorize('export.write', :'org'), true, 'authorize union: owner keeps export.write');
+select is(public.authorize('request.approve.final', :'org'), true, 'authorize union: owner keeps final payment approval');
 reset role;
 select pg_temp.as_user(current_setting('test.manager'));
 select is(public.authorize('export.write', :'org'), true, 'authorize union: farm_manager keeps export.write');
+select is(public.authorize('finance.read', :'org'), false, 'authorize union: farm_manager does NOT get finance.read');
+select is(public.authorize('custody.write', :'org'), false, 'authorize union: farm_manager does NOT get custody.write');
+select is(public.authorize('request.prepare', :'org'), false, 'authorize union: farm_manager does NOT get request.prepare');
+select is(public.authorize('request.approve.op', :'org'), false, 'authorize union: farm_manager does NOT get operational payment approval');
+reset role;
+select pg_temp.as_user(current_setting('test.accountant'));
+select is(public.authorize('finance.read', :'org'), true, 'authorize union: accountant keeps finance.read');
+select is(public.authorize('custody.write', :'org'), true, 'authorize union: accountant keeps custody.write');
+select is(public.authorize('request.prepare', :'org'), true, 'authorize union: accountant keeps request.prepare');
+select is(public.authorize('request.approve.op', :'org'), true, 'authorize union: accountant keeps operational payment approval');
+select is(public.authorize('request.approve.final', :'org'), false, 'authorize union: accountant does NOT get final payment approval');
 reset role;
 select pg_temp.as_user(current_setting('test.sup'));
 select is(public.authorize('export.write', :'org'), false, 'authorize union: supervisor does NOT get export.write');

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import {
   Card,
+  KpiCard,
   StatusPill,
   ApprovalChain,
   DescriptionList,
@@ -11,15 +12,7 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { PrActions } from "@/components/PrActions";
 import { egp, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-
-const PR_STATUS_AR: Record<string, string> = {
-  draft: "مسودة",
-  submitted: "مرسل",
-  approved: "معتمد",
-  rejected: "مرفوض",
-  received: "مُستلم",
-  partially_received: "مُستلم جزئيًا",
-};
+import { PR_STATUS_AR } from "@/lib/labels";
 
 function pillStatus(s: string): "draft" | "scheduled" | "active" | "done" | "blocked" {
   if (s === "approved" || s === "received") return "done";
@@ -73,6 +66,7 @@ export default async function PurchaseRequestPage({
     const unit = it.unit ?? "";
     return {
       id: it.id,
+      href: `/inventory/${it.item_id}`,
       name: (it.inventory_items as { name?: string } | null)?.name ?? "—",
       qty: `${num(qty)} ${unit}`.trim(),
       received: `${num(received)} ${unit}`.trim(),
@@ -82,6 +76,13 @@ export default async function PurchaseRequestPage({
       cost: it.est_cost != null ? egp(Number(it.est_cost)) : "—",
     };
   });
+  const estimatedCost = (items ?? []).reduce((sum, it) => sum + Number(it.est_cost ?? 0), 0);
+  const totalQty = (items ?? []).reduce((sum, it) => sum + Number(it.qty ?? 0), 0);
+  const totalReceived = (items ?? []).reduce((sum, it) => sum + Number(it.received_qty ?? 0), 0);
+  const totalRemaining = totalQty - totalReceived;
+  const units = Array.from(new Set((items ?? []).map((it) => it.unit ?? "").filter(Boolean)));
+  const singleUnit = units.length === 1 ? units[0] : null;
+  const openLineCount = (items ?? []).filter((it) => Number(it.qty ?? 0) > Number(it.received_qty ?? 0)).length;
 
   // Lines for the receive UI: keyed by inventory item_id (the RPC's p_lines key).
   const receiveLines = (items ?? []).map((it) => ({
@@ -122,8 +123,24 @@ export default async function PurchaseRequestPage({
           <h1 className="text-2xl font-bold">طلب شراء {pr.code}</h1>
           <p style={{ color: "var(--ink-muted)" }}>{pr.reason}</p>
         </div>
-        <StatusPill status={pillStatus(pr.status)}>{PR_STATUS_AR[pr.status]}</StatusPill>
+        <StatusPill status={pillStatus(pr.status)}>{PR_STATUS_AR[pr.status] ?? "غير معروف"}</StatusPill>
       </header>
+
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="عدد البنود" value={num((items ?? []).length)} />
+        <KpiCard label="التكلفة التقديرية" value={egp(estimatedCost)} />
+        <KpiCard
+          label="المستلم"
+          value={singleUnit ? num(totalReceived) : "وحدات متعددة"}
+          unit={singleUnit ?? undefined}
+        />
+        <KpiCard
+          label="المتبقي"
+          value={singleUnit ? num(totalRemaining) : num(openLineCount)}
+          unit={singleUnit ?? "بنود"}
+          deltaDirection={(singleUnit ? totalRemaining > 0 : openLineCount > 0) ? "down" : "none"}
+        />
+      </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         <Card title="التفاصيل">
@@ -132,7 +149,7 @@ export default async function PurchaseRequestPage({
             items={[
               { id: "code", term: "الرمز", description: pr.code },
               { id: "needed", term: "مطلوب بحلول", description: pr.needed_by ? fmtDate(pr.needed_by) : "—" },
-              { id: "status", term: "الحالة", description: PR_STATUS_AR[pr.status] },
+              { id: "status", term: "الحالة", description: PR_STATUS_AR[pr.status] ?? "غير معروف" },
             ]}
           />
         </Card>

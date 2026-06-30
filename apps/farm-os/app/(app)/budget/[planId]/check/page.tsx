@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { VerdictBanner, KpiCard, Progress, Card, Button } from "@/components/ui";
+import { VerdictBanner, KpiCard, Progress, Card } from "@/components/ui";
 import { egp, pct } from "@/lib/money";
 
 export default async function BudgetCheckPage({
@@ -105,8 +105,12 @@ export default async function BudgetCheckPage({
             تتجاوز هذه العملية حدود بند الأسمدة، لذا يجب توجيه طلب الشراء إلى المالك للاعتماد
             (فصل الواجبات: لا يعتمد مقدّم الطلب طلبه).
           </p>
-          <Link href={`/purchase-requests/${pr}`}>
-            <Button variant="primary">الذهاب إلى طلب الشراء للاعتماد</Button>
+          <Link
+            href={`/purchase-requests/${pr}`}
+            className="inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-semibold"
+            style={{ color: "var(--on-brand)", background: "var(--brand)" }}
+          >
+            الذهاب إلى طلب الشراء للاعتماد
           </Link>
         </Card>
       )}

@@ -1,11 +1,10 @@
 /**
- * Import descriptor for farm sectors (pilot). Writes through `fn_save_sector` — the same
- * SECURITY DEFINER RPC the single-record form uses (gate: structure.write = owner/farm_manager,
+ * Import descriptor for farm sectors. Writes through `fn_save_sector` — the same SECURITY
+ * DEFINER RPC the single-record form uses (gate: structure.write = owner/farm_manager,
  * enforced in the DB). Mirrors the arg shape in app/(app)/farm/structure-actions.ts.
  *
- * NOTE (open, owner to confirm): `p_farm_id` is sent null here. If the RPC does not default it
- * to the caller's active farm, commits return a clean per-row error (no bad data) until the
- * route injects the active-farm context. See spec §6 / the framework report.
+ * The parent farm is given by its CODE (resolved to farm_id via the ref lookup, RLS-scoped),
+ * so users never paste UUIDs.
  */
 import type { ImportDescriptor } from "../types";
 
@@ -15,6 +14,7 @@ export const sectorsDescriptor: ImportDescriptor = {
   rpc: "fn_save_sector",
   role: "structure.write",
   columns: [
+    { key: "farmId", labelAr: "كود المزرعة", type: "string", required: true, example: "F-01", ref: { table: "farms", codeColumn: "code", activeColumn: "archived", activeValue: false } },
     { key: "name", labelAr: "الاسم", type: "string", required: true, example: "القطاع الشمالي" },
     { key: "code", labelAr: "الكود", type: "string", required: true, example: "S-01" },
     { key: "crop", labelAr: "المحصول", type: "string", required: false, example: "نخيل برحي" },
@@ -24,7 +24,7 @@ export const sectorsDescriptor: ImportDescriptor = {
   ],
   toRpcArgs: (r) => ({
     p_id: null,
-    p_farm_id: null,
+    p_farm_id: r.farmId, // resolved from the farm code by resolveRefs
     p_name: r.name,
     p_code: r.code,
     p_crop: r.crop ?? null,

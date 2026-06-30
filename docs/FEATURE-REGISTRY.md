@@ -33,7 +33,7 @@ Evidence keys: mig = `apps/farm-os/supabase/migrations/`; route = `apps/farm-os/
 | **FEAT-020** | Audit logging (immutable) | ✅ | — | `0008` `fn_audit`; `0019` org-member; `0053` payroll gate; `0059`/`0060` coverage+redaction | — | `02_audit_immutable`, `25_audit_immutable_all_entities` | — |
 | **FEAT-021** | AI assistant boundary (عبدالجليل) | 🟡 (AI itself ⬜, Stage 11) | — | — | `lib/assistant-policy.ts` | `assistant-policy.test.ts` | SPEC-0005 |
 | **FEAT-022** | Payroll engine | 🟡 (runs/attendance ⬜) | — | `0046` people_compensation; `0053` payroll audit gate | `lib/payroll.ts` | `payroll.test.ts`, `53_audit_compensation_payroll_gate` | SPEC-0006 |
-| **FEAT-023** | Accounting P&L + sales | 🧪 (draft PR #368, mig `0088`) | (`/accounting` not on `main`) | `fn_save_sale`, `fn_set_expense_kind` (draft) | `lib/pnl.ts` (draft) | (draft) | SPEC-0004 |
+| **FEAT-023** | Accounting P&L + sales | 🧪 (draft PR #368, mig `0088` + `0097`) | (`/accounting` not on `main`) | `fn_save_sale`, `fn_set_expense_kind`, `fn_accounting_pnl_summary` (draft) | `lib/pnl.ts`, `AccountingView` (draft) | `88_accounting_pnl`, `lib/pnl.test.ts` (draft) | SPEC-0004 |
 | **FEAT-024** | Care Academy content | 🧪 (draft PR #366, mig `0087`) | (`/academy` not on `main`) | (draft) | `lib/academy.ts` (draft) | (draft) | SPEC-0008 |
 | **FEAT-025** | Member admin & invite | ⬜ | (`/members` planned) | mig `0090` planned | — | — | SPEC-0012 S2 |
 | **FEAT-026** | Knowledge / help system | ⬜ | (in-app help planned) | — | `lib/nav.ts`, `lib/errors.ts` (substrate) | — | SPEC-0014 |

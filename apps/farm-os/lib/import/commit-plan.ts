@@ -2,14 +2,14 @@
  * Pure commit orchestration for the import framework (spec §6 step 5). Turns validated
  * rows into an ordered list of gated-RPC calls, applies the descriptor's dedupe key, and
  * splits the calls into chunks for the background writer. No DB here — the server route
- * (`app/api/import`) executes these calls through the user-session server client per row (RLS/role gates honored; service-role would bypass them).
+ * (`app/api/import`) executes these calls through the signed-in user's gated RPC path per row.
  */
-import type { ImportDescriptor } from "./types";
+import { getSourceRow, type ImportDescriptor } from "./types";
 
 export interface RpcCall {
   rpc: string;
   args: Record<string, unknown>;
-  sourceRow: number; // 1-based index within the validated (okRows) set
+  sourceRow: number; // original 1-based spreadsheet data-row index
 }
 
 export interface CommitPlan {
@@ -34,7 +34,7 @@ export function planCommit(
   const seen = new Set<string>();
 
   okRows.forEach((row, i) => {
-    const rowNum = i + 1;
+    const rowNum = getSourceRow(row, i + 1);
     if (dedupe.length > 0) {
       const key = dedupe.map((k) => String(row[k] ?? "")).join(KEY_SEP);
       if (seen.has(key)) {

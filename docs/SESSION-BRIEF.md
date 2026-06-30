@@ -1,5 +1,325 @@
-# Session Brief — Farm OS      Updated: 2026-06-28 by Claude (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-29 — SAFE STOP: status snapshot and next-session handoff
+**Stop point.** Local `main` was fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production
+Supabase remains at migration `0096`. No migration, prod apply, draft-PR merge, or production data change was
+performed in this stop/report pass.
+
+**Percent snapshot.** Live MVP/pilot operating core is **~90-92% done**. Pre-real-data pilot readiness is
+**~80-85% done**. Full commercial product vision is **~55-60% done**. Finance/accounting maturity is **~35-45% done**.
+Advanced payroll/academy/AI stages are **~20-35% done**.
+
+**What is live/solid.** Core Supabase RLS/RPC/audit foundation; inventory, purchase requests, receipts,
+reservations, and stock coverage; farm structure and 360 files; planning/multi-day operations; budgets/expenses;
+people/weather/settings; module dashboards live on production; CSV export, MasterTable, import framework, Help
+Drawer, and docs-health tests.
+
+**Remaining critical path.** First, review/order/apply the small held DB hardening drafts (#436, #439, #442, #444).
+Second, finish SPEC-0018 custody backend #438 and dependent frontend #441 after independent money/RLS/audit review.
+Third, resolve accounting/P&L #368 with the real 7-year Excel reconciliation and Stage-M privacy path. Fourth,
+close product correctness gaps #157, #89, #188/#199. Fifth, finish Stage 0 residual cleanup/leaked-password
+protection verification. Payroll, academy, AI, and real-data migration remain later high-risk stages.
+
+**Timeline.** If Owner review is active and external sign-offs do not delay: **1-2 days** for small DB hardening
+review/apply planning; **3-5 days** to unblock a safe custody first slice; **1-2 weeks** for finance/accounting
+foundation after ratification/reconciliation path; **2-4 weeks** for real-data readiness; **4-8 weeks** for broader
+commercial maturity.
+
+**Open PR queue.** All remaining open PRs are draft/held. Clean merge-state PRs: #444 responsibility-write gate,
+#442 inventory transfer/ordered guard, #441 custody frontend, #439 grant/default-privilege hygiene, #438 custody
+backend, #421 SPEC-0018 docs, and #400 export compliance. Dirty/stale PRs: #436 `fn_bin_rebuild` internal, #368
+accounting backend, and #366 academy backend.
+
+**Active gates.** #438/#441 remain held behind independent money/RLS/audit review and migrate-first sequencing.
+#444/#442/#439 have review comments and docs entries but still need separate pre-migration review before any apply.
+#436/#368/#366 need refresh/review before they can be considered for any migration bundle. Supabase DB password and
+service-role key rotation remains Owner-complete and must not be reopened unless Owner explicitly reopens it.
+
+**Recommended resume point.** Start with #436 because it is dirty/stale and narrow: refresh it against current
+`origin/main`, re-check the `fn_bin_rebuild` internalization diff, run local pgTAP, then update PR/docs. Do not
+plan or apply any production migration bundle until the dirty draft branches are refreshed and reviewed.
+
+## 2026-06-29 — module dashboards/360 batch live
+**Change.** Completed the module navigator/dashboard/360 batch and committed it locally as `30fdd26`
+(`feat(farm-os): add module dashboards and 360 pages`). The batch adds grouped module navigation, dashboard-first
+module entries, KPI/filter interactions, route-specific Help Drawer coverage, and read-only 360/detail surfaces
+across inventory, farm, planning, finance, people, suppliers, budgets, expenses, settings, and weather/risk.
+
+**Review fixes included.** Final standards/spec review issues were fixed before the commit: settings does not show
+raw unknown role codes, planning's due-operations KPI targets the due queue, Farm Barhi total is no longer a fake
+filter link, and Finance separates displayed operating expenses from owner drawings using existing expense text
+fields until a stronger schema exists.
+
+**Merge status.** After fetch, local `main` was `ahead 1, behind 45`, so the local batch was merged with current
+`origin/main`. Remote work brought in the already-merged import framework, CSV export/MasterTable/PalmFile work,
+and migrations `0090`/`0093`/`0094`/`0095`/`0096`. Conflict resolution keeps upstream `PalmFile` and landing-page
+CSS while preserving the module sidebar CSS and page-help/dashboard entries. No new Supabase migration was authored
+by the module batch, and no direct Supabase/prod mutation was run here.
+
+**Validation.** `npx eslint .` clean; `npx tsc --noEmit` clean after installing the merged dependency set;
+`npx vitest run` **225/225**; `npm run build` green with only the existing Next `middleware` deprecation warning;
+`git diff --check` clean.
+
+**Live status.** Owner set goal to keep working until dashboards are live. The batch was merged with two additional
+remote updates, revalidated (`eslint`, `tsc`, Vitest **230/230**, production build), and pushed to `origin/main` at
+`ca24906`. GitHub recorded a successful Vercel **Production** deployment (`5240158021`,
+`farm-gvyv0g2ut-amrabdelglill-7962s-projects.vercel.app`). Live probes on `https://ebeidfarm.business` confirm
+`/farm/dashboard`, `/inventory/dashboard`, `/plans/dashboard`, `/finance/dashboard`, `/people/dashboard`,
+`/weather/dashboard`, and `/settings/dashboard` all match their deployed routes and redirect unauthenticated users
+to `/login`.
+
+**Still open.** No direct Supabase migration/prod mutation was run from this batch.
+`docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+
+## 2026-06-29 — audit issue hygiene; docs-only status update
+**Change.** Reconciled high-signal open audit issues against current `main` and production evidence, then updated
+issue threads. Closed #383 as fixed/applied: #402 is merged, migration `0095` is on `main`, `95_org_switcher_preapply`
+pgTAP coverage exists, and prod's migration ledger includes `20260622000095 org_switcher_preapply_hardening`.
+
+**Kept open.** #317 remains open because a read-only prod grant probe still shows broad grant/default-privilege
+hygiene gaps (`TRUNCATE` on 38 public tables for anon and authenticated, plus limited `DELETE` grants). #229 remains
+open as the umbrella for remaining prod-config/advisor cleanup: FK indexes are fixed by `0096`, but grant/default
+privilege cleanup and leaked-password protection remain. #188 remains open because #396 merged the reserve-aware
+dedup app-layer fix, but the issue still explicitly tracks the migration-gated fully atomic PR-line+reserve RPC
+follow-up.
+
+**No prod action.** Deleted one malformed duplicate #317 comment, posted corrected evidence notes on #188/#229, and
+ran no DDL, migration, or production data change.
+
+**Follow-up issue hygiene.** Retitled and edited #362 so it no longer reopens Farm Supabase DB password +
+`service_role` key rotation. That item is now checked off per Owner confirmation; #362 stays open for legacy keys,
+old repo history, spreadsheet/Google password, leaked-password protection, and demo login cleanup before real data.
+
+**UI issue closeout.** Re-checked #282/#206 against current `main` and closed both as resolved/superseded. The
+remaining low ExecuteForm cleared-input behavior was split to #426 because deciding whether zero actuals are invalid
+for all operation types needs a narrow product/validation decision. No code, DDL, migration, or production data
+change was run.
+
+**#426 implementation.** Opened #428 to reject blank/invalid/negative ExecuteForm actual quantity/labor inputs before
+calling `executeOperation`, while still allowing an explicit typed `0`. Added pure parser coverage. Local isolated
+validation passed: focused Vitest **3/3**, full Vitest **215/215**, focused eslint, `tsc --noEmit`, and production
+build. No migration or DDL.
+
+**#398 closeout.** Re-checked #398 against current `main` and closed it as delivered by merged #399
+(`02b5da3`): `plan_operations.ends_on`, `plan_operation_assignees`, `fn_add_plan_operation_multi`, pgTAP coverage,
+and the `OperationBuilder` UI for repeatable material/labor rows, multi-day dates, employee checkboxes, and lead
+selection are all present. Deploy status says prod includes `0090` and `0093`. No DDL, migration, prod apply, or
+production data change was run for this closeout.
+
+**#161 closeout.** Re-verified the consolidated LOW bucket and closed it. L2/L5 are fixed; L1 is tracked under #362
+demo-login cleanup; L3/L4 were split to #431 (`transfer` destination semantics + dead `inventory_bin.ordered`);
+L6 was split to #430 (`fn_bin_rebuild` authenticated EXECUTE decision). No code, DDL, migration, prod apply, or
+production data change was run for this closeout.
+
+**#235 closeout.** Re-verified the broad pre-pilot bug-hunt bucket and closed it. The original high-risk findings
+are fixed or moved to focused lanes; created #433 for the one untracked residual (`approvePurchaseRequest` failure
+copy conflates stale version/status/authz). Remaining live items stay in #89, #157, #188/#199, #229/#317, and #314.
+No code, DDL, migration, prod apply, or production data change was run.
+
+**#433 implementation.** Added an approval-failure classifier and wired `approvePurchaseRequest` to run a
+read-scoped follow-up only after a zero-row approval update, returning distinct Arabic messages for stale version,
+wrong status, self-approval, missing owner permission, and missing/unreadable request. Validation passed: focused
+Vitest **5/5**, full Vitest **220/220**, focused eslint, `tsc --noEmit`, and production build.
+
+**#430/#436 draft.** Opened draft #436 with migration `0098` to make `fn_bin_rebuild` internal by revoking
+authenticated EXECUTE, updating the SECURITY DEFINER allowlist, and pinning the negative grant. Verified no
+app/client direct caller; local pgTAP passed **687/687** and draft GitHub checks are green. Held for Owner migration
+gate: no merge, prod apply, or production data change.
+
+**#317/#229 grant hygiene draft.** Opened draft #439 with a Supabase-CLI timestamped migration for the remaining
+prod grant/default-privilege drift. The draft revokes client-role `TRUNCATE` on all current public tables, revokes
+client-role `DELETE` on all current public tables, restores the single intended authenticated `plan_checks` DELETE
+recompute path, and revokes future public-table default privileges from `anon`/`authenticated` for the prod-observed
+`postgres` grantor. Added catalog pgTAP coverage for destructive grants and `pg_default_acl`. Local pgTAP passed
+**689/689**; GitHub checks are green. Review pass at `e2ca96f` found no local code findings and updated the PR notes
+with the pre-migration default-ACL probe requirement: before apply, confirm prod's public-table default ACL grantor(s);
+if any grantor besides `postgres` grants future table privileges to `PUBLIC`/`anon`/`authenticated`, add matching
+`ALTER DEFAULT PRIVILEGES FOR ROLE <grantor>` revokes first. Held for separate pre-migration review; no merge, prod
+apply, or production data change. #229 still remains open for leaked-password-protection Auth/dashboard verification.
+
+**#438 custody/payment backend hardening.** Patched draft #438 at `8fb7f69` after the review blockers, then pushed
+follow-up `1288a23` after finding a money-state reroute bug. The branch now uses timestamped draft migrations
+(`20260629150000`, `20260629150100`) instead of the collided `0098`/`0099` names, adds `finance.read`, preserves
+`responsibility.write` in the `authorize()` union, makes custody/payment table reads and read RPCs
+owner/accountant-only, mirrors those restrictions onto `audit_log.audit_read`, adds `fn_save_custody_account` for
+RPC-only custody-account writes, carries `expenses.kind`, rejects/excludes drawings/capex from payment-request math,
+and rejects rerouting a custody-paid expense after a cash out-movement exists unless an explicit reversal is posted
+first. Lifecycle wording now only claims the implemented `draft → submitted → approved_operational → approved_final`
+path; `paid`/`closed` stay reserved. Local validation: `git diff --check` clean; full pgTAP **736/736**. #438 remains
+draft/held for independent money/RLS/audit review and separate pre-migration review; no merge, prod apply, migration,
+or production data change.
+
+**#431 inventory transfer/ordered draft.** Drafted a conservative migration for the latent #431 cleanup. It does not
+invent transfer destination semantics; instead it rejects new `transfer` ledger rows until an atomic source/destination
+model exists, and pins `inventory_bin.ordered` at zero until a real purchase-order writer maintains it. Re-emitted
+`fn_post_movement` while preserving authenticated EXECUTE revoked/internal-only posture. Added pgTAP coverage for RPC
+transfer rejection, direct table protection, `ordered=0`, and `projected = on_hand - reserved` while ordered is pinned.
+Local pgTAP passed **691/691**. Review pass at `9b9cac3` found no local code findings and updated the PR notes with
+the pre-migration probe requirement: before any prod apply, check for existing `inventory_movements.type = 'transfer'`
+and `inventory_bin.ordered <> 0`, because `NOT VALID` avoids the initial validation scan but future updates to
+nonconforming rows still obey the constraints. Held for separate pre-migration review; no merge, prod apply, or
+production data change.
+
+**#314 responsibility-assignment write gate draft.** Opened draft #444 to close the direct-REST governance gap without
+turning RACI labels into authorization. The migration adds `responsibility.write` to `authorize(perm, org)` for
+owner/farm_manager, re-emits `responsibility_assignments` RLS so reads stay org-wide but insert/update require the new
+permission, and preserves the same-org `people` guard. Added pgTAP coverage for owner/farm_manager allow, storekeeper/
+supervisor deny, read preservation, manager same-org writes, cross-org person rejection, policy structure, and the
+authorize union. Local pgTAP passed **697/697**; `git diff --check` clean. Review pass at `67146ea` found no local
+code findings and updated the PR notes with the exact #438 caveat: if #444 and #438 are applied in the same prod
+batch, apply #444's `20260629141650` before #438's later timestamped custody migrations; if #444 ever applies after
+#438, first preserve #438's final `authorize()` permission union. Held for separate pre-migration review; no merge,
+prod apply, or production data change. Migration-order warning: #366/#400/#438 also re-emit `authorize()` and must
+preserve `responsibility.write` if rebased/applied after #444.
+
+**#441 custody frontend review/fix.** Reviewed draft #441 after #438 backend blockers were posted. Pushed
+`e08562f` to fix the failing page-help drift guard by adding `payment-request-360` help and a `/custody/request/:id`
+route mapping. Local validation in `/tmp/farm-pr-441`: focused page-help test **7/7**, full app Vitest **230/230**.
+Posted a held review, then patched #441 again at `fa17350` after #438 hardening: custody account creation now calls
+`fn_save_custody_account`, custody routes/nav are owner/accountant-only while farm-manager broad finance read is
+withheld, finance query/RPC failures throw to the route error boundary instead of rendering zero/empty money totals,
+and lifecycle buttons no longer advertise farm-manager custody actions. Validation in `/tmp/farm-pr-441`: focused
+nav/page-help **17/17**, full Vitest **230/230**, `tsc --noEmit`, touched-file ESLint, production build, and
+`git diff --check` all passed. #441 still cannot merge before #438 is independently reviewed and applied
+migrate-first; no merge, migration, prod apply, or production data change.
+
+## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
+**Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
+module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
+roles, keep custody/payment/receipt reads finance-role gated, avoid a broad new `expense.write` permission, make
+#368 `expenses.kind`/`0088` an explicit prerequisite or same-apply-path dependency, and require extending
+`attachments` for expense receipts before use (`entity_type='expense'`, resolver/storage validation,
+finance-confidential RLS).
+
+**Evidence.** #421 branch head `2fa6694`. GitHub checks passed: pgTAP, app/typecheck/lint/test/build,
+token/storybook build, gitleaks, Vercel. Focused re-review found no findings.
+
+**Still held.** No merge, migration, deploy, production apply, or real financial/PII import was performed. #421
+remains draft/design-only for Owner review and Stage-M privacy gating.
+
+## 2026-06-29 — #368 accounting DB-side summary fix implemented; PR still held
+**Change.** Patched held draft #368 (`feat/stage-7-accounting-backend`) so `/accounting` no longer computes P&L
+totals from capped PostgREST row reads. Migration `0088` now adds `fn_accounting_pnl_summary`, a
+`SECURITY DEFINER` DB aggregate RPC gated by `budget.write`; the page uses that RPC for P&L totals while keeping
+the 200-row queries only for recent expense/sale previews. Also added a typed RPC entry, tightened the expense-kind
+action guard, and extended pgTAP coverage for aggregate totals, supervisor denial, drawings/capex separation, and
+operating category totals.
+
+**Evidence.** #368 branch head `0625150`. Local validation passed: pgTAP **709/709**, `npx tsc --noEmit`,
+focused eslint, `lib/pnl.test.ts` **5/5**, and `npm run build`. GitHub checks passed: pgTAP, app/typecheck/lint/
+test/build, token/storybook build, gitleaks, Vercel. A session reviewer check found no obvious blocker, but this is
+not a substitute for the fresh visible final review required before any merge/migrate. PR body was refreshed to match
+this state.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #368 remains draft pending the real
+7-year Excel reconciliation + privacy review, plus fresh pre-migration review of exact `0088` gap-fill and `0097`
+apply order.
+
+## 2026-06-29 — autonomous loop + PR #400 review held; PR #412 merged
+**Owner instruction.** Keep working in Farm OS until stopped; always plan first, update docs, do deep research when
+needed, review before merge, review before migrate, and proceed using recommendations without waiting for more input.
+Recorded as a Codex goal and captured in
+[`docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`](superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md).
+
+**Status correction.** Owner confirmed Supabase DB password + service-role key rotation has already been done
+several times. Active docs and the durable operating-method skill now mark rotation complete; do not raise it as an
+open gate again unless Owner reopens it.
+
+**PR #400 reviewed and fixed.** In isolated worktree `.worktrees/review-pr-400`, reviewed draft PR #400
+(SPEC-0016 export compliance, migration `0092`). Found and fixed impossible compliance-value handling: negative
+residue values could pass the pure readiness check, and the schema lacked CHECK constraints for inverted validity
+windows and negative area/quantity/residue values. Pushed commit `2e2183d` to the PR branch. Validation passed:
+local pgTAP **670/670**, `tsc`, focused eslint, Vitest **175/175**, production build, and GitHub checks. Decision:
+keep #400 draft; do **not** merge or migrate `0092` until the lower-number migration lane is reconciled.
+
+**PR #412 reviewed, cleaned, and review blockers fixed.** In isolated worktree `.worktrees/review-pr-412`, reviewed draft PR #412
+(import reference resolution). The signed-in-user/RLS commit path and formula-injection template sanitizer looked
+sound for this slice, but dry-run validation accepted impossible dates such as `2026-02-31`. Added a failing test,
+prepared local commit `21467ad`, and published the same three file contents to `feat/import-refs` through GitHub's
+Contents API because local `git push` stalls in `send-pack`/`pack-objects`. Then rebuilt #412 on current `main`
+to drop already-merged #410 stacked history, producing a tight import-reference diff. Independent review found two
+blockers: archived structure parents could be resolved by code, and row numbers could drift after validation filtered
+bad rows. Fixed both at PR head `08e925a`: ref specs for farms/sectors filter `archived=false`, and hidden source-row
+metadata preserves original spreadsheet row numbers through ref resolution, dedupe, and RPC failure reporting.
+Local validation passed: import suite **41/41**, `tsc`, focused eslint, full Vitest **212/212**, and production build.
+Fresh GitHub CI passed, independent re-review approved, and #412 was squash-merged to `main` as `d7b832d`. No
+migration or production apply was involved.
+
+## 2026-06-29 — remaining draft migration PRs reviewed; no merge/migrate
+**What was reviewed.** Three parallel agents reviewed the remaining open draft migration PRs against current remote
+`main` (`0767513`) and prod migration head `0096`: **#366** academy (`0091`), **#368** accounting (`0088` + `0097`),
+and **#400** export compliance (`0092`).
+
+**Decision.** Keep all three draft. Do not migrate any of them yet.
+
+**#366 academy.** No obvious current code/security defect found: FORCE RLS, org-scoped policies, `academy.write`
+gate, pinned `SECURITY DEFINER` RPCs, anon revoke, authenticated-only execute, and pesticide sign-off controls look
+materially fixed. It remains blocked by the real Stage 10 gate: licensed-agronomist + current Egyptian
+pesticide-registration sign-off. Merge-before-migrate is also undesirable because `/academy` would be visible while
+prod lacks `academy_content`/RPCs; it likely renders empty rather than 500ing because errors are ignored, which is
+misleading. Low-risk later fixes: update stale comments that still say "migration 0089" and fail visibly on academy
+query errors.
+
+**#368 accounting.** RLS/privacy state looks acceptable after current fixes: `sales` reads and sale audit rows are
+budget-write gated, and `0097` closes the symmetric expenses read/audit leak. It remains blocked by the Stage 7
+finance gate: real 7-year Excel reconciliation + privacy review. Migration sequencing is also special: prod is
+already at `0096` but lacks `0088`, so `0088` is an explicit out-of-order gap-fill and must be handled with `0097`
+rather than assumed to flow through a normal latest-migration path. Low-risk later fixes: fail fast on `/accounting`
+Supabase query errors and align `/expenses` navigation with the owner/accountant-only read gate in `0097`.
+
+**#400 export.** The `0092` export migration itself is materially review-clean on RLS/schema and now includes
+`academy.write` in its `authorize()` union. The blocker is ordering: if `0092` is applied first, then #366's current
+`0091` later re-emits `public.authorize()` without `export.write`, export writes would silently break. Safe paths
+are: apply #366 `0091` before #400 `0092`; patch #366 `0091` to preserve `export.write`; or add a post-`0096`
+repair/backfill migration pinning the final permission union after both features.
+
+**No prod action.** No migration, deploy, or production apply was performed from this review.
+
+## 2026-06-29 — safe branch follow-ups on held #366/#368
+**#366 academy branch updated.** Applied the low-risk review follow-ups: `/academy` now checks the Supabase query
+`error` and throws a generic failure instead of silently rendering empty content when `academy_content` is absent or
+unreadable, and stale migration comments were corrected from `0089` to `0091`. Published through the GitHub API to
+branch head `ca915dc`. GitHub checks are green (`pgTAP`, app/typecheck/lint/test/build, gitleaks, Vercel), and a
+focused independent check found no blockers.
+
+**#368 accounting branch updated.** `/accounting` now checks both `expenses` and `sales` query errors and throws a
+generic failure rather than computing misleading zero/partial P&L. The `/expenses` nav item now matches the `0097`
+read gate by showing only to owner/accountant instead of also `farm_manager`. Published through the GitHub API to
+branch head `a4d1c7f`. GitHub checks are green (`pgTAP`, app/typecheck/lint/test/build, gitleaks, Vercel), and a
+focused independent check found no blockers.
+
+**Still held.** These branch fixes do **not** clear the real gates. #366 remains draft pending agronomist +
+pesticide-registration sign-off. #368 remains draft pending real 7-year Excel reconciliation + privacy review and
+explicit `0088` gap-fill plus `0097` apply planning. No migration or production apply was performed.
+
+## 2026-06-29 — #366 authorize union patched for #400 ordering safety
+**Change.** Patched held draft #366 (`feat/stage-10-academy-backend`) so migration `0091` includes `export.write`
+in the `public.authorize(perm, p_org)` re-emit alongside `academy.write`. Test `89_academy_content_test.sql` now
+pins the intended mapping: owner and farm_manager keep `export.write`; supervisor does not.
+
+**Why.** This removes the specific #366/#400 ordering trap where applying export `0092` first and backfilling
+academy `0091` later would have dropped `export.write`. Adding the permission before export tables exist is inert;
+it only preserves the final permission union.
+
+**Evidence.** #366 branch head `86dfa6e`; GitHub checks green (`pgTAP`, app/typecheck/lint/test/build, gitleaks,
+Vercel); focused independent check found no blockers.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #366 still needs the external
+agronomist + Egyptian pesticide-registration sign-off; #400 still needs fresh pre-migration review of exact apply
+order before any merge/migrate.
+
+## 2026-06-29 — #400 export draft status wording refreshed
+**Change.** Updated held draft #400 (`docs/spec-0016-export-compliance`) to remove stale "design only" wording from
+SPEC-0016 and the PR body. The branch now states the actual scope: slice 1 schema/RLS/audit and pure readiness code
+are implemented on the draft branch, but are not merged or applied to production. The `0092` migration comment now
+describes the `authorize()` re-emit as the final known permission union including #366 `academy.write`.
+
+**Evidence.** #400 branch head `dbcfeb8`; GitHub checks green (`pgTAP`, app/typecheck/lint/test/build, gitleaks,
+Vercel); focused independent check found no wording blockers.
+
+**Still held.** No merge, migration, deploy, or production apply was performed. #400 remains draft and still needs
+fresh pre-migration review of exact prod apply order before any apply.
 
 ## 2026-06-28 (latest+6) — Owner "push": 8 review-clean PRs MERGED to `main`; migration PRs HELD (prod still `0089`)
 **Where we are.** Owner directed "push". All 18 open PRs were independently reviewed (actor≠reviewer, parallel agents). **8 non-migration, review-clean PRs squash-merged to `main`; CI re-verified green (ci/db-tests/release) after the batch:** SPEC-0017 frontend stack **#405** (spec) + **#406** (CSV export) + **#407** (palm-360) + **#409** (MasterTable; rebased onto `main` after #406 via `rebase --onto`); plus **#395** (registry oracle test), **#396** (#188 reserve-aware dedup), **#390** (06-27 session record), **#392** (SPEC-0004 plan). **Prod unchanged at `0089` — NO migrations applied this session.** The live app receives the FE/app-quality changes via Vercel auto-deploy; no schema change shipped.
@@ -9,7 +329,7 @@
 - **Blocked on their own issues:** **#399** (`0090`/`0093`) REQUEST-CHANGES — coarse dedup key silently drops a 2nd distinct same-day op (returns success); **#403** REQUEST-CHANGES — seed writes out-of-domain `sex='ذكر'` (must be `'male'`); **#400** (`0092`) apply-coupled to #366's `academy.write`; **#391** needs an Owner design decision (flips the **app-wide** font token).
 - **Expert-gated (cannot finish regardless):** **#368** accounting — `0088` is BROKEN (sorts behind `0089`; must renumber ≥`0097`) + real-Excel reconciliation + privacy review; **#366** academy (`0091`; label refs say `0089`/`0087` — reconcile) + licensed-agronomist + Egyptian pesticide-registration sign-off. Both would 500 on prod (tables absent) if merged before migrate. Code quality itself is sound (drawings-vs-opex separation ✓; template-not-prescription ✓).
 
-**Open Owner items.** (1) Apply the 3-migration bundle, then I merge #401/#402/#404. (2) Decide #399 / #391; fix #403. (3) Renumber/reconcile #368/#366 + clear their expert gates. (4) Enable `custom_access_token_hook` + leaked-password protection (dashboard). (5) Standing 🔴 key/DB-password rotation. (6) There are also uncommitted state-doc edits in the local `main` worktree (README/DEPLOY-STATUS/PRODUCT-MASTER/ROADMAP → prod `0089`) — reconcile or discard.
+**Open Owner items.** (1) Apply the 3-migration bundle, then I merge #401/#402/#404. (2) Decide #399 / #391; fix #403. (3) Renumber/reconcile #368/#366 + clear their expert gates. (4) Enable `custom_access_token_hook` + leaked-password protection (dashboard). (5) There are also uncommitted state-doc edits in the local `main` worktree (README/DEPLOY-STATUS/PRODUCT-MASTER/ROADMAP → prod `0089`) — reconcile or discard. **Supabase DB password + service-role key rotation is complete per Owner correction 2026-06-29; do not raise again unless reopened.**
 
 ## 2026-06-27 (latest+5) — parallel app-quality + gated-stage-CRITICAL session
 **Where we are.** A second session ran the app-quality lane in parallel with the knowledge-system session — all NON-migration / NON-prod. **9 PRs merged to `main`** (#378 i18n, #380 payroll rate-flag, #379 stock-calc↔SQL parity, #381 assistant-gate hardening, #382 weather hardening, #384 display, #385 rtl/a11y, #386 form-validation, #387 perf) — every one CI-green, `main` re-verified green after each merge. Both gated draft PRs **hardened but kept DRAFT**: **#368** CRITICAL sales RLS read-leak + audit-mirror leak fixed (pgTAP 663✓); **#366** CRITICAL pesticide-gate bypass fixed + migration renumbered **`0089→0091`** (collision with the merged palm-guard `0089`; `0090` left free for S2) (pgTAP 669✓).
@@ -42,10 +362,11 @@ gated actions ran, in the safe order (review → push → migrate → merge):
 Stage 10 licensed-agronomist + pesticide-registration sign-off) and merging them deploys `/accounting`+`/academy`
 which query `sales`/`academy_content` tables **not on prod** → live 500s. They stay draft until those gates clear.
 
-**Still open (Owner-only).** 🔴 **service-role key + DB password rotation** (the standing red item — do before any
-real Ebeid data). **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
+**Still open (Owner-only).** **One manual step to activate active-org:** enable the `custom_access_token_hook` in the Supabase
 dashboard (Auth → Hooks) / `config.toml [auth.hook.custom_access_token]` — until then the active_org feature is
 inert (safe; full-membership behavior). SPEC-0013 still awaits ratification.
+**2026-06-29 Owner correction:** Supabase DB password + service-role key rotation is complete; do not list it as
+an open gate again unless the Owner reopens it.
 
 ## 2026-06-27 (latest+3) — ground-truth audit (RECONCILE-001) + Commercial layer specced (SPEC-0013) — docs only
 **Where we are.** No code/schema/prod change this session — **documentation only**, `main` unchanged at `0089`,
@@ -67,8 +388,9 @@ Produced three artifacts:
 migration `0090`). SPEC-0013 is **Draft — not approved to build** until the Owner ratifies it.
 
 **NOT approved.** Building any SPEC-0013 slice; signing up for any billing provider; touching prod. Applying
-`0089`/`0085`/`0086` to prod still Owner-HELD. 🔴 service-role key rotation still outstanding. Adding the
+`0089`/`0085`/`0086` to prod was Owner-HELD at this point in the timeline. Adding the
 `docs/03` legacy banner = done this session (doc-only, Owner-recommended text).
+**Superseded 2026-06-29:** Supabase DB password + service-role key rotation is complete; do not raise again unless reopened.
 
 **Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md). New: Stage **C** —
 [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) (Draft, awaiting ratification).
@@ -163,7 +485,8 @@ email-invite sub-task needs an invite-mechanism decision (pending-invite table v
 Access-control → needs independent review.
 
 **NOT approved.** Applying `0089` (or the pending `0085`/`0086` access-control chain) to prod — **Owner HELD**;
-do that chain's independent review first. 🔴 service-role key rotation still outstanding (prior sessions).
+do that chain's independent review first. **Superseded 2026-06-29:** Supabase DB password + service-role key
+rotation is complete; do not raise again unless reopened.
 
 **Active stage.** UX — [`SPEC-0012`](SPEC-0012-account-admin-and-ux-gaps.md).
 
@@ -252,7 +575,8 @@ next buildable slice once a reviewer is named.
 - **Owner-gated next (per PROJECT RULES — actor ≠ reviewer):** independent review on the `0081`/`0084` RLS
   re-emits (structure/plans `tenant_all` now gate direct-REST writes on `structure.write`/`plan.write`);
   regen `database.types.ts` against prod `0084` (new objects currently augmented in
-  `lib/database.types.ext.ts`). 🔴 still pending: rotate the service-role key + DB password before any REAL data.
+  `lib/database.types.ext.ts`). **Superseded 2026-06-29:** Supabase DB password + service-role key rotation is
+  complete; do not raise again unless reopened.
 
 ## 2026-06-27 — Stages 2/3/4 built + RECONCILED onto `main` (verified); branch ready to push
 - Built editable farm structure + 360 pages + media (Stage 2), ad-hoc activity recording (Stage 3), and
@@ -278,7 +602,8 @@ queries too); the advisor 0028/0029 WARN is a known false-positive. Then **appli
 via the MCP — prod head now **`0073`, in sync with `main`** (verified: 7/7 recorded, 0 dup/stray versions,
 CHECKs/trigger/policies live, `get_advisors` no new regressions). **Live site verified:** Vercel prod
 deploy on the merge succeeded; landing page now shows no fabricated KPI tiles, login renders clean, no
-errors. The remaining tracked items are unchanged (#270 C1/C2 engine, #157 budget, #317 grants, #161 parity).
+errors. The remaining tracked items at that point were unchanged (#270 C1/C2 engine, #157 budget, #317 grants,
+#161 parity). #161 was later re-verified and closed on 2026-06-29 after splitting live LOW remainders to #430/#431.
 
 ## 2026-06-26 — prod push 0049→0066 + deep 360 review
 **Local was 97 commits behind origin** (HEAD #185 vs origin #311) — fast-forwarded to `4ac73b1`. The
@@ -308,7 +633,7 @@ substantive holes closed; short precise remainder.
   phantom on_hand with duplicate same-item lines) + **C2** (overdue PO projected as supply) — both
   verified real, need a tested PR; #157 (budget guardrail not table-backed + NULL est_cost=0); **#317
   (new)** (default privileges re-grant anon/authenticated CRUD+TRUNCATE on post-0027 tables); #161
-  (SQL↔TS engine parity drift, latent).
+  (SQL↔TS engine parity drift, latent; later closed on 2026-06-29 after splitting live LOW remainders to #430/#431).
 - **Recommended next (one PR each):** merge this PR + apply 0070–0071 → #270 C1/C2 engine fix (pgTAP)
   → #157 budget → #317 grant lockdown.
 
@@ -322,7 +647,8 @@ substantive holes closed; short precise remainder.
 - Verified: `list_migrations` → `20260622000048`; **pgTAP 421/421** (Docker-free shim harness), all green.
 - **Prod is now at `0048`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only):** #157 chart-of-accounts, #199 reserveQty semantics, #239 registry
-  data (open Owner decisions), 🔴 **key rotation** (only red item). *(#173 phone/email is DONE — removed from this list.)*
+  data (open Owner decisions). *(#173 phone/email is DONE; the old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-26 — ✅ `0047` engine null-date guard PUSHED + verified; prod now `0047`, in sync with `main`; app swept clean
 - **#198 — ENGINE null-date guard** → **`0047`** engine_nulldate_guard: `fn_stock_coverage` now coalesces a
@@ -336,7 +662,8 @@ substantive holes closed; short precise remainder.
 - Verified: `list_migrations` → `20260622000047`; **pgTAP 415/415** (Docker-free shim harness), all green.
 - **Prod is now at `0047`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only, unchanged):** #199/reserveQty + #173 phone/email half + #157
-  chart-of-accounts (open Owner decisions), #239 registry data, 🔴 **key rotation** (only red).
+  chart-of-accounts (open Owner decisions), #239 registry data. *(The old key-rotation red item was superseded by
+  the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-26 — ✅ the `0042`–`0046` batch MERGED + PUSHED to prod + verified; prod now `0046`, in sync with `main`
 Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`) via the MCP, and verified:
@@ -351,7 +678,9 @@ Five migrations landed, were pushed to the prod Supabase (`veezkmytervjnpxcrbkw`
 - Verified: `list_migrations` → `20260622000046`; **pgTAP 411/411** (Docker-free shim harness), all green.
 - **Prod is now at `0046`, in sync with `main`.**
 - **Remaining (Owner-decision / human-only):** #173 **phone/email half** (open PII-access decision), #157
-  chart-of-accounts, #239 registry import, #199/#198 held low-value/design items, 🔴 **key rotation** (only red).
+  chart-of-accounts, #239 registry import, #199/#198 held low-value/design items. *(The old key-rotation red item
+  was superseded by the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is
+  complete.)*
 
 ## 2026-06-26 — ✅ palm-status RPC `0039` + ENGINE-REC1 `0040` + unit_cost `0041` MERGED + PUSHED; prod now `0041`; #241 app-fix batch
 Three migrations + one app-only batch closed and live in prod; prod is back in sync with `main`:
@@ -367,7 +696,9 @@ Three migrations + one app-only batch closed and live in prod; prod is back in s
   RPCs present + gated, `get_advisors` only pre-existing WARNs. **Prod is now at `0041`, in sync with `main`.**
 - **pgTAP is now 356** (Docker-free shim harness + CI), all green.
 - **Remaining is now Owner-decision / human-only:** #155/#157 chart-of-accounts, #239 registry import, #173
-  PII, 🔴 key rotation; plus held low-value/design items #198/#199/#188. Nothing auto-buildable is open.
+  PII, plus held low-value/design items #198/#199/#188. *(The old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)* Nothing
+  auto-buildable is open.
 
 ## 2026-06-26 — ✅ #196 atomic plan-op (migration `0038`) MERGED + PUSHED; prod `0038`; review-sweep actioned
 The atomic plan-operation RPC is closed and live in prod:
@@ -379,7 +710,9 @@ The atomic plan-operation RPC is closed and live in prod:
 - **Review-sweep findings actioned:** the budget wrong-ops fix is **in flight**; **#238** (palm-status) and
   **#239** (registry-import) filed for follow-up.
 - **pgTAP is now 338** (Docker-free shim harness + CI), all green.
-- **Next:** the budget wrong-ops fix (in flight); then triage #238 / #239; key rotation still the only 🔴.
+- **Next:** the budget wrong-ops fix (in flight); then triage #238 / #239. *(The old key-rotation red item was
+  superseded by the 2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is
+  complete.)*
 
 ## 2026-06-26 — ✅ AUTHZ-3 (#182) fixed + MERGED + PUSHED; prod now `0037`; SPEC-0002 set COMPLETE
 The full SPEC-0002 authorization-enforcement set is now closed and live in prod:
@@ -439,9 +772,10 @@ recorded under their exact repo versions:
   (security) shows only **pre-existing** WARNs (SECURITY DEFINER RPCs by design / #182 / leaked-pw toggle)
   — no new regressions. **Prod is now in sync with `main` at `0034`.** No prod data was mutated to test
   (verified via function definitions, not by injecting rows).
-- **Remaining Owner-only items:** 🔴 rotate the Supabase service-role key + DB password + reset the demo
-  password (now the only red item); enable Leaked-Password-Protection; ratify SPEC-0002/0003; the HIGH
+- **Remaining Owner-only items:** reset the demo password; enable Leaked-Password-Protection; ratify SPEC-0002/0003; the HIGH
   product forks (#155/#157/#173/#89/#181/#182/#184); the gated engine follow-ups (#188/#196/#198/#199).
+  *(Supabase service-role key + DB password rotation was superseded by the 2026-06-29 Owner correction confirming
+  completion.)*
 - Docs (this PR) bumped prod `0031`→`0034` across README / TRACKER / DEPLOY-STATUS / ROADMAP.
 
 ## 2026-06-26 (later) — autonomous fixes MERGED to main + ENGINE-STALE-1 fixed; prod push (now done above)
@@ -519,8 +853,10 @@ reconciliation (un-merged PR) + filed issues. Key results:
 - **State:** `main` unchanged (origin HEAD `e35c46b`); **4 open PRs, all un-merged for the Owner gate:**
   **#183** (SPEC-0002 consolidation, DRAFT, green), **#189** (this docs reconciliation), **#191** (AR-ERR-1
   fix, CI green), **#195** (op-status/date Arabic + plan-check safety). New issues this session: **#187**
-  (fixed by #191), **#188**, **#196**. Owner-gated next moves unchanged: 🔴 key rotation; push `0032`/`0033`;
+  (fixed by #191), **#188**, **#196**. Owner-gated next moves unchanged: push `0032`/`0033`;
   ratify SPEC-0002/0003; merge the 3 ready fix/docs PRs; the HIGH forks (#155/#157/#173/#89/#181).
+  *(The old key-rotation red item was superseded by the 2026-06-29 Owner correction confirming Supabase DB
+  password + service-role key rotation is complete.)*
 
 ## 2026-06-25 — adopted amr-operating-method + independent review (5 findings) + repo relocation
 **Working method:** adopted **`amr-operating-method`** (the gated protocol — propose → validate →
@@ -636,9 +972,10 @@ only `@storybook/react-vite` was bumped while the rest of the 8.6.x stack stayed
   (`#159`, floor `on_hand` at 0 in `fn_post_movement` — no negative stock). Both stock-engine/security
   fixes are merged on `main` (HEAD `52fa7b0`); confirm prod DB migration state separately.
 - **Safe stop:** the upgrade + release are complete. **No agent-doable, non-gated task remains on the
-  critical path** — everything left is Owner-gated (🔴 key rotation; Leaked Password Protection toggle;
+  critical path** — everything left is Owner-gated (Leaked Password Protection toggle;
   pricing #89; Stage-0 ratification; Stage M) or "do not start the next stage automatically" per
-  `docs/CLAUDE.md`. Stopping per project rules.
+  `docs/CLAUDE.md`. Stopping per project rules. *(The old key-rotation red item was superseded by the
+  2026-06-29 Owner correction confirming Supabase DB password + service-role key rotation is complete.)*
 
 ## 2026-06-25 — phone-OTP removed (email/password only)
 Auth is now **email + password only**. The phone-OTP UI skeleton (the login footnote) was removed and
@@ -669,11 +1006,12 @@ items/bins/movements, 1 plan w/ 3 operations + checks + budget). Transactional t
   `quantities` at the REST layer, not only the `0020` RPC); **AP-5 insert-side SoD** (#76 item 2 —
   a born-approved PR sidesteps the BEFORE UPDATE trigger); **ENGINE-DC** disjointness is
   convention-enforced, not DB-constraint-enforced.
-- **Still OWNER-GATED / open:** 🔴 rotate the Supabase `service_role` key + DB password + reset the
-  demo password (the **only red item** from the assurance); ~~Twilio phone-OTP~~ (resolved 2026-06-25 —
+- **Still OWNER-GATED / open:** reset the demo password; ~~Twilio phone-OTP~~ (resolved 2026-06-25 —
   dropped; email/password only); Stage-0 legacy
   remediation; real Ebeid data (Stage M); per-farm EGP pricing; agronomist sign-off; **merging PRs
   #75 and #77** (both green) — a merge = prod deploy = Owner gate.
+  *(Supabase `service_role` key + DB password rotation was superseded by the 2026-06-29 Owner correction confirming
+  completion.)*
 - Note: the local Docker DB was found empty after a reboot (volume not persisted) — irrelevant; the
   **cloud DB is the source of truth**.
 
@@ -735,8 +1073,9 @@ closed off-canvas drawer peeked ~90px) → **`@amrebeid/ui@1.1.1` published**; d
 (dashboard/coverage/inventory/plan) reviewed clean. ⚠️ **(prod-DB note superseded — prod is now at
 `0022`; see the 2026-06-25 (latest) entry above)** at the time of this entry prod was at migrations
 0001–0013 with `0015` (B2) verified on `main` but not yet `db push`ed. Remaining is unchanged:
-project-end deferred (key rotation, Stage 0, real-data) + decision-gated minors (B3 actual-paid
-pricing; D1 FORCE RLS — low value).
+Stage 0 legacy cleanup + real-data privacy remain project-end deferred; Supabase DB password/service-role key
+rotation was later completed per the 2026-06-29 Owner correction. Decision-gated minors remain B3 actual-paid
+pricing and D1 FORCE RLS (low value).
 
 ## 2026-06-24 — DEPLOYED + LIVE 🎉
 Farm OS MVP-0 is **deployed and verified end-to-end on production**: **farm-ui-one.vercel.app**
@@ -751,15 +1090,16 @@ isolation (owner sees «مزارع عبيد» + 28 hawshat, anon denied), and th
   resilient middleware. Full record: `docs/DEPLOY-STATUS.md`.
 - **Auth:** 6 demo email/password accounts (`<role>@ebeid.test`) minted on prod via the admin API;
   password held by the Owner (not in repo).
-- **Security key rotation — DEFERRED to project end (Owner decision, 2026-06-24).** The Supabase
-  **DB password** + **service_role key** were pasted in the deploy chat; Owner will rotate at the
-  end of the project. ⚠️ Caveat (Claude): rotate **before any real Ebeid data** regardless — the
-  exposed service_role key bypasses RLS. Fine for now (synthetic data only). Also reset the demo password then.
+- **Security key rotation — SUPERSEDED 2026-06-29.** This older note said the Supabase **DB password** +
+  **service_role key** rotation was deferred; the Owner later confirmed both have been rotated several times.
+  Do not raise Supabase DB password/service-role key rotation again unless the Owner reopens it. Demo password
+  cleanup and leaked-password protection remain separate follow-ups.
 - **Pilot validation — considered DONE (Owner, 2026-06-24):** the customer research was completed
   *before* the project (it produced the plan + the dummy/seed data), so the pilot-validation gate is satisfied.
 - **Near-term: nothing required** — MVP-0 is deployed, live, and stable on synthetic data.
-  **Deferred to project end (Owner):** key rotation (above), legacy **Stage 0** secret remediation,
-  and real-Ebeid-data migration (after a privacy review). **Optional, agent-doable anytime:**
+  **Deferred to project end (Owner):** legacy **Stage 0** secret remediation and real-Ebeid-data migration
+  (after a privacy review). Supabase DB password/service-role key rotation is complete per the 2026-06-29 Owner
+  correction. **Optional, agent-doable anytime:**
   in-browser wedge-loop walkthrough; D1 FORCE RLS check on the real Supabase roles (low value).
 
 ## This session (2026-06-23) — security review DONE + **MERGED**; lib **published 1.1.0**
