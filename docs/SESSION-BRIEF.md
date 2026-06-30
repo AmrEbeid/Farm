@@ -76,14 +76,18 @@ or owner-timed). Delegated 9 worktree/research/hunter agents. Decision-free SHIP
 cleared (security/audit complete, perf, silent-failures, a11y table-names + status-colour, i18n, bundle hygiene,
 finance correctness, write-path concurrency verified).
 
-**DEFINITIVE STATE (end of session): the decision-free shippable surface is comprehensively cleared and
-verified.** 17 PRs merged; the whole research lane (#215–226) triaged with NO hidden defects (the consolidated
-sweep confirmed #206/#173/#181/#89/#155 already remediated); append-only event integrity verified clean. The
-single hub for everything — what shipped, the filed engineering backlog (#500/#502/#503), and the FULL Owner
-decision queue — is **issue #505**. All remaining high-value work is greenfield gated on Owner decisions:
-#199 (engine semantics), #157/#89 (pricing), #388 (wage), #366/#368 (expert gates), #229(iii) leaked-password
-(Auth toggle), the 7 #215 control-panel decisions, the 6 #216 inventory decisions, and the per-issue #217–226
-calls. Do NOT build any of these ahead of the Owner's answers.
+**DEFINITIVE STATE (end of session): every domain audited; decision-free shippable surface cleared + verified.**
+**20 PRs merged, 7 prod migrations, all green on `main` (`99ec021`).** Adversarial hunts swept security/audit,
+data-integrity, finance/money, concurrency/write-path, frontend/a11y/i18n, bundle, the research lane (#215–226),
+AND the stock-coverage **engine**. Key outcome: **#509 fixed a real, reproduced masked shortage** (the engine's
+cardinal sin) — `fn_stock_coverage` dropped `in_progress` op demand; the heavy existing oracle had missed it
+(migration `20260701130000`, define-check-first via `tests/102`, ENGINE invariants verified intact on prod).
+Also shipped after the earlier "cleared" note: #502 (CSV raw-money export → Excel SUM), #508 (custody
+one-cash-out unique backstop). **The single hub — full shipped list, filed backlog, and the complete Owner
+decision queue — is issue #505.** Remaining work is Owner-decision-gated (#199, #157/#89 pricing, #388 wage,
+#366/#368 expert gates, #229iii leaked-password toggle, the 7 #215 + 6 #216 decisions incl. the unit-model
+masking risk, per-issue #217–226) or deliberately deferred (#500 DS-tabs dist rebuild; #503 claim-first with the
+disbursement slice). Do NOT build the gated items ahead of the Owner's answers.
 
 ## 2026-06-30 — SAFE STOP: #215 control-panel research paused
 **Stop point.** Stopped at Owner request. Local `main` is at `e567115` (`docs: record unknown cost display fix`).
