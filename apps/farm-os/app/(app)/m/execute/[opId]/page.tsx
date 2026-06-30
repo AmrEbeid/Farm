@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card } from "@/components/ui";
+import { Card, EmptyState } from "@/components/ui";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR, OP_STATUS_AR, isExecutableOpStatus } from "@/lib/labels";
@@ -33,7 +33,12 @@ export default async function ExecutePage({
   // a misleading empty page.
   if (error) throw error;
 
-  if (!op) return <div className="p-6">العملية غير موجودة.</div>;
+  if (!op)
+    return (
+      <div className="p-6">
+        <EmptyState title="العملية غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const req = (op.plan_material_requirements ?? [])[0] as { qty?: number; unit?: string } | undefined;
   const laborReq = (op.plan_labor_requirements ?? [])[0] as { count?: number } | undefined;

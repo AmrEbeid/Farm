@@ -1,7 +1,21 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
+
+> **2026-06-30 — SPEC-0018 audit/authz follow-up; #438/#400/#444 patched and still held.** Local `main`
+> was fast-forwarded to `origin/main` (`5db895b`) before this docs update. Reviewed draft backend **#438** and found
+> a cross-PR `audit_read` regression: the payment-request migration preserved payroll and custody/payment audit
+> gates but would drop #368's `sale/expense -> budget.write` audit restrictions if both migration sets were applied.
+> Patched #438 remotely at `eccc76e` so `audit_log.audit_read` preserves the full confidentiality union
+> (`people_compensation -> payroll.read`, `sale/expense -> budget.write`, custody/payment entities ->
+> `finance.read`) and added pgTAP coverage for restricted audit mirrors. Local pgTAP passed **757/757**; GitHub
+> checks are green. Also patched the known stale older `authorize()` re-emits: **#400** at `8c1973c` and **#444**
+> at `304ba09`, with tests now pinning SPEC-0018 owner/accountant custody/request semantics. Local pgTAP passed
+> **681/681** on #400 and **707/707** on #444; both GitHub check sets are green. All three PRs remain draft/held.
+> No merge, migration, prod apply, deploy, or production data change was performed. Remaining gate: final
+> pre-migration review is still required before any custody/payment apply; any later/older `authorize()` re-emit
+> must carry the same final union before applying after #438.
 
 > **2026-06-29 — SAFE STOP: current project status, remaining work, and timeline.** Local `main` was
-> fast-forwarded to current `origin/main` (`4a8e2de`) before stopping. Production Supabase remains at migration
+> fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production Supabase remains at migration
 > `0096`; no migration, prod apply, draft-PR merge, or production data change was performed in this stop/report
 > pass. Current estimate: live MVP/pilot operating core is **~90-92% done**; pre-real-data pilot readiness is
 > **~80-85% done**; full commercial product vision is **~55-60% done**; finance/accounting maturity is
@@ -16,7 +30,10 @@
 > **1-2 days** for small DB hardening reviews/apply planning, **3-5 days** to unblock a safe custody first slice,
 > **1-2 weeks** for finance/accounting foundation after ratification/reconciliation path, **2-4 weeks** for
 > real-data readiness, and **4-8 weeks** for broader commercial maturity. All open PRs are currently draft/held;
-> no merge-ready PR lane should be treated as approved without a fresh review + pre-migration gate.
+> no merge-ready PR lane should be treated as approved without a fresh review + pre-migration gate. Current open
+> PR queue is all draft/held: clean #444, #442, #441, #439, #438, #421, #400; dirty/stale #436, #368, #366.
+> Recent held reviews are recorded on #438/#444/#442/#439; their pre-migration caveats remain active. Recommended
+> next resume lane: refresh/review dirty #436 (`fn_bin_rebuild` internal) before any migration bundle planning.
 
 > **2026-06-29 — #439 grant/default-privilege review posted; still held.** Reviewed draft PR **#439**
 > at `e2ca96f`: it removes client-role `TRUNCATE`/broad `DELETE` on current public tables, preserves only

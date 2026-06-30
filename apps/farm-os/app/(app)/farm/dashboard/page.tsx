@@ -205,7 +205,7 @@ export default async function FarmDashboardPage({
       />
 
       {(filter === "all" || filter === "attention" || filter === "events") && (
-        <section className="grid gap-4 xl:grid-cols-2">
+        <section className="grid gap-4 md:grid-cols-2">
           {(filter === "all" || filter === "attention") && (
         <Card title="نخيل يحتاج عناية">
           {attentionRows.length === 0 ? (

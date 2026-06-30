@@ -1,11 +1,36 @@
-# Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — SPEC-0018 audit/authz follow-up; drafts still held
+**Start point.** Local `main` was fast-forwarded to current `origin/main` (`5db895b`) before updating this brief.
+No production migration, prod apply, draft-PR merge, or production data change was performed.
+
+**#438 custody/payment backend.** Reviewed the current draft backend at `cb648d8`, posted a blocking review for a
+cross-PR audit policy regression, then patched the draft branch remotely at `eccc76e`. The patch makes
+`audit_log.audit_read` preserve the full confidentiality union: `people_compensation -> payroll.read`,
+`sale/expense -> budget.write`, and custody/payment entities -> `finance.read`. Added pgTAP coverage in
+`103_payment_request_test.sql` so accountant can read restricted accounting/finance audit mirrors, a supervisor
+cannot, and generic same-org audit rows remain visible. Local pgTAP passed **757/757**; GitHub checks are green
+(app, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel; Supabase Preview skipped). #438 remains
+draft/held for independent money/RLS/audit review and separate pre-migration review.
+
+**#400 and #444 migration-order cleanup.** Patched the known stale older `authorize()` re-emits so they no longer
+re-broaden SPEC-0018 custody/payment permissions if applied after #438. #400 export was patched at `8c1973c`:
+`custody.write`, `request.prepare`, and `request.approve.op` are now owner/accountant only, and
+`97_authorize_perms_complete_test.sql` asserts the SPEC-0018 role semantics. Local pgTAP passed **681/681** and
+GitHub checks are green. #444 responsibility-write was patched at `304ba09` with the same finance-only union and
+`101_responsibility_assignments_write_gate_test.sql` coverage. Local pgTAP passed **707/707** and GitHub checks are
+green. Both PRs remain draft/held; no merge or migration.
+
+**Updated gate status.** The specific stale-authz risk for #400/#444 is resolved, but the general rule remains:
+any later/older `authorize()` re-emit must carry the same final permission union before it is applied after #438.
+Do not apply the custody/payment migrations until the final pre-migration review is done. Recommended next lane is
+still to refresh/review dirty #436 (`fn_bin_rebuild` internal) before planning any migration bundle.
+
 ## 2026-06-29 — SAFE STOP: status snapshot and next-session handoff
-**Stop point.** Local `main` was fast-forwarded to current `origin/main` (`4a8e2de`) before stopping. Production
+**Stop point.** Local `main` was fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production
 Supabase remains at migration `0096`. No migration, prod apply, draft-PR merge, or production data change was
-performed in this stop/report pass. The worktree is clean except the unrelated untracked local stale file
-`docs/SPEC-0018-custody-and-payment-requests.md`.
+performed in this stop/report pass.
 
 **Percent snapshot.** Live MVP/pilot operating core is **~90-92% done**. Pre-real-data pilot readiness is
 **~80-85% done**. Full commercial product vision is **~55-60% done**. Finance/accounting maturity is **~35-45% done**.
@@ -27,9 +52,19 @@ review/apply planning; **3-5 days** to unblock a safe custody first slice; **1-2
 foundation after ratification/reconciliation path; **2-4 weeks** for real-data readiness; **4-8 weeks** for broader
 commercial maturity.
 
-**Next recommended action.** Do not merge or migrate a draft lane blindly. Start with the smallest reviewed DB
-hardening batch, likely #436/#439/#442/#444, and run a fresh pre-migration review with prod read-only probes before
-any Supabase apply.
+**Open PR queue.** All remaining open PRs are draft/held. Clean merge-state PRs: #444 responsibility-write gate,
+#442 inventory transfer/ordered guard, #441 custody frontend, #439 grant/default-privilege hygiene, #438 custody
+backend, #421 SPEC-0018 docs, and #400 export compliance. Dirty/stale PRs: #436 `fn_bin_rebuild` internal, #368
+accounting backend, and #366 academy backend.
+
+**Active gates.** #438/#441 remain held behind independent money/RLS/audit review and migrate-first sequencing.
+#444/#442/#439 have review comments and docs entries but still need separate pre-migration review before any apply.
+#436/#368/#366 need refresh/review before they can be considered for any migration bundle. Supabase DB password and
+service-role key rotation remains Owner-complete and must not be reopened unless Owner explicitly reopens it.
+
+**Recommended resume point.** Start with #436 because it is dirty/stale and narrow: refresh it against current
+`origin/main`, re-check the `fn_bin_rebuild` internalization diff, run local pgTAP, then update PR/docs. Do not
+plan or apply any production migration bundle until the dirty draft branches are refreshed and reviewed.
 
 ## 2026-06-29 — module dashboards/360 batch live
 **Change.** Completed the module navigator/dashboard/360 batch and committed it locally as `30fdd26`

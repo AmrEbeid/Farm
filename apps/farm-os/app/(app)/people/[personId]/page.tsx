@@ -58,7 +58,12 @@ export default async function Person360Page({
   if (performedError) throw performedError;
   if (assignedError) throw assignedError;
 
-  if (!person) return <div className="p-6">الشخص غير موجود.</div>;
+  if (!person)
+    return (
+      <div className="p-6">
+        <EmptyState title="الشخص غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const manager = (people ?? []).find((p) => p.id === person.reports_to_person_id);
   const directReports = (people ?? []).filter((p) => p.reports_to_person_id === person.id);

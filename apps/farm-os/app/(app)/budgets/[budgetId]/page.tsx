@@ -14,7 +14,12 @@ export default async function Budget360Page({
   params: Promise<{ budgetId: string }>;
 }) {
   const { budgetId } = await params;
-  await requireRole(["owner", "accountant", "farm_manager"]);
+  // farm_manager may see the budget (lines, PRs, roll-ups) but NOT the raw expense
+  // ledger — expenses are private finance data scoped to owner/accountant, matching
+  // finance/dashboard and the supplier 360. RLS leaves expense READS org-only, so
+  // this app-layer gate is the real boundary for the expense sub-section.
+  const m = await requireRole(["owner", "accountant", "farm_manager"]);
+  const canReadPrivateFinance = m.role === "owner" || m.role === "accountant";
   const sb = await createClient();
 
   const { data: budget, error: budgetError } = await sb
@@ -23,7 +28,12 @@ export default async function Budget360Page({
     .eq("id", budgetId)
     .maybeSingle();
   if (budgetError) throw budgetError;
-  if (!budget) return <div className="p-6">الموازنة غير موجودة.</div>;
+  if (!budget)
+    return (
+      <div className="p-6">
+        <EmptyState title="الموازنة غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const [
     { data: lines, error: linesError },
@@ -35,7 +45,7 @@ export default async function Budget360Page({
       .select("id, category, planned, approved, committed, actual")
       .eq("budget_id", budgetId)
       .order("category"),
-    budget.category
+    canReadPrivateFinance && budget.category
       ? sb
           .from("expenses")
           .select("id, date, category, description, total")
@@ -150,13 +160,15 @@ export default async function Budget360Page({
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <Card title="مصروفات من نفس الفئة">
-          {expenseRows.length === 0 ? (
-            <EmptyState title="لا توجد مصروفات مرتبطة بالفئة" />
-          ) : (
-            <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
-          )}
-        </Card>
+        {canReadPrivateFinance && (
+          <Card title="مصروفات من نفس الفئة">
+            {expenseRows.length === 0 ? (
+              <EmptyState title="لا توجد مصروفات مرتبطة بالفئة" />
+            ) : (
+              <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
+            )}
+          </Card>
+        )}
         <Card title="طلبات شراء مرتبطة">
           {prRows.length === 0 ? (
             <EmptyState title="لا توجد طلبات شراء مرتبطة" />
