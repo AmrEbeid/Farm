@@ -50,9 +50,14 @@ export interface ReadinessResult {
   reasons: ReadinessReason[];
 }
 
-/** ISO yyyy-mm-dd strings compare lexicographically; null bound = open on that side. */
-function withinWindow(onDate: string, from: string | null, to: string | null): boolean {
-  return (from == null || onDate >= from) && (to == null || onDate <= to);
+/** ISO yyyy-mm-dd strings compare lexicographically; a missing start date is not valid evidence. */
+function withinRegistrationWindow(onDate: string, from: string | null, to: string | null): boolean {
+  return from != null && onDate >= from && (to == null || onDate <= to);
+}
+
+/** Seasonal accreditations need a complete validity window to support a readiness sign-off. */
+function withinSeasonalWindow(onDate: string, from: string | null, to: string | null): boolean {
+  return from != null && to != null && onDate >= from && onDate <= to;
 }
 
 const eq = (a: string | null, b: string) => (a ?? "").trim().toLowerCase() === b.trim().toLowerCase();
@@ -67,7 +72,7 @@ export function computeExportReadiness(input: ReadinessInput): ReadinessResult {
   const reasons: ReadinessReason[] = [];
 
   const reg = registrations.find(
-    (r) => eq(r.market, market) && eq(r.status, "normal") && withinWindow(onDate, r.valid_from, r.valid_to),
+    (r) => eq(r.market, market) && eq(r.status, "normal") && withinRegistrationWindow(onDate, r.valid_from, r.valid_to),
   );
   reasons.push({
     code: "registration",
@@ -76,7 +81,7 @@ export function computeExportReadiness(input: ReadinessInput): ReadinessResult {
   });
 
   const acc = accreditations.find(
-    (a) => eq(a.destination_market, market) && eq(a.crop, crop) && eq(a.variety, variety) && withinWindow(onDate, a.valid_from, a.valid_to),
+    (a) => eq(a.destination_market, market) && eq(a.crop, crop) && eq(a.variety, variety) && withinSeasonalWindow(onDate, a.valid_from, a.valid_to),
   );
   reasons.push({
     code: "accreditation",

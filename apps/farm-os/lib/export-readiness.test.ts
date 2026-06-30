@@ -33,9 +33,32 @@ describe("computeExportReadiness", () => {
     expect(r.reasons.find((x) => x.code === "registration")?.ok).toBe(false);
   });
 
+  it("fails closed when the GACC registration has no valid-from date", () => {
+    const i = base();
+    i.registrations = [{ market: "CN", status: "Normal", valid_from: null, valid_to: "2025-12-31" }];
+    const r = computeExportReadiness(i);
+    expect(r.eligible).toBe(false);
+    expect(r.reasons.find((x) => x.code === "registration")?.ok).toBe(false);
+  });
+
+  it("allows an open-ended GACC registration only when a valid-from date exists", () => {
+    const i = base();
+    i.registrations = [{ market: "CN", status: "Normal", valid_from: "2025-10-24", valid_to: null }];
+    const r = computeExportReadiness(i);
+    expect(r.reasons.find((x) => x.code === "registration")?.ok).toBe(true);
+  });
+
   it("is ineligible when no accreditation covers the variety", () => {
     const i = base();
     i.accreditations[0].variety = "Medjool";
+    const r = computeExportReadiness(i);
+    expect(r.eligible).toBe(false);
+    expect(r.reasons.find((x) => x.code === "accreditation")?.ok).toBe(false);
+  });
+
+  it("fails closed when the seasonal accreditation has an incomplete validity window", () => {
+    const i = base();
+    i.accreditations[0].valid_to = null;
     const r = computeExportReadiness(i);
     expect(r.eligible).toBe(false);
     expect(r.reasons.find((x) => x.code === "accreditation")?.ok).toBe(false);
