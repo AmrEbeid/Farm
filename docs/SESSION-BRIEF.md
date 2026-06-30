@@ -1,6 +1,24 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — SPEC-0016 export compliance live via #400
+**Review and fix.** #400 was rebased onto current `main` and reviewed as a real migration lane. The only code fix
+needed was in `computeExportReadiness()`: missing validity evidence now fails closed, so a GACC registration without
+a valid-from date and a seasonal accreditation without a complete window cannot pass the readiness gate. Open-ended
+GACC registrations are still allowed only when a valid-from date exists.
+
+**Validation and apply.** Local validation passed: focused Vitest **11/11**, full pgTAP **825/825**, and
+`git diff --check` clean. Remote #400 checks were green. Preflight showed exactly one missing prod migration,
+`20260622000092`; `supabase db push --dry-run --include-all` listed exactly
+`20260622000092_export_compliance.sql`. Applied to Farm prod with `supabase db push --include-all --yes`; the
+post-apply ledger now records `20260622000092`.
+
+**Merge and current state.** #400 was marked ready and squash-merged as `55fafbc`; post-merge `main` `ci`,
+`db-tests`, and `release` all passed. SPEC-0016 is now built for schema/RLS/audit plus pure readiness compute.
+No real certificate data was imported; responsible-person national ID and phone stay gated behind Stage-M privacy
+review. Concurrent UI-only entity-360 PRs #477/#478 also merged with green checks and a quick post-merge scan found
+no obvious role-gate/action drift. Current open PR queue is draft-only: #368 and #366.
+
 ## 2026-06-30 — Chart Arabic-Indic numerals live via #476
 **Review.** Non-draft #476 was reviewed after the SPEC-0018 spec merge. The diff is UI-only: it adds an internal
 `formatChartNumber()` helper to `@amrebeid/ui`, applies it to Bar/Line/Doughnut chart axes, tooltips, and
@@ -14,8 +32,8 @@ limit, so the gating review was manual. #476 was squash-merged as `fdca0e0`. Pos
 typecheck/lint/test/build plus the Recharts code-split guard.
 
 **Current state.** Charts in `@amrebeid/ui/charts` now render numeric axes/tooltips and accessibility table fallback
-values in Arabic-Indic digits without a public API change. Current open PR queue remains draft-only: #400, #368,
-#366.
+values in Arabic-Indic digits without a public API change. **Superseded by the #400 entry above:** export
+compliance is now shipped; current open PR queue is #368 and #366.
 
 ## 2026-06-30 — SPEC-0018 frontend live via clean #474
 **Why a replacement PR.** The historical #441 frontend branch was stale against current `main` locally and carried
@@ -35,7 +53,7 @@ gitleaks, CodeRabbit, Vercel; Supabase Preview skipped. #474 was squash-merged a
 **Current state.** SPEC-0018 custody/payment is now live end-to-end on `main`: backend schema/RPCs from #468 and
 frontend `/custody` + `/custody/request/[requestId]` from #474. Since the prior brief, dashboard PRs #471, #472,
 #473, and #475 also merged, and #421 now tracks the SPEC-0018 implementation spec. Current open queue is draft-only:
-#400, #368, #366. #317/#229 residuals remain open for
+#368, #366. #317/#229 residuals remain open for
 `supabase_admin` default ACL / leaked-password-protection follow-up.
 
 ## 2026-06-30 — SPEC-0018 backend live via clean #468
@@ -73,13 +91,14 @@ Closed resolved audit issues #430, #431, and #314 with evidence comments. #317 r
 `supabase_admin` table default ACL still grants future table privileges to client roles. #229 also remains open for
 that residual plus leaked-password-protection/Auth dashboard verification.
 
-**Superseded next lane.** This #466 handoff was superseded by the #468 and #474 entries above: SPEC-0018 backend and
-frontend are now reviewed/applied-or-merged as appropriate. #400/#368/#366 remain held.
+**Superseded next lane.** This #466 handoff was superseded by the #468, #474, and #400 entries above:
+SPEC-0018 backend/frontend and SPEC-0016 export are now reviewed/applied-or-merged as appropriate. #368/#366
+remain held.
 
 ## 2026-06-30 — DB hardening bundle reviewed and applied to Farm prod
 **Start point.** Local `main` was current with `origin/main` at `b7a95eb`. Farm Supabase prod was already applied
 through `20260622000100_revoke_anon_exec_action_rpcs`; the open narrow DB candidates were #436/#439/#442/#444,
-with #438/#400/#368/#366 still held.
+with #438/#400/#368/#366 held at that start point.
 
 **Review/probes.** Re-fetched PR heads and verified SQL from the actual PR refs. Prod read-only probes were clean for
 data preconditions: `inventory_movements.type='transfer'` = 0, `inventory_bin.ordered <> 0` = 0, and

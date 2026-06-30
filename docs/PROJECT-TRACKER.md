@@ -1,5 +1,18 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — SPEC-0016 export compliance reviewed, prod-applied, and merged via #400.** Rebased
+> **#400** onto current `main`, patched `computeExportReadiness()` so incomplete validity evidence fails closed
+> (missing GACC valid-from or incomplete seasonal accreditation window cannot pass), and kept the Stage-M privacy
+> gate explicit: no real certificate data or PII import. Validation: focused Vitest **11/11**, full local pgTAP
+> **825/825**, `git diff --check` clean; #400 remote checks green (app typecheck/lint/test/build, pgTAP/db,
+> aggregate typecheck/build/storybook, gitleaks, CodeRabbit, Vercel; Supabase Preview skipped). Pre-migration
+> review: remote ledger showed exactly one local-only migration, `20260622000092`; `supabase db push --dry-run
+> --include-all` listed exactly `20260622000092_export_compliance.sql`. Applied to Farm prod with
+> `supabase db push --include-all --yes`; post-apply ledger records `20260622000092`. #400 was marked ready and
+> squash-merged at `55fafbc`; post-merge `main` **ci**, **db-tests**, and **release** are green. Concurrent UI-only
+> entity-360 PRs **#477/#478** also merged with green checks; post-merge scan found no obvious gate/action drift.
+> Current open queue is draft-only: **#368/#366**.
+
 > **2026-06-30 — #476 chart numeral pass reviewed and merged; migration N/A.** Reviewed non-draft
 > **#476** after SPEC-0018 docs landed. Scope was UI-only: internal `formatChartNumber()` helper in
 > `@amrebeid/ui`, Bar/Line/Doughnut chart axis + tooltip + screen-reader table fallback formatting, focused tests,
@@ -7,7 +20,8 @@
 > changes; no migration/prod DB action was needed. CodeRabbit did not perform a real review due its rate limit, so
 > this was manually reviewed against the PR diff and GitHub checks. #476 was squash-merged at `fdca0e0`; post-merge
 > `main` **db-tests** and **release** are green, with `ci` confirming package typecheck/token/test/build/storybook
-> and app typecheck/lint/test/build. Current open queue remains draft-only: **#400/#368/#366**.
+> and app typecheck/lint/test/build. **Superseded by the #400 entry above:** export compliance is now
+> reviewed/applied/merged; current open queue is **#368/#366**.
 
 > **2026-06-30 — SPEC-0018 frontend reviewed, refreshed, merged; custody module live on `main`.** Original draft
 > **#441** was stale against current `main` (no merge base; unrelated tree churn), so a clean replacement
@@ -20,7 +34,7 @@
 > Supabase Preview skipped). #474 was squash-merged at `2eb6025`; post-merge `main` **ci**, **db-tests**, and
 > **release** are green. #441 is closed as superseded. Current `main` also includes dashboard follow-up PRs
 > **#471/#472/#473/#475** and the tracked SPEC-0018 implementation spec from **#421**. Current open queue is
-> draft-only: **#400/#368/#366**.
+> draft-only: **#368/#366** after the later #400 export lane shipped.
 
 > **2026-06-30 — SPEC-0018 backend reviewed, prod-applied, and merged via clean #468.** Original draft
 > **#438** was not mergeable against current `main` locally (no merge base; unrelated tree churn), so a clean

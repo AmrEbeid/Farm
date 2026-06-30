@@ -9,12 +9,14 @@ disagree, this file and RECONCILE-001 win. Items not verifiable on `main` are ma
 
 Last updated: 2026-06-30. Maintainers: Product + Owner (Amr Ebeid).
 
-> **Reconcile note (reading this vs older docs):** three claims that float around older docs/PRs are corrected
+> **Reconcile note (reading this vs older docs):** four claims that float around older docs/PRs are corrected
 > here against `main`: (1) **planned-vs-actual is built** (`reports/[planId]/pva`); (2) **Accounting P&L
 > (`/accounting`, `lib/pnl.ts`, `sales`) and Care Academy (`/academy`) are NOT on `main`** — they are in
 > unmerged **draft PRs #368 / #366** (migrations `0088`/`0097` and `0091` not applied); (3) **prod is now at
 > migration `20260629150100` per DEPLOY-STATUS**, including the SPEC-0018 custody/payment backend from #468 and
-> the live custody frontend from #474; #441 is closed as superseded.
+> the live custody frontend from #474; #441 is closed as superseded; (4) **SPEC-0016 export compliance slice 1 is
+> built** — migration `20260622000092` is applied and `lib/export-readiness.ts` is on `main`, but no real cert data,
+> PII import, or readiness UI panel exists yet.
 
 ---
 
@@ -31,12 +33,13 @@ This file is the **hub** of the Farm OS Product Knowledge System (designed in
 | [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) | Commercial SaaS layer (billing/onboarding/admin) | Draft |
 | [`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md) | In-app help + rule-based "Why?" + `pageMeta` + Health Score | Draft |
 | [`SPEC-0015`](SPEC-0015-product-knowledge-system.md) | This knowledge system (phases, traceability, maturity) | Draft |
+| [`SPEC-0016`](SPEC-0016-export-compliance-and-certification.md) | Export compliance schema + pure readiness check | ✅ Built |
 | [`SPEC-0018`](SPEC-0018-custody-and-payment-requests.md) | Custody ledger + payment-request implementation | ✅ Built |
 | [`FEATURE-REGISTRY.md`](FEATURE-REGISTRY.md) (Tier 1) | `FEAT-NNN` → routes/migrations/components/tests/spec | ✅ L3 |
 | [`BUSINESS-RULES-CATALOG.md`](BUSINESS-RULES-CATALOG.md) (Tier 1) | `BR-NNN` → statement/enforced-by/test/FEAT | ✅ L3 |
 | [`DOMAIN-DICTIONARY.md`](DOMAIN-DICTIONARY.md) (Tier 1) | TERM → definition/AR↔EN/source/relationships | ✅ L3 |
 | [`RPC-CATALOG.md`](RPC-CATALOG.md) (Phase 2) | `RPC-NNN` → args/returns/guard/side-effects/BR/FEAT | ✅ L3 |
-| [`DATA-DICTIONARY.md`](DATA-DICTIONARY.md) (Phase 2) | `TBL-NNN` → columns/FKs/RLS/FEAT (42 tables) | ✅ L3 |
+| [`DATA-DICTIONARY.md`](DATA-DICTIONARY.md) (Phase 2) | `TBL-NNN` → columns/FKs/RLS/FEAT (46 tables) | ✅ L3 |
 | [`PERMISSIONS-MATRIX.md`](PERMISSIONS-MATRIX.md) (Phase 2) | roles × permissions × pages × actions + SoD | ✅ L3 |
 | [`EVENT-CATALOG.md`](EVENT-CATALOG.md) (Phase 2) | event types/subtypes/statuses + anatomy + RPCs | ✅ L3 |
 | [`REPORT-CATALOG.md`](REPORT-CATALOG.md) (Phase 2) | `RPT-NN` reports/dashboards + charts + filtering | ✅ L3 |
@@ -327,15 +330,17 @@ common-mistakes + related pages + the rule-based "Why?" for its error codes.
 ## 8. Permissions and Roles
 
 **Model:** Postgres **RLS deny-by-default**, `to authenticated`, joined via `user_org_ids()`; fine-grained
-actions via `authorize(perm, org)` (`0035`). Verified permission strings: `structure.write`, `inventory.write`,
-`plan.write`, `op.execute`, `budget.write`, `payroll.read`.
+actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified permission strings:
+`pr.approve`, `plan.write`, `op.execute`, `inventory.write`, `budget.write`, `payroll.read`, `structure.write`,
+`responsibility.write`, `finance.read`, `custody.write`, `request.prepare`, `request.approve.op`,
+`request.approve.final`, `export.write`, `academy.write`.
 
 | Role (AR) | Org behavior | Key write perms | Approvals / SoD | Notable pages |
 |---|---|---|---|---|
 | owner (المالك) | full org | all | **approves PRs** (creator ≠ approver) | settings (sole), budgets, approvals |
-| farm_manager (مدير المزرعة) | per-org | plan/budget/structure | approves (SoD) | plans, farm, PRs |
-| agri_engineer (مهندس زراعي) | per-org | plan/op/structure | executes, not approve-own | plans, weather, /m |
-| accountant (محاسب) | per-org | budget/expenses | finance reads | expenses, budgets |
+| farm_manager (مدير المزرعة) | per-org | plan/structure/inventory/responsibility/export | writes, no PR approval | plans, farm, PRs |
+| agri_engineer (مهندس زراعي) | per-org | op.execute; academy.write arm | executes operations | plans, weather, /m |
+| accountant (محاسب) | per-org | budget/expenses/custody/payment requests | finance reads; operational payment approval | expenses, budgets, custody |
 | supervisor (مشرف ميداني) | per-org | op.execute | executes ops | /m |
 | storekeeper (أمين مخزن) | per-org | inventory.write | receives/issues | inventory, suppliers |
 | admin/support operator | — | **not built** (SPEC-0013 S5) | distinct from tenant roles | planned /admin |
@@ -350,7 +355,7 @@ actions via `authorize(perm, org)` (`0035`). Verified permission strings: `struc
 
 ## 9. Data Model Overview
 
-**42 tables, org-scoped, RLS-forced.** Major groups:
+**46 tables, org-scoped, RLS-forced.** Major groups:
 
 - **Tenancy/identity:** `organization`, `organization_member`, `people`, `people_compensation`,
   `responsibility_assignments`, `audit_log`.
@@ -361,6 +366,8 @@ actions via `authorize(perm, org)` (`0035`). Verified permission strings: `struc
 - **Planning:** `plans`, `plan_operations`, `plan_material_requirements`, `plan_labor_requirements`, `plan_checks`.
 - **Purchasing/finance:** `purchase_requests`, `purchase_request_items`, `budgets`, `budget_lines`, `expenses`,
   `custody_accounts`, `custody_movements`, `payment_requests`, `payment_request_lines`.
+- **Export compliance:** `export_registrations`, `farm_export_accreditations`, `residue_tests`,
+  `residue_test_results`.
 - **Media:** `attachments` (+ `farm-media` storage bucket).
 - **Relationships:** everything carries `org_id`; structure is a strict parent chain (cross-org FK guards swept in
   `0061`–`0075`); events/inventory/PRs reference org-validated parents; audit mirrors writes immutably.
@@ -440,7 +447,7 @@ actions via `authorize(perm, org)` (`0035`). Verified permission strings: `struc
 | Capability | Status | Confidence | Evidence | Notes |
 |---|---|---|---|---|
 | Multi-tenant + org isolation (RLS) | ✅ | High | `0001`/`0085`/`0086`; `user_org_ids()` | — |
-| RBAC (6 roles + `authorize`) | ✅ | High | `lib/auth.ts`; `0035`; role-gates | — |
+| RBAC (6 roles + `authorize`) | ✅ | High | `lib/auth.ts`; `0035` + re-emits through `0092`; role-gates | — |
 | Farm structure + 360 + croquis | ✅ | High | `0003`/`0080`/`0081`; `/farm/*` | — |
 | Event ledger (ops as events) | ✅ | High | `0004`/`0083`; `fn_record_event` | — |
 | Inventory + stock-coverage engine | ✅ | High | `0005`/`0009`; `fn_stock_coverage` | the wedge |
@@ -452,6 +459,7 @@ actions via `authorize(perm, org)` (`0035`). Verified permission strings: `struc
 | **Planned-vs-actual report** | ✅ | High | `reports/[planId]/pva` (`VarianceChart`) | **corrected from earlier "missing"** |
 | Attachments / media + storage RLS | ✅ | High | `0082`; `farm-media` | OCR ⬜ |
 | Weather + advisory gates | ✅ | High | `lib/weather*`; `/weather` | needs API key |
+| Export compliance & readiness | ✅ | Med/High | `0092`; `lib/export-readiness.ts`; SPEC-0016 | readiness panel + real-cert import ⬜ |
 | Mobile field view (offline-tolerant) | ✅ | High | `/m` | true offline ⬜ |
 | Profile (read-only) | ✅ | High | `/profile` | — |
 | AI capability boundary | ✅ | Med | `lib/assistant-policy.ts` | AI itself ⬜ |

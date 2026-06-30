@@ -4,7 +4,8 @@
 stable `BR-NNN` id, the enforcing object (RPC / trigger / RLS policy / constraint / grant) with its migration, a
 test reference, and the `FEAT-NNN` it belongs to. **This is the source for the rule-based "Why?" surface**
 ([`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)). Reconciled to `main` 2026-06-30 (through SPEC-0018
-backend migrations `20260629150000`/`20260629150100` + pgTAP suite). Maturity **L3**. IDs stable + append-only.*
+backend migrations `20260629150000`/`20260629150100`, responsibility gate `20260629141650`, SPEC-0016 export
+compliance `20260622000092`, and pgTAP suite). Maturity **L3**. IDs stable + append-only.*
 
 Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supabase/tests/`.
 
@@ -83,6 +84,9 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-067** | Custody account/movement writes require `custody.write` (owner/accountant) and same-org references. | RPC gates + direct DML revokes (`20260629150000`) | `102_custody_payment` | FEAT-028 |
 | **BR-068** | Payment request preparation requires `request.prepare` (owner/accountant); request tables are RPC-only. | RPC gates + direct DML revokes (`20260629150100`) | `103_payment_request` | FEAT-028 |
 | **BR-069** | Payment requests require operational approval by owner/accountant before final owner approval. | lifecycle RPC gates (`20260629150100`) | `103_payment_request` | FEAT-028 |
+| **BR-073** | Responsibility assignments are org-readable but writable only with `responsibility.write` (owner/farm_manager). | RLS WITH CHECK (`20260629141650`) | `101_responsibility_assignments_write_gate` | FEAT-019 |
+| **BR-074** | Export registrations/accreditations/residue tests/results are org-readable but writable only with `export.write` (owner/farm_manager), with same-org responsible-person and residue-parent guards. | RLS WITH CHECK (`20260622000092`) | `93_export_compliance` | FEAT-029 |
+| **BR-075** | Care Academy content writes are reserved for `academy.write` (owner/agri_engineer); on `main` only the permission arm is present while #366 tables/routes stay draft-held. | `authorize()` union (`20260622000092`) | `97_authorize_perms_complete` | FEAT-024 |
 
 ## PII & confidentiality
 | BR | Rule | Enforced by | Test | FEAT |
@@ -115,6 +119,7 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-102** | PR status ∈ {draft, submitted, approved, rejected, received, partially_received}. | CHECK (`0007`/`0045`) | `51_pr_receipt_status_gate` | FEAT-009 |
 | **BR-103** | Member role ∈ {owner, farm_manager, agri_engineer, accountant, supervisor, storekeeper}. | CHECK (`0001`) | (RLS suite) | FEAT-002 |
 | **BR-104** | Event type ∈ {operation, inspection, issue, note}. | check in `fn_record_event` (`0083`) | `83_record_event` | FEAT-011 |
+| **BR-105** | Export-compliance validity windows cannot be inverted, and export acreage/approved quantity/residue values cannot be negative. | CHECK constraints (`20260622000092`) | `93_export_compliance` | FEAT-029 |
 
 ## Policy rules (governance — not DB-enforced; see CLAUDE.md)
 | BR | Rule | Source | FEAT |
@@ -124,7 +129,8 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-112** | Pricing is per-farm (EGP), never per-seat. | CLAUDE.md #3 | FEAT-027 |
 | **BR-113** | Agronomy content is an editable template, not a prescription (needs agronomist + pesticide-registration sign-off). | CLAUDE.md #4 | FEAT-024 |
 | **BR-114** | The AI assistant is read-only, RLS-scoped, no PII, no outbound (lethal-trifecta never combined). | CLAUDE.md Security; `assistant-policy.ts` | FEAT-021 |
+| **BR-115** | Export readiness never fabricates certificate/residue/MRL evidence and fails closed when required validity evidence is missing. | CLAUDE.md #1; `lib/export-readiness.ts` | FEAT-029 |
 
-*~50 rules; the agent extraction found ~68 candidate constraints — the remainder (additional parent-existence
+*~55 rules; the agent extraction found ~68 candidate constraints — the remainder (additional parent-existence
 EXISTS checks, definer-EXECUTE lockdowns per function, supplier/item write gates) are covered by the families
 above (BR-052/BR-055/BR-062). Add new rules with the next free id in the relevant family.*

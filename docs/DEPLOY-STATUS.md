@@ -2,22 +2,25 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **CURRENT STATE (2026-06-30 — SPEC-0018 backend + frontend live; #476 UI chart fix merged).** Prod ledger includes the reviewed
+> **CURRENT STATE (2026-06-30 — SPEC-0018 live; #476 chart fix; #400 export compliance applied).** Prod ledger includes the reviewed
 > custody/payment backend migrations **`20260629150000`** and **`20260629150100`**, applied with
 > `supabase db push --yes` after #468 preflight showed exactly those two pending versions and no existing remote
 > object/column collisions. `main` records the same backend migrations at merge `27065f1`; the frontend module
 > was then refreshed on clean #474 and merged at `2eb6025` with no additional DB migration. Live app surfaces now
 > include `/custody` and `/custody/request/[requestId]` for owner/accountant. UI-only #476 then merged at
 > `fdca0e0`, formatting chart numeric axes/tooltips/accessibility fallbacks as Arabic-Indic digits; it changed no
-> database files, so migration/prod DB apply is N/A. Post-merge `main` `ci`, `db-tests`, and `release` are green
-> for the SPEC-0018 and #476 lanes. #438 and #441 are closed as superseded by #468/#474.
-> **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting), `0091` (#366 academy), and `0092`
-> (#400 export). These remain behind their expert/reconciliation/pre-migration gates. **Residual security/admin
+> database files, so migration/prod DB apply is N/A. Export-compliance #400 then applied
+> **`20260622000092_export_compliance`** with `supabase db push --include-all --yes` after a dry-run listed exactly
+> that migration; the prod ledger now records `20260622000092`, and #400 is merged on `main` at `55fafbc`. No real
+> certificate data or PII was imported. Post-merge `main` `ci`, `db-tests`, and `release` are green for the
+> SPEC-0018, #476, and #400 lanes. #438 and #441 are closed as superseded by #468/#474.
+> **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting) and `0091` (#366 academy).
+> These remain behind their expert/reconciliation/pre-migration gates. **Residual security/admin
 > follow-up:** #317/#229 remain open for the platform-owned `supabase_admin` default table ACL and leaked-password
 > protection/Auth dashboard verification. **Rotation note:** Owner confirmed 2026-06-29 that Supabase DB password +
 > service-role key rotation is complete; do not raise again.
 
-> **CURRENT STATE (2026-06-28, late — PR sweep).** Prod is at migration **`0096`**. Applied this session
+> **HISTORICAL STATE (2026-06-28, late — PR sweep; superseded by the 2026-06-30 current state above).** Prod is at migration **`0096`**. Applied this session
 > via the Supabase MCP, each recorded under its **exact repo version** (**0 stray/off-version rows**;
 > prod head `20260622000096`): earlier-applied `0090` + `0093` (#399 operations), `0094` (#401 **C2 engine
 > fix — the go-live blocker, now LIVE on prod**), `0095` (#402 org-switcher anon-lock + fiscal-year coalesce),
@@ -32,7 +35,7 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > in the dashboard: enable `custom_access_token_hook` + leaked-password protection. **Rotation note:** Owner
 > confirmed 2026-06-29 that Supabase DB password + service-role key rotation is complete; do not raise again.
 
-> **CURRENT REVIEW UPDATE (2026-06-29 — draft migration lane).** Fresh independent reviews of the three remaining
+> **HISTORICAL REVIEW UPDATE (2026-06-29 — draft migration lane; #400 later shipped on 2026-06-30).** Fresh independent reviews of the three remaining
 > draft migration PRs all recommend **keep draft / do not migrate**:
 > **#366 academy `0091`** is security/RLS-clean but still gated by licensed-agronomist + Egyptian
 > pesticide-registration sign-off; merging before migrating would expose `/academy` against missing prod tables.
