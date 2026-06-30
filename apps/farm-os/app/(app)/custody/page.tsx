@@ -34,7 +34,7 @@ export default async function CustodyDashboardPage() {
       .select("id, request_no, status, period_start, period_end, created_at")
       .order("created_at", { ascending: false })
       .limit(15),
-    sb.from("expenses").select("total").eq("payment_status", "post_paid_unpaid"),
+    sb.from("expenses").select("total").eq("payment_status", "post_paid_unpaid").eq("kind", "operating"),
   ]);
   if (accountsRes.error) throw accountsRes.error;
   if (movementsRes.error) throw movementsRes.error;

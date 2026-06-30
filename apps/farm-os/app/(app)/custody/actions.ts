@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 
 type Result = { ok: boolean; error?: string };
@@ -13,12 +13,16 @@ const PERM: Record<string, string> = {
   "P0002": "العنصر غير موجود",
 };
 
-/** Create a custody account through the backend RPC-only write path. Gated by custody.write in Postgres. */
+async function requireCustodyFinanceRole() {
+  return requireRole(["owner", "accountant"]);
+}
+
+/** Create a custody account through the backend RPC-only write path. */
 export async function createCustodyAccount(input: { holderLabel: string; targetFloat: number }): Promise<Result> {
   const label = input.holderLabel?.trim();
   if (!label) return { ok: false, error: "اسم صاحب العهدة مطلوب" };
   if (!Number.isFinite(input.targetFloat) || input.targetFloat < 0) return { ok: false, error: "العهدة المستهدفة غير صالحة" };
-  const m = await requireMembership();
+  const m = await requireCustodyFinanceRole();
   const sb = await createClient();
   const { error } = await sb.rpc("fn_save_custody_account", {
     p_id: null,
@@ -33,7 +37,7 @@ export async function createCustodyAccount(input: { holderLabel: string; targetF
   return { ok: true };
 }
 
-/** Record a custody cash movement (receipt / handover / cash spend / settlement). Gated: custody.write. */
+/** Record a custody cash movement (receipt / handover / cash spend / settlement). */
 export async function recordCustodyMovement(input: {
   accountId: string;
   movementType: string;
@@ -45,7 +49,7 @@ export async function recordCustodyMovement(input: {
   if ((input.amountIn > 0) === (input.amountOut > 0)) {
     return { ok: false, error: "أدخل مبلغًا واردًا أو صادرًا واحدًا فقط" };
   }
-  await requireMembership();
+  await requireCustodyFinanceRole();
   const sb = await createClient();
   const { error } = await sb.rpc("fn_record_custody_movement", {
     p_account: input.accountId,
@@ -59,14 +63,14 @@ export async function recordCustodyMovement(input: {
   return { ok: true };
 }
 
-/** Route an expense's payment: paid_from_custody posts one custody out-movement; others just tag it. budget.write. */
+/** Route an expense's payment: paid_from_custody posts one custody out-movement; others just tag it. */
 export async function setExpensePaymentStatus(input: {
   expenseId: string;
   status: "paid_from_custody" | "post_paid_unpaid" | "paid_by_owner" | "cancelled";
   custodyAccountId?: string | null;
   paidBy?: string | null;
 }): Promise<Result> {
-  await requireMembership();
+  await requireCustodyFinanceRole();
   const sb = await createClient();
   const { error } = await sb.rpc("fn_set_expense_payment_status", {
     p_expense: input.expenseId,
@@ -80,14 +84,14 @@ export async function setExpensePaymentStatus(input: {
   return { ok: true };
 }
 
-/** Create a draft monthly payment request. Gated: request.prepare. Returns the new id. */
+/** Create a draft monthly payment request. Returns the new id. */
 export async function createPaymentRequest(input: {
   periodStart?: string | null;
   periodEnd?: string | null;
   custodyAccountId?: string | null;
   note?: string | null;
 }): Promise<{ ok: boolean; error?: string; id?: string }> {
-  const m = await requireMembership();
+  const m = await requireCustodyFinanceRole();
   const sb = await createClient();
   const { data, error } = await sb.rpc("fn_create_payment_request", {
     p_org: m.orgId,
@@ -102,7 +106,7 @@ export async function createPaymentRequest(input: {
 }
 
 async function callOnRequest(rpc: string, requestId: string, fallback: string): Promise<Result> {
-  await requireMembership();
+  await requireCustodyFinanceRole();
   const sb = await createClient();
   const { error } = await sb.rpc(rpc as "fn_submit_payment_request", { p_request: requestId });
   if (error) return { ok: false, error: toArabicError(error, PERM, fallback) };
@@ -111,9 +115,9 @@ async function callOnRequest(rpc: string, requestId: string, fallback: string): 
   return { ok: true };
 }
 
-/** Add an expense line to a draft request. request.prepare. */
+/** Add an operating post-paid expense line to a draft request. */
 export async function addExpenseToRequest(requestId: string, expenseId: string): Promise<Result> {
-  await requireMembership();
+  await requireCustodyFinanceRole();
   const sb = await createClient();
   const { error } = await sb.rpc("fn_add_expense_to_request", { p_request: requestId, p_expense: expenseId });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر إضافة البند") };

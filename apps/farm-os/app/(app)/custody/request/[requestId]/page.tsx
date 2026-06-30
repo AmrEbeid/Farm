@@ -43,7 +43,7 @@ export default async function PaymentRequestPage({ params }: { params: Promise<{
   const [linesRes, totalsRes, orgRes] = await Promise.all([
     sb.from("payment_request_lines").select("expense_id").eq("payment_request_id", requestId),
     sb.rpc("fn_payment_request_totals", { p_request: requestId }),
-    sb.from("organization").select("name").maybeSingle(),
+    sb.from("organization").select("name").eq("id", m.orgId).maybeSingle(),
   ]);
   if (linesRes.error) throw linesRes.error;
   if (totalsRes.error) throw totalsRes.error;
@@ -63,33 +63,31 @@ export default async function PaymentRequestPage({ params }: { params: Promise<{
   const t: Totals = (totalsRes.data as Totals) ?? {};
   const exp = expensesRes.data ?? [];
 
-  // summary by category (آجل vs من العهدة)
-  const cats = new Map<string, { unpaid: number; custody: number }>();
+  // Request math only includes operating post-paid expenses; custody-paid expenses live in the custody ledger.
+  const cats = new Map<string, { unpaid: number }>();
   for (const e of exp) {
     const k = e.category ?? "أخرى";
-    const row = cats.get(k) ?? { unpaid: 0, custody: 0 };
+    const row = cats.get(k) ?? { unpaid: 0 };
     if (e.payment_status === "post_paid_unpaid") row.unpaid += Number(e.total ?? 0);
-    else if (e.payment_status === "paid_from_custody") row.custody += Number(e.total ?? 0);
     cats.set(k, row);
   }
   const catCols: SimpleColumn[] = [
     { id: "cat", header: "الفئة" },
-    { id: "unpaid", header: "آجل (غير مدفوع)", numeric: true },
-    { id: "custody", header: "مدفوع من العهدة", numeric: true },
+    { id: "unpaid", header: "آجل مطلوب", numeric: true },
   ];
   const catRows = [...cats.entries()].map(([cat, v], i) => ({
-    id: String(i), cat, unpaid: egp(v.unpaid), custody: egp(v.custody),
+    id: String(i), cat, unpaid: egp(v.unpaid),
   }));
 
   const lineCols: SimpleColumn[] = [
     { id: "desc", header: "البيان" },
     { id: "cat", header: "الفئة" },
-    { id: "status", header: "الحالة" },
+    { id: "status", header: "حالة الاحتساب" },
     { id: "total", header: "الإجمالي", numeric: true },
   ];
   const lineRows = exp.map((e) => ({
     id: e.id, desc: e.description ?? "—", cat: e.category ?? "—",
-    status: e.payment_status === "post_paid_unpaid" ? "آجل" : e.payment_status === "paid_from_custody" ? "من العهدة" : (e.payment_status ?? "—"),
+    status: e.payment_status === "post_paid_unpaid" ? "آجل محسوب" : "غير محسوب في الطلب",
     total: egp(Number(e.total ?? 0)),
   }));
 
