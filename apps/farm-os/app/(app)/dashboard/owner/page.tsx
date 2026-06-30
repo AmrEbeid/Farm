@@ -2,7 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
 import { BudgetDoughnut, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
@@ -32,6 +33,8 @@ export default async function OwnerDashboard() {
     { data: ops, error: opsError },
     { data: checks, error: checksError },
     { data: assets, error: assetsError },
+    { data: people, error: peopleError },
+    { data: hawshat, error: hawshatError },
   ] = await Promise.all([
     sb.from("purchase_requests").select("id, code, status, reason, needed_by").order("code", { ascending: false }),
     sb.from("budget_lines").select("category, approved, committed, actual"),
@@ -40,8 +43,10 @@ export default async function OwnerDashboard() {
     sb.from("plan_operations").select("status, planned_at, responsible_person_id, plan_id"),
     sb.from("plan_checks").select("result, plan_id"),
     sb.from("assets").select("status"),
+    sb.from("people").select("active"),
+    sb.from("hawshat").select("palm_count_barhi"),
   ]);
-  for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError]) {
+  for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError]) {
     if (e) throw e;
   }
 
@@ -85,6 +90,8 @@ export default async function OwnerDashboard() {
   const unassignedOps = activeOps.filter((o) => LIVE_OP.has(o.status) && o.responsible_person_id == null);
   const blockedChecks = (checks ?? []).filter((c) => c.result === "block" && activePlanIds.has(c.plan_id));
   const palmAttention = (assets ?? []).filter((a) => PALM_ATTENTION.has(a.status));
+  const activePeople = (people ?? []).filter((p) => p.active).length;
+  const totalBarhi = (hawshat ?? []).reduce((s, h) => s + Number(h.palm_count_barhi ?? 0), 0);
 
   const totalApproved = budgetLines.reduce((s, b) => s + Number(b.approved ?? 0), 0);
   const totalUsed = budgetLines.reduce((s, b) => s + Number(b.committed ?? 0) + Number(b.actual ?? 0), 0);
@@ -192,6 +199,33 @@ export default async function OwnerDashboard() {
         </div>
       </section>
 
+      {/* Module-summary cards — strategic view of every module, each links to its dashboard */}
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">ملخص الوحدات</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { icon: "🌴", name: "المزرعة", line: `${num(totalBarhi)} برحي · ${num(palmAttention.length)} تحتاج عناية`, href: "/farm/dashboard" },
+            { icon: "🗓️", name: "التخطيط والعمليات", line: `جاهزية ${pct(readiness)} · ${num(blockedChecks.length)} فحص محظور`, href: "/plans/dashboard" },
+            { icon: "📦", name: "المخزون والمشتريات", line: `${num(reorderItems.length)} تحت حد الطلب · ${num(pending.length)} بانتظار الاعتماد`, href: "/inventory/dashboard" },
+            { icon: "📊", name: "المالية", line: `المتاح ${egp(available)} · ${num(overLines.length)} بند متجاوز`, href: "/finance/dashboard" },
+            { icon: "👥", name: "الفريق", line: `${num(activePeople)} نشط · ${num(unassignedOps.length)} عملية بلا مسؤول`, href: "/people/dashboard" },
+            { icon: "🌤️", name: "الطقس والمخاطر", line: "تنبيهات الطقس وبوابات العمليات", href: "/weather/dashboard" },
+          ].map((mod) => (
+            <Link key={mod.href} href={mod.href} className="block transition-opacity hover:opacity-90">
+              <Card>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl" aria-hidden="true">{mod.icon}</span>
+                  <div className="min-w-0">
+                    <div className="font-semibold">{mod.name}</div>
+                    <div className="text-sm" style={{ color: "var(--ink-muted)" }}>{mod.line}</div>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {/* Budget-line health: detail cards with utilisation bars */}
       <section>
         <div className="mb-3 flex items-center justify-between">
@@ -230,7 +264,15 @@ export default async function OwnerDashboard() {
           <h2 className="text-lg font-semibold">طلبات الشراء</h2>
           <Link href="/purchase-requests"><Button variant="ghost" size="sm">عرض الكل</Button></Link>
         </div>
-        <SimpleTable columns={columns} rows={rows} empty="لا توجد طلبات شراء بعد." />
+        <FilterableTable
+          columns={columns}
+          rows={rows}
+          searchColumns={["code", "reason", "needed_by", "status"]}
+          placeholder="ابحث في طلبات الشراء…"
+          exportFilename="purchase-requests"
+          minRowsForSearch={2}
+          empty="لا توجد طلبات شراء بعد."
+        />
       </section>
     </div>
   );
