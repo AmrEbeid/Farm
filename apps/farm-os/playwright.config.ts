@@ -3,9 +3,13 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 3100;
 
 /**
- * E2E for the wedge loop. Runs against a production build of the app + the
- * already-running local Supabase. global-setup makes the seeded users
- * sign-in-able and resets the loop-mutated state so the run is repeatable.
+ * Legacy mutating E2E for the wedge loop.
+ *
+ * Farm OS no longer uses the Docker-backed local Supabase stack. The global
+ * setup refuses non-local Supabase URLs so this cannot reset production or a
+ * shared branch by accident. Browser smoke for current review work should use
+ * an already-authenticated browser/session or another explicitly approved
+ * non-Docker path.
  */
 export default defineConfig({
   testDir: "./e2e",

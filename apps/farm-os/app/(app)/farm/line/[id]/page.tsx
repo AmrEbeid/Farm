@@ -9,13 +9,7 @@ import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-
-const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
-  inspection: "تفتيش",
-};
+import { SUBTYPE_AR } from "@/lib/labels";
 
 const STATUS_AR: Record<string, string> = {
   active: "سليمة",
@@ -81,7 +75,7 @@ export default async function LineFilePage({
     href: `/farm/palm/${p.id}`,
     tag: p.id_tag ?? p.name ?? p.id,
     variety: p.variety ?? "—",
-    status: STATUS_AR[p.status ?? ""] ?? p.status ?? "—",
+    status: p.status ? STATUS_AR[p.status] ?? "غير معروف" : "—",
   }));
 
   // activities recorded against this line (event_locations.line_id rollup)
@@ -96,7 +90,7 @@ export default async function LineFilePage({
     : { data: [] };
   const activities: ActivityItem[] = (events ?? []).map((e) => ({
     id: e.id,
-    title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "نشاط",
+    title: e.subtype ? SUBTYPE_AR[e.subtype] ?? "نشاط" : "نشاط",
     status: e.status ?? "done",
     time: fmtDate(e.occurred_at),
   }));

@@ -4,6 +4,18 @@
 the external sign-offs into one actionable sequence. Decision-support for the Owner — nothing here is
 built or applied by this doc. Reconciles [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 to today's state.*
 
+> **Current overlay — 2026-06-29 safe stop.** This roadmap was originally written on 2026-06-25; use this overlay
+> plus `PROJECT-TRACKER.md` / `SESSION-BRIEF.md` for current state. Production is live with Supabase migration
+> `0096` and module dashboards deployed. Current estimate: live MVP/pilot operating core **~90-92% done**,
+> pre-real-data pilot readiness **~80-85%**, full commercial product vision **~55-60%**, finance/accounting maturity
+> **~35-45%**, advanced payroll/academy/AI **~20-35%**. Remaining critical path: held DB hardening drafts
+> #436/#439/#442/#444; SPEC-0018 custody backend/frontend #438/#441; accounting/P&L #368 with real Excel
+> reconciliation and privacy review; correctness gaps #157/#89/#188/#199; Stage 0 residual cleanup and
+> leaked-password-protection verification; then payroll/academy/AI/real-data migration. Timeline from this point:
+> **1-2 days** for small DB hardening review/apply planning, **3-5 days** for a safe custody first slice,
+> **1-2 weeks** for finance/accounting foundation after ratification/reconciliation path, **2-4 weeks** for
+> real-data readiness, **4-8 weeks** for broader commercial maturity.
+
 ## Where we are (reconciled to `main`)
 
 - **MVP-0 wedge: DONE + LIVE + re-audited.** Prod at migration `0048`, **in sync with `main`**
@@ -56,8 +68,9 @@ The autonomous pipeline builds fast; what gates the finish:
    templates, **gated on the agronomist + Egyptian pesticide-registration sign-off**. *(Med/High.)*
 8. **عبدالجليل AI** — ratify [`SPEC-0005`](SPEC-0005-ai-assistant-abduljalil.md) (Stage 11). Build
    last; highest-risk; security review each slice; recommend the no-ingest version first. *(High.)*
-9. **Stage M real-data migration** + **Stage 0** legacy remediation + **key rotation** — the
-   project-end apply-layer items (privacy review first). *(High/Critical.)*
+9. **Stage M real-data migration** + **Stage 0** legacy remediation — the project-end apply-layer items
+   (privacy review first). Supabase DB password + service-role key rotation is complete per Owner 2026-06-29;
+   do not raise it again unless reopened. *(High/Critical.)*
 
 ## Specs status
 
@@ -79,5 +92,6 @@ complete; the project is decision-bound, not design-bound — see the gates abov
 
 1. ~~Push `0032`/`0033`/`0034` to prod~~ ✅ DONE 2026-06-26 (prod now `0038`, in sync with `main`).
 2. Ratify SPEC-0002 → build. 3. Decide the HIGH forks (#155/#157, #89; #156 closed). 4. Confirm 4-vs-5 sectors
-(Stage 2 #186 merged with **5** — confirm intended). 5. 🔴 rotate the service-role key + DB password.
+(Stage 2 #186 merged with **5** — confirm intended). Supabase DB password + service-role key rotation is complete
+per Owner 2026-06-29.
 Everything else sequences behind these + the external sign-offs.

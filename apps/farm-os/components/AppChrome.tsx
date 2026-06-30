@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { AppShell, Tag, Button, type NavItemData } from "@/components/ui";
+import { usePathname } from "next/navigation";
+import { AppShell, Tag, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
+import type { Role } from "@/lib/auth";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { HelpDrawer } from "@/components/HelpDrawer";
-import { APP_NAV } from "@/lib/nav";
+import { ModuleSidebar } from "@/components/ModuleSidebar";
+import { findActiveNavItem, visibleModulesForRole } from "@/lib/nav";
 
 export function AppChrome({
   children,
@@ -23,17 +25,11 @@ export function AppChrome({
   orgs: { id: string; name: string }[];
   activeOrgId: string | null;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navItems: NavItemData[] = APP_NAV.filter(
-    (n) => !n.roles || n.roles.includes(role as never),
-  ).map((n) => ({ id: n.id, label: n.label, icon: n.icon, href: n.href }));
-
-  const activeNavId =
-    APP_NAV.find((n) => pathname.startsWith(n.href.split("/").slice(0, 2).join("/")))?.id ??
-    "dashboard";
+  const modules = visibleModulesForRole(role as Role);
+  const activeNavId = findActiveNavItem(pathname)?.id ?? "dashboard";
 
   async function signOut() {
     await createClient().auth.signOut();
@@ -51,23 +47,16 @@ export function AppChrome({
         تخطّي إلى المحتوى
       </a>
       <AppShell
-      navItems={navItems}
+      navItems={[]}
       activeNavId={activeNavId}
       navAriaLabel="التنقل الرئيسي"
       menuButtonLabel="فتح القائمة"
       sidebarOpen={sidebarOpen}
       onSidebarOpenChange={setSidebarOpen}
-      onNavSelect={(id) => {
-        const item = APP_NAV.find((n) => n.id === id);
-        if (item) {
-          router.push(item.href);
-          setSidebarOpen(false);
-        }
-      }}
       brand={<span className="font-bold">نظام تشغيل المزارع</span>}
       topbar={
-        <div className="flex items-center gap-3">
-          <HelpDrawer navId={activeNavId} />
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+          <HelpDrawer pathname={pathname} fallbackHelpId={activeNavId} />
           <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
           <Tag tone="accent">{roleLabel}</Tag>
           {name && <span className="text-sm">{name}</span>}
@@ -77,6 +66,11 @@ export function AppChrome({
         </div>
       }
     >
+      <ModuleSidebar
+        modules={modules}
+        activeNavId={activeNavId}
+        onNavigate={() => setSidebarOpen(false)}
+      />
       {/*
        * Focus target for the skip link. AppShell already renders the <main
        * role="main"> landmark; this is a non-landmark wrapper (no role) that

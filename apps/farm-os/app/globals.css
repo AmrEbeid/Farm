@@ -82,6 +82,121 @@ body {
   z-index: calc(var(--z-drawer) + 1);
 }
 
+/* App-side grouped module navigation. This keeps @amrebeid/ui unchanged while
+   replacing the empty default SidebarNav rendered by AppShell in this slice. */
+[dir="rtl"] .fos-appshell {
+  grid-template-columns: 1fr 240px;
+  grid-template-areas: "topbar topbar" "main sidebar";
+}
+
+.fos-appshell__sidebar > .fos-sidebarnav {
+  display: none;
+}
+
+.fos-appshell__main > .farm-module-nav {
+  grid-area: unset;
+  position: fixed;
+  inset-block-start: calc(var(--control-h, 40px) + (var(--space-2, 8px) * 2) + 1px);
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  inline-size: 240px;
+  padding: var(--space-3);
+  overflow: auto;
+  background: var(--surface-raised);
+  border-inline-end: 1px solid var(--line);
+  z-index: calc(var(--z-sticky) + 1);
+}
+
+[dir="rtl"] .fos-appshell__main > .farm-module-nav {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--line);
+}
+
+.farm-module-nav__module {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.farm-module-nav__toggle {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 9px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  text-align: start;
+}
+
+.farm-module-nav__toggle:hover {
+  background: var(--surface-sunken);
+}
+
+.farm-module-nav__toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.farm-module-nav__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.farm-module-nav__chevron {
+  color: var(--ink-muted);
+}
+
+.farm-module-nav__pages {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+[dir="rtl"] .farm-module-nav__pages {
+  padding: 0 var(--space-3) 0 0;
+}
+
+.farm-module-nav__page {
+  min-height: 36px;
+  font-size: var(--text-sm);
+  min-width: 0;
+}
+
+.farm-module-nav__page .fos-navitem__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48rem) {
+  [dir="rtl"] .fos-appshell {
+    grid-template-columns: 1fr;
+    grid-template-areas: "topbar" "main";
+  }
+
+  .fos-appshell__main > .farm-module-nav {
+    display: none;
+  }
+
+  .fos-appshell--drawer-open .fos-appshell__main > .farm-module-nav {
+    display: block;
+    inline-size: min(80vw, 300px);
+    z-index: calc(var(--z-drawer) + 1);
+  }
+}
+
 /* =====================================================================
  * Landing page — Direction A ("The Registry"). Registry-grade hero: the
  * wedge as the thesis, hairline rules, green-led with a date-gold accent,

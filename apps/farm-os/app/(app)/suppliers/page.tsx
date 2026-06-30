@@ -27,6 +27,7 @@ export default async function SuppliersListPage() {
 
   const rows = (suppliers ?? []).map((s) => ({
     id: s.id,
+    href: `/suppliers/${s.id}`,
     name: s.name,
     phone: s.phone ?? "—",
     terms: s.terms ?? "—",

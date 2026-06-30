@@ -4,14 +4,7 @@ import { EmptyState } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { fmtDate } from "@/lib/dates";
-
-const PR_STATUS_AR: Record<string, string> = {
-  draft: "مسودة",
-  submitted: "مرسل",
-  approved: "معتمد",
-  rejected: "مرفوض",
-  received: "مُستلم",
-};
+import { PR_STATUS_AR } from "@/lib/labels";
 
 export default async function PurchaseRequestsPage() {
   await requireMembership();
@@ -37,7 +30,7 @@ export default async function PurchaseRequestsPage() {
     code: p.code,
     reason: p.reason ?? "—",
     needed_by: p.needed_by ? fmtDate(p.needed_by) : "—",
-    status: PR_STATUS_AR[p.status] ?? p.status,
+    status: PR_STATUS_AR[p.status] ?? "غير معروف",
   }));
 
   return (

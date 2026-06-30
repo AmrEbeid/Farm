@@ -1,16 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { AddExpense } from "@/components/AddExpense";
 
-// Roles that pass authorize('budget.write') — the gate the expenses RLS WITH CHECK enforces.
-const WRITE_ROLES = ["owner", "accountant"];
-
 export default async function ExpensesListPage() {
-  const m = await requireMembership();
+  await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
   const [{ data: expenses, error }, { data: suppliers }] = await Promise.all([
@@ -34,6 +31,7 @@ export default async function ExpensesListPage() {
 
   const rows = (expenses ?? []).map((e) => ({
     id: e.id,
+    href: `/expenses/${e.id}`,
     date: e.date ? fmtDate(e.date) : "—",
     category: e.category ?? "—",
     description: e.description ?? "—",
@@ -47,11 +45,9 @@ export default async function ExpensesListPage() {
         <h1 className="text-2xl font-bold">المصروفات</h1>
         <p style={{ color: "var(--ink-muted)" }}>سجل مصروفات التشغيل</p>
       </header>
-      {WRITE_ROLES.includes(m.role) && (
-        <AddExpense
-          suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))}
-        />
-      )}
+      <AddExpense
+        suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))}
+      />
       <FilterableTable
         columns={columns}
         rows={rows}

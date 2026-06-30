@@ -3,4 +3,4 @@
  * Every entry must have a registered descriptor — the convention test fails otherwise.
  * Grow this list (and add the matching descriptor) as each input's template ships.
  */
-export const IMPORTABLE_RPCS: readonly string[] = ["fn_save_sector"];
+export const IMPORTABLE_RPCS: readonly string[] = ["fn_save_sector", "fn_save_hawsha"];

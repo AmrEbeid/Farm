@@ -12,7 +12,7 @@ data. See [`../../docs/DEPLOY-RUNBOOK.md`](../../docs/DEPLOY-RUNBOOK.md) and
 ## Getting Started
 
 ```bash
-cp .env.example .env.local   # point at the remote (or a Supabase branch) project
+cp .env.example .env.local   # point at the approved remote (or Supabase branch) project
 npm run dev                  # http://localhost:3000
 ```
 
@@ -50,9 +50,15 @@ the **two** routes that actually render a chart — the inventory coverage page
 ## Tests
 
 ```bash
-supabase test db        # 421 pgTAP (RLS, audit, seed, stock-engine, security, reserved)
-npx playwright test     # the end-to-end wedge loop
+npx vitest run
+npx tsc --noEmit
+npm run build
+apps/farm-os/supabase/test-shims/run-pgtap-local.sh  # DB pgTAP via plain local Postgres, no Docker
 ```
+
+The legacy Playwright wedge loop mutates seed data and is guarded against remote Supabase targets.
+Do not run it against production or a shared branch. Browser smoke should use an already-authenticated
+session or another explicitly approved non-Docker path.
 
 ## Deploy
 

@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { Drawer, Button } from "@/components/ui";
-import { helpFor } from "@/lib/page-help";
+import { helpForPath } from "@/lib/page-help";
 
 function Section({ q, a }: { q: string; a: string }) {
   return (
@@ -17,10 +17,10 @@ function Section({ q, a }: { q: string; a: string }) {
   );
 }
 
-/** Help affordance for the page identified by `navId` (a lib/nav.ts id). */
-export function HelpDrawer({ navId }: { navId: string }) {
+/** Help affordance for the current route, falling back to the active nav id. */
+export function HelpDrawer({ pathname, fallbackHelpId }: { pathname: string; fallbackHelpId: string }) {
   const [open, setOpen] = useState(false);
-  const help = helpFor(navId);
+  const help = helpForPath(pathname, fallbackHelpId);
   if (!help) return null;
 
   return (

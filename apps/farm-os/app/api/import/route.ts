@@ -19,6 +19,7 @@ import { toArabicError } from "@/lib/errors";
 import { getDescriptor } from "@/lib/import/registry";
 import { generateTemplate, parseUpload } from "@/lib/import/xlsx";
 import { validateRows } from "@/lib/import/validate";
+import { resolveRefs, type RefLookup } from "@/lib/import/resolve";
 import { planCommit } from "@/lib/import/commit-plan";
 import "@/lib/import/descriptors"; // side-effect: register all descriptors
 
@@ -68,13 +69,47 @@ export async function POST(req: Request): Promise<Response> {
 
   const dry = validateRows(descriptor, rows);
 
+  // Resolve any ref columns (code → id) via RLS-scoped lookups. Read-only; runs in both modes.
+  const sb = await createClient();
+  const fromLoose = sb.from as unknown as (
+    table: string,
+  ) => {
+    select: (cols: string) => {
+      in: (col: string, vals: string[]) => RefQuery;
+    };
+  };
+  type RefQuery = Promise<{ data: Record<string, unknown>[] | null }> & {
+    eq: (col: string, val: unknown) => RefQuery;
+  };
+  const refLookup: RefLookup = async (spec, codes) => {
+    let query = fromLoose(spec.table)
+      .select(`${spec.idColumn},${spec.codeColumn}`)
+      .in(spec.codeColumn, codes);
+    if (spec.activeColumn != null) {
+      query = query.eq(spec.activeColumn, spec.activeValue ?? false);
+    }
+    const { data } = await query;
+    const map = new Map<string, string>();
+    const ambiguous = new Set<string>();
+    for (const r of data ?? []) {
+      const code = String(r[spec.codeColumn]);
+      if (map.has(code)) ambiguous.add(code);
+      else map.set(code, String(r[spec.idColumn]));
+    }
+    for (const code of ambiguous) map.delete(code); // ambiguous code → treated as not found
+    return map;
+  };
+
+  const resolved = await resolveRefs(descriptor, dry.okRows, refLookup);
+  const errors = [...dry.errors, ...resolved.errors];
+  const errorCount = dry.errorCount + (dry.okRows.length - resolved.rows.length);
+
   if (mode !== "commit") {
-    return NextResponse.json({ okCount: dry.okCount, errorCount: dry.errorCount, errors: dry.errors });
+    return NextResponse.json({ okCount: resolved.rows.length, errorCount, errors });
   }
 
-  // commit: write valid rows through the gated RPC, one per row (partial success).
-  const plan = planCommit(descriptor, dry.okRows);
-  const sb = await createClient();
+  // commit: write valid + resolved rows through the gated RPC, one per row (partial success).
+  const plan = planCommit(descriptor, resolved.rows);
   const rpc = sb.rpc as unknown as (
     name: string,
     args: Record<string, unknown>,
@@ -92,7 +127,7 @@ export async function POST(req: Request): Promise<Response> {
     written,
     failed: failures.length,
     skipped: plan.skipped,
-    validationErrors: dry.errors,
+    validationErrors: errors,
     failures,
   });
 }
