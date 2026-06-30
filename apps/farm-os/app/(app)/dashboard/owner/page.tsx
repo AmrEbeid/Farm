@@ -34,7 +34,7 @@ export default async function OwnerDashboard() {
   ] = await Promise.all([
     sb.from("purchase_requests").select("id, code, status, reason, needed_by").order("code", { ascending: false }),
     sb.from("budget_lines").select("category, approved, committed, actual"),
-    sb.from("inventory_items").select("id, reorder_point, min_stock, inventory_bin(on_hand)"),
+    sb.from("inventory_items").select("id, reorder_point, min_stock, inventory_bin(on_hand, reserved)"),
     sb.from("plans").select("id, status"),
     sb.from("plan_operations").select("status, planned_at, responsible_person_id, plan_id"),
     sb.from("plan_checks").select("result, plan_id"),
@@ -61,10 +61,17 @@ export default async function OwnerDashboard() {
     (b) => Number(b.committed) + Number(b.actual) > Number(b.approved),
   );
 
+  // inventory_bin is a one-to-many embed (an array of bins per item); mirror the
+  // inventory dashboard EXACTLY so this count matches /inventory/dashboard?filter=reorder:
+  // take the primary bin, available = on_hand − reserved, needs reorder when below threshold.
   const reorderItems = (items ?? []).filter((it) => {
-    const onHand = Number((it.inventory_bin as { on_hand?: number } | null)?.on_hand ?? 0);
-    const threshold = Number(it.reorder_point) || Number(it.min_stock) || 0;
-    return threshold > 0 && onHand <= threshold;
+    const bin = (Array.isArray(it.inventory_bin) ? it.inventory_bin[0] : it.inventory_bin) as
+      | { on_hand?: number; reserved?: number }
+      | null
+      | undefined;
+    const available = Number(bin?.on_hand ?? 0) - Number(bin?.reserved ?? 0);
+    const threshold = Number(it.reorder_point ?? it.min_stock ?? 0);
+    return threshold > 0 && available < threshold;
   });
 
   const activePlanIds = new Set((plans ?? []).filter((p) => ACTIVE_PLAN.has(p.status)).map((p) => p.id));
