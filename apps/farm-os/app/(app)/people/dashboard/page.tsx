@@ -67,12 +67,19 @@ export default async function PeopleDashboardPage({
   }
 
   // Chart data — derived from the people / operations already fetched (no new queries).
+  // Recharts keys bars by the category value, so the person label must be unique and
+  // non-empty: coalesce null names and disambiguate duplicates with a numeric suffix.
+  const seenLabels = new Map<string, number>();
   const workloadChartData = activePeople
-    .map((person) => ({ name: person.name, ops: opsByPerson.get(person.id) ?? 0 }))
+    .map((person) => ({ name: (person.name ?? "").trim() || "—", ops: opsByPerson.get(person.id) ?? 0 }))
     .filter((d) => d.ops > 0)
     .sort((a, b) => b.ops - a.ops)
     .slice(0, 8)
-    .map((d) => ({ person: d.name, "عمليات": d.ops }));
+    .map((d) => {
+      const seen = (seenLabels.get(d.name) ?? 0) + 1;
+      seenLabels.set(d.name, seen);
+      return { person: seen > 1 ? `${d.name} (${num(seen)})` : d.name, "عمليات": d.ops };
+    });
   const employmentMix = Object.entries(typeCounts).map(([type, value]) => ({
     name: EMP_TYPE_AR[type] ?? "غير معروف",
     value,
