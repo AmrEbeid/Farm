@@ -1,17 +1,33 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Card, Alert, EmptyState } from "@/components/ui";
-import { SectorFile } from "@/components/SectorFile";
+import {
+  Alert,
+  Breadcrumbs,
+  Card,
+  DescriptionList,
+  EmptyState,
+  FileTimeline,
+  KpiCard,
+  tabId,
+  tabPanelId,
+} from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { PalmMap } from "@/components/PalmMap";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { StructureForm } from "@/components/StructureForm";
 import { StructureArchiveButton } from "@/components/StructureArchiveButton";
 import { MediaGallery } from "@/components/MediaGallery";
 import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
+import type { TabItem } from "@amrebeid/ui";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 import { fmtDate } from "@/lib/dates";
+
+const TAB_IDS = ["overview", "palms", "activity", "media"] as const;
+type SectorTab = (typeof TAB_IDS)[number];
 
 function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
   if (sex === "male") return "male";
@@ -32,10 +48,16 @@ function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
 
 export default async function SectorFilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const { tab: rawTab } = await searchParams;
+  const tab: SectorTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+    ? (rawTab as SectorTab)
+    : "overview";
   const m = await requireMembership();
   const sb = await createClient();
   const canEditStructure = ["owner", "farm_manager"].includes(m.role);
@@ -146,6 +168,14 @@ export default async function SectorFilePage({
     });
   }
   const palmLines = Array.from(lineMap.values());
+  const palmTotal = barhi + male;
+
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "palms", label: `النخيل (${num(palmTotal)})` },
+    { id: "activity", label: `النشاط (${num(activities.length)})` },
+    { id: "media", label: "المرفقات" },
+  ];
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -156,68 +186,143 @@ export default async function SectorFilePage({
           { id: "sector", label: sector.name },
         ]}
       />
-      <h1 className="text-2xl font-bold">{sector.name}</h1>
 
-      {sector.archived && <Alert tone="warning" title="هذا القطاع مُزال (مؤرشف)" />}
-
-      <SectorFile
-        name={sector.name}
-        meta={[
-          { id: "code", term: "الرمز", description: sector.code },
-          { id: "crop", term: "المحصول", description: sector.crop ?? "—" },
-          { id: "area", term: "المساحة", description: sector.area_feddan != null ? `${num(sector.area_feddan)} فدان` : "—" },
-          { id: "hawshat", term: "عدد الحوشات", description: num(hawshat.length) },
-          { id: "barhi", term: "نخيل برحي", description: num(barhi) },
-          { id: "male", term: "ذكور", description: num(male) },
-        ]}
-        events={timeline}
-        palmLines={palmLines}
+      <Entity360Header
+        title={sector.name}
+        subtitle={`${sector.code} · ${sector.crop ?? "—"} · ${num(palmTotal)} نخلة`}
+        pills={sector.archived ? [{ status: "warning", label: "مؤرشف" }] : undefined}
       />
 
-      {canEditStructure && (
-        <Card title="إدارة القطاع">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2">
-              <StructureForm
-                level="sector"
-                mode="edit"
-                initial={{
-                  id: sector.id,
-                  name: sector.name,
-                  code: sector.code,
-                  crop: sector.crop,
-                  areaFeddan: sector.area_feddan,
-                  plantingDate: sector.planting_date,
-                  notes: sector.notes,
-                }}
-                triggerLabel="تعديل بيانات القطاع"
-              />
-              <StructureForm
-                level="hawsha"
-                mode="create"
-                context={{ sectorId: sector.id }}
-                triggerLabel="إضافة حوشة"
-                triggerVariant="primary"
-              />
-            </div>
-            <StructureArchiveButton type="sector" id={sector.id} archived={!!sector.archived} redirectTo="/farm" />
-          </div>
-        </Card>
+      {sector.archived && (
+        <Alert
+          tone="warning"
+          title="هذا القطاع مُزال (مؤرشف)"
+          description="القطاع المؤرشف للعرض فقط؛ لا تُنشأ عليه عمليات جديدة."
+        />
       )}
 
-      <Card title="الحوشات">
-        <SimpleTable columns={hawshaColumns} rows={hawshaRows} empty="لا توجد حوشات" />
-      </Card>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="عدد الحوشات" value={num(hawshat.length)} />
+        <KpiCard label="نخيل برحي" value={num(barhi)} />
+        <KpiCard label="ذكور" value={num(male)} />
+        <KpiCard
+          label="المساحة"
+          value={sector.area_feddan != null ? `${num(sector.area_feddan)} فدان` : "—"}
+        />
+      </section>
 
-      <RecordActivity locationType="sector" locationId={sector.id} canRecord={canAttach} activities={activities} />
+      <EntityTabs items={tabItems} value={tab} />
 
-      <MediaGallery
-        entityType="sector"
-        entityId={sector.id}
-        orgId={m.orgId}
-        initial={attachments}
-        canAttach={canAttach}
-      />
+      {tab === "overview" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("overview")}
+          aria-labelledby={tabId("overview")}
+          tabIndex={0}
+          className="flex flex-col gap-4"
+        >
+          <Card title="بيانات القطاع">
+            <DescriptionList
+              layout="inline"
+              items={[
+                { id: "code", term: "الرمز", description: sector.code },
+                { id: "crop", term: "المحصول", description: sector.crop ?? "—" },
+                {
+                  id: "area",
+                  term: "المساحة",
+                  description: sector.area_feddan != null ? `${num(sector.area_feddan)} فدان` : "—",
+                },
+                { id: "hawshat", term: "عدد الحوشات", description: num(hawshat.length) },
+                { id: "barhi", term: "نخيل برحي", description: num(barhi) },
+                { id: "male", term: "ذكور", description: num(male) },
+              ]}
+            />
+          </Card>
+
+          {canEditStructure && (
+            <Card title="إدارة القطاع">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                  <StructureForm
+                    level="sector"
+                    mode="edit"
+                    initial={{
+                      id: sector.id,
+                      name: sector.name,
+                      code: sector.code,
+                      crop: sector.crop,
+                      areaFeddan: sector.area_feddan,
+                      plantingDate: sector.planting_date,
+                      notes: sector.notes,
+                    }}
+                    triggerLabel="تعديل بيانات القطاع"
+                  />
+                  <StructureForm
+                    level="hawsha"
+                    mode="create"
+                    context={{ sectorId: sector.id }}
+                    triggerLabel="إضافة حوشة"
+                    triggerVariant="primary"
+                  />
+                </div>
+                <StructureArchiveButton type="sector" id={sector.id} archived={!!sector.archived} redirectTo="/farm" />
+              </div>
+            </Card>
+          )}
+
+          <Card title="الحوشات">
+            <SimpleTable columns={hawshaColumns} rows={hawshaRows} empty="لا توجد حوشات" />
+          </Card>
+        </div>
+      )}
+
+      {tab === "palms" && (
+        <div role="tabpanel" id={tabPanelId("palms")} aria-labelledby={tabId("palms")} tabIndex={0}>
+          <Card title="خريطة النخيل">
+            {palmLines.length === 0 ? (
+              <EmptyState title="لا توجد نخيل مسجّلة" />
+            ) : (
+              <PalmMap lines={palmLines} ariaLabel={`خريطة نخيل ${sector.name}`} />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "activity" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("activity")}
+          aria-labelledby={tabId("activity")}
+          tabIndex={0}
+          className="flex flex-col gap-4"
+        >
+          <RecordActivity
+            locationType="sector"
+            locationId={sector.id}
+            canRecord={canAttach}
+            activities={activities}
+          />
+          <Card title="سجل العمليات">
+            {timeline.length === 0 ? (
+              <EmptyState title="لا توجد عمليات مسجّلة بعد" />
+            ) : (
+              <FileTimeline events={timeline} ariaLabel={`السجل الزمني لـ ${sector.name}`} />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "media" && (
+        <div role="tabpanel" id={tabPanelId("media")} aria-labelledby={tabId("media")} tabIndex={0}>
+          <MediaGallery
+            entityType="sector"
+            entityId={sector.id}
+            orgId={m.orgId}
+            initial={attachments}
+            canAttach={canAttach}
+          />
+        </div>
+      )}
     </div>
   );
 }
