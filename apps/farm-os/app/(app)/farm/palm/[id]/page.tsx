@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Alert } from "@/components/ui";
+import { Breadcrumbs, Alert, EmptyState } from "@/components/ui";
 import type { TimelineEvent } from "@/components/ui";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
@@ -69,7 +69,12 @@ export default async function PalmFilePage({
   if (assetError) throw assetError;
   if (historyError) throw historyError;
 
-  if (!asset) return <div className="p-6">النخلة غير موجودة.</div>;
+  if (!asset)
+    return (
+      <div className="p-6">
+        <EmptyState title="النخلة غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const sector = one<{ id?: string; name?: string }>(asset.sectors);
   const hawsha = one<{ id?: string; name?: string }>(asset.hawshat);

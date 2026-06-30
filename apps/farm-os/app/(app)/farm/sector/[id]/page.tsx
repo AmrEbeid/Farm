@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Card, Alert } from "@/components/ui";
+import { Breadcrumbs, Card, Alert, EmptyState } from "@/components/ui";
 import { SectorFile } from "@/components/SectorFile";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StructureForm } from "@/components/StructureForm";
@@ -72,7 +72,12 @@ export default async function SectorFilePage({
   if (locsError) throw locsError;
   if (assetsError) throw assetsError;
 
-  if (!sector) return <div className="p-6">القطاع غير موجود.</div>;
+  if (!sector)
+    return (
+      <div className="p-6">
+        <EmptyState title="القطاع غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const hawshat = ((sector.hawshat ?? []) as {
     id: string;
