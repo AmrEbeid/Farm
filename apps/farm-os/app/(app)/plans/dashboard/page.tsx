@@ -208,7 +208,7 @@ export default async function PlanningDashboardPage({
       )}
 
       {(filter === "all" || filter === "operations" || filter === "due" || filter === "checks") && (
-        <section className="grid gap-4 xl:grid-cols-2">
+        <section className="grid gap-4 md:grid-cols-2">
           {(filter === "all" || filter === "operations" || filter === "due") && (
         <Card title={filter === "due" ? "عمليات مستحقة" : "العمليات القادمة"}>
           {operationRows.length === 0 ? (

@@ -139,7 +139,7 @@ export default async function InventoryItemPage({
         <KpiCard label="قيد الطلب" value={num(ordered)} unit={unit} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2">
         <Card title="بيانات الصنف">
           <DescriptionList
             layout="inline"
