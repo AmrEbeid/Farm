@@ -27,16 +27,24 @@ export function SimpleTable({
   columns,
   rows,
   caption,
+  ariaLabel,
   empty,
 }: {
   columns: SimpleColumn[];
   rows: SimpleRow[];
   caption?: string;
+  /**
+   * Accessible name for the table when there is no visible `caption` (the usual case here — the page
+   * `<h1>` already labels the screen). Forwarded to the underlying `<table aria-label>` so screen-reader
+   * users hear what the table is without a visually-redundant caption. Pass the page/section heading text.
+   */
+  ariaLabel?: string;
   empty?: string;
 }) {
   return (
     <DataTable<SimpleRow>
       caption={caption}
+      aria-label={ariaLabel}
       columns={columns.map((c, i) => ({
         id: c.id,
         header: c.header,
