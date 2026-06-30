@@ -1,6 +1,27 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — SPEC-0018 frontend live via clean #474
+**Why a replacement PR.** The historical #441 frontend branch was stale against current `main` locally and carried
+unrelated tree churn, so it was closed as superseded. Clean replacement #474 was rebuilt from current `main` after
+the #468 backend migrations were reviewed, applied to prod, and merged.
+
+**Review fixes.** The clean frontend lane kept custody routes/actions owner/accountant-only and user-session/RLS
+scoped, removed unrelated dashboard label drift from the stale branch, added stricter amount/date validation in
+server actions, and wired the missing draft request line picker so eligible operating `post_paid_unpaid` expenses
+can be added to a payment request through `fn_add_expense_to_request`.
+
+**Validation and merge.** Local validation passed under Node 20: Vitest **234/234** and `git diff --check` clean.
+#474 remote checks were green: app typecheck/lint/test/build, pgTAP/db, aggregate typecheck/build/storybook,
+gitleaks, CodeRabbit, Vercel; Supabase Preview skipped. #474 was squash-merged as `2eb6025`; post-merge `main`
+`ci`, `db-tests`, and `release` all passed.
+
+**Current state.** SPEC-0018 custody/payment is now live end-to-end on `main`: backend schema/RPCs from #468 and
+frontend `/custody` + `/custody/request/[requestId]` from #474. Since the prior brief, dashboard PRs #471, #472,
+#473, and #475 also merged and are included in current `main`. Current open queue is draft-only:
+#421, #400, #368, #366. #317/#229 residuals remain open for
+`supabase_admin` default ACL / leaked-password-protection follow-up.
+
 ## 2026-06-30 — SPEC-0018 backend live via clean #468
 **Why a replacement PR.** The historical #438 branch had no merge base with current `main` locally and showed
 unrelated tree churn, so it was closed as superseded. Clean replacement #468 was rebuilt from current `main` with
@@ -19,10 +40,8 @@ failed on Supabase CLI temporary-role auth and then the pooler circuit breaker; 
 made from that failed dry-run.
 
 **Merge and current state.** #468 was squash-merged as `27065f1`; post-merge `main` `ci`, `db-tests`, and `release`
-all passed. Current `main` also includes concurrent dashboard PRs #467 and #469. #441 custody frontend is now
-backend-unblocked but remains draft and must be refreshed/reviewed against current `main` and the live schema before
-merge. Current open queue: #470 non-draft dashboard charts; drafts #441, #421, #400, #368, #366. #317/#229 residuals
-remain open for `supabase_admin` default ACL / leaked-password-protection follow-up.
+all passed. Current `main` also includes concurrent dashboard PRs #467 and #469. **Superseded by the #474 entry
+above:** the custody frontend is now merged and #441 is closed.
 
 ## 2026-06-30 — #466 merged; DB hardening drafts and issues closed
 **Repo/prod alignment.** Opened #466 to add the exact four prod-applied migrations and their pgTAP coverage to
@@ -38,8 +57,8 @@ Closed resolved audit issues #430, #431, and #314 with evidence comments. #317 r
 `supabase_admin` table default ACL still grants future table privileges to client roles. #229 also remains open for
 that residual plus leaked-password-protection/Auth dashboard verification.
 
-**Superseded next lane.** This #466 handoff was superseded by the #468 entry above: SPEC-0018 backend is now
-reviewed/applied/merged. #441 frontend is the next custody lane. #400/#368/#366 remain held.
+**Superseded next lane.** This #466 handoff was superseded by the #468 and #474 entries above: SPEC-0018 backend and
+frontend are now reviewed/applied-or-merged as appropriate. #400/#368/#366 remain held.
 
 ## 2026-06-30 — DB hardening bundle reviewed and applied to Farm prod
 **Start point.** Local `main` was current with `origin/main` at `b7a95eb`. Farm Supabase prod was already applied

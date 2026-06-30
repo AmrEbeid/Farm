@@ -13,8 +13,8 @@ Last updated: 2026-06-30. Maintainers: Product + Owner (Amr Ebeid).
 > here against `main`: (1) **planned-vs-actual is built** (`reports/[planId]/pva`); (2) **Accounting P&L
 > (`/accounting`, `lib/pnl.ts`, `sales`) and Care Academy (`/academy`) are NOT on `main`** — they are in
 > unmerged **draft PRs #368 / #366** (migrations `0088`/`0097` and `0091` not applied); (3) **prod is now at
-> migration `20260629150100` per DEPLOY-STATUS**, including the SPEC-0018 custody/payment backend from #468; #441
-> custody frontend is still draft/unmerged.
+> migration `20260629150100` per DEPLOY-STATUS**, including the SPEC-0018 custody/payment backend from #468 and
+> the live custody frontend from #474; #441 is closed as superseded.
 
 ---
 
@@ -110,10 +110,10 @@ Commercial / SPEC-0013).
 
 | Persona | Goals | Daily tasks | Permissions (verified) | Main pages | Pain solved |
 |---|---|---|---|---|---|
-| **Owner** (المالك) | Control spend; see farm health | Approve PRs, review budgets/reports | All; sole `/settings` access; approvals | dashboard/owner, budgets, purchase-requests, reports | "Where is my money going per block?" |
+| **Owner** (المالك) | Control spend; see farm health | Approve PRs, review budgets/reports | All; sole `/settings` access; approvals | dashboard/owner, budgets, purchase-requests, reports, custody | "Where is my money going per block?" |
 | **Farm manager** (مدير المزرعة) | Run operations to plan | Build plans, approve, assign work | `plan.write`, `budget.write`, structure, approvals | dashboard/manager, plans, farm, purchase-requests | Coordinating field + stock + budget |
 | **Agri engineer** (مهندس زراعي) | Right operation, right time | Plan ops, record events, weather gating | `plan.write`, `op.execute`, structure | plans, farm, weather, m, people | Agronomic decisions tied to plan |
-| **Accountant** (محاسب) | Accurate cost/expense | Record expenses, review budgets | expenses/budget reads + `budget.write` | expenses, budgets, reports | Cost allocation, owner-drawings separation |
+| **Accountant** (محاسب) | Accurate cost/expense | Record expenses, review budgets | expenses/budget reads + `budget.write`, custody/request prep | expenses, budgets, reports, custody | Cost allocation, owner-drawings separation |
 | **Field supervisor** (مشرف ميداني) | Execute & log in the field | Execute ops on phone, log quantities | `op.execute` | `/m`, `/m/execute/[opId]` | Mobile, low-friction field capture |
 | **Storekeeper** (أمين مخزن) | Stock accuracy | Receive goods, issue materials | `inventory.write` | inventory, purchase-requests, suppliers | Partial receipts, stock truth |
 | **Worker** | Carry out tasks | (assigned via labor; no distinct app role yet) | — **Needs verification** (no `worker` in `Role`) | — | Task clarity (via supervisor) |

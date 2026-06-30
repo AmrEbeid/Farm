@@ -2,12 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **CURRENT STATE (2026-06-30 — SPEC-0018 backend live).** Prod ledger now includes the reviewed custody/payment
-> backend migrations **`20260629150000`** and **`20260629150100`**, applied with `supabase db push --yes` after #468
-> preflight showed exactly those two pending versions and no existing remote object/column collisions. `main` records
-> the same migrations at merge `27065f1`; post-merge `ci`, `db-tests`, and `release` are green. #438 is closed as
-> superseded by #468. #441 custody frontend remains draft/unmerged and should be refreshed/reviewed against current
-> `main` and the live schema before merge.
+> **CURRENT STATE (2026-06-30 — SPEC-0018 backend + frontend live).** Prod ledger includes the reviewed
+> custody/payment backend migrations **`20260629150000`** and **`20260629150100`**, applied with
+> `supabase db push --yes` after #468 preflight showed exactly those two pending versions and no existing remote
+> object/column collisions. `main` records the same backend migrations at merge `27065f1`; the frontend module
+> was then refreshed on clean #474 and merged at `2eb6025` with no additional DB migration. Live app surfaces now
+> include `/custody` and `/custody/request/[requestId]` for owner/accountant. Post-merge `main` `ci`, `db-tests`,
+> and `release` are green. #438 and #441 are closed as superseded by #468/#474.
 > **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting), `0091` (#366 academy), and `0092`
 > (#400 export). These remain behind their expert/reconciliation/pre-migration gates. **Residual security/admin
 > follow-up:** #317/#229 remain open for the platform-owned `supabase_admin` default table ACL and leaked-password
@@ -62,8 +63,8 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
   - **Migrations now at `20260629150100` (current).** The live ledger includes the #466 hardening/alignment
     migrations `20260622000098`, `20260629135038`, `20260629140248`, `20260629141650`, plus the #468 SPEC-0018
-    backend migrations `20260629150000` and `20260629150100`. Draft PR migrations `0088`, `0091`, `0092`, and
-    `0097` are **not** applied. Historical note: by
+    backend migrations `20260629150000` and `20260629150100`. The #474 SPEC-0018 frontend adds no migration. Draft
+    PR migrations `0088`, `0091`, `0092`, and `0097` are **not** applied. Historical note: by
     2026-06-27, Stages 2/3/4 had been applied via the Supabase MCP:
     `0080` structure_soft_delete_audit, `0081` structure_write_rpcs (+ `structure.write` on `authorize`;
     structure `tenant_all` re-emit), `0082` attachments (table + RLS + RPCs), `0083` record_event (3 RPCs),

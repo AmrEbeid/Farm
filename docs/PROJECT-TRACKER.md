@@ -1,5 +1,17 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — SPEC-0018 frontend reviewed, refreshed, merged; custody module live on `main`.** Original draft
+> **#441** was stale against current `main` (no merge base; unrelated tree churn), so a clean replacement
+> **#474** was rebuilt from current `main` after the #468 backend was live. Review fixes in the clean lane:
+> removed unrelated dashboard label drift, kept all custody reads/actions on the user-session Supabase client,
+> restricted routes/actions to owner/accountant, added stricter action validation for custody amounts and request
+> dates, and wired the missing draft request line picker so `post_paid_unpaid` operating expenses can be added via
+> the existing RPC-only path. Validation: local Node 20 Vitest **234/234** and `git diff --check` clean; #474 remote
+> checks green (app typecheck/lint/test/build, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel;
+> Supabase Preview skipped). #474 was squash-merged at `2eb6025`; post-merge `main` **ci**, **db-tests**, and
+> **release** are green. #441 is closed as superseded. Current `main` also includes dashboard follow-up PRs
+> **#471/#472/#473/#475**. Current open queue is draft-only: **#421/#400/#368/#366**.
+
 > **2026-06-30 — SPEC-0018 backend reviewed, prod-applied, and merged via clean #468.** Original draft
 > **#438** was not mergeable against current `main` locally (no merge base; unrelated tree churn), so a clean
 > replacement **#468** was rebuilt from current `main` with only the intended custody/payment backend files.
@@ -15,8 +27,7 @@
 > dry-run attempt failed on the Supabase CLI temporary login role and pooler circuit breaker, so no further DB
 > connection attempts were made. #468 was squash-merged at `27065f1`, and post-merge `main` CI, db-tests, and release
 > are green. #438 is closed as superseded. Current `main` also includes concurrent dashboard PRs **#467/#469**.
-> Next recommended lane: #441 custody frontend is now unblocked by the backend but still needs refresh/review against
-> current `main` and the live schema before merge; #470 dashboard charts is the only current non-draft open PR.
+> **Superseded by the #474 entry above:** SPEC-0018 frontend is now refreshed/reviewed/merged; #441 is closed.
 
 > **2026-06-30 — repo/prod migration alignment merged; superseded DB drafts closed.** After the prod hardening
 > apply, `main` was missing the four repo-versioned migration files that were already in the Farm prod ledger. Opened
@@ -30,8 +41,8 @@
 > **#430**, **#431**, and **#314** with evidence. **#317/#229 remain open** for the platform-owned
 > `supabase_admin` default table ACL residual and leaked-password-protection/Auth dashboard verification. During
 > this window, upstream **#464** and **#465** also merged before #466; their changes are now part of current `main`
-> and were covered by the post-merge CI. **Superseded by the #468 entry above:** SPEC-0018 backend is now
-> reviewed/applied/merged; #441 frontend is the next custody lane.
+> and were covered by the post-merge CI. **Superseded by the #468/#474 entries above:** SPEC-0018 backend and
+> frontend are now reviewed/applied-or-merged as appropriate.
 
 > **2026-06-30 — reviewed DB hardening bundle applied to Farm prod; draft PRs not merged.** Local `main`
 > was current at `origin/main` (`b7a95eb`) before the apply. Reviewed and probed the narrow DB hardening set:

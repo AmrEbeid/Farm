@@ -38,7 +38,7 @@ Evidence keys: mig = `apps/farm-os/supabase/migrations/`; route = `apps/farm-os/
 | **FEAT-025** | Member admin & invite | ⬜ | (`/members` planned) | mig `0090` planned | — | — | SPEC-0012 S2 |
 | **FEAT-026** | Knowledge / help system | ⬜ | (in-app help planned) | — | `lib/nav.ts`, `lib/errors.ts` (substrate) | — | SPEC-0014 |
 | **FEAT-027** | Commercial SaaS layer | ⬜ | (onboarding/admin planned) | — | — | — | SPEC-0013 |
-| **FEAT-028** | Custody ledger & payment requests | 🟡 (backend ✅, frontend draft #441) | (`/custody` draft #441) | `20260629150000`/`20260629150100`; `fn_save_custody_account`, `fn_record_custody_movement`, `fn_set_expense_payment_status`, `fn_create_payment_request`, `fn_payment_request_totals` | (frontend draft #441) | `102_custody_payment`, `103_payment_request` | SPEC-0018 / #421 |
+| **FEAT-028** | Custody ledger & payment requests | ✅ | `/custody`, `/custody/request/[requestId]` | `20260629150000`/`20260629150100`; `fn_save_custody_account`, `fn_record_custody_movement`, `fn_set_expense_payment_status`, `fn_create_payment_request`, `fn_add_expense_to_request`, lifecycle RPCs, `fn_payment_request_totals` | `CustodyForms.tsx`, `RequestLifecycle.tsx`, `lib/request-lifecycle.ts` | `102_custody_payment`, `103_payment_request`, `request-lifecycle.test.ts` | SPEC-0018 / #421 |
 
 **Maintenance:** when a feature ships, update its row + flip status; add the FEAT-id to the relevant
 `BR-NNN` rows and `pageMeta`. New feature → next free `FEAT-NNN` (registry is append-only).
