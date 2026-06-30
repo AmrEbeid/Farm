@@ -40,11 +40,23 @@ apply is available here.
    trigger; re-emitted from the CURRENT 0095 body — the harness caught an initial re-emit-from-0086 regression of
    #383). pgTAP 827/827; applied to prod migrate-first; test 86 extended.
 
-**Session result:** 7 PRs (#485, #486, #487, #489, #490, #491, #492); 3 prod migrations applied migrate-first
-(`20260630090000`, `20260630100000`, `20260701090000`); issues #317/#188/#488 closed, #229 scoped to leaked-password,
-#199 left owner-gated, #215 narrow plan posted. Delegated 3 worktree agents (a11y x2 + #215 research).
+8. **Defect-hunt sweep → 2 fixes (PRs #493, #495).** Ran parallel hunters (DB security/audit + app
+   data-integrity); both confirmed the codebase is well-guarded, surfacing two real classes:
+   (a) **PR #493** — `coverage/actions.ts` had 4 RLS reads discarding `{ error }`, so a transient read failure
+   silently defeated the #188 idempotency guard (dup PR + double reserve) and corrupted `needed_by`; each now
+   aborts via `toArabicError`. App-only.
+   (b) **PR #495** — the plan subsystem (`plans`/`plan_operations`/`plan_material_requirements`/
+   `plan_labor_requirements`/`quantities`) was un-audited; migration `20260701100000` adds fn_audit triggers
+   (excluding churn/already-audited/projection tables). pgTAP 833/833; applied to prod migrate-first; **#494 closed**.
 
-**Next candidates (decision-free):** #216–226 module research; the #215 first-slice settings-IA shell (app-only).
+**Session result:** 9 PRs (#485, #486, #487, #489, #490, #491, #492, #493, #495); **4 prod migrations** applied
+migrate-first (`20260630090000`, `20260630100000`, `20260701090000`, `20260701100000`); issues
+#317/#188/#488/#494 closed, #229 scoped to leaked-password, #199 left owner-gated, #215 narrow plan posted, #494
+filed+closed. Delegated 5 worktree/research agents. Decision-free engineering surface comprehensively cleared.
+
+**Next candidates (decision-free, marginal):** event-detail child audit (defense-in-depth, optional); #216–226
+module research. The #215 first-slice settings-IA shell is BLOCKED on the 7 Owner decisions in the #215 comment —
+do NOT build it ahead of those answers.
 Owner-decision-gated items remain untouched: #199, #157/#89 (pricing), #366/#368 (expert gates), #229(iii)
 leaked-password (Auth dashboard toggle), and the 7 #215 open decisions.
 
