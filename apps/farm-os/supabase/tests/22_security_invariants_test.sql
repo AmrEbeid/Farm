@@ -11,7 +11,7 @@
 -- Run via `supabase test db` or the local shim (test-shims/run-pgtap-local.sh).
 
 begin;
-select plan(11);
+select plan(12);
 
 -- ============================================================================================
 -- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function except the RLS helpers.
@@ -55,7 +55,7 @@ select is(
         'fn_set_active_org',                       -- active-org switcher RPC (migration 0085)
         'fn_update_org_settings',                 -- owner-gated org settings RPC (migration 0086)
         'fn_stock_coverage',                      -- read RPC
-        'fn_bin_rebuild', 'fn_execute_operation', -- intended authenticated RPC surface
+        'fn_execute_operation',                   -- intended authenticated RPC surface
         'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
         'fn_reserve_stock',                       -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
         'fn_add_plan_operation',                  -- atomic plan-operation authoring RPC (CREATE-3 #196, migration 0038)
@@ -69,8 +69,8 @@ select is(
         'fn_add_event_followup',                   -- gated event follow-up RPC (STAGE 3 / SPEC-0010, migration 0083)
         'fn_create_plan', 'fn_set_plan_status',    -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
         'fn_assign_plan_operation', 'fn_add_plan_labor' -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
-        -- NB: fn_post_movement is deliberately NOT here — AUTHZ-3 (migration 0036) revoked its
-        -- `authenticated` EXECUTE, making it an INTERNAL primitive. Pinned negatively below.
+        -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
+        -- 0036) and #430 (migration 0098) make them INTERNAL primitives. Pinned negatively below.
       )
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   0,
@@ -84,6 +84,9 @@ select ok(
     'public.fn_post_movement(uuid, text, numeric, text, text, numeric, uuid, uuid, uuid, timestamptz)',
     'EXECUTE'),
   'INV-2: authenticated can NO LONGER EXECUTE fn_post_movement directly (AUTHZ-3 #182 — now internal)');
+select ok(
+  not has_function_privilege('authenticated', 'public.fn_bin_rebuild(uuid, text)', 'EXECUTE'),
+  'INV-2: authenticated can NO LONGER EXECUTE fn_bin_rebuild directly (#430 — now internal)');
 
 -- Pin the trigger functions explicitly — these are the ones 0021 had to claw back from PUBLIC/
 -- authenticated, so guard the regression directly as well as via the dynamic count above.
