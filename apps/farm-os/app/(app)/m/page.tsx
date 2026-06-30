@@ -68,7 +68,7 @@ export default async function MobileHomePage({
                 <div className="mt-3">
                   <Link
                     href={`/m/execute/${o.id}`}
-                    className="inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-semibold"
+                    className="inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold"
                     style={{
                       color: "var(--on-brand, #fff)",
                       background: "var(--brand)",
