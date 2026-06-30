@@ -7,6 +7,7 @@ import {
   approveRequestOperational,
   approveRequestFinal,
 } from "@/app/(app)/custody/actions";
+import { paymentRequestLifecyclePermissions } from "@/lib/request-lifecycle";
 
 type Role = string;
 
@@ -29,9 +30,7 @@ export function RequestLifecycle({ requestId, status, role }: { requestId: strin
     else setErr(r.error ?? "تعذّر تنفيذ الإجراء");
   }
 
-  const canPrepare = role === "owner" || role === "accountant";
-  const canApproveOp = role === "owner";
-  const canApproveFinal = role === "owner";
+  const { canSubmit, canApproveOperational, canApproveFinal } = paymentRequestLifecyclePermissions(role, status);
 
   return (
     <div className="flex flex-col gap-2 no-print">
@@ -39,17 +38,17 @@ export function RequestLifecycle({ requestId, status, role }: { requestId: strin
         {err && <Alert tone="danger" title={err} />}
       </div>
       <div className="flex flex-wrap gap-2">
-        {status === "draft" && canPrepare && (
+        {canSubmit && (
           <Button disabled={pending} onClick={() => run(() => submitPaymentRequest(requestId))}>
             {pending ? "…" : "إرسال للاعتماد"}
           </Button>
         )}
-        {status === "submitted" && canApproveOp && (
+        {canApproveOperational && (
           <Button disabled={pending} onClick={() => run(() => approveRequestOperational(requestId))}>
             {pending ? "…" : "اعتماد تشغيلي"}
           </Button>
         )}
-        {status === "approved_operational" && canApproveFinal && (
+        {canApproveFinal && (
           <Button disabled={pending} onClick={() => run(() => approveRequestFinal(requestId))}>
             {pending ? "…" : "اعتماد نهائي (المالك)"}
           </Button>
