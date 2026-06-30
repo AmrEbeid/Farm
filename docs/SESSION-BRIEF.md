@@ -61,11 +61,20 @@ apply is available here.
     server-only, recharts split/unconsumed). Filed **#500** (DS Tabs `aria-controls` dangles on inactive tabs —
     needs a deliberate DS pass).
 
-**Session result:** 14 PRs (#485–#499, incl. docs #496/#498); **5 prod migrations** applied migrate-first
+12. **Finance dashboard drawings-vs-opex fix (PR #501).** A money-correctness hunt verified the SQL pipeline
+    solid (custody balance, payment totals, idempotency, drawings routing all correct) and found one app bug: the
+    dashboard split operating vs owner-drawings by FREE-TEXT, ignoring the authoritative `expenses.kind`
+    (CLAUDE.md #6 violation, wrong both ways). Fixed to classify by `kind` (capex excluded from both totals).
+13. **Concurrency/idempotency audit — write path verified SAFE.** No live double-write/lost-update: FOR UPDATE
+    locks, claim-first patterns, append-only ledger, derived balances all confirmed. Filed hardening only.
+
+**Session result:** 15 PRs (#485–#501, incl. docs #496/#498); **5 prod migrations** applied migrate-first
 (`20260630090000`, `20260630100000`, `20260701090000`, `20260701100000`, `20260701110000`); issues
 #317/#188/#488/#494 closed, #229 scoped to leaked-password, #199 left owner-gated, #215 narrow plan posted,
-#500 filed. Delegated 8 worktree/research/hunter agents. Decision-free SHIPPABLE surface comprehensively cleared
-(security/audit complete, perf, silent-failures, a11y table-names + status-colour, i18n, bundle hygiene).
+**#500/#502/#503 filed** (DS-tabs aria-controls / CSV raw-export / payment-lifecycle hardening — all deliberate
+or owner-timed). Delegated 9 worktree/research/hunter agents. Decision-free SHIPPABLE surface comprehensively
+cleared (security/audit complete, perf, silent-failures, a11y table-names + status-colour, i18n, bundle hygiene,
+finance correctness, write-path concurrency verified).
 
 **Next candidates (decision-free):** module research (#216–226 — mostly surfaces Owner *product* decisions);
 deeper frontend/UX correctness hunts. The #215 first-slice settings-IA shell is BLOCKED on the 7 Owner
