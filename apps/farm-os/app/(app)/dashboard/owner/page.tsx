@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
-import { egp, num } from "@/lib/money";
+import { fmtDate } from "@/lib/dates";
+import { egp, num, pct } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
 
 export default async function OwnerDashboard() {
@@ -17,7 +18,7 @@ export default async function OwnerDashboard() {
     await Promise.all([
       sb
         .from("purchase_requests")
-        .select("id, code, status, reason")
+        .select("id, code, status, reason, needed_by")
         .order("code", { ascending: false }),
       // Scope budget_lines to the caller's org so this stays correct once a 2nd org exists.
       sb
@@ -30,14 +31,29 @@ export default async function OwnerDashboard() {
   if (prsError) throw prsError;
   if (linesError) throw linesError;
 
+  const budgetLines = lines ?? [];
   const pending = (prs ?? []).filter((p) => p.status === "submitted");
-  const overLines = (lines ?? []).filter(
+  const overLines = budgetLines.filter(
     (b) => Number(b.committed) + Number(b.actual) > Number(b.approved),
   );
+
+  // KPI strip — every tile is QUERY-DERIVED from the rows above (non-negotiable #1:
+  // never a literal). Approved/used/available/utilisation are roll-ups of the
+  // org's budget_lines; pending/over-budget are counts. (Area + stock-risk tiles
+  // still await their own real reads — farm registry + coverage engine — as a
+  // separate slice; nothing here is fabricated.)
+  const totalApproved = budgetLines.reduce((s, b) => s + Number(b.approved ?? 0), 0);
+  const totalUsed = budgetLines.reduce(
+    (s, b) => s + Number(b.committed ?? 0) + Number(b.actual ?? 0),
+    0,
+  );
+  const available = totalApproved - totalUsed;
+  const utilisation = totalApproved > 0 ? (totalUsed / totalApproved) * 100 : 0;
 
   const columns: SimpleColumn[] = [
     { id: "code", header: "الطلب" },
     { id: "reason", header: "السبب" },
+    { id: "needed_by", header: "مطلوب بحلول" },
     { id: "status", header: "الحالة", kind: "status" },
   ];
   const rows = (prs ?? []).map((p) => ({
@@ -45,24 +61,38 @@ export default async function OwnerDashboard() {
     href: `/purchase-requests/${p.id}`,
     code: p.code,
     reason: p.reason ?? "—",
+    needed_by: p.needed_by ? fmtDate(p.needed_by) : "—",
     status: PR_STATUS_AR[p.status] ?? "غير معروف",
   }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">لوحة تحكم المالك</h1>
+      {/* Page header: title + context + quick actions */}
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b pb-4" style={{ borderColor: "var(--line)" }}>
+        <div>
+          <h1 className="text-2xl font-bold">لوحة تحكم المالك</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
+            نظرة شاملة على الاعتمادات والموازنة والمشتريات — محدّثة من السجلات الفعلية.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/budgets">
+            <Button variant="ghost" size="sm">الموازنات</Button>
+          </Link>
+          <Link href="/purchase-requests">
+            <Button variant="primary" size="sm">طلبات الشراء</Button>
+          </Link>
+        </div>
+      </header>
 
-      {/*
-        KPI tiles must be query-derived, never literals (non-negotiable #1). The
-        previous "المساحة ٦٠ فدان" and "مخاطر المخزون ١" tiles were hardcoded and went
-        stale (the risk tile stayed "١" even after the shortage was resolved), so they
-        were removed. Re-add them only when backed by real reads (area from the farm
-        registry; stock-risk count from the coverage engine) — that derivation is a
-        separate, reviewed slice. The two tiles below are derived from real rows.
-      */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+      {/* KPI strip — 6 query-derived metrics (responsive 2 → 3 → 6) */}
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard label="موافقات معلّقة" value={num(pending.length)} deltaDirection={pending.length ? "up" : "none"} />
         <KpiCard label="بنود متجاوزة" value={num(overLines.length)} deltaDirection={overLines.length ? "down" : "none"} />
+        <KpiCard label="الموازنة المعتمدة" value={egp(totalApproved)} />
+        <KpiCard label="المستخدم" value={egp(totalUsed)} />
+        <KpiCard label="نسبة الاستخدام" value={pct(utilisation)} />
+        <KpiCard label="المتاح" value={egp(available)} deltaDirection={available < 0 ? "down" : "none"} />
       </section>
 
       {pending.length > 0 && (
@@ -73,27 +103,41 @@ export default async function OwnerDashboard() {
         />
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {(lines ?? []).map((b) => {
-          const approved = Number(b.approved);
-          const used = Number(b.committed) + Number(b.actual);
-          const over = used > approved;
-          const ratio = approved > 0 ? used / approved : 0;
-          const tone = over ? "danger" : ratio >= 0.85 ? "warning" : "default";
-          return (
-            <Card key={b.category} title={`بند ${b.category}`}>
-              <p style={{ color: over ? "var(--danger,#b91c1c)" : "var(--ink)" }}>
-                المستخدم {egp(used)} من {egp(approved)}
-                {over && " (متجاوز)"}
-              </p>
-              <div className="mt-3">
-                <Progress value={ratio * 100} tone={tone} label={`نسبة استخدام بند ${b.category}`} />
-              </div>
-            </Card>
-          );
-        })}
+      {/* Budget-line health: detail cards with utilisation bars */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">حالة بنود الموازنة</h2>
+          <Link href="/budgets">
+            <Button variant="ghost" size="sm">كل الموازنات</Button>
+          </Link>
+        </div>
+        {budgetLines.length === 0 ? (
+          <Card><p style={{ color: "var(--ink-muted)" }}>لا توجد بنود موازنة بعد.</p></Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {budgetLines.map((b) => {
+              const approved = Number(b.approved);
+              const used = Number(b.committed) + Number(b.actual);
+              const over = used > approved;
+              const ratio = approved > 0 ? used / approved : 0;
+              const tone = over ? "danger" : ratio >= 0.85 ? "warning" : "default";
+              return (
+                <Card key={b.category} title={`بند ${b.category}`}>
+                  <p style={{ color: over ? "var(--danger,#b91c1c)" : "var(--ink)" }}>
+                    المستخدم {egp(used)} من {egp(approved)}
+                    {over && " (متجاوز)"}
+                  </p>
+                  <div className="mt-3">
+                    <Progress value={ratio * 100} tone={tone} label={`نسبة استخدام بند ${b.category}`} />
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </section>
 
+      {/* Purchase-request directory */}
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">طلبات الشراء</h2>
