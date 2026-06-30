@@ -267,6 +267,7 @@ export default async function OwnerDashboard() {
         <FilterableTable
           columns={columns}
           rows={rows}
+          ariaLabel="طلبات الشراء"
           searchColumns={["code", "reason", "needed_by", "status"]}
           placeholder="ابحث في طلبات الشراء…"
           exportFilename="purchase-requests"

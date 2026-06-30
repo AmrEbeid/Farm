@@ -230,7 +230,7 @@ export default async function InventoryItemPage({
                 عرض التغطية
               </Link>
             </div>
-            <SimpleTable columns={movementColumns} rows={movementRows} empty="لا توجد حركات لهذا الصنف." />
+            <SimpleTable columns={movementColumns} rows={movementRows} ariaLabel="آخر الحركات" empty="لا توجد حركات لهذا الصنف." />
           </section>
         </div>
       )}
@@ -239,7 +239,7 @@ export default async function InventoryItemPage({
         <div role="tabpanel" id={tabPanelId("purchases")} aria-labelledby={tabId("purchases")} tabIndex={0}>
           <section>
             <h2 className="mb-3 text-lg font-semibold">طلبات الشراء المرتبطة</h2>
-            <SimpleTable columns={prColumns} rows={prRows} empty="لا توجد طلبات شراء مرتبطة بهذا الصنف." />
+            <SimpleTable columns={prColumns} rows={prRows} ariaLabel="طلبات الشراء المرتبطة" empty="لا توجد طلبات شراء مرتبطة بهذا الصنف." />
           </section>
         </div>
       )}

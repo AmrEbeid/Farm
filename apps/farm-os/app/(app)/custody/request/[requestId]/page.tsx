@@ -209,7 +209,7 @@ export default async function PaymentRequestPage({
           </div>
 
           <Card title="الملخص حسب الفئة">
-            <SimpleTable columns={catCols} rows={catRows} empty="لا توجد بنود بعد" />
+            <SimpleTable columns={catCols} rows={catRows} ariaLabel="الملخص حسب الفئة" empty="لا توجد بنود بعد" />
           </Card>
 
           <div className="grid grid-cols-3 gap-6 pt-8 text-center text-sm">
@@ -223,7 +223,7 @@ export default async function PaymentRequestPage({
       {tab === "expenses" && (
         <div role="tabpanel" id={tabPanelId("expenses")} aria-labelledby={tabId("expenses")} tabIndex={0}>
           <Card title="البنود التفصيلية">
-            <SimpleTable columns={lineCols} rows={lineRows} empty="لم تُضف بنود لهذا الطلب بعد" />
+            <SimpleTable columns={lineCols} rows={lineRows} ariaLabel="البنود التفصيلية" empty="لم تُضف بنود لهذا الطلب بعد" />
           </Card>
         </div>
       )}

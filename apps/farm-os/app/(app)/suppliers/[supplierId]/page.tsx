@@ -227,7 +227,7 @@ export default async function Supplier360Page({
             {itemRows.length === 0 ? (
               <EmptyState title="لا توجد أصناف مرتبطة كمورد مفضل" />
             ) : (
-              <SimpleTable columns={itemColumns} rows={itemRows} empty="—" />
+              <SimpleTable columns={itemColumns} rows={itemRows} ariaLabel="الأصناف المرتبطة" empty="—" />
             )}
           </Card>
         </div>
@@ -239,7 +239,7 @@ export default async function Supplier360Page({
             {prRows.length === 0 ? (
               <EmptyState title="لا توجد بنود شراء مرتبطة" />
             ) : (
-              <SimpleTable columns={prColumns} rows={prRows} empty="—" />
+              <SimpleTable columns={prColumns} rows={prRows} ariaLabel="بنود طلبات الشراء" empty="—" />
             )}
           </Card>
         </div>
@@ -251,7 +251,7 @@ export default async function Supplier360Page({
             {movementRows.length === 0 ? (
               <EmptyState title="لا توجد حركات مخزون مرتبطة" />
             ) : (
-              <SimpleTable columns={movementColumns} rows={movementRows} empty="—" />
+              <SimpleTable columns={movementColumns} rows={movementRows} ariaLabel="آخر حركات المخزون" empty="—" />
             )}
           </Card>
         </div>
@@ -263,7 +263,7 @@ export default async function Supplier360Page({
             {expenseRows.length === 0 ? (
               <EmptyState title="لا توجد مصروفات مرتبطة" />
             ) : (
-              <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
+              <SimpleTable columns={expenseColumns} rows={expenseRows} ariaLabel="آخر المصروفات" empty="—" />
             )}
           </Card>
         </div>

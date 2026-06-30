@@ -81,7 +81,7 @@ export default async function ManagerDashboard() {
             فتح الخطة
           </Link>
         </div>
-        <SimpleTable columns={columns} rows={rows} empty="لا توجد عمليات مجدولة." />
+        <SimpleTable columns={columns} rows={rows} ariaLabel="خطة الحصوة — يوليو" empty="لا توجد عمليات مجدولة." />
       </section>
     </div>
   );

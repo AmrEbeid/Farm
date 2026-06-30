@@ -271,7 +271,7 @@ export default async function MonthlyPlanPage({
           tabIndex={0}
         >
           <Card title="العمليات المخطّطة">
-            <SimpleTable columns={opColumns} rows={opRows} empty="لا توجد عمليات بعد" />
+            <SimpleTable columns={opColumns} rows={opRows} ariaLabel="العمليات المخطّطة" empty="لا توجد عمليات بعد" />
           </Card>
         </div>
       )}

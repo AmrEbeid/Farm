@@ -159,6 +159,9 @@ export default async function FinanceDashboardPage({
     };
   });
 
+  const expenseCardTitle =
+    filter === "drawings" ? "مسحوبات المالك" : filter === "operating" ? "مصروفات تشغيلية" : "آخر المصروفات";
+
   const prColumns: SimpleColumn[] = [
     { id: "code", header: "طلب الشراء" },
     { id: "reason", header: "السبب" },
@@ -242,7 +245,7 @@ export default async function FinanceDashboardPage({
           {budgetRows.length === 0 ? (
             <EmptyState title="لا توجد موازنات" />
           ) : (
-            <SimpleTable columns={budgetColumns} rows={budgetRows} empty="—" />
+            <SimpleTable columns={budgetColumns} rows={budgetRows} ariaLabel="ضغط الموازنة" empty="—" />
           )}
         </Card>
       )}
@@ -250,11 +253,11 @@ export default async function FinanceDashboardPage({
       {(filter === "all" || filter === "expenses" || filter === "operating" || filter === "drawings" || filter === "prs") && (
         <section className="grid gap-4 xl:grid-cols-2">
           {(filter === "all" || filter === "expenses" || filter === "operating" || filter === "drawings") && (
-        <Card title={filter === "drawings" ? "مسحوبات المالك" : filter === "operating" ? "مصروفات تشغيلية" : "آخر المصروفات"}>
+        <Card title={expenseCardTitle}>
           {expenseRows.length === 0 ? (
             <EmptyState title="لا توجد مصروفات مسجّلة" />
           ) : (
-            <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
+            <SimpleTable columns={expenseColumns} rows={expenseRows} ariaLabel={expenseCardTitle} empty="—" />
           )}
         </Card>
           )}
@@ -263,7 +266,7 @@ export default async function FinanceDashboardPage({
           {prRows.length === 0 ? (
             <EmptyState title="لا توجد طلبات شراء للمتابعة" />
           ) : (
-            <SimpleTable columns={prColumns} rows={prRows} empty="—" />
+            <SimpleTable columns={prColumns} rows={prRows} ariaLabel="طلبات شراء للمتابعة" empty="—" />
           )}
         </Card>
           )}

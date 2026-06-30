@@ -124,18 +124,18 @@ export default async function CustodyDashboardPage() {
 
       <Card title="حسابات العهدة">
         {acctRows.length ? (
-          <SimpleTable columns={acctCols} rows={acctRows} empty="لا توجد حسابات عهدة بعد" />
+          <SimpleTable columns={acctCols} rows={acctRows} ariaLabel="حسابات العهدة" empty="لا توجد حسابات عهدة بعد" />
         ) : (
           <EmptyState title="لا توجد حسابات عهدة بعد" />
         )}
       </Card>
 
       <Card title="آخر حركات العهدة">
-        <SimpleTable columns={moveCols} rows={moveRows} empty="لا توجد حركات بعد" />
+        <SimpleTable columns={moveCols} rows={moveRows} ariaLabel="آخر حركات العهدة" empty="لا توجد حركات بعد" />
       </Card>
 
       <Card title="طلبات الصرف">
-        <SimpleTable columns={reqCols} rows={reqRows} empty="لا توجد طلبات صرف بعد" />
+        <SimpleTable columns={reqCols} rows={reqRows} ariaLabel="طلبات الصرف" empty="لا توجد طلبات صرف بعد" />
       </Card>
     </div>
   );

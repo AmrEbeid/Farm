@@ -162,12 +162,12 @@ export default async function FarmStructurePage() {
         {attentionRows.length === 0 ? (
           <EmptyState title="لا يوجد نخيل يحتاج عناية" />
         ) : (
-          <SimpleTable columns={attentionColumns} rows={attentionRows} empty="—" />
+          <SimpleTable columns={attentionColumns} rows={attentionRows} ariaLabel="نخيل يحتاج عناية" empty="—" />
         )}
       </Card>
 
       <Card title="القطاعات">
-        <SimpleTable columns={columns} rows={rows} empty="لا توجد قطاعات" />
+        <SimpleTable columns={columns} rows={rows} ariaLabel="القطاعات" empty="لا توجد قطاعات" />
       </Card>
 
       <Card title="السجل الزمني للمزرعة">
