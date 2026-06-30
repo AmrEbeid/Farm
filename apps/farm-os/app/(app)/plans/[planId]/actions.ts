@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import {
+  budgetCheckResultForKnownCost,
+  summarizePlannedFertilizationCost,
+} from "@/lib/budget-check";
 import type { Json } from "@/lib/database.types";
 
 interface CoverageResult {
@@ -40,15 +44,8 @@ export async function runPlanChecks(planId: string) {
   if (opsErr) return { ok: false, error: "تعذّر قراءة عمليات الخطة، حاول مرة أخرى." };
 
   const materialIds = new Set<string>();
-  let plannedCost = 0;
+  const plannedCost = summarizePlannedFertilizationCost(ops ?? []);
   for (const op of ops ?? []) {
-    // Budget check scopes to the أسمدة (fertilizer) line, so only planned fertilization
-    // ops count against it — mirror the #190 fix in budget/[planId]/check/page.tsx. Other
-    // subtypes (irrigation/inspection) belong to different budget lines and must not inflate
-    // the fertilizer plannedCost (51,500 → flips ok→warn; correct fertilization-only is 42,000).
-    if (op.subtype === "fertilization" && op.status === "planned") {
-      plannedCost += Number(op.est_cost ?? 0);
-    }
     for (const r of (op.plan_material_requirements ?? []) as { item_id: string }[]) {
       materialIds.add(r.item_id);
     }
@@ -89,16 +86,31 @@ export async function runPlanChecks(planId: string) {
     .eq("category", "أسمدة")
     .maybeSingle();
   // A read error must not be confused with "no budget line" (a legitimate null): a failed read
-  // would otherwise persist budget = "ok" (a false pass). A genuinely-absent line stays "ok".
+  // would otherwise persist budget = "ok" (a false pass). A genuinely-absent line stays "ok"
+  // unless the plan also has unknown costs, which must not be treated as free.
   if (budgetErr) return { ok: false, error: "تعذّر قراءة بنود الميزانية، حاول مرة أخرى." };
   let budgetResult: "ok" | "warn" | "block" = "ok";
   let budgetDetail: Json = {};
   if (line) {
     const available =
       Number(line.approved) - Number(line.committed) - Number(line.actual);
-    const added = plannedCost;
-    budgetResult = available - added < 0 ? "block" : available - added < available * 0.2 ? "warn" : "ok";
-    budgetDetail = { category: "أسمدة", available, added, after: available - added };
+    const added = plannedCost.knownCost;
+    budgetResult = budgetCheckResultForKnownCost(available, added, plannedCost.hasUnknownCost);
+    budgetDetail = {
+      category: "أسمدة",
+      available,
+      added,
+      after: available - added,
+      unknown_cost_count: plannedCost.unknownCostCount,
+    };
+  } else if (plannedCost.hasUnknownCost) {
+    budgetResult = "warn";
+    budgetDetail = {
+      category: "أسمدة",
+      added: plannedCost.knownCost,
+      unknown_cost_count: plannedCost.unknownCostCount,
+      note: "تكلفة بعض عمليات الأسمدة غير معروفة",
+    };
   }
 
   const checks = [
