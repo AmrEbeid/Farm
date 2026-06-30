@@ -1,8 +1,9 @@
 # SPEC-0016 — Export compliance & certification (GACC / CAPQ / residue) [commercial hook]
 
-*Status: **DRAFT for Owner review** — slice 1 schema + pure readiness code are implemented on PR #400 but
-not merged or applied to production. No real data has been entered, and no PII is included in this doc. The
-motivating reference is Ebeid Farm's real 2025 China-export certificates (provided by the Owner); the
+*Status: **Built on PR #400** — slice 1 schema + pure readiness code are implemented, reviewed, and migration
+`20260622000092_export_compliance` was applied to Farm prod on 2026-06-30 after a dry-run showed exactly that one
+pending migration. No real certificate data has been entered, and no PII is included in this doc. The motivating
+reference is Ebeid Farm's real 2025 China-export certificates (provided by the Owner); the
 responsible-person **national ID and phone numbers on those certificates are PII** and are **out of scope here** —
 real-data import is gated behind the **Stage‑M privacy review** ([`CLAUDE.md`](../CLAUDE.md) hard stop: real Ebeid
 PII must not enter any environment/third-party model before that review).*
@@ -78,8 +79,8 @@ specific missing/expired/failing item named. **Never auto-certifies** — it inf
   SPEC-0006 need-to-know gate; never surfaced on the readiness panel.
 
 ## 7. Slices (each a separate, Owner-gated PR)
-1. **Schema + RLS + audit** — implemented on draft PR #400 as migration `0092`, not applied to prod.
-2. **Readiness compute** — pure `lib/export-readiness.ts` implemented on draft PR #400; read-only panel deferred.
+1. **Schema + RLS + audit** — implemented on PR #400 as migration `0092`; applied to prod on 2026-06-30.
+2. **Readiness compute** — pure `lib/export-readiness.ts` implemented on PR #400; read-only panel deferred.
 3. **Residue ↔ pesticide / PHI tie-in** — link `residue_test_results.compound` to SPEC-0008 + the spraying ops.
 4. **Real-cert import** — *after* the Stage‑M privacy review; operator-run, never auto.
 
