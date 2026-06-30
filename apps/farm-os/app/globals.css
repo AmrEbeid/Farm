@@ -73,13 +73,20 @@ body {
  * navigating; confirmed live on farm-ui-one.vercel.app). Field roles are mobile,
  * so this blocked primary navigation. Raise the sidebar one above the overlay so
  * taps reach the links; the overlay (still --z-drawer) keeps tap-outside-to-close.
- * Harmless on desktop, where the sidebar is in grid flow (unpositioned → z-index
- * is a no-op). Override lives here because farm-os-ui.css is generated (synced
- * from the library) and would be overwritten; the proper fix belongs in
- * @amrebeid/ui (AppShell z-index) as a follow-up.
+ * MOBILE-ONLY scope: a grid item honours z-index even when unpositioned, so at
+ * desktop/tablet widths this override raised the (empty, opaque) sidebar grid
+ * cell ABOVE the real module nav — which is a position:fixed element rendered
+ * inside <main> at z-index calc(--z-sticky + 1) — painting a blank panel over it
+ * and hiding the ENTIRE navigation on laptop/desktop/tablet. The earlier comment
+ * here wrongly assumed z-index was a no-op on an unpositioned grid item. The
+ * drawer/overlay overlap this fixes only exists below 48rem, so the override is
+ * now confined there. (A cleaner fix belongs in @amrebeid/ui AppShell z-index as
+ * a follow-up; farm-os-ui.css is generated/synced and must not be hand-edited.)
  */
-.fos-appshell__sidebar {
-  z-index: calc(var(--z-drawer) + 1);
+@media (max-width: 48rem) {
+  .fos-appshell__sidebar {
+    z-index: calc(var(--z-drawer) + 1);
+  }
 }
 
 /* App-side grouped module navigation. This keeps @amrebeid/ui unchanged while
