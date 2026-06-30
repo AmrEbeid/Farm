@@ -1,5 +1,20 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — repo/prod migration alignment merged; superseded DB drafts closed.** After the prod hardening
+> apply, `main` was missing the four repo-versioned migration files that were already in the Farm prod ledger. Opened
+> **#466** from current `main` to add the exact applied migrations and pgTAP coverage:
+> `20260622000098_fn_bin_rebuild_internal`, `20260629135038_grant_hygiene_default_privileges`,
+> `20260629140248_inventory_transfer_ordered_guard`, and
+> `20260629141650_responsibility_assignments_write_gate`. Local pgTAP on the branch passed **726/726**; #466 CI was
+> green (app, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel), then #466 was squash-merged to
+> `main` at `55a38d6`. Post-merge `main` CI, db-tests, and release are green. Closed superseded draft PRs
+> **#436/#439/#442/#444** with trace comments and left their branches intact. Closed resolved audit issues
+> **#430**, **#431**, and **#314** with evidence. **#317/#229 remain open** for the platform-owned
+> `supabase_admin` default table ACL residual and leaked-password-protection/Auth dashboard verification. During
+> this window, upstream **#464** and **#465** also merged before #466; their changes are now part of current `main`
+> and were covered by the post-merge CI. Next recommended lane: independent review of #438 custody/payment backend
+> before any SPEC-0018 migration apply; #441 remains blocked behind #438.
+
 > **2026-06-30 — reviewed DB hardening bundle applied to Farm prod; draft PRs not merged.** Local `main`
 > was current at `origin/main` (`b7a95eb`) before the apply. Reviewed and probed the narrow DB hardening set:
 > **#436** `fn_bin_rebuild` internalization, **#439** grant/default-privilege hygiene, **#442** latent inventory

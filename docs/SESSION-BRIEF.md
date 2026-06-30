@@ -1,6 +1,24 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — #466 merged; DB hardening drafts and issues closed
+**Repo/prod alignment.** Opened #466 to add the exact four prod-applied migrations and their pgTAP coverage to
+current `main`: `20260622000098`, `20260629135038`, `20260629140248`, and `20260629141650`. Local branch pgTAP
+passed **726/726** and PR checks were green. #466 was squash-merged to `main` at `55a38d6`.
+
+**Post-merge validation.** Post-merge `main` CI, db-tests, and release all passed. The merged history also includes
+concurrent upstream #464 owner-dashboard redesign and #465 Arabic wording rename, both covered by the post-merge
+CI on `55a38d6`.
+
+**Cleanup.** Closed superseded draft PRs #436, #439, #442, and #444 with trace comments; branches were left intact.
+Closed resolved audit issues #430, #431, and #314 with evidence comments. #317 remains open because the platform-owned
+`supabase_admin` table default ACL still grants future table privileges to client roles. #229 also remains open for
+that residual plus leaked-password-protection/Auth dashboard verification.
+
+**Next lane.** #438 custody/payment backend is now the main held DB lane. It needs independent money/RLS/audit review
+and a fresh pre-migration gate before any SPEC-0018 migration apply. #441 remains blocked behind #438. #400/#368/#366
+remain held.
+
 ## 2026-06-30 — DB hardening bundle reviewed and applied to Farm prod
 **Start point.** Local `main` was current with `origin/main` at `b7a95eb`. Farm Supabase prod was already applied
 through `20260622000100_revoke_anon_exec_action_rpcs`; the open narrow DB candidates were #436/#439/#442/#444,
