@@ -69,6 +69,7 @@ export default async function InventoryListPage() {
         </div>
       </header>
       <FilterableTable
+        ariaLabel="المخزون"
         columns={columns}
         rows={rows}
         empty="لا توجد أصناف"

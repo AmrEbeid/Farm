@@ -53,6 +53,7 @@ export default async function BudgetsPage() {
         </p>
       </header>
       <FilterableTable
+        ariaLabel="الموازنات"
         columns={columns}
         rows={rows}
         empty="لا توجد موازنات"

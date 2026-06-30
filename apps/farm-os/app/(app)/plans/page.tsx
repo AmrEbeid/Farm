@@ -74,6 +74,7 @@ export default async function PlansListPage() {
           />
         ) : (
           <FilterableTable
+            ariaLabel="الخطط"
             columns={columns}
             rows={rows}
             empty="لا توجد خطط"
