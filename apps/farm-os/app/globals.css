@@ -73,13 +73,34 @@ body {
  * navigating; confirmed live on farm-ui-one.vercel.app). Field roles are mobile,
  * so this blocked primary navigation. Raise the sidebar one above the overlay so
  * taps reach the links; the overlay (still --z-drawer) keeps tap-outside-to-close.
- * Harmless on desktop, where the sidebar is in grid flow (unpositioned → z-index
- * is a no-op). Override lives here because farm-os-ui.css is generated (synced
- * from the library) and would be overwritten; the proper fix belongs in
- * @amrebeid/ui (AppShell z-index) as a follow-up.
+ * MOBILE-ONLY scope: a grid item honours z-index even when unpositioned, so at
+ * desktop/tablet widths this override raised the (empty, opaque) sidebar grid
+ * cell ABOVE the real module nav — which is a position:fixed element rendered
+ * inside <main> at z-index calc(--z-sticky + 1) — painting a blank panel over it
+ * and hiding the ENTIRE navigation on laptop/desktop/tablet. The earlier comment
+ * here wrongly assumed z-index was a no-op on an unpositioned grid item. The
+ * drawer/overlay overlap this fixes only exists below 48rem, so the override is
+ * now confined there. (A cleaner fix belongs in @amrebeid/ui AppShell z-index as
+ * a follow-up; farm-os-ui.css is generated/synced and must not be hand-edited.)
  */
-.fos-appshell__sidebar {
-  z-index: calc(var(--z-drawer) + 1);
+@media (max-width: 48rem) {
+  .fos-appshell__sidebar {
+    z-index: calc(var(--z-drawer) + 1);
+  }
+}
+
+/*
+ * De-duplicate the content padding. @amrebeid/ui's `.fos-appshell__main` carries
+ * its own `padding: var(--space-6)`, and EVERY app page/route-boundary already
+ * self-pads its content wrapper (`p-6`, or `p-4` on the compact mobile views, plus
+ * loading/error/not-found). That double-padded the content — 48px each side on
+ * laptop and, worse, on a 390px phone where it ate ~25% of the width. Drop the
+ * shell padding so each page's own gutter is the single source of truth (24px on
+ * standard pages, 16px on the compact ones) at every breakpoint. The redirect-only
+ * /dashboard router renders nothing, so it needs no padding.
+ */
+.fos-appshell__main {
+  padding: 0;
 }
 
 /* App-side grouped module navigation. This keeps @amrebeid/ui unchanged while

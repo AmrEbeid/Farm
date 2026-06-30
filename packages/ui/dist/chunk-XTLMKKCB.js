@@ -56,6 +56,22 @@ function useChartTokens(ref) {
   }, [ref]);
   return tokens;
 }
+
+// src/components/formatChartNumber.ts
+var arNumber = new Intl.NumberFormat("ar-EG-u-nu-arab", { maximumFractionDigits: 2 });
+function formatChartNumber(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? arNumber.format(value) : "";
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed !== "" && !Number.isNaN(Number(trimmed))) {
+      return arNumber.format(Number(trimmed));
+    }
+    return value;
+  }
+  return value == null ? "" : String(value);
+}
 function DataTable({
   data,
   categoryKey,
@@ -71,7 +87,7 @@ function DataTable({
     ] }) }),
     /* @__PURE__ */ jsx("tbody", { children: data.map((row, i) => /* @__PURE__ */ jsxs("tr", { children: [
       /* @__PURE__ */ jsx("th", { scope: "row", children: String(row[categoryKey]) }),
-      series.map((s) => /* @__PURE__ */ jsx("td", { children: String(row[s.dataKey]) }, s.dataKey))
+      series.map((s) => /* @__PURE__ */ jsx("td", { children: formatChartNumber(row[s.dataKey]) }, s.dataKey))
     ] }, i)) })
   ] });
 }
@@ -113,14 +129,16 @@ function BarChart({
             {
               orientation: t.dir === "rtl" ? "right" : "left",
               tick: { fill: t.inkMuted, fontSize: 12 },
-              stroke: t.line
+              stroke: t.line,
+              tickFormatter: formatChartNumber
             }
           ),
           /* @__PURE__ */ jsx(
             Tooltip,
             {
               contentStyle: { background: t.surface, border: `1px solid ${t.line}`, color: t.ink },
-              labelStyle: { color: t.ink }
+              labelStyle: { color: t.ink },
+              formatter: (value) => formatChartNumber(value)
             }
           ),
           showLegend && /* @__PURE__ */ jsx(Legend, { wrapperStyle: { color: t.ink } }),
@@ -165,7 +183,7 @@ function DataTable2({
     ] }) }),
     /* @__PURE__ */ jsx("tbody", { children: data.map((row, i) => /* @__PURE__ */ jsxs("tr", { children: [
       /* @__PURE__ */ jsx("th", { scope: "row", children: String(row[categoryKey]) }),
-      series.map((s) => /* @__PURE__ */ jsx("td", { children: String(row[s.dataKey]) }, s.dataKey))
+      series.map((s) => /* @__PURE__ */ jsx("td", { children: formatChartNumber(row[s.dataKey]) }, s.dataKey))
     ] }, i)) })
   ] });
 }
@@ -207,14 +225,16 @@ function LineChart({
             {
               orientation: t.dir === "rtl" ? "right" : "left",
               tick: { fill: t.inkMuted, fontSize: 12 },
-              stroke: t.line
+              stroke: t.line,
+              tickFormatter: formatChartNumber
             }
           ),
           /* @__PURE__ */ jsx(
             Tooltip,
             {
               contentStyle: { background: t.surface, border: `1px solid ${t.line}`, color: t.ink },
-              labelStyle: { color: t.ink }
+              labelStyle: { color: t.ink },
+              formatter: (value) => formatChartNumber(value)
             }
           ),
           showLegend && /* @__PURE__ */ jsx(Legend, { wrapperStyle: { color: t.ink } }),
@@ -297,7 +317,8 @@ function DoughnutChart({
             Tooltip,
             {
               contentStyle: { background: t.surface, border: `1px solid ${t.line}`, color: t.ink },
-              labelStyle: { color: t.ink }
+              labelStyle: { color: t.ink },
+              formatter: (value) => formatChartNumber(value)
             }
           ),
           showLegend && /* @__PURE__ */ jsx(Legend, { wrapperStyle: { color: t.ink } })
@@ -310,7 +331,7 @@ function DoughnutChart({
           ] }) }),
           /* @__PURE__ */ jsx("tbody", { children: data.map((d, i) => /* @__PURE__ */ jsxs("tr", { children: [
             /* @__PURE__ */ jsx("th", { scope: "row", children: d.name }),
-            /* @__PURE__ */ jsx("td", { children: String(d.value) })
+            /* @__PURE__ */ jsx("td", { children: formatChartNumber(d.value) })
           ] }, i)) })
         ] })
       ]

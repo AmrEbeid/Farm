@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useChartTokens } from "./useChartTokens";
+import { formatChartNumber } from "./formatChartNumber";
 
 export interface DoughnutDatum {
   name: string;
@@ -59,6 +60,7 @@ export function DoughnutChart({
           <Tooltip
             contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
             labelStyle={{ color: t.ink }}
+            formatter={(value) => formatChartNumber(value)}
           />
           {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
         </PieChart>
@@ -76,7 +78,7 @@ export function DoughnutChart({
             {data.map((d, i) => (
               <tr key={i}>
                 <th scope="row">{d.name}</th>
-                <td>{String(d.value)}</td>
+                <td>{formatChartNumber(d.value)}</td>
               </tr>
             ))}
           </tbody>

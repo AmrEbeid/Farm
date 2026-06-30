@@ -1,5 +1,244 @@
-# Session Brief — Farm OS      Updated: 2026-06-29 by Codex (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-30 — SAFE STOP: #215 control-panel research paused
+**Stop point.** Stopped at Owner request. Local `main` is at `e567115` (`docs: record unknown cost display fix`).
+GitHub checks for that head are green: `ci`, `db-tests`, and `release`. No migration, prod apply, production data
+change, draft PR merge, or issue comment was performed after #484.
+
+**Open queue.** Current open PRs are draft/held only: #368 accounting and #366 academy. Keep both gated: #368 still
+needs real Excel reconciliation + privacy review + explicit out-of-order `0088`/`0097` migration plan; #366 still
+needs licensed agronomist + current Egyptian pesticide-registration sign-off. Do not merge/migrate either without
+fresh review.
+
+**Paused work.** Began #215 (`[research] Control Panel — self-serve setup (config-as-data, not code)`) as the next
+safe docs/research lane. Reviewed the issue plus existing `docs/MARKET-RESEARCH-control-panel-and-features-2026-06-26.md`,
+`docs/SPEC-0012-account-admin-and-ux-gaps.md`, `docs/SPEC-0013-commercial-saas-layer.md`, and the live
+`/settings` surfaces (`apps/farm-os/app/(app)/settings/page.tsx`, `settings/dashboard/page.tsx`, `settings/actions.ts`,
+`fn_update_org_settings`). Current finding: the app has owner-only org settings and a settings dashboard, but not the
+broader self-serve control panel from #215.
+
+**Resume lane.** Resume #215 by completing current-source research, then update #215 / `SPEC-0013` with a scoped
+control-panel plan. Keep the scope as docs/spec first: tenant owner setup config (org/farm/module settings, roles,
+templates, imports, checklist) must be separated from platform support/admin controls; role/permission editing stays
+access-control reviewed; every config change is audited; real-data imports remain behind Stage M privacy review.
+
+**Local worktree note.** Tracked files were clean before this stop-docs update except the intended living docs.
+Unrelated untracked duplicate/tool files remain present (`.claude/`, `.codex/`, `.mcp.json`, many `* 2.tsx`/`* 2.md`
+duplicates, `tmp/`). Leave them alone unless Owner explicitly asks for cleanup.
+
+## 2026-06-30 — Entity-360 completed; RSC guard and budget unknown-cost fix live
+**Financial display honesty follow-up.** After #483 fixed budget-check false-green behavior, #484 removed the
+remaining tracked display/report cases where unknown estimated/planned costs were rendered as `0 ج.م`. The shared
+money helpers now preserve unknown/null/invalid values; plan detail, planning dashboard, manager/mobile operation
+lists, purchase-request detail, and PVA use those helpers. PVA no longer renders a cost-variance chart when planned
+costs are incomplete, because a chart would imply a precise variance over fabricated zero planned values.
+
+**#484 validation.** #484 was app-only and changed no `supabase/` files, so migration is N/A. Local validation:
+focused `money.test.ts` **7/7**, full Farm OS Vitest **251/251**, and `git diff --check` clean. #484 PR checks were
+green (app typecheck/lint/test/build, package typecheck/token/test/build/storybook, pgTAP/db, gitleaks, Vercel,
+CodeRabbit; Supabase Preview skipped). #484 was squash-merged as `d603b1f`; post-merge `main` `ci`, `db-tests`, and
+`release` are green. #89/#157 remain open for real pricing, maintained budget ledger, and hard budget enforcement.
+
+**Follow-up runtime fix.** After the 360 rollout, #481 fixed the live tabbed-page RSC failure: Server Components were
+calling client-only `tabId`/`tabPanelId` helpers, so tabbed 360 detail pages hit the segment error boundary at
+request-time even though build/typecheck were green. #481 added server-safe `apps/farm-os/lib/tab-ids.ts` and moved
+the tabbed 360 pages to that helper. #482 then added `apps/farm-os/scripts/check-client-fn-in-server.mjs` to CI so
+future server components cannot import/call known client-only helper functions from the client barrels.
+
+**Budget advisory fix.** #483 fixed the narrow #157/#89 false-green path where planned fertilization operations with
+unknown `est_cost` were summed as zero. The shared `budget-check` helper now tracks unknown planned costs; `runPlanChecks`
+persists budget `warn` instead of `ok` when cost is unknown, and `/budget/[planId]/check` routes the display to
+owner/accountant review rather than showing "budget sufficient." This is app-only and does not implement hard budget
+enforcement or the Stage-7 real pricing/ledger model.
+
+**Validation and state.** #481, #482, and #483 are merged on `main`; no `supabase/` files changed, so migration is
+N/A. PR checks were green for each lane. Post-merge `main` at `2e91a04` has `ci`, `db-tests`, and `release` all
+green, including the new no-client-helper-in-server guard. Current open PR queue is still draft-only: #368 accounting
+and #366 academy.
+
+**Review.** After #400, #479 landed on `main` with the batch-2 Entity-360 detail pages. Post-merge review found no
+obvious regression: budget finance tabs stayed owner/accountant-only, payment-request add stayed draft-gated,
+structure edit/archive stayed owner/farm_manager-only, and `PalmMap` preserved palm-cell click-through to
+`/farm/palm/[id]`.
+
+**#480.** Non-draft #480 was reviewed as the final UI-only 360 piece for report/action `[id]` pages:
+`inventory/[itemId]/coverage`, `reports/[planId]/pva`, `m/execute/[opId]`, and `budget/[planId]/check`. It only
+adds `Entity360Header` identity/status treatment; existing queries, charts, role gates, and action forms are
+unchanged. CodeRabbit was rate-limited, so the review gate was manual. No `supabase/` files changed, so migration
+is N/A.
+
+**Validation and state.** #480 was squash-merged as `818ecba`; post-merge `main` `ci`, `db-tests`, and `release`
+all passed. Entity-360 is now complete across the detail/report/action pages. Current open PR queue is draft-only:
+#368 accounting and #366 academy.
+
+## 2026-06-30 — SPEC-0016 export compliance live via #400
+**Review and fix.** #400 was rebased onto current `main` and reviewed as a real migration lane. The only code fix
+needed was in `computeExportReadiness()`: missing validity evidence now fails closed, so a GACC registration without
+a valid-from date and a seasonal accreditation without a complete window cannot pass the readiness gate. Open-ended
+GACC registrations are still allowed only when a valid-from date exists.
+
+**Validation and apply.** Local validation passed: focused Vitest **11/11**, full pgTAP **825/825**, and
+`git diff --check` clean. Remote #400 checks were green. Preflight showed exactly one missing prod migration,
+`20260622000092`; `supabase db push --dry-run --include-all` listed exactly
+`20260622000092_export_compliance.sql`. Applied to Farm prod with `supabase db push --include-all --yes`; the
+post-apply ledger now records `20260622000092`.
+
+**Merge and current state.** #400 was marked ready and squash-merged as `55fafbc`; post-merge `main` `ci`,
+`db-tests`, and `release` all passed. SPEC-0016 is now built for schema/RLS/audit plus pure readiness compute.
+No real certificate data was imported; responsible-person national ID and phone stay gated behind Stage-M privacy
+review. Concurrent UI-only entity-360 PRs #477/#478 also merged with green checks and a quick post-merge scan found
+no obvious role-gate/action drift. **Superseded by the #479/#480 entry above:** the remaining Entity-360 lanes are
+now merged. Current open PR queue is draft-only: #368 and #366.
+
+## 2026-06-30 — Chart Arabic-Indic numerals live via #476
+**Review.** Non-draft #476 was reviewed after the SPEC-0018 spec merge. The diff is UI-only: it adds an internal
+`formatChartNumber()` helper to `@amrebeid/ui`, applies it to Bar/Line/Doughnut chart axes, tooltips, and
+screen-reader table fallbacks, adds focused unit coverage, and commits the matching rebuilt `dist/` chart artifacts.
+No `supabase/` files changed, so migration is N/A.
+
+**Validation and merge.** GitHub PR checks were green before merge: package typecheck/token/test/build/storybook,
+app typecheck/lint/test/build, pgTAP/db, gitleaks, Vercel; Supabase Preview skipped. CodeRabbit hit its review
+limit, so the gating review was manual. #476 was squash-merged as `fdca0e0`. Post-merge `main` `db-tests` and
+`release` are green; `ci` is also green, including package typecheck/token/test/build/storybook and app
+typecheck/lint/test/build plus the Recharts code-split guard.
+
+**Current state.** Charts in `@amrebeid/ui/charts` now render numeric axes/tooltips and accessibility table fallback
+values in Arabic-Indic digits without a public API change. **Superseded by the #400 entry above:** export
+compliance is now shipped; current open PR queue is #368 and #366.
+
+## 2026-06-30 — SPEC-0018 frontend live via clean #474
+**Why a replacement PR.** The historical #441 frontend branch was stale against current `main` locally and carried
+unrelated tree churn, so it was closed as superseded. Clean replacement #474 was rebuilt from current `main` after
+the #468 backend migrations were reviewed, applied to prod, and merged.
+
+**Review fixes.** The clean frontend lane kept custody routes/actions owner/accountant-only and user-session/RLS
+scoped, removed unrelated dashboard label drift from the stale branch, added stricter amount/date validation in
+server actions, and wired the missing draft request line picker so eligible operating `post_paid_unpaid` expenses
+can be added to a payment request through `fn_add_expense_to_request`.
+
+**Validation and merge.** Local validation passed under Node 20: Vitest **234/234** and `git diff --check` clean.
+#474 remote checks were green: app typecheck/lint/test/build, pgTAP/db, aggregate typecheck/build/storybook,
+gitleaks, CodeRabbit, Vercel; Supabase Preview skipped. #474 was squash-merged as `2eb6025`; post-merge `main`
+`ci`, `db-tests`, and `release` all passed.
+
+**Current state.** SPEC-0018 custody/payment is now live end-to-end on `main`: backend schema/RPCs from #468 and
+frontend `/custody` + `/custody/request/[requestId]` from #474. Since the prior brief, dashboard PRs #471, #472,
+#473, and #475 also merged, and #421 now tracks the SPEC-0018 implementation spec. Current open queue is draft-only:
+#368, #366. #317/#229 residuals remain open for
+`supabase_admin` default ACL / leaked-password-protection follow-up.
+
+## 2026-06-30 — SPEC-0018 backend live via clean #468
+**Why a replacement PR.** The historical #438 branch had no merge base with current `main` locally and showed
+unrelated tree churn, so it was closed as superseded. Clean replacement #468 was rebuilt from current `main` with
+only the intended SPEC-0018 backend migrations, pgTAP tests, and business-rule/permission docs.
+
+**Review fixes.** Before apply, #468 preserved the #466 `fn_bin_rebuild` internal invariant, added the SPEC-0018
+RPCs to the authenticated allowlist, and hardened custody cash posting: an expense-linked custody cash out-movement
+must be routed through `fn_set_expense_payment_status` and must equal the linked expense total.
+
+**Validation and apply.** Local validation passed: `git diff --check` clean and full pgTAP **800/800**. #468 remote
+checks were green: app CI, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel; Supabase Preview skipped.
+Prod preflight showed only `20260629150000` and `20260629150100` pending, and a remote public-schema dump found no
+existing SPEC-0018 object/column collisions. Applied both migrations to Farm prod `veezkmytervjnpxcrbkw` with
+`supabase db push --yes`; post-apply `supabase migration list` recorded both versions. A later no-op dry-run attempt
+failed on Supabase CLI temporary-role auth and then the pooler circuit breaker; no further DB connection attempts were
+made from that failed dry-run.
+
+**Merge and current state.** #468 was squash-merged as `27065f1`; post-merge `main` `ci`, `db-tests`, and `release`
+all passed. Current `main` also includes concurrent dashboard PRs #467 and #469. **Superseded by the #474 entry
+above:** the custody frontend is now merged and #441 is closed.
+
+## 2026-06-30 — #466 merged; DB hardening drafts and issues closed
+**Repo/prod alignment.** Opened #466 to add the exact four prod-applied migrations and their pgTAP coverage to
+current `main`: `20260622000098`, `20260629135038`, `20260629140248`, and `20260629141650`. Local branch pgTAP
+passed **726/726** and PR checks were green. #466 was squash-merged to `main` at `55a38d6`.
+
+**Post-merge validation.** Post-merge `main` CI, db-tests, and release all passed. The merged history also includes
+concurrent upstream #464 owner-dashboard redesign and #465 Arabic wording rename, both covered by the post-merge
+CI on `55a38d6`.
+
+**Cleanup.** Closed superseded draft PRs #436, #439, #442, and #444 with trace comments; branches were left intact.
+Closed resolved audit issues #430, #431, and #314 with evidence comments. #317 remains open because the platform-owned
+`supabase_admin` table default ACL still grants future table privileges to client roles. #229 also remains open for
+that residual plus leaked-password-protection/Auth dashboard verification.
+
+**Superseded next lane.** This #466 handoff was superseded by the #468, #474, and #400 entries above:
+SPEC-0018 backend/frontend and SPEC-0016 export are now reviewed/applied-or-merged as appropriate. #368/#366
+remain held.
+
+## 2026-06-30 — DB hardening bundle reviewed and applied to Farm prod
+**Start point.** Local `main` was current with `origin/main` at `b7a95eb`. Farm Supabase prod was already applied
+through `20260622000100_revoke_anon_exec_action_rpcs`; the open narrow DB candidates were #436/#439/#442/#444,
+with #438/#400/#368/#366 held at that start point.
+
+**Review/probes.** Re-fetched PR heads and verified SQL from the actual PR refs. Prod read-only probes were clean for
+data preconditions: `inventory_movements.type='transfer'` = 0, `inventory_bin.ordered <> 0` = 0, and
+`plan_material_requirements.qty is null` = 0. Grant probes showed the expected current-table destructive grants and
+two table default-ACL grantors: `postgres` and platform-owned `supabase_admin`.
+
+**#439 patch.** Patched #439 to `ecaeace` so the migration fixes current-table grants and the `postgres` future table
+default ACL, but does not fail when the migration role cannot administer `supabase_admin`. That residual is now
+explicitly reported as a platform-owner follow-up. Local pgTAP on #439 passed **689/689**.
+
+**Apply.** Built an exact temporary bundle from current `main` plus #436/#439/#442/#444. Full local pgTAP passed
+**726/726**. Supabase CLI dry-run with `--include-all` showed exactly four migrations, then applied them to Farm prod:
+`20260622000098_fn_bin_rebuild_internal`, `20260629135038_grant_hygiene_default_privileges`,
+`20260629140248_inventory_transfer_ordered_guard`, and
+`20260629141650_responsibility_assignments_write_gate`. A temporary MCP-generated ledger row for the already-applied
+0098 revoke was repaired before the CLI apply so the final ledger uses repo migration versions.
+
+**Post-apply verification.** Prod ledger now contains all four repo versions. Function grant checks show client roles
+cannot execute `fn_bin_rebuild`, `fn_post_movement`, `fn_set_active_org`, or `fn_update_org_settings` outside the
+intended posture. Current public tables have no client-role `TRUNCATE` and no client-role `DELETE` except
+authenticated `plan_checks`. The two inventory constraints exist as `NOT VALID`; `fn_post_movement` no longer carries
+`transfer`; and `responsibility_assignments.tenant_all` has `responsibility.write` plus the same-org person guard.
+
+**Still held.** No draft PR was merged. #438 custody/payment remains held for independent money/RLS/audit review and
+its own pre-migration gate. #400, #368, and #366 remain held. Residual #229/#317 work remains for the platform-owned
+`supabase_admin` default table ACL and leaked-password-protection/Auth dashboard verification.
+
+## 2026-06-30 — SPEC-0018 audit/authz follow-up + #436/#462 review; drafts still held
+**Start point.** Local `main` was fast-forwarded to current `origin/main` (`5db895b`) before updating this brief.
+No production migration, prod apply, draft-PR merge, or production data change was performed.
+
+**#438 custody/payment backend.** Reviewed the current draft backend at `cb648d8`, posted a blocking review for a
+cross-PR audit policy regression, then patched the draft branch remotely at `eccc76e`. The patch makes
+`audit_log.audit_read` preserve the full confidentiality union: `people_compensation -> payroll.read`,
+`sale/expense -> budget.write`, and custody/payment entities -> `finance.read`. Added pgTAP coverage in
+`103_payment_request_test.sql` so accountant can read restricted accounting/finance audit mirrors, a supervisor
+cannot, and generic same-org audit rows remain visible. Local pgTAP passed **757/757**; GitHub checks are green
+(app, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel; Supabase Preview skipped). #438 remains
+draft/held for independent money/RLS/audit review and separate pre-migration review.
+
+**#400 and #444 migration-order cleanup.** Patched the known stale older `authorize()` re-emits so they no longer
+re-broaden SPEC-0018 custody/payment permissions if applied after #438. #400 export was patched at `8c1973c`:
+`custody.write`, `request.prepare`, and `request.approve.op` are now owner/accountant only, and
+`97_authorize_perms_complete_test.sql` asserts the SPEC-0018 role semantics. Local pgTAP passed **681/681** and
+GitHub checks are green. #444 responsibility-write was patched at `304ba09` with the same finance-only union and
+`101_responsibility_assignments_write_gate_test.sql` coverage. Local pgTAP passed **707/707** and GitHub checks are
+green. Both PRs remain draft/held; no merge or migration.
+
+**#436 fn_bin_rebuild internalization.** Refreshed draft #436 onto current `main` without force-pushing by adding a
+two-parent branch-refresh commit at `cb8df8e`. The PR diff is now only the three DB files:
+`20260622000098_fn_bin_rebuild_internal.sql`, `19_definer_exec_grants_test.sql`, and
+`22_security_invariants_test.sql`. Rechecked app callers: no direct client/app `rpc("fn_bin_rebuild")` caller exists;
+only generated DB types mention the RPC. Local validation on the refreshed tree: `git diff --check` clean; full
+pgTAP **687/687**. GitHub checks are green. #436 remains draft/held for explicit pre-migration/Owner apply gate.
+
+**#462 plan material qty NOT NULL.** While reviewing the new #462 draft, it was found already merged into `main`
+by another actor; no merge was performed from this session. Post-merge review of the two-file migration/test diff
+found no code findings. Local pgTAP on the PR head passed **688/688**. Remaining prod-apply gate: before applying
+`20260622000099_plan_material_qty_not_null.sql`, run the read-only prod probe from the migration header:
+`select id, plan_op_id, item_id from public.plan_material_requirements where qty is null;`. If any rows exist,
+correct or remove them before apply because `alter column qty set not null` should fail loudly on bad existing data.
+
+**Updated gate status.** The specific stale-authz risk for #400/#444 is resolved, but the general rule remains:
+any later/older `authorize()` re-emit must carry the same final permission union before it is applied after #438.
+Do not apply the custody/payment migrations until the final pre-migration review is done. #436 is now refreshed and
+green. #462 is merged to main but still needs the NULL-row prod probe before any prod migration apply. Recommended
+next lane is a fresh pre-migration review/probe pass for #439/#442 and then an ordered migration-bundle plan only
+after all required read-only probes are clean.
 
 ## 2026-06-29 — SAFE STOP: status snapshot and next-session handoff
 **Stop point.** Local `main` was fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production
@@ -70,7 +309,7 @@ remote updates, revalidated (`eslint`, `tsc`, Vitest **230/230**, production bui
 to `/login`.
 
 **Still open.** No direct Supabase migration/prod mutation was run from this batch.
-`docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+`docs/SPEC-0018-custody-and-payment-requests.md` was later tracked via #421 after the module shipped.
 
 ## 2026-06-29 — audit issue hygiene; docs-only status update
 **Change.** Reconciled high-signal open audit issues against current `main` and production evidence, then updated
@@ -184,7 +423,7 @@ nav/page-help **17/17**, full Vitest **230/230**, `tsc --noEmit`, touched-file E
 `git diff --check` all passed. #441 still cannot merge before #438 is independently reviewed and applied
 migrate-first; no merge, migration, prod apply, or production data change.
 
-## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
+## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; later superseded
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
 roles, keep custody/payment/receipt reads finance-role gated, avoid a broad new `expense.write` permission, make
@@ -195,8 +434,9 @@ finance-confidential RLS).
 **Evidence.** #421 branch head `2fa6694`. GitHub checks passed: pgTAP, app/typecheck/lint/test/build,
 token/storybook build, gitleaks, Vercel. Focused re-review found no findings.
 
-**Still held.** No merge, migration, deploy, production apply, or real financial/PII import was performed. #421
-remains draft/design-only for Owner review and Stage-M privacy gating.
+**Later update.** No merge, migration, deploy, production apply, or real financial/PII import was performed in that
+2026-06-29 pass. After #468/#474 shipped, #421 was refreshed into an implementation spec and merged as docs-only;
+migrate remained N/A.
 
 ## 2026-06-29 — #368 accounting DB-side summary fix implemented; PR still held
 **Change.** Patched held draft #368 (`feat/stage-7-accounting-backend`) so `/accounting` no longer computes P&L

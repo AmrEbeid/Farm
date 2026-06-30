@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Alert } from "@/components/ui";
+import { Breadcrumbs, Alert, EmptyState } from "@/components/ui";
 import type { TimelineEvent } from "@/components/ui";
+import { Entity360Header } from "@/components/Entity360Header";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PalmFile } from "@/components/PalmFile";
@@ -27,6 +28,17 @@ const HEALTH_STATUS_AR: Record<string, string> = {
   healthy: "سليمة",
   leaf_spot_watch: "مراقبة تبقّع الأوراق",
   rpw_suspected: "اشتباه إصابة بسوسة النخيل الحمراء",
+};
+
+// Map assets.status → an Entity360 pill tone. Healthy is the only "active"; watch/sick warn;
+// dead is "blocked"; removed/replaced (archived/superseded) read as muted "draft".
+const STATUS_PILL: Record<string, "active" | "warning" | "blocked" | "draft"> = {
+  active: "active",
+  watch: "warning",
+  sick: "warning",
+  dead: "blocked",
+  removed: "draft",
+  replaced: "draft",
 };
 
 function one<T>(rel: unknown): T | null {
@@ -69,7 +81,12 @@ export default async function PalmFilePage({
   if (assetError) throw assetError;
   if (historyError) throw historyError;
 
-  if (!asset) return <div className="p-6">النخلة غير موجودة.</div>;
+  if (!asset)
+    return (
+      <div className="p-6">
+        <EmptyState title="النخلة غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const sector = one<{ id?: string; name?: string }>(asset.sectors);
   const hawsha = one<{ id?: string; name?: string }>(asset.hawshat);
@@ -120,9 +137,39 @@ export default async function PalmFilePage({
           { id: "palm", label },
         ]}
       />
-      <h1 className="text-2xl font-bold">{label}</h1>
+      <Entity360Header
+        title={label}
+        subtitle={[
+          asset.variety ?? undefined,
+          asset.sex === "male" ? "ذكر" : asset.sex === "female" ? "أنثى" : undefined,
+          line?.line_no != null ? `خط ${num(line.line_no)}` : undefined,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        pills={[
+          {
+            status: STATUS_PILL[asset.status ?? ""] ?? "draft",
+            label: STATUS_AR[asset.status ?? ""] ?? asset.status ?? "—",
+          },
+        ]}
+      />
 
       {asset.archived && <Alert tone="warning" title="هذه النخلة مُزالة (مؤرشفة)" />}
+
+      {asset.status === "sick" && (
+        <Alert
+          tone="danger"
+          title="هذه النخلة تحتاج عناية عاجلة"
+          description="النخلة مسجّلة كمريضة — راجع الحالة الصحية وسجّل المعالجة اللازمة."
+        />
+      )}
+      {asset.status === "dead" && (
+        <Alert
+          tone="danger"
+          title="النخلة مسجّلة كميتة"
+          description="راجع سبب النفوق وحدّث السجل أو ابدأ إجراء الإحلال."
+        />
+      )}
 
       <PalmFile
         label={label}

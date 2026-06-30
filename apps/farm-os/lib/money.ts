@@ -3,9 +3,46 @@
 const FMT = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 0 });
 const FMT2 = new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 2 });
 
+export interface MoneySummary {
+  total: number;
+  unknownCount: number;
+  hasUnknown: boolean;
+}
+
+export function moneyNumber(value: number | string | null | undefined): number | null {
+  if (value == null) return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function egp(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return "—";
   return `${FMT.format(n)} ج.م`;
+}
+
+export function egpValue(value: number | string | null | undefined): string {
+  return egp(moneyNumber(value));
+}
+
+export function sumMoney(values: (number | string | null | undefined)[]): MoneySummary {
+  let total = 0;
+  let unknownCount = 0;
+
+  for (const value of values) {
+    const n = moneyNumber(value);
+    if (n == null) {
+      unknownCount += 1;
+    } else {
+      total += n;
+    }
+  }
+
+  return { total, unknownCount, hasUnknown: unknownCount > 0 };
+}
+
+export function egpSummary(summary: MoneySummary): string {
+  return summary.hasUnknown ? `${egp(summary.total)} + غير معروف` : egp(summary.total);
 }
 
 export function num(n: number | null | undefined, decimals = 0): string {

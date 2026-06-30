@@ -1,0 +1,23 @@
+-- Farm OS — #430: make fn_bin_rebuild an internal maintenance primitive.
+--
+-- Problem:
+-- `fn_bin_rebuild(item, location)` is SECURITY DEFINER and currently remains EXECUTE-able by
+-- authenticated users. Normal app/client flows do not call it directly: inventory writes go through
+-- gated RPCs such as fn_reserve_stock, fn_execute_operation, and fn_post_receipt, which delegate to
+-- fn_post_movement; fn_post_movement then calls fn_bin_rebuild internally as the definer owner.
+--
+-- Intent:
+-- Remove the unnecessary client-facing RPC surface. This mirrors AUTHZ-3's posture for
+-- fn_post_movement: keep owner/internal execution working while authenticated clients cannot POST the
+-- maintenance primitive directly.
+--
+-- Security:
+-- No table policy or data shape changes. This is a grant-only hardening migration. SECURITY DEFINER
+-- callers continue to work because internal function calls check EXECUTE against the calling function's
+-- owner, not the JWT caller.
+--
+-- Rollback:
+-- If a legitimate client-facing maintenance workflow is introduced later, re-grant explicitly with
+-- documentation and a role gate/wrapper rather than reopening this primitive directly.
+
+revoke execute on function public.fn_bin_rebuild(uuid, text) from authenticated;

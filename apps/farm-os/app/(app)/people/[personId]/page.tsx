@@ -2,18 +2,31 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
+import type { TabItem } from "@amrebeid/ui";
+import { Alert, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
+import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { EMP_TYPE_AR, OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
+const TAB_IDS = ["overview", "operations", "activities", "team"] as const;
+type PersonTab = (typeof TAB_IDS)[number];
+
 export default async function Person360Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ personId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { personId } = await params;
+  const { tab: rawTab } = await searchParams;
+  const tab: PersonTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+    ? (rawTab as PersonTab)
+    : "overview";
   await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const sb = await createClient();
 
@@ -58,7 +71,12 @@ export default async function Person360Page({
   if (performedError) throw performedError;
   if (assignedError) throw assignedError;
 
-  if (!person) return <div className="p-6">الشخص غير موجود.</div>;
+  if (!person)
+    return (
+      <div className="p-6">
+        <EmptyState title="الشخص غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const manager = (people ?? []).find((p) => p.id === person.reports_to_person_id);
   const directReports = (people ?? []).filter((p) => p.reports_to_person_id === person.id);
@@ -90,6 +108,13 @@ export default async function Person360Page({
     status: OP_STATUS_AR[event.status ?? ""] ?? "غير معروف",
     notes: event.notes ?? "—",
   }));
+  const assignedRows = (assignedEvents ?? []).map((event) => ({
+    id: event.id,
+    subtype: SUBTYPE_AR[event.subtype ?? ""] ?? "نشاط",
+    occurred_at: event.occurred_at ? fmtDate(event.occurred_at) : "—",
+    status: OP_STATUS_AR[event.status ?? ""] ?? "غير معروف",
+    notes: event.notes ?? "—",
+  }));
 
   const reportColumns: SimpleColumn[] = [
     { id: "name", header: "الاسم" },
@@ -106,20 +131,31 @@ export default async function Person360Page({
     active: report.active ? "نشط" : "",
   }));
 
+  const typeLabel = person.employment_type ? EMP_TYPE_AR[person.employment_type] ?? "غير معروف" : "—";
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "operations", label: `العمليات (${num(operationRows.length)})` },
+    { id: "activities", label: `الأنشطة (${num(performedRows.length + assignedRows.length)})` },
+    { id: "team", label: `الفريق (${num(directReports.length)})` },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{person.name}</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            {person.position ?? "عضو فريق"} · {person.employment_type ? EMP_TYPE_AR[person.employment_type] ?? "غير معروف" : "—"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <HeaderLink href="/people/dashboard">لوحة الفريق</HeaderLink>
-          <HeaderLink href="/people">دليل الفريق</HeaderLink>
-        </div>
-      </header>
+      <Entity360Header
+        title={person.name}
+        subtitle={`${person.position ?? "عضو فريق"} · ${typeLabel}`}
+        pills={[{ status: person.active ? "active" : "warning", label: person.active ? "نشط" : "غير نشط" }]}
+        actions={
+          <>
+            <HeaderLink href="/people/dashboard">لوحة الفريق</HeaderLink>
+            <HeaderLink href="/people">دليل الفريق</HeaderLink>
+          </>
+        }
+      />
+
+      {!person.active && (
+        <Alert tone="warning" title="هذا العضو غير نشط" description="لا تظهر التكليفات الجديدة لغير النشطين." />
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عمليات مفتوحة" value={num(openOperations.length)} />
@@ -128,45 +164,71 @@ export default async function Person360Page({
         <KpiCard label="مرؤوسون مباشرون" value={num(directReports.length)} />
       </section>
 
-      <Card title="ملف الشخص">
-        <DescriptionList
-          items={[
-            { id: "position", term: "الوظيفة", description: person.position ?? "—" },
-            {
-              id: "employment_type",
-              term: "نوع التوظيف",
-              description: person.employment_type ? EMP_TYPE_AR[person.employment_type] ?? "غير معروف" : "—",
-            },
-            { id: "manager", term: "المدير المباشر", description: manager?.name ?? "—" },
-            { id: "active", term: "الحالة", description: person.active ? "نشط" : "غير نشط" },
-          ]}
-        />
-      </Card>
+      <EntityTabs items={tabItems} value={tab} />
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card title="العمليات المسندة">
-          {operationRows.length === 0 ? (
-            <EmptyState title="لا توجد عمليات مسندة" />
-          ) : (
-            <SimpleTable columns={operationColumns} rows={operationRows} empty="—" />
-          )}
-        </Card>
-        <Card title="أنشطة منفّذة">
-          {performedRows.length === 0 ? (
-            <EmptyState title="لا توجد أنشطة منفّذة" />
-          ) : (
-            <SimpleTable columns={eventColumns} rows={performedRows} empty="—" />
-          )}
-        </Card>
-      </section>
+      {tab === "overview" && (
+        <div role="tabpanel" id={tabPanelId("overview")} aria-labelledby={tabId("overview")} tabIndex={0}>
+          <Card title="ملف الشخص">
+            <DescriptionList
+              items={[
+                { id: "position", term: "الوظيفة", description: person.position ?? "—" },
+                { id: "employment_type", term: "نوع التوظيف", description: typeLabel },
+                { id: "manager", term: "المدير المباشر", description: manager?.name ?? "—" },
+                { id: "active", term: "الحالة", description: person.active ? "نشط" : "غير نشط" },
+              ]}
+            />
+          </Card>
+        </div>
+      )}
 
-      <Card title="المرؤوسون المباشرون">
-        {reportRows.length === 0 ? (
-          <EmptyState title="لا يوجد مرؤوسون مباشرون" />
-        ) : (
-          <SimpleTable columns={reportColumns} rows={reportRows} empty="—" />
-        )}
-      </Card>
+      {tab === "operations" && (
+        <div role="tabpanel" id={tabPanelId("operations")} aria-labelledby={tabId("operations")} tabIndex={0}>
+          <Card title="العمليات المسندة">
+            {operationRows.length === 0 ? (
+              <EmptyState title="لا توجد عمليات مسندة" />
+            ) : (
+              <SimpleTable columns={operationColumns} rows={operationRows} empty="—" />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "activities" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("activities")}
+          aria-labelledby={tabId("activities")}
+          tabIndex={0}
+          className="flex flex-col gap-4"
+        >
+          <Card title="أنشطة منفّذة">
+            {performedRows.length === 0 ? (
+              <EmptyState title="لا توجد أنشطة منفّذة" />
+            ) : (
+              <SimpleTable columns={eventColumns} rows={performedRows} empty="—" />
+            )}
+          </Card>
+          <Card title="أنشطة مسندة">
+            {assignedRows.length === 0 ? (
+              <EmptyState title="لا توجد أنشطة مسندة" />
+            ) : (
+              <SimpleTable columns={eventColumns} rows={assignedRows} empty="—" />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "team" && (
+        <div role="tabpanel" id={tabPanelId("team")} aria-labelledby={tabId("team")} tabIndex={0}>
+          <Card title="المرؤوسون المباشرون">
+            {reportRows.length === 0 ? (
+              <EmptyState title="لا يوجد مرؤوسون مباشرون" />
+            ) : (
+              <SimpleTable columns={reportColumns} rows={reportRows} empty="—" />
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export interface PageHelp {
 /** Keyed by the lib/nav.ts AppNavItem id. Every nav page must have an entry (enforced by test). */
 export const PAGE_HELP: Record<string, PageHelp> = {
   dashboard: {
-    title: "لوحة التحكم",
+    title: "لوحة المعلومات",
     what: "نظرة عامة على المزرعة حسب دورك.",
     why: "لتبدأ يومك من أهم المؤشرات والإجراءات.",
     when: "كل يوم، كنقطة انطلاق.",
@@ -222,6 +222,24 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "لا تخلط المسحوبات مع المصروفات التشغيلية.",
     related: ["finance-dashboard", "budgets"],
   },
+  custody: {
+    title: "العهدة وطلبات الصرف",
+    what: "رصيد العهدة النقدية لدى مدير المزرعة/المحاسب، وطلب الصرف الشهري المطلوب من المالك.",
+    why: "ليكون طلب الصرف جاهزًا ومحدّثًا دائمًا، ولفصل المدفوع نقدًا من العهدة عن الآجل المطلوب من المالك.",
+    when: "يوميًا عند صرف مصروف أو استلام/تسليم عهدة، وشهريًا عند تجهيز إذن الصرف.",
+    how: "تابع رصيد العهدة والمؤشرات؛ المحاسب يسجّل الحركات والمصروفات ويجهّز الطلب؛ المالك يعتمد نهائيًا.",
+    avoid: "لا يُحتسب المصروف المدفوع من العهدة ضمن المطلوب من المالك (يُحسب مرة واحدة)؛ التغذية = المستهدف − الرصيد الحالي.",
+    related: ["finance-dashboard", "expenses"],
+  },
+  "payment-request-360": {
+    title: "إذن الصرف 360",
+    what: "ملف تفصيلي لطلب صرف واحد يعرض الفترة والحالة والبنود والتغذية المطلوبة للعهدة.",
+    why: "ليكون إذن الصرف قابلًا للمراجعة والطباعة من نفس مصدر البيانات بدل تجميعه يدويًا.",
+    when: "عند إرسال طلب صرف أو مراجعته أو طباعته للاعتماد.",
+    how: "راجع الملخص والبنود، ثم نفّذ إجراء الاعتماد المتاح حسب دورك وحالة الطلب.",
+    avoid: "بنود الطلب هي الآجل غير المدفوع فقط؛ المدفوع من العهدة يظهر كحركة عهدة ولا يُضاف كبند طلب.",
+    related: ["custody", "finance-dashboard", "expenses"],
+  },
   "expense-360": {
     title: "ملف المصروف 360",
     what: "ملف تفصيلي لمصروف واحد يوضح التصنيف والمبلغ والربط بالمورد أو الحدث إن وجد.",
@@ -380,6 +398,7 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/inventory\/(?!dashboard(?:\/|$))[^/]+(?:\/)?$/, helpId: "item-360" },
   { pattern: /^\/plans\/(?!dashboard(?:\/|$))[^/]+(?:\/)?$/, helpId: "plan-360" },
   { pattern: /^\/purchase-requests\/[^/]+(?:\/)?$/, helpId: "purchase-request-360" },
+  { pattern: /^\/custody\/request\/[^/]+(?:\/)?$/, helpId: "payment-request-360" },
   { pattern: /^\/suppliers\/[^/]+(?:\/)?$/, helpId: "supplier-360" },
   { pattern: /^\/budgets\/[^/]+(?:\/)?$/, helpId: "budget-360" },
   { pattern: /^\/expenses\/[^/]+(?:\/)?$/, helpId: "expense-360" },

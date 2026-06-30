@@ -1,17 +1,26 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Card, Alert } from "@/components/ui";
-import { SectorFile } from "@/components/SectorFile";
+import type { TabItem } from "@amrebeid/ui";
+import { Alert, Breadcrumbs, Card, DescriptionList, EmptyState, FileTimeline, KpiCard } from "@/components/ui";
+import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { PalmMap } from "@/components/PalmMap";
 import { StructureForm } from "@/components/StructureForm";
 import { StructureArchiveButton } from "@/components/StructureArchiveButton";
 import { MediaGallery } from "@/components/MediaGallery";
 import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
+
+const TAB_IDS = ["overview", "palms", "activity"] as const;
+type HawshaTab = (typeof TAB_IDS)[number];
 
 function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
   if (sex === "male") return "male";
@@ -32,10 +41,16 @@ function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
 
 export default async function HawshaFilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const { tab: rawTab } = await searchParams;
+  const tab: HawshaTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+    ? (rawTab as HawshaTab)
+    : "overview";
   const m = await requireMembership();
   const sb = await createClient();
   const canEditStructure = ["owner", "farm_manager"].includes(m.role);
@@ -81,7 +96,12 @@ export default async function HawshaFilePage({
   if (assetsError) throw assetsError;
   if (linesError) throw linesError;
 
-  if (!hawsha) return <div className="p-6">الحوشة غير موجودة.</div>;
+  if (!hawsha)
+    return (
+      <div className="p-6">
+        <EmptyState title="الحوشة غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   // PostgREST returns a to-one embed as an object or a single-element array
   // depending on FK detection — normalise both to one sector (for the breadcrumb).
@@ -143,6 +163,20 @@ export default async function HawshaFilePage({
     palm_count: l.palm_count != null ? num(l.palm_count) : "—",
   }));
 
+  // Header subtitle: code · sector · palm totals, joining only the parts we have.
+  const totalPalms = (hawsha.palm_count_barhi ?? 0) + (hawsha.palm_count_male ?? 0);
+  const subtitleParts = [
+    hawsha.code,
+    sector?.name,
+    `${num(totalPalms)} نخلة`,
+  ].filter((part): part is string => Boolean(part));
+
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "palms", label: `الخطوط/النخيل (${num((lineRows ?? []).length)})` },
+    { id: "activity", label: `النشاط (${num((events ?? []).length)})` },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <Breadcrumbs
@@ -155,91 +189,185 @@ export default async function HawshaFilePage({
           { id: "hawsha", label: hawsha.name },
         ]}
       />
-      <h1 className="text-2xl font-bold">{hawsha.name}</h1>
 
-      {hawsha.archived && <Alert tone="warning" title="هذه الحوشة مُزالة (مؤرشفة)" />}
-
-      <SectorFile
-        name={hawsha.name}
-        overviewTitle="بيانات الحوشة"
-        meta={[
-          { id: "code", term: "الرمز", description: hawsha.code },
-          {
-            id: "area",
-            term: "المساحة",
-            description: hawsha.area_qirat != null ? `${num(hawsha.area_qirat)} قيراط` : "—",
-          },
-          { id: "rows", term: "عدد الصفوف", description: hawsha.row_count != null ? num(hawsha.row_count) : "—" },
-          { id: "barhi", term: "نخيل برحي", description: num(hawsha.palm_count_barhi ?? 0) },
-          { id: "male", term: "ذكور", description: num(hawsha.palm_count_male ?? 0) },
-          {
-            id: "planting",
-            term: "تاريخ الزراعة",
-            description: fmtDate(hawsha.planting_date),
-          },
-        ]}
-        events={timeline}
-        palmLines={palmLines}
+      <Entity360Header
+        title={hawsha.name}
+        subtitle={subtitleParts.join(" · ")}
+        pills={hawsha.archived ? [{ status: "warning", label: "مؤرشف" }] : undefined}
+        actions={
+          <>
+            {sector?.id && <HeaderLink href={`/farm/sector/${sector.id}`}>القطاع</HeaderLink>}
+            <HeaderLink href="/farm">المزرعة</HeaderLink>
+          </>
+        }
       />
 
-      {canEditStructure && (
-        <Card title="إدارة الحوشة">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2">
-              <StructureForm
-                level="hawsha"
-                mode="edit"
-                initial={{
-                  id: hawsha.id,
-                  name: hawsha.name,
-                  code: hawsha.code,
-                  areaQirat: hawsha.area_qirat,
-                  rowCount: hawsha.row_count,
-                  palmCountBarhi: hawsha.palm_count_barhi,
-                  palmCountMale: hawsha.palm_count_male,
-                  plantingDate: hawsha.planting_date,
-                  notes: hawsha.notes,
-                }}
-                triggerLabel="تعديل بيانات الحوشة"
-              />
-              <StructureForm
-                level="line"
-                mode="create"
-                context={{ hawshaId: hawsha.id }}
-                triggerLabel="إضافة خط"
-                triggerVariant="primary"
-              />
-              <StructureForm
-                level="palm"
-                mode="create"
-                context={{ hawshaId: hawsha.id }}
-                triggerLabel="إضافة نخلة"
-                triggerVariant="primary"
-              />
-            </div>
-            <StructureArchiveButton
-              type="hawsha"
-              id={hawsha.id}
-              archived={!!hawsha.archived}
-              redirectTo={sector?.id ? `/farm/sector/${sector.id}` : "/farm"}
-            />
-          </div>
-        </Card>
+      {hawsha.archived && (
+        <Alert
+          tone="warning"
+          title="هذه الحوشة مُزالة (مؤرشفة)"
+          description="لا تظهر في القوائم النشطة؛ البيانات معروضة للمراجعة فقط."
+        />
       )}
 
-      <Card title="الخطوط">
-        <SimpleTable columns={lineColumns} rows={lineList} empty="لا توجد خطوط مسجّلة" />
-      </Card>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="نخيل برحي" value={num(hawsha.palm_count_barhi ?? 0)} />
+        <KpiCard label="ذكور" value={num(hawsha.palm_count_male ?? 0)} />
+        <KpiCard label="الخطوط" value={num((lineRows ?? []).length)} />
+        <KpiCard
+          label="المساحة"
+          value={hawsha.area_qirat != null ? `${num(hawsha.area_qirat)} قيراط` : "—"}
+        />
+      </section>
 
-      <RecordActivity locationType="hawsha" locationId={hawsha.id} canRecord={canAttach} activities={activities} />
+      <EntityTabs items={tabItems} value={tab} />
 
-      <MediaGallery
-        entityType="hawsha"
-        entityId={hawsha.id}
-        orgId={m.orgId}
-        initial={attachments}
-        canAttach={canAttach}
-      />
+      {tab === "overview" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("overview")}
+          aria-labelledby={tabId("overview")}
+          tabIndex={0}
+          className="flex flex-col gap-6"
+        >
+          <Card title="بيانات الحوشة">
+            <DescriptionList
+              layout="inline"
+              items={[
+                { id: "code", term: "الرمز", description: hawsha.code },
+                {
+                  id: "area",
+                  term: "المساحة",
+                  description: hawsha.area_qirat != null ? `${num(hawsha.area_qirat)} قيراط` : "—",
+                },
+                {
+                  id: "rows",
+                  term: "عدد الصفوف",
+                  description: hawsha.row_count != null ? num(hawsha.row_count) : "—",
+                },
+                { id: "barhi", term: "نخيل برحي", description: num(hawsha.palm_count_barhi ?? 0) },
+                { id: "male", term: "ذكور", description: num(hawsha.palm_count_male ?? 0) },
+                { id: "planting", term: "تاريخ الزراعة", description: fmtDate(hawsha.planting_date) },
+              ]}
+            />
+          </Card>
+
+          {canEditStructure && (
+            <Card title="إدارة الحوشة">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                  <StructureForm
+                    level="hawsha"
+                    mode="edit"
+                    initial={{
+                      id: hawsha.id,
+                      name: hawsha.name,
+                      code: hawsha.code,
+                      areaQirat: hawsha.area_qirat,
+                      rowCount: hawsha.row_count,
+                      palmCountBarhi: hawsha.palm_count_barhi,
+                      palmCountMale: hawsha.palm_count_male,
+                      plantingDate: hawsha.planting_date,
+                      notes: hawsha.notes,
+                    }}
+                    triggerLabel="تعديل بيانات الحوشة"
+                  />
+                  <StructureForm
+                    level="line"
+                    mode="create"
+                    context={{ hawshaId: hawsha.id }}
+                    triggerLabel="إضافة خط"
+                    triggerVariant="primary"
+                  />
+                  <StructureForm
+                    level="palm"
+                    mode="create"
+                    context={{ hawshaId: hawsha.id }}
+                    triggerLabel="إضافة نخلة"
+                    triggerVariant="primary"
+                  />
+                </div>
+                <StructureArchiveButton
+                  type="hawsha"
+                  id={hawsha.id}
+                  archived={!!hawsha.archived}
+                  redirectTo={sector?.id ? `/farm/sector/${sector.id}` : "/farm"}
+                />
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {tab === "palms" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("palms")}
+          aria-labelledby={tabId("palms")}
+          tabIndex={0}
+          className="flex flex-col gap-6"
+        >
+          <Card title="الخطوط">
+            <SimpleTable columns={lineColumns} rows={lineList} empty="لا توجد خطوط مسجّلة" />
+          </Card>
+          <Card title="خريطة النخيل">
+            {palmLines.length === 0 ? (
+              <EmptyState title="لا توجد نخيل مسجّلة" />
+            ) : (
+              <PalmMap lines={palmLines} ariaLabel={`خريطة نخيل ${hawsha.name}`} />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "activity" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("activity")}
+          aria-labelledby={tabId("activity")}
+          tabIndex={0}
+          className="flex flex-col gap-6"
+        >
+          <Card title="سجل العمليات">
+            {timeline.length === 0 ? (
+              <EmptyState title="لا توجد عمليات مسجّلة بعد" />
+            ) : (
+              <FileTimeline events={timeline} ariaLabel={`السجل الزمني لـ ${hawsha.name}`} />
+            )}
+          </Card>
+
+          <RecordActivity
+            locationType="hawsha"
+            locationId={hawsha.id}
+            canRecord={canAttach}
+            activities={activities}
+          />
+
+          <MediaGallery
+            entityType="hawsha"
+            entityId={hawsha.id}
+            orgId={m.orgId}
+            initial={attachments}
+            canAttach={canAttach}
+          />
+        </div>
+      )}
     </div>
+  );
+}
+
+function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+      style={{
+        color: "var(--brand)",
+        background: "var(--surface)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      {children}
+    </Link>
   );
 }

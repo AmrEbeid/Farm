@@ -2,18 +2,31 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Card, DescriptionList, KpiCard } from "@/components/ui";
+import type { TabItem } from "@amrebeid/ui";
+import { Alert, Card, DescriptionList, KpiCard } from "@/components/ui";
+import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { egp, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { MOVEMENT_TYPE_AR, PR_STATUS_AR } from "@/lib/labels";
 
+const TAB_IDS = ["overview", "movements", "purchases"] as const;
+type ItemTab = (typeof TAB_IDS)[number];
+
 export default async function InventoryItemPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ itemId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { itemId } = await params;
+  const { tab: rawTab } = await searchParams;
+  const tab: ItemTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+    ? (rawTab as ItemTab)
+    : "overview";
   await requireMembership();
   const sb = await createClient();
 
@@ -111,20 +124,39 @@ export default async function InventoryItemPage({
     };
   });
 
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "movements", label: `الحركات (${num(movementRows.length)})` },
+    { id: "purchases", label: `طلبات الشراء (${num(prRows.length)})` },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">ملف الصنف — {item.name}</h1>
-          <p style={{ color: "var(--ink-muted)" }}>نظرة 360 على الرصيد والحركات والطلبات المرتبطة.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <HeaderLink href="/inventory">الأصناف</HeaderLink>
-          <HeaderLink href={`/inventory/${itemId}/coverage`} primary>
-            تغطية المخزون
-          </HeaderLink>
-        </div>
-      </header>
+      <Entity360Header
+        title={item.name}
+        subtitle={`${item.category ?? "صنف"} · ${unit || "—"}`}
+        pills={[
+          needsReorder
+            ? { status: "warning", label: "إعادة الطلب" }
+            : { status: "active", label: "سليم" },
+        ]}
+        actions={
+          <>
+            <HeaderLink href="/inventory">الأصناف</HeaderLink>
+            <HeaderLink href={`/inventory/${itemId}/coverage`} primary>
+              تغطية المخزون
+            </HeaderLink>
+          </>
+        }
+      />
+
+      {needsReorder && (
+        <Alert
+          tone="warning"
+          title="هذا الصنف بحاجة لإعادة الطلب"
+          description={`المتاح ${num(available)} ${unit} أقل من حد إعادة الطلب ${num(threshold)} ${unit}.`.trim()}
+        />
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="الموجود" value={num(onHand)} unit={unit} />
@@ -139,60 +171,78 @@ export default async function InventoryItemPage({
         <KpiCard label="قيد الطلب" value={num(ordered)} unit={unit} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card title="بيانات الصنف">
-          <DescriptionList
-            layout="inline"
-            items={[
-              { id: "category", term: "الفئة", description: item.category ?? "—" },
-              { id: "unit", term: "الوحدة", description: item.unit ?? "—" },
-              { id: "pack", term: "حجم العبوة", description: item.pack_size != null ? num(Number(item.pack_size)) : "—" },
-              { id: "criticality", term: "الأهمية", description: item.criticality ?? "—" },
-              { id: "expiry", term: "يتابع الصلاحية", description: item.expiry_tracked ? "نعم" : "لا" },
-              { id: "location", term: "الموقع", description: bin?.location ?? "main" },
-              { id: "projected", term: "الرصيد المتوقع", description: `${num(projected)} ${unit}`.trim() },
-            ]}
-          />
-        </Card>
-        <Card title="سياسة إعادة الطلب">
-          <DescriptionList
-            layout="inline"
-            items={[
-              { id: "min", term: "الحد الأدنى", description: `${num(Number(item.min_stock ?? 0))} ${unit}`.trim() },
-              { id: "max", term: "الحد الأقصى", description: `${num(Number(item.max_stock ?? 0))} ${unit}`.trim() },
-              { id: "safety", term: "مخزون الأمان", description: `${num(Number(item.safety_stock ?? 0))} ${unit}`.trim() },
-              { id: "reorder", term: "نقطة إعادة الطلب", description: `${num(Number(item.reorder_point ?? 0))} ${unit}`.trim() },
-              { id: "reorder_qty", term: "كمية إعادة الطلب", description: `${num(Number(item.reorder_qty ?? 0))} ${unit}`.trim() },
-              { id: "lead", term: "مدة التوريد", description: item.lead_time_days != null ? `${num(item.lead_time_days)} يوم` : "—" },
-              { id: "supplier", term: "المورد المفضل", description: supplier?.name ?? "—" },
-              {
-                id: "supplier_lead",
-                term: "مدة توريد المورد",
-                description: supplier?.lead_time_days != null ? `${num(supplier.lead_time_days)} يوم` : "—",
-              },
-            ]}
-          />
-        </Card>
-      </section>
+      <EntityTabs items={tabItems} value={tab} />
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">آخر الحركات</h2>
-          <Link
-            href={`/inventory/${itemId}/coverage`}
-            className="font-medium underline underline-offset-4"
-            style={{ color: "var(--brand)" }}
-          >
-            عرض التغطية
-          </Link>
+      {tab === "overview" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("overview")}
+          aria-labelledby={tabId("overview")}
+          tabIndex={0}
+          className="grid gap-4 md:grid-cols-2"
+        >
+          <Card title="بيانات الصنف">
+            <DescriptionList
+              layout="inline"
+              items={[
+                { id: "category", term: "الفئة", description: item.category ?? "—" },
+                { id: "unit", term: "الوحدة", description: item.unit ?? "—" },
+                { id: "pack", term: "حجم العبوة", description: item.pack_size != null ? num(Number(item.pack_size)) : "—" },
+                { id: "criticality", term: "الأهمية", description: item.criticality ?? "—" },
+                { id: "expiry", term: "يتابع الصلاحية", description: item.expiry_tracked ? "نعم" : "لا" },
+                { id: "location", term: "الموقع", description: bin?.location ?? "main" },
+                { id: "projected", term: "الرصيد المتوقع", description: `${num(projected)} ${unit}`.trim() },
+              ]}
+            />
+          </Card>
+          <Card title="سياسة إعادة الطلب">
+            <DescriptionList
+              layout="inline"
+              items={[
+                { id: "min", term: "الحد الأدنى", description: `${num(Number(item.min_stock ?? 0))} ${unit}`.trim() },
+                { id: "max", term: "الحد الأقصى", description: `${num(Number(item.max_stock ?? 0))} ${unit}`.trim() },
+                { id: "safety", term: "مخزون الأمان", description: `${num(Number(item.safety_stock ?? 0))} ${unit}`.trim() },
+                { id: "reorder", term: "نقطة إعادة الطلب", description: `${num(Number(item.reorder_point ?? 0))} ${unit}`.trim() },
+                { id: "reorder_qty", term: "كمية إعادة الطلب", description: `${num(Number(item.reorder_qty ?? 0))} ${unit}`.trim() },
+                { id: "lead", term: "مدة التوريد", description: item.lead_time_days != null ? `${num(item.lead_time_days)} يوم` : "—" },
+                { id: "supplier", term: "المورد المفضل", description: supplier?.name ?? "—" },
+                {
+                  id: "supplier_lead",
+                  term: "مدة توريد المورد",
+                  description: supplier?.lead_time_days != null ? `${num(supplier.lead_time_days)} يوم` : "—",
+                },
+              ]}
+            />
+          </Card>
         </div>
-        <SimpleTable columns={movementColumns} rows={movementRows} empty="لا توجد حركات لهذا الصنف." />
-      </section>
+      )}
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">طلبات الشراء المرتبطة</h2>
-        <SimpleTable columns={prColumns} rows={prRows} empty="لا توجد طلبات شراء مرتبطة بهذا الصنف." />
-      </section>
+      {tab === "movements" && (
+        <div role="tabpanel" id={tabPanelId("movements")} aria-labelledby={tabId("movements")} tabIndex={0}>
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">آخر الحركات</h2>
+              <Link
+                href={`/inventory/${itemId}/coverage`}
+                className="font-medium underline underline-offset-4"
+                style={{ color: "var(--brand)" }}
+              >
+                عرض التغطية
+              </Link>
+            </div>
+            <SimpleTable columns={movementColumns} rows={movementRows} empty="لا توجد حركات لهذا الصنف." />
+          </section>
+        </div>
+      )}
+
+      {tab === "purchases" && (
+        <div role="tabpanel" id={tabPanelId("purchases")} aria-labelledby={tabId("purchases")} tabIndex={0}>
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">طلبات الشراء المرتبطة</h2>
+            <SimpleTable columns={prColumns} rows={prRows} empty="لا توجد طلبات شراء مرتبطة بهذا الصنف." />
+          </section>
+        </div>
+      )}
     </div>
   );
 }

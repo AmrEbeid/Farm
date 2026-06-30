@@ -6,6 +6,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { CategoryBarChart, CategoryDoughnut } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { EMP_TYPE_AR, OP_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
@@ -64,6 +65,25 @@ export default async function PeopleDashboardPage({
     if (!op.responsible_person_id) continue;
     opsByPerson.set(op.responsible_person_id, (opsByPerson.get(op.responsible_person_id) ?? 0) + 1);
   }
+
+  // Chart data — derived from the people / operations already fetched (no new queries).
+  // Recharts keys bars by the category value, so the person label must be unique and
+  // non-empty: coalesce null names and disambiguate duplicates with a numeric suffix.
+  const seenLabels = new Map<string, number>();
+  const workloadChartData = activePeople
+    .map((person) => ({ name: (person.name ?? "").trim() || "—", ops: opsByPerson.get(person.id) ?? 0 }))
+    .filter((d) => d.ops > 0)
+    .sort((a, b) => b.ops - a.ops)
+    .slice(0, 8)
+    .map((d) => {
+      const seen = (seenLabels.get(d.name) ?? 0) + 1;
+      seenLabels.set(d.name, seen);
+      return { person: seen > 1 ? `${d.name} (${num(seen)})` : d.name, "عمليات": d.ops };
+    });
+  const employmentMix = Object.entries(typeCounts).map(([type, value]) => ({
+    name: EMP_TYPE_AR[type] ?? "غير معروف",
+    value,
+  }));
 
   const workloadColumns: SimpleColumn[] = [
     { id: "name", header: "الشخص" },
@@ -156,6 +176,35 @@ export default async function PeopleDashboardPage({
           />
         </DashboardKpiLink>
       </section>
+
+      {(filter === "all" || filter === "workload" || filter === "directory") &&
+        (workloadChartData.length > 0 || employmentMix.length > 0) && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          {workloadChartData.length > 0 && (
+            <Card title="عبء العمل حسب الشخص">
+              <CategoryBarChart
+                data={workloadChartData}
+                categoryKey="person"
+                series={[{ dataKey: "عمليات", name: "عمليات مفتوحة" }]}
+                ariaLabel="عبء العمل المفتوح حسب الشخص"
+                caption="عبء العمل حسب الشخص"
+                columnHeader="الشخص"
+              />
+            </Card>
+          )}
+          {employmentMix.length > 0 && (
+            <Card title="الفريق حسب نوع التوظيف">
+              <CategoryDoughnut
+                data={employmentMix}
+                ariaLabel="توزيع الفريق حسب نوع التوظيف"
+                caption="الفريق حسب نوع التوظيف"
+                labelHeader="نوع التوظيف"
+                valueHeader="العدد"
+              />
+            </Card>
+          )}
+        </section>
+      )}
 
       <CurrentFilterCard
         label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}

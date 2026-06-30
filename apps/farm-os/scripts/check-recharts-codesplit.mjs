@@ -46,6 +46,22 @@ const NEEDLE = "recharts";
 const ALLOWED_CHART_ROUTES = [
   "/inventory/[itemId]/coverage/page",
   "/reports/[planId]/pva/page",
+  // The strategic owner home (لوحة معلومات المالك) intentionally renders charts; recharts
+  // stays in this route's own client chunk (loaded only here), never the global bundle.
+  "/dashboard/owner/page",
+  // The finance dashboard renders budget-utilisation + variance charts; same code-split
+  // guarantee — recharts lives in this route's own client chunk, never the global bundle.
+  "/finance/dashboard/page",
+  // Module dashboards each render their own charts (status/type doughnuts, grouped
+  // bars, the weather temperature trend). Same guarantee — recharts stays confined to
+  // each route's own client chunk, never the global/shared bundle.
+  "/plans/dashboard/page",
+  "/inventory/dashboard/page",
+  "/farm/dashboard/page",
+  "/people/dashboard/page",
+  "/weather/dashboard/page",
+  // The settings dashboard renders a role-distribution doughnut; same guarantee.
+  "/settings/dashboard/page",
 ];
 
 function die(msg) {

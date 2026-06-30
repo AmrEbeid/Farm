@@ -2,7 +2,8 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). The authoritative
 role × permission × page × action map. **Enforcement is in Postgres** (RLS + `authorize()` + SoD triggers), not the
-UI. Reconciled to `main` 2026-06-27 (`lib/auth.ts`, `authorize()` `0035`, role-gates, verified page guards).
+UI. Reconciled to `main` 2026-06-30 (`lib/auth.ts`, `authorize()` union through `20260622000092`, role-gates,
+verified page guards).
 Maturity **L3**.*
 
 ## Roles (verified `lib/auth.ts`)
@@ -20,6 +21,14 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `budget.write` | owner, accountant | Write budgets, budget lines, expenses | BR-063 |
 | `payroll.read` | owner, accountant | Read `people_compensation` (wages) | BR-071 |
 | `structure.write` | owner, farm_manager | Create/edit/archive farm structure | BR-064 |
+| `responsibility.write` | owner, farm_manager | Write responsibility assignments | BR-073 |
+| `finance.read` | owner, accountant | Read finance-confidential custody/payment-request rows and derived balances | BR-066 |
+| `custody.write` | owner, accountant | Create custody accounts and post custody movements through RPCs | BR-067 |
+| `request.prepare` | owner, accountant | Create/submit payment requests and add eligible post-paid lines | BR-068 |
+| `request.approve.op` | owner, accountant | Operationally approve payment requests | BR-069 |
+| `request.approve.final` | owner | Final-approve payment requests | BR-069 |
+| `export.write` | owner, farm_manager | Write export registrations/accreditations/residue tests/results | BR-074 |
+| `academy.write` | owner, agri_engineer | Forward-compatible Care Academy content write gate; tables/routes still draft #366 | BR-075 |
 
 ## Role × capability (✓ = allowed, via the permission above)
 | Capability | owner | farm_manager | agri_engineer | accountant | supervisor | storekeeper |
@@ -31,6 +40,14 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | Write inventory / receive / reserve | ✓ | ✓ | | | | ✓ |
 | Write budget / expenses | ✓ | | | ✓ | | |
 | Read wages (payroll) | ✓ | | | ✓ | | |
+| Edit responsibility assignments | ✓ | ✓ | | | | |
+| Read custody/payment requests | ✓ | | | ✓ | | |
+| Record custody movements | ✓ | | | ✓ | | |
+| Prepare payment requests | ✓ | | | ✓ | | |
+| Operationally approve payment requests | ✓ | | | ✓ | | |
+| Final-approve payment requests | ✓ | | | | | |
+| Write export compliance records | ✓ | ✓ | | | | |
+| Write academy content (permission only; draft tables held) | ✓ | | ✓ | | | |
 | Read core farm data (RLS, own org) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ## Page access (verified guards)
@@ -55,6 +72,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | PR self-approval | requester ≠ approver; `requested_by` immutable; approver stamped from `auth.uid()` | BR-001/002 |
 | PR revert SoD | revert blocked when requester = approver | BR-003 |
 | Tenant isolation | RLS deny-by-default + FORCE RLS; cross-org FK rejected; anon denied | BR-050/51/52/53 |
+| Export compliance refs | export-compliance rows are org-readable, `export.write`-writable, and same-org for responsible person/residue parent | BR-052/074 |
 | PII | phone/email service-role only; wages `payroll.read` only | BR-070/071 |
 | Audit | immutable `audit_log`; membership/people changes audited (PII redacted) | BR-080/081 |
 

@@ -6,6 +6,7 @@ import { Card, DescriptionList, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { CategoryDoughnut } from "@/components/charts";
 import { num } from "@/lib/money";
 
 const FILTER_LABEL_AR: Record<string, string> = {
@@ -64,6 +65,11 @@ export default async function SettingsDashboardPage({
     id: role,
     role: ROLE_LABEL_AR[role as Role] ?? "غير معروف",
     count: num(count),
+  }));
+  // Chart data — role distribution from the members already fetched (no new query).
+  const roleMix = Object.entries(roleCounts).map(([role, value]) => ({
+    name: ROLE_LABEL_AR[role as Role] ?? "غير معروف",
+    value,
   }));
 
   const linkColumns: SimpleColumn[] = [
@@ -131,6 +137,17 @@ export default async function SettingsDashboardPage({
           )}
           {(filter === "all" || filter === "roles") && (
         <Card title="توزيع الأدوار">
+          {roleMix.length > 0 && (
+            <div className="mb-4">
+              <CategoryDoughnut
+                data={roleMix}
+                ariaLabel="توزيع الأعضاء حسب الدور"
+                caption="توزيع الأدوار"
+                labelHeader="الدور"
+                valueHeader="العدد"
+              />
+            </div>
+          )}
           <SimpleTable columns={roleColumns} rows={roleRows} empty="لا توجد عضويات" />
         </Card>
           )}

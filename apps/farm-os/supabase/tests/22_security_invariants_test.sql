@@ -11,7 +11,7 @@
 -- Run via `supabase test db` or the local shim (test-shims/run-pgtap-local.sh).
 
 begin;
-select plan(11);
+select plan(12);
 
 -- ============================================================================================
 -- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function except the RLS helpers.
@@ -55,7 +55,7 @@ select is(
         'fn_set_active_org',                       -- active-org switcher RPC (migration 0085)
         'fn_update_org_settings',                 -- owner-gated org settings RPC (migration 0086)
         'fn_stock_coverage',                      -- read RPC
-        'fn_bin_rebuild', 'fn_execute_operation', -- intended authenticated RPC surface
+        'fn_execute_operation',                   -- intended authenticated RPC surface
         'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
         'fn_reserve_stock',                       -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
         'fn_add_plan_operation',                  -- atomic plan-operation authoring RPC (CREATE-3 #196, migration 0038)
@@ -70,9 +70,14 @@ select is(
         'fn_create_plan', 'fn_set_plan_status',    -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
         'fn_assign_plan_operation', 'fn_add_plan_labor', -- gated plan-builder RPCs (STAGE 4 / SPEC-0011, migration 0084)
         'fn_save_academy_content', 'fn_signoff_academy_content', -- gated Care Academy RPCs (STAGE 10 / SPEC-0008, migration 0091)
-        'fn_archive_academy_content'               -- gated Care Academy RPC (STAGE 10 / SPEC-0008, migration 0091)
-        -- NB: fn_post_movement is deliberately NOT here — AUTHZ-3 (migration 0036) revoked its
-        -- `authenticated` EXECUTE, making it an INTERNAL primitive. Pinned negatively below.
+        'fn_archive_academy_content',              -- gated Care Academy RPC (STAGE 10 / SPEC-0008, migration 0091)
+        'fn_save_custody_account', 'fn_record_custody_movement', 'fn_set_expense_payment_status', -- gated custody/expense RPCs (SPEC-0018)
+        'fn_custody_balance', 'fn_set_expense_kind', -- derived custody read + #6 drawings split helpers (SPEC-0018)
+        'fn_create_payment_request', 'fn_add_expense_to_request', -- payment-request RPCs (SPEC-0018)
+        'fn_submit_payment_request', 'fn_approve_request_operational', 'fn_approve_request_final', -- lifecycle through final approval
+        'fn_payment_request_totals'                -- derived request totals read RPC (SPEC-0018)
+        -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
+        -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   0,
@@ -86,6 +91,9 @@ select ok(
     'public.fn_post_movement(uuid, text, numeric, text, text, numeric, uuid, uuid, uuid, timestamptz)',
     'EXECUTE'),
   'INV-2: authenticated can NO LONGER EXECUTE fn_post_movement directly (AUTHZ-3 #182 — now internal)');
+select ok(
+  not has_function_privilege('authenticated', 'public.fn_bin_rebuild(uuid, text)', 'EXECUTE'),
+  'INV-2: authenticated can NO LONGER EXECUTE fn_bin_rebuild directly (#430 — now internal)');
 
 -- Pin the trigger functions explicitly — these are the ones 0021 had to claw back from PUBLIC/
 -- authenticated, so guard the regression directly as well as via the dynamic count above.

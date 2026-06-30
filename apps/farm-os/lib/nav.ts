@@ -34,10 +34,10 @@ function visibleToRole(item: { roles?: Role[] }, role: Role): boolean {
 export const APP_MODULES: AppModule[] = [
   {
     id: "home",
-    label: "لوحة التحكم",
+    label: "لوحة المعلومات",
     icon: "🏠",
     dashboardHref: "/dashboard",
-    pages: [{ id: "dashboard", label: "لوحة التحكم", icon: "🏠", href: "/dashboard" }],
+    pages: [{ id: "dashboard", label: "لوحة المعلومات", icon: "🏠", href: "/dashboard" }],
   },
   {
     id: "farm-module",
@@ -112,6 +112,13 @@ export const APP_MODULES: AppModule[] = [
         icon: "💸",
         href: "/expenses",
         roles: ["owner", "accountant", "farm_manager"],
+      },
+      {
+        id: "custody",
+        label: "العهدة وطلبات الصرف",
+        icon: "💰",
+        href: "/custody",
+        roles: ["owner", "accountant"],
       },
     ],
   },

@@ -7,6 +7,7 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { CategoryDoughnut } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -114,6 +115,19 @@ export default async function InventoryDashboardPage({
     row.filterKey === "active-pr" || row.filterKey === "submitted" || row.filterKey === "partial",
   ).length;
 
+  // Chart data — derived from the items / PRs already fetched (no new queries).
+  const itemsByStatus = [
+    { name: "سليم", value: itemRows.length - reorderItems },
+    { name: "يحتاج إعادة طلب", value: reorderItems },
+  ].filter((d) => d.value > 0);
+  const prsByStatus = Object.entries(
+    (prs ?? []).reduce<Record<string, number>>((acc, pr) => {
+      const label = PR_STATUS_AR[pr.status] ?? "غير معروف";
+      acc[label] = (acc[label] ?? 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([name, value]) => ({ name, value }));
+
   const columns: SimpleColumn[] = [
     { id: "name", header: "العنصر" },
     { id: "category", header: "التفصيل" },
@@ -174,7 +188,32 @@ export default async function InventoryDashboardPage({
         </DashboardKpiLink>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      {itemsByStatus.length > 0 && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          <Card title="الأصناف حسب حالة المخزون">
+            <CategoryDoughnut
+              data={itemsByStatus}
+              ariaLabel="توزيع الأصناف حسب حالة المخزون"
+              caption="الأصناف حسب الحالة"
+              labelHeader="الحالة"
+              valueHeader="عدد الأصناف"
+            />
+          </Card>
+          {prsByStatus.length > 0 && (
+            <Card title="طلبات الشراء حسب الحالة">
+              <CategoryDoughnut
+                data={prsByStatus}
+                ariaLabel="توزيع طلبات الشراء حسب الحالة"
+                caption="طلبات الشراء حسب الحالة"
+                labelHeader="الحالة"
+                valueHeader="عدد الطلبات"
+              />
+            </Card>
+          )}
+        </section>
+      )}
+
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card title="ملخص الموردين">
           <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
             {num(suppliers?.length ?? 0)} مورّد مسجّل. تُستخدم مدد التوريد في توصيات التغطية عندما تكون متاحة.

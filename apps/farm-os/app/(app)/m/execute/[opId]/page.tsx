@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card } from "@/components/ui";
+import { Card, EmptyState } from "@/components/ui";
+import type { PillStatus } from "@amrebeid/ui";
+import { Entity360Header } from "@/components/Entity360Header";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR, OP_STATUS_AR, isExecutableOpStatus } from "@/lib/labels";
@@ -33,17 +35,24 @@ export default async function ExecutePage({
   // a misleading empty page.
   if (error) throw error;
 
-  if (!op) return <div className="p-6">العملية غير موجودة.</div>;
+  if (!op)
+    return (
+      <div className="p-6">
+        <EmptyState title="العملية غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const req = (op.plan_material_requirements ?? [])[0] as { qty?: number; unit?: string } | undefined;
   const laborReq = (op.plan_labor_requirements ?? [])[0] as { count?: number } | undefined;
+  const opPill: PillStatus = op.status === "done" ? "done" : isExecutableOpStatus(op.status) ? "active" : "blocked";
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6 p-4">
-      <header>
-        <h1 className="text-xl font-bold">تنفيذ العملية — {SUBTYPE_AR[op.subtype ?? ""] ?? "عملية"}</h1>
-        <p style={{ color: "var(--ink-muted)" }}>{fmtDate(op.planned_at)}</p>
-      </header>
+      <Entity360Header
+        title={`تنفيذ العملية — ${SUBTYPE_AR[op.subtype ?? ""] ?? "عملية"}`}
+        subtitle={fmtDate(op.planned_at)}
+        pills={[{ status: opPill, label: OP_STATUS_AR[op.status ?? ""] ?? "غير معروف" }]}
+      />
 
       {isExecutableOpStatus(op.status) ? (
         <Card title="سجّل الفعلي">

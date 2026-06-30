@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { KpiCard, Card, Progress } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { SEED_PLAN_ID } from "@/lib/nav";
-import { egp, num, pct } from "@/lib/money";
+import { egpValue, num, pct } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
@@ -47,13 +47,13 @@ export default async function ManagerDashboard() {
     id: o.id,
     subtype: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
     planned_at: fmtDate(o.planned_at),
-    cost: egp(Number(o.est_cost ?? 0)),
+    cost: egpValue(o.est_cost),
     status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
   }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">لوحة تحكم المدير</h1>
+      <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عمليات الخطة" value={num(total)} />

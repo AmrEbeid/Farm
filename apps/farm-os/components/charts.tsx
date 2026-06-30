@@ -5,7 +5,7 @@
 // charts MUST render inside a "use client" boundary to use the real library.
 // Import from the dedicated recharts-only subpath so recharts enters only the
 // bundles of routes that actually render a chart, never the global chunk.
-import { LineChart, BarChart } from "@amrebeid/ui/charts";
+import { LineChart, BarChart, DoughnutChart } from "@amrebeid/ui/charts";
 import { num } from "@/lib/money";
 
 /**
@@ -69,6 +69,120 @@ export function VarianceChart({
       showLegend
       height={260}
       tableFallback={{ caption: "المخطط مقابل الفعلي", columnHeader: "البند" }}
+    />
+  );
+}
+
+/** Budget utilisation as a part-to-whole snapshot: used vs available. */
+export function BudgetDoughnut({ used, available }: { used: number; available: number }) {
+  return (
+    <DoughnutChart
+      data={[
+        { name: "المستخدم", value: Math.max(0, used) },
+        { name: "المتاح", value: Math.max(0, available) },
+      ]}
+      ariaLabel="توزيع الموازنة بين المستخدم والمتاح"
+      height={240}
+      tableFallback={{ caption: "استخدام الموازنة", labelHeader: "البند", valueHeader: "ج.م" }}
+    />
+  );
+}
+
+/** Palm-health mix: count of assets per status (a part-to-whole snapshot). */
+export function PalmStatusDoughnut({ data }: { data: Array<{ name: string; value: number }> }) {
+  return (
+    <DoughnutChart
+      data={data}
+      ariaLabel="توزيع حالة النخيل"
+      height={240}
+      tableFallback={{ caption: "حالة النخيل", labelHeader: "الحالة", valueHeader: "العدد" }}
+    />
+  );
+}
+
+/**
+ * Generic part-to-whole doughnut for status / type distributions (e.g. items by
+ * stock status, operations by status, team by employment type).
+ */
+export function CategoryDoughnut({
+  data,
+  ariaLabel,
+  caption,
+  labelHeader = "البند",
+  valueHeader = "العدد",
+}: {
+  data: Array<{ name: string; value: number }>;
+  ariaLabel: string;
+  caption: string;
+  labelHeader?: string;
+  valueHeader?: string;
+}) {
+  return (
+    <DoughnutChart
+      data={data}
+      ariaLabel={ariaLabel}
+      height={240}
+      tableFallback={{ caption, labelHeader, valueHeader }}
+    />
+  );
+}
+
+/** Generic category bar chart (single or grouped series). */
+export function CategoryBarChart({
+  data,
+  categoryKey,
+  series,
+  ariaLabel,
+  caption,
+  columnHeader,
+}: {
+  data: Array<Record<string, string | number>>;
+  categoryKey: string;
+  series: Array<{ dataKey: string; name: string }>;
+  ariaLabel: string;
+  caption: string;
+  columnHeader: string;
+}) {
+  return (
+    <BarChart
+      data={data}
+      categoryKey={categoryKey}
+      series={series}
+      ariaLabel={ariaLabel}
+      showLegend={series.length > 1}
+      height={260}
+      tableFallback={{ caption, columnHeader }}
+    />
+  );
+}
+
+/** Generic multi-series trend line chart (e.g. weather metrics across days). */
+export function TrendLineChart({
+  data,
+  categoryKey,
+  series,
+  ariaLabel,
+  caption,
+  columnHeader,
+}: {
+  data: Array<Record<string, string | number>>;
+  categoryKey: string;
+  series: Array<{ dataKey: string; name: string }>;
+  ariaLabel: string;
+  caption: string;
+  columnHeader: string;
+}) {
+  return (
+    <LineChart
+      data={data}
+      categoryKey={categoryKey}
+      series={series}
+      ariaLabel={ariaLabel}
+      curve="monotone"
+      showDots
+      showLegend={series.length > 1}
+      height={260}
+      tableFallback={{ caption, columnHeader }}
     />
   );
 }

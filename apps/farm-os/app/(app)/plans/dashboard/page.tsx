@@ -6,8 +6,9 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { CategoryDoughnut, CategoryBarChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
@@ -81,7 +82,7 @@ export default async function PlanningDashboardPage({
   const executableOps = (operations ?? []).filter((o) => isExecutableOpStatus(o.status));
   const dueOps = executableOps.filter((o) => (o.planned_at ?? "") <= today);
   const blockedChecks = (checks ?? []).filter((c) => c.result === "block");
-  const estimatedCost = executableOps.reduce((sum, o) => sum + Number(o.est_cost ?? 0), 0);
+  const estimatedCost = sumMoney(executableOps.map((o) => o.est_cost));
 
   const blockedByPlan = new Map<string, number>();
   for (const check of blockedChecks) {
@@ -91,6 +92,27 @@ export default async function PlanningDashboardPage({
   for (const op of executableOps) {
     openOpsByPlan.set(op.plan_id, (openOpsByPlan.get(op.plan_id) ?? 0) + 1);
   }
+
+  // Chart data — derived from the operations already fetched (no new queries).
+  const opsByStatus = Object.entries(
+    executableOps.reduce<Record<string, number>>((acc, o) => {
+      const key = o.status ?? "planned";
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([status, value]) => ({ name: OP_STATUS_AR[status] ?? "غير معروف", value }));
+  const costByPlanType = Object.entries(
+    executableOps.reduce<Record<string, number>>((acc, o) => {
+      const embedded = normalizePlan(o.plans);
+      const plan = embedded?.id ? embedded : planRowsById.get(o.plan_id);
+      const label = PLAN_TYPE_AR[plan?.type ?? ""] ?? "خطة";
+      const cost = moneyNumber(o.est_cost);
+      if (cost != null) acc[label] = (acc[label] ?? 0) + cost;
+      return acc;
+    }, {}),
+  )
+    .filter(([, cost]) => cost > 0)
+    .map(([name, cost]) => ({ plan: name, "التكلفة": cost }));
 
   const planColumns: SimpleColumn[] = [
     { id: "type", header: "الخطة" },
@@ -131,7 +153,7 @@ export default async function PlanningDashboardPage({
       plan: planLabel(plan),
       planned_at: op.planned_at ? fmtDate(op.planned_at) : "—",
       status: OP_STATUS_AR[op.status ?? "planned"] ?? "غير معروف",
-      cost: egp(Number(op.est_cost ?? 0)),
+      cost: egpValue(op.est_cost),
     };
   });
 
@@ -187,9 +209,34 @@ export default async function PlanningDashboardPage({
           />
         </DashboardKpiLink>
         <DashboardKpiLink href="/plans/dashboard?filter=operations" active={filter === "operations"}>
-          <KpiCard label="تكلفة مفتوحة معروضة" value={egp(estimatedCost)} />
+          <KpiCard label="تكلفة مفتوحة معروضة" value={egpSummary(estimatedCost)} />
         </DashboardKpiLink>
       </section>
+
+      {(filter === "all" || filter === "operations" || filter === "due") && opsByStatus.length > 0 && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          <Card title="العمليات المفتوحة حسب الحالة">
+            <CategoryDoughnut
+              data={opsByStatus}
+              ariaLabel="توزيع العمليات المفتوحة حسب الحالة"
+              caption="العمليات حسب الحالة"
+              labelHeader="الحالة"
+            />
+          </Card>
+          {costByPlanType.length > 0 && (
+            <Card title="التكلفة المفتوحة حسب نوع الخطة">
+              <CategoryBarChart
+                data={costByPlanType}
+                categoryKey="plan"
+                series={[{ dataKey: "التكلفة", name: "التكلفة المقدرة (ج.م)" }]}
+                ariaLabel="التكلفة المفتوحة حسب نوع الخطة"
+                caption="التكلفة المفتوحة حسب نوع الخطة"
+                columnHeader="نوع الخطة"
+              />
+            </Card>
+          )}
+        </section>
+      )}
 
       <CurrentFilterCard
         label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
@@ -208,7 +255,7 @@ export default async function PlanningDashboardPage({
       )}
 
       {(filter === "all" || filter === "operations" || filter === "due" || filter === "checks") && (
-        <section className="grid gap-4 xl:grid-cols-2">
+        <section className="grid gap-4 md:grid-cols-2">
           {(filter === "all" || filter === "operations" || filter === "due") && (
         <Card title={filter === "due" ? "عمليات مستحقة" : "العمليات القادمة"}>
           {operationRows.length === 0 ? (

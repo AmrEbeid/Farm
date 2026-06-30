@@ -17,7 +17,11 @@ export async function setActiveOrg(
   const sb = await createClient();
   const { error } = await sb.rpc("fn_set_active_org", { p_org: orgId });
   if (error) return { ok: false, error: "تعذّر تبديل المزرعة" };
-  await sb.auth.refreshSession();
+  // The preference is persisted by the RPC above; the JWT only narrows RLS to the
+  // new org once the session is re-minted. If the refresh fails, the active-org
+  // claim is stale — surface it instead of falsely reporting a successful switch.
+  const { error: refreshError } = await sb.auth.refreshSession();
+  if (refreshError) return { ok: false, error: "تعذّر تحديث الجلسة بعد تبديل المزرعة" };
   revalidatePath("/", "layout");
   return { ok: true };
 }

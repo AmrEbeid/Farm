@@ -2,7 +2,8 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Every table with a
 stable `TBL-NNN` id, purpose, key columns, foreign keys, RLS posture, and the feature it serves (→ `FEAT-NNN`).
-Reconciled to `main` 2026-06-27 (38 tables incl. `user_active_org`; CREATE statements in migrations `0001`–`0086`).
+Reconciled to `main` 2026-06-30 (46 tables incl. `user_active_org`, SPEC-0018 custody/payment backend, and
+SPEC-0016 export-compliance slice 1).
 Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**; only deviations are noted.*
 
 ## Tenancy & people
@@ -12,7 +13,7 @@ Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**
 | **TBL-002** | `organization_member` | Membership + role | (org_id,user_id) PK, role∈6, scope(jsonb) | organization, auth.users | INS/UPD/DEL revoked (admin only); audited | FEAT-001/002 |
 | **TBL-003** | `people` | Staff directory | id, org_id, name, phone, email, position, employment_type, user_id?, reports_to_person_id? | organization, people(self) | **phone/email PII-locked (BR-070)**; `rate` dropped → TBL-004 | FEAT-019 |
 | **TBL-004** | `people_compensation` | Wages (segregated) | id, org_id, person_id, rate | organization, people | FORCE RLS; `payroll.read` gate (BR-071); audited | FEAT-022 |
-| **TBL-005** | `responsibility_assignments` | Person→scope responsibility matrix | id, org_id, person_id, scope_type, scope_id?, responsibility_type | organization, people | — | FEAT-019 |
+| **TBL-005** | `responsibility_assignments` | Person→scope responsibility matrix | id, org_id, person_id, scope_type, scope_id?, responsibility_type | organization, people | reads org-wide; writes require `responsibility.write` (BR-073) | FEAT-019 |
 | **TBL-006** | `audit_log` | Immutable audit trail | id(bigint), org_id, actor_user_id, action, entity_type, entity_id, before/after(jsonb), occurred_at | organization | **SELECT-only; append-only (BR-080)** | FEAT-020 |
 | **TBL-038** | `user_active_org` | Active-org preference | (user_id) PK, org_id, updated_at | auth.users, organization | Own-row read; writes via `fn_set_active_org` only | FEAT-001 |
 
@@ -63,8 +64,21 @@ Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**
 | **TBL-032** | `purchase_requests` | Procurement workflow | id, org_id, code, requested_by, needed_by, status∈6, approved_by, approved_at, version | organization, plans | explicit policies (no FOR ALL); SoD UPDATE (BR-001/060) | FEAT-009 |
 | **TBL-033** | `purchase_request_items` | PR line items | id, pr_id, org_id, item_id, qty, unit, supplier_id?, est_cost, received_qty | purchase_requests, organization, inventory_items, suppliers | UNIQUE(pr_id,item_id) (BR-042); lines freeze (BR-040); `received_qty` RPC-only (BR-041) | FEAT-009/010 |
 | **TBL-034** | `expenses` | Cost records | id, org_id, date, farm/sector/hawsha/plan_id?, category, supplier_id?, qty, unit_price, total, kind, status | organization, farms/sectors/hawshat/plans/suppliers | `budget.write` gate (BR-063); `kind` = opex vs drawings (BR-111) | FEAT-013 |
+| **TBL-039** | `custody_accounts` | Custody float accounts | id, org_id, holder_label, holder_user_id?, target_float, active | organization | reads require `finance.read`; writes via `fn_save_custody_account` / `custody.write`; audited | FEAT-028 |
+| **TBL-040** | `custody_movements` | Append-only custody cash ledger | id, org_id, custody_account_id, occurred_at, movement_type, amount_in/out, expense_id? | organization, custody_accounts, expenses | reads require `finance.read`; inserts via `fn_record_custody_movement`; one side only; audited | FEAT-028 |
+| **TBL-041** | `payment_requests` | Payment request header / approval lifecycle | id, org_id, request_no, period_start/end, status, custody_account_id?, approver stamps | organization, custody_accounts | reads require `finance.read`; writes via request RPCs; final approval owner-only; audited | FEAT-028 |
+| **TBL-042** | `payment_request_lines` | Payment request expense lines | id, org_id, payment_request_id, expense_id | organization, payment_requests, expenses | RPC-only; one request per expense; only operating `post_paid_unpaid` expenses | FEAT-028 |
+
+## Export compliance
+| TBL | Table | Purpose | Key columns | FKs | Notes | FEAT |
+|---|---|---|---|---|---|---|
+| **TBL-043** | `export_registrations` | GACC/CIFER market registration evidence | id, org_id, market, registration_no, enterprise_name, product, status, valid_from/to | organization | FORCE RLS; org-readable; writes require `export.write`; valid window check; audited | FEAT-029 |
+| **TBL-044** | `farm_export_accreditations` | CAPQ seasonal farm-export accreditation | id, org_id, season, farm_code, crop, variety, area_feddan, approved_qty_ton, destination_market, valid_from/to, responsible_person_id? | organization, people | FORCE RLS; writes require `export.write`; same-org person guard; nonnegative/window checks; audited | FEAT-029 |
+| **TBL-045** | `residue_tests` | QCAP residue-test header | id, org_id, lab, certificate_no, received_at, crop, variety, sample_ref | organization | FORCE RLS; org-readable; writes require `export.write`; audited | FEAT-029 |
+| **TBL-046** | `residue_test_results` | QCAP residue-test result line | id, org_id, residue_test_id, compound, value_mg_kg, method | organization, residue_tests | FORCE RLS; writes require `export.write`; same-org parent guard; nonnegative residue value; audited | FEAT-029 |
 
 **Hierarchies:** location `farms→sectors→hawshat→lines→assets`; planning `plans→plan_operations→{material,labor}_requirements`;
-budget `budgets→budget_lines`; events denormalize the ancestor chain in `event_locations` for roll-up.
+budget `budgets→budget_lines`; custody/payment `custody_accounts→custody_movements` and `payment_requests→payment_request_lines`;
+export compliance `residue_tests→residue_test_results`; events denormalize the ancestor chain in `event_locations` for roll-up.
 **Note (`sales` table):** referenced by draft PR #368 (FEAT-023) — **not on `main`**. Maintenance: new table →
-next free `TBL-NNN` + its `FEAT`/RLS note.
+next free `TBL-047` + its `FEAT`/RLS note.

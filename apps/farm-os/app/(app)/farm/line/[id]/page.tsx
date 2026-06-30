@@ -1,11 +1,17 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import type { TabItem } from "@amrebeid/ui";
 import { Breadcrumbs, Card, DescriptionList, Alert, EmptyState } from "@/components/ui";
+import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StructureForm } from "@/components/StructureForm";
 import { StructureArchiveButton } from "@/components/StructureArchiveButton";
 import { MediaGallery } from "@/components/MediaGallery";
 import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
@@ -20,16 +26,25 @@ const STATUS_AR: Record<string, string> = {
   replaced: "مُستبدلة",
 };
 
+const TAB_IDS = ["overview", "palms", "activity"] as const;
+type LineTab = (typeof TAB_IDS)[number];
+
 function one<T>(rel: unknown): T | null {
   return (Array.isArray(rel) ? rel[0] : rel) as T | null;
 }
 
 export default async function LineFilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const { tab: rawTab } = await searchParams;
+  const tab: LineTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+    ? (rawTab as LineTab)
+    : "overview";
   const m = await requireMembership();
   const sb = await createClient();
   const canEditStructure = ["owner", "farm_manager"].includes(m.role);
@@ -59,7 +74,12 @@ export default async function LineFilePage({
   if (lineError) throw lineError;
   if (palmsError) throw palmsError;
 
-  if (!line) return <div className="p-6">الخط غير موجود.</div>;
+  if (!line)
+    return (
+      <div className="p-6">
+        <EmptyState title="الخط غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const hawsha = one<{ id?: string; name?: string; sector_id?: string; sectors?: unknown }>(line.hawshat);
   const sector = one<{ id?: string; name?: string }>(hawsha?.sectors);
@@ -95,6 +115,19 @@ export default async function LineFilePage({
     time: fmtDate(e.occurred_at),
   }));
 
+  // Header subtitle: sector / hawsha context + palm count.
+  const contextParts = [
+    sector?.name,
+    hawsha?.name,
+    `${num(palmRows.length)} نخلة`,
+  ].filter(Boolean);
+
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "palms", label: `النخيل (${num(palmRows.length)})` },
+    { id: "activity", label: `النشاط (${num(activities.length)})` },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <Breadcrumbs
@@ -110,77 +143,144 @@ export default async function LineFilePage({
           { id: "line", label },
         ]}
       />
-      <h1 className="text-2xl font-bold">{label}</h1>
 
-      {line.archived && <Alert tone="warning" title="هذا الخط مُزال (مؤرشف)" />}
+      <Entity360Header
+        title={label}
+        subtitle={contextParts.join(" · ")}
+        pills={line.archived ? [{ status: "warning", label: "مؤرشف" }] : undefined}
+        actions={
+          <>
+            {hawsha?.id && <HeaderLink href={`/farm/hawsha/${hawsha.id}`}>الحوشة</HeaderLink>}
+            <HeaderLink href="/farm">المزرعة</HeaderLink>
+          </>
+        }
+      />
 
-      <Card title="بيانات الخط">
-        <DescriptionList
-          layout="inline"
-          items={[
-            { id: "no", term: "رقم الخط", description: num(line.line_no) },
-            { id: "code", term: "الرمز", description: line.line_code ?? "—" },
-            { id: "count", term: "عدد النخيل", description: line.palm_count != null ? num(line.palm_count) : "—" },
-            { id: "dir", term: "الاتجاه", description: line.direction ?? "—" },
-            { id: "notes", term: "ملاحظات", description: line.notes ?? "—" },
-          ]}
+      {line.archived && (
+        <Alert
+          tone="warning"
+          title="هذا الخط مُزال (مؤرشف)"
+          description="لا تظهر العمليات الجديدة على الخطوط المؤرشفة."
         />
-      </Card>
-
-      {canEditStructure && (
-        <Card title="إدارة الخط">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2">
-              <StructureForm
-                level="line"
-                mode="edit"
-                initial={{
-                  id: line.id,
-                  lineNo: line.line_no,
-                  lineCode: line.line_code,
-                  palmCount: line.palm_count,
-                  direction: line.direction,
-                  notes: line.notes,
-                }}
-                triggerLabel="تعديل بيانات الخط"
-              />
-              {hawsha?.id && (
-                <StructureForm
-                  level="palm"
-                  mode="create"
-                  context={{ hawshaId: hawsha.id, lineId: line.id }}
-                  triggerLabel="إضافة نخلة"
-                  triggerVariant="primary"
-                />
-              )}
-            </div>
-            <StructureArchiveButton
-              type="line"
-              id={line.id}
-              archived={!!line.archived}
-              redirectTo={hawsha?.id ? `/farm/hawsha/${hawsha.id}` : "/farm"}
-            />
-          </div>
-        </Card>
       )}
 
-      <Card title="النخيل في هذا الخط">
-        {palmRows.length === 0 ? (
-          <EmptyState title="لا يوجد نخيل مسجّل على هذا الخط" />
-        ) : (
-          <SimpleTable columns={palmColumns} rows={palmRows} empty="—" />
-        )}
-      </Card>
+      <EntityTabs items={tabItems} value={tab} />
 
-      <RecordActivity locationType="line" locationId={line.id} canRecord={canAttach} activities={activities} />
+      {tab === "overview" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("overview")}
+          aria-labelledby={tabId("overview")}
+          tabIndex={0}
+          className="flex flex-col gap-4"
+        >
+          <Card title="بيانات الخط">
+            <DescriptionList
+              layout="inline"
+              items={[
+                { id: "no", term: "رقم الخط", description: num(line.line_no) },
+                { id: "code", term: "الرمز", description: line.line_code ?? "—" },
+                {
+                  id: "count",
+                  term: "عدد النخيل",
+                  description: line.palm_count != null ? num(line.palm_count) : "—",
+                },
+                { id: "dir", term: "الاتجاه", description: line.direction ?? "—" },
+                { id: "notes", term: "ملاحظات", description: line.notes ?? "—" },
+              ]}
+            />
+          </Card>
 
-      <MediaGallery
-        entityType="line"
-        entityId={line.id}
-        orgId={m.orgId}
-        initial={attachments}
-        canAttach={canAttach}
-      />
+          {canEditStructure && (
+            <Card title="إدارة الخط">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                  <StructureForm
+                    level="line"
+                    mode="edit"
+                    initial={{
+                      id: line.id,
+                      lineNo: line.line_no,
+                      lineCode: line.line_code,
+                      palmCount: line.palm_count,
+                      direction: line.direction,
+                      notes: line.notes,
+                    }}
+                    triggerLabel="تعديل بيانات الخط"
+                  />
+                  {hawsha?.id && (
+                    <StructureForm
+                      level="palm"
+                      mode="create"
+                      context={{ hawshaId: hawsha.id, lineId: line.id }}
+                      triggerLabel="إضافة نخلة"
+                      triggerVariant="primary"
+                    />
+                  )}
+                </div>
+                <StructureArchiveButton
+                  type="line"
+                  id={line.id}
+                  archived={!!line.archived}
+                  redirectTo={hawsha?.id ? `/farm/hawsha/${hawsha.id}` : "/farm"}
+                />
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {tab === "palms" && (
+        <div role="tabpanel" id={tabPanelId("palms")} aria-labelledby={tabId("palms")} tabIndex={0}>
+          <Card title="النخيل في هذا الخط">
+            {palmRows.length === 0 ? (
+              <EmptyState title="لا يوجد نخيل مسجّل على هذا الخط" />
+            ) : (
+              <SimpleTable columns={palmColumns} rows={palmRows} empty="—" />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "activity" && (
+        <div
+          role="tabpanel"
+          id={tabPanelId("activity")}
+          aria-labelledby={tabId("activity")}
+          tabIndex={0}
+          className="flex flex-col gap-4"
+        >
+          <RecordActivity
+            locationType="line"
+            locationId={line.id}
+            canRecord={canAttach}
+            activities={activities}
+          />
+          <MediaGallery
+            entityType="line"
+            entityId={line.id}
+            orgId={m.orgId}
+            initial={attachments}
+            canAttach={canAttach}
+          />
+        </div>
+      )}
     </div>
+  );
+}
+
+function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+      style={{
+        color: "var(--brand)",
+        background: "var(--surface)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      {children}
+    </Link>
   );
 }

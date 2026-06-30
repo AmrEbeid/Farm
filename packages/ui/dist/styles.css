@@ -189,6 +189,19 @@
 .fos-textarea[aria-invalid="true"] { border-color:var(--danger-fg); }
 .fos-textarea:disabled { opacity:.5; cursor:not-allowed; background:var(--surface-sunken); }
 
+/* Touch (coarse pointer): meet the ~44px minimum tap target (WCAG 2.5.5 / 2.5.8)
+   for the primary form controls. Field roles (supervisor/storekeeper) drive the
+   /m and /m/execute flows on phones outdoors, where the comfortable-density 38px
+   control height and 11px field labels are too small to hit/read reliably. This
+   only affects coarse-pointer devices; mouse/desktop sizing is unchanged.
+   (Pagination already has its own coarse-pointer bump further down.) */
+@media (pointer:coarse) {
+  .fos-btn--md { min-height:44px; }
+  .fos-input--md { block-size:44px; }
+  .fos-textarea { min-block-size:44px; }
+  .fos-field__label { font-size:12px; }
+}
+
 /* ---- NumberField ---- */
 .fos-numfield { display:inline-flex; align-items:center; gap:var(--space-1);
   border:1px solid var(--line); border-radius:var(--radius-control); background:var(--surface);

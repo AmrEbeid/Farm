@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { VerdictBanner, KpiCard, Card } from "@/components/ui";
+import { Entity360Header } from "@/components/Entity360Header";
 import { PabChart } from "@/components/charts";
 import { CreatePrButton } from "@/components/CreatePrButton";
 import { num, coverageDays } from "@/lib/money";
@@ -100,10 +102,20 @@ export default async function CoveragePage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">تغطية المخزون — {item?.name ?? "صنف"}</h1>
-        <p style={{ color: "var(--ink-muted)" }}>محرّك التغطية (fn_stock_coverage)</p>
-      </header>
+      <Entity360Header
+        title={`تغطية المخزون — ${item?.name ?? "صنف"}`}
+        subtitle="محرّك التغطية (fn_stock_coverage)"
+        pills={[c.shortage ? { status: "blocked", label: "نقص" } : { status: "active", label: "مغطّى" }]}
+        actions={
+          <Link
+            href={`/inventory/${itemId}`}
+            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+            style={{ color: "var(--brand)", background: "var(--surface)", border: "1px solid var(--line)" }}
+          >
+            ملف الصنف
+          </Link>
+        }
+      />
 
       <VerdictBanner tone={c.shortage ? "danger" : "ok"}>{c.message_ar}</VerdictBanner>
 

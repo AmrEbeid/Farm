@@ -75,6 +75,12 @@ describe("APP_MODULES", () => {
     const owner = visibleModulesForRole("owner");
     expect(owner.flatMap((m) => m.pages).map((p) => p.id)).toContain("settings");
     expect(owner.map((m) => m.id)).toContain("finance-module");
+
+    const managerFinancePages = visibleModulesForRole("farm_manager")
+      .find((m) => m.id === "finance-module")
+      ?.pages.map((p) => p.id);
+    expect(managerFinancePages).toContain("expenses");
+    expect(managerFinancePages).not.toContain("custody");
   });
 
   it("keeps APP_NAV as a flat compatibility projection", () => {
