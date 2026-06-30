@@ -33,9 +33,9 @@ as $$
          or (perm = 'academy.write'   and m.role in ('owner','agri_engineer'))  -- union w/ #366 (0091): a later re-emit must not drop it
          or (perm = 'responsibility.write' and m.role in ('owner','farm_manager')) -- union w/ #444: responsibility-assignment writes
          or (perm = 'finance.read'    and m.role in ('owner','accountant')) -- union w/ #438: confidential finance reads
-         or (perm = 'custody.write'   and m.role in ('owner','farm_manager','accountant')) -- union w/ #438
-         or (perm = 'request.prepare' and m.role in ('owner','farm_manager','accountant')) -- union w/ #438
-         or (perm = 'request.approve.op' and m.role in ('owner','farm_manager')) -- union w/ #438
+         or (perm = 'custody.write'   and m.role in ('owner','accountant')) -- union w/ #438: finance-only custody writes
+         or (perm = 'request.prepare' and m.role in ('owner','accountant')) -- union w/ #438: finance-only payment prep
+         or (perm = 'request.approve.op' and m.role in ('owner','accountant')) -- union w/ #438: finance-only operational approval
          or (perm = 'request.approve.final' and m.role = 'owner') -- union w/ #438
          or (perm = 'export.write'    and m.role in ('owner','farm_manager')) )
   )
