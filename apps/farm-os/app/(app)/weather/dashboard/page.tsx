@@ -5,6 +5,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { TrendLineChart } from "@/components/charts";
 import { getForecast } from "@/lib/weather-server";
 import { computeGates } from "@/lib/weather";
 import { num } from "@/lib/money";
@@ -69,6 +70,12 @@ export default async function WeatherDashboardPage({
     harvest: GATE_AR[gates.harvest],
   }));
 
+  // Chart data — temperature across the forecast horizon (from the same forecast).
+  const tempTrend = forecasts.slice(0, 10).map((forecast) => ({
+    day: fmtDay(forecast.date),
+    "الحرارة": Math.round(forecast.tempC),
+  }));
+
   const reasonColumns: SimpleColumn[] = [
     { id: "day", header: "اليوم" },
     { id: "reason", header: "سبب التنبيه" },
@@ -116,6 +123,19 @@ export default async function WeatherDashboardPage({
         clearHref="/weather/dashboard"
         showClear={filter !== "all"}
       />
+
+      {tempTrend.length > 0 && (
+        <Card title="اتجاه درجة الحرارة">
+          <TrendLineChart
+            data={tempTrend}
+            categoryKey="day"
+            series={[{ dataKey: "الحرارة", name: "الحرارة (°م)" }]}
+            ariaLabel="اتجاه درجة الحرارة عبر أيام التوقعات"
+            caption="اتجاه درجة الحرارة"
+            columnHeader="اليوم"
+          />
+        </Card>
+      )}
 
       <Card title="نافذة المخاطر حسب اليوم">
         {gateRows.length === 0 ? (

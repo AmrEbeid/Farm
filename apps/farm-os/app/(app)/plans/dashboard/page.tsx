@@ -6,6 +6,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { CategoryDoughnut, CategoryBarChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
@@ -91,6 +92,26 @@ export default async function PlanningDashboardPage({
   for (const op of executableOps) {
     openOpsByPlan.set(op.plan_id, (openOpsByPlan.get(op.plan_id) ?? 0) + 1);
   }
+
+  // Chart data — derived from the operations already fetched (no new queries).
+  const opsByStatus = Object.entries(
+    executableOps.reduce<Record<string, number>>((acc, o) => {
+      const key = o.status ?? "planned";
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([status, value]) => ({ name: OP_STATUS_AR[status] ?? "غير معروف", value }));
+  const costByPlanType = Object.entries(
+    executableOps.reduce<Record<string, number>>((acc, o) => {
+      const embedded = normalizePlan(o.plans);
+      const plan = embedded?.id ? embedded : planRowsById.get(o.plan_id);
+      const label = PLAN_TYPE_AR[plan?.type ?? ""] ?? "خطة";
+      acc[label] = (acc[label] ?? 0) + Number(o.est_cost ?? 0);
+      return acc;
+    }, {}),
+  )
+    .filter(([, cost]) => cost > 0)
+    .map(([name, cost]) => ({ plan: name, "التكلفة": cost }));
 
   const planColumns: SimpleColumn[] = [
     { id: "type", header: "الخطة" },
@@ -190,6 +211,31 @@ export default async function PlanningDashboardPage({
           <KpiCard label="تكلفة مفتوحة معروضة" value={egp(estimatedCost)} />
         </DashboardKpiLink>
       </section>
+
+      {(filter === "all" || filter === "operations" || filter === "due") && opsByStatus.length > 0 && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          <Card title="العمليات المفتوحة حسب الحالة">
+            <CategoryDoughnut
+              data={opsByStatus}
+              ariaLabel="توزيع العمليات المفتوحة حسب الحالة"
+              caption="العمليات حسب الحالة"
+              labelHeader="الحالة"
+            />
+          </Card>
+          {costByPlanType.length > 0 && (
+            <Card title="التكلفة المفتوحة حسب نوع الخطة">
+              <CategoryBarChart
+                data={costByPlanType}
+                categoryKey="plan"
+                series={[{ dataKey: "التكلفة", name: "التكلفة المقدرة (ج.م)" }]}
+                ariaLabel="التكلفة المفتوحة حسب نوع الخطة"
+                caption="التكلفة المفتوحة حسب نوع الخطة"
+                columnHeader="نوع الخطة"
+              />
+            </Card>
+          )}
+        </section>
+      )}
 
       <CurrentFilterCard
         label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
