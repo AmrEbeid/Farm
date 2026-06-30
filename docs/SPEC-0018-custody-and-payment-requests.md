@@ -1,162 +1,157 @@
 # SPEC-0018 — العهدة وطلبات الصرف (Custody & Payment Requests)
 
-*Status: **DRAFT for Owner review** — design only; no schema applied, no prod mutation. Digitizes the
-paper «إذن صرف المزارع» into a live, auditable custody + payment-request
-module. Builds on existing Farm OS surfaces — the `expenses` table, the `attachments` table (`0082`), and the
-org-scoped `authorize()` model — rather than duplicating them. It also depends on the draft SPEC-0004 accounting
-lane for the `expenses.kind` operating/drawing/capex split (`0088` / PR #368); if that lane is not merged/applied
-first, this module's first migration must include the same #6 split before any custody/request math ships.
-Companion to [`SPEC-0004`](SPEC-0004-accounting-and-pnl.md) (P&L),
-[`SPEC-0006`](SPEC-0006-people-labor-payroll.md) (labor/PII), [`CLAUDE.md`](CLAUDE.md) non-negotiables #1/#6.*
+*Status: **Built on `main`**. Backend schema/RPCs were reviewed, applied to Farm prod, and merged via #468
+(`27065f1`). Frontend routes/actions were refreshed against that live backend and merged via #474 (`2eb6025`).
+This spec intentionally avoids real line-item amounts, receipt details, worker matrices, and payment identifiers;
+real Ebeid financial/PII import remains Stage-M gated.*
 
-*An immediate Google-Sheets/Excel tool ships first (Deliverable A — `إذن-الصرف-والعهدة-Ebeid-Farm-v1.xlsx`);
-this spec is the Farm OS module it migrates into (Deliverable B). The two share the same data model so the
-sheet's CSVs import cleanly (§11).*
-
-> Privacy note: this spec intentionally avoids embedding the real line-item amounts, worker-level matrix, receipt
-> details, or bank/payment identifiers. Those stay in the offline workbook until the Stage-M privacy review and
-> import dry-run approve their handling.
+Related docs: [`FEATURE-REGISTRY`](FEATURE-REGISTRY.md) `FEAT-028`,
+[`DATA-DICTIONARY`](DATA-DICTIONARY.md) `TBL-039..042`,
+[`RPC-CATALOG`](RPC-CATALOG.md) `RPC-029..039`, and
+[`BUSINESS-RULES-CATALOG`](BUSINESS-RULES-CATALOG.md) `BR-047/048/066..069`.
 
 ---
 
-## 1. Product recommendation
-- **Now (this week):** a **Google Sheets** workbook (built as `.xlsx`, upload to Drive → "open as Google
-  Sheet"). Reasons: zero build time, Arabic-RTL + printable PDF out of the box, the farm staff already live
-  in WhatsApp/Drive, receipt photos link straight from Drive, and it is **migration-ready** (its 8 sheets map
-  1:1 to the tables below). Excel is the offline fallback (same file). *Not* a bespoke app yet — the process
-  must stabilize on paper-equivalent first.
-- **Later:** fold it into Farm OS as the **«العهدة وطلبات الصرف»** module (this spec), once the data shape and
-  workflow are proven in the sheet and the team is ready for role-based, audited, multi-device use.
+## 1. Problem
 
-## 2. The current process (from إذن صرف #6) and its failures
-Owner gives the Farm Manager a **permanent custody float**. The Manager hands cash custody to the
-Accountant as needed. Some expenses are **paid from custody** (cash); the big ones — **labor and
-tasmeed/fertilization** — are **post-paid** and requested from the Owner. Today this is a hand-totaled paper
-form with category subtotals, labor/tasmeed detail, loose attached receipts, and the **custody top-up
-scribbled in the margin**. Failures: never "always-ready",
-no live balance, proof is loose paper, no approval trail, double-count risk between "paid cash" and
-"requested from owner".
+The paper «إذن صرف المزارع» mixes three finance truths that must not drift:
 
-## 3. Core money rules (identical in sheet and module)
-- **Current custody = Σ(amount_in) − Σ(amount_out).** Cash-paid expenses post an `amount_out` movement.
-- **Post-paid unpaid** expenses are requested directly from the Owner (never hit custody).
-- **Custody top-up = MAX(0, target_float − current_custody).**
-- **Net payment request = post-paid unpaid + custody top-up.**
-- **Never double-count:** an expense is *either* `paid_from_custody` (already left custody) *or*
-  `post_paid_unpaid` (requested) — its `payment_status` decides which bucket; the request sums only the
-  unpaid bucket + the top-up.
-- **Flags:** missing receipt, duplicate receipt number, negative custody balance, unapproved expense.
-- **#6 non-negotiable:** owner **drawings (مسحوبات)** must be classified separately (`kind='drawing'` once the
-  SPEC-0004 split lands) and are **excluded** from operating-expense and custody-request math (they are a separate
-  owner transfer).
+- a permanent custody float held by farm staff,
+- cash expenses paid from that custody,
+- post-paid operating expenses requested from the owner.
 
-## 4. Database tables (Postgres, all org-scoped + RLS + FORCE RLS + audited)
-Extend, don't duplicate. New tables:
-- **`custody_accounts`** — `(id, org_id, holder_membership_id, target_float numeric, active bool)`. One per
-  custodian (Farm Manager, Accountant). `target_float` per holder.
-- **`custody_movements`** — `(id, org_id, custody_account_id, occurred_at, movement_type, amount_in numeric,
-  amount_out numeric, expense_id uuid null, note, created_by)`. Running balance is **derived** (never stored);
-  `fn_custody_balance(account)` = `Σin − Σout`. CHECK: amounts ≥ 0; exactly one of in/out > 0.
-- **`payment_requests`** — `(id, org_id, request_no int, period_start, period_end, status, prepared_by,
-  approved_op_by, approved_final_by, submitted_at, approved_at, note)`. `status ∈
-  draft→submitted→approved_operational→approved_final→paid→closed`. Totals are **derived** from linked
-  expenses (not stored), so the request is always live.
-- **`payment_request_lines`** — `(id, org_id, payment_request_id, expense_id)` — which expenses belong to a
-  request (a request = a period's expenses + the top-up).
+Before SPEC-0018, the process was hand-totaled, proof lived outside the app, and the custody top-up was computed
+manually. The main risks were stale balances, missing approval trace, and double-counting a cash-paid expense in an
+owner payment request.
 
-Reuse/extend existing:
-- **`expenses`** (SPEC-0004) — add `payment_status text` (`paid_from_custody|post_paid_unpaid|paid_by_owner|
-  cancelled`), `location text`, `paid_by`, `custody_account_id null`. Keep or add `kind`
-  (operating/drawing/capex) for the #6 drawings split before any request totals are enabled. Money total stays on
-  the line.
-- **`attachments`** (`0082`) — extend the existing node-media attachment model for finance receipts before use:
-  allow `entity_type='expense'`, update the resolver RPC/storage path validation, and add finance-confidential RLS
-  / read gates for receipt media. Receipts then use `entity_id=expense.id`; the missing-proof/duplicate-number flags
-  are computed views.
-- **labor / tasmeed detail** — reuse `plan_operations` + `plan_labor_requirements` where an expense ties to a
-  planned operation; otherwise a lightweight `expense_detail (expense_id, kind, qty, unit_price, …)` for the
-  ad-hoc lines (labor matrix, fertilization breakdown). Detail **reconciles to** its expense
-  line; it is never summed again (anti-double-count).
+## 2. Built Scope
 
-## 5. Secure RPCs (SECURITY DEFINER, `search_path=''`, EXECUTE locked, internal `authorize()` check)
-`fn_record_custody_movement`, `fn_save_farm_expense`, `fn_set_expense_payment_status`, `fn_attach_receipt`,
-`fn_create_payment_request`, `fn_add_expense_to_request`, `fn_submit_payment_request`,
-`fn_approve_request_operational` (Farm Manager), `fn_approve_request_final` (Owner), `fn_close_month`,
-`fn_import_from_sheet` (§11). **No direct client DML** on any of these tables — RLS denies writes; the RPC is
-the only path; audit is server-side via the `fn_audit` trigger.
+SPEC-0018 ships the first auditable custody/payment-request slice:
 
-> ⚠️ Adding the new permissions below **re-emits `authorize()`** — it MUST carry the **union** of all existing
-> perms (the re-emit footgun). Run `tests/22` + `tests/97` after.
+- custody float accounts and append-only custody movements,
+- payment routing columns on `expenses`,
+- monthly payment request headers and lines,
+- RPC-only write paths with RLS/permission checks,
+- derived custody balance and payment-request totals,
+- `/custody` module dashboard,
+- `/custody/request/[requestId]` printable request 360 page,
+- lifecycle actions through final owner approval.
 
-## 6. Roles & permissions (maps onto the existing 6 roles)
-Existing roles are `owner`, `farm_manager`, `agri_engineer`, `accountant`, `supervisor`, and `storekeeper`.
-This finance module is **not all-member readable**: custody, payment requests, receipts, and wage/tasmeed detail
-are finance-confidential. A future auditor role requires a separate role-model decision; until then, read-only audit
-access is owner/accountant only.
+No new migration is required after #468. #474 was frontend-only.
 
-| Capability | Owner | Farm Manager | Accountant | Agri engineer / Supervisor / Storekeeper |
-|---|---|---|---|---|
-| View custody/payment requests/receipts | ✅ | ⬜ Owner-ratified scope only | ✅ | |
-| Enter expenses, attach receipts, prepare requests, record custody | | ✅ | ✅ | |
-| Approve **operational** expenses | ✅ | ✅ | | |
-| **Final approve** a payment request | ✅ | | | |
-| Close the month | ✅ | ✅ (then Owner final) | | |
-New `authorize()` perms: **`custody.write`** (owner/farm_manager/accountant), **`request.prepare`**
-(accountant/farm_manager), **`request.approve.op`** (owner/farm_manager), **`request.approve.final`** (owner).
-Do **not** add a broad `expense.write` permission unless a later migration intentionally replaces the existing
-`budget.write` expense gate; the current expense privacy posture is owner/accountant by default, with any
-farm_manager entry path needing a narrow RPC and explicit tests. Reads remain org-scoped **and finance-role gated**.
-Compensation/PII stays gated per SPEC-0006 (labor *wages* in the detail are visible to finance roles only, not all
-members).
+## 3. Money Rules
 
-## 7. Dashboard (module home — mirrors the sheet's لوحة التحكم)
-KPIs: current custody balance, target float, required top-up, post-paid unpaid total, **total owner payment
-request**, missing-receipts count, unapproved-expenses count. Charts: expenses by category, paid vs unpaid,
-custody-balance trend, top-5 categories/suppliers. All query-derived from RLS-scoped reads (never fabricated
-KPIs, #1). Built with the existing `KpiCard` + the dashboard pattern from the Module Navigator work.
+- **Current custody = Σ(amount_in) − Σ(amount_out)** from `custody_movements`.
+- A `paid_from_custody` expense posts exactly one linked custody cash out-movement equal to the expense total.
+- A `post_paid_unpaid` expense is eligible for a payment request and does not hit custody.
+- **Custody top-up = MAX(0, target_float − current_custody)**.
+- **Net request = post_paid_unpaid linked request lines + custody top-up**.
+- `drawing` and `capex` expenses are excluded from custody/request math; only `operating` expenses can use
+  custody/request routing.
+- Routed expense amount/kind is immutable; corrections must be explicit reversals/new lines.
 
-## 8. Live payment request + printable PDF
-A server-rendered Arabic-RTL A4 «إذن صرف» matching the paper: farm header + request no/month, summary by
-category, detailed lines, total paid-from-custody, total post-paid-unpaid, current custody, required top-up,
-**net requested from Owner**, a **missing-proof warning** section, and signature areas (Accountant → Farm
-Manager → Owner). "Always ready": it renders from live data on demand; export to PDF. Numbers via `lib/money`
-(Arabic-Indic, tabular) — no Western-digit leaks (#2).
+## 4. Tables
 
-## 9. Daily workflow
-1. **Accountant** logs each expense as it happens (category, amount, location, supplier/worker group),
-   marks `paid_from_custody` (and a custody `amount_out` auto-posts) or `post_paid_unpaid`; snaps the receipt
-   photo → attachment. 2. Labor/tasmeed captured in their detail. 3. Custody top-ups/handovers recorded as
-   movements. 4. The dashboard + live request update instantly — ready if the Owner/Manager asks.
+Implemented in `apps/farm-os/supabase/migrations/20260629150000_custody_and_expense_payment.sql` and
+`20260629150100_payment_requests.sql`.
 
-## 10. Month-end workflow
-1. Accountant reviews flags (missing receipts, duplicates, unapproved, negative custody) → resolves. 2.
-   `fn_create_payment_request` for the period; lines = the period's expenses. 3. Farm Manager approves
-   operational expenses. 4. Accountant submits. 5. **Owner final-approves** → request is the authoritative
-   «إذن صرف #N». 6. Owner pays post-paid + tops up custody → those payments post as custody movements/owner
-   transfers. 7. `fn_close_month` locks the period (audited); next month opens.
+| Table | Purpose | Notes |
+|---|---|---|
+| `custody_accounts` | Custody float account per holder | `holder_label`, optional `holder_user_id`, `target_float`, `active`; finance-read RLS; writes via `fn_save_custody_account`. |
+| `custody_movements` | Append-only custody cash ledger | exactly one of `amount_in`/`amount_out` must be positive; optional `expense_id`; direct DML revoked. |
+| `payment_requests` | Monthly request header/lifecycle | per-org `request_no`, period, status, optional linked custody account, approver stamps. |
+| `payment_request_lines` | Expenses included in a request | one request per expense; only operating `post_paid_unpaid` expenses accepted by RPC. |
+| `expenses` extension | Payment routing | `payment_status`, `paid_by`, and `kind` are present in this apply path; routing fields are RPC-controlled. |
 
-## 11. Migration path (Google Sheet → Farm OS)
-The sheet's 8 tabs map 1:1: `الإعدادات`→`custody_accounts.target_float`+org settings; `سجل العهدة`→
-`custody_movements`; `سجل المصروفات`→`expenses` (+ payment_status/category); `تفاصيل العمالة`/`تفاصيل التسميد`
-→`expense_detail`; `سجل الفواتير والمرفقات`→`attachments`; `إذن الصرف الشهري`→ derived `payment_requests`.
-Export each tab to CSV → **`fn_import_from_sheet(entity, csv)`** validates + writes through the gated RPCs
-(same authorize/audit path; **no raw bulk insert**), dedupes by natural key (expense id, receipt no), and
-reports rejects. Real Ebeid financial/PII data only enters after the **Stage-M privacy review** (CLAUDE.md
-hard stop). The sheet stays the source of truth until import is verified, then the module takes over.
+The receipt/media extension is not part of the shipped slice. Existing `attachments` remains available for node
+media; finance-confidential receipt handling needs a later receipt/proof slice before real receipt images are
+imported.
 
-## 12. Acceptance criteria
-- Custody balance = Σin−Σout at all times; a cash-paid expense moves it; negative balance flags.
-- `net_request = post_paid_unpaid + MAX(0, target − current)`; **a paid-cash expense never appears in the
-  request** (no double-count) — proven by a pgTAP oracle.
-- Drawings are excluded from operating + request math (#6), with a hard test for the `kind='drawing'` classification
-  once the SPEC-0004 split exists in the same apply path.
-- Every write is audited (`audit_log`); approvals carry approver + timestamp; the period locks on close.
-- A non-finance member cannot read wages, receipts, custody balances, payment requests, or write any
-  custody/expense/request row (RLS, FORCE RLS).
-- The printable request reconciles to the line items and shows the missing-proof warning when proof is absent.
-- `authorize()` after the new perms passes `tests/22` + `tests/97` (no permission dropped).
+## 5. RPCs
 
-## 13. Non-negotiables
-#1 never fabricate (real receipts or "missing"), #2 Arabic-RTL + mobile/offline-tolerant, #6 drawings≠opex,
-PII gated (SPEC-0006), writes via gated RPCs only, server-side audit, org-scoped RLS everywhere. Design only —
-no build until each slice is gated.
+Client write access is through SECURITY DEFINER RPCs only; direct table writes are revoked for custody/payment
+tables.
+
+| RPC | Purpose |
+|---|---|
+| `fn_save_custody_account` | Create/update a custody account. |
+| `fn_record_custody_movement` | Post a custody movement; validates same org, one-sided amount, and exact routed expense cash-outs. |
+| `fn_set_expense_payment_status` | Set payment routing; `paid_from_custody` posts the linked cash movement once. |
+| `fn_custody_balance` | Derived account balance, finance-read gated. |
+| `fn_create_payment_request` | Create a draft request with the next per-org request number. |
+| `fn_add_expense_to_request` | Add an eligible operating post-paid expense to a draft request. |
+| `fn_submit_payment_request` | `draft -> submitted`. |
+| `fn_approve_request_operational` | `submitted -> approved_operational`. |
+| `fn_approve_request_final` | `approved_operational -> approved_final`; owner-only. |
+| `fn_payment_request_totals` | Derived unpaid/top-up/net totals. |
+
+Not built in this slice: `fn_close_month`, `fn_import_from_sheet`, receipt attach RPCs, owner disbursement posting,
+and `paid/closed` lifecycle transitions.
+
+## 6. Roles and Permissions
+
+Implemented permission posture:
+
+| Capability | Owner | Accountant | Farm manager / other roles |
+|---|---|---|---|
+| Read custody accounts, movements, requests, totals | yes | yes | no |
+| Create custody accounts / movements | yes | yes | no |
+| Route expenses into custody/request states | yes | yes | no |
+| Create/submit payment request | yes | yes | no |
+| Operational approval | yes | yes | no |
+| Final approval | yes | no | no |
+
+Permission names: `finance.read`, `custody.write`, `request.prepare`, `request.approve.op`,
+`request.approve.final`.
+
+Farm-manager finance access was intentionally not shipped. It requires a separate owner-ratified scope decision and
+tests before any broadening.
+
+## 7. Frontend
+
+Implemented in #474:
+
+- `/custody`: finance dashboard with custody forms, current balances, target/top-up summary, recent movements, and
+  recent payment requests.
+- `/custody/request/[requestId]`: printable Arabic request 360 page with status, period, line summary, category
+  summary, totals, lifecycle buttons, and signature blocks.
+- `CustodyForms.tsx`: create custody account, record movement, create request, and add eligible expense lines to a
+  draft request.
+- `RequestLifecycle.tsx` + `lib/request-lifecycle.ts`: UI gating for submit, operational approve, and final approve.
+- Nav/help entries: owner/accountant see `العهدة وطلبات الصرف`; farm manager does not.
+
+All route reads throw on Supabase/RPC errors instead of fabricating financial zeroes.
+
+## 8. Validation
+
+Backend:
+
+- Local pgTAP on the clean backend lane: **800/800**.
+- PR #468 checks: app CI, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel.
+- Prod preflight found only `20260629150000` and `20260629150100` pending, and no remote object/column collision.
+- Migrations applied to Farm prod project `veezkmytervjnpxcrbkw` with `supabase db push --yes`; ledger recorded both.
+
+Frontend:
+
+- Local Node 20 Vitest after #474 review: **234/234**.
+- PR #474 checks: app typecheck/lint/test/build, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel.
+- Post-merge `main` checks after `2eb6025`: `ci`, `db-tests`, and `release` all passed.
+
+## 9. Current Gaps / Later Slices
+
+- Receipt/proof capture with finance-confidential attachment RLS.
+- Month close / period locking.
+- Owner payment/disbursement posting after final approval.
+- Real Google Sheet/Excel import path and dry-run tooling.
+- Farm-manager finance participation, if the owner explicitly ratifies it.
+- Rich custody charts and missing-proof/duplicate-proof flags.
+- Full accounting/P&L integration remains with draft #368 and Stage-M privacy/reconciliation gates.
+
+## 10. Non-Negotiables
+
+- Never fabricate finance totals; throw/report errors instead.
+- Arabic RTL and field-safe Arabic messages.
+- No double-counting between custody-paid and owner-requested expenses.
+- Owner drawings stay separate from operating expenses.
+- Finance-confidential data is owner/accountant-only in this slice.
+- Writes go through gated RPCs and are audited server-side.
