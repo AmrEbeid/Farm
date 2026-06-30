@@ -54,6 +54,7 @@ export default async function ExpensesListPage() {
         />
       )}
       <FilterableTable
+        ariaLabel="المصروفات"
         columns={columns}
         rows={rows}
         empty="لا توجد مصروفات مسجّلة"

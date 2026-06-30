@@ -43,6 +43,7 @@ export default async function PurchaseRequestsPage() {
         />
       ) : (
         <FilterableTable
+          ariaLabel="طلبات الشراء"
           columns={columns}
           rows={rows}
           searchColumns={["code", "reason", "status"]}

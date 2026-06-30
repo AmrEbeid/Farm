@@ -45,6 +45,7 @@ export default async function PeopleDirectoryPage() {
         <p style={{ color: "var(--ink-muted)" }}>دليل العاملين بالمزرعة</p>
       </header>
       <FilterableTable
+        ariaLabel="الفريق"
         columns={columns}
         rows={rows}
         empty="لا يوجد عاملون مسجّلون"
