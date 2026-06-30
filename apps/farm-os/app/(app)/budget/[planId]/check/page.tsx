@@ -4,6 +4,7 @@ import { requireMembership } from "@/lib/auth";
 import type { PillStatus } from "@amrebeid/ui";
 import { VerdictBanner, KpiCard, Progress, Card } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
+import { summarizePlannedFertilizationCost } from "@/lib/budget-check";
 import { egp, pct } from "@/lib/money";
 
 export default async function BudgetCheckPage({
@@ -41,12 +42,13 @@ export default async function BudgetCheckPage({
   // budget gate must judge the actual cost, never a magic number.
   const { data: ops, error: opsError } = await sb
     .from("plan_operations")
-    .select("est_cost")
+    .select("est_cost, subtype, status")
     .eq("plan_id", planId)
     .eq("subtype", "fertilization")
     .eq("status", "planned");
   if (opsError) throw opsError;
-  const thisOp = (ops ?? []).reduce((s, o) => s + Number(o.est_cost ?? 0), 0);
+  const plannedCost = summarizePlannedFertilizationCost(ops ?? []);
+  const thisOp = plannedCost.knownCost;
 
   const after = available - thisOp;
   const utilization = approved > 0 ? Math.round(((committed + actual) / approved) * 100) : 0;
@@ -58,14 +60,23 @@ export default async function BudgetCheckPage({
   const utilizationAfter =
     approved > 0 ? Math.round(((committed + thisOp + actual) / approved) * 100) : 0;
   const verdict =
-    after < 0 ? "block" : utilizationAfter > 90 ? "approval-needed" : "ok";
+    after < 0
+      ? "block"
+      : plannedCost.hasUnknownCost || utilizationAfter > 90
+        ? "approval-needed"
+        : "ok";
   const needsOwner = verdict === "block" || verdict === "approval-needed";
   const verdictText =
     verdict === "block"
       ? `⛔ تجاوز للموازنة: المتاح ${egp(available)} لا يغطي ${egp(thisOp)} — يتطلب اعتماد المالك.`
+      : plannedCost.hasUnknownCost
+        ? `⚠️ توجد ${plannedCost.unknownCostCount} عملية أسمدة بلا تكلفة تقديرية — لا يمكن اعتبارها مجانية، ويتطلب ذلك مراجعة المالك/المحاسب.`
       : verdict === "approval-needed"
         ? `⚠️ الموازنة منخفضة (${pct(utilizationAfter)} بعد هذه العملية) — يتطلب اعتماد المالك.`
         : `✓ الموازنة كافية: سيتبقى ${egp(after)}.`;
+  const routingText = plannedCost.hasUnknownCost
+    ? "لا يمكن تأكيد كفاية الموازنة لأن تكلفة بعض عمليات الأسمدة غير معروفة، لذلك يجب مراجعة الطلب قبل الاعتماد."
+    : "تتجاوز هذه العملية حدود بند الأسمدة، لذا يجب توجيه طلب الشراء إلى المالك للاعتماد (فصل الواجبات: لا يعتمد مقدّم الطلب طلبه).";
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -92,7 +103,9 @@ export default async function BudgetCheckPage({
         <KpiCard
           label="المتاح"
           value={egp(available)}
-          delta={`هذه العملية ${egp(thisOp)}`}
+          delta={`هذه العملية ${egp(thisOp)}${
+            plannedCost.hasUnknownCost ? " + تكلفة غير معروفة" : ""
+          }`}
           deltaDirection="down"
         />
       </section>
@@ -110,10 +123,7 @@ export default async function BudgetCheckPage({
 
       {needsOwner && pr && (
         <Card title="التوجيه">
-          <p className="mb-3">
-            تتجاوز هذه العملية حدود بند الأسمدة، لذا يجب توجيه طلب الشراء إلى المالك للاعتماد
-            (فصل الواجبات: لا يعتمد مقدّم الطلب طلبه).
-          </p>
+          <p className="mb-3">{routingText}</p>
           <Link
             href={`/purchase-requests/${pr}`}
             className="inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-semibold"
