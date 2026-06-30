@@ -2,7 +2,8 @@
 -- expenses model. supplier_id (PR items, inventory items), plan_id (plan_checks), person_id
 -- (responsibility_assignments) must all point at a SAME-ORG row. A foreign org (orgB) + its supplier /
 -- plan / person are seeded as superuser; the orgA member's cross-org reference is refused. Impersonation
--- via request.jwt.claims (these tables are org-only, so any member writes them).
+-- via request.jwt.claims. Later migrations may add role gates to individual tables; this test only pins
+-- that the cross-org FK guard remains present.
 --
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
@@ -20,6 +21,8 @@ select plan(6);
 
 select set_config('test.skA', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
+select set_config('test.mgrA', (select user_id::text from public.organization_member
+  where org_id = :'orgA' and role = 'farm_manager' limit 1), false);
 
 -- foreign org + its rows (the cross-org bait), an orgA supplier + PR for the same-org control
 insert into public.organization (id, name) values (:'orgB', 'مزرعة رابعة');
@@ -56,7 +59,12 @@ select throws_ok(
             values (%L, %L, 'stock', 'ok') $$, :'orgA', :'planB'),
   '42501', null, '#306: a plan_check cannot attach to a CROSS-ORG plan');
 
--- 4) responsibility cannot be assigned to a cross-org person
+reset role;
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('test.mgrA'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+
+-- 4) responsibility cannot be assigned to a cross-org person, even by a role that can write assignments.
 select throws_ok(
   format($$ insert into public.responsibility_assignments (org_id, person_id, scope_type, responsibility_type)
             values (%L, %L, 'farm', 'accountable_manager') $$, :'orgA', :'persB'),

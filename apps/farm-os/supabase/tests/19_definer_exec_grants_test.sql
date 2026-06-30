@@ -11,7 +11,7 @@
 -- even on the local superuser cluster where FORCE RLS cannot be exercised. Run via `supabase test db`.
 
 begin;
-select plan(9);
+select plan(10);
 
 -- ===== authenticated-only write RPCs: anon must NOT execute; authenticated MUST =====
 select ok(not has_function_privilege('anon',
@@ -23,6 +23,9 @@ select ok(has_function_privilege('authenticated',
 select ok(not has_function_privilege('anon',
   'public.fn_post_movement(uuid, text, numeric, text, text, numeric, uuid, uuid, uuid, timestamptz)', 'EXECUTE'),
   '0021: anon cannot EXECUTE fn_post_movement');
+select ok(not has_function_privilege('authenticated',
+  'public.fn_bin_rebuild(uuid, text)', 'EXECUTE'),
+  '#430: authenticated cannot EXECUTE fn_bin_rebuild directly (internal maintenance primitive)');
 
 -- ===== trigger functions: no client role should hold EXECUTE (never called directly) =====
 select ok(not has_function_privilege('anon', 'public.pr_guard_approval()', 'EXECUTE'),
