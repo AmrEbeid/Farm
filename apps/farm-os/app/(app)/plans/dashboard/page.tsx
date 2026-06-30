@@ -8,7 +8,7 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryDoughnut, CategoryBarChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
@@ -82,7 +82,7 @@ export default async function PlanningDashboardPage({
   const executableOps = (operations ?? []).filter((o) => isExecutableOpStatus(o.status));
   const dueOps = executableOps.filter((o) => (o.planned_at ?? "") <= today);
   const blockedChecks = (checks ?? []).filter((c) => c.result === "block");
-  const estimatedCost = executableOps.reduce((sum, o) => sum + Number(o.est_cost ?? 0), 0);
+  const estimatedCost = sumMoney(executableOps.map((o) => o.est_cost));
 
   const blockedByPlan = new Map<string, number>();
   for (const check of blockedChecks) {
@@ -106,7 +106,8 @@ export default async function PlanningDashboardPage({
       const embedded = normalizePlan(o.plans);
       const plan = embedded?.id ? embedded : planRowsById.get(o.plan_id);
       const label = PLAN_TYPE_AR[plan?.type ?? ""] ?? "خطة";
-      acc[label] = (acc[label] ?? 0) + Number(o.est_cost ?? 0);
+      const cost = moneyNumber(o.est_cost);
+      if (cost != null) acc[label] = (acc[label] ?? 0) + cost;
       return acc;
     }, {}),
   )
@@ -152,7 +153,7 @@ export default async function PlanningDashboardPage({
       plan: planLabel(plan),
       planned_at: op.planned_at ? fmtDate(op.planned_at) : "—",
       status: OP_STATUS_AR[op.status ?? "planned"] ?? "غير معروف",
-      cost: egp(Number(op.est_cost ?? 0)),
+      cost: egpValue(op.est_cost),
     };
   });
 
@@ -208,7 +209,7 @@ export default async function PlanningDashboardPage({
           />
         </DashboardKpiLink>
         <DashboardKpiLink href="/plans/dashboard?filter=operations" active={filter === "operations"}>
-          <KpiCard label="تكلفة مفتوحة معروضة" value={egp(estimatedCost)} />
+          <KpiCard label="تكلفة مفتوحة معروضة" value={egpSummary(estimatedCost)} />
         </DashboardKpiLink>
       </section>
 

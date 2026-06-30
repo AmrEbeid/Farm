@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, StatusPill, Alert, EmptyState } from "@/components/ui";
-import { egp } from "@/lib/money";
+import { egpValue } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
@@ -54,7 +54,7 @@ export default async function MobileHomePage({
                 <div>
                   <div className="font-medium">{SUBTYPE_AR[o.subtype ?? ""] ?? "عملية"}</div>
                   <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
-                    {fmtDate(o.planned_at)} · {egp(Number(o.est_cost ?? 0))}
+                    {fmtDate(o.planned_at)} · {egpValue(o.est_cost)}
                   </div>
                 </div>
                 <StatusPill status={pill(o.status ?? "planned")}>
