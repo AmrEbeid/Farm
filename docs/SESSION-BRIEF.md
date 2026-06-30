@@ -49,14 +49,22 @@ apply is available here.
    `plan_labor_requirements`/`quantities`) was un-audited; migration `20260701100000` adds fn_audit triggers
    (excluding churn/already-audited/projection tables). pgTAP 833/833; applied to prod migrate-first; **#494 closed**.
 
-**Session result:** 9 PRs (#485, #486, #487, #489, #490, #491, #492, #493, #495); **4 prod migrations** applied
-migrate-first (`20260630090000`, `20260630100000`, `20260701090000`, `20260701100000`); issues
-#317/#188/#488/#494 closed, #229 scoped to leaked-password, #199 left owner-gated, #215 narrow plan posted, #494
-filed+closed. Delegated 5 worktree/research agents. Decision-free engineering surface comprehensively cleared.
+10. **Audit-coverage workstream COMPLETE (PR #497, migration `20260701110000`).** Audited the event-detail
+    children (`event_locations`/`event_followups`/`event_attachments`). pgTAP caught that `event_assets` is a
+    junction table with no `id` column (fn_audit logs `new.id` → would break writes); dropped it + asserted the
+    exclusion. Every substantive member-writable org_id table is now audited; remaining untriggered org tables
+    are all intentional (recursive/churn/projection/transient/history/junction/already-audited).
 
-**Next candidates (decision-free, marginal):** event-detail child audit (defense-in-depth, optional); #216–226
-module research. The #215 first-slice settings-IA shell is BLOCKED on the 7 Owner decisions in the #215 comment —
-do NOT build it ahead of those answers.
+**Session result:** 12 PRs (#485–#497, incl. docs #496); **5 prod migrations** applied migrate-first
+(`20260630090000`, `20260630100000`, `20260701090000`, `20260701100000`, `20260701110000`); issues
+#317/#188/#488/#494 closed, #229 scoped to leaked-password, #199 left owner-gated, #215 narrow plan posted.
+Delegated 6 worktree/research/hunter agents. Decision-free SHIPPABLE surface comprehensively cleared
+(security/audit, perf, silent-failures, a11y, i18n).
+
+**Next candidates (decision-free):** module research (#216–226 — mostly surfaces Owner *product* decisions);
+deeper frontend/UX correctness hunts. The #215 first-slice settings-IA shell is BLOCKED on the 7 Owner
+decisions in the #215 comment — do NOT build it ahead of those answers. Owner-gated: #199, #157/#89 (pricing),
+#388/#366/#368 (wage/expert gates), #229(iii) leaked-password (Auth dashboard toggle).
 Owner-decision-gated items remain untouched: #199, #157/#89 (pricing), #366/#368 (expert gates), #229(iii)
 leaked-password (Auth dashboard toggle), and the 7 #215 open decisions.
 
