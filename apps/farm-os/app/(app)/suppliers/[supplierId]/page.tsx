@@ -2,8 +2,11 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
+import type { TabItem } from "@amrebeid/ui";
+import { Card, DescriptionList, EmptyState, KpiCard, tabId, tabPanelId } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { Entity360Header } from "@/components/Entity360Header";
+import { EntityTabs } from "@/components/EntityTabs";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { MOVEMENT_TYPE_AR, PR_STATUS_AR } from "@/lib/labels";
@@ -11,18 +14,28 @@ import { MOVEMENT_TYPE_AR, PR_STATUS_AR } from "@/lib/labels";
 type InventoryItemEmbed = { id?: string; name?: string | null; unit?: string | null };
 type PurchaseRequestEmbed = { id?: string; code?: string | null; status?: string | null; needed_by?: string | null };
 
+const BASE_TAB_IDS = ["overview", "items", "purchases", "movements"] as const;
+type SupplierTab = (typeof BASE_TAB_IDS)[number] | "finance";
+
 export default async function Supplier360Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ supplierId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { supplierId } = await params;
+  const { tab: rawTab } = await searchParams;
   const m = await requireMembership();
   // Expenses are private finance data: RLS leaves expense READS org-only (only
   // WRITES carry budget.write), so this app-layer role gate is the real boundary.
   // The supplier 360 stays open to all members for inventory/PR data; only the
   // finance sub-section (expense query, KPI, table) is owner/accountant-only.
   const canReadPrivateFinance = m.role === "owner" || m.role === "accountant";
+  const validTabIds: readonly string[] = canReadPrivateFinance
+    ? [...BASE_TAB_IDS, "finance"]
+    : BASE_TAB_IDS;
+  const tab: SupplierTab = validTabIds.includes(rawTab ?? "") ? (rawTab as SupplierTab) : "overview";
   const sb = await createClient();
 
   const [
@@ -152,22 +165,28 @@ export default async function Supplier360Page({
     };
   });
 
+  const tabItems: TabItem[] = [
+    { id: "overview", label: "نظرة عامة" },
+    { id: "items", label: `الأصناف (${num((items ?? []).length)})` },
+    { id: "purchases", label: `المشتريات (${num(prLineCount ?? prRows.length)})` },
+    { id: "movements", label: `حركات المخزون (${num((movements ?? []).length)})` },
+    ...(canReadPrivateFinance
+      ? [{ id: "finance", label: `المالية (${num(expenseRows.length)})` } satisfies TabItem]
+      : []),
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">ملف المورّد — {supplier.name}</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            {canReadPrivateFinance
-              ? "نظرة 360 على الأصناف والطلبات والمصروفات المرتبطة."
-              : "نظرة 360 على الأصناف والطلبات وحركات المخزون المرتبطة."}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <HeaderLink href="/suppliers">الموردون</HeaderLink>
-          <HeaderLink href="/inventory/dashboard">لوحة المخزون</HeaderLink>
-        </div>
-      </header>
+      <Entity360Header
+        title={`ملف المورّد — ${supplier.name}`}
+        subtitle="نظرة 360 على الأصناف والطلبات وحركات المخزون المرتبطة."
+        actions={
+          <>
+            <HeaderLink href="/suppliers">الموردون</HeaderLink>
+            <HeaderLink href="/inventory/dashboard">لوحة المخزون</HeaderLink>
+          </>
+        }
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="أصناف مفضلة" value={num((items ?? []).length)} />
@@ -180,38 +199,65 @@ export default async function Supplier360Page({
         <KpiCard label="حركات مخزون" value={num((movements ?? []).length)} />
       </section>
 
-      <Card title="بيانات المورّد">
-        <DescriptionList
-          layout="inline"
-          items={[
-            { id: "phone", term: "الهاتف", description: supplier.phone ?? "—" },
-            { id: "terms", term: "الشروط", description: supplier.terms ?? "—" },
-            {
-              id: "lead",
-              term: "مدة التوريد",
-              description: supplier.lead_time_days != null ? `${num(supplier.lead_time_days)} يوم` : "—",
-            },
-          ]}
-        />
-      </Card>
+      <EntityTabs items={tabItems} value={tab} />
 
-      <Card title="الأصناف المرتبطة">
-        {itemRows.length === 0 ? (
-          <EmptyState title="لا توجد أصناف مرتبطة كمورد مفضل" />
-        ) : (
-          <SimpleTable columns={itemColumns} rows={itemRows} empty="—" />
-        )}
-      </Card>
+      {tab === "overview" && (
+        <div role="tabpanel" id={tabPanelId("overview")} aria-labelledby={tabId("overview")} tabIndex={0}>
+          <Card title="بيانات المورّد">
+            <DescriptionList
+              layout="inline"
+              items={[
+                { id: "phone", term: "الهاتف", description: supplier.phone ?? "—" },
+                { id: "terms", term: "الشروط", description: supplier.terms ?? "—" },
+                {
+                  id: "lead",
+                  term: "مدة التوريد",
+                  description: supplier.lead_time_days != null ? `${num(supplier.lead_time_days)} يوم` : "—",
+                },
+              ]}
+            />
+          </Card>
+        </div>
+      )}
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card title="بنود طلبات الشراء">
-          {prRows.length === 0 ? (
-            <EmptyState title="لا توجد بنود شراء مرتبطة" />
-          ) : (
-            <SimpleTable columns={prColumns} rows={prRows} empty="—" />
-          )}
-        </Card>
-        {canReadPrivateFinance && (
+      {tab === "items" && (
+        <div role="tabpanel" id={tabPanelId("items")} aria-labelledby={tabId("items")} tabIndex={0}>
+          <Card title="الأصناف المرتبطة">
+            {itemRows.length === 0 ? (
+              <EmptyState title="لا توجد أصناف مرتبطة كمورد مفضل" />
+            ) : (
+              <SimpleTable columns={itemColumns} rows={itemRows} empty="—" />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "purchases" && (
+        <div role="tabpanel" id={tabPanelId("purchases")} aria-labelledby={tabId("purchases")} tabIndex={0}>
+          <Card title="بنود طلبات الشراء">
+            {prRows.length === 0 ? (
+              <EmptyState title="لا توجد بنود شراء مرتبطة" />
+            ) : (
+              <SimpleTable columns={prColumns} rows={prRows} empty="—" />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "movements" && (
+        <div role="tabpanel" id={tabPanelId("movements")} aria-labelledby={tabId("movements")} tabIndex={0}>
+          <Card title="آخر حركات المخزون">
+            {movementRows.length === 0 ? (
+              <EmptyState title="لا توجد حركات مخزون مرتبطة" />
+            ) : (
+              <SimpleTable columns={movementColumns} rows={movementRows} empty="—" />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {canReadPrivateFinance && tab === "finance" && (
+        <div role="tabpanel" id={tabPanelId("finance")} aria-labelledby={tabId("finance")} tabIndex={0}>
           <Card title="آخر المصروفات">
             {expenseRows.length === 0 ? (
               <EmptyState title="لا توجد مصروفات مرتبطة" />
@@ -219,16 +265,8 @@ export default async function Supplier360Page({
               <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
             )}
           </Card>
-        )}
-      </section>
-
-      <Card title="آخر حركات المخزون">
-        {movementRows.length === 0 ? (
-          <EmptyState title="لا توجد حركات مخزون مرتبطة" />
-        ) : (
-          <SimpleTable columns={movementColumns} rows={movementRows} empty="—" />
-        )}
-      </Card>
+        </div>
+      )}
     </div>
   );
 }
