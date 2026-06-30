@@ -1,6 +1,37 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — DB hardening bundle reviewed and applied to Farm prod
+**Start point.** Local `main` was current with `origin/main` at `b7a95eb`. Farm Supabase prod was already applied
+through `20260622000100_revoke_anon_exec_action_rpcs`; the open narrow DB candidates were #436/#439/#442/#444,
+with #438/#400/#368/#366 still held.
+
+**Review/probes.** Re-fetched PR heads and verified SQL from the actual PR refs. Prod read-only probes were clean for
+data preconditions: `inventory_movements.type='transfer'` = 0, `inventory_bin.ordered <> 0` = 0, and
+`plan_material_requirements.qty is null` = 0. Grant probes showed the expected current-table destructive grants and
+two table default-ACL grantors: `postgres` and platform-owned `supabase_admin`.
+
+**#439 patch.** Patched #439 to `ecaeace` so the migration fixes current-table grants and the `postgres` future table
+default ACL, but does not fail when the migration role cannot administer `supabase_admin`. That residual is now
+explicitly reported as a platform-owner follow-up. Local pgTAP on #439 passed **689/689**.
+
+**Apply.** Built an exact temporary bundle from current `main` plus #436/#439/#442/#444. Full local pgTAP passed
+**726/726**. Supabase CLI dry-run with `--include-all` showed exactly four migrations, then applied them to Farm prod:
+`20260622000098_fn_bin_rebuild_internal`, `20260629135038_grant_hygiene_default_privileges`,
+`20260629140248_inventory_transfer_ordered_guard`, and
+`20260629141650_responsibility_assignments_write_gate`. A temporary MCP-generated ledger row for the already-applied
+0098 revoke was repaired before the CLI apply so the final ledger uses repo migration versions.
+
+**Post-apply verification.** Prod ledger now contains all four repo versions. Function grant checks show client roles
+cannot execute `fn_bin_rebuild`, `fn_post_movement`, `fn_set_active_org`, or `fn_update_org_settings` outside the
+intended posture. Current public tables have no client-role `TRUNCATE` and no client-role `DELETE` except
+authenticated `plan_checks`. The two inventory constraints exist as `NOT VALID`; `fn_post_movement` no longer carries
+`transfer`; and `responsibility_assignments.tenant_all` has `responsibility.write` plus the same-org person guard.
+
+**Still held.** No draft PR was merged. #438 custody/payment remains held for independent money/RLS/audit review and
+its own pre-migration gate. #400, #368, and #366 remain held. Residual #229/#317 work remains for the platform-owned
+`supabase_admin` default table ACL and leaked-password-protection/Auth dashboard verification.
+
 ## 2026-06-30 — SPEC-0018 audit/authz follow-up + #436/#462 review; drafts still held
 **Start point.** Local `main` was fast-forwarded to current `origin/main` (`5db895b`) before updating this brief.
 No production migration, prod apply, draft-PR merge, or production data change was performed.

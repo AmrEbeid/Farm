@@ -1,5 +1,27 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — reviewed DB hardening bundle applied to Farm prod; draft PRs not merged.** Local `main`
+> was current at `origin/main` (`b7a95eb`) before the apply. Reviewed and probed the narrow DB hardening set:
+> **#436** `fn_bin_rebuild` internalization, **#439** grant/default-privilege hygiene, **#442** latent inventory
+> transfer/ordered guard, and **#444** responsibility-assignment write gate. Prod pre-probes were clean for
+> constraint/data risk (`inventory_movements.type='transfer'` = 0, `inventory_bin.ordered <> 0` = 0,
+> `plan_material_requirements.qty is null` = 0) and showed the expected grant drift. Patched #439 to
+> `ecaeace` after prod showed a `supabase_admin` default-ACL grantor that the migration role cannot administer;
+> local pgTAP on #439 passed **689/689** and the exact combined bundle passed **726/726**. Applied with Supabase
+> CLI `db push --include-all` after a dry-run showed exactly four repo-versioned migrations:
+> `20260622000098_fn_bin_rebuild_internal`, `20260629135038_grant_hygiene_default_privileges`,
+> `20260629140248_inventory_transfer_ordered_guard`, and
+> `20260629141650_responsibility_assignments_write_gate`. Post-apply verification: prod migration ledger now
+> includes all four repo versions; `authenticated`/`anon` cannot execute `fn_bin_rebuild`, `fn_post_movement`,
+> `fn_set_active_org`, or `fn_update_org_settings` outside the intended grants; no public table grants
+> `TRUNCATE` to client roles and no public table grants client `DELETE` except authenticated `plan_checks`;
+> inventory guard constraints exist as `NOT VALID`; `fn_post_movement` no longer accepts `transfer`; and
+> `responsibility_assignments.tenant_all` has `responsibility.write` plus the same-org person guard. **Residual:**
+> platform-owned `supabase_admin` table default ACL still grants future table privileges to client roles and needs
+> a Supabase/platform-owner remediation path; current-table grants and the `postgres` default ACL are fixed.
+> No draft PR merge was performed. #438 custody/payment, #400 export, #368 accounting, and #366 academy remain
+> held for their separate review/migration gates.
+
 > **2026-06-30 — SPEC-0018 audit/authz follow-up; #438/#400/#444/#436 patched, #462 reviewed post-merge.** Local `main`
 > was fast-forwarded to `origin/main` (`5db895b`) before this docs update. Reviewed draft backend **#438** and found
 > a cross-PR `audit_read` regression: the payment-request migration preserved payroll and custody/payment audit
