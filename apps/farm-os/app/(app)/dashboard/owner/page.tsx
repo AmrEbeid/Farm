@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { KpiCard, Alert, Card, Button } from "@/components/ui";
+import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { egp, num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -75,14 +75,20 @@ export default async function OwnerDashboard() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         {(lines ?? []).map((b) => {
+          const approved = Number(b.approved);
           const used = Number(b.committed) + Number(b.actual);
-          const over = used > Number(b.approved);
+          const over = used > approved;
+          const ratio = approved > 0 ? used / approved : 0;
+          const tone = over ? "danger" : ratio >= 0.85 ? "warning" : "default";
           return (
             <Card key={b.category} title={`بند ${b.category}`}>
               <p style={{ color: over ? "var(--danger,#b91c1c)" : "var(--ink)" }}>
-                المستخدم {egp(used)} من {egp(Number(b.approved))}
+                المستخدم {egp(used)} من {egp(approved)}
                 {over && " (متجاوز)"}
               </p>
+              <div className="mt-3">
+                <Progress value={ratio * 100} tone={tone} label={`نسبة استخدام بند ${b.category}`} />
+              </div>
             </Card>
           );
         })}
