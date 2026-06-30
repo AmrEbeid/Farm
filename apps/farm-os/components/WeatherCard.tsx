@@ -1,4 +1,5 @@
 import { Card, Alert, EmptyState } from "@/components/ui";
+import { num, pct } from "@/lib/money";
 import {
   computeGates,
   type Forecast,
@@ -68,12 +69,12 @@ export function WeatherCard({
               <li key={f.date} className="rounded-lg border border-[var(--line,#e5e7eb)] p-3">
                 <div className="mb-2 flex items-baseline justify-between">
                   <span className="font-bold">{fmtDay(f.date)}</span>
-                  <span className="text-sm tabular-nums">{Math.round(f.tempC)}°م</span>
+                  <span className="text-sm tabular-nums">{num(Math.round(f.tempC))}°م</span>
                 </div>
                 <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs opacity-75">
-                  <span>💨 {Math.round(f.windKph)} كم/س</span>
-                  <span>🌧️ {f.rainMm} مم</span>
-                  <span>💧 {f.humidityPct}%</span>
+                  <span>💨 {num(Math.round(f.windKph))} كم/س</span>
+                  <span>🌧️ {num(f.rainMm)} مم</span>
+                  <span>💧 {pct(f.humidityPct)}</span>
                 </div>
                 {advisories.length === 0 ? (
                   <span className="text-xs text-[var(--success-fg,#16a34a)]">الظروف مناسبة</span>

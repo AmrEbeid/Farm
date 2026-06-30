@@ -174,7 +174,7 @@ export default async function InventoryDashboardPage({
         </DashboardKpiLink>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card title="ملخص الموردين">
           <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
             {num(suppliers?.length ?? 0)} مورّد مسجّل. تُستخدم مدد التوريد في توصيات التغطية عندما تكون متاحة.
