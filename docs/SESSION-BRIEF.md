@@ -18,8 +18,8 @@ gitleaks, CodeRabbit, Vercel; Supabase Preview skipped. #474 was squash-merged a
 
 **Current state.** SPEC-0018 custody/payment is now live end-to-end on `main`: backend schema/RPCs from #468 and
 frontend `/custody` + `/custody/request/[requestId]` from #474. Since the prior brief, dashboard PRs #471, #472,
-#473, and #475 also merged and are included in current `main`. Current open queue is draft-only:
-#421, #400, #368, #366. #317/#229 residuals remain open for
+#473, and #475 also merged, and #421 now tracks the SPEC-0018 implementation spec. Current open queue is draft-only:
+#400, #368, #366. #317/#229 residuals remain open for
 `supabase_admin` default ACL / leaked-password-protection follow-up.
 
 ## 2026-06-30 — SPEC-0018 backend live via clean #468
@@ -202,7 +202,7 @@ remote updates, revalidated (`eslint`, `tsc`, Vitest **230/230**, production bui
 to `/login`.
 
 **Still open.** No direct Supabase migration/prod mutation was run from this batch.
-`docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+`docs/SPEC-0018-custody-and-payment-requests.md` was later tracked via #421 after the module shipped.
 
 ## 2026-06-29 — audit issue hygiene; docs-only status update
 **Change.** Reconciled high-signal open audit issues against current `main` and production evidence, then updated
@@ -316,7 +316,7 @@ nav/page-help **17/17**, full Vitest **230/230**, `tsc --noEmit`, touched-file E
 `git diff --check` all passed. #441 still cannot merge before #438 is independently reviewed and applied
 migrate-first; no merge, migration, prod apply, or production data change.
 
-## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; not merged
+## 2026-06-29 — #421 SPEC-0018 custody/payment-request draft hardened; later superseded
 **Change.** Reviewed draft PR #421 (`docs/spec-0018-custody-payment-requests`) for the custody + payment-request
 module. Patched the SPEC-0018 draft to avoid embedding precise real finance/worker figures, remove non-existent
 roles, keep custody/payment/receipt reads finance-role gated, avoid a broad new `expense.write` permission, make
@@ -327,8 +327,9 @@ finance-confidential RLS).
 **Evidence.** #421 branch head `2fa6694`. GitHub checks passed: pgTAP, app/typecheck/lint/test/build,
 token/storybook build, gitleaks, Vercel. Focused re-review found no findings.
 
-**Still held.** No merge, migration, deploy, production apply, or real financial/PII import was performed. #421
-remains draft/design-only for Owner review and Stage-M privacy gating.
+**Later update.** No merge, migration, deploy, production apply, or real financial/PII import was performed in that
+2026-06-29 pass. After #468/#474 shipped, #421 was refreshed into an implementation spec and merged as docs-only;
+migrate remained N/A.
 
 ## 2026-06-29 — #368 accounting DB-side summary fix implemented; PR still held
 **Change.** Patched held draft #368 (`feat/stage-7-accounting-backend`) so `/accounting` no longer computes P&L

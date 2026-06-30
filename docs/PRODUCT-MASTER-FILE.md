@@ -31,6 +31,7 @@ This file is the **hub** of the Farm OS Product Knowledge System (designed in
 | [`SPEC-0013`](SPEC-0013-commercial-saas-layer.md) | Commercial SaaS layer (billing/onboarding/admin) | Draft |
 | [`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md) | In-app help + rule-based "Why?" + `pageMeta` + Health Score | Draft |
 | [`SPEC-0015`](SPEC-0015-product-knowledge-system.md) | This knowledge system (phases, traceability, maturity) | Draft |
+| [`SPEC-0018`](SPEC-0018-custody-and-payment-requests.md) | Custody ledger + payment-request implementation | ✅ Built |
 | [`FEATURE-REGISTRY.md`](FEATURE-REGISTRY.md) (Tier 1) | `FEAT-NNN` → routes/migrations/components/tests/spec | ✅ L3 |
 | [`BUSINESS-RULES-CATALOG.md`](BUSINESS-RULES-CATALOG.md) (Tier 1) | `BR-NNN` → statement/enforced-by/test/FEAT | ✅ L3 |
 | [`DOMAIN-DICTIONARY.md`](DOMAIN-DICTIONARY.md) (Tier 1) | TERM → definition/AR↔EN/source/relationships | ✅ L3 |

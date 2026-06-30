@@ -10,7 +10,8 @@
 > checks green (app typecheck/lint/test/build, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel;
 > Supabase Preview skipped). #474 was squash-merged at `2eb6025`; post-merge `main` **ci**, **db-tests**, and
 > **release** are green. #441 is closed as superseded. Current `main` also includes dashboard follow-up PRs
-> **#471/#472/#473/#475**. Current open queue is draft-only: **#421/#400/#368/#366**.
+> **#471/#472/#473/#475** and the tracked SPEC-0018 implementation spec from **#421**. Current open queue is
+> draft-only: **#400/#368/#366**.
 
 > **2026-06-30 — SPEC-0018 backend reviewed, prod-applied, and merged via clean #468.** Original draft
 > **#438** was not mergeable against current `main` locally (no merge base; unrelated tree churn), so a clean
@@ -207,7 +208,7 @@
 > `npx tsc --noEmit` clean after installing the merged dependency set; `npx vitest run` **225/225**; `npm run build`
 > green with only the existing Next `middleware` deprecation warning; `git diff --check` clean. No new Supabase
 > migration was authored by this batch; no direct Supabase migration/prod mutation has been run from this local
-> merge. `docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+> merge. `docs/SPEC-0018-custody-and-payment-requests.md` was later tracked via #421 after the module shipped.
 > **Live follow-through:** Owner set goal to keep working until dashboards are live. The batch was merged with two
 > additional remote updates, revalidated (`eslint`, `tsc`, Vitest **230/230**, production build), and pushed to
 > `origin/main` at `ca24906`. GitHub recorded a successful Vercel **Production** deployment (`5240158021`,
@@ -280,14 +281,14 @@
 > **687/687**; GitHub checks on the draft are green. **Held:** no merge, migration, prod apply, or production data
 > change until migration review/apply.
 
-> **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
+> **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; later superseded.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to
 > remove precise real finance/worker figures, remove non-existent roles, keep custody/payment/receipt reads
 > finance-role gated, avoid inventing a broad `expense.write` permission, mark #368 `expenses.kind`/`0088` as a
 > prerequisite or same-apply-path dependency, and require an explicit `attachments` extension for expense receipts
 > (`entity_type='expense'`, resolver/storage validation, finance-confidential RLS). Branch head `2fa6694`; GitHub
-> checks green; focused re-review found no findings. **Still held:** #421 remains draft/design-only for Owner review;
-> no schema, migration, prod apply, or real financial/PII import.
+> checks green; focused re-review found no findings. **Later update:** after #468/#474 shipped, #421 was refreshed
+> into an implementation spec and merged; no migration or prod apply was attached to the docs PR.
 
 > **2026-06-29 — #368 accounting P&L summary moved DB-side; code blocker closed, gates still open.** Patched
 > held draft **#368 accounting** so `/accounting` no longer computes financial totals from capped PostgREST row
