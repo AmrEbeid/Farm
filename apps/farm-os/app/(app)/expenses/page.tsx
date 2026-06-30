@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -29,7 +28,7 @@ export default async function ExpensesListPage() {
     { id: "category", header: "الفئة" },
     { id: "description", header: "البيان" },
     { id: "supplier", header: "المورّد" },
-    { id: "total", header: "المبلغ", numeric: true },
+    { id: "total", header: "المبلغ", numeric: true, kind: "money" },
   ];
 
   const rows = (expenses ?? []).map((e) => ({
@@ -39,7 +38,7 @@ export default async function ExpensesListPage() {
     category: e.category ?? "—",
     description: e.description ?? "—",
     supplier: e.supplier_id ? supMap.get(e.supplier_id) ?? "—" : "—",
-    total: e.total != null ? egp(Number(e.total)) : "—",
+    total: e.total != null ? Number(e.total) : undefined,
   }));
 
   return (
