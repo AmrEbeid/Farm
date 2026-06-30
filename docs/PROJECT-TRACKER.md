@@ -1,5 +1,14 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — follow-up financial display honesty merged via #484; migration N/A.** Reviewed and merged app-only
+> #484 after #483: remaining tracked UI/report paths that displayed unknown planned/estimated costs as `0 ج.م` now
+> use nullable money helpers. Plan detail, planning dashboard, manager/mobile operation lists, purchase-request
+> detail, and PVA report show unknown cost as unknown; PVA suppresses the cost-variance chart when planned costs are
+> incomplete instead of plotting fabricated zero planned values. No `supabase/` files changed, so migration/prod DB
+> apply is N/A. #484 PR checks were green and post-merge `main` at `d603b1f` has **ci**, **db-tests**, and
+> **release** green. #89/#157 remain open for the real Stage-7 pricing source, maintained budget ledger, and hard
+> budget enforcement. Current open queue remains draft-only: **#368/#366**.
+
 > **2026-06-30 — 360 runtime tab fix + budget unknown-cost advisory fix merged; migration N/A.**
 > Reconciled the concurrent post-Entity-360 fixes now on `main`: **#481** fixed a live RSC runtime failure where
 > tabbed 360 Server Components were importing/calling client-only `tabId`/`tabPanelId` helpers, causing the segment

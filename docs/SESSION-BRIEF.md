@@ -2,6 +2,18 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-06-30 — Entity-360 completed; RSC guard and budget unknown-cost fix live
+**Financial display honesty follow-up.** After #483 fixed budget-check false-green behavior, #484 removed the
+remaining tracked display/report cases where unknown estimated/planned costs were rendered as `0 ج.م`. The shared
+money helpers now preserve unknown/null/invalid values; plan detail, planning dashboard, manager/mobile operation
+lists, purchase-request detail, and PVA use those helpers. PVA no longer renders a cost-variance chart when planned
+costs are incomplete, because a chart would imply a precise variance over fabricated zero planned values.
+
+**#484 validation.** #484 was app-only and changed no `supabase/` files, so migration is N/A. Local validation:
+focused `money.test.ts` **7/7**, full Farm OS Vitest **251/251**, and `git diff --check` clean. #484 PR checks were
+green (app typecheck/lint/test/build, package typecheck/token/test/build/storybook, pgTAP/db, gitleaks, Vercel,
+CodeRabbit; Supabase Preview skipped). #484 was squash-merged as `d603b1f`; post-merge `main` `ci`, `db-tests`, and
+`release` are green. #89/#157 remain open for real pricing, maintained budget ledger, and hard budget enforcement.
+
 **Follow-up runtime fix.** After the 360 rollout, #481 fixed the live tabbed-page RSC failure: Server Components were
 calling client-only `tabId`/`tabPanelId` helpers, so tabbed 360 detail pages hit the segment error boundary at
 request-time even though build/typecheck were green. #481 added server-safe `apps/farm-os/lib/tab-ids.ts` and moved
