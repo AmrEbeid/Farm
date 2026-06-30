@@ -71,7 +71,12 @@ export default async function Supplier360Page({
   if (expensesError) throw expensesError;
   if (movementsError) throw movementsError;
 
-  if (!supplier) return <div className="p-6">المورّد غير موجود.</div>;
+  if (!supplier)
+    return (
+      <div className="p-6">
+        <EmptyState title="المورّد غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const expensesTotal = (expenses ?? []).reduce((sum, expense) => sum + Number(expense.total ?? 0), 0);
 

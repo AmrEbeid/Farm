@@ -28,7 +28,12 @@ export default async function Budget360Page({
     .eq("id", budgetId)
     .maybeSingle();
   if (budgetError) throw budgetError;
-  if (!budget) return <div className="p-6">الموازنة غير موجودة.</div>;
+  if (!budget)
+    return (
+      <div className="p-6">
+        <EmptyState title="الموازنة غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const [
     { data: lines, error: linesError },

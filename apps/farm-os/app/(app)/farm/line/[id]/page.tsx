@@ -59,7 +59,12 @@ export default async function LineFilePage({
   if (lineError) throw lineError;
   if (palmsError) throw palmsError;
 
-  if (!line) return <div className="p-6">الخط غير موجود.</div>;
+  if (!line)
+    return (
+      <div className="p-6">
+        <EmptyState title="الخط غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   const hawsha = one<{ id?: string; name?: string; sector_id?: string; sectors?: unknown }>(line.hawshat);
   const sector = one<{ id?: string; name?: string }>(hawsha?.sectors);

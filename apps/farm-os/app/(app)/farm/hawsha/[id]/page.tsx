@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Breadcrumbs, Card, Alert } from "@/components/ui";
+import { Breadcrumbs, Card, Alert, EmptyState } from "@/components/ui";
 import { SectorFile } from "@/components/SectorFile";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StructureForm } from "@/components/StructureForm";
@@ -81,7 +81,12 @@ export default async function HawshaFilePage({
   if (assetsError) throw assetsError;
   if (linesError) throw linesError;
 
-  if (!hawsha) return <div className="p-6">الحوشة غير موجودة.</div>;
+  if (!hawsha)
+    return (
+      <div className="p-6">
+        <EmptyState title="الحوشة غير موجودة." description="قد تكون محذوفة أو الرابط غير صحيح." icon="🔍" />
+      </div>
+    );
 
   // PostgREST returns a to-one embed as an object or a single-element array
   // depending on FK detection — normalise both to one sector (for the breadcrumb).
