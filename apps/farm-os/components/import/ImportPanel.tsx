@@ -7,6 +7,7 @@
  * "استيراد" (commit). Commit stays disabled until a clean dry-run (error-resolution-first).
  */
 import { useState } from "react";
+import { num } from "@/lib/money";
 
 interface DryRunResult {
   okCount: number;
@@ -93,13 +94,13 @@ export function ImportPanel({ descriptorKey, titleAr }: { descriptorKey: string;
       {dry && (
         <div className="text-sm">
           <p>
-            صالح: {dry.okCount} · أخطاء: {dry.errorCount}
+            صالح: {num(dry.okCount)} · أخطاء: {num(dry.errorCount)}
           </p>
           {dry.errors.length > 0 && (
             <ul className="mt-1 list-disc pe-5">
               {dry.errors.map((e) => (
                 <li key={`${e.row}-${e.column}`}>
-                  صف {e.row} — {e.column}: {e.reason}
+                  صف {num(e.row)} — {e.column}: {e.reason}
                 </li>
               ))}
             </ul>
@@ -108,10 +109,32 @@ export function ImportPanel({ descriptorKey, titleAr }: { descriptorKey: string;
       )}
 
       {done && (
-        <p className="text-sm">
-          تم استيراد {done.written} · فشل {done.failed}
-          {done.skipped.length > 0 ? ` · مكرر ${done.skipped.length}` : ""}
-        </p>
+        <div className="text-sm">
+          <p>
+            تم استيراد {num(done.written)} · فشل {num(done.failed)}
+            {done.skipped.length > 0 ? ` · مكرر ${num(done.skipped.length)}` : ""}
+          </p>
+          {/* Surface the per-row failure reasons the API already returns (previously dropped — the user
+              saw only "فشل N" with no cause). Mirrors the dry-run error list for commit parity. */}
+          {done.failures.length > 0 && (
+            <ul className="mt-1 list-disc pe-5 text-red-600">
+              {done.failures.map((f) => (
+                <li key={`fail-${f.row}`}>
+                  صف {num(f.row)} — {f.error}
+                </li>
+              ))}
+            </ul>
+          )}
+          {done.skipped.length > 0 && (
+            <ul className="mt-1 list-disc pe-5 text-gray-600">
+              {done.skipped.map((s) => (
+                <li key={`skip-${s.row}`}>
+                  صف {num(s.row)} — {s.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </section>
   );
