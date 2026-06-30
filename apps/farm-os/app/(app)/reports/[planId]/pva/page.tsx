@@ -5,7 +5,7 @@ import { Card, Stat, EmptyState } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { VarianceChart } from "@/components/charts";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
-import { egp, num } from "@/lib/money";
+import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR } from "@/lib/labels";
 
@@ -55,21 +55,24 @@ export default async function PlannedVsActualPage({
   const rows = executed.map((o) => {
     const req = (o.plan_material_requirements ?? [])[0] as { qty?: number; unit?: string } | undefined;
     const plannedQty = Number(req?.qty ?? 0);
-    const plannedCost = Number(o.est_cost ?? 0);
+    const plannedCost = moneyNumber(o.est_cost);
     const act = actualByOp.get(o.id)!;
     const varQty = act.qty - plannedQty;
-    const varCost = act.cost - plannedCost;
-    const varPct = plannedCost > 0 ? Math.round((varCost / plannedCost) * 1000) / 10 : 0;
+    const varCost = plannedCost == null ? null : act.cost - plannedCost;
+    const varPct =
+      plannedCost != null && plannedCost > 0
+        ? Math.round(((varCost ?? 0) / plannedCost) * 1000) / 10
+        : null;
     return {
       id: o.id,
       op: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
       planned_qty: `${num(plannedQty)} ${req?.unit ?? ""}`,
       actual_qty: `${num(act.qty)} ${req?.unit ?? ""}`,
-      planned_cost: egp(plannedCost),
+      planned_cost: egpValue(o.est_cost),
       actual_cost: egp(act.cost),
       var_qty: num(varQty),
       var_cost: egp(varCost),
-      var_pct: `${num(varPct, 1)}٪`,
+      var_pct: varPct == null ? "—" : `${num(varPct, 1)}٪`,
     };
   });
 
@@ -83,15 +86,17 @@ export default async function PlannedVsActualPage({
     { id: "var_pct", header: "%", numeric: true },
   ];
 
-  const totalPlannedCost = executed.reduce((s, o) => s + Number(o.est_cost ?? 0), 0);
+  const totalPlannedCost = sumMoney(executed.map((o) => o.est_cost));
   const totalActualCost = executed.reduce((s, o) => s + (actualByOp.get(o.id)?.cost ?? 0), 0);
-  const totalVar = totalActualCost - totalPlannedCost;
+  const totalVar = totalPlannedCost.hasUnknown ? null : totalActualCost - totalPlannedCost.total;
   const totalVarPct =
-    totalPlannedCost > 0 ? Math.round((totalVar / totalPlannedCost) * 1000) / 10 : 0;
+    totalVar != null && totalPlannedCost.total > 0
+      ? Math.round((totalVar / totalPlannedCost.total) * 1000) / 10
+      : null;
 
   const chartData = executed.map((o) => ({
     category: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
-    planned: Number(o.est_cost ?? 0),
+    planned: moneyNumber(o.est_cost) ?? 0,
     actual: actualByOp.get(o.id)?.cost ?? 0,
   }));
 
@@ -107,7 +112,13 @@ export default async function PlannedVsActualPage({
         pills={
           executed.length === 0
             ? []
-            : [totalVar > 0 ? { status: "warning", label: "تجاوز التكلفة" } : { status: "active", label: "ضمن المخطط" }]
+            : [
+                totalPlannedCost.hasUnknown
+                  ? { status: "warning", label: "تكلفة مخططة غير معروفة" }
+                  : totalVar != null && totalVar > 0
+                    ? { status: "warning", label: "تجاوز التكلفة" }
+                    : { status: "active", label: "ضمن المخطط" },
+              ]
         }
         actions={
           <Link
@@ -128,19 +139,27 @@ export default async function PlannedVsActualPage({
       ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-3">
-            <Stat label="إجمالي المخطط" value={egp(totalPlannedCost)} />
+            <Stat label="إجمالي المخطط" value={egpSummary(totalPlannedCost)} />
             <Stat label="إجمالي الفعلي" value={egp(totalActualCost)} />
             <Stat
               label="الانحراف"
               value={egp(totalVar)}
-              change={`${num(totalVarPct, 1)}٪`}
-              trend={totalVar < 0 ? "down" : totalVar > 0 ? "up" : "flat"}
+              change={totalVarPct == null ? "—" : `${num(totalVarPct, 1)}٪`}
+              trend={totalVar == null || totalVar === 0 ? "flat" : totalVar < 0 ? "down" : "up"}
             />
           </section>
 
-          <Card title="المخطط مقابل الفعلي (تكلفة)">
-            <VarianceChart data={chartData} />
-          </Card>
+          {totalPlannedCost.hasUnknown ? (
+            <Card title="المخطط مقابل الفعلي (تكلفة)">
+              <p style={{ color: "var(--ink-muted)" }}>
+                لا يمكن رسم انحراف تكلفة دقيق لأن تكلفة مخططة واحدة أو أكثر غير معروفة.
+              </p>
+            </Card>
+          ) : (
+            <Card title="المخطط مقابل الفعلي (تكلفة)">
+              <VarianceChart data={chartData} />
+            </Card>
+          )}
 
           <section>
             <h2 className="mb-3 text-lg font-semibold">التفاصيل</h2>

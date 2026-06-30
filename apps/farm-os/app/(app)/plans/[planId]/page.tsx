@@ -11,7 +11,7 @@ import { EntityTabs } from "@/components/EntityTabs";
 import { OperationBuilder } from "@/components/OperationBuilder";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { POTASSIUM_ID } from "@/lib/nav";
-import { egp, num } from "@/lib/money";
+import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, PLAN_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
@@ -117,7 +117,7 @@ export default async function MonthlyPlanPage({
     id: o.id,
     subtype: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
     planned_at: fmtDate(o.planned_at),
-    cost: egp(Number(o.est_cost ?? 0)),
+    cost: egpValue(o.est_cost),
     approval: o.approval_needed ? "نعم" : "لا",
     status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
   }));
@@ -129,7 +129,7 @@ export default async function MonthlyPlanPage({
   const budgetBlocked = budgetCheck?.result === "block";
   const blocked = (checks ?? []).some((c) => c.result === "block");
   const blockedChecks = (checks ?? []).filter((c) => c.result === "block").length;
-  const totalEstCost = (ops ?? []).reduce((sum, op) => sum + Number(op.est_cost ?? 0), 0);
+  const totalEstCost = sumMoney((ops ?? []).map((op) => op.est_cost));
 
   // An operation is "due/overdue" when it is still executable (not done/blocked/
   // abandoned/skipped) and its planned date is today or in the past — those need
@@ -195,7 +195,7 @@ export default async function MonthlyPlanPage({
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عمليات الخطة" value={num((ops ?? []).length)} />
-        <KpiCard label="التكلفة التقديرية" value={egp(totalEstCost)} />
+        <KpiCard label="التكلفة التقديرية" value={egpSummary(totalEstCost)} />
         <KpiCard label="فحوص مشغّلة" value={num((checks ?? []).length)} />
         <KpiCard
           label="فحوص محظورة"

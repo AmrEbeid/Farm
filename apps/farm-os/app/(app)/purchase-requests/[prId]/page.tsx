@@ -7,7 +7,7 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { PrActions } from "@/components/PrActions";
-import { egp, num } from "@/lib/money";
+import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { PR_STATUS_AR } from "@/lib/labels";
 
@@ -78,12 +78,10 @@ export default async function PurchaseRequestPage({
       qty: `${num(qty)} ${unit}`.trim(),
       received: `${num(received)} ${unit}`.trim(),
       remaining: `${num(qty - received)} ${unit}`.trim(),
-      // #89-B: a null est_cost means the unit price is unknown (no fabricated cost) — show "—",
-      // not "0 ج.م" (which would falsely imply a zero cost).
-      cost: it.est_cost != null ? egp(Number(it.est_cost)) : "—",
+      cost: egpValue(it.est_cost),
     };
   });
-  const estimatedCost = (items ?? []).reduce((sum, it) => sum + Number(it.est_cost ?? 0), 0);
+  const estimatedCost = sumMoney((items ?? []).map((it) => it.est_cost));
   const totalQty = (items ?? []).reduce((sum, it) => sum + Number(it.qty ?? 0), 0);
   const totalReceived = (items ?? []).reduce((sum, it) => sum + Number(it.received_qty ?? 0), 0);
   const totalRemaining = totalQty - totalReceived;
@@ -162,7 +160,7 @@ export default async function PurchaseRequestPage({
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عدد البنود" value={num((items ?? []).length)} />
-        <KpiCard label="التكلفة التقديرية" value={egp(estimatedCost)} />
+        <KpiCard label="التكلفة التقديرية" value={egpSummary(estimatedCost)} />
         <KpiCard
           label="المستلم"
           value={singleUnit ? num(totalReceived) : "وحدات متعددة"}
