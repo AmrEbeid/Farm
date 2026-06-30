@@ -35,9 +35,9 @@ as $$
          or (perm = 'export.write'           and m.role in ('owner','farm_manager'))     -- in-flight #400
          or (perm = 'responsibility.write'   and m.role in ('owner','farm_manager'))
          or (perm = 'finance.read'           and m.role in ('owner','accountant'))        -- in-flight #438
-         or (perm = 'custody.write'          and m.role in ('owner','farm_manager','accountant'))   -- in-flight #438
-         or (perm = 'request.prepare'        and m.role in ('owner','farm_manager','accountant'))   -- in-flight #438
-         or (perm = 'request.approve.op'     and m.role in ('owner','farm_manager'))     -- in-flight #438
+         or (perm = 'custody.write'          and m.role in ('owner','accountant'))        -- in-flight #438
+         or (perm = 'request.prepare'        and m.role in ('owner','accountant'))        -- in-flight #438
+         or (perm = 'request.approve.op'     and m.role in ('owner','accountant'))        -- in-flight #438
          or (perm = 'request.approve.final'  and m.role = 'owner') )                     -- in-flight #438
   )
 $$;

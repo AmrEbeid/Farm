@@ -3,10 +3,11 @@
 -- The table stores accountability/routing labels, not permissions. `authorize()` still derives actual
 -- app permissions only from organization_member.role. This test pins the governance hardening: org
 -- members can still read same-org assignments, but direct REST insert/update needs responsibility.write
--- (owner/farm_manager) and still rejects cross-org people.
+-- (owner/farm_manager) and still rejects cross-org people. The authorize() re-emit also carries current
+-- SPEC-0018 finance-only custody/payment-request roles.
 
 begin;
-select plan(13);
+select plan(22);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set orgB '10100000-0000-0000-0000-0000000000b0'
@@ -16,6 +17,8 @@ select set_config('test.owner', (select user_id::text from public.organization_m
   where org_id = :'orgA' and role = 'owner' limit 1), false);
 select set_config('test.mgr', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'farm_manager' limit 1), false);
+select set_config('test.acct', (select user_id::text from public.organization_member
+  where org_id = :'orgA' and role = 'accountant' limit 1), false);
 select set_config('test.sup', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'supervisor' limit 1), false);
 select set_config('test.sk', (select user_id::text from public.organization_member
@@ -51,6 +54,30 @@ reset role;
 select pg_temp.as_user(current_setting('test.sup'));
 select is(public.authorize('responsibility.write', :'orgA'), false,
   'responsibility.write: supervisor does NOT');
+reset role;
+
+select pg_temp.as_user(current_setting('test.acct'));
+select is(public.authorize('finance.read', :'orgA'), true,
+  'finance.read: accountant HAS it');
+select is(public.authorize('custody.write', :'orgA'), true,
+  'custody.write: accountant HAS it');
+select is(public.authorize('request.prepare', :'orgA'), true,
+  'request.prepare: accountant HAS it');
+select is(public.authorize('request.approve.op', :'orgA'), true,
+  'request.approve.op: accountant HAS it');
+select is(public.authorize('request.approve.final', :'orgA'), false,
+  'request.approve.final: accountant does NOT');
+reset role;
+
+select pg_temp.as_user(current_setting('test.mgr'));
+select is(public.authorize('finance.read', :'orgA'), false,
+  'finance.read: farm_manager does NOT');
+select is(public.authorize('custody.write', :'orgA'), false,
+  'custody.write: farm_manager does NOT');
+select is(public.authorize('request.prepare', :'orgA'), false,
+  'request.prepare: farm_manager does NOT');
+select is(public.authorize('request.approve.op', :'orgA'), false,
+  'request.approve.op: farm_manager does NOT');
 reset role;
 
 select pg_temp.as_user(current_setting('test.sk'));
