@@ -78,7 +78,7 @@ export async function POST(req: Request): Promise<Response> {
       in: (col: string, vals: string[]) => RefQuery;
     };
   };
-  type RefQuery = Promise<{ data: Record<string, unknown>[] | null }> & {
+  type RefQuery = Promise<{ data: Record<string, unknown>[] | null; error: unknown }> & {
     eq: (col: string, val: unknown) => RefQuery;
   };
   const refLookup: RefLookup = async (spec, codes) => {
@@ -88,7 +88,12 @@ export async function POST(req: Request): Promise<Response> {
     if (spec.activeColumn != null) {
       query = query.eq(spec.activeColumn, spec.activeValue ?? false);
     }
-    const { data } = await query;
+    const { data, error } = await query;
+    // A DB error here must not be swallowed into an empty result — that would
+    // silently downgrade real failures to "code not found" and skip valid rows.
+    // Surface it so the route's try/catch returns a 500 instead of a misleading
+    // partial import.
+    if (error) throw error;
     const map = new Map<string, string>();
     const ambiguous = new Set<string>();
     for (const r of data ?? []) {
@@ -100,7 +105,18 @@ export async function POST(req: Request): Promise<Response> {
     return map;
   };
 
-  const resolved = await resolveRefs(descriptor, dry.okRows, refLookup);
+  let resolved;
+  try {
+    resolved = await resolveRefs(descriptor, dry.okRows, refLookup);
+  } catch {
+    // A ref lookup hit a real DB error (now surfaced from refLookup, not swallowed
+    // into an empty result). Fail the request rather than reporting valid rows as
+    // "code not found" and silently dropping them.
+    return NextResponse.json(
+      { error: "تعذّر التحقق من المراجع. حاول مرة أخرى." },
+      { status: 500 },
+    );
+  }
   const errors = [...dry.errors, ...resolved.errors];
   const errorCount = dry.errorCount + (dry.okRows.length - resolved.rows.length);
 

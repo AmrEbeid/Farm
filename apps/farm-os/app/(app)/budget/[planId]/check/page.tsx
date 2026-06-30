@@ -69,7 +69,6 @@ export default async function BudgetCheckPage({
     <div className="flex flex-col gap-6 p-6">
       <header>
         <h1 className="text-2xl font-bold">فحص الموازنة — بند الأسمدة</h1>
-        <p style={{ color: "var(--ink-muted)" }}>سنة 2025</p>
       </header>
 
       <VerdictBanner tone={verdict === "block" ? "danger" : verdict === "approval-needed" ? "warning" : "ok"}>
