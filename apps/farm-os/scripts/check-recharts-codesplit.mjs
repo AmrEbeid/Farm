@@ -60,6 +60,8 @@ const ALLOWED_CHART_ROUTES = [
   "/farm/dashboard/page",
   "/people/dashboard/page",
   "/weather/dashboard/page",
+  // The settings dashboard renders a role-distribution doughnut; same guarantee.
+  "/settings/dashboard/page",
 ];
 
 function die(msg) {
