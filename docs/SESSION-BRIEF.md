@@ -25,15 +25,28 @@ apply is available here.
    `num()` + render the dropped commit `failures`/`skipped` reasons. tsc/eslint/build/vitest 251 green. (Component
    is latent — not yet route-mounted.) Note: local `next build` first failed on a missing transitive dep `tmp`
    (exceljs) — local node_modules gap, fixed with `npm install` (lockfile unchanged); not a code issue.
-6. **Table a11y foundation (a11y/list-table-names)** — added optional `ariaLabel` to SimpleTable/FilterableTable
-   → `<table aria-label>` (DataTable already spreads `...rest`, so NO design-system change / no visible caption
-   dup); MasterTable passes its title (suppliers table now named). App-only, build green. Comprehensive rollout to
-   the other ~28 table call sites (multiple tables/page → per-section headings) filed as **#488**.
+6. **Table a11y — capability + FULL rollout (PRs #489, #490, #491; #488 CLOSED; main green `e164132`).**
+   Added optional `ariaLabel` to SimpleTable/FilterableTable → `<table aria-label>` (DataTable already spreads
+   `...rest`, so NO design-system change / no visible-caption dup). Then named **every** list/data table:
+   #489 suppliers (MasterTable→title); #490 the 6 single-table list pages (by `<h1>`); #491 44 tables across 22
+   multi-table list/detail/dashboard pages (each by its section heading; 2 filter-dependent card titles hoisted
+   to consts to prevent drift). Reused existing Arabic copy throughout; no visible UI change; jest-axe + CI green.
 
-**Next candidates (decision-free):** the #488 ariaLabel rollout (deliberate, per-section headings); or pick up
-the research lane (#216–226
-module research / #215 control panel) which the Owner explicitly sanctioned. Owner-decision-gated items remain
-untouched: #199, #157/#89 (pricing), #366/#368 (expert gates), #229(iii) leaked-password (Auth dashboard toggle).
+7. **#215 control-panel research + org-settings audit fix (PR #492).** Resumed the paused #215 lane: produced an
+   evidence-cited narrow plan (posted as a #215 comment — scope boundary tenant-config vs platform-admin, narrowest
+   first slice, 7 open Owner decisions). The research surfaced a real compliance gap — `fn_update_org_settings` wrote
+   no audit row and `organization` had no audit trigger (prod: 0 triggers, 0 org audit rows). Fixed: migration
+   `20260701090000` adds an explicit `audit_log` write in the RPC (org has no `org_id` col → can't use the fn_audit
+   trigger; re-emitted from the CURRENT 0095 body — the harness caught an initial re-emit-from-0086 regression of
+   #383). pgTAP 827/827; applied to prod migrate-first; test 86 extended.
+
+**Session result:** 7 PRs (#485, #486, #487, #489, #490, #491, #492); 3 prod migrations applied migrate-first
+(`20260630090000`, `20260630100000`, `20260701090000`); issues #317/#188/#488 closed, #229 scoped to leaked-password,
+#199 left owner-gated, #215 narrow plan posted. Delegated 3 worktree agents (a11y x2 + #215 research).
+
+**Next candidates (decision-free):** #216–226 module research; the #215 first-slice settings-IA shell (app-only).
+Owner-decision-gated items remain untouched: #199, #157/#89 (pricing), #366/#368 (expert gates), #229(iii)
+leaked-password (Auth dashboard toggle), and the 7 #215 open decisions.
 
 ## 2026-06-30 — SAFE STOP: #215 control-panel research paused
 **Stop point.** Stopped at Owner request. Local `main` is at `e567115` (`docs: record unknown cost display fix`).
