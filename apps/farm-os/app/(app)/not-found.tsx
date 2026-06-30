@@ -17,12 +17,12 @@ export default function AppNotFound() {
           <Alert
             tone="warning"
             title="تعذّر العثور على هذه الصفحة (خطأ ٤٠٤)"
-            description="ربما يكون الرابط غير صحيح. يمكنك العودة إلى لوحة التحكم والمتابعة من هناك."
+            description="ربما يكون الرابط غير صحيح. يمكنك العودة إلى لوحة المعلومات والمتابعة من هناك."
           />
 
           <div className="flex flex-wrap gap-3">
             <Link href="/dashboard">
-              <Button variant="primary">العودة إلى لوحة التحكم</Button>
+              <Button variant="primary">العودة إلى لوحة المعلومات</Button>
             </Link>
           </div>
         </div>

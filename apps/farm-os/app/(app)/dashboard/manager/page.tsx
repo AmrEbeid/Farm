@@ -53,7 +53,7 @@ export default async function ManagerDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">لوحة تحكم المدير</h1>
+      <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="عمليات الخطة" value={num(total)} />

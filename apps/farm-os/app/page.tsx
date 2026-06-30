@@ -40,7 +40,7 @@ export default function Home() {
               <Button variant="primary">تسجيل الدخول</Button>
             </Link>
             <Link href="/dashboard">
-              <Button variant="ghost">لوحة التحكم</Button>
+              <Button variant="ghost">لوحة المعلومات</Button>
             </Link>
           </div>
 

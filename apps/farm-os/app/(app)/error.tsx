@@ -26,7 +26,7 @@ export default function AppError({
     <div className="flex min-h-[60vh] items-center justify-center p-6">
       <Card
         title="حدث خطأ غير متوقع"
-        subtitle="نعتذر عن هذا الخلل — يمكنك إعادة المحاولة أو العودة إلى لوحة التحكم."
+        subtitle="نعتذر عن هذا الخلل — يمكنك إعادة المحاولة أو العودة إلى لوحة المعلومات."
         className="w-full max-w-lg"
       >
         <div className="flex flex-col gap-4">
@@ -41,7 +41,7 @@ export default function AppError({
               إعادة المحاولة
             </Button>
             <Link href="/dashboard">
-              <Button variant="ghost">العودة إلى لوحة التحكم</Button>
+              <Button variant="ghost">العودة إلى لوحة المعلومات</Button>
             </Link>
           </div>
         </div>

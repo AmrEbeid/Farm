@@ -73,7 +73,7 @@ describe("page help completeness (SPEC-0014 A1 / Documentation Health Score)", (
 
   it("falls back to active nav help outside 360 detail routes", () => {
     expect(helpForPath("/inventory/dashboard", "inventory-dashboard")?.title).toBe("لوحة المخزون والمشتريات");
-    expect(helpForPath("/reports", "dashboard")?.title).toBe("لوحة التحكم");
+    expect(helpForPath("/reports", "dashboard")?.title).toBe("لوحة المعلومات");
   });
 
   it("has route-specific help for every dynamic app page", () => {
