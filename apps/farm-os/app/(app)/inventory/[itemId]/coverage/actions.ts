@@ -89,14 +89,18 @@ export async function createPurchaseRequestFromShortage(
   // (Conservative residual: a truly concurrent pair of calls could still both create, which only
   // over-reserves — it can never mask a shortage. A fully race-safe guard would need a DB constraint
   // spanning purchase_requests.plan_id/status and purchase_request_items.item_id.)
-  const { data: openPrs } = await sb
+  const { data: openPrs, error: openPrsErr } = await sb
     .from("purchase_requests")
     .select("id, code")
     .eq("org_id", m.orgId)
     .eq("plan_id", SEED_PLAN_ID)
     .in("status", ["draft", "submitted"]);
+  // A FAILED read must not be treated as "no open PR" — that would skip the idempotency guard and
+  // fall through to create a duplicate draft PR + a second reserve (the exact double-reserve this guard
+  // prevents). Abort on error instead of proceeding on a silent null.
+  if (openPrsErr) return { ok: false, error: toArabicError(openPrsErr) };
   if (openPrs && openPrs.length > 0) {
-    const { data: dup } = await sb
+    const { data: dup, error: dupErr } = await sb
       .from("purchase_request_items")
       .select("pr_id")
       .eq("item_id", itemId)
@@ -106,6 +110,7 @@ export async function createPurchaseRequestFromShortage(
       )
       .limit(1)
       .maybeSingle();
+    if (dupErr) return { ok: false, error: toArabicError(dupErr) };
     const existing = dup ? openPrs.find((p) => p.id === dup.pr_id) : undefined;
     if (existing) {
       // CREATE-1-RESERVE (#188): the PR/line insert and the reserve are two NON-atomic writes. If a
@@ -119,7 +124,7 @@ export async function createPurchaseRequestFromShortage(
       // does NOT roll back the committed PR/line, which is why the orphan is reachable; the fully
       // race/atomicity-safe fix is to fold the line-insert + reserve into one SECURITY DEFINER RPC —
       // tracked as the migration-gated follow-up in #188.)
-      const { data: existingReserve } = await sb
+      const { data: existingReserve, error: existingReserveErr } = await sb
         .from("inventory_movements")
         .select("id")
         .eq("org_id", m.orgId)
@@ -128,6 +133,9 @@ export async function createPurchaseRequestFromShortage(
         .eq("type", "reserve")
         .limit(1)
         .maybeSingle();
+      // A failed read here would look like "no reserve exists" and re-post a duplicate reserve —
+      // abort instead of double-reserving.
+      if (existingReserveErr) return { ok: false, error: toArabicError(existingReserveErr) };
       if (!existingReserve) {
         const reserve = await reserveStock(sb, itemId, reserveQty, SEED_PLAN_ID);
         if (!reserve.ok) return { ok: false, error: reserve.error };
@@ -156,7 +164,7 @@ export async function createPurchaseRequestFromShortage(
   // the scheduled-receipts projection only counts an approved PO when its needed_by >= v_period_start
   // and buckets it by that date (migrations 0034/0018): a stale/hardcoded needed_by would silently
   // drop this PO from the projection and could MASK the very shortage that triggered it.
-  const { data: demandOp } = await sb
+  const { data: demandOp, error: demandErr } = await sb
     .from("plan_operations")
     .select("planned_at, plan_material_requirements!inner(item_id), plans!inner(status)")
     .eq("plan_id", SEED_PLAN_ID)
@@ -166,6 +174,10 @@ export async function createPurchaseRequestFromShortage(
     .order("planned_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  // Distinguish a FAILED read from a genuine "no demand op". On error, abort — silently stamping
+  // needed_by = null on a failed read would drop this PO from the scheduled-receipts projection and
+  // could mask the very shortage that triggered the PR. A true null (no error) keeps the fallback below.
+  if (demandErr) return { ok: false, error: toArabicError(demandErr) };
   // Fallback when no live demanding op exists for this item: leave needed_by null (the column is
   // nullable). The demand date is genuinely unknown, and a null is honest rather than pinning the PO
   // to a fabricated date. In practice this branch is unreachable from the shortage flow — a coverage
