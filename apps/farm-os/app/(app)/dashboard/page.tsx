@@ -7,6 +7,6 @@ export default async function DashboardRouter() {
   if (m.role === "owner" || m.role === "accountant") redirect("/dashboard/owner");
   if (m.role === "farm_manager" || m.role === "agri_engineer") redirect("/dashboard/manager");
   if (m.role === "supervisor") redirect("/m");
-  if (m.role === "storekeeper") redirect("/inventory");
+  if (m.role === "storekeeper") redirect("/inventory/dashboard");
   redirect("/dashboard/manager");
 }

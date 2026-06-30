@@ -259,7 +259,75 @@ Completed 2026-06-29: #366 now surfaces `/academy` query failures and corrects s
 failures and aligns `/expenses` nav with the `0097` owner/accountant read gate (head `a4d1c7f`, CI green, focused
 independent check found no blockers). Both PRs remain draft and unmigrated.
 
-### Task 6: Review Docs-Only Finance Specs Without Clearing Gates
+### Task 6: Draft #317/#229 Grant Hygiene Fix
+
+**Files:**
+- Add in #439: `apps/farm-os/supabase/migrations/20260629135038_grant_hygiene_default_privileges.sql`
+- Add in #439: `apps/farm-os/supabase/tests/97_grant_hygiene_default_privileges_test.sql`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: issue #317 prod evidence, issue #229 prod-config/advisor umbrella, Supabase/Postgres privilege rules.
+- Produces: held migration draft and pgTAP invariants; no prod mutation.
+
+- [x] **Step 1: Re-read Supabase/Postgres guardrails**
+
+Completed 2026-06-29: used Supabase guidance and PostgreSQL `ALTER DEFAULT PRIVILEGES` documentation. Important
+design constraint: default-privilege changes affect only future objects and only the targeted grantor role, so #439
+targets the prod-observed `postgres` grantor and leaves a review note to repeat the revoke if a future prod probe
+finds another grantor.
+
+- [x] **Step 2: Implement narrow migration + invariants**
+
+Completed 2026-06-29: #439 removes current destructive client-role grants (`TRUNCATE`, broad `DELETE`), restores
+authenticated `plan_checks` DELETE for the recompute path, and revokes future public-table default privileges from
+`anon`/`authenticated` for role `postgres`. Test 97 checks TRUNCATE, DELETE exception preservation, and
+`pg_default_acl`.
+
+- [x] **Step 3: Verify and publish as held draft**
+
+Completed 2026-06-29: local pgTAP passed **689/689**; GitHub checks are green; #439 is draft/held. Required gates:
+focused review of migration blast radius and separate pre-migration review against the Farm Supabase project. #229's
+leaked-password protection remains a separate Owner dashboard/Auth setting and is not closed by #439.
+
+### Task 7: Review SPEC-0018 Backend Draft PR #438
+
+**Files:**
+- Read: `apps/farm-os/supabase/migrations/20260622000098_custody_and_expense_payment.sql`
+- Read: `apps/farm-os/supabase/migrations/20260622000099_payment_requests.sql`
+- Read: `apps/farm-os/supabase/tests/98_custody_payment_test.sql`
+- Read: `apps/farm-os/supabase/tests/99_payment_request_test.sql`
+- Modify: docs only after review result is known.
+
+**Interfaces:**
+- Consumes: draft PR #438, SPEC-0018 design in #421, current open migration queue (#436/#439/#366/#368/#400).
+- Produces: review decision; no prod mutation.
+
+- [x] **Step 1: Check CI and migration lane**
+
+Completed 2026-06-29: #438 CI is green, but it introduces `0098`/`0099` while held #436 already uses `0098`. This
+is a migration-order blocker; the PR body statement that those numbers are free is stale.
+
+- [x] **Step 2: Review access control and money invariants**
+
+Completed 2026-06-29: posted a blocking review. #438 keeps all-member org-scoped reads for custody/payment tables
+and totals, which conflicts with SPEC-0018's finance-confidential read gate. It also ships request math without the
+#6 drawings/opex split while #368 is still draft/unapplied.
+
+- [x] **Step 3: Review lifecycle scope**
+
+Completed 2026-06-29: #438 describes `paid`/`closed` lifecycle and `fn_close_month`, but implements/tests only
+through final approval. Keep draft until scope is either implemented/tested or the enum/body/spec are reduced.
+
+- [ ] **Step 4: Patch or wait for #438 author response**
+
+Recommended path: fix finance-role read gates first, add/require the drawings split before request math, renumber or
+stack migrations with #436, and either implement paid/closed/close-month or reduce scope. Do not merge/migrate #438
+while these blockers remain.
+
+### Task 8: Review Docs-Only Finance Specs Without Clearing Gates
 
 **Files:**
 - Read/modify: draft spec PR docs only.
@@ -278,7 +346,7 @@ for expense receipts before use (`entity_type='expense'`, resolver/storage valid
 Branch head `2fa6694`; GitHub CI green; focused re-review found no findings. #421 remains draft/design-only for
 Owner review; no schema, migration, prod apply, or real financial/PII import.
 
-### Task 7: Audit Issue Hygiene Pass
+### Task 9: Audit Issue Hygiene Pass
 
 **Files:**
 - Read: GitHub issues #188, #206, #229, #282, #317, #362, #383
@@ -368,13 +436,125 @@ build.
 
 - [x] **Step 13: Draft #430 fn_bin_rebuild internalization**
 
-Result recorded 2026-06-29: prepared migration `0098` to revoke authenticated EXECUTE on `fn_bin_rebuild`, remove
-it from the authenticated SECURITY DEFINER allowlist, and pin the negative grant in tests 19/22. Verified no app
-direct `rpc("fn_bin_rebuild")` caller. Local pgTAP passed **687/687**. Held for migration review/apply; no merge,
-prod apply, or production data change.
+Result recorded 2026-06-29: opened draft #436 with migration `0098` to revoke authenticated EXECUTE on
+`fn_bin_rebuild`, remove it from the authenticated SECURITY DEFINER allowlist, and pin the negative grant in tests
+19/22. Verified no app direct `rpc("fn_bin_rebuild")` caller. Local pgTAP passed **687/687** and draft GitHub checks
+are green. Held for migration review/apply; no merge, prod apply, or production data change.
+
+### Task 10: Draft #431 Inventory Transfer/Ordered Guard
+
+**Files:**
+- Add: `apps/farm-os/supabase/migrations/20260629140248_inventory_transfer_ordered_guard.sql`
+- Add: `apps/farm-os/supabase/tests/100_inventory_transfer_ordered_guard_test.sql`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: issue #431 and the existing inventory ledger/rebuild/RPC posture.
+- Produces: held migration draft; no prod mutation.
+
+- [x] **Step 1: Read #431 and current inventory semantics**
+
+Completed 2026-06-29: `transfer` is allowed by the original movement type check and subtracted by
+`fn_bin_rebuild`, but no destination bin/location exists and no app path posts it. `inventory_bin.ordered` exists and
+is included in `projected`, but no writer maintains it.
+
+- [x] **Step 2: Choose conservative behavior**
+
+Completed 2026-06-29: do not invent transfer semantics. Disable new transfer rows until an atomic paired
+source/destination model exists. Pin `ordered=0` until a real purchase-order writer maintains it.
+
+- [x] **Step 3: Implement migration + tests**
+
+Completed 2026-06-29: added NOT VALID constraints to enforce new writes (`type <> 'transfer'`, `ordered = 0`),
+re-emitted latest `fn_post_movement` to reject `transfer` with 22023 while preserving internal-only EXECUTE posture,
+and added pgTAP coverage for RPC rejection, direct table protection, ordered pinning, and projected semantics.
+
+- [x] **Step 4: Verify locally**
+
+Completed 2026-06-29: `bash apps/farm-os/supabase/test-shims/run-pgtap-local.sh` passed **691/691** with
+`not_ok=0` and `file_failures=0`.
+
+- [x] **Step 5: Publish held PR and review before any merge/migrate**
+
+Completed 2026-06-29: opened draft #442. Local pgTAP passed **691/691**; GitHub checks are green; issue #431 was
+updated. Required gates remain: focused review of the `fn_post_movement` re-emit and inventory semantics, and
+separate pre-migration review before any prod apply.
+
+### Task 11: Draft #314 Responsibility Assignment Write Gate
+
+**Files:**
+- Add in #444: `apps/farm-os/supabase/migrations/20260629141650_responsibility_assignments_write_gate.sql`
+- Add in #444: `apps/farm-os/supabase/tests/101_responsibility_assignments_write_gate_test.sql`
+- Modify in #444: `apps/farm-os/supabase/tests/64_cross_org_fk_sweep_test.sql`
+- Modify in #444: `docs/BUSINESS-RULES-CATALOG.md`
+- Modify in #444: `docs/PERMISSIONS-MATRIX.md`
+- Modify in #444: `docs/DOMAIN-DICTIONARY.md`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: issue #314, People & Responsibility screen map, current `responsibility_assignments` RLS, current
+  `authorize()` union, and open migration queue.
+- Produces: held migration draft; no prod mutation.
+
+- [x] **Step 1: Review issue and product basis**
+
+Completed 2026-06-29: #314 is a governance/data-integrity gap, not privilege escalation, because
+`responsibility_assignments` does not feed `authorize()`. Product docs already say People & Responsibility is
+owner/farm_manager managed, so a bounded write gate is justified without waiting for the future UI.
+
+- [x] **Step 2: Implement migration + tests**
+
+Completed 2026-06-29: #444 adds `responsibility.write` for owner/farm_manager, re-emits
+`responsibility_assignments` RLS so reads remain org-wide while writes require the permission, and preserves the
+same-org `people` guard. Test 101 pins allow/deny/read/cross-org/policy/function invariants; test 64 now exercises
+the responsibility cross-org case as farm_manager so the same-org guard remains proven after the role gate.
+
+- [x] **Step 3: Verify locally and publish as held draft**
+
+Completed 2026-06-29: local pgTAP passed **697/697**; `git diff --check` clean; opened draft #444 and posted the
+#314 handoff. Held for review and separate pre-migration review. Migration-order warning: #366/#400/#438 also
+re-emit `authorize()` and must preserve `responsibility.write` if rebased/applied after #444.
+
+### Task 12: Review Draft #441 Custody Frontend
+
+**Files:**
+- Modify in #441: `apps/farm-os/lib/page-help.ts`
+- Read/review in #441: `apps/farm-os/app/(app)/custody/actions.ts`
+- Read/review in #441: `apps/farm-os/app/(app)/custody/page.tsx`
+- Read/review in #441: `apps/farm-os/app/(app)/custody/request/[requestId]/page.tsx`
+- Read/review in #441: `apps/farm-os/components/CustodyForms.tsx`
+- Read/review in #441: `apps/farm-os/components/RequestLifecycle.tsx`
+- Modify: `docs/PROJECT-TRACKER.md`
+- Modify: `docs/SESSION-BRIEF.md`
+- Modify: `docs/superpowers/plans/2026-06-29-autonomous-farm-pr-review-loop.md`
+
+**Interfaces:**
+- Consumes: draft PR #441, backend draft PR #438, SPEC-0018 review findings.
+- Produces: CI fix and held review; no prod mutation.
+
+- [x] **Step 1: Check CI and review dependency**
+
+Completed 2026-06-29: #441 was draft and depended on #438. CI initially failed in `lib/page-help.test.ts` because
+the new dynamic route `/custody/request/[requestId]` fell back to dashboard help.
+
+- [x] **Step 2: Patch the mechanical CI drift**
+
+Completed 2026-06-29: pushed `e08562f`, adding `payment-request-360` help and a route-specific
+`/custody/request/:id` mapping. Local validation passed: focused page-help test **7/7** and full app Vitest
+**230/230**.
+
+- [x] **Step 3: Post held review**
+
+Completed 2026-06-29: posted a review keeping #441 draft/held. Blockers: backend #438 remains blocked; custody
+account creation uses direct table DML while #438/security wording says custody writes are RPC-only; financial
+query/RPC errors render zeros/empty tables instead of explicit error states.
 
 ## Self-Review
 
-- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, and merge/migration gates.
+- Spec coverage: plan covers the owner’s autonomous instruction, current credential-rotation correction, held draft PR #400, merged PR #412, remaining draft migration lane, docs-only finance spec review, issue hygiene, held #431/#314 DB drafts, held #441 frontend review, and merge/migration gates.
 - Placeholder scan: no TBD/TODO placeholders; every task has exact commands and expected outcomes.
 - Type consistency: no new code interfaces are defined; process interfaces are explicit.

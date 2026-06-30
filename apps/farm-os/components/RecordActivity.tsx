@@ -172,7 +172,7 @@ export function RecordActivity({
                   <div className="text-xs opacity-70">{a.time}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <StatusPill status={pill(a.status)}>{STATUS_AR[a.status] ?? a.status}</StatusPill>
+                  <StatusPill status={pill(a.status)}>{STATUS_AR[a.status] ?? "غير معروف"}</StatusPill>
                   {canRecord && a.status !== "done" && (
                     <Button variant="ghost" loading={busyId === a.id} onClick={() => markDone(a.id)}>
                       إنهاء

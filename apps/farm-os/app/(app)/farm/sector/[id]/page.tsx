@@ -115,14 +115,14 @@ export default async function SectorFilePage({
   const timeline: TimelineEvent[] = (events ?? []).map((e) => ({
     id: e.id,
     kind: "operation",
-    title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
+    title: e.subtype ? SUBTYPE_AR[e.subtype] ?? "عملية" : "عملية",
     time: fmtDate(e.occurred_at),
-    description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status,
+    description: e.notes ?? (e.status ? OP_STATUS_AR[e.status] ?? "غير معروف" : "—"),
   }));
 
   const activities: ActivityItem[] = (events ?? []).map((e) => ({
     id: e.id,
-    title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "نشاط",
+    title: e.subtype ? SUBTYPE_AR[e.subtype] ?? "نشاط" : "نشاط",
     status: e.status ?? "done",
     time: fmtDate(e.occurred_at),
   }));

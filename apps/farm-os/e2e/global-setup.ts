@@ -120,6 +120,12 @@ async function resetLoopState(admin: Admin) {
 }
 
 export default async function globalSetup() {
+  const local = URL.includes("127.0.0.1") || URL.includes("localhost");
+  if (!local || process.env.FARM_OS_ALLOW_LOCAL_E2E_RESET !== "1") {
+    throw new Error(
+      "Refusing mutating Playwright setup. This legacy wedge loop may only run against an explicitly approved local target with FARM_OS_ALLOW_LOCAL_E2E_RESET=1.",
+    );
+  }
   const admin = createClient(URL, SERVICE, { auth: { persistSession: false } });
   await ensureUsers(admin);
   await resetLoopState(admin);

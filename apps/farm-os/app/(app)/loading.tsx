@@ -20,7 +20,7 @@ export default function AppLoading() {
       <Block className="h-8 w-48" />
 
       {/* KPI grid — matches grid-cols-2 lg:grid-cols-4 cards */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Block key={i} className="h-24 w-full" />
         ))}

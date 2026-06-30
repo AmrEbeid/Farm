@@ -1,12 +1,13 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Alert, Button, Card, LoopStepper, type LoopStep } from "@/components/ui";
+import { Alert, Card, KpiCard, LoopStepper, type LoopStep } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { OperationBuilder } from "@/components/OperationBuilder";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { POTASSIUM_ID } from "@/lib/nav";
-import { egp } from "@/lib/money";
+import { egp, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
@@ -86,11 +87,11 @@ export default async function MonthlyPlanPage({
   ];
   const opRows = (ops ?? []).map((o) => ({
     id: o.id,
-    subtype: SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype ?? "—",
+    subtype: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
     planned_at: fmtDate(o.planned_at),
     cost: egp(Number(o.est_cost ?? 0)),
     approval: o.approval_needed ? "نعم" : "لا",
-    status: OP_STATUS_AR[o.status ?? "planned"] ?? o.status ?? "—",
+    status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
   }));
 
   const stockCheck = (checks ?? []).find((c) => c.kind === "stock");
@@ -99,6 +100,8 @@ export default async function MonthlyPlanPage({
   const stockBlocked = stockCheck?.result === "block";
   const budgetBlocked = budgetCheck?.result === "block";
   const blocked = (checks ?? []).some((c) => c.result === "block");
+  const blockedChecks = (checks ?? []).filter((c) => c.result === "block").length;
+  const totalEstCost = (ops ?? []).reduce((sum, op) => sum + Number(op.est_cost ?? 0), 0);
 
   const steps: LoopStep[] = [
     { id: "plan", label: "الخطة", state: "active" },
@@ -130,6 +133,17 @@ export default async function MonthlyPlanPage({
 
       <LoopStepper steps={steps} ariaLabel="خطوات الدورة" />
 
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="عمليات الخطة" value={num((ops ?? []).length)} />
+        <KpiCard label="التكلفة التقديرية" value={egp(totalEstCost)} />
+        <KpiCard label="فحوص مشغّلة" value={num((checks ?? []).length)} />
+        <KpiCard
+          label="فحوص محظورة"
+          value={num(blockedChecks)}
+          deltaDirection={blockedChecks ? "down" : "none"}
+        />
+      </section>
+
       {blocked && (
         <Alert
           tone="danger"
@@ -160,7 +174,7 @@ export default async function MonthlyPlanPage({
           <ul className="flex flex-col gap-2">
             {(checks ?? []).map((c) => (
               <li key={c.kind} className="flex items-center justify-between">
-                <span>{CHECK_AR[c.kind] ?? c.kind}</span>
+                <span>{CHECK_AR[c.kind] ?? "غير معروف"}</span>
                 <span
                   style={{
                     color:
@@ -183,15 +197,11 @@ export default async function MonthlyPlanPage({
 
         <Card title="إجراءات سريعة">
           <div className="flex flex-col gap-3">
-            <Link href={`/inventory/${POTASSIUM_ID}/coverage`}>
-              <Button variant="primary">عرض تغطية سلفات البوتاسيوم</Button>
-            </Link>
-            <Link href={`/budget/${planId}/check`}>
-              <Button variant="ghost">فحص الموازنة</Button>
-            </Link>
-            <Link href={`/reports/${planId}/pva`}>
-              <Button variant="ghost">تقرير المخطط مقابل الفعلي</Button>
-            </Link>
+            <ActionLink href={`/inventory/${POTASSIUM_ID}/coverage`} primary>
+              عرض تغطية سلفات البوتاسيوم
+            </ActionLink>
+            <ActionLink href={`/budget/${planId}/check`}>فحص الموازنة</ActionLink>
+            <ActionLink href={`/reports/${planId}/pva`}>تقرير المخطط مقابل الفعلي</ActionLink>
           </div>
           {budgetCheck && (
             <p className="mt-3 text-sm" style={{ color: "var(--ink-muted)" }}>
@@ -206,5 +216,29 @@ export default async function MonthlyPlanPage({
         <SimpleTable columns={opColumns} rows={opRows} empty="لا توجد عمليات بعد" />
       </section>
     </div>
+  );
+}
+
+function ActionLink({
+  href,
+  children,
+  primary = false,
+}: {
+  href: string;
+  children: ReactNode;
+  primary?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+      style={{
+        color: primary ? "var(--surface)" : "var(--brand)",
+        background: primary ? "var(--brand)" : "var(--surface)",
+        border: "1px solid var(--line)",
+      }}
+    >
+      {children}
+    </Link>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Card, EmptyState } from "@/components/ui";
@@ -5,20 +6,7 @@ import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { PlanCreateForm } from "@/components/PlanCreateForm";
 import { fmtDate } from "@/lib/dates";
-
-const PLAN_TYPE_AR: Record<string, string> = {
-  weekly: "أسبوعية",
-  monthly: "شهرية",
-  quarterly: "ربع سنوية",
-  annual: "سنوية",
-};
-
-const PLAN_STATUS_AR: Record<string, string> = {
-  draft: "مسودة",
-  active: "نشطة",
-  closed: "مغلقة",
-  abandoned: "ملغاة",
-};
+import { PLAN_STATUS_AR, PLAN_TYPE_AR } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
   farm: "المزرعة",
@@ -47,18 +35,34 @@ export default async function PlansListPage() {
   const rows = (plans ?? []).map((p) => ({
     id: p.id,
     href: `/plans/${p.id}`,
-    type: PLAN_TYPE_AR[p.type ?? ""] ?? p.type ?? "—",
+    type: PLAN_TYPE_AR[p.type ?? ""] ?? "خطة",
     period:
       p.period_start || p.period_end
         ? `${p.period_start ? fmtDate(p.period_start) : "—"} ← ${p.period_end ? fmtDate(p.period_end) : "—"}`
         : "—",
-    scope: SCOPE_AR[p.scope_type ?? ""] ?? p.scope_type ?? "—",
-    status: PLAN_STATUS_AR[p.status ?? ""] ?? p.status ?? "—",
+    scope: SCOPE_AR[p.scope_type ?? ""] ?? "غير معروف",
+    status: PLAN_STATUS_AR[p.status ?? ""] ?? "غير معروف",
   }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">الخطط</h1>
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">الخطط</h1>
+          <p style={{ color: "var(--ink-muted)" }}>دليل الخطط؛ ابدأ من لوحة التخطيط لمراجعة الجاهزية والعمليات.</p>
+        </div>
+        <Link
+          href="/plans/dashboard"
+          className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+          style={{
+            color: "var(--brand)",
+            background: "var(--surface)",
+            border: "1px solid var(--line)",
+          }}
+        >
+          لوحة التخطيط
+        </Link>
+      </header>
 
       {canCreate && <PlanCreateForm />}
 

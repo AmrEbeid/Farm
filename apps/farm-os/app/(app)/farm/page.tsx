@@ -61,9 +61,9 @@ export default async function FarmStructurePage() {
   const timeline: TimelineEvent[] = (events ?? []).map((e) => ({
     id: e.id,
     kind: "operation",
-    title: SUBTYPE_AR[e.subtype ?? ""] ?? e.subtype ?? "عملية",
+    title: e.subtype ? SUBTYPE_AR[e.subtype] ?? "عملية" : "عملية",
     time: fmtDate(e.occurred_at),
-    description: e.notes ?? OP_STATUS_AR[e.status ?? ""] ?? e.status ?? "—",
+    description: e.notes ?? (e.status ? OP_STATUS_AR[e.status] ?? "غير معروف" : "—"),
   }));
 
   const columns: SimpleColumn[] = [
@@ -113,15 +113,31 @@ export default async function FarmStructurePage() {
       tag: a.id_tag ?? a.name ?? a.id,
       sector: s?.name ?? "—",
       hawsha: h?.name ?? "—",
-      status: ATTENTION_STATUS_AR[a.status ?? ""] ?? a.status ?? "—",
+      status: a.status ? ATTENTION_STATUS_AR[a.status] ?? "غير معروف" : "—",
     };
   });
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">هيكل المزرعة</h1>
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">هيكل المزرعة</h1>
+          <p style={{ color: "var(--ink-muted)" }}>دليل الهيكل والتعديل؛ ابدأ من لوحة المزرعة للمؤشرات.</p>
+        </div>
+        <Link
+          href="/farm/dashboard"
+          className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+          style={{
+            color: "var(--brand)",
+            background: "var(--surface)",
+            border: "1px solid var(--line)",
+          }}
+        >
+          لوحة المزرعة
+        </Link>
+      </header>
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="القطاعات" value={num((sectors ?? []).length)} />
         <KpiCard label="الحوشات" value={num(totalHawshat)} />
         <KpiCard label="نخيل برحي" value={num(totalBarhi)} />

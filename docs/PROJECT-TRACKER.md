@@ -1,5 +1,132 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-29 — SAFE STOP: current project status, remaining work, and timeline.** Local `main` was
+> fast-forwarded to current `origin/main` (`4a8e2de`) before stopping. Production Supabase remains at migration
+> `0096`; no migration, prod apply, draft-PR merge, or production data change was performed in this stop/report
+> pass. Current estimate: live MVP/pilot operating core is **~90-92% done**; pre-real-data pilot readiness is
+> **~80-85% done**; full commercial product vision is **~55-60% done**; finance/accounting maturity is
+> **~35-45% done**; advanced payroll/academy/AI stages are **~20-35% done**. Live strengths: core RLS/RPC
+> foundation, inventory/PR/receipt/coverage loop, farm structure/files, planning/operations, budgets/expenses,
+> people/weather/settings, module dashboards, CSV/MasterTable/import framework, and Help Drawer/docs health.
+> Remaining critical path: (1) review/order/apply held DB hardening drafts #436/#439/#442/#444; (2) finish SPEC-0018
+> custody backend #438 and dependent frontend #441 after independent money/RLS/audit review; (3) resolve
+> accounting/P&L #368 with real Excel reconciliation + privacy review; (4) close product correctness gaps #157,
+> #89, #188/#199; (5) Stage 0 residual cleanup/leaked-password-protection verification; (6) payroll, academy,
+> AI, and Stage-M real-data migration. Timeline, assuming active Owner review and no external-signoff delay:
+> **1-2 days** for small DB hardening reviews/apply planning, **3-5 days** to unblock a safe custody first slice,
+> **1-2 weeks** for finance/accounting foundation after ratification/reconciliation path, **2-4 weeks** for
+> real-data readiness, and **4-8 weeks** for broader commercial maturity. All open PRs are currently draft/held;
+> no merge-ready PR lane should be treated as approved without a fresh review + pre-migration gate.
+
+> **2026-06-29 — #439 grant/default-privilege review posted; still held.** Reviewed draft PR **#439**
+> at `e2ca96f`: it removes client-role `TRUNCATE`/broad `DELETE` on current public tables, preserves only
+> authenticated `plan_checks` DELETE, and revokes future public-table defaults to `anon`/`authenticated` for the
+> prod-observed `postgres` grantor. Local validation repeated: `git diff --check` clean; full pgTAP **689/689**.
+> No local code findings. **Held:** no merge, prod migration, or production data change until pre-migration review.
+> Before apply, run a read-only prod `pg_default_acl` probe; if any grantor besides `postgres` grants future table
+> privileges to client roles, add matching `ALTER DEFAULT PRIVILEGES FOR ROLE <grantor>` revokes first.
+
+> **2026-06-29 — #442 inventory transfer/ordered guard reviewed; still held.** Reviewed draft PR **#442**
+> at `9b9cac3`: it blocks new `transfer` ledger rows at the RPC and table-constraint layers, pins
+> `inventory_bin.ordered = 0`, and preserves `fn_post_movement` internal-only EXECUTE posture. Local validation
+> repeated: `git diff --check` clean; full pgTAP **691/691**. No local code findings. **Held:** no merge,
+> prod migration, or production data change until pre-migration review. Before apply, run read-only prod probes
+> for existing `inventory_movements.type = 'transfer'` and `inventory_bin.ordered <> 0`; `NOT VALID` avoids the
+> initial validation scan but future updates to nonconforming rows still obey the constraints.
+
+> **2026-06-29 — #444 responsibility-write gate reviewed; still held.** Reviewed draft PR **#444** at
+> `67146ea`: the migration narrows `responsibility_assignments` writes to `responsibility.write`
+> (owner/farm_manager) while preserving org-member reads and the #306 same-org `people` guard. Local validation
+> repeated: `git diff --check` clean; full pgTAP **697/697**. No local code findings. **Held:** no merge,
+> prod migration, or production data change until pre-migration review. Apply-order caveat: if batched with
+> #438, apply #444's `20260629141650` before #438's later timestamped custody migrations; if #444 ever applies
+> after #438, it must first preserve #438's final `authorize()` permission union.
+
+> **2026-06-29 — #438 custody backend reroute guard pushed; still held.** Follow-up patch on draft
+> backend PR **#438** at `1288a23` prevents a custody-paid expense from being silently rerouted to another
+> `payment_status` after a cash out-movement exists; operators must post an explicit reversal before rerouting.
+> The same patch corrected stale migration comments. Local validation: `git diff --check` clean; full pgTAP
+> **736/736**. **Held:** no merge, prod migration, or production data change until independent money/RLS/audit
+> review and a separate pre-migration review. #441 remains the dependent frontend slice and still waits behind
+> the #438 migrate-first path.
+
+> **2026-06-29 — #441 custody frontend aligned with hardened #438; still held.** Patched draft frontend PR
+> **#441** at `fa17350`: custody account creation now uses `fn_save_custody_account`, custody dashboard/detail
+> routes are owner/accountant-only until an owner-ratified farm-manager finance-read scope exists, query/RPC failures
+> now throw to the route error boundary instead of rendering fabricated zero/empty financial totals, and the lifecycle
+> UI no longer advertises farm-manager custody actions while broad finance read is withheld. Local validation:
+> focused nav/page-help **17/17**, full Vitest **230/230**, `tsc --noEmit`, touched-file ESLint, production build,
+> and `git diff --check` all passed. **Held:** no merge until #438 is independently reviewed, prod-applied
+> migrate-first, and merged; no migration, prod apply, or production data change was performed.
+
+> **2026-06-29 — #438 custody backend hardened; still held for independent review and migration gate.** Patched
+> draft backend PR **#438** at `8fb7f69`, then follow-up `1288a23`: renamed its collided `0098`/`0099` draft
+> migrations to timestamped
+> migrations, added `finance.read` plus preserved `responsibility.write` in the `authorize()` re-emit, restored
+> RPC-only custody account writes with `fn_save_custody_account`, finance-gated custody/payment table reads and
+> read RPCs to owner/accountant, mirrored those gates onto `audit_log.audit_read`, carried the `expenses.kind`
+> drawing split in this apply path, excluded/rejected non-operating expenses from payment-request math, and rejects
+> rerouting a custody-paid expense without an explicit reversal. Local validation: `git diff --check` clean; full
+> pgTAP **736/736**. **Held:** no merge, prod migration, or production
+> data change until independent money/RLS/audit review and pre-migration review. **Downstream:** #441 is now patched
+> to align with the new RPC/read contract, but remains held behind the #438 migrate-first path.
+
+> **2026-06-29 — #441 custody frontend reviewed; CI drift fix pushed; still held behind #438.** Reviewed draft
+> frontend PR **#441** for the SPEC-0018 custody/payment UI. Pushed a narrow fix (`e08562f`) adding route-specific
+> help for `/custody/request/[requestId]`, which restored local page-help coverage (**7/7**) and full app tests
+> (**230/230**). A later #441 patch (`fa17350`, see top entry) aligned the frontend with #438's RPC-only and
+> finance-read contract. **Held:** no merge until #438 is reviewed, applied migrate-first, and merged.
+
+> **2026-06-29 — #314 responsibility-assignment write gate drafted; held for migration gate.** Draft PR
+> **#444** adds `responsibility.write` to `authorize(perm, org)` for owner/farm_manager and re-emits
+> `responsibility_assignments` RLS so org-member reads remain broad while direct REST insert/update requires the
+> new permission. The migration preserves the same-org `people` guard from #306. Local pgTAP passed **697/697** and
+> the issue handoff was posted; a later review pass found no local code findings and made the #438 apply-order
+> caveat explicit. **Held:** no merge, migration, prod apply, or production data change until separate
+> pre-migration review. Migration-order warning: in-flight draft migrations **#366/#400/#438** re-emit
+> `authorize()` and must preserve `responsibility.write` if they are rebased/applied after #444.
+
+> **2026-06-29 — #431 inventory transfer/ordered guard drafted; held for migration gate.** Drafted a defensive
+> migration for the latent inventory cleanup: new `transfer` movements are rejected until an atomic destination-bin
+> model exists, and `inventory_bin.ordered` is pinned at zero until a real purchase-order writer owns it. Re-emitted
+> `fn_post_movement` without re-opening authenticated EXECUTE, preserving the internal-only AUTHZ-3 posture. Added
+> pgTAP coverage for transfer rejection, direct table constraint protection, `ordered=0`, and projected semantics.
+> Local pgTAP passed **691/691**; a later review pass found no local code findings and added the required pre-apply
+> probe for existing transfer/ordered rows. **Held:** no merge, migration, prod apply, or production data change
+> until a separate pre-migration review.
+
+> **2026-06-29 — #439 grant-default drift fix drafted/green/held; #438 custody backend pre-patch review recorded.**
+> Draft PR **#439** closes the remaining #317/#229 DB grant hygiene slice: current public tables lose
+> client-role `TRUNCATE`, public tables lose client-role `DELETE` except authenticated `plan_checks`, and future
+> public tables created by the prod-observed `postgres` grantor no longer inherit table privileges for
+> `anon`/`authenticated`. Local pgTAP passed **689/689** and GitHub checks are green; a later review pass found no
+> local code findings and added the default-ACL grantor probe requirement. **Held** for a separate pre-migration
+> review. Also completed the pre-patch review of draft **#438** and found the blockers later
+> addressed by the 2026-06-29 #438 hardening entry at the top of this tracker. No merge, migration, prod apply, or
+> production data change.
+
+> **2026-06-29 — module dashboards/360 batch locally committed and merged with current `origin/main`.** Built and
+> reviewed the grouped module navigator, dashboard-first module entries, and read-only 360 pages for Inventory,
+> Farm, Planning, Finance, People, Weather/Risk, Settings/Admin, Supplier, Budget, Expense, Item, Plan, and PR
+> surfaces. Final standards/spec review fixes are included: settings role fallback is Arabic-safe; planning's
+> due-operations KPI links to the due queue; Farm Barhi total is no longer a fake filter; Finance separates displayed
+> operating expenses from owner drawings using existing expense text until a schema discriminator exists. Owner then
+> authorized review/merge/migrate. Local commit `30fdd26` was created, then local `main` was merged with current
+> `origin/main` (remote already contains migrations `0090`/`0093`/`0094`/`0095`/`0096` and the import/MasterTable/
+> CSV/palm-file work). Merge conflicts were resolved by keeping upstream `PalmFile`/landing/import/export work and
+> layering the module-dashboard nav/help/docs changes on top. **Validation after merge:** `npx eslint .` clean;
+> `npx tsc --noEmit` clean after installing the merged dependency set; `npx vitest run` **225/225**; `npm run build`
+> green with only the existing Next `middleware` deprecation warning; `git diff --check` clean. No new Supabase
+> migration was authored by this batch; no direct Supabase migration/prod mutation has been run from this local
+> merge. `docs/SPEC-0018-custody-and-payment-requests.md` remains untracked/out of scope.
+> **Live follow-through:** Owner set goal to keep working until dashboards are live. The batch was merged with two
+> additional remote updates, revalidated (`eslint`, `tsc`, Vitest **230/230**, production build), and pushed to
+> `origin/main` at `ca24906`. GitHub recorded a successful Vercel **Production** deployment (`5240158021`,
+> `farm-gvyv0g2ut-amrabdelglill-7962s-projects.vercel.app`). Live probes on `https://ebeidfarm.business` confirm
+> `/farm/dashboard`, `/inventory/dashboard`, `/plans/dashboard`, `/finance/dashboard`, `/people/dashboard`,
+> `/weather/dashboard`, and `/settings/dashboard` all match their deployed routes and redirect unauthenticated users
+> to `/login`.
+
 > **2026-06-29 — issue hygiene pass: #383 closed; #317/#229/#188 kept open with current evidence.** Verified
 > audit issues against `main` and production evidence. Closed **#383** as fixed/applied: PR #402 is merged,
 > migration `0095` is present on `main`, its pgTAP coverage exists, and the production migration ledger includes
@@ -57,11 +184,12 @@
 > triggers; this only improves Arabic diagnostic copy. Local validation: focused Vitest **5/5**, full Vitest
 > **220/220**, focused eslint, `tsc --noEmit`, and production build (existing Next/Supabase warning only).
 
-> **2026-06-29 — #430 fn_bin_rebuild internalization drafted; held for migration gate.** Prepared migration
-> `0098` to revoke `authenticated` EXECUTE on `fn_bin_rebuild(uuid,text)`, remove it from the authenticated
-> SECURITY DEFINER allowlist, and pin the negative grant in pgTAP. No app/client caller uses direct
-> `rpc("fn_bin_rebuild")`; internal `fn_post_movement`/definer callers continue to work. Local pgTAP passed
-> **687/687**. **Held:** no merge, migration, prod apply, or production data change until migration review/apply.
+> **2026-06-29 — #430 fn_bin_rebuild internalization drafted in #436; held for migration gate.** Draft PR
+> **#436** prepares migration `0098` to revoke `authenticated` EXECUTE on `fn_bin_rebuild(uuid,text)`, remove it
+> from the authenticated SECURITY DEFINER allowlist, and pin the negative grant in pgTAP. No app/client caller uses
+> direct `rpc("fn_bin_rebuild")`; internal `fn_post_movement`/definer callers continue to work. Local pgTAP passed
+> **687/687**; GitHub checks on the draft are green. **Held:** no merge, migration, prod apply, or production data
+> change until migration review/apply.
 
 > **2026-06-29 — #421 SPEC-0018 custody/payment-request draft reviewed and hardened; still held.** Reviewed
 > draft **#421** (`docs/spec-0018-custody-payment-requests`) for the finance-control module. Patched the spec to

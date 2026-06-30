@@ -96,7 +96,7 @@ export default async function CoveragePage({
     throw new Error("fn_stock_coverage returned an unexpected shape");
   }
   const c: Coverage = data;
-  const unit = item?.unit ?? "kg";
+  const unit = item?.unit ?? "كجم";
 
   return (
     <div className="flex flex-col gap-6 p-6">
