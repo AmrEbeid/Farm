@@ -4,6 +4,7 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { useChartTokens } from "./useChartTokens";
+import { formatChartNumber } from "./formatChartNumber";
 
 export interface ChartSeries {
   /** Key into each datum object for this series' numeric value. */
@@ -43,7 +44,7 @@ function DataTable({
         {data.map((row, i) => (
           <tr key={i}>
             <th scope="row">{String(row[categoryKey])}</th>
-            {series.map((s) => <td key={s.dataKey}>{String(row[s.dataKey])}</td>)}
+            {series.map((s) => <td key={s.dataKey}>{formatChartNumber(row[s.dataKey])}</td>)}
           </tr>
         ))}
       </tbody>
@@ -80,10 +81,12 @@ export function BarChart({
             orientation={t.dir === "rtl" ? "right" : "left"}
             tick={{ fill: t.inkMuted, fontSize: 12 }}
             stroke={t.line}
+            tickFormatter={formatChartNumber}
           />
           <Tooltip
             contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
             labelStyle={{ color: t.ink }}
+            formatter={(value) => formatChartNumber(value)}
           />
           {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
           {series.map((s, i) => (
