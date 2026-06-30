@@ -3,17 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import type { TabItem } from "@amrebeid/ui";
-import {
-  Alert,
-  Breadcrumbs,
-  Card,
-  DescriptionList,
-  EmptyState,
-  FileTimeline,
-  KpiCard,
-  tabId,
-  tabPanelId,
-} from "@/components/ui";
+import { Alert, Breadcrumbs, Card, DescriptionList, EmptyState, FileTimeline, KpiCard } from "@/components/ui";
+import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { PalmMap } from "@/components/PalmMap";
 import { StructureForm } from "@/components/StructureForm";

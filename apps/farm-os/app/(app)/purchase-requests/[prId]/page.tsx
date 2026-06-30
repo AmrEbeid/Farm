@@ -1,16 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
-import {
-  Alert,
-  Card,
-  KpiCard,
-  ApprovalChain,
-  DescriptionList,
-  tabId,
-  tabPanelId,
-  type ApprovalStep,
-} from "@/components/ui";
+import { Alert, Card, KpiCard, ApprovalChain, DescriptionList, type ApprovalStep } from "@/components/ui";
+import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
