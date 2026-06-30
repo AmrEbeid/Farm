@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-29 by Codex (for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
+
+> **2026-06-30 — SPEC-0018 audit/authz follow-up; #438/#400/#444 patched and still held.** Local `main`
+> was fast-forwarded to `origin/main` (`5db895b`) before this docs update. Reviewed draft backend **#438** and found
+> a cross-PR `audit_read` regression: the payment-request migration preserved payroll and custody/payment audit
+> gates but would drop #368's `sale/expense -> budget.write` audit restrictions if both migration sets were applied.
+> Patched #438 remotely at `eccc76e` so `audit_log.audit_read` preserves the full confidentiality union
+> (`people_compensation -> payroll.read`, `sale/expense -> budget.write`, custody/payment entities ->
+> `finance.read`) and added pgTAP coverage for restricted audit mirrors. Local pgTAP passed **757/757**; GitHub
+> checks are green. Also patched the known stale older `authorize()` re-emits: **#400** at `8c1973c` and **#444**
+> at `304ba09`, with tests now pinning SPEC-0018 owner/accountant custody/request semantics. Local pgTAP passed
+> **681/681** on #400 and **707/707** on #444; both GitHub check sets are green. All three PRs remain draft/held.
+> No merge, migration, prod apply, deploy, or production data change was performed. Remaining gate: final
+> pre-migration review is still required before any custody/payment apply; any later/older `authorize()` re-emit
+> must carry the same final union before applying after #438.
 
 > **2026-06-29 — SAFE STOP: current project status, remaining work, and timeline.** Local `main` was
 > fast-forwarded to current `origin/main` (`ab6def2`) before stopping. Production Supabase remains at migration
