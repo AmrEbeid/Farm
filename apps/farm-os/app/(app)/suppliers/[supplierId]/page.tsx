@@ -17,7 +17,12 @@ export default async function Supplier360Page({
   params: Promise<{ supplierId: string }>;
 }) {
   const { supplierId } = await params;
-  await requireMembership();
+  const m = await requireMembership();
+  // Expenses are private finance data: RLS leaves expense READS org-only (only
+  // WRITES carry budget.write), so this app-layer role gate is the real boundary.
+  // The supplier 360 stays open to all members for inventory/PR data; only the
+  // finance sub-section (expense query, KPI, table) is owner/accountant-only.
+  const canReadPrivateFinance = m.role === "owner" || m.role === "accountant";
   const sb = await createClient();
 
   const [
@@ -45,12 +50,14 @@ export default async function Supplier360Page({
       )
       .eq("supplier_id", supplierId)
       .limit(20),
-    sb
-      .from("expenses")
-      .select("id, date, category, description, total")
-      .eq("supplier_id", supplierId)
-      .order("date", { ascending: false })
-      .limit(12),
+    canReadPrivateFinance
+      ? sb
+          .from("expenses")
+          .select("id, date, category, description, total")
+          .eq("supplier_id", supplierId)
+          .order("date", { ascending: false })
+          .limit(12)
+      : Promise.resolve({ data: [], error: null }),
     sb
       .from("inventory_movements")
       .select("id, item_id, type, qty, occurred_at, inventory_items(id, name, unit)")
@@ -145,7 +152,11 @@ export default async function Supplier360Page({
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">ملف المورّد — {supplier.name}</h1>
-          <p style={{ color: "var(--ink-muted)" }}>نظرة 360 على الأصناف والطلبات والمصروفات المرتبطة.</p>
+          <p style={{ color: "var(--ink-muted)" }}>
+            {canReadPrivateFinance
+              ? "نظرة 360 على الأصناف والطلبات والمصروفات المرتبطة."
+              : "نظرة 360 على الأصناف والطلبات وحركات المخزون المرتبطة."}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <HeaderLink href="/suppliers">الموردون</HeaderLink>
@@ -160,7 +171,7 @@ export default async function Supplier360Page({
           value={num(prLineCount ?? (prLines ?? []).length)}
           delta={prLineCount && prLineCount > (prLines ?? []).length ? "يعرض الجدول أحدث ٢٠" : undefined}
         />
-        <KpiCard label="مصروفات حديثة" value={egp(expensesTotal)} />
+        {canReadPrivateFinance && <KpiCard label="مصروفات حديثة" value={egp(expensesTotal)} />}
         <KpiCard label="حركات مخزون" value={num((movements ?? []).length)} />
       </section>
 
@@ -195,13 +206,15 @@ export default async function Supplier360Page({
             <SimpleTable columns={prColumns} rows={prRows} empty="—" />
           )}
         </Card>
-        <Card title="آخر المصروفات">
-          {expenseRows.length === 0 ? (
-            <EmptyState title="لا توجد مصروفات مرتبطة" />
-          ) : (
-            <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
-          )}
-        </Card>
+        {canReadPrivateFinance && (
+          <Card title="آخر المصروفات">
+            {expenseRows.length === 0 ? (
+              <EmptyState title="لا توجد مصروفات مرتبطة" />
+            ) : (
+              <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
+            )}
+          </Card>
+        )}
       </section>
 
       <Card title="آخر حركات المخزون">
