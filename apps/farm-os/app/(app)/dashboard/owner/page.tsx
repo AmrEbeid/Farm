@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { BudgetDoughnut, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -89,6 +90,17 @@ export default async function OwnerDashboard() {
   const totalUsed = budgetLines.reduce((s, b) => s + Number(b.committed ?? 0) + Number(b.actual ?? 0), 0);
   const available = totalApproved - totalUsed;
 
+  // ── Chart data (all query-derived) ────────────────────────────────────────
+  const varianceData = budgetLines.map((b) => ({
+    category: b.category ?? "—",
+    planned: Number(b.approved ?? 0),
+    actual: Number(b.committed ?? 0) + Number(b.actual ?? 0),
+  }));
+  const PALM_LABEL: Record<string, string> = { active: "سليم", watch: "مراقبة", sick: "مريض", dead: "متضرر" };
+  const palmStatusData = ["active", "watch", "sick", "dead"]
+    .map((s) => ({ name: PALM_LABEL[s], value: (assets ?? []).filter((a) => a.status === s).length }))
+    .filter((d) => d.value > 0);
+
   // ── Alert rail: only non-empty alerts, most-severe first, each deep-links ──
   type Att = { key: string; tone: "danger" | "warning"; prio: number; title: string; desc: string; href: string };
   const alerts: Att[] = [
@@ -156,6 +168,28 @@ export default async function OwnerDashboard() {
         <KpiCard label="جاهزية الخطط" value={pct(readiness)} />
         <KpiCard label="نخيل يحتاج عناية" value={num(palmAttention.length)} deltaDirection={palmAttention.length ? "down" : "none"} />
         <KpiCard label="عمليات هذا الأسبوع" value={num(dueThisWeek.length)} />
+      </section>
+
+      {/* Charts — query-derived snapshots */}
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">رسوم بيانية</h2>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {totalApproved > 0 && (
+            <Card title="استخدام الموازنة">
+              <BudgetDoughnut used={totalUsed} available={available} />
+            </Card>
+          )}
+          {varianceData.length > 0 && (
+            <Card title="المخطط مقابل الفعلي حسب البند">
+              <VarianceChart data={varianceData} />
+            </Card>
+          )}
+          {palmStatusData.length > 0 && (
+            <Card title="توزيع حالة النخيل">
+              <PalmStatusDoughnut data={palmStatusData} />
+            </Card>
+          )}
+        </div>
       </section>
 
       {/* Budget-line health: detail cards with utilisation bars */}

@@ -46,6 +46,9 @@ const NEEDLE = "recharts";
 const ALLOWED_CHART_ROUTES = [
   "/inventory/[itemId]/coverage/page",
   "/reports/[planId]/pva/page",
+  // The strategic owner home (لوحة معلومات المالك) intentionally renders charts; recharts
+  // stays in this route's own client chunk (loaded only here), never the global bundle.
+  "/dashboard/owner/page",
 ];
 
 function die(msg) {
