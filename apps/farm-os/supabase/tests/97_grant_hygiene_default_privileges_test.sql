@@ -4,7 +4,8 @@
 -- test pins the desired catalog end state:
 --   * no public table grants TRUNCATE to anon/authenticated
 --   * no public table grants DELETE to anon/authenticated except authenticated plan_checks
---   * no public-schema default table ACL grants future privileges to PUBLIC/anon/authenticated
+--   * no public-schema default table ACL grants future privileges to PUBLIC/anon/authenticated from
+--     any grantor role present in prod (postgres and supabase_admin on 2026-06-30)
 --
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 

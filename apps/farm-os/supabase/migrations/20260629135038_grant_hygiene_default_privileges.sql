@@ -18,8 +18,8 @@
 --     explicitly, matching the post-0046 migration pattern.
 --
 -- Review/apply note: `ALTER DEFAULT PRIVILEGES` affects only objects created after this migration and
--- only for the targeted grantor role. If a future prod probe finds a different defaclrole, repeat the
--- same default-privilege revokes for that grantor before considering #317 fully closed.
+-- only for the targeted grantor role. The 2026-06-30 prod pre-apply probe showed table default ACL
+-- grantors `postgres` and `supabase_admin`, so both are locked down below.
 
 -- Existing public tables: remove destructive client-role privileges.
 revoke truncate on all tables in schema public from anon, authenticated;
@@ -31,3 +31,11 @@ grant delete on public.plan_checks to authenticated;
 -- Future public tables created by the Supabase/Postgres owner role should not auto-expose to clients.
 alter default privileges for role postgres in schema public
   revoke all privileges on tables from anon, authenticated;
+
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'supabase_admin') then
+    execute 'alter default privileges for role supabase_admin in schema public revoke all privileges on tables from anon, authenticated';
+  end if;
+end
+$$;
