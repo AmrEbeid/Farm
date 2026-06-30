@@ -21,8 +21,17 @@ apply is available here.
    re-run `0096` FK-covering sweep (covered `plan_operation_assignees.org_id` + `residue_test_results.org_id`).
    Local pgTAP 826/826; applied to prod migrate-first (0 uncovered FKs, GUC wrapped). Skipped ~80 `unused_index`
    findings on purpose (pilot DB).
+5. **ImportPanel i18n + failures (PR #487, merged, main green `f6aec09`)** — app-only: Arabic-Indic digits via
+   `num()` + render the dropped commit `failures`/`skipped` reasons. tsc/eslint/build/vitest 251 green. (Component
+   is latent — not yet route-mounted.) Note: local `next build` first failed on a missing transitive dep `tmp`
+   (exceljs) — local node_modules gap, fixed with `npm install` (lockfile unchanged); not a code issue.
+6. **Table a11y foundation (a11y/list-table-names)** — added optional `ariaLabel` to SimpleTable/FilterableTable
+   → `<table aria-label>` (DataTable already spreads `...rest`, so NO design-system change / no visible caption
+   dup); MasterTable passes its title (suppliers table now named). App-only, build green. Comprehensive rollout to
+   the other ~28 table call sites (multiple tables/page → per-section headings) filed as **#488**.
 
-**Next candidates (decision-free):** continue advisor-driven hardening; or pick up the research lane (#216–226
+**Next candidates (decision-free):** the #488 ariaLabel rollout (deliberate, per-section headings); or pick up
+the research lane (#216–226
 module research / #215 control panel) which the Owner explicitly sanctioned. Owner-decision-gated items remain
 untouched: #199, #157/#89 (pricing), #366/#368 (expert gates), #229(iii) leaked-password (Auth dashboard toggle).
 
