@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-06-30 by Claude (autonomous session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-06-30 — AUTONOMOUS SESSION (Owner: "keep working, review→merge→migrate on your recommendation")
+**Active, not stopped.** Working autonomously with self-merge/self-migrate authority (Owner-granted this session),
+holding the integrity rails: no fabricated data, no secret exposure, CI-green-before-merge, migrate-first.
+Supabase MCP **can reach Farm prod** (`veezkmytervjnpxcrbkw`, zeluu org — not Zeal), so the full loop incl. prod
+apply is available here.
+
+**Done this session:**
+1. Repo hygiene — removed 42 stale `" 2"` Finder-duplicate files (each verified identical/older copy of its tracked
+   original; the 2 inside `.claude/worktrees/` left alone).
+2. **#317 closed end-to-end** — live prod probe found `anon` still held INSERT/UPDATE on `attachments` +
+   `plan_operation_assignees`; authored migration `20260630090000` + anon-no-DML invariant in `tests/97`; local
+   pgTAP 826/826; applied to prod migrate-first (re-probe: anon DML none); **PR #485 merged**, main green
+   (`7287da3`).
+3. Issue board reconciled — **#188 closed** (orphaned-reservation fix verified at `coverage/actions.ts:122-137`);
+   **#229** scoped to leaked-password (iii) Owner toggle ((i) anon-exec + (ii) FK indexes verified resolved on
+   prod); **#199** ENGINE-RESV-1 left OPEN — owner-gated engine semantics (must NOT auto-decide; masked-shortage risk).
+4. **Perf-advisor remediation (PR #486)** — migration `20260630100000`: `pr_update` RLS InitPlan wrap +
+   re-run `0096` FK-covering sweep (covered `plan_operation_assignees.org_id` + `residue_test_results.org_id`).
+   Local pgTAP 826/826; applied to prod migrate-first (0 uncovered FKs, GUC wrapped). Skipped ~80 `unused_index`
+   findings on purpose (pilot DB).
+
+**Next candidates (decision-free):** continue advisor-driven hardening; or pick up the research lane (#216–226
+module research / #215 control panel) which the Owner explicitly sanctioned. Owner-decision-gated items remain
+untouched: #199, #157/#89 (pricing), #366/#368 (expert gates), #229(iii) leaked-password (Auth dashboard toggle).
 
 ## 2026-06-30 — SAFE STOP: #215 control-panel research paused
 **Stop point.** Stopped at Owner request. Local `main` is at `e567115` (`docs: record unknown cost display fix`).

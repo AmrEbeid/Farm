@@ -10,7 +10,11 @@
 > shows anon DML = none); **PR #485** open, merging on green. Issue board verified: **#188** (orphaned reservation)
 > and **#229 (i)+(ii)** (anon-exec RPCs, FK covering indexes) are already resolved on `main`; **#229 (iii)**
 > leaked-password is an Owner dashboard toggle; **#199** ENGINE-RESV-1 stays open as an owner-gated engine-semantics
-> decision (must not auto-decide — masked-shortage risk).
+> decision (must not auto-decide — masked-shortage risk). **Cycle 2:** performance-advisor remediation **PR #486**
+> — migration `20260630100000` wraps the `pr_update` RLS GUC read as an InitPlan subselect (`auth_rls_initplan`
+> WARN) and re-runs the `0096` catalog FK-covering sweep (covered `plan_operation_assignees.org_id` +
+> `residue_test_results.org_id`); local pgTAP 826/826, applied to prod migrate-first (0 uncovered FKs). The ~80
+> `unused_index` INFO findings were deliberately left (pilot DB).
 
 > **2026-06-30 — SAFE STOP at Owner request; #215 control-panel research paused; repo green.** Local `main`
 > is at `e567115` (`docs: record unknown cost display fix`) and GitHub `ci`, `db-tests`, and `release` are green
