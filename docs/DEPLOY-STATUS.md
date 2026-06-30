@@ -2,6 +2,14 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-06-30 — perf-advisor remediation applied to prod (migrate-first), PR #486.** Migration
+> **`20260630100000`**: (1) re-emit `purchase_requests.pr_update` (byte-for-byte from `0070`) with the
+> `current_setting('app.posting_receipt')` read wrapped as an InitPlan subselect (fixes `auth_rls_initplan`
+> WARN; semantically identical — per-tx GUC); (2) re-run the idempotent `0096` catalog FK-covering-index
+> sweep to cover `plan_operation_assignees.org_id` + `residue_test_results.org_id` (created after `0096`).
+> Local pgTAP 826/826; applied to prod (ledger `20260630100000`); re-probe: 0 uncovered FKs, GUC wrapped.
+> Deliberately left the ~80 `unused_index` INFO findings (pilot DB → "unused" = "not yet exercised").
+
 > **2026-06-30 — #317 residual anon table-DML lockdown applied to prod (migrate-first), PR #485.** A read-only
 > prod grant probe found `anon` still held `INSERT,UPDATE` on `public.attachments` + `public.plan_operation_assignees`
 > (created after the `0079`/`0080` anon sweeps; kept the broad grant from the platform `supabase_admin` default ACL;
