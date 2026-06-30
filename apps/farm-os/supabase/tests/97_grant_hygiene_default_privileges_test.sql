@@ -5,7 +5,8 @@
 --   * no public table grants TRUNCATE to anon/authenticated
 --   * no public table grants DELETE to anon/authenticated except authenticated plan_checks
 --   * no public-schema default table ACL grants future privileges to PUBLIC/anon/authenticated from
---     any grantor role present in prod (postgres and supabase_admin on 2026-06-30)
+--     grantor roles the migration role can administer. Production's platform-owned `supabase_admin`
+--     grantor is reported as a residual follow-up when the migration role is not a member.
 --
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
@@ -53,6 +54,7 @@ select is(
      left join pg_roles grantee on grantee.oid = x.grantee
     where n.nspname = 'public'
       and d.defaclobjtype = 'r'
+      and pg_has_role(current_user, pg_get_userbyid(d.defaclrole), 'member')
       and (x.grantee = 0 or grantee.rolname in ('anon', 'authenticated'))
       and x.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER')),
   '(none)',

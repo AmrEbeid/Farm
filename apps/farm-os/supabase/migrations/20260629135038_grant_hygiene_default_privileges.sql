@@ -19,7 +19,9 @@
 --
 -- Review/apply note: `ALTER DEFAULT PRIVILEGES` affects only objects created after this migration and
 -- only for the targeted grantor role. The 2026-06-30 prod pre-apply probe showed table default ACL
--- grantors `postgres` and `supabase_admin`, so both are locked down below.
+-- grantors `postgres` and `supabase_admin`. The migration role can administer the `postgres` default ACL
+-- but is not a member of `supabase_admin`, so that platform-owned default ACL is reported as a residual
+-- follow-up instead of failing the deploy.
 
 -- Existing public tables: remove destructive client-role privileges.
 revoke truncate on all tables in schema public from anon, authenticated;
@@ -35,7 +37,11 @@ alter default privileges for role postgres in schema public
 do $$
 begin
   if exists (select 1 from pg_roles where rolname = 'supabase_admin') then
-    execute 'alter default privileges for role supabase_admin in schema public revoke all privileges on tables from anon, authenticated';
+    if pg_has_role(current_user, 'supabase_admin', 'member') then
+      execute 'alter default privileges for role supabase_admin in schema public revoke all privileges on tables from anon, authenticated';
+    else
+      raise notice 'supabase_admin public table default ACL requires platform-owner remediation; migration role % is not a member', current_user;
+    end if;
   end if;
 end
 $$;
