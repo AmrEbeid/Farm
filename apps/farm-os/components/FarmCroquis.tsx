@@ -77,6 +77,10 @@ export function FarmCroquis({ sectors }: { sectors: CroquisSector[] }) {
                   key={h.id}
                   href={`/farm/hawsha/${h.id}`}
                   title={`${h.name} — ${ATTENTION_AR[h.attention]}${h.attentionCount ? ` (${h.attentionCount})` : ""}`}
+                  // Attention level is conveyed by background colour; carry it (and the count) in the
+                  // accessible name too, so screen-reader / colourblind users get the "needs care" signal
+                  // that the colour + aria-hidden badge alone would hide (WCAG 1.4.1).
+                  aria-label={`${h.name} ${h.code} — ${ATTENTION_AR[h.attention]}${h.attentionCount ? ` (${num(h.attentionCount)})` : ""}`}
                   className="group relative flex min-w-[64px] flex-col items-center justify-center rounded-md p-2 text-center transition-transform hover:scale-[1.04] focus-visible:outline focus-visible:outline-2"
                   style={{ background: ATTENTION_BG[h.attention], color: "var(--brand-contrast, #fff)" }}
                 >
