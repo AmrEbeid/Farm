@@ -73,7 +73,7 @@ export default async function OwnerDashboard() {
         />
       )}
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(lines ?? []).map((b) => {
           const used = Number(b.committed) + Number(b.actual);
           const over = used > Number(b.approved);

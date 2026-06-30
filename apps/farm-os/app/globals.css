@@ -89,6 +89,20 @@ body {
   }
 }
 
+/*
+ * De-duplicate the content padding. @amrebeid/ui's `.fos-appshell__main` carries
+ * its own `padding: var(--space-6)`, and EVERY app page/route-boundary already
+ * self-pads its content wrapper (`p-6`, or `p-4` on the compact mobile views, plus
+ * loading/error/not-found). That double-padded the content — 48px each side on
+ * laptop and, worse, on a 390px phone where it ate ~25% of the width. Drop the
+ * shell padding so each page's own gutter is the single source of truth (24px on
+ * standard pages, 16px on the compact ones) at every breakpoint. The redirect-only
+ * /dashboard router renders nothing, so it needs no padding.
+ */
+.fos-appshell__main {
+  padding: 0;
+}
+
 /* App-side grouped module navigation. This keeps @amrebeid/ui unchanged while
    replacing the empty default SidebarNav rendered by AppShell in this slice. */
 [dir="rtl"] .fos-appshell {
