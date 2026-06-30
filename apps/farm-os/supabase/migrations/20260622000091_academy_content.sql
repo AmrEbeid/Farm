@@ -57,10 +57,11 @@ create table public.academy_content (
   -- #4 integrity: pesticide-category content is ALWAYS chemical → it can never be saved has_chemical=false
   -- and thereby slip past the registration gate in fn_signoff_academy_content.
   constraint academy_content_pesticide_chemical check (category <> 'pesticide' or has_chemical),
-  -- sign-off record (#4): all NULL ⇒ advisory. The gate (lib/academy.ts) reads these three.
+  -- sign-off record (#4): all NULL ⇒ advisory. The gate (lib/academy.ts) reads agronomist/signed_at/expiry.
   agronomist_name text,
   signed_at timestamptz,
   pesticide_reg_valid_until date,
+  pesticide_reg_number text,        -- #4 audit trail: WHICH Egyptian registration (not just WHEN it lapses)
   created_by uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -84,7 +85,7 @@ create policy tenant_all on public.academy_content for all to authenticated
 -- #4 integrity (independent review): the sign-off columns (agronomist_name, signed_at,
 -- pesticide_reg_valid_until) must be RPC-ONLY. A table-wide UPDATE/INSERT grant let any academy.write
 -- holder PATCH them directly via PostgREST, forging an "approved" pesticide sign-off with no valid
--- registration � bypassing every check in fn_signoff_academy_content. Scope the client grant to the
+-- registration � bypassing every check in fn_signoff_academy_content. Scope the client grant to the
 -- editable columns; the SECURITY DEFINER sign-off RPC (runs as table owner) still writes the sign-off cols.
 grant select on public.academy_content to authenticated;
 grant insert (org_id, title, body, category, has_chemical) on public.academy_content to authenticated;
@@ -132,7 +133,7 @@ begin
     update public.academy_content
        set title = btrim(p_title), body = coalesce(p_body, ''), category = p_category,
            has_chemical = v_has_chemical,
-           agronomist_name = null, signed_at = null, pesticide_reg_valid_until = null,
+           agronomist_name = null, signed_at = null, pesticide_reg_valid_until = null, pesticide_reg_number = null,
            updated_at = now()
      where id = p_id;
     v_id := p_id;
@@ -150,7 +151,8 @@ create or replace function public.fn_signoff_academy_content(
   p_id uuid,
   p_agronomist_name text,
   p_signed_at timestamptz default now(),
-  p_pesticide_reg_valid_until date default null)
+  p_pesticide_reg_valid_until date default null,
+  p_pesticide_reg_number text default null)
 returns jsonb language plpgsql volatile security definer set search_path = '' as $$
 declare v_org uuid; v_has_chemical boolean;
 begin
@@ -165,17 +167,21 @@ begin
 
   if p_agronomist_name is null or btrim(p_agronomist_name) = '' then
     raise exception 'agronomist name required for sign-off' using errcode = '23502'; end if;
-  -- chemical content MUST carry a current (future-dated) Egyptian pesticide registration (#4).
+  -- chemical content MUST carry a current (future-dated) Egyptian pesticide registration (#4) AND its
+  -- registration REFERENCE (which registration, not just when it lapses) — the liability audit trail.
   if v_has_chemical then
     if p_pesticide_reg_valid_until is null then
       raise exception 'chemical content requires an Egyptian pesticide registration expiry' using errcode = '23502'; end if;
     if p_pesticide_reg_valid_until < current_date then
       raise exception 'pesticide registration already expired (%)', p_pesticide_reg_valid_until using errcode = '22023'; end if;
+    if p_pesticide_reg_number is null or btrim(p_pesticide_reg_number) = '' then
+      raise exception 'chemical content requires the Egyptian pesticide registration number' using errcode = '23502'; end if;
   end if;
 
   update public.academy_content
      set agronomist_name = btrim(p_agronomist_name), signed_at = coalesce(p_signed_at, now()),
-         pesticide_reg_valid_until = p_pesticide_reg_valid_until, updated_at = now()
+         pesticide_reg_valid_until = p_pesticide_reg_valid_until,
+         pesticide_reg_number = nullif(btrim(coalesce(p_pesticide_reg_number, '')), ''), updated_at = now()
    where id = p_id;
   return jsonb_build_object('id', p_id, 'agronomist_name', btrim(p_agronomist_name));
 end $$;
@@ -203,9 +209,9 @@ end $$;
 revoke all     on function public.fn_save_academy_content(uuid, uuid, text, text, text, boolean) from public;
 revoke execute on function public.fn_save_academy_content(uuid, uuid, text, text, text, boolean) from anon;
 grant  execute on function public.fn_save_academy_content(uuid, uuid, text, text, text, boolean) to authenticated;
-revoke all     on function public.fn_signoff_academy_content(uuid, text, timestamptz, date) from public;
-revoke execute on function public.fn_signoff_academy_content(uuid, text, timestamptz, date) from anon;
-grant  execute on function public.fn_signoff_academy_content(uuid, text, timestamptz, date) to authenticated;
+revoke all     on function public.fn_signoff_academy_content(uuid, text, timestamptz, date, text) from public;
+revoke execute on function public.fn_signoff_academy_content(uuid, text, timestamptz, date, text) from anon;
+grant  execute on function public.fn_signoff_academy_content(uuid, text, timestamptz, date, text) to authenticated;
 revoke all     on function public.fn_archive_academy_content(uuid, boolean) from public;
 revoke execute on function public.fn_archive_academy_content(uuid, boolean) from anon;
 grant  execute on function public.fn_archive_academy_content(uuid, boolean) to authenticated;

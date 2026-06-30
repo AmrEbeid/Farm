@@ -81,6 +81,7 @@ type AcademyContentTable = {
     agronomist_name: string | null;
     signed_at: string | null;
     pesticide_reg_valid_until: string | null;
+    pesticide_reg_number: string | null;
     created_by: string | null;
     created_at: string;
     updated_at: string;
@@ -288,6 +289,7 @@ type StructFunctions = {
       p_agronomist_name: string;
       p_signed_at?: string;
       p_pesticide_reg_valid_until?: string | null;
+      p_pesticide_reg_number?: string | null;
     };
     Returns: Json;
   };

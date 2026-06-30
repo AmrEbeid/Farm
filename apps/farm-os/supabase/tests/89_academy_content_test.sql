@@ -6,7 +6,7 @@
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(36);
+select plan(38);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.owner', (select user_id::text from public.organization_member
@@ -111,13 +111,19 @@ select set_config('test.c2',
   (public.fn_save_academy_content(null, :'org', 'مكافحة الحفّار', 'رش...', 'pesticide', true))->>'id', false);
 select throws_ok(
   format($$ select public.fn_signoff_academy_content(%L, 'م. أحمد', now(), null) $$, current_setting('test.c2')),
-  '23502', null, '#4: chemical content sign-off WITHOUT a registration is rejected');
+  '23502', null, '#4: chemical content sign-off WITHOUT a registration expiry is rejected');
 select throws_ok(
   format($$ select public.fn_signoff_academy_content(%L, 'م. أحمد', now(), current_date - 1) $$, current_setting('test.c2')),
   '22023', null, '#4: an EXPIRED pesticide registration is rejected');
+select throws_ok(
+  format($$ select public.fn_signoff_academy_content(%L, 'م. أحمد', now(), current_date + 365, null) $$, current_setting('test.c2')),
+  '23502', null, '#4 audit trail: chemical sign-off WITHOUT the registration NUMBER is rejected');
 select lives_ok(
-  format($$ select public.fn_signoff_academy_content(%L, 'م. أحمد', now(), current_date + 365) $$, current_setting('test.c2')),
-  '#4: chemical content WITH a current registration signs off');
+  format($$ select public.fn_signoff_academy_content(%L, 'م. أحمد', now(), current_date + 365, 'EG-PEST-2026-04417') $$, current_setting('test.c2')),
+  '#4: chemical content WITH a current registration + number signs off');
+select is(
+  (select pesticide_reg_number from public.academy_content where id = current_setting('test.c2')::uuid),
+  'EG-PEST-2026-04417', '#4 audit trail: the registration NUMBER is stored on sign-off');
 reset role;
 
 -- ===== 5b) pesticide category can NEVER bypass the chemical gate via has_chemical=false (#4) =====

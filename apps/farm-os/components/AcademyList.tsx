@@ -219,6 +219,7 @@ function SignoffForm({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [regDate, setRegDate] = useState("");
+  const [regNumber, setRegNumber] = useState("");
   const [pending, setPending] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -228,6 +229,7 @@ function SignoffForm({
       id: item.id,
       agronomistName: name,
       pesticideRegValidUntil: item.hasChemical ? regDate || null : null,
+      pesticideRegNumber: item.hasChemical ? regNumber || null : null,
     });
     setPending(false);
     if (!r.ok) return onError(r.error);
@@ -250,6 +252,11 @@ function SignoffForm({
       {item.hasChemical && (
         <Field label="سريان تسجيل المبيد حتى" id={`so-reg-${item.id}`}>
           <Input type="date" value={regDate} onChange={(e) => setRegDate(e.target.value)} required />
+        </Field>
+      )}
+      {item.hasChemical && (
+        <Field label="رقم تسجيل المبيد المصري" id={`so-regnum-${item.id}`}>
+          <Input value={regNumber} onChange={(e) => setRegNumber(e.target.value)} required />
         </Field>
       )}
       <Button type="submit" disabled={pending}>

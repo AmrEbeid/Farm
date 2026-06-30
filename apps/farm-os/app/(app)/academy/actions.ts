@@ -44,6 +44,7 @@ export async function signoffAcademyContent(input: {
   id: string;
   agronomistName: string;
   pesticideRegValidUntil?: string | null;
+  pesticideRegNumber?: string | null;
 }): Promise<Result> {
   await requireMembership();
   const sb = await createClient();
@@ -51,6 +52,7 @@ export async function signoffAcademyContent(input: {
     p_id: input.id,
     p_agronomist_name: input.agronomistName,
     p_pesticide_reg_valid_until: input.pesticideRegValidUntil ?? null,
+    p_pesticide_reg_number: input.pesticideRegNumber ?? null,
   });
   if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
   revalidatePath("/academy");
