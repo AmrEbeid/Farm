@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Card, Stat, EmptyState } from "@/components/ui";
+import { Entity360Header } from "@/components/Entity360Header";
 import { VarianceChart } from "@/components/charts";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { egp, num } from "@/lib/money";
@@ -95,14 +97,28 @@ export default async function PlannedVsActualPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">المخطط مقابل الفعلي</h1>
-        {plan?.period_start && plan?.period_end && (
-          <p style={{ color: "var(--ink-muted)" }}>
-            {fmtDate(plan.period_start)} إلى {fmtDate(plan.period_end)}
-          </p>
-        )}
-      </header>
+      <Entity360Header
+        title="المخطط مقابل الفعلي"
+        subtitle={
+          plan?.period_start && plan?.period_end
+            ? `${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`
+            : undefined
+        }
+        pills={
+          executed.length === 0
+            ? []
+            : [totalVar > 0 ? { status: "warning", label: "تجاوز التكلفة" } : { status: "active", label: "ضمن المخطط" }]
+        }
+        actions={
+          <Link
+            href={`/plans/${planId}`}
+            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+            style={{ color: "var(--brand)", background: "var(--surface)", border: "1px solid var(--line)" }}
+          >
+            ملف الخطة
+          </Link>
+        }
+      />
 
       {executed.length === 0 ? (
         <EmptyState

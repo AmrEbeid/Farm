@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import type { PillStatus } from "@amrebeid/ui";
 import { VerdictBanner, KpiCard, Progress, Card } from "@/components/ui";
+import { Entity360Header } from "@/components/Entity360Header";
 import { egp, pct } from "@/lib/money";
 
 export default async function BudgetCheckPage({
@@ -67,9 +69,17 @@ export default async function BudgetCheckPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">فحص الموازنة — بند الأسمدة</h1>
-      </header>
+      <Entity360Header
+        title="فحص الموازنة — بند الأسمدة"
+        subtitle="فحص كفاية الموازنة قبل تنفيذ العملية"
+        pills={[
+          verdict === "block"
+            ? { status: "blocked" as PillStatus, label: "تجاوز" }
+            : verdict === "approval-needed"
+              ? { status: "warning" as PillStatus, label: "يتطلب اعتماد" }
+              : { status: "active" as PillStatus, label: "كافية" },
+        ]}
+      />
 
       <VerdictBanner tone={verdict === "block" ? "danger" : verdict === "approval-needed" ? "warning" : "ok"}>
         {verdictText}
