@@ -6,7 +6,7 @@
 -- Impersonation via request.jwt.claims. Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(25);
+select plan(26);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.owner', (select user_id::text from public.organization_member
@@ -41,6 +41,16 @@ reset role;
 select pg_temp.as_user(current_setting('test.sup'));
 select is(public.authorize('export.write', :'org'), false, 'authorize union: supervisor does NOT get export.write');
 reset role;
+select is(
+  (select count(*)::int
+     from unnest(array[
+       'pr.approve', 'plan.write', 'op.execute', 'inventory.write', 'budget.write',
+       'payroll.read', 'structure.write', 'academy.write', 'export.write', 'responsibility.write',
+       'finance.read', 'custody.write', 'request.prepare', 'request.approve.op', 'request.approve.final'
+     ]) as perm
+     where position(perm in pg_get_functiondef('public.authorize(text, uuid)'::regprocedure)) = 0),
+  0,
+  'authorize union: academy re-emit preserves the full in-flight permission set');
 
 -- ===== 2) agri_engineer creates content; it starts ADVISORY (no sign-off) =====
 select pg_temp.as_user(current_setting('test.eng'));
