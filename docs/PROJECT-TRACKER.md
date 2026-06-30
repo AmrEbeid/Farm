@@ -1,5 +1,23 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — SPEC-0018 backend reviewed, prod-applied, and merged via clean #468.** Original draft
+> **#438** was not mergeable against current `main` locally (no merge base; unrelated tree churn), so a clean
+> replacement **#468** was rebuilt from current `main` with only the intended custody/payment backend files.
+> Review fixes before apply: preserved the #466 `fn_bin_rebuild` internal invariant in
+> `22_security_invariants_test`, added SPEC-0018 RPCs to the authenticated allowlist, and hardened the money path so
+> expense-linked custody cash out-movements must be routed through `fn_set_expense_payment_status` and equal the
+> linked expense total. Validation: local `git diff --check` clean; full local pgTAP **800/800**; #468 remote checks
+> green (app CI, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel; Supabase Preview skipped).
+> Pre-migration gate: prod ledger showed all prior migrations through `20260629141650`; dry-run listed exactly
+> `20260629150000_custody_and_expense_payment` and `20260629150100_payment_requests`; remote public-schema dump
+> showed no existing SPEC-0018 tables/functions/payment-routing columns. Applied both migrations to Farm prod
+> `veezkmytervjnpxcrbkw` with `supabase db push --yes`; post-apply ledger recorded both versions. A later no-op
+> dry-run attempt failed on the Supabase CLI temporary login role and pooler circuit breaker, so no further DB
+> connection attempts were made. #468 was squash-merged at `27065f1`, and post-merge `main` CI, db-tests, and release
+> are green. #438 is closed as superseded. Current `main` also includes concurrent dashboard PRs **#467/#469**.
+> Next recommended lane: #441 custody frontend is now unblocked by the backend but still needs refresh/review against
+> current `main` and the live schema before merge; #470 dashboard charts is the only current non-draft open PR.
+
 > **2026-06-30 — repo/prod migration alignment merged; superseded DB drafts closed.** After the prod hardening
 > apply, `main` was missing the four repo-versioned migration files that were already in the Farm prod ledger. Opened
 > **#466** from current `main` to add the exact applied migrations and pgTAP coverage:
@@ -12,8 +30,8 @@
 > **#430**, **#431**, and **#314** with evidence. **#317/#229 remain open** for the platform-owned
 > `supabase_admin` default table ACL residual and leaked-password-protection/Auth dashboard verification. During
 > this window, upstream **#464** and **#465** also merged before #466; their changes are now part of current `main`
-> and were covered by the post-merge CI. Next recommended lane: independent review of #438 custody/payment backend
-> before any SPEC-0018 migration apply; #441 remains blocked behind #438.
+> and were covered by the post-merge CI. **Superseded by the #468 entry above:** SPEC-0018 backend is now
+> reviewed/applied/merged; #441 frontend is the next custody lane.
 
 > **2026-06-30 — reviewed DB hardening bundle applied to Farm prod; draft PRs not merged.** Local `main`
 > was current at `origin/main` (`b7a95eb`) before the apply. Reviewed and probed the narrow DB hardening set:

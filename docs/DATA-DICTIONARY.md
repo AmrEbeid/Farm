@@ -2,7 +2,7 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Every table with a
 stable `TBL-NNN` id, purpose, key columns, foreign keys, RLS posture, and the feature it serves (→ `FEAT-NNN`).
-Reconciled to `main` 2026-06-27 (38 tables incl. `user_active_org`; CREATE statements in migrations `0001`–`0086`).
+Reconciled to `main` 2026-06-30 (42 tables incl. `user_active_org` and SPEC-0018 custody/payment backend).
 Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**; only deviations are noted.*
 
 ## Tenancy & people
@@ -63,8 +63,13 @@ Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**
 | **TBL-032** | `purchase_requests` | Procurement workflow | id, org_id, code, requested_by, needed_by, status∈6, approved_by, approved_at, version | organization, plans | explicit policies (no FOR ALL); SoD UPDATE (BR-001/060) | FEAT-009 |
 | **TBL-033** | `purchase_request_items` | PR line items | id, pr_id, org_id, item_id, qty, unit, supplier_id?, est_cost, received_qty | purchase_requests, organization, inventory_items, suppliers | UNIQUE(pr_id,item_id) (BR-042); lines freeze (BR-040); `received_qty` RPC-only (BR-041) | FEAT-009/010 |
 | **TBL-034** | `expenses` | Cost records | id, org_id, date, farm/sector/hawsha/plan_id?, category, supplier_id?, qty, unit_price, total, kind, status | organization, farms/sectors/hawshat/plans/suppliers | `budget.write` gate (BR-063); `kind` = opex vs drawings (BR-111) | FEAT-013 |
+| **TBL-039** | `custody_accounts` | Custody float accounts | id, org_id, holder_label, holder_user_id?, target_float, active | organization | reads require `finance.read`; writes via `fn_save_custody_account` / `custody.write`; audited | FEAT-028 |
+| **TBL-040** | `custody_movements` | Append-only custody cash ledger | id, org_id, custody_account_id, occurred_at, movement_type, amount_in/out, expense_id? | organization, custody_accounts, expenses | reads require `finance.read`; inserts via `fn_record_custody_movement`; one side only; audited | FEAT-028 |
+| **TBL-041** | `payment_requests` | Payment request header / approval lifecycle | id, org_id, request_no, period_start/end, status, custody_account_id?, approver stamps | organization, custody_accounts | reads require `finance.read`; writes via request RPCs; final approval owner-only; audited | FEAT-028 |
+| **TBL-042** | `payment_request_lines` | Payment request expense lines | id, org_id, payment_request_id, expense_id | organization, payment_requests, expenses | RPC-only; one request per expense; only operating `post_paid_unpaid` expenses | FEAT-028 |
 
 **Hierarchies:** location `farms→sectors→hawshat→lines→assets`; planning `plans→plan_operations→{material,labor}_requirements`;
-budget `budgets→budget_lines`; events denormalize the ancestor chain in `event_locations` for roll-up.
+budget `budgets→budget_lines`; custody/payment `custody_accounts→custody_movements` and `payment_requests→payment_request_lines`;
+events denormalize the ancestor chain in `event_locations` for roll-up.
 **Note (`sales` table):** referenced by draft PR #368 (FEAT-023) — **not on `main`**. Maintenance: new table →
 next free `TBL-NNN` + its `FEAT`/RLS note.

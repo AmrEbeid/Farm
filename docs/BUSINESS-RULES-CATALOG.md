@@ -3,8 +3,8 @@
 *Tier 1 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Each rule has a
 stable `BR-NNN` id, the enforcing object (RPC / trigger / RLS policy / constraint / grant) with its migration, a
 test reference, and the `FEAT-NNN` it belongs to. **This is the source for the rule-based "Why?" surface**
-([`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)). Reconciled to `main` 2026-06-27 (migrations
-`0001`–`0089` + pgTAP suite). Maturity **L3**. IDs stable + append-only.*
+([`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)). Reconciled to `main` 2026-06-30 (through SPEC-0018
+backend migrations `20260629150000`/`20260629150100` + pgTAP suite). Maturity **L3**. IDs stable + append-only.*
 
 Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supabase/tests/`.
 
@@ -56,8 +56,8 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 ## Custody & payment-request integrity
 | BR | Rule | Enforced by | Test | FEAT |
 |---|---|---|---|---|
-| **BR-047** | A custody-paid expense can post only one custody cash out-movement; controlled payment-routing columns are RPC-only, and routed amount/kind cannot drift after posting. | column grants + `fn_record_custody_movement` / `fn_set_expense_payment_status` / `expense_guard_routed_money_immutable` (`20260629150000`) | `102_custody_payment` | FEAT-013 |
-| **BR-048** | Payment request lines can include only operating `post_paid_unpaid` expenses; each expense can belong to one request only; paid-cash/drawings/capex are excluded from request math, and routed request-line amount/kind/status cannot drift. | `fn_add_expense_to_request` + `fn_payment_request_totals` + `fn_set_expense_payment_status` + `expense_guard_routed_money_immutable` (`20260629150100`) | `103_payment_request` | FEAT-013 |
+| **BR-047** | A custody-paid expense can post only one custody cash out-movement; controlled payment-routing columns are RPC-only, and routed amount/kind cannot drift after posting. | column grants + `fn_record_custody_movement` / `fn_set_expense_payment_status` / `expense_guard_routed_money_immutable` (`20260629150000`) | `102_custody_payment` | FEAT-028 |
+| **BR-048** | Payment request lines can include only operating `post_paid_unpaid` expenses; each expense can belong to one request only; paid-cash/drawings/capex are excluded from request math, and routed request-line amount/kind/status cannot drift. | `fn_add_expense_to_request` + `fn_payment_request_totals` + `fn_set_expense_payment_status` + `expense_guard_routed_money_immutable` (`20260629150100`) | `103_payment_request` | FEAT-028 |
 
 ## Tenant isolation & access control
 | BR | Rule | Enforced by | Test | FEAT |
@@ -79,10 +79,10 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-063** | Budgets/lines/expenses writable only with `budget.write` (owner/accountant). | RLS WITH CHECK (`0043`/`0044`) | `43_budget_rolegate`, `44_expenses_rolegate` | FEAT-008/013 |
 | **BR-064** | Farm structure writable only with `structure.write` (owner/farm_manager). | RLS + `fn_save_*` (`0081`) | `82_structure_crud` | FEAT-003 |
 | **BR-065** | Palm status history writes only via `fn_update_palm_status`. | write-gate (`0073`) | `73_palm_history_write_gate` | FEAT-004 |
-| **BR-066** | Finance-confidential custody/payment-request rows and derived balances are readable only with `finance.read` (owner/accountant). | RLS + read RPC gates (`20260629150000`/`20260629150100`) | `102_custody_payment`, `103_payment_request` | FEAT-013 |
-| **BR-067** | Custody account/movement writes require `custody.write` (owner/accountant) and same-org references. | RPC gates + direct DML revokes (`20260629150000`) | `102_custody_payment` | FEAT-013 |
-| **BR-068** | Payment request preparation requires `request.prepare` (owner/accountant); request tables are RPC-only. | RPC gates + direct DML revokes (`20260629150100`) | `103_payment_request` | FEAT-013 |
-| **BR-069** | Payment requests require operational approval by owner/accountant before final owner approval. | lifecycle RPC gates (`20260629150100`) | `103_payment_request` | FEAT-013 |
+| **BR-066** | Finance-confidential custody/payment-request rows and derived balances are readable only with `finance.read` (owner/accountant). | RLS + read RPC gates (`20260629150000`/`20260629150100`) | `102_custody_payment`, `103_payment_request` | FEAT-028 |
+| **BR-067** | Custody account/movement writes require `custody.write` (owner/accountant) and same-org references. | RPC gates + direct DML revokes (`20260629150000`) | `102_custody_payment` | FEAT-028 |
+| **BR-068** | Payment request preparation requires `request.prepare` (owner/accountant); request tables are RPC-only. | RPC gates + direct DML revokes (`20260629150100`) | `103_payment_request` | FEAT-028 |
+| **BR-069** | Payment requests require operational approval by owner/accountant before final owner approval. | lifecycle RPC gates (`20260629150100`) | `103_payment_request` | FEAT-028 |
 
 ## PII & confidentiality
 | BR | Rule | Enforced by | Test | FEAT |

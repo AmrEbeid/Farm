@@ -2,7 +2,8 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Every server
 function with a stable `RPC-NNN` id: purpose, args, return, the rule it enforces (→ `BR-NNN`), side effects, and
-the feature it serves (→ `FEAT-NNN`). Reconciled to `main` 2026-06-27 (migrations `0001`–`0089`). Maturity **L3**.
+the feature it serves (→ `FEAT-NNN`). Reconciled to `main` 2026-06-30 (through SPEC-0018 backend migrations
+`20260629150000`/`20260629150100`). Maturity **L3**.
 All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (BR-053).*
 
 ## Callable RPCs (client entry points)
@@ -36,6 +37,17 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-026** | `fn_update_palm_status(p_asset_id,p_status,p_note)` | asset,status,note | jsonb | Atomic palm status flip + history | BR-065 | `assets`,`palm_status_history` | FEAT-004 |
 | **RPC-027** | `fn_add_attachment(…)` | entity,path,kind,… | jsonb | Attach media; 25 MB ceiling; org-folder path check | BR-052 | `attachments` | FEAT-015 |
 | **RPC-028** | `fn_archive_attachment(p_id,p_archived)` | id,archived | jsonb | Soft-archive/restore attachment | BR-056 | `attachments` | FEAT-015 |
+| **RPC-029** | `fn_save_custody_account(…)` | id?,org,holder,target,active | uuid | Create/update custody float accounts | BR-067 | `custody_accounts` | FEAT-028 |
+| **RPC-030** | `fn_record_custody_movement(…)` | account,type,in,out,date?,expense?,note? | uuid | Post custody cash movement; expense-linked cash-outs are routed and exact-total only | BR-047/067 | `custody_movements` | FEAT-028 |
+| **RPC-031** | `fn_set_expense_payment_status(…)` | expense,status,custody_account?,paid_by? | void | Set payment routing; `paid_from_custody` posts one linked cash out | BR-047/048 | `expenses`,`custody_movements` | FEAT-028 |
+| **RPC-032** | `fn_custody_balance(p_account)` | account | numeric | Derived custody balance = sum(in)-sum(out), finance-gated | BR-066 | (reads) | FEAT-028 |
+| **RPC-033** | `fn_set_expense_kind(p_id,p_kind)` | expense,kind | jsonb | Set operating/drawing/capex classification | BR-111 | `expenses` | FEAT-013/028 |
+| **RPC-034** | `fn_create_payment_request(…)` | org,period,custody_account?,note? | uuid | Create draft request with per-org request_no | BR-068 | `payment_requests` | FEAT-028 |
+| **RPC-035** | `fn_add_expense_to_request(p_request,p_expense)` | request,expense | uuid | Add eligible operating post-paid expense to a draft request | BR-048/068 | `payment_request_lines` | FEAT-028 |
+| **RPC-036** | `fn_submit_payment_request(p_request)` | request | void | Draft -> submitted | BR-068/069 | `payment_requests` | FEAT-028 |
+| **RPC-037** | `fn_approve_request_operational(p_request)` | request | void | Submitted -> operationally approved | BR-069 | `payment_requests` | FEAT-028 |
+| **RPC-038** | `fn_approve_request_final(p_request)` | request | void | Operationally approved -> final approved (owner only) | BR-069 | `payment_requests` | FEAT-028 |
+| **RPC-039** | `fn_payment_request_totals(p_request)` | request | jsonb | Derived net request = post-paid unpaid + custody top-up | BR-048/066 | (reads) | FEAT-028 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |
@@ -49,8 +61,10 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-T07** | `fn_audit_people` | `people` | audit with phone/email redaction | BR-070/081 | FEAT-019/020 |
 | **RPC-T08** | `assets_parent_same_org` | `assets` BEFORE INS/UPD | parent FK same-org guard | BR-052 | FEAT-003 |
 | **RPC-T09** | `people_reports_to_same_org` | `people` BEFORE INS/UPD | `reports_to` same-org guard | BR-072 | FEAT-019 |
+| **RPC-T10** | `expense_guard_routed_money_immutable` | `expenses` BEFORE UPDATE OF total,kind | routed expense amount/kind immutable after custody/payment routing | BR-047/048 | FEAT-028 |
 
 **Notes:** `fn_post_movement` (RPC-008) and `fn_bin_rebuild` (RPC-011) are **internal** (EXECUTE revoked from
 `authenticated` in `0037`/`0030`) — clients reserve via `fn_reserve_stock` (RPC-010) and receive via
 `fn_post_receipt` (RPC-009). Idempotency = claim-first (RPC-009, RPC-017). Atomicity = single transaction
-(RPC-009, RPC-014, RPC-017, RPC-018, RPC-026). Maintenance: a new RPC → next free `RPC-NNN` + add its `BR`/`FEAT`.
+(RPC-009, RPC-014, RPC-017, RPC-018, RPC-026, RPC-031, RPC-034..RPC-038). Maintenance: a new RPC → next free
+`RPC-NNN` + add its `BR`/`FEAT`.

@@ -2,7 +2,7 @@
 
 *Tier 1 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). The traceability
 spine: every feature has a stable `FEAT-NNN` id that business rules, pages, specs, and tests reference. **Reconciled
-to `main` 2026-06-27.** Maturity: **L3** (human-written + verified against `main`). IDs are stable and append-only —
+to `main` 2026-06-30.** Maturity: **L3** (human-written + verified against `main`). IDs are stable and append-only —
 never renumber; mark deprecated instead.*
 
 Status: ✅ Built (on `main`) · 🟡 Partial · 🧪 Draft PR (not on `main`) · ⬜ Planned.
@@ -34,10 +34,11 @@ Evidence keys: mig = `apps/farm-os/supabase/migrations/`; route = `apps/farm-os/
 | **FEAT-021** | AI assistant boundary (عبدالجليل) | 🟡 (AI itself ⬜, Stage 11) | — | — | `lib/assistant-policy.ts` | `assistant-policy.test.ts` | SPEC-0005 |
 | **FEAT-022** | Payroll engine | 🟡 (runs/attendance ⬜) | — | `0046` people_compensation; `0053` payroll audit gate | `lib/payroll.ts` | `payroll.test.ts`, `53_audit_compensation_payroll_gate` | SPEC-0006 |
 | **FEAT-023** | Accounting P&L + sales | 🧪 (draft PR #368, mig `0088` + `0097`) | (`/accounting` not on `main`) | `fn_save_sale`, `fn_set_expense_kind`, `fn_accounting_pnl_summary` (draft) | `lib/pnl.ts`, `AccountingView` (draft) | `88_accounting_pnl`, `lib/pnl.test.ts` (draft) | SPEC-0004 |
-| **FEAT-024** | Care Academy content | 🧪 (draft PR #366, mig `0087`) | (`/academy` not on `main`) | (draft) | `lib/academy.ts` (draft) | (draft) | SPEC-0008 |
+| **FEAT-024** | Care Academy content | 🧪 (draft PR #366, mig `0091`) | (`/academy` not on `main`) | (draft) | `lib/academy.ts` (draft) | (draft) | SPEC-0008 |
 | **FEAT-025** | Member admin & invite | ⬜ | (`/members` planned) | mig `0090` planned | — | — | SPEC-0012 S2 |
 | **FEAT-026** | Knowledge / help system | ⬜ | (in-app help planned) | — | `lib/nav.ts`, `lib/errors.ts` (substrate) | — | SPEC-0014 |
 | **FEAT-027** | Commercial SaaS layer | ⬜ | (onboarding/admin planned) | — | — | — | SPEC-0013 |
+| **FEAT-028** | Custody ledger & payment requests | 🟡 (backend ✅, frontend draft #441) | (`/custody` draft #441) | `20260629150000`/`20260629150100`; `fn_save_custody_account`, `fn_record_custody_movement`, `fn_set_expense_payment_status`, `fn_create_payment_request`, `fn_payment_request_totals` | (frontend draft #441) | `102_custody_payment`, `103_payment_request` | SPEC-0018 / #421 |
 
 **Maintenance:** when a feature ships, update its row + flip status; add the FEAT-id to the relevant
 `BR-NNN` rows and `pageMeta`. New feature → next free `FEAT-NNN` (registry is append-only).

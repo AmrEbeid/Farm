@@ -1,18 +1,20 @@
 # Farm OS Product Master File
 
 *Canonical product description for business, product, design, engineering, onboarding, and AI agents.
-**Ground truth = the current `main` branch** (reconciled 2026-06-27 against migrations, routes, libs, RPCs, and
+**Ground truth = the current `main` branch** (status refreshed 2026-06-30; deep reconcile last completed 2026-06-27
+against migrations, routes, libs, RPCs, and
 [`RECONCILE-001`](RECONCILE-001-main-ground-truth-2026-06-27.md)). Where this file and an older document
 disagree, this file and RECONCILE-001 win. Items not verifiable on `main` are marked **Needs verification** or
 **Draft PR (not on `main`)**. This is documentation only — it changes no product behavior.*
 
-Last updated: 2026-06-27. Maintainers: Product + Owner (Amr Ebeid).
+Last updated: 2026-06-30. Maintainers: Product + Owner (Amr Ebeid).
 
 > **Reconcile note (reading this vs older docs):** three claims that float around older docs/PRs are corrected
 > here against `main`: (1) **planned-vs-actual is built** (`reports/[planId]/pva`); (2) **Accounting P&L
 > (`/accounting`, `lib/pnl.ts`, `sales`) and Care Academy (`/academy`) are NOT on `main`** — they are in
-> unmerged **draft PRs #368 / #366** (migrations `0087`/`0088` not applied); (3) **prod is now at migration `0096`
-> per DEPLOY-STATUS**; the README's "`0048`" body line is historical.
+> unmerged **draft PRs #368 / #366** (migrations `0088`/`0097` and `0091` not applied); (3) **prod is now at
+> migration `20260629150100` per DEPLOY-STATUS**, including the SPEC-0018 custody/payment backend from #468; #441
+> custody frontend is still draft/unmerged.
 
 ---
 
@@ -33,7 +35,7 @@ This file is the **hub** of the Farm OS Product Knowledge System (designed in
 | [`BUSINESS-RULES-CATALOG.md`](BUSINESS-RULES-CATALOG.md) (Tier 1) | `BR-NNN` → statement/enforced-by/test/FEAT | ✅ L3 |
 | [`DOMAIN-DICTIONARY.md`](DOMAIN-DICTIONARY.md) (Tier 1) | TERM → definition/AR↔EN/source/relationships | ✅ L3 |
 | [`RPC-CATALOG.md`](RPC-CATALOG.md) (Phase 2) | `RPC-NNN` → args/returns/guard/side-effects/BR/FEAT | ✅ L3 |
-| [`DATA-DICTIONARY.md`](DATA-DICTIONARY.md) (Phase 2) | `TBL-NNN` → columns/FKs/RLS/FEAT (38 tables) | ✅ L3 |
+| [`DATA-DICTIONARY.md`](DATA-DICTIONARY.md) (Phase 2) | `TBL-NNN` → columns/FKs/RLS/FEAT (42 tables) | ✅ L3 |
 | [`PERMISSIONS-MATRIX.md`](PERMISSIONS-MATRIX.md) (Phase 2) | roles × permissions × pages × actions + SoD | ✅ L3 |
 | [`EVENT-CATALOG.md`](EVENT-CATALOG.md) (Phase 2) | event types/subtypes/statuses + anatomy + RPCs | ✅ L3 |
 | [`REPORT-CATALOG.md`](REPORT-CATALOG.md) (Phase 2) | `RPT-NN` reports/dashboards + charts + filtering | ✅ L3 |
@@ -346,7 +348,7 @@ actions via `authorize(perm, org)` (`0035`). Verified permission strings: `struc
 
 ## 9. Data Model Overview
 
-**~37 tables, org-scoped, RLS-forced.** Major groups:
+**42 tables, org-scoped, RLS-forced.** Major groups:
 
 - **Tenancy/identity:** `organization`, `organization_member`, `people`, `people_compensation`,
   `responsibility_assignments`, `audit_log`.
@@ -355,14 +357,15 @@ actions via `authorize(perm, org)` (`0035`). Verified permission strings: `struc
   `event_followups`/`event_attachments`.
 - **Inventory:** `suppliers`, `inventory_items`, `inventory_bin`, `inventory_movements`.
 - **Planning:** `plans`, `plan_operations`, `plan_material_requirements`, `plan_labor_requirements`, `plan_checks`.
-- **Purchasing/finance:** `purchase_requests`, `purchase_request_items`, `budgets`, `budget_lines`, `expenses`.
+- **Purchasing/finance:** `purchase_requests`, `purchase_request_items`, `budgets`, `budget_lines`, `expenses`,
+  `custody_accounts`, `custody_movements`, `payment_requests`, `payment_request_lines`.
 - **Media:** `attachments` (+ `farm-media` storage bucket).
 - **Relationships:** everything carries `org_id`; structure is a strict parent chain (cross-org FK guards swept in
   `0061`–`0075`); events/inventory/PRs reference org-validated parents; audit mirrors writes immutably.
 - **Not on `main`:** `sales` (draft PR #368), academy content store (draft PR #366), subscription/plan tables
   (SPEC-0013), `labor_logs` (Stage 8), invite table (SPEC-0012 S2).
 
-(Full SQL: `apps/farm-os/supabase/migrations/0001`–`0089`.)
+(Full SQL: `apps/farm-os/supabase/migrations/` through `20260629150100`.)
 
 ---
 
@@ -540,9 +543,9 @@ AI-generated help is **gated behind Stage 11**.
 **Source files inspected (this reconcile):** `README.md`, `docs/CLAUDE.md`, `docs/PROJECT-TRACKER.md`,
 `docs/SESSION-BRIEF.md`, `docs/RECONCILE-001-main-ground-truth-2026-06-27.md`, `docs/02-prd.md`,
 `docs/03-architecture-and-data-model.md`, `docs/SPEC-0001`–`SPEC-0014`, `docs/ROADMAP-path-to-finish-2026-06-25.md`;
-`apps/farm-os/supabase/migrations/0001`–`0089` (89 files); `apps/farm-os/app/**/page.tsx` (all routes);
+`apps/farm-os/supabase/migrations/` through `20260629150100` (99 files); `apps/farm-os/app/**/page.tsx` (all routes);
 `apps/farm-os/lib/*` (auth, nav, errors, stock-calc, weather, payroll, assistant-policy, money, croquis, filter,
-labels, dates, org-actions); `apps/farm-os/components/*` (24); test corpus (89 pgTAP files, 13 Vitest).
+labels, dates, org-actions); `apps/farm-os/components/*`; test corpus (101 pgTAP SQL files plus Vitest).
 
 **Assumptions / Needs verification:**
 - ~~Sub-page access gates~~ — **RESOLVED 2026-06-27** (read from page code; see §6 footnote): layout =
@@ -558,6 +561,6 @@ the `supabase/migrations`, `lib/auth.ts`, `lib/nav.ts`. **SPECs** are the source
 **Files that need legacy banners / refresh (Owner-gated; not changed here):**
 - `docs/03-architecture-and-data-model.md` — legacy banner **added** (points to RECONCILE-001); some schema
   examples (`payment_vouchers`, etc.) describe migrate-from/prototype structures, not `main`.
-- `README.md` — **stale prod migration number ("0048")**; current prod is `0084` (HELD), `main` `0089`. Recommend
-  refresh.
+- `README.md` — older body text may carry stale prod migration numbers; current prod status is tracked in
+  `DEPLOY-STATUS.md` and is refreshed there first.
 - Older `docs/*` market/research dated docs predate the back-half build — read with their dates in mind.
