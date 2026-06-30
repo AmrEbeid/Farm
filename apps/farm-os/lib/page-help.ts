@@ -25,7 +25,7 @@ export interface PageHelp {
 /** Keyed by the lib/nav.ts AppNavItem id. Every nav page must have an entry (enforced by test). */
 export const PAGE_HELP: Record<string, PageHelp> = {
   dashboard: {
-    title: "لوحة التحكم",
+    title: "لوحة المعلومات",
     what: "نظرة عامة على المزرعة حسب دورك.",
     why: "لتبدأ يومك من أهم المؤشرات والإجراءات.",
     when: "كل يوم، كنقطة انطلاق.",

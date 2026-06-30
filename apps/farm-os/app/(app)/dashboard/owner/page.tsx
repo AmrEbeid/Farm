@@ -70,7 +70,7 @@ export default async function OwnerDashboard() {
       {/* Page header: title + context + quick actions */}
       <header className="flex flex-wrap items-end justify-between gap-3 border-b pb-4" style={{ borderColor: "var(--line)" }}>
         <div>
-          <h1 className="text-2xl font-bold">لوحة تحكم المالك</h1>
+          <h1 className="text-2xl font-bold">لوحة معلومات المالك</h1>
           <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
             نظرة شاملة على الاعتمادات والموازنة والمشتريات — محدّثة من السجلات الفعلية.
           </p>
