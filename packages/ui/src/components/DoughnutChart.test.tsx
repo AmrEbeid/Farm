@@ -34,6 +34,13 @@ describe("DoughnutChart", () => {
     expect(screen.getByText("قيد المراجعة")).toBeInTheDocument();
   });
 
+  it("renders slice values as Arabic-Indic digits in the table fallback", () => {
+    render(<Sample />);
+    // 62 → ٦٢ ; no Western digits leak into the Arabic table.
+    expect(screen.getByText("٦٢")).toBeInTheDocument();
+    expect(screen.queryByText("62")).not.toBeInTheDocument();
+  });
+
   it("has no axe violations", async () => {
     const { container } = render(<Sample />);
     expect(await axe(container)).toHaveNoViolations();
