@@ -55,11 +55,17 @@ apply is available here.
     exclusion. Every substantive member-writable org_id table is now audited; remaining untriggered org tables
     are all intentional (recursive/churn/projection/transient/history/junction/already-audited).
 
-**Session result:** 12 PRs (#485–#497, incl. docs #496); **5 prod migrations** applied migrate-first
+11. **a11y: status-not-colour-alone (PR #499).** Frontend hunt found domain status conveyed by colour only on
+    the farm-map views; palm cells (sector/hawsha 360) + FarmCroquis hawsha cells now carry the status in the
+    accessible name (reusing existing Arabic copy; WCAG 1.4.1). Heavy-import hunt came back clean (exceljs lazy +
+    server-only, recharts split/unconsumed). Filed **#500** (DS Tabs `aria-controls` dangles on inactive tabs —
+    needs a deliberate DS pass).
+
+**Session result:** 14 PRs (#485–#499, incl. docs #496/#498); **5 prod migrations** applied migrate-first
 (`20260630090000`, `20260630100000`, `20260701090000`, `20260701100000`, `20260701110000`); issues
-#317/#188/#488/#494 closed, #229 scoped to leaked-password, #199 left owner-gated, #215 narrow plan posted.
-Delegated 6 worktree/research/hunter agents. Decision-free SHIPPABLE surface comprehensively cleared
-(security/audit, perf, silent-failures, a11y, i18n).
+#317/#188/#488/#494 closed, #229 scoped to leaked-password, #199 left owner-gated, #215 narrow plan posted,
+#500 filed. Delegated 8 worktree/research/hunter agents. Decision-free SHIPPABLE surface comprehensively cleared
+(security/audit complete, perf, silent-failures, a11y table-names + status-colour, i18n, bundle hygiene).
 
 **Next candidates (decision-free):** module research (#216–226 — mostly surfaces Owner *product* decisions);
 deeper frontend/UX correctness hunts. The #215 first-slice settings-IA shell is BLOCKED on the 7 Owner
