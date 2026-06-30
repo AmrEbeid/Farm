@@ -80,9 +80,9 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-064** | Farm structure writable only with `structure.write` (owner/farm_manager). | RLS + `fn_save_*` (`0081`) | `82_structure_crud` | FEAT-003 |
 | **BR-065** | Palm status history writes only via `fn_update_palm_status`. | write-gate (`0073`) | `73_palm_history_write_gate` | FEAT-004 |
 | **BR-066** | Finance-confidential custody/payment-request rows and derived balances are readable only with `finance.read` (owner/accountant). | RLS + read RPC gates (`0098`/`0099`) | `102_custody_payment`, `103_payment_request` | FEAT-013 |
-| **BR-067** | Custody account/movement writes require `custody.write` (owner/farm_manager/accountant) and same-org references. | RPC gates + direct DML revokes (`0098`) | `102_custody_payment` | FEAT-013 |
-| **BR-068** | Payment request preparation requires `request.prepare` (owner/farm_manager/accountant); request tables are RPC-only. | RPC gates + direct DML revokes (`0099`) | `103_payment_request` | FEAT-013 |
-| **BR-069** | Payment requests require operational approval by owner/farm_manager before final owner approval. | lifecycle RPC gates (`0099`) | `103_payment_request` | FEAT-013 |
+| **BR-067** | Custody account/movement writes require `custody.write` (owner/accountant) and same-org references. | RPC gates + direct DML revokes (`0098`) | `102_custody_payment` | FEAT-013 |
+| **BR-068** | Payment request preparation requires `request.prepare` (owner/accountant); request tables are RPC-only. | RPC gates + direct DML revokes (`0099`) | `103_payment_request` | FEAT-013 |
+| **BR-069** | Payment requests require operational approval by owner/accountant before final owner approval. | lifecycle RPC gates (`0099`) | `103_payment_request` | FEAT-013 |
 
 ## PII & confidentiality
 | BR | Rule | Enforced by | Test | FEAT |

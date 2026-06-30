@@ -6,7 +6,7 @@
 -- drawing/capex expenses EXCLUDED (no double-count). Impersonation via request.jwt.claims (harness pattern from
 -- tests 36/82).
 begin;
-select plan(30);
+select plan(34);
 
 -- (no trailing comments on \set lines — psql captures the rest of the line into the value)
 \set org '00000000-0000-0000-0000-000000000001'
@@ -49,12 +49,18 @@ end $$;
 -- 2) permission gates
 select pg_temp.as_user(current_setting('test.accountant'));
 select is(public.authorize('request.prepare', :'org'), true,  'request.prepare: accountant HAS it');
+reset role; select pg_temp.as_user(current_setting('test.manager'));
+select is(public.authorize('request.prepare', :'org'), false, 'request.prepare: manager does NOT');
 reset role; select pg_temp.as_user(current_setting('test.supervisor'));
 select is(public.authorize('request.prepare', :'org'), false, 'request.prepare: supervisor does NOT');
+reset role; select pg_temp.as_user(current_setting('test.accountant'));
+select is(public.authorize('request.approve.op', :'org'), true,  'request.approve.op: accountant HAS it');
+reset role; select pg_temp.as_user(current_setting('test.manager'));
+select is(public.authorize('request.approve.op', :'org'), false, 'request.approve.op: manager does NOT');
 reset role; select pg_temp.as_user(current_setting('test.owner'));
 select is(public.authorize('request.approve.final', :'org'), true,  'request.approve.final: owner HAS it');
 reset role; select pg_temp.as_user(current_setting('test.manager'));
-select is(public.authorize('request.approve.final', :'org'), false, 'request.approve.final: manager does NOT (operational only)');
+select is(public.authorize('request.approve.final', :'org'), false, 'request.approve.final: manager does NOT');
 reset role;
 
 -- 3) accountant prepares: custody receipt 30,000 ; mark B paid_from_custody ; create request (no=1)
@@ -94,8 +100,11 @@ select pg_temp.as_user(current_setting('test.owner'));
 select throws_ok(format($$ select public.fn_approve_request_final(%L) $$, current_setting('test.req')),
   '22023', null, 'final approval is rejected before operational approval');
 reset role; select pg_temp.as_user(current_setting('test.manager'));
+select throws_ok(format($$ select public.fn_approve_request_operational(%L) $$, current_setting('test.req')),
+  '42501', null, 'manager cannot operationally approve finance-only payment requests');
+reset role; select pg_temp.as_user(current_setting('test.accountant'));
 select lives_ok(format($$ select public.fn_approve_request_operational(%L) $$, current_setting('test.req')),
-  'manager operationally approves');
+  'accountant operationally approves');
 reset role; select pg_temp.as_user(current_setting('test.owner'));
 select lives_ok(format($$ select public.fn_approve_request_final(%L) $$, current_setting('test.req')),
   'owner finally approves');

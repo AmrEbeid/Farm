@@ -6,7 +6,7 @@
 -- equal to its total, idempotently (no double-count, #6). Impersonation via request.jwt.claims (the JWT
 -- harness used by tests 36/82). Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(34);
+select plan(35);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set orgB 'c1020000-0000-0000-0000-00000000000b'
@@ -69,9 +69,12 @@ begin
   execute 'set local role authenticated';
 end $$;
 
--- 3) custody.write maps to accountant, NOT supervisor
+-- 3) custody.write maps to owner/accountant, NOT farm_manager/supervisor
 select pg_temp.as_user(current_setting('test.accountant'));
 select is(public.authorize('custody.write', :'org'), true,  'custody.write: accountant HAS it');
+reset role;
+select pg_temp.as_user(current_setting('test.manager'));
+select is(public.authorize('custody.write', :'org'), false, 'custody.write: manager does NOT have finance-only custody write');
 reset role;
 select pg_temp.as_user(current_setting('test.supervisor'));
 select is(public.authorize('custody.write', :'org'), false, 'custody.write: supervisor does NOT');

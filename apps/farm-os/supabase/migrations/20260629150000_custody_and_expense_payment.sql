@@ -48,9 +48,9 @@ as $$
          or (perm = 'export.write'           and m.role in ('owner','farm_manager'))     -- in-flight #400 (forward-compat)
          or (perm = 'responsibility.write'   and m.role in ('owner','farm_manager'))     -- in-flight #444 (forward-compat)
          or (perm = 'finance.read'           and m.role in ('owner','accountant'))        -- SPEC-0018 confidential finance reads
-         or (perm = 'custody.write'          and m.role in ('owner','farm_manager','accountant'))   -- SPEC-0018
-         or (perm = 'request.prepare'        and m.role in ('owner','farm_manager','accountant'))   -- SPEC-0018
-         or (perm = 'request.approve.op'     and m.role in ('owner','farm_manager'))     -- SPEC-0018 operational approval
+         or (perm = 'custody.write'          and m.role in ('owner','accountant'))        -- SPEC-0018 finance-only custody writes
+         or (perm = 'request.prepare'        and m.role in ('owner','accountant'))        -- SPEC-0018 finance-only payment prep
+         or (perm = 'request.approve.op'     and m.role in ('owner','accountant'))        -- SPEC-0018 finance approval
          or (perm = 'request.approve.final'  and m.role = 'owner') )                     -- SPEC-0018 owner final approval
   )
 $$;
