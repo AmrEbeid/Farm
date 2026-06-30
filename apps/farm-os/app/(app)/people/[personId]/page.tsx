@@ -187,7 +187,7 @@ export default async function Person360Page({
             {operationRows.length === 0 ? (
               <EmptyState title="لا توجد عمليات مسندة" />
             ) : (
-              <SimpleTable columns={operationColumns} rows={operationRows} empty="—" />
+              <SimpleTable columns={operationColumns} rows={operationRows} ariaLabel="العمليات المسندة" empty="—" />
             )}
           </Card>
         </div>
@@ -205,14 +205,14 @@ export default async function Person360Page({
             {performedRows.length === 0 ? (
               <EmptyState title="لا توجد أنشطة منفّذة" />
             ) : (
-              <SimpleTable columns={eventColumns} rows={performedRows} empty="—" />
+              <SimpleTable columns={eventColumns} rows={performedRows} ariaLabel="أنشطة منفّذة" empty="—" />
             )}
           </Card>
           <Card title="أنشطة مسندة">
             {assignedRows.length === 0 ? (
               <EmptyState title="لا توجد أنشطة مسندة" />
             ) : (
-              <SimpleTable columns={eventColumns} rows={assignedRows} empty="—" />
+              <SimpleTable columns={eventColumns} rows={assignedRows} ariaLabel="أنشطة مسندة" empty="—" />
             )}
           </Card>
         </div>
@@ -224,7 +224,7 @@ export default async function Person360Page({
             {reportRows.length === 0 ? (
               <EmptyState title="لا يوجد مرؤوسون مباشرون" />
             ) : (
-              <SimpleTable columns={reportColumns} rows={reportRows} empty="—" />
+              <SimpleTable columns={reportColumns} rows={reportRows} ariaLabel="المرؤوسون المباشرون" empty="—" />
             )}
           </Card>
         </div>

@@ -216,7 +216,7 @@ export default async function PurchaseRequestPage({
       {tab === "items" && (
         <div role="tabpanel" id={tabPanelId("items")} aria-labelledby={tabId("items")} tabIndex={0}>
           <Card title="الأصناف">
-            <SimpleTable columns={columns} rows={rows} empty="لا توجد أصناف في هذا الطلب." />
+            <SimpleTable columns={columns} rows={rows} ariaLabel="الأصناف" empty="لا توجد أصناف في هذا الطلب." />
           </Card>
         </div>
       )}

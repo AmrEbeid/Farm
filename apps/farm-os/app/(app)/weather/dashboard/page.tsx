@@ -141,7 +141,7 @@ export default async function WeatherDashboardPage({
         {gateRows.length === 0 ? (
           <EmptyState title={result.configured ? "لا توجد توقعات متاحة" : "خدمة الطقس غير مفعّلة"} />
         ) : (
-          <SimpleTable columns={gateColumns} rows={gateRows} empty="—" />
+          <SimpleTable columns={gateColumns} rows={gateRows} ariaLabel="نافذة المخاطر حسب اليوم" empty="—" />
         )}
       </Card>
 
@@ -149,7 +149,7 @@ export default async function WeatherDashboardPage({
         {reasonRows.length === 0 ? (
           <EmptyState title="لا توجد تنبيهات طقس" />
         ) : (
-          <SimpleTable columns={reasonColumns} rows={reasonRows} empty="—" />
+          <SimpleTable columns={reasonColumns} rows={reasonRows} ariaLabel="أسباب التنبيهات" empty="—" />
         )}
       </Card>
     </div>

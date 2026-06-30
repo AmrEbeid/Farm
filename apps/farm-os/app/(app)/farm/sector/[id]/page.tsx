@@ -262,7 +262,7 @@ export default async function SectorFilePage({
           )}
 
           <Card title="الحوشات">
-            <SimpleTable columns={hawshaColumns} rows={hawshaRows} empty="لا توجد حوشات" />
+            <SimpleTable columns={hawshaColumns} rows={hawshaRows} ariaLabel="الحوشات" empty="لا توجد حوشات" />
           </Card>
         </div>
       )}

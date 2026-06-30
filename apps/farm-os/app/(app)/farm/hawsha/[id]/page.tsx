@@ -308,7 +308,7 @@ export default async function HawshaFilePage({
           className="flex flex-col gap-6"
         >
           <Card title="الخطوط">
-            <SimpleTable columns={lineColumns} rows={lineList} empty="لا توجد خطوط مسجّلة" />
+            <SimpleTable columns={lineColumns} rows={lineList} ariaLabel="الخطوط" empty="لا توجد خطوط مسجّلة" />
           </Card>
           <Card title="خريطة النخيل">
             {palmLines.length === 0 ? (

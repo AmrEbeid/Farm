@@ -248,6 +248,7 @@ export default async function InventoryDashboardPage({
         <FilterableTable
           columns={columns}
           rows={rows}
+          ariaLabel="جدول العمل"
           empty="لا توجد عناصر لهذا الفلتر"
           searchColumns={["name", "category", "status"]}
           placeholder="ابحث في المخزون والطلبات…"
