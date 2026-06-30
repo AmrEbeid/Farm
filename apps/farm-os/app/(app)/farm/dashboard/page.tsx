@@ -6,6 +6,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { CategoryBarChart, CategoryDoughnut } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -93,6 +94,15 @@ export default async function FarmDashboardPage({
   const totalHawshat = tallied.reduce((sum, t) => sum + t.hawshatCount, 0);
   const totalBarhi = tallied.reduce((sum, t) => sum + t.barhi, 0);
   const totalMale = tallied.reduce((sum, t) => sum + t.male, 0);
+
+  // Chart data — derived from the sector tally already computed (no new queries).
+  const sectorPalmsData = tallied
+    .filter((t) => t.barhi + t.male > 0)
+    .map((t) => ({ sector: t.name, "برحي": t.barhi, "ذكور": t.male }));
+  const palmTypeMix = [
+    { name: "برحي", value: totalBarhi },
+    { name: "ذكور", value: totalMale },
+  ].filter((d) => d.value > 0);
 
   const attentionColumns: SimpleColumn[] = [
     { id: "tag", header: "النخلة" },
@@ -197,6 +207,35 @@ export default async function FarmDashboardPage({
           />
         </DashboardKpiLink>
       </section>
+
+      {(filter === "all" || filter === "sectors") && sectorPalmsData.length > 0 && (
+        <section className="grid gap-4 lg:grid-cols-2">
+          <Card title="توزيع النخيل حسب القطاع">
+            <CategoryBarChart
+              data={sectorPalmsData}
+              categoryKey="sector"
+              series={[
+                { dataKey: "برحي", name: "برحي" },
+                { dataKey: "ذكور", name: "ذكور" },
+              ]}
+              ariaLabel="توزيع النخيل حسب القطاع"
+              caption="النخيل حسب القطاع"
+              columnHeader="القطاع"
+            />
+          </Card>
+          {palmTypeMix.length > 0 && (
+            <Card title="تركيبة النخيل">
+              <CategoryDoughnut
+                data={palmTypeMix}
+                ariaLabel="تركيبة النخيل بين برحي وذكور"
+                caption="تركيبة النخيل"
+                labelHeader="النوع"
+                valueHeader="العدد"
+              />
+            </Card>
+          )}
+        </section>
+      )}
 
       <CurrentFilterCard
         label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
