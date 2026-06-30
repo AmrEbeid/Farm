@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
+import { egp } from "@/lib/money";
 
-type CellKind = "text" | "num" | "status" | "tag-danger" | "tag-ok" | "tag-warn";
+// "money": the row carries the RAW number and this formats it (egp) for display, so the SAME table is
+// extractable — ExportButton/exportToCsv then serialize the raw number (Excel SUM works) instead of a
+// formatted "١٬٢٣٤ ج.م" string. (SPEC-0017 export contract; see lib/export-csv.ts.)
+type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn";
 
 export interface SimpleColumn {
   id: string;
@@ -77,6 +81,8 @@ function renderCell(c: SimpleColumn, row: SimpleRow): React.ReactNode {
   const v = row[c.id];
   if (v == null || v === "") return "—";
   switch (c.kind) {
+    case "money":
+      return egp(Number(v));
     case "status":
       return <StatusPill status={statusFor(String(v))}>{String(v)}</StatusPill>;
     case "tag-danger":

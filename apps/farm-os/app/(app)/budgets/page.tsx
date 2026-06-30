@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { egp } from "@/lib/money";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 
@@ -19,11 +18,11 @@ export default async function BudgetsPage() {
     { id: "name", header: "الموازنة" },
     { id: "period", header: "الفترة" },
     { id: "category", header: "الفئة" },
-    { id: "planned", header: "المخطط", numeric: true },
-    { id: "approved", header: "المعتمد", numeric: true },
-    { id: "committed", header: "الملتزم", numeric: true },
-    { id: "actual", header: "الفعلي", numeric: true },
-    { id: "available", header: "المتاح", numeric: true },
+    { id: "planned", header: "المخطط", numeric: true, kind: "money" },
+    { id: "approved", header: "المعتمد", numeric: true, kind: "money" },
+    { id: "committed", header: "الملتزم", numeric: true, kind: "money" },
+    { id: "actual", header: "الفعلي", numeric: true, kind: "money" },
+    { id: "available", header: "المتاح", numeric: true, kind: "money" },
   ];
 
   const rows = (budgets ?? []).map((b) => {
@@ -36,11 +35,11 @@ export default async function BudgetsPage() {
       name: b.name ?? "—",
       period: b.period ?? "—",
       category: b.category ?? "—",
-      planned: egp(Number(b.planned ?? 0)),
-      approved: egp(approved),
-      committed: egp(committed),
-      actual: egp(actual),
-      available: egp(approved - committed - actual),
+      planned: Number(b.planned ?? 0),
+      approved,
+      committed,
+      actual,
+      available: approved - committed - actual,
     };
   });
 
