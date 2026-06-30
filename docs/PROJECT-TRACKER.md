@@ -1,5 +1,14 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — #476 chart numeral pass reviewed and merged; migration N/A.** Reviewed non-draft
+> **#476** after SPEC-0018 docs landed. Scope was UI-only: internal `formatChartNumber()` helper in
+> `@amrebeid/ui`, Bar/Line/Doughnut chart axis + tooltip + screen-reader table fallback formatting, focused tests,
+> and rebuilt committed `dist/` chart artifacts. Supabase Preview was skipped because there were no `supabase/`
+> changes; no migration/prod DB action was needed. CodeRabbit did not perform a real review due its rate limit, so
+> this was manually reviewed against the PR diff and GitHub checks. #476 was squash-merged at `fdca0e0`; post-merge
+> `main` **db-tests** and **release** are green, with `ci` confirming package typecheck/token/test/build/storybook
+> and app typecheck/lint/test/build. Current open queue remains draft-only: **#400/#368/#366**.
+
 > **2026-06-30 — SPEC-0018 frontend reviewed, refreshed, merged; custody module live on `main`.** Original draft
 > **#441** was stale against current `main` (no merge base; unrelated tree churn), so a clean replacement
 > **#474** was rebuilt from current `main` after the #468 backend was live. Review fixes in the clean lane:

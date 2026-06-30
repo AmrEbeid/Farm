@@ -1,6 +1,22 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-06-30 — Chart Arabic-Indic numerals live via #476
+**Review.** Non-draft #476 was reviewed after the SPEC-0018 spec merge. The diff is UI-only: it adds an internal
+`formatChartNumber()` helper to `@amrebeid/ui`, applies it to Bar/Line/Doughnut chart axes, tooltips, and
+screen-reader table fallbacks, adds focused unit coverage, and commits the matching rebuilt `dist/` chart artifacts.
+No `supabase/` files changed, so migration is N/A.
+
+**Validation and merge.** GitHub PR checks were green before merge: package typecheck/token/test/build/storybook,
+app typecheck/lint/test/build, pgTAP/db, gitleaks, Vercel; Supabase Preview skipped. CodeRabbit hit its review
+limit, so the gating review was manual. #476 was squash-merged as `fdca0e0`. Post-merge `main` `db-tests` and
+`release` are green; `ci` is also green, including package typecheck/token/test/build/storybook and app
+typecheck/lint/test/build plus the Recharts code-split guard.
+
+**Current state.** Charts in `@amrebeid/ui/charts` now render numeric axes/tooltips and accessibility table fallback
+values in Arabic-Indic digits without a public API change. Current open PR queue remains draft-only: #400, #368,
+#366.
+
 ## 2026-06-30 — SPEC-0018 frontend live via clean #474
 **Why a replacement PR.** The historical #441 frontend branch was stale against current `main` locally and carried
 unrelated tree churn, so it was closed as superseded. Clean replacement #474 was rebuilt from current `main` after

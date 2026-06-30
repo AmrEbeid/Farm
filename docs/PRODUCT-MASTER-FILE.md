@@ -302,7 +302,8 @@ common-mistakes + related pages + the rule-based "Why?" for its error codes.
 
 - **Component library:** **`@amrebeid/ui` v1.2.0** (`packages/ui`) — ~40 components, **two-tier token theming,
   white-label, RTL-first**, token-purity gate, Storybook 10, green CI (evidence: `README.md`,
-  `packages/ui/README.md`). App consumes it; charts via the `@amrebeid/ui/charts` code-split subpath.
+  `packages/ui/README.md`). App consumes it; charts via the `@amrebeid/ui/charts` code-split subpath. Numeric
+  chart axes, tooltips, and accessibility table fallback values render Arabic-Indic digits after #476.
 - **Layout & nav:** role-aware primary nav from `lib/nav.ts` (`AppNavItem{id,label,icon,href,roles}`); shell in
   `components/AppChrome.tsx`; org switcher `OrgSwitcher.tsx`.
 - **RTL / Arabic-first:** Arabic labels throughout (`ROLE_LABEL_AR`, `lib/labels.ts`); RTL is a CLAUDE.md #2
