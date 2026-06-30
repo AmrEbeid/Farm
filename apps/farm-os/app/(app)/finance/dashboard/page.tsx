@@ -22,7 +22,15 @@ const FILTER_LABEL_AR: Record<string, string> = {
   prs: "طلبات الشراء للمتابعة",
 };
 
-const OWNER_DRAWING_TERMS = ["مسحوبات", "مسحوب", "سحب مالك", "المالك", "owner drawing", "drawings"];
+// Authoritative expense classification is the `expenses.kind` column (operating/drawing/capex), written
+// only via fn_set_expense_kind — NOT free-text. Owner drawings must be separated from operating expenses
+// (CLAUDE.md #6), and capex is neither. Arabic labels match docs/page-help ("تشغيلي/مسحوبات/رأسمالي").
+type ExpenseKind = "operating" | "drawing" | "capex";
+const EXPENSE_KIND_AR: Record<ExpenseKind, string> = {
+  operating: "تشغيلي",
+  drawing: "مسحوبات مالك",
+  capex: "رأسمالي",
+};
 
 export default async function FinanceDashboardPage({
   searchParams,
@@ -44,7 +52,7 @@ export default async function FinanceDashboardPage({
       .order("period", { ascending: false }),
     sb
       .from("expenses")
-      .select("id, date, category, description, total, suppliers(name)")
+      .select("id, date, category, description, total, kind, suppliers(name)")
       .order("date", { ascending: false })
       .limit(12),
     sb
@@ -83,13 +91,14 @@ export default async function FinanceDashboardPage({
   const submittedPrs = (prs ?? []).filter((p) => p.status === "submitted").length;
   const expenseKindRows = (expenses ?? []).map((expense) => ({
     expense,
-    drawing: isOwnerDrawingExpense(expense.category, expense.description),
+    kind: (expense.kind ?? "operating") as ExpenseKind,
   }));
+  // Operating and drawings are each their own kind; capex is neither, so it is excluded from both totals.
   const ownerDrawingsTotal = expenseKindRows
-    .filter((row) => row.drawing)
+    .filter((row) => row.kind === "drawing")
     .reduce((sum, row) => sum + Number(row.expense.total ?? 0), 0);
   const operatingTotal = expenseKindRows
-    .filter((row) => !row.drawing)
+    .filter((row) => row.kind === "operating")
     .reduce((sum, row) => sum + Number(row.expense.total ?? 0), 0);
 
   const budgetColumns: SimpleColumn[] = [
@@ -144,14 +153,16 @@ export default async function FinanceDashboardPage({
     { id: "total", header: "المبلغ", numeric: true },
   ];
   const expenseRows = expenseKindRows
-    .filter((row) => (filter === "drawings" ? row.drawing : filter === "operating" ? !row.drawing : true))
-    .map(({ expense, drawing }) => {
+    .filter((row) =>
+      filter === "drawings" ? row.kind === "drawing" : filter === "operating" ? row.kind === "operating" : true,
+    )
+    .map(({ expense, kind }) => {
     const supplier = normalizeSupplier(expense.suppliers);
     return {
       id: expense.id,
       href: `/expenses/${expense.id}`,
       date: expense.date ? fmtDate(expense.date) : "—",
-      kind: drawing ? "مسحوبات مالك" : "تشغيلي",
+      kind: EXPENSE_KIND_AR[kind],
       category: expense.category ?? "—",
       description: expense.description ?? "—",
       supplier: supplier?.name ?? "—",
@@ -279,11 +290,6 @@ export default async function FinanceDashboardPage({
 function normalizeSupplier(supplier: SupplierEmbed | SupplierEmbed[] | null): SupplierEmbed | null {
   if (Array.isArray(supplier)) return supplier[0] ?? null;
   return supplier;
-}
-
-function isOwnerDrawingExpense(category: string | null | undefined, description: string | null | undefined): boolean {
-  const text = `${category ?? ""} ${description ?? ""}`.toLowerCase();
-  return OWNER_DRAWING_TERMS.some((term) => text.includes(term.toLowerCase()));
 }
 
 function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
