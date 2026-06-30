@@ -67,9 +67,9 @@ drop trigger if exists audit_prl on public.payment_request_lines;
 create trigger audit_prl after insert or update or delete on public.payment_request_lines
   for each row execute function public.fn_audit('payment_request_line');
 
--- Mirror finance-confidential base-table reads onto audit_log. The generic audit trigger stores full rows, so
--- audit rows for custody/payment entities must be at least as restricted as the source tables. Preserve the
--- existing people_compensation payroll gate from 0053.
+-- Mirror confidential base-table reads onto audit_log. The generic audit trigger stores full rows, so audit rows
+-- for restricted entity types must be at least as restricted as the source tables. Preserve the existing
+-- people_compensation payroll gate and sale/expense accounting gate while adding custody/payment gates.
 drop policy if exists audit_read on public.audit_log;
 create policy audit_read on public.audit_log
   for select to authenticated
@@ -78,9 +78,10 @@ create policy audit_read on public.audit_log
     and (
       (
         entity_type is distinct from 'people_compensation'
-        and entity_type not in ('custody_account','custody_movement','payment_request','payment_request_line')
+        and entity_type not in ('sale','expense','custody_account','custody_movement','payment_request','payment_request_line')
       )
       or (entity_type = 'people_compensation' and public.authorize('payroll.read', org_id))
+      or (entity_type in ('sale','expense') and public.authorize('budget.write', org_id))
       or (
         entity_type in ('custody_account','custody_movement','payment_request','payment_request_line')
         and public.authorize('finance.read', org_id)

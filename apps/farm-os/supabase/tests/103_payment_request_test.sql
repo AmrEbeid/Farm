@@ -6,7 +6,7 @@
 -- drawing/capex expenses EXCLUDED (no double-count). Impersonation via request.jwt.claims (harness pattern from
 -- tests 36/82).
 begin;
-select plan(34);
+select plan(37);
 
 -- (no trailing comments on \set lines — psql captures the rest of the line into the value)
 \set org '00000000-0000-0000-0000-000000000001'
@@ -14,6 +14,11 @@ select plan(34);
 \set eA 'b0e00000-0000-0000-0000-00000000000a'
 \set eB 'b0e00000-0000-0000-0000-00000000000b'
 \set eD 'b0e00000-0000-0000-0000-00000000000d'
+\set audit_sale 'spec0018 audit sale'
+\set audit_expense 'spec0018 audit expense'
+\set audit_custody 'spec0018 audit custody'
+\set audit_payment 'spec0018 audit payment'
+\set audit_generic 'spec0018 audit generic'
 
 insert into public.custody_accounts (id, org_id, holder_label, target_float) values (:'acct', :'org', 'مدير المزرعة', 30000);
 insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
@@ -22,11 +27,23 @@ insert into public.expenses (id, org_id, date, category, description, total, sta
   values (:'eB', :'org', current_date, 'صيانة وقطع غيار', 'بند نقدي', 2000, 'approved', 'operating');
 insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
   values (:'eD', :'org', current_date, 'مسحوبات المالك', 'مسحوبات اختبار', 9000, 'approved', 'post_paid_unpaid', 'drawing');
+insert into public.audit_log(org_id, action, entity_type, entity_id, after)
+values
+  (:'org', 'INSERT', 'sale', :'audit_sale', '{}'::jsonb),
+  (:'org', 'INSERT', 'expense', :'audit_expense', '{}'::jsonb),
+  (:'org', 'INSERT', 'custody_account', :'audit_custody', '{}'::jsonb),
+  (:'org', 'INSERT', 'payment_request', :'audit_payment', '{}'::jsonb),
+  (:'org', 'INSERT', 'farm_event', :'audit_generic', '{}'::jsonb);
 select set_config('test.org', :'org', false);
 select set_config('test.acct_id', :'acct', false);
 select set_config('test.eA', :'eA', false);
 select set_config('test.eB', :'eB', false);
 select set_config('test.eD', :'eD', false);
+select set_config('test.audit_sale', :'audit_sale', false);
+select set_config('test.audit_expense', :'audit_expense', false);
+select set_config('test.audit_custody', :'audit_custody', false);
+select set_config('test.audit_payment', :'audit_payment', false);
+select set_config('test.audit_generic', :'audit_generic', false);
 select set_config('test.accountant', (select user_id::text from public.organization_member where org_id=:'org' and role='accountant' limit 1), false);
 select set_config('test.manager',    (select user_id::text from public.organization_member where org_id=:'org' and role='farm_manager' limit 1), false);
 select set_config('test.owner',      (select user_id::text from public.organization_member where org_id=:'org' and role='owner' limit 1), false);
@@ -119,6 +136,14 @@ select is((public.fn_payment_request_totals(current_setting('test.req_null')::uu
 reset role;
 
 -- 6) non-finance org members cannot read the request tables or derived totals
+select pg_temp.as_user(current_setting('test.accountant'));
+select is((select count(*)::int from public.audit_log where entity_id in (
+    current_setting('test.audit_sale'),
+    current_setting('test.audit_expense'),
+    current_setting('test.audit_custody'),
+    current_setting('test.audit_payment')
+  )), 4, 'accountant can read restricted accounting and finance audit mirrors');
+reset role;
 select pg_temp.as_user(current_setting('test.supervisor'));
 select throws_ok(format($$ select public.fn_payment_request_totals(%L) $$, current_setting('test.req')),
   '42501', null, 'supervisor without finance.read cannot call fn_payment_request_totals');
@@ -126,6 +151,14 @@ select is((select count(*)::int from public.payment_requests where id = current_
   'supervisor cannot read payment_requests rows');
 select is((select count(*)::int from public.payment_request_lines where payment_request_id = current_setting('test.req')::uuid), 0,
   'supervisor cannot read payment_request_lines rows');
+select is((select count(*)::int from public.audit_log where entity_id = current_setting('test.audit_generic')), 1,
+  'supervisor can still read generic same-org audit rows');
+select is((select count(*)::int from public.audit_log where entity_id in (
+    current_setting('test.audit_sale'),
+    current_setting('test.audit_expense'),
+    current_setting('test.audit_custody'),
+    current_setting('test.audit_payment')
+  )), 0, 'supervisor cannot read restricted accounting or finance audit mirrors');
 reset role;
 
 select * from finish();
