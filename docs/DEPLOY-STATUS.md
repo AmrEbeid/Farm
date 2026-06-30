@@ -2,7 +2,7 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **CURRENT STATE (2026-06-30 — SPEC-0018 live; #400 export compliance applied; Entity-360 UI sweep complete).** Prod ledger includes the reviewed
+> **CURRENT STATE (2026-06-30 — SPEC-0018 live; #400 export compliance applied; Entity-360 UI sweep complete + runtime fixes live).** Prod ledger includes the reviewed
 > custody/payment backend migrations **`20260629150000`** and **`20260629150100`**, applied with
 > `supabase db push --yes` after #468 preflight showed exactly those two pending versions and no existing remote
 > object/column collisions. `main` records the same backend migrations at merge `27065f1`; the frontend module
@@ -13,8 +13,11 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > **`20260622000092_export_compliance`** with `supabase db push --include-all --yes` after a dry-run listed exactly
 > that migration; the prod ledger now records `20260622000092`, and #400 is merged on `main` at `55fafbc`. No real
 > certificate data or PII was imported. UI-only Entity-360 PRs #477/#478/#479/#480 also merged; #479/#480 changed
-> no database files, so migration/prod DB apply is N/A. Post-merge `main` `ci`, `db-tests`, and `release` are green
-> for the SPEC-0018, #476, #400, and Entity-360 lanes. #438 and #441 are closed as superseded by #468/#474.
+> no database files, so migration/prod DB apply is N/A. Post-360 app-only follow-ups **#481/#482/#483** are also
+> merged: #481 fixed tabbed 360 Server Components calling client-only tab helper functions, #482 added a CI guard
+> for that RSC failure class, and #483 made unknown planned fertilization costs render/persist warning instead of
+> a false-green budget advisory. These changed no `supabase/` files, so migration/prod DB apply is N/A. Post-merge
+> `main` at `2e91a04` has `ci`, `db-tests`, and `release` green. #438 and #441 are closed as superseded by #468/#474.
 > **Still queued as draft PRs, NOT applied:** `0088` + `0097` (#368 accounting) and `0091` (#366 academy).
 > These remain behind their expert/reconciliation/pre-migration gates. **Residual security/admin
 > follow-up:** #317/#229 remain open for the platform-owned `supabase_admin` default table ACL and leaked-password
@@ -69,8 +72,9 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
   - **Migrations now at `20260629150100` (current).** The live ledger includes the #466 hardening/alignment
     migrations `20260622000098`, `20260629135038`, `20260629140248`, `20260629141650`, plus the #468 SPEC-0018
-    backend migrations `20260629150000` and `20260629150100`. The #474 SPEC-0018 frontend adds no migration. Draft
-    PR migrations `0088`, `0091`, `0092`, and `0097` are **not** applied. Historical note: by
+    backend migrations `20260629150000` and `20260629150100`. The #474 SPEC-0018 frontend, #476 chart pass,
+    #477/#478/#479/#480 Entity-360 UI pass, and #481/#482/#483 app/CI follow-ups add no migrations. Draft
+    PR migrations `0088`, `0091`, and `0097` are **not** applied. Historical note: by
     2026-06-27, Stages 2/3/4 had been applied via the Supabase MCP:
     `0080` structure_soft_delete_audit, `0081` structure_write_rpcs (+ `structure.write` on `authorize`;
     structure `tenant_all` re-emit), `0082` attachments (table + RLS + RPCs), `0083` record_event (3 RPCs),

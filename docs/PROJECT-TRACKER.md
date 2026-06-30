@@ -1,5 +1,16 @@
 # Project Tracker — Farm OS      Last updated: 2026-06-30 by Codex (for Owner: Amr Ebeid)
 
+> **2026-06-30 — 360 runtime tab fix + budget unknown-cost advisory fix merged; migration N/A.**
+> Reconciled the concurrent post-Entity-360 fixes now on `main`: **#481** fixed a live RSC runtime failure where
+> tabbed 360 Server Components were importing/calling client-only `tabId`/`tabPanelId` helpers, causing the segment
+> error boundary on tabbed detail pages; it added server-safe `apps/farm-os/lib/tab-ids.ts` and switched the tabbed
+> 360 pages to it. **#482** added the CI guard `check-client-fn-in-server.mjs` so this client-helper/server-call
+> class is caught before merge. **#483** fixed the #157/#89 sub-gap where planned fertilization operations with
+> unknown `est_cost` were treated as zero in advisory budget checks; unknown cost now records/renders warn plus
+> owner/accountant review rather than a false green, while full budget enforcement and real pricing remain Stage-7-gated.
+> No `supabase/` files changed in #481/#482/#483, so migration/prod DB apply is N/A. Post-merge `main` at
+> `2e91a04` has **ci**, **db-tests**, and **release** green. Current open queue remains draft-only: **#368/#366**.
+
 > **2026-06-30 — Entity-360 detail-page rollout completed via #479/#480; migration N/A.** Reviewed the
 > post-#400 UI-only 360 lanes. #479 applied the entity header/tabs pattern to farm structure, budget, expense,
 > custody request, and palm detail pages; post-merge review found finance tabs still owner/accountant-only,

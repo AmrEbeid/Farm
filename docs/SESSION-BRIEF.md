@@ -1,7 +1,24 @@
 # Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-06-30 — Entity-360 rollout completed via #479/#480
+## 2026-06-30 — Entity-360 completed; RSC guard and budget unknown-cost fix live
+**Follow-up runtime fix.** After the 360 rollout, #481 fixed the live tabbed-page RSC failure: Server Components were
+calling client-only `tabId`/`tabPanelId` helpers, so tabbed 360 detail pages hit the segment error boundary at
+request-time even though build/typecheck were green. #481 added server-safe `apps/farm-os/lib/tab-ids.ts` and moved
+the tabbed 360 pages to that helper. #482 then added `apps/farm-os/scripts/check-client-fn-in-server.mjs` to CI so
+future server components cannot import/call known client-only helper functions from the client barrels.
+
+**Budget advisory fix.** #483 fixed the narrow #157/#89 false-green path where planned fertilization operations with
+unknown `est_cost` were summed as zero. The shared `budget-check` helper now tracks unknown planned costs; `runPlanChecks`
+persists budget `warn` instead of `ok` when cost is unknown, and `/budget/[planId]/check` routes the display to
+owner/accountant review rather than showing "budget sufficient." This is app-only and does not implement hard budget
+enforcement or the Stage-7 real pricing/ledger model.
+
+**Validation and state.** #481, #482, and #483 are merged on `main`; no `supabase/` files changed, so migration is
+N/A. PR checks were green for each lane. Post-merge `main` at `2e91a04` has `ci`, `db-tests`, and `release` all
+green, including the new no-client-helper-in-server guard. Current open PR queue is still draft-only: #368 accounting
+and #366 academy.
+
 **Review.** After #400, #479 landed on `main` with the batch-2 Entity-360 detail pages. Post-merge review found no
 obvious regression: budget finance tabs stayed owner/accountant-only, payment-request add stayed draft-gated,
 structure edit/archive stayed owner/farm_manager-only, and `PalmMap` preserved palm-cell click-through to
