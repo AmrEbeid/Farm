@@ -136,6 +136,17 @@ jobs:
         # external actions/secrets. See apps/farm-os/scripts/check-recharts-codesplit.mjs.
         run: cd apps/farm-os && node scripts/check-recharts-codesplit.mjs
 
+      - name: Guard · No "use client" helper functions called from Server Components
+        # @amrebeid/ui exports plain helper functions (tabId/tabPanelId) from its
+        # "use client" Tabs module. A Server Component may render a client component
+        # or pass it as a prop, but calling a client function directly throws at
+        # request-time ("Attempted to call tabPanelId() from the server") — invisible
+        # to next build / tsc / eslint. This source scan fails if any Server Component
+        # imports those helpers from a client barrel (@/components/ui, @amrebeid/ui)
+        # instead of the server-safe @/lib/tab-ids mirror. Pure Node, no build needed.
+        # See apps/farm-os/scripts/check-client-fn-in-server.mjs.
+        run: cd apps/farm-os && node scripts/check-client-fn-in-server.mjs
+
   secret-scan:
     name: gitleaks · secret scan
     runs-on: ubuntu-latest
