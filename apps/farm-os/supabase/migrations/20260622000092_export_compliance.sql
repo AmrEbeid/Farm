@@ -10,7 +10,8 @@
 -- map — the one access-control change here; reviewed at the gate.
 
 -- ── 1) Extend authorize() with export.write. Re-emits the final known permission union, including
--- academy.write from #366/0091, so later authorize() re-emits must not drop either feature permission. ─────
+-- academy.write from #366/0091, responsibility.write from #444, and SPEC-0018 finance/custody/request
+-- permissions from #438, so later authorize() re-emits must not drop any feature permission. ─────────
 create or replace function public.authorize(perm text, p_org uuid)
 returns boolean
 language sql
@@ -30,6 +31,12 @@ as $$
          or (perm = 'payroll.read'    and m.role in ('owner','accountant'))
          or (perm = 'structure.write' and m.role in ('owner','farm_manager'))
          or (perm = 'academy.write'   and m.role in ('owner','agri_engineer'))  -- union w/ #366 (0091): a later re-emit must not drop it
+         or (perm = 'responsibility.write' and m.role in ('owner','farm_manager')) -- union w/ #444: responsibility-assignment writes
+         or (perm = 'finance.read'    and m.role in ('owner','accountant')) -- union w/ #438: confidential finance reads
+         or (perm = 'custody.write'   and m.role in ('owner','farm_manager','accountant')) -- union w/ #438
+         or (perm = 'request.prepare' and m.role in ('owner','farm_manager','accountant')) -- union w/ #438
+         or (perm = 'request.approve.op' and m.role in ('owner','farm_manager')) -- union w/ #438
+         or (perm = 'request.approve.final' and m.role = 'owner') -- union w/ #438
          or (perm = 'export.write'    and m.role in ('owner','farm_manager')) )
   )
 $$;
