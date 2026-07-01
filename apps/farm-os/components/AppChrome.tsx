@@ -8,6 +8,7 @@ import type { Role } from "@/lib/auth";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { HelpDrawer } from "@/components/HelpDrawer";
 import { ModuleSidebar } from "@/components/ModuleSidebar";
+import { CommandPalette } from "@/components/CommandPalette";
 import { findActiveNavItem, visibleModulesForRole } from "@/lib/nav";
 
 export function AppChrome({
@@ -56,6 +57,7 @@ export function AppChrome({
       brand={<span className="font-bold">نظام تشغيل المزارع</span>}
       topbar={
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+          <CommandPalette modules={modules} />
           <HelpDrawer pathname={pathname} fallbackHelpId={activeNavId} />
           <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
           <Tag tone="accent">{roleLabel}</Tag>
