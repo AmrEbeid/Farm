@@ -153,6 +153,42 @@ type AttachmentsTable = {
   Relationships: [];
 };
 
+// ── STAGE 10 Care Academy content, migration 20260701400000 ──
+type AcademyContentTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    title: string;
+    body: string;
+    category: string;
+    has_chemical: boolean;
+    agronomist_name: string | null;
+    signed_at: string | null;
+    pesticide_reg_valid_until: string | null;
+    pesticide_reg_number: string | null;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+    archived: boolean;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    title: string;
+    body?: string;
+    category?: string;
+    has_chemical?: boolean;
+  };
+  Update: {
+    title?: string;
+    body?: string;
+    category?: string;
+    has_chemical?: boolean;
+    archived?: boolean;
+  };
+  Relationships: [];
+};
+
 type StructFunctions = {
   fn_save_sector: {
     Args: {
@@ -346,6 +382,32 @@ type StructFunctions = {
       p_fiscal_year_start?: string | null;
     };
     Returns: undefined;
+  };
+  // ── STAGE 10 Care Academy, migration 20260701400000 ──
+  fn_save_academy_content: {
+    Args: {
+      p_id: string | null;
+      p_org: string;
+      p_title: string;
+      p_body?: string;
+      p_category?: string;
+      p_has_chemical?: boolean;
+    };
+    Returns: Json;
+  };
+  fn_signoff_academy_content: {
+    Args: {
+      p_id: string;
+      p_agronomist_name: string;
+      p_signed_at?: string;
+      p_pesticide_reg_valid_until?: string | null;
+      p_pesticide_reg_number?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_archive_academy_content: {
+    Args: { p_id: string; p_archived?: boolean };
+    Returns: Json;
   };
   // ── #520 multi-material execute: p_material_actuals jsonb, migration 20260701220000 ──
   // Array of {requirement_id, item_id, actual_qty} — one entry per plan_material_requirements row on
@@ -852,6 +914,7 @@ export type Database = Omit<Generated, "public"> & {
       plan_operations: WithOpNote<WithSignoff<WithDependsOn<WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>>>>;
       plan_material_requirements: WithSprayCompliance<Tables["plan_material_requirements"]>;
       attachments: AttachmentsTable;
+      academy_content: AcademyContentTable;
       accounts: AccountsTable;
       journal_entries: JournalEntriesTable;
       journal_lines: JournalLinesTable;
