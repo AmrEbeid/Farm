@@ -64,13 +64,17 @@ export default async function PalmFilePage({
   const sb = await createClient();
   const canSeeFinance = ["owner", "accountant"].includes(m.role);
 
-  // asset (+ its sector/hawsha/line for the breadcrumb), its status history, and its media are
-  // independent reads keyed on the asset id — fetch in parallel. RLS scopes all.
+  // asset (+ its sector/hawsha/line for the breadcrumb), its status history, its media, its past
+  // individual treatments (plan_operations targeted at this palm), and the org's inventory items
+  // (for the treatment form's optional material picker) are independent reads keyed on the asset id
+  // — fetch in parallel. RLS scopes all.
   const [
     { data: asset, error: assetError },
     { data: history, error: historyError },
     attachments,
     linkedWork,
+    { data: treatmentOps, error: treatmentError },
+    { data: items },
   ] = await Promise.all([
     sb
       .from("assets")
@@ -92,10 +96,18 @@ export default async function PalmFilePage({
       entityId: id,
       canSeeFinance,
     }),
+    sb
+      .from("plan_operations")
+      .select("id, subtype, status, planned_at, note")
+      .eq("target_type", "palm")
+      .eq("target_id", id)
+      .order("planned_at", { ascending: false }),
+    sb.from("inventory_items").select("id, name, unit").order("name"),
   ]);
   // Surface DB read failures to the segment error boundary instead of a misleading empty page.
   if (assetError) throw assetError;
   if (historyError) throw historyError;
+  if (treatmentError) throw treatmentError;
 
   if (!asset)
     return (
@@ -219,6 +231,14 @@ export default async function PalmFilePage({
         orgId={m.orgId}
         hawshaRedirect={hawsha?.id ? `/farm/hawsha/${hawsha.id}` : "/farm"}
         attachments={attachments}
+        treatmentItems={items ?? []}
+        treatments={(treatmentOps ?? []).map((o) => ({
+          id: o.id,
+          subtype: o.subtype,
+          status: o.status,
+          plannedAt: o.planned_at ? fmtDate(o.planned_at) : null,
+          note: o.note,
+        }))}
       />
 
       <LinkedWorkKpis context={linkedWork} canSeeFinance={canSeeFinance} />
