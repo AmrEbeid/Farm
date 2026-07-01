@@ -2,28 +2,33 @@
 -- plan_labor_requirements.person_id (migration 20260701250000) so the FK is actually reachable from the
 -- authoring flow, not just a dormant column.
 --
--- Re-emit of fn_add_plan_operation_multi (0093, last re-emitted 20260701170000 for the unit-reconciliation
--- 'kg'-default fix). The ONLY change vs that version: each p_labor jsonb element may now carry an OPTIONAL
--- "person_id" (uuid, nullable/omittable) alongside person_or_team/count/days. When present, it is validated
--- the same way assignee person_ids already are in this function — must be an ACTIVE member of the plan's
--- org — and inserted into the new column; when absent/null, the row is inserted exactly as before
--- (person_id stays null, free-text-only line). Every other line of this function (authz, org guard,
--- multi-day/lead validation, CREATE-2 dedup, material insert, assignee insert) is preserved verbatim.
+-- REBUILD (reconciliation): this branch (#549) now builds on PR #543 (feat/operation-vocabulary,
+-- migration 20260701240000), which appended p_harvest_stage (10th param, default null) to
+-- fn_add_plan_operation_multi and threads it through to the plan_operations insert. Required apply
+-- order: #543 THEN #549. This migration carries #543's body FORWARD BYTE-FOR-BYTE (harvest_stage
+-- param + plan_operations.harvest_stage column write) and layers this branch's own change on top:
+-- each p_labor jsonb element may now carry an OPTIONAL "person_id" (uuid, nullable/omittable)
+-- alongside person_or_team/count/days. When present, it is validated the same way assignee
+-- person_ids already are in this function — must be an ACTIVE member of the plan's org — and
+-- inserted into the new column; when absent/null, the row is inserted exactly as before (person_id
+-- stays null, free-text-only line). Every other line of this function (authz, org guard, multi-day/
+-- lead validation, CREATE-2 dedup, material insert, assignee insert) is preserved verbatim from #543.
 --
 -- Does NOT touch fn_execute_operation (a separate in-flight PR, #545, is independently changing that exact
 -- RPC for a different fix — multi-material actuals — and is not yet merged; touching the same function here
 -- would create an avoidable merge conflict over unrelated changes). Actual-vs-planned man-days at execution
 -- time is therefore explicitly OUT of this migration/PR — see the PR body for the follow-up note.
 create or replace function public.fn_add_plan_operation_multi(
-  p_plan_id      uuid,
-  p_subtype      text,
-  p_planned_at   date,
-  p_ends_on      date,
-  p_est_cost     numeric,
-  p_materials    jsonb,
-  p_labor        jsonb,
-  p_assignee_ids uuid[],
-  p_lead_id      uuid)
+  p_plan_id       uuid,
+  p_subtype       text,
+  p_planned_at    date,
+  p_ends_on       date,
+  p_est_cost      numeric,
+  p_materials     jsonb,
+  p_labor         jsonb,
+  p_assignee_ids  uuid[],
+  p_lead_id       uuid,
+  p_harvest_stage text default null)
 returns jsonb
 language plpgsql
 volatile
@@ -78,9 +83,10 @@ begin
   end if;
 
   insert into public.plan_operations (org_id, plan_id, subtype, target_type, target_id, planned_at,
-                                      ends_on, priority, responsible_person_id, est_cost, approval_needed, status)
+                                      ends_on, priority, responsible_person_id, est_cost, approval_needed,
+                                      status, harvest_stage)
   values (v_org, p_plan_id, p_subtype, coalesce(v_scope_type, 'sector'), v_scope_id, p_planned_at,
-          p_ends_on, 1, p_lead_id, p_est_cost, true, 'planned')
+          p_ends_on, 1, p_lead_id, p_est_cost, true, 'planned', p_harvest_stage)
   returning id into v_op_id;
 
   for v_mat in select * from jsonb_array_elements(coalesce(p_materials, '[]'::jsonb)) loop
@@ -91,6 +97,8 @@ begin
     if coalesce((v_mat->>'qty')::numeric, 0) < 0 then
       raise exception 'material qty must be non-negative' using errcode = '22023';
     end if;
+    -- unit: null when omitted/blank → the trg_pmr_unit_reconcile trigger defaults it to the item's canonical
+    -- unit and rejects a real mismatch (unchanged from #543/20260701170000).
     insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
     values (v_org, v_op_id, (v_mat->>'item_id')::uuid, (v_mat->>'qty')::numeric, nullif(v_mat->>'unit', ''));
     v_n_mat := v_n_mat + 1;
@@ -131,6 +139,10 @@ begin
     'operationId', v_op_id, 'materials', v_n_mat, 'labor', v_n_lab, 'assignees', v_n_asg);
 end $$;
 
-revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid) from public;
-revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid) from anon;
-grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid) to authenticated;
+-- Drop the old 9-arg overload this branch used to re-emit (pre-#543 harvest_stage rebuild), mirroring
+-- #543's own drop of the pre-#543 9-arg overload — avoids leaving an orphaned, ungoverned overload.
+drop function if exists public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid);
+
+revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text) from public;
+revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text) from anon;
+grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text) to authenticated;

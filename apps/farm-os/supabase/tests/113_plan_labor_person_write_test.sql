@@ -57,11 +57,15 @@ select is((select count(*) from public.plan_operations where plan_id = :'plan' a
   0::bigint, 'ATOMICITY: the rejected labour person_id rolled the op back — no orphan operation');
 
 -- ── (c) an inactive same-org person is rejected too (mirrors the assignee active-membership rule) ─────
+-- subtype uses 'pruning_dethorning' (not the old free-text 'pruning') — PR #543's operation-vocabulary
+-- CHECK constraint (20260701230000, rebuilt into this branch's apply chain) now range-checks subtype,
+-- and the plan_operations insert happens BEFORE the labour loop, so a stale/invalid subtype would raise
+-- 23514 (check_violation) and mask the labour-validation 22023 this assertion is actually testing.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok(
-  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'pruning', '2026-07-03'::date, null, 100,
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'pruning_dethorning', '2026-07-03'::date, null, 100,
     '[]'::jsonb, '[{"person_or_team":"x","count":1,"days":1,"person_id":"%s"}]'::jsonb, null, null) $$,
     current_setting('t.plan', true), current_setting('t.inactive', true)),
   '22023', null, 'a labour line cannot reference an INACTIVE person (22023)');
