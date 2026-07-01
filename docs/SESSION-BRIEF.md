@@ -1,7 +1,7 @@
 # Session Brief — Farm OS      Updated: 2026-07-01 by Claude (autonomous session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-01 — connected work graph branch ready for review; not live yet
+## 2026-07-01 — connected work graph LIVE via PR #582
 Responding to the Owner's complaint that hawsha/sub-farm/palm 360s were poor and not connected to operations,
 plans, assignment, person dashboards, accountant dashboard, custody, accounting, and reports, local branch
 `feat/connected-work-graph` now implements the connected-work layer.
@@ -39,7 +39,8 @@ Validation on current `origin/main` base (`59978d5`):
 - `npx vitest run`: **38 files / 353 tests passed**.
 - `bash apps/farm-os/supabase/test-shims/run-pgtap-local.sh`: **1098 ok / 0 not_ok / 0 file_failures**.
 - `npm run build`: green Next production build.
-- PR #582 checks/CodeRabbit: must rerun after pushing the latest rebased head.
+- PR #582 checks/CodeRabbit: green; PR squash-merged to `main` at `e98c3c9`.
+- Main after merge: `ci`, `db-tests`, and `release` green.
 - Prod migration: exact ledger rows repaired for already-applied generated-timestamp migrations. The rollup body was
   already applied/probed on Farm prod (`veezkmytervjnpxcrbkw`); after the latest rebase it is now recorded under exact
   version `20260701390000`. Exact ledger versions `20260701230000`, `20260701235000`, `20260701240000`,
@@ -48,9 +49,14 @@ Validation on current `origin/main` base (`59978d5`):
   function, no four-arg overload, multi-material refusal preserved, full location insert and palm `event_assets`, and
   no anon EXECUTE grant.
 
-Status: PR #582 is prod-migrated and locally green on the latest base. **Not pushed after the latest rebase, not
-merged, and not live yet.** Remaining gates: force-push -> GitHub checks -> merge -> Vercel deploy -> authenticated
-smoke.
+Live smoke:
+- `/` and `/login`: HTTP 200.
+- Protected app routes `/farm`, `/farm/dashboard`, `/m`, `/people/dashboard`, `/finance/dashboard`, `/accounting`,
+  `/custody`, `/plans`, `/plans/dashboard`, `/weather/thresholds`, and `/farm/pest-scouting`: HTTP 307 to `/login`,
+  not 404/500.
+- Representative real sector/hawsha/line/palm 360 URLs from prod IDs: HTTP 307 to `/login`, not 404/500.
+
+Status: connected work graph is merged and live. Authenticated content smoke still needs a logged-in browser session.
 
 ## 2026-07-01 (later addendum) — import templates shipped + accounting/custody audited & roadmapped
 Session under an open "keep working" directive; standing integrity rails held (no fabricated data, CI-green-before-merge, migrate-first, one PR at a time). Merged to `main`:
