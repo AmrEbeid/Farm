@@ -1,6 +1,26 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-01)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-02)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-07-02 (latest) — STAGE 10 ACADEMY LIVE via #366 (`cedf0dd`); prod ledger head `20260701400000`; PR queue = ZERO.**
+> Under the Owner's "keep working until this task and all other open PRs are finished" mandate: the stale
+> Stage-10 draft **#366** was finished properly — fast-forwarded to its maintained head, merged with current
+> `main`, and its migration **renumbered `20260701240000_academy_content` → `20260701400000`** (main had since
+> claimed `240000` for the harvest-stage RPC re-emit; two files on one version would fail the duplicate guard).
+> The migration deliberately does **NOT** re-emit `authorize()` (academy.write already in the live 18-perm
+> union — the re-emit footgun explicitly avoided, verified live by probe). **Independent review (fresh-context
+> reviewer agent): MERGE-READY**; its findings applied (Arabic-Indic sign-off dates via `fmtDate` + test pinning
+> the no-ISO-leak rule, stale comment refs, rollback note, mojibake fix). Validation: local pgTAP **1207/1207**,
+> vitest **398/398**, tsc/eslint clean, production build green. **Migrate-first**: pre-apply probes clean
+> (academy.write live, head `20260701390000`, no collisions); applied via `execute_sql` + explicit ledger row
+> (the `apply_migration` version-footgun pattern); post-apply probes: FORCE RLS ✓, anon EXEC 0/auth 3 ✓,
+> **sign-off columns not client-updatable** ✓ (column-scoped grants), audit trigger ✓. #366 squash-merged after
+> CI green on the final head. The #4 gate is mechanism-live: content renders «قالب استرشادي» until a NAMED
+> agronomist + current Egyptian pesticide registration are recorded — the legal sign-off itself remains the
+> external agronomist's act. Also this pass: **#580** (custody/accounting plan + SPEC-0018-EXT) conflict-resolved,
+> cross-referenced to wave-3 findings, merged; **#597** STATUS pointers merged; earlier same day the Owner-gated
+> batch **#590/#591/#592/#593/#594/#596** merged (incl. the `/purchase-requests` open-orders console — app-only,
+> no migration). Live smoke recorded in SESSION-BRIEF.
 
 > **2026-07-01 (latest) — FULL LIVE DEPLOY: 32 PRs merged, 14 migrations applied, prod ledger reconciled
 > 134/134, Vercel confirmed READY.** Executed the Owner's twice-confirmed "proceed to full live deploy now"
