@@ -261,6 +261,7 @@ export interface LaborLineInput {
   person_or_team: string;
   count: number;
   days: number;
+  person_id?: string | null; // optional cost-basis link (labor cost rollup); null = free-text-only line
 }
 const HARVEST_STAGES = ["khalal", "rutab", "tamar"] as const;
 export type HarvestStage = (typeof HARVEST_STAGES)[number];

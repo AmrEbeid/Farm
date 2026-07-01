@@ -23,7 +23,7 @@ type PersonOpt = { id: string; name: string };
 /** An existing operation in the same plan, offered as a "depends on" target. Never another plan's ops. */
 type OpOpt = { id: string; label: string; plannedAt: string | null };
 type MatRow = { key: number; itemId: string; qty: string };
-type LabRow = { key: number; team: string; count: string; days: string };
+type LabRow = { key: number; team: string; count: string; days: string; personId: string };
 
 // Rough seasonal/operational order (pruning → offshoots → pollen → pollination → bunch work →
 // irrigation/fertilization → pest control → harvest → post-harvest → inspection), sourced from
@@ -139,6 +139,9 @@ export function OperationBuilder({
           person_or_team: l.team,
           count: Number(l.count || 0),
           days: Number(l.days || 0),
+          // Optional cost-basis link (labor cost rollup): only set when the planner picked a real
+          // person from the org's people list; "" (no selection) stays a free-text-only line.
+          person_id: l.personId || null,
         })),
         assignee_ids: assignees,
         lead_id: leadId || null,
@@ -371,6 +374,22 @@ export function OperationBuilder({
                     />
                   </FormRow>
                 </div>
+                {people.length > 0 && (
+                  <div className="flex-1">
+                    {/* Optional cost-basis link (SPEC-0006): pick a real person to price this line off
+                        people_compensation later; leave unset for an informal/day-labor crew — the
+                        free-text "الفريق / العامل" field above still describes the line either way. */}
+                    <FormRow id={`lab-person-${l.key}`} label="ربط بشخص (اختياري، للتكلفة)">
+                      <Select
+                        options={[{ value: "", label: "بدون ربط" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
+                        value={l.personId}
+                        onChange={(e) =>
+                          setLabor((p) => p.map((x) => (x.key === l.key ? { ...x, personId: e.target.value } : x)))
+                        }
+                      />
+                    </FormRow>
+                  </div>
+                )}
                 <Button variant="ghost" aria-label="حذف العمالة" onClick={() => setLabor((p) => p.filter((x) => x.key !== l.key))}>
                   ✕
                 </Button>
@@ -379,7 +398,7 @@ export function OperationBuilder({
             <div>
               <Button
                 variant="ghost"
-                onClick={() => setLabor((p) => [...p, { key: nextKey(), team: "", count: "", days: "" }])}
+                onClick={() => setLabor((p) => [...p, { key: nextKey(), team: "", count: "", days: "", personId: "" }])}
               >
                 + إضافة عمالة
               </Button>

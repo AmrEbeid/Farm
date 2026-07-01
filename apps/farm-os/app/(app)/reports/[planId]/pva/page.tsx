@@ -9,6 +9,7 @@ import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAss
 import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR } from "@/lib/labels";
+import { computeLaborCostRollup, type LaborRequirementCostInput } from "@/lib/payroll";
 
 export default async function PlannedVsActualPage({
   params,
@@ -16,7 +17,7 @@ export default async function PlannedVsActualPage({
   params: Promise<{ planId: string }>;
 }) {
   const { planId } = await params;
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
 
   // The ops list and the done farm_events both filter by plan_id only; the
@@ -25,10 +26,13 @@ export default async function PlannedVsActualPage({
     { data: ops, error: opsError },
     { data: events, error: eventsError },
     { data: plan },
+    { data: canSeeLaborCost },
   ] = await Promise.all([
       sb
         .from("plan_operations")
-        .select("id, subtype, est_cost, status, plan_material_requirements(item_id, qty, unit)")
+        .select(
+          "id, subtype, est_cost, status, plan_material_requirements(item_id, qty, unit), plan_labor_requirements(id, count, days, person_id)",
+        )
         .eq("plan_id", planId)
         .order("priority"),
       // actuals from done farm_events for this plan
@@ -39,11 +43,55 @@ export default async function PlannedVsActualPage({
         .eq("status", "done"),
       // plan header for the real period (the title must not hardcode a sector/date)
       sb.from("plans").select("period_start, period_end").eq("id", planId).maybeSingle(),
+      // Labor cost is wage-derived (SPEC-0006 confidentiality): only owner/accountant (payroll.read)
+      // ever see it. Everyone else gets the page exactly as before — no labor-cost column at all,
+      // never an ambiguous "hidden"/"unpriced" state that could be confused with a real unknown cost.
+      sb.rpc("authorize", { perm: "payroll.read", p_org: m.orgId }),
     ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
   if (opsError) throw opsError;
   if (eventsError) throw eventsError;
+
+  // ── Planned labor cost rollup (payroll.read only) ───────────────────────────────────────────────
+  // people_compensation is itself RLS-gated to payroll.read (migration 0046/0072/0079), so this read
+  // naturally returns nothing for an unauthorized caller — the `canSeeLaborCost` check above is
+  // defense-in-depth, not the only gate, and the UI simply never renders the section otherwise.
+  const laborByOp = new Map<string, ReturnType<typeof computeLaborCostRollup>>();
+  if (canSeeLaborCost) {
+    const personIds = new Set<string>();
+    for (const o of ops ?? []) {
+      for (const l of (o.plan_labor_requirements ?? []) as { person_id: string | null }[]) {
+        if (l.person_id) personIds.add(l.person_id);
+      }
+    }
+    const rates = new Map<string, number>();
+    if (personIds.size > 0) {
+      const { data: comp, error: compErr } = await sb
+        .from("people_compensation")
+        .select("person_id, rate")
+        .in("person_id", [...personIds]);
+      // A failed read must not silently render every labor line as "unpriced" as if genuinely
+      // unknown — surface it like the other read errors on this page.
+      if (compErr) throw compErr;
+      for (const row of comp ?? []) {
+        if (typeof row.rate === "number" && Number.isFinite(row.rate) && row.rate > 0) {
+          rates.set(row.person_id, row.rate);
+        }
+      }
+    }
+    for (const o of ops ?? []) {
+      const lines: LaborRequirementCostInput[] = (
+        (o.plan_labor_requirements ?? []) as {
+          id: string;
+          count: number | null;
+          days: number | null;
+          person_id: string | null;
+        }[]
+      ).map((l) => ({ id: l.id, count: l.count, days: l.days, personId: l.person_id }));
+      laborByOp.set(o.id, computeLaborCostRollup(lines, rates));
+    }
+  }
 
   // #520: a done farm_event now carries `material_actuals` (one entry per material on the op) —
   // `actual_qty`/(the legacy scalar) stays meaningful only for a 0/1-material op (null for >1, where
@@ -141,6 +189,25 @@ export default async function PlannedVsActualPage({
       varQtyStr = "—";
     }
 
+    // cost_per_operation = material cost (est_cost — this codebase has no per-unit material-price
+    // model to derive a true bottom-up material cost, so est_cost is the closest existing proxy;
+    // machinery is out of scope entirely — no machinery data model exists yet) + planned labor cost
+    // (this PR). payroll.read only; the section is entirely absent otherwise (see canSeeLaborCost).
+    const labor = laborByOp.get(o.id);
+    const laborCostLabel = labor
+      ? labor.hasUnpriced
+        ? labor.total > 0
+          ? `${egp(labor.total)} + غير مسعّر`
+          : "غير مسعّر"
+        : egp(labor.total)
+      : undefined;
+    const totalCostLabel =
+      labor && plannedCost != null
+        ? labor.hasUnpriced
+          ? `${egp(plannedCost + labor.total)} + غير مسعّر`
+          : egp(plannedCost + labor.total)
+        : undefined;
+
     return {
       id: o.id,
       op: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
@@ -151,6 +218,8 @@ export default async function PlannedVsActualPage({
       var_qty: varQtyStr,
       var_cost: egp(varCost),
       var_pct: varPct == null ? "—" : `${num(varPct, 1)}٪`,
+      ...(laborCostLabel != null ? { labor_cost: laborCostLabel } : {}),
+      ...(totalCostLabel != null ? { total_cost: totalCostLabel } : {}),
     };
   });
 
@@ -176,6 +245,14 @@ export default async function PlannedVsActualPage({
         />
       ),
     },
+    // Wage-derived — owner/accountant (payroll.read) only; absent from the table for every other
+    // role (SPEC-0006 confidentiality: never a new leak of who-earns-what).
+    ...(canSeeLaborCost
+      ? ([
+          { id: "labor_cost", header: "تكلفة العمالة المخططة", numeric: true },
+          { id: "total_cost", header: "إجمالي التكلفة (خامات + عمالة)", numeric: true },
+        ] as SimpleColumn[])
+      : []),
   ];
 
   const totalPlannedCost = sumMoney(executed.map((o) => o.est_cost));
