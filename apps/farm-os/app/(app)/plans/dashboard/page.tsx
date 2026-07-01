@@ -7,6 +7,7 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryDoughnut, CategoryBarChart } from "@/components/charts";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { fmtDate } from "@/lib/dates";
 import { egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
@@ -190,6 +191,10 @@ export default async function PlanningDashboardPage({
           <HeaderLink href="/m">الميدان</HeaderLink>
         </div>
       </header>
+
+      {/* First-run guidance: no plans exist yet (already-fetched `plans`, no new
+          query) — disappears once the org has a real plan. */}
+      {(plans ?? []).length === 0 && <OnboardingChecklist />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/plans/dashboard?filter=plans" active={filter === "plans"}>
