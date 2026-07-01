@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
 import { egp } from "@/lib/money";
@@ -14,6 +15,14 @@ export interface SimpleColumn {
   header: string;
   kind?: CellKind;
   numeric?: boolean;
+  /**
+   * Escape hatch for interactive/composite cells (badges + inline actions) that the plain
+   * kind-based text formatting below can't express — e.g. assignee badges with a per-item
+   * remove button. When set, this REPLACES `renderCell` for the column entirely; the row's
+   * `row[c.id]` value is not read (the renderer typically closes over external per-row data
+   * instead), so `render`-backed columns are NOT part of exportToCsv's plain-value output.
+   */
+  render?: (row: SimpleRow) => ReactNode;
 }
 
 export interface SimpleRow {
@@ -64,8 +73,10 @@ export function SimpleTable({
               className="font-medium underline underline-offset-4"
               style={{ color: "var(--brand)" }}
             >
-              {renderCell(c, row)}
+              {c.render ? c.render(row) : renderCell(c, row)}
             </Link>
+          ) : c.render ? (
+            c.render(row)
           ) : (
             renderCell(c, row)
           ),

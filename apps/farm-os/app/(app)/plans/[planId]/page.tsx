@@ -9,6 +9,7 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { OperationBuilder } from "@/components/OperationBuilder";
+import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAssignees";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { POTASSIUM_ID } from "@/lib/nav";
@@ -107,12 +108,57 @@ export default async function MonthlyPlanPage({
     return <div className="p-6">الخطة غير موجودة.</div>;
   }
 
+  // #398 follow-up: who's assigned to each operation was stored (plan_operation_assignees) but never
+  // surfaced anywhere. Two flat, non-embedded reads — the assignee rows depend on the op ids just
+  // fetched above, and the person names depend on the assignee rows' person_ids — rather than a
+  // resource-embed (avoids typing a Supabase embed for a table not yet in the generated
+  // database.types.ts; see the augmentation in lib/database.types.ext.ts).
+  const opIds = (ops ?? []).map((o) => o.id);
+  const { data: assigneeRows, error: assigneesError } = opIds.length
+    ? await sb
+        .from("plan_operation_assignees")
+        .select("id, plan_op_id, person_id, is_lead")
+        .in("plan_op_id", opIds)
+    : { data: [], error: null };
+  if (assigneesError) throw assigneesError;
+
+  const assigneePersonIds = [...new Set((assigneeRows ?? []).map((a) => a.person_id))];
+  const { data: assigneePeople, error: assigneePeopleError } = assigneePersonIds.length
+    ? await sb.from("people").select("id, name").in("id", assigneePersonIds)
+    : { data: [], error: null };
+  if (assigneePeopleError) throw assigneePeopleError;
+  const assigneeNameById = new Map((assigneePeople ?? []).map((p) => [p.id, p.name]));
+
+  const assigneesByOp = new Map<string, AssigneeInfo[]>();
+  for (const row of assigneeRows ?? []) {
+    const list = assigneesByOp.get(row.plan_op_id) ?? [];
+    list.push({
+      id: row.id,
+      personId: row.person_id,
+      name: assigneeNameById.get(row.person_id) ?? "غير معروف",
+      isLead: row.is_lead,
+    });
+    assigneesByOp.set(row.plan_op_id, list);
+  }
+
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
     { id: "planned_at", header: "التاريخ" },
     { id: "cost", header: "التكلفة", numeric: true },
     { id: "approval", header: "موافقة؟" },
     { id: "status", header: "الحالة", kind: "status" },
+    {
+      id: "assignees",
+      header: "المكلّفون",
+      render: (row) => (
+        <OperationAssignees
+          planId={planId}
+          opId={row.id}
+          assignees={assigneesByOp.get(row.id) ?? []}
+          canRemove={canEditPlan}
+        />
+      ),
+    },
   ];
   const opRows = (ops ?? []).map((o) => ({
     id: o.id,

@@ -60,6 +60,7 @@ select is(
         'fn_reserve_stock',                       -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
         'fn_add_plan_operation',                  -- atomic plan-operation authoring RPC (CREATE-3 #196, migration 0038)
         'fn_add_plan_operation_multi',            -- atomic multi-line op authoring (materials+labour+assignees+multi-day, #398 slice 2, migration 0093)
+        'fn_unassign_plan_operation',              -- gated un-assign RPC for plan_operation_assignees (#398 follow-up, migration 20260701220000)
         'fn_update_palm_status',                  -- gated + atomic palm status RPC (PALM-STATUS-1 #238, migration 0039)
         'fn_save_sector', 'fn_save_hawsha',       -- gated structure CRUD RPCs (STRUCT-1, migration 0081)
         'fn_save_line', 'fn_save_palm',           -- gated structure CRUD RPCs (STRUCT-1, migration 0081)

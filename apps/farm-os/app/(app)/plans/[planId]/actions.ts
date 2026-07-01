@@ -324,3 +324,35 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
   revalidatePath(`/plans/${planId}`);
   return { ok: true, operationId: result.operationId };
 }
+
+/**
+ * Un-assign a person from a plan operation (#398 follow-up — assignees could be added but never
+ * removed through the app). Wraps fn_unassign_plan_operation (migration 20260701220000), which is
+ * plan.write-gated org-scoped, resolving the org directly from the operation (mirrors
+ * fn_add_plan_operation_multi's org resolution). Un-assigning someone who isn't actually assigned is a
+ * safe no-op server-side (the RPC returns removed:false, no exception) — the action always reports
+ * `ok: true` for that case rather than surfacing a confusing error for what is, from the caller's point
+ * of view, already the desired end state (the person is not assigned).
+ */
+export async function unassignPlanOperationAssignee(planId: string, opId: string, personId: string) {
+  await requireMembership();
+  const sb = await createClient();
+
+  const { error } = await sb.rpc("fn_unassign_plan_operation", {
+    p_op_id: opId,
+    p_person_id: personId,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "ليس لديك صلاحية تعديل الخطة", P0002: "العملية غير موجودة" },
+        "تعذّر إزالة المكلّف",
+      ),
+    };
+  }
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true };
+}
