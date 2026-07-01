@@ -2,24 +2,25 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
-**31 substantive PRs merged, 12 prod migrations (ledger head `20260701180000`), all green on `main`.** Every
+**32 substantive PRs merged, 13 prod migrations (ledger head `20260701190000`), all green on `main`.** Every
 real-code subsystem adversarially audited and every **decision-free** defect fixed. Under the standing "go with
-your recommendation, don't wait" directive I also **implemented the owner-gated items that are safely +
-unambiguously implementable**, each with the full rigor loop (design proposal → define-check-first → pgTAP
-oracle → independent-review agent → migrate-first → prod re-probe). VERIFIED SAFE: multi-tenant isolation, money
-pipeline, append-only integrity, the canonical palm registry (4,380/299/28), bundle hygiene.
+your recommendation, don't wait" directive I also **implemented the owner-gated engine masked-shortage items**,
+each with the full rigor loop (lifecycle investigation → design → define-check-first → pgTAP oracle →
+independent-review agent that PROVES non-masking → migrate-first → prod re-probe). VERIFIED SAFE: multi-tenant
+isolation, money pipeline, append-only integrity, the canonical palm registry (4,380/299/28), bundle hygiene.
 
-**ENGINE masked-shortage model items — 2 of 3 DONE:**
-- ✅ **#509** — engine dropped in_progress/approved op demand (migration `20260701130000`).
+**🎯 ALL THREE ENGINE masked-shortage vectors (the cardinal sin) NOW CLOSED:**
+- ✅ **#509** — engine dropped in_progress/approved op demand (`20260701130000`).
 - ✅ **#216** — unit-model mask, BOTH sides (demand `20260701170000`/#521 + supply `20260701180000`/#522):
-  single-unit enforcement (default null→item.unit, reject a unit ≠ item.unit; errs safe). Prod clean → no
-  backfill. Independent-reviewed. CLOSED.
-- ⏳ **#512 + #199 (reservation model)** — NOT auto-implemented: reserve/release keying is broken at the root
-  (reserve under the SEED_PLAN wedge, release under the op's real plan, no op-level identity), so a fix needs the
-  **reserve-on-approval lifecycle decision** — approval reserving stock CHANGES what "available" shows the Owner
-  = a product decision, not just engineering — plus coordinated app changes. Half-fixing masks/breaks the
-  lifecycle. Decision-ready proposal on #512 (op-keyed reservations); pinned by `tests/105` (todo). **On decision
-  #3 (reserve-on-approval, op-level) I implement the whole thing with the same rigor loop.**
+  single-unit enforcement (reject a unit ≠ item.unit; errs safe). CLOSED.
+- ✅ **#512** — reservation-wipe mask (`20260701190000`/#525): **removed** execute's blind bin-wide release (it
+  owned no per-op reserve → was wiping unrelated earmarks). Minimal change that cannot mask (reserved can only
+  rise → available only falls → over-order, safe); independent review PROVED it arithmetically. `tests/105` now a
+  passing HARD gate. CLOSED.
+- **Remaining reservation work is OVER-ORDER ONLY (safe, never masks):** #199 double-count + **#526** (earmark
+  accumulation from the #512 fix). Both = the op-keyed reservation model (attributed release-on-receipt),
+  owner-gated on ONE decision (**reserve-on-approval? op- vs plan-level?** — changes what "available" shows = a
+  product call). On that decision I implement the whole op-keyed model with the same rigor loop. NOT urgent.
 
 **Other Owner-gated (need a decision or real data — NOT auto-implementable):**
 - **#157 budget enforcement** (display-only) — needs the real chart of budget accounts (financial data, must not
