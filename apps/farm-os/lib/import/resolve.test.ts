@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { resolveRefs, type RefLookup } from "./resolve";
+import { resolveRefs, type RefLookup, reverseResolveRefs, type ReverseRefLookup } from "./resolve";
 import { setSourceRow, type ImportDescriptor } from "./types";
 
 const withRef: ImportDescriptor = {
@@ -91,5 +91,31 @@ describe("resolveRefs", () => {
     const spy = vi.fn(fakeLookup);
     await resolveRefs(descriptor, [{ sectorId: "S-01" }], spy);
     expect(spy.mock.calls[0][0]).toMatchObject({ table: "sectors", activeColumn: "archived", activeValue: false });
+  });
+});
+
+// fake reverse lookup: every id resolves to "<table>:<id>" except "MISSING"
+const fakeReverseLookup: ReverseRefLookup = async (spec, ids) =>
+  new Map(ids.filter((i) => i !== "MISSING").map((i) => [i, `${spec.table}:${i}`]));
+
+describe("reverseResolveRefs", () => {
+  it("passes rows through unchanged when the descriptor has no ref columns", async () => {
+    const rows = await reverseResolveRefs(noRef, [{ name: "a" }], fakeReverseLookup);
+    expect(rows).toEqual([{ name: "a" }]);
+  });
+
+  it("replaces a ref id with its resolved code", async () => {
+    const rows = await reverseResolveRefs(withRef, [{ sectorId: "id-1", name: "حوش 1" }], fakeReverseLookup);
+    expect(rows).toEqual([{ sectorId: "sectors:id-1", name: "حوش 1" }]);
+  });
+
+  it("leaves an empty ref value as an empty string", async () => {
+    const rows = await reverseResolveRefs(withRef, [{ sectorId: "", name: "حوش 1" }], fakeReverseLookup);
+    expect(rows).toEqual([{ sectorId: "", name: "حوش 1" }]);
+  });
+
+  it("falls back to an empty string when an id has no resolvable code", async () => {
+    const rows = await reverseResolveRefs(withRef, [{ sectorId: "MISSING", name: "x" }], fakeReverseLookup);
+    expect(rows).toEqual([{ sectorId: "", name: "x" }]);
   });
 });
