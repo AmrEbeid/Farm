@@ -77,7 +77,7 @@ export function FilterableTable({
               aria-controls={resultsId}
               className="w-full max-w-xs rounded-md px-3 py-2 text-sm"
               style={{
-                border: "1px solid var(--border, rgba(0,0,0,0.15))",
+                border: "1px solid var(--line, rgba(0,0,0,0.15))",
                 backgroundColor: "var(--surface, #fff)",
                 color: "var(--ink, inherit)",
               }}

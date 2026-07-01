@@ -22,7 +22,7 @@ export function OrgSwitcher({
     <select
       aria-label="تبديل المزرعة"
       className="rounded-md border px-2 py-1 text-sm"
-      style={{ borderColor: "var(--border)" }}
+      style={{ borderColor: "var(--line)" }}
       value={activeOrgId ?? ""}
       disabled={pending}
       onChange={(e) => {

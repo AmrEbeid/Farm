@@ -66,7 +66,7 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--border)" }}>
+    <div className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
       <div className="flex flex-wrap gap-2">
         <Button variant="ghost" onClick={() => setOpen(open === "acct" ? null : "acct")}>+ حساب عهدة</Button>
         <Button variant="ghost" onClick={() => setOpen(open === "move" ? null : "move")}>+ حركة عهدة</Button>

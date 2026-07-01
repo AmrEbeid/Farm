@@ -46,7 +46,7 @@ export function AddSupplier() {
     <form
       onSubmit={submit}
       className="flex flex-col gap-3 rounded-lg border p-4"
-      style={{ borderColor: "var(--border)" }}
+      style={{ borderColor: "var(--line)" }}
     >
       {msg && <Alert tone={msg.tone} title={msg.text} />}
       <Field label="اسم المورّد" id="s-name">

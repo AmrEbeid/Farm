@@ -102,7 +102,7 @@ export function MasterTable({
       </header>
 
       {canWrite && open && (
-        <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--border)" }}>
+        <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
           <div role="alert" aria-live="assertive" aria-atomic="true">
             {msg && <Alert tone={msg.tone} title={msg.text} />}
           </div>
