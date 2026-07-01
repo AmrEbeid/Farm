@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { requireMembership } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -8,6 +9,7 @@ import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { TrendLineChart } from "@/components/charts";
 import { getForecast } from "@/lib/weather-server";
 import { computeGates } from "@/lib/weather";
+import { getOrgWeatherThresholds } from "@/lib/weather-thresholds-server";
 import { num } from "@/lib/money";
 
 const GATE_AR: Record<"ok" | "advise" | "unknown", string> = {
@@ -26,6 +28,7 @@ const FILTER_LABEL_AR: Record<string, string> = {
   forecast: "نافذة المخاطر",
   advisory: "أيام بها تنبيه",
   heat: "إجهاد حراري",
+  frost: "خطر صقيع",
 };
 
 export default async function WeatherDashboardPage({
@@ -34,15 +37,17 @@ export default async function WeatherDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter = "all" } = await searchParams;
-  await requireMembership();
-  const result = await getForecast();
+  const m = await requireMembership();
+  const sb = await createClient();
+  const [result, thresholds] = await Promise.all([getForecast(), getOrgWeatherThresholds(sb, m.orgId)]);
   const forecasts = result.forecasts;
   const rowsWithGates = forecasts.map((forecast) => ({
     forecast,
-    gates: computeGates(forecast),
+    gates: computeGates(forecast, thresholds),
   }));
   const advisoryDays = rowsWithGates.filter(({ gates }) => Object.keys(gates.reasons).length > 0).length;
   const heatDays = rowsWithGates.filter(({ gates }) => gates.heatStress).length;
+  const frostDays = rowsWithGates.filter(({ gates }) => gates.frost).length;
   const serviceState = !result.configured ? "غير مفعّلة" : result.error ? "تعذّر الجلب" : forecasts.length ? "مفعّلة" : "لا توجد بيانات";
 
   const gateColumns: SimpleColumn[] = [
@@ -57,6 +62,7 @@ export default async function WeatherDashboardPage({
   const filteredRowsWithGates = rowsWithGates.filter(({ gates }) => {
     if (filter === "advisory") return Object.keys(gates.reasons).length > 0;
     if (filter === "heat") return gates.heatStress;
+    if (filter === "frost") return gates.frost;
     return true;
   });
   const gateRows = filteredRowsWithGates.slice(0, 7).map(({ forecast, gates }) => ({
@@ -100,10 +106,13 @@ export default async function WeatherDashboardPage({
         <div className="flex flex-wrap gap-2">
           <HeaderLink href="/weather">التوقعات التفصيلية</HeaderLink>
           <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
+          {(m.role === "owner" || m.role === "farm_manager") && (
+            <HeaderLink href="/weather/thresholds">تعديل العتبات</HeaderLink>
+          )}
         </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <DashboardKpiLink href="/weather/dashboard?filter=forecast" active={filter === "forecast"}>
           <KpiCard label="أيام التوقعات" value={num(forecasts.length)} />
         </DashboardKpiLink>
@@ -112,6 +121,9 @@ export default async function WeatherDashboardPage({
         </DashboardKpiLink>
         <DashboardKpiLink href="/weather/dashboard?filter=heat" active={filter === "heat"}>
           <KpiCard label="إجهاد حراري" value={num(heatDays)} deltaDirection={heatDays ? "down" : "none"} />
+        </DashboardKpiLink>
+        <DashboardKpiLink href="/weather/dashboard?filter=frost" active={filter === "frost"}>
+          <KpiCard label="خطر صقيع" value={num(frostDays)} deltaDirection={frostDays ? "down" : "none"} />
         </DashboardKpiLink>
         <DashboardKpiLink href="/weather" active={false}>
           <KpiCard label="حالة الخدمة" value={serviceState} />

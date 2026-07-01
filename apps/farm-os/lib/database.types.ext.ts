@@ -11,6 +11,7 @@
 // re-state what's already there). Keep the shapes in sync with migrations 0051–0053.
 
 import type { Database as Generated, Json } from "./database.types";
+import type { WeatherThresholds } from "./weather";
 
 type Public = Generated["public"];
 type Tables = Public["Tables"];
@@ -428,6 +429,14 @@ type OwnerPnlFunctions = {
   fn_owner_pnl_summary: { Args: { p_org: string; p_from: string; p_to: string }; Returns: Json };
 };
 
+// ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
+type WeatherFunctions = {
+  fn_update_weather_thresholds: {
+    Args: { p_org: string; p_thresholds: WeatherThresholds };
+    Returns: undefined;
+  };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses"> & {
@@ -448,7 +457,7 @@ export type Database = Omit<Generated, "public"> & {
       plan_operation_assignees: PlanOperationAssigneesTable;
       plan_operation_templates: PlanOperationTemplatesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions;
   };
 };
 

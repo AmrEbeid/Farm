@@ -159,6 +159,13 @@ export const APP_MODULES: AppModule[] = [
     pages: [
       { id: "weather-dashboard", label: "لوحة الطقس والمخاطر", icon: "🌤️", href: "/weather/dashboard" },
       { id: "weather", label: "الطقس", icon: "🌤️", href: "/weather" },
+      {
+        id: "weather-thresholds",
+        label: "عتبات الطقس",
+        icon: "🌡️",
+        href: "/weather/thresholds",
+        roles: ["owner", "farm_manager"],
+      },
     ],
   },
   {
