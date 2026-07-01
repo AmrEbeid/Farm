@@ -356,3 +356,61 @@ export async function unassignPlanOperationAssignee(planId: string, opId: string
   revalidatePath(`/plans/${planId}`);
   return { ok: true };
 }
+
+interface InstantiateTemplateResult {
+  templateId: string;
+  created: number;
+  deduped: number;
+  occurrences: { operationId: string; plannedAt: string; deduped: boolean }[];
+}
+
+/**
+ * Instantiate a named operation template (SPEC-0019 P1-3 "جداول العمليات") onto a plan: creates one
+ * dated operation per occurrence in the template's recurrence, anchored to `anchorDate`. Delegates
+ * ALL operation-creation logic (validation/atomicity/the (plan,subtype,planned_at) dedup) to
+ * fn_instantiate_operation_template, which itself only ever calls the existing
+ * fn_add_plan_operation_multi in a loop — no operation-creation logic is duplicated here or in SQL.
+ *
+ * A repeat call with the SAME anchor date on the SAME plan is dedup-safe: every occurrence lands on
+ * the SAME planned_at as before, so the RPC's existing CREATE-2 dedup returns `deduped: true` for
+ * each one instead of creating a duplicate — surfaced honestly via `deduped`/`created` counts rather
+ * than reported as a plain success.
+ */
+export async function instantiateOperationTemplate(
+  planId: string,
+  templateId: string,
+  anchorDate: string, // yyyy-mm-dd
+) {
+  await requireMembership();
+
+  if (!anchorDate) {
+    return { ok: false as const, error: "اختر تاريخًا مرجعيًا لبدء البرنامج" };
+  }
+
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_instantiate_operation_template", {
+    p_plan_id: planId,
+    p_template_id: templateId,
+    p_anchor_date: anchorDate,
+  });
+  if (error) {
+    return {
+      ok: false as const,
+      error: toArabicError(
+        error,
+        {
+          "42501": "ليس لديك صلاحية تعديل الخطة",
+          P0002: "الخطة أو البرنامج غير موجود",
+          "22023": "بيانات غير صالحة",
+        },
+        "تعذّر تطبيق البرنامج",
+      ),
+    };
+  }
+
+  const result = data as InstantiateTemplateResult | null;
+  if (!result) return { ok: false as const, error: "تعذّر تطبيق البرنامج" };
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true as const, ...result };
+}

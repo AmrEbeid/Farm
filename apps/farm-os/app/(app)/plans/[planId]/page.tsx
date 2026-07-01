@@ -10,6 +10,7 @@ import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { OperationBuilder } from "@/components/OperationBuilder";
 import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAssignees";
+import { OperationTemplatePicker, type TemplateOpt } from "@/components/OperationTemplatePicker";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { POTASSIUM_ID } from "@/lib/nav";
@@ -68,13 +69,14 @@ export default async function MonthlyPlanPage({
   const canEditPlan = ["owner", "farm_manager"].includes(m.role);
   const sb = await createClient();
 
-  // These four reads are independent, so issue them in parallel.
+  // These reads are independent, so issue them in parallel.
   const [
     { data: plan, error: planError },
     { data: ops, error: opsError },
     { data: checks, error: checksError },
     { data: items, error: itemsError },
     { data: people, error: peopleError },
+    { data: templates, error: templatesError },
   ] = await Promise.all([
     sb
       .from("plans")
@@ -93,6 +95,9 @@ export default async function MonthlyPlanPage({
     sb.from("inventory_items").select("id, name, unit").order("name"),
     // Active employees for the operation-assignee picker (#398). Org-scoped by RLS; names only.
     sb.from("people").select("id, name").eq("active", true).order("name"),
+    // SPEC-0019 P1-3: the org's named operation templates ("جداول العمليات"), for the
+    // "استخدام برنامج جاهز" instantiate picker. Org-scoped by RLS; read is unaffected by plan.write.
+    sb.from("plan_operation_templates").select("id, name, subtype, recurrence").order("name"),
   ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
@@ -101,6 +106,7 @@ export default async function MonthlyPlanPage({
   if (checksError) throw checksError;
   if (itemsError) throw itemsError;
   if (peopleError) throw peopleError;
+  if (templatesError) throw templatesError;
 
   // .maybeSingle() returns null (no error) for a bogus or RLS-hidden id — show a
   // not-found message instead of rendering a blank "الخطة " header (mirrors farm/sector).
@@ -140,6 +146,13 @@ export default async function MonthlyPlanPage({
     });
     assigneesByOp.set(row.plan_op_id, list);
   }
+
+  const templateOptions: TemplateOpt[] = (templates ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    subtype: t.subtype,
+    occurrenceCount: Array.isArray(t.recurrence) ? t.recurrence.length : 0,
+  }));
 
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
@@ -233,6 +246,7 @@ export default async function MonthlyPlanPage({
             <>
               <PlanStatusActions planId={planId} status={planStatus} />
               <PlanChecksRunner planId={planId} />
+              <OperationTemplatePicker planId={planId} templates={templateOptions} />
               <OperationBuilder planId={planId} items={items ?? []} people={people ?? []} />
             </>
           ) : undefined

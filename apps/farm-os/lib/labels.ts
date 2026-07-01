@@ -42,6 +42,10 @@ export const SUBTYPE_AR: Record<string, string> = {
   spraying: "رش",
   pollination: "تلقيح",
   inspection: "تفتيش",
+  // Not yet offered by OperationBuilder's fixed <select> — only reachable today via an
+  // instantiated operation template (fn_instantiate_operation_template). Matches the eventual
+  // controlled vocabulary text (SPEC-0019 / PR #543, not merged) without depending on it.
+  pest_scouting: "فحص مصائد السوسة",
 };
 
 export const PLAN_TYPE_AR: Record<string, string> = {
