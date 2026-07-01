@@ -2,25 +2,30 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
-**32 substantive PRs merged, 13 prod migrations (ledger head `20260701190000`), all green on `main`.** Every
+**36 substantive PRs merged, 15 prod migrations (ledger head `20260701210000`), all green on `main`.** Every
 real-code subsystem adversarially audited and every **decision-free** defect fixed. Under the standing "go with
 your recommendation, don't wait" directive I also **implemented the owner-gated engine masked-shortage items**,
 each with the full rigor loop (lifecycle investigation → design → define-check-first → pgTAP oracle →
 independent-review agent that PROVES non-masking → migrate-first → prod re-probe). VERIFIED SAFE: multi-tenant
 isolation, money pipeline, append-only integrity, the canonical palm registry (4,380/299/28), bundle hygiene.
 
-**🎯 ALL THREE ENGINE masked-shortage vectors (the cardinal sin) NOW CLOSED:**
+**🎯 ALL FIVE ENGINE masked-shortage vectors found this session (the cardinal sin) are CLOSED; a final holistic
+re-audit confirms the engine is masked-shortage-free:**
 - ✅ **#509** — engine dropped in_progress/approved op demand (`20260701130000`).
 - ✅ **#216** — unit-model mask, BOTH sides (demand `20260701170000`/#521 + supply `20260701180000`/#522):
-  single-unit enforcement (reject a unit ≠ item.unit; errs safe). CLOSED.
-- ✅ **#512** — reservation-wipe mask (`20260701190000`/#525): **removed** execute's blind bin-wide release (it
-  owned no per-op reserve → was wiping unrelated earmarks). Minimal change that cannot mask (reserved can only
-  rise → available only falls → over-order, safe); independent review PROVED it arithmetically. `tests/105` now a
-  passing HARD gate. CLOSED.
+  reject a unit ≠ item.unit; errs safe. CLOSED.
+- ✅ **#512** — reservation-wipe mask (`20260701190000`/#525): removed execute's blind release (proved arithmetically
+  it can only raise reserved → over-order). `tests/105` now a passing HARD gate. CLOSED.
+- ✅ **#529** (`20260701200000`) — a REGRESSION my own #509 introduced: widening the ORIGIN `min(planned_at)` query let
+  a stale-dated in_progress op push near-term demand past the horizon. Fix: clamp the bucket origin to today. `tests/110`.
+- ✅ **#530** (`20260701210000`) — a latent interaction of #216 supply: `fn_post_receipt` passed the PR-line unit → a
+  non-kg mismatch rejected the receipt → stuck-'approved' PR → phantom supply. Fix: inherit the item unit. `tests/111`.
+  ⚠️ **Lesson: after engine changes, re-audit the COMBINED state (per-change reviews miss interactions) + prod-probe
+  every touched table.** See memory `farm-engine-reservation-masked-shortages`.
 - **Remaining reservation work is OVER-ORDER ONLY (safe, never masks):** #199 double-count + **#526** (earmark
-  accumulation from the #512 fix). Both = the op-keyed reservation model (attributed release-on-receipt),
-  owner-gated on ONE decision (**reserve-on-approval? op- vs plan-level?** — changes what "available" shows = a
-  product call). On that decision I implement the whole op-keyed model with the same rigor loop. NOT urgent.
+  accumulation). Both = the op-keyed reservation model (attributed release-on-receipt), owner-gated on ONE decision
+  (**reserve-on-approval? op- vs plan-level?** — changes what "available" shows = a product call; full evidence #526).
+  On that decision I implement the whole op-keyed model with the same rigor loop. NOT urgent.
 
 **Other Owner-gated (need a decision or real data — NOT auto-implementable):**
 - **#157 budget enforcement** (display-only) — needs the real chart of budget accounts (financial data, must not
