@@ -1,7 +1,34 @@
-# Session Brief — Farm OS      Updated: 2026-07-01 by Claude (autonomous session, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-02 by Claude (review/strategy session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-01 (latest) — FULL LIVE DEPLOY: 32 PRs merged, 14 migrations applied, production confirmed READY
+## 2026-07-02 (latest) — 360° review + boom strategy recorded; STATUS.md is the source of truth
+
+Owner-gated docs chain merged **#586 → #588 → #589** (explicit "go"; #586's prepend conflicts in this file +
+the tracker resolved keeping both sides). Where things now live:
+- **`STATUS.md`** — THE current-state doc (stage table, ranked owner-decision queue, feature freeze until
+  Stage-M real data). If any doc disagrees with it, STATUS wins.
+- **`REVIEW-360-2026-07-01.md`** — the full 5-lane review record with the frontend work-list (F1–F11: offline
+  outbox, OperationBuilder fabricated-zero fix, 8 forms network-catch, storekeeper `/m/receive`, bidi `<Code>`,
+  field-level validation, consistency polish) and the money-integrity DB lane (custody↔GL magic-string P1,
+  `audit_read` completeness pin, `fn_reverse_journal_entry`, custody balance floor).
+- **`BOOM-PLAN-2026-07.md`** — the growth strategy (reposition as the absentee owner's control/anti-leakage
+  instrument; OS-ification lane P1–P5: execution→expense/GL, labor→cost, harvest+revenue, real #157 gate +
+  engine aggregation, pending-actions inbox; sell through exporters + agronomist consultants; harvest-aligned
+  billing; renewal rate = the year-1 metric; **5 Owner decision asks in §8**).
+- **`LINKAGE-MAP-2026-07-02.md`** — code-verified loop audit; verdict: integrated OS for materials, adjacent
+  modules for money/labor/yield/signals; zero notification infrastructure.
+- **`RESEARCH-customer-demand-2026-07-02.md`** — personas/pains/WTP/triggers + the ready 10-question Arabic
+  design-partner interview guide (the leakage-positioning linchpin is UNVALIDATED until those interviews).
+- **`RESEARCH-gtm-growth-levers-2026-07-02.md`** — channel evidence + services-led verdict + 12-month sequence.
+- **ETA correction:** the "EGP-250k threshold / deadline passed" claim failed cross-verification and is marked
+  DISPUTED everywhere; the accountant determination (#577/#578 meeting) is unchanged as top action.
+
+**Standing directive (Owner, 2026-07-02): sessions create PRs and STOP — the Owner merges.** In flight next:
+an operations-module-focused 360 (planning/templates/scheduling/execution/field flow) + ops market/customer
+research, to land as its own docs PR for the Owner's gate. No code, migration, prod apply, or production data
+change from this session beyond the merged docs chain.
+
+## 2026-07-01 — FULL LIVE DEPLOY: 32 PRs merged, 14 migrations applied, production confirmed READY
 Owner explicitly, twice, asked whether to proceed with a full unattended live deploy of all 30 accumulated draft
 PRs (staged as the recommended, safer sequence — no-schema PRs first, then schema-bearing PRs in dependency
 order — rather than one simultaneous batch); Owner's final answer both times was **"Yes, proceed to full live
