@@ -33,17 +33,18 @@ select set_config('t.fm', (select user_id::text from public.organization_member
 select set_config('t.store', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
 
--- ── grant lockdown on the re-created (11-arg) fn_add_plan_operation_multi ───────────────────────────
--- 11 args: #543's p_harvest_stage (10th) is now rebuilt into this branch's apply chain (#543 -> #549 ->
--- #562), with this branch's own p_preferred_time_of_day as the trailing 11th.
+-- ── grant lockdown on the re-created fn_add_plan_operation_multi ───────────────────────────────────
+-- 13 args as of the full reconciled apply chain (#543 -> #549 -> #562 -> #560): #543's p_harvest_stage
+-- (10th), this branch's own p_preferred_time_of_day (11th), #560's p_irrigation_basis (12th) and
+-- p_soil_moisture_reading (13th) — this file's own arg-count comment predates that later reconciliation.
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
   '20260701320000: anon cannot EXECUTE the re-created fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
   '20260701320000: authenticated CAN EXECUTE the re-created fn_add_plan_operation_multi');
 select ok(not has_function_privilege('public',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
   '20260701320000: the superseded 10-arg overload is gone / new overload not PUBLIC-executable');
 
 -- ── (a) target_zone CHECK enum on plan_material_requirements ────────────────────────────────────────
