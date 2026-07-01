@@ -1,20 +1,22 @@
 -- 97 — authorize() permission-completeness invariant.
 -- authorize(perm, p_org) is RE-EMITTED by multiple migrations, each adding one permission (0035 base →
 -- 0046 payroll.read → 0081 structure.write → 0091 academy.write → 0092 export.write → #444
--- responsibility.write → #438 finance/custody/request permissions). A re-emit that copies from an
--- OLDER base silently DROPS permissions added by intervening migrations — caught in integration:
--- #400's 0092 (export.write) had dropped #366's 0091 academy.write, breaking the whole Care Academy
--- gate. This pins the full union so any future re-emit that omits a known permission fails CI, and pins
--- the finance-only SPEC-0018 role semantics so stale forward-compat comments cannot re-broaden access.
+-- responsibility.write → #438 finance/custody/request permissions → agronomist-signoff-gate
+-- agronomy.signoff). A re-emit that copies from an OLDER base silently DROPS permissions added by
+-- intervening migrations — caught in integration: #400's 0092 (export.write) had dropped #366's 0091
+-- academy.write, breaking the whole Care Academy gate. This pins the full union so any future re-emit
+-- that omits a known permission fails CI, and pins the finance-only SPEC-0018 role semantics so stale
+-- forward-compat comments cannot re-broaden access.
 -- Run via supabase test db or test-shims/run-pgtap-local.sh.
 begin;
-select plan(12);
+select plan(16);
 
 \set org '00000000-0000-0000-0000-000000000001'
 
 select set_config('test.accountant', (select user_id::text from public.organization_member where org_id=:'org' and role='accountant' limit 1), false);
 select set_config('test.manager',    (select user_id::text from public.organization_member where org_id=:'org' and role='farm_manager' limit 1), false);
 select set_config('test.owner',      (select user_id::text from public.organization_member where org_id=:'org' and role='owner' limit 1), false);
+select set_config('test.engineer',   (select user_id::text from public.organization_member where org_id=:'org' and role='agri_engineer' limit 1), false);
 
 create or replace function pg_temp.as_user(uid text) returns void language plpgsql as $$
 begin
@@ -27,7 +29,8 @@ select is(
      from unnest(array[
        'pr.approve', 'plan.write', 'op.execute', 'inventory.write', 'budget.write',
        'payroll.read', 'structure.write', 'academy.write', 'export.write', 'responsibility.write',
-       'finance.read', 'custody.write', 'request.prepare', 'request.approve.op', 'request.approve.final'
+       'finance.read', 'custody.write', 'request.prepare', 'request.approve.op', 'request.approve.final',
+       'agronomy.signoff'
      ]) as perm
      where position(perm in pg_get_functiondef('public.authorize(text, uuid)'::regprocedure)) = 0),
   0,
@@ -51,6 +54,21 @@ reset role;
 
 select pg_temp.as_user(current_setting('test.owner'));
 select is(public.authorize('request.approve.final', :'org'), true, 'request.approve.final: owner HAS it');
+select is(public.authorize('agronomy.signoff', :'org'), true, 'agronomy.signoff: owner HAS it');
+reset role;
+
+-- agronomy.signoff (agronomist-signoff-gate): owner + agri_engineer (REASONABLE DEFAULT, not a final
+-- Owner decision on sign-off authority) — everyone else does NOT.
+select pg_temp.as_user(current_setting('test.engineer'));
+select is(public.authorize('agronomy.signoff', :'org'), true, 'agronomy.signoff: agri_engineer HAS it');
+reset role;
+
+select pg_temp.as_user(current_setting('test.manager'));
+select is(public.authorize('agronomy.signoff', :'org'), false, 'agronomy.signoff: farm_manager does NOT');
+reset role;
+
+select pg_temp.as_user(current_setting('test.accountant'));
+select is(public.authorize('agronomy.signoff', :'org'), false, 'agronomy.signoff: accountant does NOT');
 reset role;
 
 select * from finish();

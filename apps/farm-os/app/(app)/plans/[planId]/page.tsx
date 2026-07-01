@@ -11,12 +11,19 @@ import { EntityTabs } from "@/components/EntityTabs";
 import { OperationBuilder } from "@/components/OperationBuilder";
 import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAssignees";
 import { OperationTemplatePicker, type TemplateOpt } from "@/components/OperationTemplatePicker";
+import { OperationSignOff } from "@/components/OperationSignOff";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { POTASSIUM_ID } from "@/lib/nav";
 import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR, PLAN_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
+import {
+  OP_STATUS_AR,
+  PLAN_STATUS_AR,
+  SUBTYPE_AR,
+  isDoseBearingSubtype,
+  isExecutableOpStatus,
+} from "@/lib/labels";
 import { formatDependencyLabel } from "@/lib/relative-schedule";
 
 const PLAN_TYPE_AR: Record<string, string> = {
@@ -68,6 +75,11 @@ export default async function MonthlyPlanPage({
   // Only plan.write roles can add operations / run plan checks (the actions 42501 otherwise) —
   // don't show the edit controls to the other roles as dead-end affordances.
   const canEditPlan = ["owner", "farm_manager"].includes(m.role);
+  // agronomy.signoff (agronomist-signoff-gate, docs/CLAUDE.md non-negotiable #4): defense-in-depth UI
+  // mirror of the DB gate (authorize()'s owner/agri_engineer grant is a REASONABLE DEFAULT, not the
+  // Owner's final word on who the named agronomist is — see the migration header). The RPC re-checks
+  // this itself regardless of what this hides.
+  const canSignOff = ["owner", "agri_engineer"].includes(m.role);
   const sb = await createClient();
 
   // These reads are independent, so issue them in parallel.
@@ -87,7 +99,7 @@ export default async function MonthlyPlanPage({
     sb
       .from("plan_operations")
       .select(
-        "id, subtype, planned_at, est_cost, status, approval_needed, depends_on_op_id, depends_on_offset_days",
+        "id, subtype, planned_at, est_cost, status, approval_needed, depends_on_op_id, depends_on_offset_days, signed_off_by, signed_off_at",
       )
       .eq("plan_id", planId)
       .order("planned_at"),
@@ -173,6 +185,21 @@ export default async function MonthlyPlanPage({
     if (!dep) return "";
     return formatDependencyLabel(opLabel(dep), o.depends_on_offset_days);
   };
+
+  // Sign-off (agronomist-signoff-gate): names for whoever signed off — a small follow-up read rather
+  // than an embedded PostgREST join, since signed_off_by can (in principle) point at a person outside
+  // the active-employee list already fetched above. Skipped entirely when nothing is signed.
+  const signedOffIds = [...new Set((ops ?? []).map((o) => o.signed_off_by).filter((id): id is string => !!id))];
+  const { data: signers, error: signersError } =
+    signedOffIds.length > 0
+      ? await sb.from("people").select("id, name").in("id", signedOffIds)
+      : { data: [], error: null };
+  if (signersError) throw signersError;
+  const signerNameById = new Map((signers ?? []).map((p) => [p.id, p.name]));
+
+  // Dose-bearing ops (fertilization/spraying) needing agronomist sign-off (non-negotiable #4). This is
+  // a GENERIC mechanism — it does not gate execution or the engine's demand in this slice.
+  const signoffOps = (ops ?? []).filter((o) => isDoseBearingSubtype(o.subtype));
 
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
@@ -378,7 +405,35 @@ export default async function MonthlyPlanPage({
           id={tabPanelId("operations")}
           aria-labelledby={tabId("operations")}
           tabIndex={0}
+          className="flex flex-col gap-4"
         >
+          {signoffOps.length > 0 && (
+            // agronomist-signoff-gate (non-negotiable #4): a dose-bearing op (fertilization/spraying)
+            // is a TEMPLATE, not a prescription, until a named agronomist signs off. This is the
+            // GENERIC mechanism only — execution/engine behaviour is unchanged by this state.
+            <Card title="اعتماد العمليات ذات الجرعات">
+              <ul className="flex flex-col gap-3">
+                {signoffOps.map((o) => (
+                  <li
+                    key={o.id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-b-0 last:pb-0"
+                    style={{ borderColor: "var(--line)" }}
+                  >
+                    <span>
+                      {SUBTYPE_AR[o.subtype ?? ""] ?? "عملية"} — {fmtDate(o.planned_at)}
+                    </span>
+                    <OperationSignOff
+                      planId={planId}
+                      opId={o.id}
+                      signedOffByName={o.signed_off_by ? (signerNameById.get(o.signed_off_by) ?? null) : null}
+                      signedOffAt={o.signed_off_at}
+                      canSignOff={canSignOff}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card title="العمليات المخطّطة">
             <SimpleTable columns={opColumns} rows={opRows} ariaLabel="العمليات المخطّطة" empty="لا توجد عمليات بعد" />
           </Card>

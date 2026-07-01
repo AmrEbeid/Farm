@@ -677,6 +677,19 @@ type PestScoutingFunctions = {
   };
 };
 
+// ── agronomist-signoff-gate (docs/CLAUDE.md non-negotiable #4) — plan_operations.signed_off_by/at +
+// fn_sign_off_plan_operation. Augmented here until database.types.ts is regenerated from prod (then a
+// harmless no-op, like the other augmentations in this file). ──
+type WithSignoff<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { signed_off_by: string | null; signed_off_at: string | null };
+  Insert: T["Insert"] & { signed_off_by?: string | null; signed_off_at?: string | null };
+  Update: T["Update"] & { signed_off_by?: string | null; signed_off_at?: string | null };
+  Relationships: T["Relationships"];
+};
+type SignoffFunctions = {
+  fn_sign_off_plan_operation: { Args: { p_op_id: string }; Returns: Json };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations"> & {
@@ -685,7 +698,7 @@ export type Database = Omit<Generated, "public"> & {
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
-      plan_operations: WithDependsOn<Tables["plan_operations"]>;
+      plan_operations: WithSignoff<WithDependsOn<Tables["plan_operations"]>>;
       attachments: AttachmentsTable;
       accounts: AccountsTable;
       journal_entries: JournalEntriesTable;
@@ -701,7 +714,7 @@ export type Database = Omit<Generated, "public"> & {
       pest_trap_catches: PestTrapCatchesTable;
       pest_incidents: PestIncidentsTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions;
   };
 };
 
