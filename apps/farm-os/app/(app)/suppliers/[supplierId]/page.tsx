@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import type { TabItem } from "@amrebeid/ui";
-import { Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
+import { Breadcrumbs, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -178,6 +178,14 @@ export default async function Supplier360Page({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "suppliers", label: "الموردون", href: "/suppliers" },
+          { id: "supplier", label: supplier.name },
+        ]}
+      />
+
       <Entity360Header
         title={`ملف المورّد — ${supplier.name}`}
         subtitle="نظرة 360 على الأصناف والطلبات وحركات المخزون المرتبطة."

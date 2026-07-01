@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Card, Stat, EmptyState } from "@/components/ui";
+import { Breadcrumbs, Card, Stat, EmptyState } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { VarianceChart } from "@/components/charts";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
@@ -102,6 +102,21 @@ export default async function PlannedVsActualPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "plans", label: "كل الخطط", href: "/plans" },
+          {
+            id: "plan",
+            label: plan?.period_start
+              ? `${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`
+              : "الخطة",
+            href: `/plans/${planId}`,
+          },
+          { id: "pva", label: "المخطط مقابل الفعلي" },
+        ]}
+      />
+
       <Entity360Header
         title="المخطط مقابل الفعلي"
         subtitle={

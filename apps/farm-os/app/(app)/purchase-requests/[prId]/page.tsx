@@ -1,7 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
-import { Alert, Card, KpiCard, ApprovalChain, DescriptionList, type ApprovalStep } from "@/components/ui";
+import {
+  Alert,
+  Breadcrumbs,
+  Card,
+  KpiCard,
+  ApprovalChain,
+  DescriptionList,
+  type ApprovalStep,
+} from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -137,6 +145,14 @@ export default async function PurchaseRequestPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "purchase-requests", label: "طلبات الشراء", href: "/purchase-requests" },
+          { id: "pr", label: `طلب شراء ${pr.code}` },
+        ]}
+      />
+
       <Entity360Header
         title={`طلب شراء ${pr.code}`}
         subtitle={`${pr.reason ?? "بدون سبب"} · مطلوب بحلول ${pr.needed_by ? fmtDate(pr.needed_by) : "—"}`}

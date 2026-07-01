@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { VerdictBanner, KpiCard, Card } from "@/components/ui";
+import { Breadcrumbs, VerdictBanner, KpiCard, Card } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { PabChart } from "@/components/charts";
 import { CreatePrButton } from "@/components/CreatePrButton";
@@ -102,6 +102,15 @@ export default async function CoveragePage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "inventory", label: "الأصناف", href: "/inventory" },
+          { id: "item", label: item?.name ?? "صنف", href: `/inventory/${itemId}` },
+          { id: "coverage", label: "تغطية المخزون" },
+        ]}
+      />
+
       <Entity360Header
         title={`تغطية المخزون — ${item?.name ?? "صنف"}`}
         subtitle="محرّك التغطية (fn_stock_coverage)"

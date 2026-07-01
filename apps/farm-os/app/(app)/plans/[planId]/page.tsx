@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Alert, Card, KpiCard, LoopStepper, type LoopStep } from "@/components/ui";
+import { Alert, Breadcrumbs, Card, KpiCard, LoopStepper, type LoopStep } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -166,6 +166,17 @@ export default async function MonthlyPlanPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "plans", label: "كل الخطط", href: "/plans" },
+          {
+            id: "plan",
+            label: `الخطة ${PLAN_TYPE_AR[plan.type ?? ""] ?? ""} · ${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`,
+          },
+        ]}
+      />
+
       <Entity360Header
         title={`الخطة ${PLAN_TYPE_AR[plan.type ?? ""] ?? ""}`}
         subtitle={`${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`}
