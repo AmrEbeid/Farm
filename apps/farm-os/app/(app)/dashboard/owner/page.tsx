@@ -162,6 +162,7 @@ export default async function OwnerDashboard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/budgets"><Button variant="ghost" size="sm">الموازنات</Button></Link>
+          <Link href="/finance/pnl"><Button variant="ghost" size="sm">قائمة الدخل</Button></Link>
           <Link href="/purchase-requests"><Button variant="primary" size="sm">طلبات الشراء</Button></Link>
         </div>
       </header>
