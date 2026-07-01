@@ -190,6 +190,52 @@ doubles as the GlobalGAP justification artifact. **Requires the Owner to name th
 `bash apps/farm-os/supabase/test-shims/run-pgtap-local.sh` (authoritative DB gate; add oracle tests for P0‑1 and
 any engine‑touching change) · independent review for engine/security‑touching PRs.
 
+## 8. Ground-truth refinements from real farm reports (2026‑07‑02)
+
+The Owner shared two real monthly operational reports from the farm (personnel names withheld here per
+`docs/CLAUDE.md`'s hard stop on staff PII — only the *operational pattern* is used). One is a forward‑looking
+program from the farm's consulting agronomist, organized by **palm age‑cohort** (large producing / young‑training
+/ new plantings); the other is the farm's monthly execution report, organized by **physical block** (real plot
+names, e.g. a 22‑feddan block, several named حياض/حوض blocks, and a newer‑plantings block), recording actual
+irrigation cadence, the fertigation doses applied, and per‑operation date ranges. This is a real, independent
+confirmation of the agronomist‑recommendation → farm‑work‑order pattern in §3.6/§3.3, and it surfaces concrete
+refinements this spec should carry:
+
+- **Irrigation is not calendar‑fixed.** One cohort's program reads "N irrigations over the rest of the month,
+  based on a soil‑moisture test" — frequency is a soil‑test‑driven decision, not a static schedule. Observed
+  cadences also vary hugely by block/age (e.g. 3×/week at 2h vs. 2×/week at 1h vs. every 6 days at 2h). §3 should
+  add a **soil‑test‑driven irrigation planning mode** alongside the fixed‑calendar mode, not replace it.
+- **Fertigation is a numbered cycle, not a flat repeat list.** Both reports list 6–8 sequential, distinct
+  multi‑chemical doses (a monthly micronutrient dose called out separately from the main NPK rotation). The
+  **operation templates** feature (already built this session, §4 P1‑3) should track a dose's **position in the
+  cycle**, not just repeat identical lines — refine the template's `recurrence` shape to carry per‑occurrence
+  distinct line items (it already technically supports this; make it the *documented, intended* usage, and seed
+  a realistic 6–8‑step fertigation template using this pattern rather than a uniform repeat).
+- **Spray timing is relative and time‑of‑day‑sensitive, not just dated.** Real instructions read "spray only at
+  day's end once the heat breaks" (to avoid fruit deformity) and "cover the bunches before 6/25" — a deadline
+  tied to a *different* operation (bagging) completing after a spray. §3.5's spray‑compliance record should add
+  a **time‑of‑day** field (not just a date) and §3.3's lifecycle should support an operation's `planned_at` being
+  expressed **relative to another operation** (e.g. "N days after op X"), not only an absolute date.
+- **Spray/drench records need a target‑zone field.** Real instructions specify the exact plant part treated —
+  "drench the bunch‑stalks and palm crown," "spray the bunches only" — not just "the palm." Add a `target_zone`
+  enum (bunch / crown / trunk / offshoot / whole‑palm) to the spray‑compliance record in §3.5.
+- **Individual "weak palm" rescue treatments already happen in practice**, alongside block‑wide bulk fertigation
+  — a root‑stimulant drench targeted at specific ailing palms, separate from the cohort program. This is real
+  evidence for **decision D1**: block/hawsha‑level operations are right for the bulk case, but a lightweight
+  **individual‑palm exception/rescue operation** is worth supporting sooner than the full per‑palm registry
+  rollout, since it's already how the farm actually works.
+- **Offshoot care has a concrete, real recurring cadence** — a root‑stimulant drench "every 21 to 30 days,"
+  dosed per‑offshoot (3–5 L of solution around the offshoot body). This is a ready‑made third seed template
+  (alongside the fertigation‑split and pollination‑round templates already seeded in PR #552).
+- **This is a mixed orchard, not pure date‑palm** — the execution report explicitly includes mango‑tree pruning.
+  Flagged for the Owner's awareness rather than decided here: the current operation vocabulary (§3.2, PR #543)
+  is date‑palm‑specific; whether to add a light non‑palm‑crop escape hatch (or treat it as out of scope) is a
+  product call, not an engineering one.
+
+None of the real block/plot names or chemical‑dose specifics above have been seeded into the app's synthetic dev
+data — that would be a real‑data‑import decision for the Owner to make deliberately, distinct from (though
+related to) the Stage‑M PII review that gates staff-personnel data specifically.
+
 ---
 *Sources behind this spec (external research, 2026‑07‑01): FAO Date‑Palm guide Y4360E (technical calendar /
 pollination / irrigation / propagation), FAO RPW management guidelines, Egyptian APC (apc.gov.eg), Egyptian NPK/
