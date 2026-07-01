@@ -3,8 +3,16 @@
 *Canonical product description for business, product, design, engineering, onboarding, and AI agents.
 **Ground truth = the current `main` branch** (status refreshed 2026-06-30; deep reconcile last completed 2026-06-27
 against migrations, routes, libs, RPCs, and
-[`RECONCILE-001`](RECONCILE-001-main-ground-truth-2026-06-27.md)). Where this file and an older document
-disagree, this file and RECONCILE-001 win. Items not verifiable on `main` are marked **Needs verification** or
+[`RECONCILE-001`](RECONCILE-001-main-ground-truth-2026-06-27.md)).*
+
+> ⚠️ **Currency note (2026-07-02):** this file's status content predates the 2026-07-01 32-PR live-deploy wave
+> (accounting kernel #568, connected work graph #582, operation templates, RPW scouting, spray compliance,
+> people/labor, and more — prod now at 134 applied migrations). **For "where are we now," [`STATUS.md`](STATUS.md)
+> wins over this file and over RECONCILE-001.** This file remains the product *description*; its capability
+> statuses need a fresh reconcile (tracked in `REVIEW-360-2026-07-01.md` §4/§5 follow-ups).
+
+Where this file and an older document
+disagree, this file and RECONCILE-001 win — **except `STATUS.md`, which always wins on current status.** Items not verifiable on `main` are marked **Needs verification** or
 **Draft PR (not on `main`)**. This is documentation only — it changes no product behavior.*
 
 Last updated: 2026-06-30. Maintainers: Product + Owner (Amr Ebeid).
