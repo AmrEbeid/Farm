@@ -38,8 +38,18 @@ export default async function FinanceDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter = "all" } = await searchParams;
-  await requireRole(["owner", "accountant", "farm_manager"]);
+  const m = await requireRole(["owner", "accountant", "farm_manager"]);
+  // Owner drawings (مسحوبات) are confidential (#6) — RLS already blocks a non-finance role from reading
+  // kind='drawing' rows (20260701220000), this is the belt-and-suspenders app-layer mirror: farm_manager
+  // never requests them, and the "مسحوبات مالك معروضة" KPI only renders for owner/accountant below.
+  const canReadDrawings = m.role === "owner" || m.role === "accountant";
   const sb = await createClient();
+
+  const expensesQuery = sb
+    .from("expenses")
+    .select("id, date, category, description, total, kind, suppliers(name)")
+    .order("date", { ascending: false })
+    .limit(12);
 
   const [
     { data: budgets, error: budgetsError },
@@ -50,11 +60,7 @@ export default async function FinanceDashboardPage({
       .from("budgets")
       .select("id, name, period, category, planned, approved, committed, actual, status")
       .order("period", { ascending: false }),
-    sb
-      .from("expenses")
-      .select("id, date, category, description, total, kind, suppliers(name)")
-      .order("date", { ascending: false })
-      .limit(12),
+    canReadDrawings ? expensesQuery : expensesQuery.neq("kind", "drawing"),
     sb
       .from("purchase_requests")
       .select("id, code, status, reason, needed_by")
@@ -214,9 +220,11 @@ export default async function FinanceDashboardPage({
         <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
           <KpiCard label="المتاح" value={egp(available)} deltaDirection={available < 0 ? "down" : "none"} />
         </DashboardKpiLink>
-        <DashboardKpiLink href="/finance/dashboard?filter=drawings" active={filter === "drawings"}>
-          <KpiCard label="مسحوبات مالك معروضة" value={egp(ownerDrawingsTotal)} />
-        </DashboardKpiLink>
+        {canReadDrawings && (
+          <DashboardKpiLink href="/finance/dashboard?filter=drawings" active={filter === "drawings"}>
+            <KpiCard label="مسحوبات مالك معروضة" value={egp(ownerDrawingsTotal)} />
+          </DashboardKpiLink>
+        )}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

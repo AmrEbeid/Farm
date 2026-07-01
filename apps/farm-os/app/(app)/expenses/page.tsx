@@ -18,13 +18,19 @@ const KIND_LABELS: Record<string, string> = {
 
 export default async function ExpensesListPage() {
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
+  // Owner drawings (مسحوبات) are confidential (#6) — RLS already blocks a non-finance role from reading
+  // kind='drawing' rows (20260701220000), this is the belt-and-suspenders app-layer mirror so farm_manager
+  // never even requests them.
+  const canReadDrawings = m.role === "owner" || m.role === "accountant";
   const sb = await createClient();
 
+  const expensesQuery = sb
+    .from("expenses")
+    .select("id, date, category, description, total, kind, supplier_id")
+    .order("date", { ascending: false });
+
   const [{ data: expenses, error }, { data: suppliers }] = await Promise.all([
-    sb
-      .from("expenses")
-      .select("id, date, category, description, total, kind, supplier_id")
-      .order("date", { ascending: false }),
+    canReadDrawings ? expensesQuery : expensesQuery.neq("kind", "drawing"),
     sb.from("suppliers").select("id, name").order("name"),
   ]);
   if (error) throw error;
