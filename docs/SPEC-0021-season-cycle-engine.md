@@ -55,6 +55,16 @@ Build **تلقيح (pollination)** first — the most time-critical, highest-lab
 
 Acceptance: for the reference tenant, proposing the pollination stage on real registry data generates a draft plan whose material/labor totals reconcile to hand-computed values; coverage flags a seeded pollen shortage; nothing posts without approval.
 
+## 5A. Intercropping constraint (Owner fact, 2026-07-02 — issue #595)
+
+Some hawshat carry **other crops between the palms (زراعات بينية)**. Consequences for this engine:
+season stages must be scoped per **(hawsha × crop)**, not per hawsha — a hawsha can be inside the palm
+pollination window AND an intercrop's own calendar simultaneously; proposals must never assume a
+hawsha's labor/materials belong to palms alone; and intercrop templates are a separate, later template
+family (post-Stage-M slice per #595 D3). The MVP slice (pollination) is unaffected — it is palm-only by
+nature — but the `fn_propose_stage_plan` signature should carry a `crop` dimension from day one so the
+model doesn't need a breaking change later.
+
 ## 6. Explicitly out of scope
 
 Auto-executing plans; CV/AI phenology detection; IoT triggers; any dose presented as authoritative without the Stage-10 sign-off; building before Stage M real data.

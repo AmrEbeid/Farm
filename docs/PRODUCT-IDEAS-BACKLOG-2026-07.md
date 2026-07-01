@@ -37,7 +37,7 @@
 | 19 | **KSA compliance pack** (subsidy-ready records, ترشيد water evidence, Saudi Date Mark quality records) | The 1k+ palm commercial white space; time to 2027 Year of the Date Palm |
 | 20 | **English secondary locale** (owner/investor-facing reports only; field stays Arabic-first) | GCC investors/partners; cheap once labels are centralized |
 | 21 | **Zr3i carbon-MRV export partnership** (read-only registry/practices export) | Monetizes the registry; keeps Zr3i out of ops |
-| 22 | **Multi-crop generalization** (the intercropped fruits) — palms stay first-class | Already half-true in the schema; unlocks mixed farms |
+| 22 | **Multi-crop generalization** — palms stay first-class | ⬆️ **Elevated 2026-07-02 (issue #595)**: the Owner confirmed intercropping (زراعات بينية) between palms in SOME hawshat at the reference farm — no longer a scale feature but a reference-farm modeling requirement. The `hawsha_crops` composition capture now rides the Stage-M import (SPEC-0003 addendum); intercrop ops/vocabulary/revenue follow post-Stage-M (#595 D3). |
 
 ## Tier 4 — later / weigh carefully
 
