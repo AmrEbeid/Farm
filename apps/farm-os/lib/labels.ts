@@ -108,6 +108,20 @@ export const EMP_TYPE_AR: Record<string, string> = {
   contractor: "مقاول",
 };
 
+/** RPW-1: pest-trap status (`pest_traps.status`) → Arabic. */
+export const TRAP_STATUS_AR: Record<string, string> = {
+  active: "نشطة",
+  removed: "مُزالة",
+};
+
+/** RPW-1: pest-incident severity (`pest_incidents.severity`) → Arabic. An observation, not a
+ *  diagnosis — "confirmed" means visually confirmed in the field, not a lab result. */
+export const INCIDENT_SEVERITY_AR: Record<string, string> = {
+  watch: "متابعة",
+  suspected: "اشتباه إصابة",
+  confirmed: "إصابة مؤكدة",
+};
+
 export const PR_STATUS_AR: Record<string, string> = {
   draft: "مسودة",
   submitted: "مرسل",
