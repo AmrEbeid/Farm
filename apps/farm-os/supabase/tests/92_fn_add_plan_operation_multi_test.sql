@@ -14,15 +14,16 @@ select plan(12);
 \set p2    'c9200004-0000-0000-0000-000000000092'
 
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
--- Signature extended by migration 20260701330000 to 13-arg (re-emitted on top of Layer 2/#562's
--- 11-arg, which already carries #543's p_harvest_stage + #549's labour person_id: this branch adds
--- its own trailing p_irrigation_basis, p_soil_moisture_reading) — update the has_function_privilege
--- signature string accordingly (Postgres identifies the function by its full arg-type list).
+-- Final signature after the full 5-branch reconciliation (#543 → #549 → #562 → #560 → #563,
+-- migration 20260701340000): 16-arg — original 9 + p_harvest_stage (#543) + p_preferred_time_of_day
+-- (#562) + p_irrigation_basis/p_soil_moisture_reading (#560) + p_target_type/p_target_id/p_note
+-- (#563, this migration). (#549's labour-loop person_id change is a body-only change, not a new
+-- positional parameter.)
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
   '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
   '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────

@@ -99,6 +99,14 @@ type WithSprayCompliance<T extends { Row: object; Insert: object; Update: object
   Relationships: T["Relationships"];
 };
 
+/** Add plan_operations.note (migration 20260701340000 — individual-palm treatment free-text note). */
+type WithOpNote<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { note: string | null };
+  Insert: T["Insert"] & { note?: string | null };
+  Update: T["Update"] & { note?: string | null };
+  Relationships: T["Relationships"];
+};
+
 type AttachmentsTable = {
   Row: {
     id: string;
@@ -283,7 +291,11 @@ type StructFunctions = {
   //    p_harvest_stage (optional, default null) added by the operation-vocabulary re-emit
   //    (migration 20260701240000) for the harvest ripening stage (خلال/رطب/تمر). Further extended by
   //    migration 20260701330000 with two trailing OPTIONAL params so an irrigation op can record
-  //    whether it was soil-test-driven (and the reading that justified it). ──
+  //    whether it was soil-test-driven (and the reading that justified it). Finally extended by
+  //    migration 20260701340000 with p_target_type/p_target_id/p_note (individual-palm treatments):
+  //    when target_type/target_id are set (target_type='palm'), they override the plan-scope-derived
+  //    target for this one operation; p_note is a free-text note persisted on plan_operations.note.
+  //    Omitted → identical to the pre-existing behaviour. ──
   fn_add_plan_operation_multi: {
     Args: {
       p_plan_id: string;
@@ -298,6 +310,9 @@ type StructFunctions = {
       p_harvest_stage?: string | null;
       p_irrigation_basis?: string | null;
       p_soil_moisture_reading?: string | null;
+      p_target_type?: string | null;
+      p_target_id?: string | null;
+      p_note?: string | null;
     };
     Returns: Json;
   };
@@ -307,6 +322,13 @@ type StructFunctions = {
   fn_unassign_plan_operation: {
     Args: { p_op_id: string; p_person_id: string };
     Returns: Json;
+  };
+  // ── individual-palm rescue treatments, migration 20260701340000: find-or-create the org's
+  //    single implicit "individual treatments" plan (the parent container fn_add_plan_operation_multi
+  //    still requires a plan_id for) so the palm-360 quick-treatment form needs no plan picker. ──
+  fn_get_or_create_individual_treatment_plan: {
+    Args: { p_org: string };
+    Returns: string;
   };
   // ── STAGE 1 active-org switcher, migration 0085 ──
   fn_set_active_org: {
@@ -827,7 +849,7 @@ export type Database = Omit<Generated, "public"> & {
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
-      plan_operations: WithSignoff<WithDependsOn<WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>>>;
+      plan_operations: WithOpNote<WithSignoff<WithDependsOn<WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>>>>;
       plan_material_requirements: WithSprayCompliance<Tables["plan_material_requirements"]>;
       attachments: AttachmentsTable;
       accounts: AccountsTable;

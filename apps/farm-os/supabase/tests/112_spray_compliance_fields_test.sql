@@ -34,17 +34,19 @@ select set_config('t.store', (select user_id::text from public.organization_memb
   where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
 
 -- ── grant lockdown on the re-created fn_add_plan_operation_multi ───────────────────────────────────
--- 13 args as of the full reconciled apply chain (#543 -> #549 -> #562 -> #560): #543's p_harvest_stage
--- (10th), this branch's own p_preferred_time_of_day (11th), #560's p_irrigation_basis (12th) and
--- p_soil_moisture_reading (13th) — this file's own arg-count comment predates that later reconciliation.
+-- 16 args as of the full 5-branch reconciled apply chain (#543 -> #549 -> #562 -> #560 -> #563):
+-- #543's p_harvest_stage (10th), this branch's own p_preferred_time_of_day (11th), #560's
+-- p_irrigation_basis (12th) and p_soil_moisture_reading (13th), #563's p_target_type (14th),
+-- p_target_id (15th, uuid) and p_note (16th) — this file's own arg-count comment predates that
+-- later reconciliation.
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
   '20260701320000: anon cannot EXECUTE the re-created fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
   '20260701320000: authenticated CAN EXECUTE the re-created fn_add_plan_operation_multi');
 select ok(not has_function_privilege('public',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
   '20260701320000: the superseded 10-arg overload is gone / new overload not PUBLIC-executable');
 
 -- ── (a) target_zone CHECK enum on plan_material_requirements ────────────────────────────────────────
