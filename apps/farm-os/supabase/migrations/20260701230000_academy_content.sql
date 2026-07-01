@@ -12,38 +12,12 @@
 -- schema-qualified, authorize(perm, org) gate, anon + cross-org guard, exec to authenticated only.
 -- Reads open to all org members (shared agronomy knowledge); soft-delete (0027); audited (0008).
 
--- ── 1) extend the org-scoped authorize() with academy.write (owner + agri_engineer — the agronomist
--- role). Re-stated with the full current in-flight permission union so an out-of-order prod gap-fill
--- cannot drop later permissions if academy is applied last. The 1-arg authorize(text) stays dropped
--- (0035 AUTHZ-2). ---------------------------------------------------------------
-create or replace function public.authorize(perm text, p_org uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select exists (
-    select 1 from public.organization_member m
-    where m.user_id = (select auth.uid())
-      and m.org_id = p_org
-      and ( (perm = 'pr.approve'             and m.role = 'owner')
-         or (perm = 'plan.write'             and m.role in ('owner','farm_manager'))
-         or (perm = 'op.execute'             and m.role in ('owner','farm_manager','agri_engineer','supervisor'))
-         or (perm = 'inventory.write'        and m.role in ('owner','farm_manager','storekeeper'))
-         or (perm = 'budget.write'           and m.role in ('owner','accountant'))
-         or (perm = 'payroll.read'           and m.role in ('owner','accountant'))
-         or (perm = 'structure.write'        and m.role in ('owner','farm_manager'))
-         or (perm = 'academy.write'          and m.role in ('owner','agri_engineer'))
-         or (perm = 'export.write'           and m.role in ('owner','farm_manager'))     -- in-flight #400
-         or (perm = 'responsibility.write'   and m.role in ('owner','farm_manager'))     -- in-flight #444
-         or (perm = 'finance.read'           and m.role in ('owner','accountant'))        -- in-flight #438
-         or (perm = 'custody.write'          and m.role in ('owner','accountant'))        -- in-flight #438
-         or (perm = 'request.prepare'        and m.role in ('owner','accountant'))        -- in-flight #438
-         or (perm = 'request.approve.op'     and m.role in ('owner','accountant'))        -- in-flight #438
-         or (perm = 'request.approve.final'  and m.role = 'owner') )                     -- in-flight #438
-  )
-$$;
+-- ── 1) academy.write is ALREADY in prod's/main's authorize() union — a co-maintainer pinned it in
+-- main (20260629150000: "in-flight academy.write … so a later re-emit can't drop them"; verified present
+-- in the function body). So this migration deliberately does NOT re-emit authorize(): re-emitting a
+-- snapshot here would risk CLOBBERING newer permissions when applied out-of-order to an already-ahead
+-- prod (the apply-time re-emit footgun — local pgTAP applies in version order and can't catch it). The
+-- RPCs below call authorize('academy.write', org) against the live function; there is nothing to add.
 
 -- ── 2) the content table ────────────────────────────────────────────────────────────────────────────
 create table public.academy_content (
