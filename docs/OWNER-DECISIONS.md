@@ -9,18 +9,18 @@ recommendation, and where the full design lives. **On your one-line answer to an
 
 ---
 
-## P1 — Reservation model (HIGH: a masked shortage, the cardinal sin) — #512 + #199   ⏳ NEEDS ONE DECISION
-**What:** executing an operation posts a blind bin-wide stock `release` not scoped to the op that reserved, so
-executing op B can wipe op A's earmark → A's shortage is masked. Design proposal (op-keyed reservations) on **#512**.
-**Why I did NOT auto-implement this** (unlike #216): the reserve/release keying is fundamentally broken —
-reserve posts under `SEED_PLAN_ID` (the coverage wedge), release under the op's real plan, with no op-level
-identity — so fixing execute's blind release ALONE would break the lifecycle (reserves would accumulate,
-never released). It needs a genuine model decision + coordinated app changes, not a surgical patch.
-**Decisions (the blocker is #3):**
-1. **Granularity** — reservations keyed to the operation (recommended; required to fix cleanly) vs the plan.
-2. **#199 semantics** — how a reserved op's demand is counted once: **net by backing reserve** (recommended, safe) vs exclude reserved ops from demand (unsafe) vs stop subtracting reserved from available (changes what "available" means).
-3. **Reserve-on-approval? (the key call)** — today the only reserve is the coverage wedge; the clean fix needs the full approve→reserve(op-keyed)→execute→issue lifecycle. Confirm you want it, and I implement the whole thing (schema `plan_op_id` + 4 RPCs + app) with the same rigor loop used for #216.
-**Unblocks:** removes the highest-risk masking path; unpins `tests/105`.
+## P1 — Reservation-wipe masked shortage — #512   ✅ DONE (masked shortage fixed)
+**Shipped (PR #525, migration `20260701190000`), on-recommendation with a lifecycle investigation + independent
+review that PROVED non-masking arithmetically.** The fix: **remove** `fn_execute_operation`'s blind bin-wide
+release (it owned no per-op reserve, so it was wiping unrelated earmarks). Minimal change that cannot mask —
+`reserved` can now only rise → `available` only falls → over-order, the safe direction. `tests/105` (the #512
+pin) is now a passing HARD gate. **All three masked-shortage vectors are now closed (#509, #216, #512).**
+**Remaining (over-order only, SAFE, never masks — owner-gated enhancement, NOT urgent):** the fix leaves coverage
+earmarks accumulating (never released). The coherent removal = op-keyed reservations + an attributed
+release-on-receipt — enhancement **#526** + **#199** double-count. Both need one decision:
+- **Reserve-on-approval? op- vs plan-level?** — approval reserving stock changes what "available" shows = a
+  product decision. On your word I implement the op-keyed model (schema `plan_op_id` + release-on-receipt + engine
+  net-demand) with the same rigor loop. Until then the engine errs safe (over-orders), never masks.
 
 ## P2 — Unit-of-measure model (masked shortage, both sides) — #216   ✅ DONE
 **Shipped (both sides), on-recommendation with independent review + migrate-first:** Option A single-unit
