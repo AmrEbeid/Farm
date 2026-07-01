@@ -100,7 +100,9 @@ export function OperationBuilder({
         setError(res.error ?? "تعذّر الحفظ");
       }
     } catch {
-      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner.
+      // Network-failure handling (non-negotiable #2): a network reject must not strand the
+      // spinner. This surfaces a retryable message; the operation is not queued for replay if
+      // the device is actually offline.
       setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
     } finally {
       setPending(false);

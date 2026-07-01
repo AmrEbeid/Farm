@@ -29,8 +29,9 @@ export function PlanChecksRunner({ planId }: { planId: string }) {
               setError(res.error ?? "تعذّرت إعادة فحص الخطة");
             }
           } catch {
-            // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner —
-            // surface a retryable Arabic message (mirrors ExecuteForm).
+            // Network-failure handling (non-negotiable #2): a network reject must not strand the
+            // spinner — surface a retryable Arabic message (mirrors ExecuteForm). The re-check is
+            // not queued for replay if the device is actually offline.
             setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
           } finally {
             setPending(false);

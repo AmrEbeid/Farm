@@ -44,8 +44,9 @@ export function CreatePrButton({
             }
             setError(res.error ?? "تعذّر إنشاء طلب الشراء");
           } catch {
-            // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner —
-            // surface a retryable Arabic message (mirrors ExecuteForm).
+            // Network-failure handling (non-negotiable #2): a network reject must not strand the
+            // spinner — surface a retryable Arabic message (mirrors ExecuteForm). The PR is not
+            // queued for creation later if the device is actually offline.
             setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
           } finally {
             setPending(false);

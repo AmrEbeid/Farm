@@ -43,9 +43,10 @@ export function PalmStatusForm({
         setError(res.error ?? "تعذّر تحديث الحالة");
       }
     } catch {
-      // Field PWA is offline-tolerant (non-negotiable #2): a dropped connection rejects the
-      // server-action fetch, so without this catch the spinner would hang forever. Surface a
-      // retryable Arabic message instead (mirrors ExecuteForm).
+      // Network-failure handling for the field PWA (non-negotiable #2): a dropped connection
+      // rejects the server-action fetch, so without this catch the spinner would hang forever.
+      // Surface a retryable Arabic message instead (mirrors ExecuteForm) — this does not queue
+      // or replay the status update if the device is actually offline.
       setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
     } finally {
       setPending(false);
