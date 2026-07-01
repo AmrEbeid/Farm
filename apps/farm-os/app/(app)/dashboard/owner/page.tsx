@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { BarChart3, CalendarDays, CloudSun, Package, TreePalm, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
+import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { BudgetDoughnut, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
@@ -70,15 +72,17 @@ export default async function OwnerDashboard() {
   // inventory_bin is a one-to-many embed (an array of bins per item); mirror the
   // inventory dashboard EXACTLY so this count matches /inventory/dashboard?filter=reorder:
   // take the primary bin, available = on_hand − reserved, needs reorder when below threshold.
-  const reorderItems = (items ?? []).filter((it) => {
+  const itemAvailability = (items ?? []).map((it) => {
     const bin = (Array.isArray(it.inventory_bin) ? it.inventory_bin[0] : it.inventory_bin) as
       | { on_hand?: number; reserved?: number }
       | null
       | undefined;
     const available = Number(bin?.on_hand ?? 0) - Number(bin?.reserved ?? 0);
     const threshold = Number(it.reorder_point ?? it.min_stock ?? 0);
-    return threshold > 0 && available < threshold;
+    return { available, threshold };
   });
+  const reorderItems = itemAvailability.filter((it) => it.threshold > 0 && it.available < it.threshold);
+  const outOfStockItems = reorderItems.filter((it) => it.available <= 0);
 
   const activePlanIds = new Set((plans ?? []).filter((p) => ACTIVE_PLAN.has(p.status)).map((p) => p.id));
   const activeOps = (ops ?? []).filter((o) => activePlanIds.has(o.plan_id));
@@ -87,6 +91,7 @@ export default async function OwnerDashboard() {
   const dueThisWeek = activeOps.filter(
     (o) => LIVE_OP.has(o.status) && o.planned_at != null && o.planned_at <= isoWeek,
   );
+  const dueThisWeekUnassigned = dueThisWeek.filter((o) => o.responsible_person_id == null).length;
   const unassignedOps = activeOps.filter((o) => LIVE_OP.has(o.status) && o.responsible_person_id == null);
   const blockedChecks = (checks ?? []).filter((c) => c.result === "block" && activePlanIds.has(c.plan_id));
   const palmAttention = (assets ?? []).filter((a) => PALM_ATTENTION.has(a.status));
@@ -96,6 +101,7 @@ export default async function OwnerDashboard() {
   const totalApproved = budgetLines.reduce((s, b) => s + Number(b.approved ?? 0), 0);
   const totalUsed = budgetLines.reduce((s, b) => s + Number(b.committed ?? 0) + Number(b.actual ?? 0), 0);
   const available = totalApproved - totalUsed;
+  const usedPct = totalApproved > 0 ? Math.round((totalUsed / totalApproved) * 100) : 0;
 
   // ── Chart data (all query-derived) ────────────────────────────────────────
   const varianceData = budgetLines.map((b) => ({
@@ -167,14 +173,55 @@ export default async function OwnerDashboard() {
         </section>
       )}
 
-      {/* Cross-module KPI strip — 6 query-derived metrics (responsive 2 → 3 → 6) */}
+      {/* Cross-module KPI strip — 6 query-derived metrics (responsive 2 → 3 → 6), each a deep link to its module */}
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiCard label="المتاح من الموازنة" value={egp(available)} deltaDirection={available < 0 ? "down" : "none"} />
-        <KpiCard label="أصناف تحت حد الطلب" value={num(reorderItems.length)} deltaDirection={reorderItems.length ? "down" : "none"} />
-        <KpiCard label="موافقات معلّقة" value={num(pending.length)} deltaDirection={pending.length ? "up" : "none"} />
-        <KpiCard label="جاهزية الخطط" value={pct(readiness)} />
-        <KpiCard label="نخيل يحتاج عناية" value={num(palmAttention.length)} deltaDirection={palmAttention.length ? "down" : "none"} />
-        <KpiCard label="عمليات هذا الأسبوع" value={num(dueThisWeek.length)} />
+        <DashboardKpiLink href="/budgets" active={false}>
+          <KpiCard
+            label="المتاح من الموازنة"
+            value={egp(available)}
+            delta={totalApproved > 0 ? `${pct(usedPct)} مستخدم من المعتمد` : "لا توجد بنود موازنة"}
+            deltaDirection={available < 0 ? "down" : "none"}
+          />
+        </DashboardKpiLink>
+        <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={false}>
+          <KpiCard
+            label="أصناف تحت حد الطلب"
+            value={num(reorderItems.length)}
+            delta={reorderItems.length ? `${num(outOfStockItems.length)} صنف نفد تمامًا` : "لا توجد أصناف تحت الحد"}
+            deltaDirection={reorderItems.length ? "down" : "none"}
+          />
+        </DashboardKpiLink>
+        <DashboardKpiLink href="/purchase-requests" active={false}>
+          <KpiCard
+            label="موافقات معلّقة"
+            value={num(pending.length)}
+            delta={overduePOs.length ? `${num(overduePOs.length)} طلب معتمد متأخر` : "لا طلبات متأخرة"}
+            deltaDirection={pending.length ? "up" : "none"}
+          />
+        </DashboardKpiLink>
+        <DashboardKpiLink href="/plans/dashboard" active={false}>
+          <KpiCard
+            label="جاهزية الخطط"
+            value={pct(readiness)}
+            delta={activeOps.length ? `${num(doneOps)} من ${num(activeOps.length)} عملية منفّذة` : "لا توجد عمليات نشطة"}
+          />
+        </DashboardKpiLink>
+        <DashboardKpiLink href="/farm/dashboard?filter=attention" active={false}>
+          <KpiCard
+            label="نخيل يحتاج عناية"
+            value={num(palmAttention.length)}
+            delta={palmAttention.length ? "يتطلب متابعة" : "لا توجد حالات"}
+            deltaDirection={palmAttention.length ? "down" : "none"}
+          />
+        </DashboardKpiLink>
+        <DashboardKpiLink href="/plans/dashboard?filter=due" active={false}>
+          <KpiCard
+            label="عمليات هذا الأسبوع"
+            value={num(dueThisWeek.length)}
+            delta={dueThisWeekUnassigned ? `${num(dueThisWeekUnassigned)} بلا مسؤول` : "الكل مُسند"}
+            deltaDirection={dueThisWeekUnassigned ? "down" : "none"}
+          />
+        </DashboardKpiLink>
       </section>
 
       {/* Charts — query-derived snapshots */}
@@ -204,17 +251,24 @@ export default async function OwnerDashboard() {
         <h2 className="mb-3 text-lg font-semibold">ملخص الوحدات</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { icon: "🌴", name: "المزرعة", line: `${num(totalBarhi)} برحي · ${num(palmAttention.length)} تحتاج عناية`, href: "/farm/dashboard" },
-            { icon: "🗓️", name: "التخطيط والعمليات", line: `جاهزية ${pct(readiness)} · ${num(blockedChecks.length)} فحص محظور`, href: "/plans/dashboard" },
-            { icon: "📦", name: "المخزون والمشتريات", line: `${num(reorderItems.length)} تحت حد الطلب · ${num(pending.length)} بانتظار الاعتماد`, href: "/inventory/dashboard" },
-            { icon: "📊", name: "المالية", line: `المتاح ${egp(available)} · ${num(overLines.length)} بند متجاوز`, href: "/finance/dashboard" },
-            { icon: "👥", name: "الفريق", line: `${num(activePeople)} نشط · ${num(unassignedOps.length)} عملية بلا مسؤول`, href: "/people/dashboard" },
-            { icon: "🌤️", name: "الطقس والمخاطر", line: "تنبيهات الطقس وبوابات العمليات", href: "/weather/dashboard" },
+            { icon: TreePalm, name: "المزرعة", line: `${num(totalBarhi)} برحي · ${num(palmAttention.length)} تحتاج عناية`, href: "/farm/dashboard" },
+            { icon: CalendarDays, name: "التخطيط والعمليات", line: `جاهزية ${pct(readiness)} · ${num(blockedChecks.length)} فحص محظور`, href: "/plans/dashboard" },
+            { icon: Package, name: "المخزون والمشتريات", line: `${num(reorderItems.length)} تحت حد الطلب · ${num(pending.length)} بانتظار الاعتماد`, href: "/inventory/dashboard" },
+            { icon: BarChart3, name: "المالية", line: `المتاح ${egp(available)} · ${num(overLines.length)} بند متجاوز`, href: "/finance/dashboard" },
+            { icon: Users, name: "الفريق", line: `${num(activePeople)} نشط · ${num(unassignedOps.length)} عملية بلا مسؤول`, href: "/people/dashboard" },
+            { icon: CloudSun, name: "الطقس والمخاطر", line: "تنبيهات الطقس وبوابات العمليات", href: "/weather/dashboard" },
           ].map((mod) => (
             <Link key={mod.href} href={mod.href} className="block transition-opacity hover:opacity-90">
               <Card>
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl" aria-hidden="true">{mod.icon}</span>
+                  <mod.icon
+                    className="shrink-0"
+                    width={24}
+                    height={24}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                    style={{ color: "var(--brand)" }}
+                  />
                   <div className="min-w-0">
                     <div className="font-semibold">{mod.name}</div>
                     <div className="text-sm" style={{ color: "var(--ink-muted)" }}>{mod.line}</div>
