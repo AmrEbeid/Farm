@@ -26,6 +26,10 @@ import "@/lib/import/descriptors"; // side-effect: register all descriptors
 export const runtime = "nodejs"; // exceljs needs the Node runtime
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB upload cap
+// xlsx is zip-compressed, so the byte cap alone can't bound row count — a small file can expand to
+// hundreds of thousands of rows (memory/timeout + unbounded sequential RPCs). Cap parsed rows too;
+// the templates only provision dropdowns for 1000 rows (lib/import/xlsx.ts).
+const MAX_ROWS = 1000;
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 /** Download the fill-in template for `?descriptor=<key>`. */
@@ -66,6 +70,12 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     return NextResponse.json({ error: "تعذّر قراءة الملف. تأكد أنه ملف Excel صالح." }, { status: 400 });
   }
+  if (rows.length > MAX_ROWS) {
+    return NextResponse.json(
+      { error: `الحد الأقصى ${MAX_ROWS} صف في الاستيراد الواحد. قسّم الملف.` },
+      { status: 400 },
+    );
+  }
 
   const dry = validateRows(descriptor, rows);
 
@@ -82,9 +92,13 @@ export async function POST(req: Request): Promise<Response> {
     eq: (col: string, val: unknown) => RefQuery;
   };
   const refLookup: RefLookup = async (spec, codes) => {
+    // Constrain resolution to the ACTIVE org. RLS narrows to all of the user's orgs, so without this a
+    // multi-org user's ref (e.g. a farm code that exists only in another of their orgs) would resolve
+    // there and the row would be written into the WRONG tenant. All import ref tables carry org_id.
     let query = fromLoose(spec.table)
       .select(`${spec.idColumn},${spec.codeColumn}`)
-      .in(spec.codeColumn, codes);
+      .in(spec.codeColumn, codes)
+      .eq("org_id", member.orgId);
     if (spec.activeColumn != null) {
       query = query.eq(spec.activeColumn, spec.activeValue ?? false);
     }
@@ -134,9 +148,17 @@ export async function POST(req: Request): Promise<Response> {
   const failures: { row: number; error: string }[] = [];
   let written = 0;
   for (const call of plan.calls) {
-    const { error } = await rpc(call.rpc, call.args);
-    if (error) failures.push({ row: call.sourceRow, error: toArabicError(error) });
-    else written += 1;
+    // A THROW (network drop / abort / 5xx) must not lose the partial-write report: catch per row so the
+    // response always tells the user which rows landed (else they can't tell what to retry → duplicates).
+    try {
+      const { error } = await rpc(call.rpc, call.args);
+      if (error) failures.push({ row: call.sourceRow, error: toArabicError(error) });
+      else written += 1;
+    } catch {
+      // A thrown call (network drop / abort / 5xx) is not a mapped DB error — report it generically so
+      // the row is still accounted for in the response instead of aborting the whole commit.
+      failures.push({ row: call.sourceRow, error: "تعذّر تنفيذ الاستيراد لهذا الصف. حاول مرة أخرى." });
+    }
   }
 
   return NextResponse.json({
