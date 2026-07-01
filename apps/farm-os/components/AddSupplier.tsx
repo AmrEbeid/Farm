@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Input, Alert } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Button, Field, Input, Alert, useToast } from "@/components/ui";
 import { createSupplier } from "@/app/(app)/suppliers/actions";
 
 /** Add-supplier form, shown only to inventory.write roles (the page gates it). */
@@ -13,6 +14,8 @@ export function AddSupplier() {
   const [lead, setLead] = useState("");
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
+  const router = useRouter();
+  const toast = useToast();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +29,13 @@ export function AddSupplier() {
     });
     setPending(false);
     if (r.ok) {
-      window.location.reload();
+      setOpen(false);
+      setName("");
+      setPhone("");
+      setTerms("");
+      setLead("");
+      toast.ok("تمت إضافة المورّد بنجاح");
+      router.refresh();
     } else {
       setMsg({ tone: "danger", text: r.error ?? "تعذّر الحفظ" });
     }
