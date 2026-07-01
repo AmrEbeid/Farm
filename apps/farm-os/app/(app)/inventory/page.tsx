@@ -23,7 +23,8 @@ export default async function InventoryListPage() {
     { id: "on_hand", header: "الموجود", numeric: true },
     { id: "reserved", header: "المحجوز", numeric: true },
     { id: "available", header: "المتاح", numeric: true },
-    { id: "flag", header: "إعادة الطلب", kind: "tag-danger" },
+    { id: "flag", header: "حد إعادة الطلب", kind: "status" },
+    { id: "coverage", header: "تغطية المخزون", kind: "link" },
   ];
 
   const rows = (items ?? []).map((it) => {
@@ -34,6 +35,12 @@ export default async function InventoryListPage() {
     const reserved = Number(bin?.reserved ?? 0);
     const available = onHand - reserved;
     const threshold = Number(it.reorder_point ?? it.min_stock ?? 0);
+    // This is a STATIC level check against today's `available` — NOT the engine's forward-looking
+    // projection (fn_stock_coverage can flag shortage=true for plenty-today-but-spikes-next-week
+    // items that this check would call "above reorder point"). Label it honestly as a point-in-time
+    // reading of the reorder threshold, never as a coverage verdict, and always offer a link to the
+    // authoritative per-item coverage page below. Deferred follow-up: batching fn_stock_coverage
+    // across the whole list is a separate, performance-sensitive change (N+1 RPC calls) — not done here.
     const needsReorder = threshold > 0 && available < threshold;
     return {
       id: it.id,
@@ -43,7 +50,9 @@ export default async function InventoryListPage() {
       on_hand: `${num(onHand)} ${it.unit ?? ""}`,
       reserved: `${num(reserved)} ${it.unit ?? ""}`,
       available: `${num(available)} ${it.unit ?? ""}`,
-      flag: needsReorder ? "إعادة الطلب" : "",
+      flag: needsReorder ? "تحت حد إعادة الطلب" : "فوق حد إعادة الطلب",
+      coverage: "عرض تغطية المخزون",
+      coverage_href: `/inventory/${it.id}/coverage`,
     };
   });
 

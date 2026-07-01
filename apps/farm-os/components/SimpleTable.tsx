@@ -7,7 +7,7 @@ import { egp } from "@/lib/money";
 // "money": the row carries the RAW number and this formats it (egp) for display, so the SAME table is
 // extractable — ExportButton/exportToCsv then serialize the raw number (Excel SUM works) instead of a
 // formatted "١٬٢٣٤ ج.م" string. (SPEC-0017 export contract; see lib/export-csv.ts.)
-type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn";
+type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn" | "link";
 
 export interface SimpleColumn {
   id: string;
@@ -91,6 +91,18 @@ function renderCell(c: SimpleColumn, row: SimpleRow): React.ReactNode {
       return <Tag tone="ok">{String(v)}</Tag>;
     case "tag-warn":
       return <Tag tone="warning">{String(v)}</Tag>;
+    case "link": {
+      // Convention: the row carries the link target in `${c.id}_href` and the visible
+      // label in `row[c.id]` (v). Falls back to plain text if no href was supplied.
+      const href = row[`${c.id}_href`];
+      return typeof href === "string" && href !== "" ? (
+        <Link href={href} className="font-medium underline underline-offset-4" style={{ color: "var(--brand)" }}>
+          {String(v)}
+        </Link>
+      ) : (
+        String(v)
+      );
+    }
     default:
       return String(v);
   }
@@ -115,11 +127,14 @@ function statusFor(
       return "blocked";
     case "warn":
     case "منخفض":
+    case "تحت حد إعادة الطلب":
       return "warning";
     case "active":
     case "planned":
     case "مخطط":
       return "active";
+    case "فوق حد إعادة الطلب":
+      return "done";
     default:
       return "draft";
   }
