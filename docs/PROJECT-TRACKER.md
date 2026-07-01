@@ -1,6 +1,21 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-02 by Claude (review/strategy session, for Owner: Amr Ebeid)
 
-> **2026-07-02 (latest) — 360° REVIEW + BOOM STRATEGY recorded; STATUS.md now the source of truth; ETA claim corrected.**
+> **2026-07-02 (latest) — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
+> Owner mandate "keep working until this task and all other open PRs are finished" executed: gated batch
+> #590/#591/#592/#593/#594/#596 merged (session rows; ops wave; hardening/onboarding/support/usability wrapper;
+> wave-3 research incl. SPEC-0023 جرد + legal/PDPL ~1-Nov-2026 flag; the `/purchase-requests` open-orders console
+> with the engine-mirrored stale-PO badge — first code PR of the review cycle; intercropping #595 addenda), then
+> #597 STATUS pointers, then **#580** (custody/accounting operating-model plan + `SPEC-0018-EXT`, conflict-resolved
+> + wave-3 cross-refs), then **#366 Stage-10 Care Academy finished properly**: migration renumbered
+> `240000→20260701400000` (duplicate-guard collision with the harvest-stage re-emit), NO authorize() re-emit
+> (academy.write already live — verified by probe), independent fresh-context review MERGE-READY with findings
+> applied (Arabic-Indic sign-off dates + no-ISO-leak test), pgTAP 1207/1207 + vitest 398/398 + build green,
+> **migrate-first prod apply** via explicit-ledger pattern with pre/post probes (FORCE RLS, anon-0/auth-3 EXEC,
+> sign-off columns not client-updatable), squash-merged on green (`cedf0dd`). The #4 gate is mechanism-live;
+> authoritative content still requires the real agronomist's recorded sign-off. **Open PRs: 0.** Full detail:
+> `DEPLOY-STATUS.md` (latest) + `SESSION-BRIEF.md`.
+
+> **2026-07-02 — 360° REVIEW + BOOM STRATEGY recorded; STATUS.md now the source of truth; ETA claim corrected.**
 > Owner-gated docs chain merged in order #586 → #588 → #589 (Owner "go"; #586's tracker/brief prepend conflicts
 > resolved keeping both sides). **#588**: `STATUS.md` (single source of truth — honest stage table, ranked
 > owner-decision queue, feature-freeze rule), `REVIEW-360-2026-07-01.md` (5-lane review: DB/security A−,

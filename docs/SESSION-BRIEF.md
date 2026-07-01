@@ -1,7 +1,26 @@
 # Session Brief — Farm OS      Updated: 2026-07-02 by Claude (review/strategy session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-02 (latest) — 360° review + boom strategy recorded; STATUS.md is the source of truth
+## 2026-07-02 (latest) — queue cleared: Academy live, plan merged, console shipped; 0 open PRs
+
+Closing pass under the Owner's finish-everything mandate. Where things now stand:
+- **Prod ledger head: `20260701400000` (academy_content)** — applied migrate-first with pre/post probes; the
+  `apply_migration` footgun avoided via `execute_sql` + explicit ledger row. `main` = `cedf0dd` (#366), all
+  checks green. Live smoke: `/`+`/login` 200, `/academy` protected-redirect (see DEPLOY-STATUS latest).
+- **Stage 10 mechanism is live**: /academy editor (owner/agri_engineer), edit-resets-sign-off, chemical content
+  requires a current Egyptian pesticide registration NUMBER + expiry, sign-off columns RPC-only (column-scoped
+  grants). Content stays «قالب استرشادي» until the real agronomist signs — engaging one is still an open Owner
+  action (STATUS.md queue #9).
+- **#580 merged**: `SPEC-0018-EXT` (custody transfer + payment-request reports + revenue-with-pending-price)
+  with wave-3 cross-refs (routing-UI prerequisite; crop dimension per #595; sold-on-the-tree as a sale type).
+- **The day's merged batch**: #590–#594 + #596–#597 (see tracker latest) — incl. the first code PR of the review
+  cycle (#594 open-orders console) and the intercropping fact (#595, D1 partially answered: heterogeneous
+  seasonal crops incl. بنجر → hawsha_crops needs a season dimension; beet-harvest vs pollination labor
+  contention flagged for SPEC-0021).
+- **Next session starts from STATUS.md**: top actions unchanged (accountant meeting #577/#578 + lawyer/PDPL,
+  Stage 0 #362, interviews with the ready guide, registry import THEN the OS-ification + Lane-0 lanes).
+
+## 2026-07-02 — 360° review + boom strategy recorded; STATUS.md is the source of truth
 
 Owner-gated docs chain merged **#586 → #588 → #589** (explicit "go"; #586's prepend conflicts in this file +
 the tracker resolved keeping both sides). Where things now live:
