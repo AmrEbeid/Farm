@@ -13,6 +13,14 @@ import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
+import { getLinkedWorkContext } from "@/lib/linked work context";
+import {
+  LinkedFinanceCard,
+  LinkedPlansCard,
+  LinkedReportCard,
+  LinkedTasksCard,
+  LinkedWorkKpis,
+} from "@/components/linked work sections";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR } from "@/lib/labels";
@@ -26,7 +34,7 @@ const STATUS_AR: Record<string, string> = {
   replaced: "مُستبدلة",
 };
 
-const TAB_IDS = ["overview", "palms", "activity"] as const;
+const TAB_IDS = ["overview", "palms", "plans", "tasks", "activity", "finance", "report"] as const;
 type LineTab = (typeof TAB_IDS)[number];
 
 function one<T>(rel: unknown): T | null {
@@ -42,18 +50,21 @@ export default async function LineFilePage({
 }) {
   const { id } = await params;
   const { tab: rawTab } = await searchParams;
-  const tab: LineTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+  let tab: LineTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
     ? (rawTab as LineTab)
     : "overview";
   const m = await requireMembership();
   const sb = await createClient();
   const canEditStructure = ["owner", "farm_manager"].includes(m.role);
   const canAttach = ["owner", "farm_manager", "agri_engineer", "supervisor"].includes(m.role);
+  const canSeeFinance = ["owner", "accountant"].includes(m.role);
+  if (tab === "finance" && !canSeeFinance) tab = "overview";
 
   const [
     { data: line, error: lineError },
     { data: palms, error: palmsError },
     attachments,
+    linkedWork,
   ] = await Promise.all([
     sb
       .from("lines")
@@ -70,6 +81,12 @@ export default async function LineFilePage({
       .eq("archived", false)
       .order("id_tag"),
     getAttachments("line", id),
+    getLinkedWorkContext(sb, {
+      orgId: m.orgId,
+      entityType: "line",
+      entityId: id,
+      canSeeFinance,
+    }),
   ]);
   if (lineError) throw lineError;
   if (palmsError) throw palmsError;
@@ -125,7 +142,11 @@ export default async function LineFilePage({
   const tabItems: TabItem[] = [
     { id: "overview", label: "نظرة عامة" },
     { id: "palms", label: `النخيل (${num(palmRows.length)})` },
+    { id: "plans", label: `الخطط (${num(linkedWork.plans.length)})` },
+    { id: "tasks", label: `المهام (${num(linkedWork.openOperations.length)})` },
     { id: "activity", label: `النشاط (${num(activities.length)})` },
+    ...(canSeeFinance ? [{ id: "finance", label: "المالية" }] : []),
+    { id: "report", label: "تقرير" },
   ];
 
   return (
@@ -163,6 +184,8 @@ export default async function LineFilePage({
           description="لا تظهر العمليات الجديدة على الخطوط المؤرشفة."
         />
       )}
+
+      <LinkedWorkKpis context={linkedWork} canSeeFinance={canSeeFinance} />
 
       <EntityTabs items={tabItems} value={tab} />
 
@@ -263,6 +286,30 @@ export default async function LineFilePage({
             initial={attachments}
             canAttach={canAttach}
           />
+        </div>
+      )}
+
+      {tab === "plans" && (
+        <div role="tabpanel" id={tabPanelId("plans")} aria-labelledby={tabId("plans")} tabIndex={0}>
+          <LinkedPlansCard context={linkedWork} />
+        </div>
+      )}
+
+      {tab === "tasks" && (
+        <div role="tabpanel" id={tabPanelId("tasks")} aria-labelledby={tabId("tasks")} tabIndex={0}>
+          <LinkedTasksCard context={linkedWork} />
+        </div>
+      )}
+
+      {tab === "finance" && canSeeFinance && (
+        <div role="tabpanel" id={tabPanelId("finance")} aria-labelledby={tabId("finance")} tabIndex={0}>
+          <LinkedFinanceCard context={linkedWork} />
+        </div>
+      )}
+
+      {tab === "report" && (
+        <div role="tabpanel" id={tabPanelId("report")} aria-labelledby={tabId("report")} tabIndex={0}>
+          <LinkedReportCard context={linkedWork} title={label} canSeeFinance={canSeeFinance} />
         </div>
       )}
     </div>

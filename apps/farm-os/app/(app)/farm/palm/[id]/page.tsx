@@ -8,6 +8,14 @@ import { num } from "@/lib/money";
 import { PalmFile } from "@/components/PalmFile";
 import { type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
+import { getLinkedWorkContext } from "@/lib/linked work context";
+import {
+  LinkedFinanceCard,
+  LinkedPlansCard,
+  LinkedReportCard,
+  LinkedTasksCard,
+  LinkedWorkKpis,
+} from "@/components/linked work sections";
 import { SUBTYPE_AR } from "@/lib/labels";
 
 // assets.status — the closed set from migration 0003.
@@ -54,6 +62,7 @@ export default async function PalmFilePage({
   const { id } = await params;
   const m = await requireMembership();
   const sb = await createClient();
+  const canSeeFinance = ["owner", "accountant"].includes(m.role);
 
   // asset (+ its sector/hawsha/line for the breadcrumb), its status history, and its media are
   // independent reads keyed on the asset id — fetch in parallel. RLS scopes all.
@@ -61,6 +70,7 @@ export default async function PalmFilePage({
     { data: asset, error: assetError },
     { data: history, error: historyError },
     attachments,
+    linkedWork,
   ] = await Promise.all([
     sb
       .from("assets")
@@ -76,6 +86,12 @@ export default async function PalmFilePage({
       .eq("asset_id", id)
       .order("changed_at", { ascending: false }),
     getAttachments("palm", id),
+    getLinkedWorkContext(sb, {
+      orgId: m.orgId,
+      entityType: "palm",
+      entityId: id,
+      canSeeFinance,
+    }),
   ]);
   // Surface DB read failures to the segment error boundary instead of a misleading empty page.
   if (assetError) throw assetError;
@@ -204,6 +220,14 @@ export default async function PalmFilePage({
         hawshaRedirect={hawsha?.id ? `/farm/hawsha/${hawsha.id}` : "/farm"}
         attachments={attachments}
       />
+
+      <LinkedWorkKpis context={linkedWork} canSeeFinance={canSeeFinance} />
+      <section className="grid gap-5 xl:grid-cols-2">
+        <LinkedPlansCard context={linkedWork} />
+        <LinkedTasksCard context={linkedWork} />
+      </section>
+      {canSeeFinance && <LinkedFinanceCard context={linkedWork} />}
+      <LinkedReportCard context={linkedWork} title={label} canSeeFinance={canSeeFinance} />
     </div>
   );
 }

@@ -14,7 +14,7 @@ begin;
 select plan(10);
 
 -- ===== authenticated-only write RPCs: anon must NOT execute; authenticated MUST =====
--- Signature updated to the 5-arg form (uuid, numeric, int, text, jsonb) — migration 20260701220000
+-- Signature updated to the 5-arg form (uuid, numeric, int, text, jsonb) — migration 20260701230000
 -- (#520) added a trailing p_material_actuals jsonb param and explicitly DROPPED the old 4-arg
 -- overload, so this is the only fn_execute_operation signature that now exists.
 select ok(not has_function_privilege('anon',

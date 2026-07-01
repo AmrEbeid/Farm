@@ -78,10 +78,10 @@ export default async function MobileHomePage({
   searchParams: Promise<{ done?: string; mine?: string }>;
 }) {
   const { done, mine } = await searchParams;
-  const mineOnly = mine === "1";
   // Role-gate the field view to match the nav (lib/nav.ts hides الميدان from
   // accountant/storekeeper) and /m/execute's gate — field roles only.
   const m = await requireRole(["supervisor", "agri_engineer", "farm_manager", "owner"]);
+  const mineOnly = m.personId != null ? mine !== "0" : mine === "1";
   const sb = await createClient();
 
   const { data: ops, error } = await sb
@@ -91,7 +91,6 @@ export default async function MobileHomePage({
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
   if (error) throw error;
-
   const allOps = (ops ?? []) as Op[];
 
   // "مهامي فقط": an op is "mine" when the current user's linked person is the op's
@@ -99,19 +98,10 @@ export default async function MobileHomePage({
   // 20260622000090) OR appears in plan_operation_assignees (the multi-person assignment
   // join table added by the same migration). Reads are org-scoped RLS (tenant_all
   // policy), so this second query only ever returns rows the signed-in user can see.
-  //
-  // plan_operation_assignees isn't yet in the generated `database.types.ts` (only the RPC
-  // that writes it, fn_add_plan_operation_multi, has been type-augmented so far) — following
-  // the same loosened-`.from()` idiom already used for untyped tables in
-  // app/api/import/route.ts, rather than hand-extending lib/database.types.ext.ts here.
-  const fromLoose = sb.from as unknown as (table: string) => {
-    select: (cols: string) => {
-      eq: (col: string, val: string) => Promise<{ data: { plan_op_id: string }[] | null; error: unknown }>;
-    };
-  };
   let myAssignedOpIds = new Set<string>();
   if (mineOnly && m.personId) {
-    const { data: assignRows, error: assignError } = await fromLoose("plan_operation_assignees")
+    const { data: assignRows, error: assignError } = await sb
+      .from("plan_operation_assignees")
       .select("plan_op_id")
       .eq("person_id", m.personId);
     if (assignError) throw assignError;
@@ -152,20 +142,26 @@ export default async function MobileHomePage({
       {done && <Alert tone="ok" title="تم تسجيل العملية بنجاح." />}
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">العمليات المخطّطة</h2>
-        <Link
-          href={mineOnly ? "/m" : "/m?mine=1"}
-          className="inline-flex min-h-11 items-center justify-center rounded-md border px-4 text-sm font-semibold"
-          style={{ borderColor: "var(--border, currentColor)" }}
-        >
-          {mineOnly ? "عرض كل العمليات" : "مهامي فقط"}
-        </Link>
+        <h2 className="text-lg font-semibold">{m.personId ? "مهامي المخطّطة" : "العمليات المخطّطة"}</h2>
+        {m.personId && (
+          <Link
+            href={mineOnly ? "/m?mine=0" : "/m"}
+            className="inline-flex min-h-11 items-center justify-center rounded-md border px-4 text-sm font-semibold"
+            style={{ borderColor: "var(--border, currentColor)" }}
+          >
+            {mineOnly ? "عرض كل العمليات" : "مهامي فقط"}
+          </Link>
+        )}
       </div>
 
       {allOps.length === 0 ? (
         <EmptyState
-          title="لا توجد عمليات مجدولة."
-          description="ستظهر العمليات المخطّطة هنا عند جدولتها في الخطة."
+          title={m.personId ? "لا توجد مهام مسندة لك." : "لا توجد عمليات مجدولة."}
+          description={
+            m.personId
+              ? "ستظهر هنا العمليات التي يسندها مدير المزرعة أو المهندس إليك."
+              : "ستظهر العمليات المخطّطة هنا عند جدولتها في الخطة."
+          }
         />
       ) : visibleOps.length === 0 ? (
         <EmptyState

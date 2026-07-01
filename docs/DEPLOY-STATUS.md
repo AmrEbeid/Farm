@@ -2,6 +2,28 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-01 — connected work graph prod migration applied; merge/live smoke pending.**
+> Draft local migration `20260701390000_execute_operation_target_rollup.sql` fixes executed operation rollups for
+> sector/hawsha/line/palm targets by writing `event_locations.farm_id/sector_id/hawsha_id/line_id` and palm
+> `event_assets`, preserving both the #512 no-blind-release behavior and the current multi-material execution
+> contract from `20260701230000_execute_multi_material.sql`. Current `main` owns `20260701230000` for
+> multi-material execution, so this branch moves the rollup fix to `20260701390000`. Latest `main` also introduced a
+> duplicate `20260701230000_operation_subtype_vocab.sql`; this branch renumbers it to `20260701235000` so it remains
+> before `20260701240000_fn_add_plan_operation_multi_harvest_stage.sql`. Local pgTAP is green
+> (**1098/1098**, including
+> `112_execute_multi_material_test.sql` and `113_execute_operation_target_rollup_test.sql`, which also proves
+> palm fallback through `line_id` when `assets.hawsha_id` is missing). App validation is green: full ESLint,
+> `tsc --noEmit`, Vitest **353/353**, production build, and `git diff --check`. GitHub checks must rerun on the
+> pushed rebased head before merge.
+> Prod apply/probe completed on Farm (`veezkmytervjnpxcrbkw`): repaired exact ledger rows for already-applied
+> generated-timestamp migrations, including `20260701235000`, `20260701240000`, `20260701280000`,
+> `20260701300000`, `20260701310000`, `20260701350000`, `20260701370000`, and `20260701380000` after the latest rebase, then recorded
+> `20260701390000_execute_operation_target_rollup` with exact ledger version. Probes
+> confirm five-arg `fn_execute_operation`, no four-arg overload, multi-material refusal preserved, full
+> `event_locations` insert including `asset_id`, palm `event_assets`, and no anon EXECUTE grant.
+> Required live order remaining: merge to `main` -> Vercel auto-deploy -> live smoke on 360 pages, `/m`, `/people`,
+> `/finance/dashboard`, and custody/accounting links.
+
 > **2026-07-01 — accounting/custody settlement LIVE via PR #568 (`8ffc4ae`).**
 > Branch `feat/accounting-custody-standalone` / PR #568 introduced
 > `20260701220000_accounting_cash_custody_settlement.sql` plus `/accounting` and request-settlement UI.
