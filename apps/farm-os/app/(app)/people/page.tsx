@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { type SimpleColumn } from "@/components/SimpleTable";
-import { FilterableTable } from "@/components/FilterableTable";
+import { PeopleDirectoryGrouped, type PersonGroup, type PersonRow } from "@/components/PeopleDirectoryGrouped";
 import { EMP_TYPE_AR } from "@/lib/labels";
 
-// Read-only team directory. Member-readable columns only — phone/email are PII-locked (0048) and the
-// wage `rate` was moved to people_compensation (0046), so neither is selected here.
+const NO_MANAGER_GROUP_ID = undefined;
+
+// Read-only team directory, grouped one level by direct manager (reports_to_person_id) instead of a
+// flat list — "فريق <المدير>" sections, collapsible. Member-readable columns only — phone/email are
+// PII-locked (0048) and the wage `rate` was moved to people_compensation (0046), so neither is
+// selected here.
 export default async function PeopleDirectoryPage() {
   await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const sb = await createClient();
@@ -16,7 +20,13 @@ export default async function PeopleDirectoryPage() {
     .order("name");
   if (error) throw error;
 
-  const nameById = new Map((people ?? []).map((p) => [p.id, p.name]));
+  const all = people ?? [];
+  const nameById = new Map(all.map((p) => [p.id, p.name]));
+  // Only people who are someone's manager get their own section — computed from the real
+  // reports_to_person_id values present, not fabricated from a role/title.
+  const managerIds = new Set(
+    all.map((p) => p.reports_to_person_id).filter((id): id is string => id != null),
+  );
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "الاسم" },
@@ -26,9 +36,17 @@ export default async function PeopleDirectoryPage() {
     { id: "active", header: "نشط", kind: "tag-ok" },
   ];
 
-  const rows = (people ?? []).map((p) => ({
+  // One-level grouping: a person's group is their direct manager, if that manager still exists in
+  // the org; everyone else (no manager, or a dangling reports_to) falls into the catch-all. A person
+  // who is themselves a manager still appears here as a row under THEIR OWN manager's group (or the
+  // catch-all) — they separately get their own section header below for their direct reports.
+  const groupIdFor = (p: (typeof all)[number]): string | undefined =>
+    p.reports_to_person_id && nameById.has(p.reports_to_person_id) ? p.reports_to_person_id : NO_MANAGER_GROUP_ID;
+
+  const rows: PersonRow[] = all.map((p) => ({
     id: p.id,
     href: `/people/${p.id}`,
+    groupId: groupIdFor(p),
     name: p.name,
     position: p.position ?? "—",
     type: p.employment_type ? EMP_TYPE_AR[p.employment_type] ?? "غير معروف" : "—",
@@ -38,16 +56,25 @@ export default async function PeopleDirectoryPage() {
     active: p.active ? "نشط" : "",
   }));
 
+  // Section order: managers by name (matches the overall list order), catch-all last.
+  const groups: PersonGroup[] = [
+    ...all
+      .filter((p) => managerIds.has(p.id))
+      .map((p): PersonGroup => ({ id: p.id, label: `فريق ${p.name}` })),
+    { id: NO_MANAGER_GROUP_ID, label: "بدون مدير مباشر" },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
         <h1 className="text-2xl font-bold">الفريق</h1>
         <p style={{ color: "var(--ink-muted)" }}>دليل العاملين بالمزرعة</p>
       </header>
-      <FilterableTable
+      <PeopleDirectoryGrouped
         ariaLabel="الفريق"
         columns={columns}
         rows={rows}
+        groups={groups}
         empty="لا يوجد عاملون مسجّلون"
         searchColumns={["name", "position"]}
         placeholder="ابحث عن عامل…"
