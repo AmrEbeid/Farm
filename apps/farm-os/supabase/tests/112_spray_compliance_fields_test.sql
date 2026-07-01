@@ -33,16 +33,18 @@ select set_config('t.fm', (select user_id::text from public.organization_member
 select set_config('t.store', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
 
--- ── grant lockdown on the re-created (10-arg) fn_add_plan_operation_multi ───────────────────────────
+-- ── grant lockdown on the re-created (11-arg) fn_add_plan_operation_multi ───────────────────────────
+-- 11 args: #543's p_harvest_stage (10th) is now rebuilt into this branch's apply chain (#543 -> #549 ->
+-- #562), with this branch's own p_preferred_time_of_day as the trailing 11th.
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
   '20260701320000: anon cannot EXECUTE the re-created fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
   '20260701320000: authenticated CAN EXECUTE the re-created fn_add_plan_operation_multi');
 select ok(not has_function_privilege('public',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text)', 'EXECUTE'),
-  '20260701320000: the superseded 9-arg overload is gone / new overload not PUBLIC-executable');
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
+  '20260701320000: the superseded 10-arg overload is gone / new overload not PUBLIC-executable');
 
 -- ── (a) target_zone CHECK enum on plan_material_requirements ────────────────────────────────────────
 select lives_ok(
@@ -94,12 +96,14 @@ reset role;
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
+-- positional arg 10 is #543's p_harvest_stage (null here — not exercised by this test), arg 11 is
+-- this branch's own p_preferred_time_of_day ('late_afternoon').
 select set_config('t.res', public.fn_add_plan_operation_multi(
   :'plan', 'spraying', '2026-07-15'::date, null, 800,
   format(
     '[{"item_id":"%s","qty":12,"unit":"L","target_pest":"سوسة النخيل الحمراء","apc_registration_ref":"APC-2024-0091","rei_hours":48,"phi_days":14,"target_zone":"crown","applicator_person_id":"%s","wind_speed_kmh":8,"wind_direction":"شمالي","air_temp_c":31}]',
     :'item1', :'p1')::jsonb,
-  '[]'::jsonb, null, null, 'late_afternoon')::text, false);
+  '[]'::jsonb, null, null, null, 'late_afternoon')::text, false);
 reset role;
 
 select is(
@@ -155,13 +159,14 @@ select throws_ok(
   '22023', null, 'RPC rejects an unrecognised target_zone in the materials payload (22023)');
 reset role;
 
--- an unrecognised preferred_time_of_day is likewise rejected with a clean 22023.
+-- an unrecognised preferred_time_of_day is likewise rejected with a clean 22023. Positional arg 10 is
+-- #543's p_harvest_stage (null — not exercised), arg 11 is p_preferred_time_of_day ('noonish').
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok(
   format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'spraying', '2026-07-17'::date, null, 100,
-    '[]'::jsonb, '[]'::jsonb, null, null, 'noonish') $$, :'plan'),
+    '[]'::jsonb, '[]'::jsonb, null, null, null, 'noonish') $$, :'plan'),
   '22023', null, 'RPC rejects an unrecognised preferred_time_of_day (22023)');
 reset role;
 

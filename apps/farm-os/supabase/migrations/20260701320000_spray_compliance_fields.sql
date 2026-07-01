@@ -61,6 +61,16 @@
 --   * fn_add_plan_operation_multi (0093) IS extended below (planning-time authoring only) — distinct
 --     RPC from fn_execute_operation, not touched by #545, safe to extend in this PR.
 --
+-- REBUILD (reconciliation, Layer 2): this branch (#562) now builds on PR #549 (feat/labor-cost-rollup,
+-- already itself rebuilt onto PR #543 — Layer 1, migration 20260701250100), instead of the pre-#549
+-- 9-arg base. Required apply order: #543 -> #549 -> #562. This migration carries Layer 1's FULL body
+-- forward BYTE-FOR-BYTE (p_harvest_stage from #543 + the labour-loop v_lab_person/person_id write from
+-- #549) and layers this branch's own change on top: a NEW 11th trailing parameter
+-- p_preferred_time_of_day (default null, backward-compatible) plus per-material spray-compliance
+-- fields (target_pest/apc_registration_ref/rei_hours/phi_days/target_zone/applicator_person_id/
+-- wind_speed_kmh/wind_direction/air_temp_c) validated and written in the MATERIALS loop only. The
+-- labour loop's person_id handling (from #549/Layer 1) is untouched.
+--
 -- DRAFT migration — never applied by this session. Validate with test-shims/run-pgtap-local.sh.
 -- Owner-gated: migrate-first-then-merge (this repo's Vercel deploy auto-builds off `main`).
 
@@ -122,39 +132,41 @@ create policy tenant_all on public.plan_material_requirements for all to authent
                        and pe.org_id = plan_material_requirements.org_id))
   );
 
--- ── 4) fn_add_plan_operation_multi — extend the PLANNING-time authoring RPC (0093) to accept the new
--- per-material compliance fields plus preferred_time_of_day. p_materials is ALREADY a jsonb array (no
--- signature change needed for it): each element may now additionally carry target_pest/
--- apc_registration_ref/rei_hours/phi_days/target_zone/applicator_person_id/wind_speed_kmh/
--- wind_direction/air_temp_c, all optional (coalesced to NULL when absent, never fabricated —
--- non-negotiable #1). target_zone is validated against the same closed vocabulary as the table CHECK,
--- for a clean 22023 instead of a raw constraint-violation error. applicator_person_id, if supplied,
--- must be an active member of the plan's org (mirrors the assignee validation below it).
+-- ── 4) fn_add_plan_operation_multi — extend Layer 1's (#543 + #549) PLANNING-time authoring RPC to
+-- accept the new per-material compliance fields plus preferred_time_of_day. p_materials is ALREADY a
+-- jsonb array (no signature change needed for it): each element may now additionally carry
+-- target_pest/apc_registration_ref/rei_hours/phi_days/target_zone/applicator_person_id/
+-- wind_speed_kmh/wind_direction/air_temp_c, all optional (coalesced to NULL when absent, never
+-- fabricated — non-negotiable #1). target_zone is validated against the same closed vocabulary as the
+-- table CHECK, for a clean 22023 instead of a raw constraint-violation error. applicator_person_id, if
+-- supplied, must be an active member of the plan's org (mirrors the assignee validation below it).
 --
 -- preferred_time_of_day IS a genuine new scalar parameter (plan_operations-level, not per-material) —
 -- added as a NEW TRAILING parameter WITH A DEFAULT (`default null`), which is backward-compatible: the
 -- one existing call site (addPlanOperationMulti, app/(app)/plans/[planId]/actions.ts) is updated in
--- this same PR to pass it, but Postgres would resolve a 9-arg call to this same overload unchanged if
+-- this same PR to pass it, but Postgres would resolve a 10-arg call to Layer 1's overload unchanged if
 -- one existed (it does not — single caller, confirmed by repo grep).
 --
 -- This RPC is DISTINCT from fn_execute_operation (untouched — see header) and is NOT part of PR #545's
 -- in-flight signature change, so extending it here is safe.
 --
 -- Adding a parameter changes the function's identity (Postgres resolves overloads by name + parameter
--- TYPES) — `create or replace` alone would leave the old 9-arg version callable side-by-side (mirrors
--- the #520/#545 precedent for fn_execute_operation). Drop the superseded 9-arg overload explicitly.
-drop function if exists public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid);
+-- TYPES) — `create or replace` alone would leave Layer 1's 10-arg version callable side-by-side. Drop
+-- the superseded 10-arg overload explicitly (mirrors #543's own drop of the pre-#543 9-arg overload,
+-- and Layer 1/#549's drop of the pre-#543 9-arg overload it used to re-emit).
+drop function if exists public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text);
 
 create or replace function public.fn_add_plan_operation_multi(
-  p_plan_id              uuid,
-  p_subtype              text,
-  p_planned_at           date,
-  p_ends_on              date,
-  p_est_cost             numeric,
-  p_materials            jsonb,
-  p_labor                jsonb,
-  p_assignee_ids         uuid[],
-  p_lead_id              uuid,
+  p_plan_id               uuid,
+  p_subtype               text,
+  p_planned_at            date,
+  p_ends_on               date,
+  p_est_cost              numeric,
+  p_materials             jsonb,
+  p_labor                 jsonb,
+  p_assignee_ids          uuid[],
+  p_lead_id               uuid,
+  p_harvest_stage         text default null,
   p_preferred_time_of_day text default null)
 returns jsonb
 language plpgsql
@@ -169,6 +181,7 @@ declare
   v_op_id      uuid;
   v_mat        jsonb;
   v_lab        jsonb;
+  v_lab_person uuid;
   v_pid        uuid;
   v_dup        uuid;
   v_n_mat      int := 0;
@@ -226,9 +239,9 @@ begin
 
   insert into public.plan_operations (org_id, plan_id, subtype, target_type, target_id, planned_at,
                                       ends_on, priority, responsible_person_id, est_cost, approval_needed, status,
-                                      preferred_time_of_day)
+                                      harvest_stage, preferred_time_of_day)
   values (v_org, p_plan_id, p_subtype, coalesce(v_scope_type, 'sector'), v_scope_id, p_planned_at,
-          p_ends_on, 1, p_lead_id, p_est_cost, true, 'planned', p_preferred_time_of_day)
+          p_ends_on, 1, p_lead_id, p_est_cost, true, 'planned', p_harvest_stage, p_preferred_time_of_day)
   returning id into v_op_id;
 
   -- materials: each item must be in the plan's org; qty non-negative; optional compliance fields.
@@ -252,6 +265,8 @@ begin
       raise exception 'applicator % is not an active member of org %', v_applicator, v_org using errcode = '22023';
     end if;
 
+    -- unit: null when omitted/blank → the trg_pmr_unit_reconcile trigger defaults it to the item's canonical
+    -- unit and rejects a real mismatch (unchanged from #543/Layer 1's nullif form).
     insert into public.plan_material_requirements (
       org_id, plan_op_id, item_id, qty, unit,
       target_pest, apc_registration_ref, rei_hours, phi_days, target_zone,
@@ -265,13 +280,22 @@ begin
     v_n_mat := v_n_mat + 1;
   end loop;
 
-  -- labour: non-negative count/days.
+  -- labour: non-negative count/days; an OPTIONAL person_id (from #549/Layer 1) must be an ACTIVE
+  -- same-org person — mirrors the assignee validation below. A line with no person_id stays
+  -- free-text-only (unchanged). Untouched by this branch's own change (materials-loop only).
   for v_lab in select * from jsonb_array_elements(coalesce(p_labor, '[]'::jsonb)) loop
     if coalesce((v_lab->>'count')::int, 0) < 0 or coalesce((v_lab->>'days')::numeric, 0) < 0 then
       raise exception 'labour count/days must be non-negative' using errcode = '22023';
     end if;
-    insert into public.plan_labor_requirements (org_id, plan_op_id, person_or_team, count, days)
-    values (v_org, v_op_id, v_lab->>'person_or_team', (v_lab->>'count')::int, (v_lab->>'days')::numeric);
+    v_lab_person := nullif(v_lab->>'person_id', '')::uuid;
+    if v_lab_person is not null
+       and not exists (select 1 from public.people pe
+                       where pe.id = v_lab_person and pe.org_id = v_org and pe.active) then
+      raise exception 'labour person % is not an active member of org %', v_lab_person, v_org
+        using errcode = '22023';
+    end if;
+    insert into public.plan_labor_requirements (org_id, plan_op_id, person_or_team, count, days, person_id)
+    values (v_org, v_op_id, v_lab->>'person_or_team', (v_lab->>'count')::int, (v_lab->>'days')::numeric, v_lab_person);
     v_n_lab := v_n_lab + 1;
   end loop;
 
@@ -293,8 +317,8 @@ begin
     'operationId', v_op_id, 'materials', v_n_mat, 'labor', v_n_lab, 'assignees', v_n_asg);
 end $$;
 
-revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text) from public;
-revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text) from anon;
-grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text) to authenticated;
+revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text) from public;
+revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text) from anon;
+grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text) to authenticated;
 
 commit;
