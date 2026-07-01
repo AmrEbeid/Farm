@@ -6,12 +6,30 @@ import { buildTemplateSpec, DATA_SHEET } from "../workbook-spec";
 describe("sectorsDescriptor", () => {
   it("maps a validated + ref-resolved row to the fn_save_sector INSERT arg shape when unmatched", () => {
     const row = { farmId: "farm-uuid", name: "القطاع الشمالي", code: "S-01", areaFeddan: 12.5 };
-    expect(sectorsDescriptor.toRpcArgs(row, null)).toMatchObject({ p_id: null, p_code: "S-01" });
+    expect(sectorsDescriptor.toRpcArgs(row, null)).toEqual({
+      p_id: null,
+      p_farm_id: "farm-uuid",
+      p_name: "القطاع الشمالي",
+      p_code: "S-01",
+      p_crop: null,
+      p_area_feddan: 12.5,
+      p_planting_date: null,
+      p_notes: null,
+    });
   });
 
   it("maps to the fn_save_sector UPDATE arg shape when matched", () => {
     const row = { farmId: "farm-uuid", name: "القطاع الشمالي", code: "S-01", areaFeddan: 12.5 };
-    expect(sectorsDescriptor.toRpcArgs(row, "existing-id")).toMatchObject({ p_id: "existing-id" });
+    expect(sectorsDescriptor.toRpcArgs(row, "existing-id")).toEqual({
+      p_id: "existing-id",
+      p_farm_id: "farm-uuid",
+      p_name: "القطاع الشمالي",
+      p_code: "S-01",
+      p_crop: null,
+      p_area_feddan: 12.5,
+      p_planting_date: null,
+      p_notes: null,
+    });
   });
 
   it("requires the farm code, name and code", () => {
@@ -30,10 +48,13 @@ describe("sectorsDescriptor", () => {
     expect(spec.sheets.map((s) => s.name)).toContain(DATA_SHEET);
   });
 
-  it("declares table, archiveType, and matchKey for reconcile-upsert", () => {
+  it("declares table, archiveType, matchKey, and a matching dedupeKey for reconcile-upsert", () => {
     expect(sectorsDescriptor.table).toBe("sectors");
     expect(sectorsDescriptor.archiveType).toBe("sector");
     expect(sectorsDescriptor.matchKey).toEqual(["code"]);
+    // dedupeKey must mirror matchKey — otherwise two uploaded rows sharing a code would both
+    // resolve to the same existing id and fire duplicate RPC calls (see commit-plan.ts).
+    expect(sectorsDescriptor.dedupeKey).toEqual(sectorsDescriptor.matchKey);
   });
 
   it("fromRow maps a DB row back to column-key-shaped values (ref column still holds the id)", () => {

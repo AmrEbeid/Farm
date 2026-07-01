@@ -16,6 +16,9 @@ export const sectorsDescriptor: ImportDescriptor = {
   table: "sectors",
   archiveType: "sector",
   matchKey: ["code"],
+  // Same key as matchKey: two rows sharing a code in one upload must not both resolve to the
+  // same existing id (planCommit would then fire two RPC calls with the identical p_id).
+  dedupeKey: ["code"],
   columns: [
     { key: "farmId", labelAr: "كود المزرعة", type: "string", required: true, example: "F-01", ref: { table: "farms", codeColumn: "code", activeColumn: "archived", activeValue: false } },
     { key: "name", labelAr: "الاسم", type: "string", required: true, example: "القطاع الشمالي" },

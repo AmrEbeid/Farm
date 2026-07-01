@@ -15,6 +15,10 @@ export const linesDescriptor: ImportDescriptor = {
   table: "lines",
   archiveType: "line",
   matchKey: ["hawshaId", "lineNo"],
+  // Same key as matchKey: two rows sharing (hawshaId, lineNo) in one upload must not both
+  // resolve to the same existing id (planCommit would then fire two RPC calls with the
+  // identical p_id).
+  dedupeKey: ["hawshaId", "lineNo"],
   columns: [
     { key: "hawshaId", labelAr: "كود الحوش", type: "string", required: true, example: "H-01", ref: { table: "hawshat", codeColumn: "code", activeColumn: "archived", activeValue: false } },
     { key: "lineNo", labelAr: "رقم الخط", type: "int", required: true, example: "1" },

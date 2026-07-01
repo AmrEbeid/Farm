@@ -12,8 +12,11 @@ describe("linesDescriptor", () => {
   });
 
   it("maps to the UPDATE arg shape when matched", () => {
-    const row = { hawshaId: "hawsha-uuid", lineNo: 1 };
-    expect(linesDescriptor.toRpcArgs(row, "existing-id")).toMatchObject({ p_id: "existing-id" });
+    const row = { hawshaId: "hawsha-uuid", lineNo: 1, lineCode: "L-01", palmCount: 52 };
+    expect(linesDescriptor.toRpcArgs(row, "existing-id")).toEqual({
+      p_id: "existing-id", p_hawsha_id: "hawsha-uuid", p_line_no: 1, p_line_code: "L-01",
+      p_palm_count: 52, p_direction: null, p_notes: null,
+    });
   });
 
   it("coerces numeric columns and requires hawsha code + line number", () => {
@@ -31,6 +34,9 @@ describe("linesDescriptor", () => {
     expect(linesDescriptor.matchKey).toEqual(["hawshaId", "lineNo"]);
     expect(linesDescriptor.table).toBe("lines");
     expect(linesDescriptor.archiveType).toBe("line");
+    // dedupeKey must mirror matchKey — otherwise two uploaded rows sharing (hawshaId, lineNo)
+    // would both resolve to the same existing id and fire duplicate RPC calls.
+    expect(linesDescriptor.dedupeKey).toEqual(linesDescriptor.matchKey);
   });
 
   it("fromRow maps a DB row back to column-key-shaped values", () => {
