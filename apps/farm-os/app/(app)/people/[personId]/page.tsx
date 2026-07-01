@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import type { TabItem } from "@amrebeid/ui";
-import { Alert, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
+import { Alert, Breadcrumbs, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -141,6 +141,14 @@ export default async function Person360Page({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "people", label: "دليل الفريق", href: "/people" },
+          { id: "person", label: person.name },
+        ]}
+      />
+
       <Entity360Header
         title={person.name}
         subtitle={`${person.position ?? "عضو فريق"} · ${typeLabel}`}

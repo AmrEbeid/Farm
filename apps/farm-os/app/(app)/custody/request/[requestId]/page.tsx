@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
-import { Alert, Card, EmptyState } from "@/components/ui";
+import { Alert, Breadcrumbs, Card, EmptyState } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -260,6 +260,14 @@ export default async function PaymentRequestPage({
 
   return (
     <div className="flex flex-col gap-5 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        className="no-print"
+        items={[
+          { id: "custody", label: "العهدة وطلبات الصرف", href: "/custody" },
+          { id: "request", label: `إذن صرف رقم ${num(req.request_no)}` },
+        ]}
+      />
       <Link href="/custody" className="text-sm no-print" style={{ color: "var(--ink-muted)" }}>→ العودة للعهدة</Link>
 
       <Entity360Header

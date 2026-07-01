@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import type { TabItem } from "@amrebeid/ui";
-import { Alert, Card, DescriptionList, KpiCard } from "@/components/ui";
+import { Alert, Breadcrumbs, Card, DescriptionList, KpiCard } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -132,6 +132,14 @@ export default async function InventoryItemPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "inventory", label: "الأصناف", href: "/inventory" },
+          { id: "item", label: item.name },
+        ]}
+      />
+
       <Entity360Header
         title={item.name}
         subtitle={`${item.category ?? "صنف"} · ${unit || "—"}`}
