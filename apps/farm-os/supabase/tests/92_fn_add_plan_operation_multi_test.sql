@@ -14,11 +14,16 @@ select plan(12);
 \set p2    'c9200004-0000-0000-0000-000000000092'
 
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
+-- Final signature after the full 5-branch reconciliation (#543 → #549 → #562 → #560 → #563,
+-- migration 20260701340000): 16-arg — original 9 + p_harvest_stage (#543) + p_preferred_time_of_day
+-- (#562) + p_irrigation_basis/p_soil_moisture_reading (#560) + p_target_type/p_target_id/p_note
+-- (#563, this migration). (#549's labour-loop person_id change is a body-only change, not a new
+-- positional parameter.)
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
   '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
   '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────
@@ -82,11 +87,14 @@ select is((select count(*) from public.plan_operations where plan_id = :'plan' a
   0::bigint, 'ATOMICITY: the rejected material rolled the op back — no orphan operation');
 
 -- ── (c) multi-day validation: ends_on before planned_at is rejected ────────────────────────────────
+-- subtype uses 'pruning_dethorning' (not the old free-text 'pruning') — PR #543's operation-vocabulary
+-- CHECK constraint (rebuilt into this branch's apply chain) now range-checks subtype, and the
+-- plan_operations insert happens before this assertion's own validation would matter for a stale value.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok(
-  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'pruning', '2026-07-10'::date, '2026-07-01'::date, 100,
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'pruning_dethorning', '2026-07-10'::date, '2026-07-01'::date, 100,
     '[]'::jsonb, '[]'::jsonb, null, null) $$, current_setting('t.plan', true)),
   '22023', null, 'ends_on before planned_at is rejected (22023)');
 reset role;

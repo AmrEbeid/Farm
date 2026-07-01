@@ -16,6 +16,11 @@ import { StructureForm } from "@/components/StructureForm";
 import { StructureArchiveButton } from "@/components/StructureArchiveButton";
 import { MediaGallery } from "@/components/MediaGallery";
 import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
+import {
+  PalmTreatmentPanel,
+  type PalmTreatmentItem,
+  type PalmTreatmentEvent,
+} from "@/components/PalmTreatmentPanel";
 
 type MetaItem = { id: string; term: string; description: string };
 type PalmAsset = {
@@ -49,6 +54,8 @@ export function PalmFile({
   orgId,
   hawshaRedirect,
   attachments,
+  treatmentItems,
+  treatments,
 }: {
   label: string;
   meta: MetaItem[];
@@ -60,6 +67,8 @@ export function PalmFile({
   orgId: string;
   hawshaRedirect: string;
   attachments: React.ComponentProps<typeof MediaGallery>["initial"];
+  treatmentItems: PalmTreatmentItem[];
+  treatments: PalmTreatmentEvent[];
 }) {
   const [tab, setTab] = useState("overview");
   return (
@@ -119,6 +128,12 @@ export function PalmFile({
               <PalmStatusForm assetId={asset.id} currentStatus={asset.status ?? "active"} />
             </Card>
           )}
+          <PalmTreatmentPanel
+            assetId={asset.id}
+            items={treatmentItems}
+            canRecord={canEdit}
+            treatments={treatments}
+          />
         </div>
       )}
 

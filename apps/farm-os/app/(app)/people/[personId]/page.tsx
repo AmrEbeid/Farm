@@ -33,7 +33,7 @@ export default async function Person360Page({
   const [
     { data: person, error: personError },
     { data: people, error: peopleError },
-    { data: operations, error: operationsError },
+    { data: operationAssignments, error: operationAssignmentsError },
     { data: performedEvents, error: performedError },
     { data: assignedEvents, error: assignedError },
   ] = await Promise.all([
@@ -47,11 +47,9 @@ export default async function Person360Page({
       .select("id, name, position, employment_type, active, reports_to_person_id")
       .order("name"),
     sb
-      .from("plan_operations")
-      .select("id, plan_id, subtype, planned_at, status, est_cost")
-      .eq("responsible_person_id", personId)
-      .order("planned_at")
-      .limit(20),
+      .from("plan_operation_assignees")
+      .select("plan_op_id, is_lead")
+      .eq("person_id", personId),
     sb
       .from("farm_event")
       .select("id, subtype, status, occurred_at, notes")
@@ -67,7 +65,7 @@ export default async function Person360Page({
   ]);
   if (personError) throw personError;
   if (peopleError) throw peopleError;
-  if (operationsError) throw operationsError;
+  if (operationAssignmentsError) throw operationAssignmentsError;
   if (performedError) throw performedError;
   if (assignedError) throw assignedError;
 
@@ -77,6 +75,33 @@ export default async function Person360Page({
         <EmptyState title="الشخص غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
       </div>
     );
+
+  const assignedOperationIds = [...new Set((operationAssignments ?? []).map((row) => row.plan_op_id))];
+  const [
+    { data: assignedOperations, error: assignedOperationsError },
+    { data: legacyOperations, error: legacyOperationsError },
+  ] = await Promise.all([
+    assignedOperationIds.length
+      ? sb
+          .from("plan_operations")
+          .select("id, plan_id, subtype, planned_at, status, est_cost")
+          .in("id", assignedOperationIds)
+          .order("planned_at")
+          .limit(40)
+      : { data: [], error: null },
+    sb
+      .from("plan_operations")
+      .select("id, plan_id, subtype, planned_at, status, est_cost")
+      .eq("responsible_person_id", personId)
+      .order("planned_at")
+      .limit(40),
+  ]);
+  if (assignedOperationsError) throw assignedOperationsError;
+  if (legacyOperationsError) throw legacyOperationsError;
+
+  const operations = [...(assignedOperations ?? []), ...(legacyOperations ?? [])].filter(
+    (op, index, all) => all.findIndex((candidate) => candidate.id === op.id) === index,
+  );
 
   const manager = (people ?? []).find((p) => p.id === person.reports_to_person_id);
   const directReports = (people ?? []).filter((p) => p.reports_to_person_id === person.id);

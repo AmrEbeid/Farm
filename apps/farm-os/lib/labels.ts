@@ -34,18 +34,32 @@ export function isExecutableOpStatus(status: string | null | undefined): boolean
   return !NON_EXECUTABLE_OP_STATUSES.has(status ?? "planned");
 }
 
-/** Operation subtype (`plan_operations.subtype`) → Arabic. Centralized so a new subtype is
- *  translated everywhere at once (it was duplicated in 8 screens; "pollination" got missed). */
+/**
+ * Operation subtype (`plan_operations.subtype`) → Arabic. Centralized so a new subtype is
+ * translated everywhere at once (it was duplicated in 8 screens; "pollination" got missed).
+ *
+ * Extended to the real Egyptian date-palm operation vocabulary (FAO Y4360E + Egyptian APC +
+ * agronomy research) beyond the original 5 UI-offered values, matching the CHECK constraint added
+ * on plan_operations.subtype (migration 20260701230000). 'spraying' keeps its original key for
+ * back-compat with existing rows/UI even though "المكافحة" (pest/disease control) is the more
+ * accurate real-world term for it.
+ */
 export const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
+  pruning_dethorning: "التقليم / التكريب",
+  offshoot_mgmt: "إدارة الفسائل",
+  pollen_collection: "جمع اللقاح",
   pollination: "تلقيح",
-  inspection: "تفتيش",
-  // Not yet offered by OperationBuilder's fixed <select> — only reachable today via an
-  // instantiated operation template (fn_instantiate_operation_template). Matches the eventual
-  // controlled vocabulary text (SPEC-0019 / PR #543, not merged) without depending on it.
+  bunch_limiting: "تحديد العراجين",
+  thinning: "الخف",
+  bunch_tilting: "التحدير / التقويس",
+  bagging: "التكييس / التغطية",
+  irrigation: "ري",
+  fertilization: "تسميد",
   pest_scouting: "فحص مصائد السوسة",
+  spraying: "المكافحة",
+  harvest: "الحصاد",
+  post_harvest: "ما بعد الحصاد",
+  inspection: "تفتيش",
 };
 
 /**
@@ -70,6 +84,14 @@ export function isPendingSignoff(
 ): boolean {
   return isDoseBearingSubtype(subtype) && !signedOffBy;
 }
+
+/** Harvest ripening stage (`plan_operations.harvest_stage`) → Arabic. Only meaningful when
+ *  subtype === "harvest" (migration 20260701230000). */
+export const HARVEST_STAGE_AR: Record<string, string> = {
+  khalal: "خلال",
+  rutab: "رطب",
+  tamar: "تمر",
+};
 
 export const PLAN_TYPE_AR: Record<string, string> = {
   weekly: "أسبوعية",

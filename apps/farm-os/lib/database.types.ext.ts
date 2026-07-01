@@ -34,6 +34,79 @@ type WithDependsOn<T extends { Row: object; Insert: object; Update: object; Rela
   Relationships: T["Relationships"];
 };
 
+/** Add the operation-vocabulary harvest_stage column (migration 20260701230000) to
+ *  plan_operations, preserving its relationships. */
+type WithHarvestStage<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { harvest_stage: string | null };
+  Insert: T["Insert"] & { harvest_stage?: string | null };
+  Update: T["Update"] & { harvest_stage?: string | null };
+  Relationships: T["Relationships"];
+};
+
+/** Add the soil-test-driven irrigation record-keeping columns (migration 20260701330000) to
+ *  plan_operations, preserving its relationships. */
+type WithIrrigationBasis<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { irrigation_basis: string | null; soil_moisture_reading: string | null };
+  Insert: T["Insert"] & { irrigation_basis?: string | null; soil_moisture_reading?: string | null };
+  Update: T["Update"] & { irrigation_basis?: string | null; soil_moisture_reading?: string | null };
+  Relationships: T["Relationships"];
+};
+
+/** Add the labor-cost-basis person_id FK (migration 20260701250000) to an existing table entry. */
+type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { person_id: string | null };
+  Insert: T["Insert"] & { person_id?: string | null };
+  Update: T["Update"] & { person_id?: string | null };
+  Relationships: T["Relationships"];
+};
+
+/** Add the pesticide-application compliance fields (migration 20260701320000) to
+ *  plan_material_requirements, preserving its relationships. */
+type WithSprayCompliance<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & {
+    target_pest: string | null;
+    apc_registration_ref: string | null;
+    rei_hours: number | null;
+    phi_days: number | null;
+    target_zone: string | null;
+    applicator_person_id: string | null;
+    wind_speed_kmh: number | null;
+    wind_direction: string | null;
+    air_temp_c: number | null;
+  };
+  Insert: T["Insert"] & {
+    target_pest?: string | null;
+    apc_registration_ref?: string | null;
+    rei_hours?: number | null;
+    phi_days?: number | null;
+    target_zone?: string | null;
+    applicator_person_id?: string | null;
+    wind_speed_kmh?: number | null;
+    wind_direction?: string | null;
+    air_temp_c?: number | null;
+  };
+  Update: T["Update"] & {
+    target_pest?: string | null;
+    apc_registration_ref?: string | null;
+    rei_hours?: number | null;
+    phi_days?: number | null;
+    target_zone?: string | null;
+    applicator_person_id?: string | null;
+    wind_speed_kmh?: number | null;
+    wind_direction?: string | null;
+    air_temp_c?: number | null;
+  };
+  Relationships: T["Relationships"];
+};
+
+/** Add plan_operations.note (migration 20260701340000 — individual-palm treatment free-text note). */
+type WithOpNote<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { note: string | null };
+  Insert: T["Insert"] & { note?: string | null };
+  Update: T["Update"] & { note?: string | null };
+  Relationships: T["Relationships"];
+};
+
 type AttachmentsTable = {
   Row: {
     id: string;
@@ -250,7 +323,15 @@ type StructFunctions = {
     Returns: Json;
   };
   // ── #398 slice 2: atomic multi-line operation create (multi-day + N materials + N labour +
-  //    assignees), migrations 0090 (schema) / 0093 (RPC). p_materials/p_labor are jsonb line arrays. ──
+  //    assignees), migrations 0090 (schema) / 0093 (RPC). p_materials/p_labor are jsonb line arrays.
+  //    p_harvest_stage (optional, default null) added by the operation-vocabulary re-emit
+  //    (migration 20260701240000) for the harvest ripening stage (خلال/رطب/تمر). Further extended by
+  //    migration 20260701330000 with two trailing OPTIONAL params so an irrigation op can record
+  //    whether it was soil-test-driven (and the reading that justified it). Finally extended by
+  //    migration 20260701340000 with p_target_type/p_target_id/p_note (individual-palm treatments):
+  //    when target_type/target_id are set (target_type='palm'), they override the plan-scope-derived
+  //    target for this one operation; p_note is a free-text note persisted on plan_operations.note.
+  //    Omitted → identical to the pre-existing behaviour. ──
   fn_add_plan_operation_multi: {
     Args: {
       p_plan_id: string;
@@ -262,6 +343,12 @@ type StructFunctions = {
       p_labor: Json;
       p_assignee_ids: string[];
       p_lead_id: string | null;
+      p_harvest_stage?: string | null;
+      p_irrigation_basis?: string | null;
+      p_soil_moisture_reading?: string | null;
+      p_target_type?: string | null;
+      p_target_id?: string | null;
+      p_note?: string | null;
     };
     Returns: Json;
   };
@@ -271,6 +358,13 @@ type StructFunctions = {
   fn_unassign_plan_operation: {
     Args: { p_op_id: string; p_person_id: string };
     Returns: Json;
+  };
+  // ── individual-palm rescue treatments, migration 20260701340000: find-or-create the org's
+  //    single implicit "individual treatments" plan (the parent container fn_add_plan_operation_multi
+  //    still requires a plan_id for) so the palm-360 quick-treatment form needs no plan picker. ──
+  fn_get_or_create_individual_treatment_plan: {
+    Args: { p_org: string };
+    Returns: string;
   };
   // ── STAGE 1 active-org switcher, migration 0085 ──
   fn_set_active_org: {
@@ -752,15 +846,73 @@ type SignoffFunctions = {
   fn_sign_off_plan_operation: { Args: { p_op_id: string }; Returns: Json };
 };
 
+// ── SPEC-0006 slice 2 — `labor_logs` (ACTUAL day-to-day attendance), migration 20260701310000. ──
+// Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
+type LaborLogsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    person_id: string | null;
+    team_name: string | null;
+    work_date: string;
+    hours: number;
+    plan_op_id: string | null;
+    note: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    person_id?: string | null;
+    team_name?: string | null;
+    work_date: string;
+    hours: number;
+    plan_op_id?: string | null;
+    note?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    person_id?: string | null;
+    team_name?: string | null;
+    work_date?: string;
+    hours?: number;
+    plan_op_id?: string | null;
+    note?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "labor_logs_person_id_fkey";
+      columns: ["person_id"];
+      isOneToOne: false;
+      referencedRelation: "people";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
-    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations"> & {
+    Tables: Omit<
+      Tables,
+      | "farms"
+      | "sectors"
+      | "hawshat"
+      | "lines"
+      | "expenses"
+      | "plan_operations"
+      | "plan_labor_requirements"
+      | "plan_material_requirements"
+    > & {
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
-      plan_operations: WithSignoff<WithDependsOn<Tables["plan_operations"]>>;
+      plan_operations: WithOpNote<WithSignoff<WithDependsOn<WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>>>>;
+      plan_material_requirements: WithSprayCompliance<Tables["plan_material_requirements"]>;
       attachments: AttachmentsTable;
       academy_content: AcademyContentTable;
       accounts: AccountsTable;
@@ -776,6 +928,8 @@ export type Database = Omit<Generated, "public"> & {
       pest_traps: PestTrapsTable;
       pest_trap_catches: PestTrapCatchesTable;
       pest_incidents: PestIncidentsTable;
+      labor_logs: LaborLogsTable;
+      plan_labor_requirements: WithLaborPersonId<Tables["plan_labor_requirements"]>;
     };
     Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions;
   };

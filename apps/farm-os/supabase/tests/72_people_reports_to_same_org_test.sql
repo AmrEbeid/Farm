@@ -3,6 +3,12 @@
 -- refused; a same-org manager (or null) is allowed. Impersonation via request.jwt.claims; orgB + its
 -- person and an orgA manager are seeded as superuser.
 --
+-- ACTOR NOTE (updated alongside the SPEC-0006 `people.write` gate, migration 20260701300000): this test
+-- only exercises the #306 cross-org TRIGGER, not any role gate, so the actor just needs to be able to
+-- write `people` at all. Before 20260701300000 ANY authenticated member (e.g. storekeeper) could; now
+-- writes require `people.write` (owner/farm_manager) — switched the actor to farm_manager so this test
+-- keeps validating the trigger instead of failing on the (correct, intentional) new role gate.
+--
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
@@ -13,8 +19,8 @@ select plan(4);
 \set persB  '07200000-0000-0000-0000-0000000000b3'
 \set mgrA   '07200000-0000-0000-0000-0000000000a3'
 
-select set_config('test.store', (select user_id::text from public.organization_member
-  where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
+select set_config('test.manager', (select user_id::text from public.organization_member
+  where org_id = :'orgA' and role = 'farm_manager' limit 1), false);
 
 insert into public.organization (id, name) values (:'orgB', 'مزرعة سابعة');
 insert into public.people (id, org_id, name) values
@@ -22,7 +28,7 @@ insert into public.people (id, org_id, name) values
   (:'mgrA',  :'orgA', 'مدير محلي');
 
 select set_config('request.jwt.claims',
-  json_build_object('sub', current_setting('test.store'), 'role', 'authenticated')::text, true);
+  json_build_object('sub', current_setting('test.manager'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 
 -- a cross-org manager is refused (the trigger)

@@ -67,6 +67,13 @@ export const APP_MODULES: AppModule[] = [
         href: "/m",
         roles: ["supervisor", "agri_engineer", "owner", "farm_manager"],
       },
+      {
+        id: "attendance",
+        label: "تسجيل الحضور",
+        icon: "🧾",
+        href: "/people/attendance",
+        roles: ["owner", "farm_manager", "supervisor"],
+      },
     ],
   },
   {

@@ -1,0 +1,44 @@
+# LEGAL-WRAPPER — PDPL compliance + contract stack (2026-07)
+
+*⚠️ **DRAFT — FOR LAWYER REVIEW. Research + drafting scaffolding, not legal advice.** All statutes to be verified against the Arabic Official Gazette by Egyptian counsel. Researched 2026-07-01/02; sources in the session record.*
+
+## 🔴 The headline (changes the assumed timeline)
+
+**Egypt's PDPL (Law 151/2020) Executive Regulations were ISSUED 1 Nov 2025** (MCIT Decree 816/2025); the **Personal Data Protection Centre (PDPC, pdpc.gov.eg) is live**; the **one-year grace period ends ~1 Nov 2026 — four months away**. Licence applications open ~Nov 2026. [2+ — Shalakany, Baker McKenzie, Sharkawy & Sarhan, Chambers 2026]
+
+**And the Supabase-EU question is answered, unfavorably but manageably:** storing data on foreign servers **IS** a regulated cross-border transfer (ER Arts. 14–16 expressly cover "storage") requiring a PDPC permit + adequacy assessment. Guidance: **map transfers now and file when the window opens — don't repatriate.** No adequacy list published yet.
+
+**Roles:** for worker PII + farm records entered by the farm → **the farm is controller, Farm OS is processor**; for its own account/billing data → Farm OS is controller. No size exemption: every juristic controller/processor must appoint a **PDPC-registered DPO** (ER grades DPO qualifications by size; Category C fits a small entity — founder can likely self-designate initially). Fee relief: entities with **≤10,000 records exempt from licence fees** (fee, not filing — verify). Penalties: sensitive-data/cross-border violations = ≥3 months prison and/or **EGP 500k–5M**; no-DPO = EGP 200k–2M; first civil precedent Sept 2025 (Alexandria Economic Court, EGP 10M).
+
+## PDPL to-do table
+
+| When | Action |
+|---|---|
+| **NOW** (before ~1 Nov 2026) | 1. Data map + Records of Processing (RoPA — explicit ER duty; PDPC publishes model templates — use them), split by role (controller vs processor). 2. Publish bilingual Privacy Policy + ToS with the hosting-location disclosure. 3. DPA terms in every farm subscription; contract the sub-processors (Supabase, Vercel, WhatsApp BSP). 4. Breach readiness: **72h to PDPC / 3 business days to data subjects** — wire into the incident runbook. 5. Identify the DPO. 6. Map cross-border flows so the transfer filing is ready day one. 7. Keep sensitive data (health/biometric) designed OUT of worker records — sensitive data needs a prior licence. |
+| **Nov 2026 window** | 8. File controller/processor licence (3-yr; ≤10k-records fee tier; 90-working-day decision, **silence = rejection**). 9. File the cross-border transfer permit naming EU/Ireland; watch the adequacy list. 10. Register the DPO. 11. E-marketing licence before any promotional broadcasts. |
+| **KSA entry** | 12. KSA PDPL: NDGP controller registration (extraterritorial reach likely triggers it) + KSA representative + **Saudi SCCs + documented transfer risk assessment** for EU hosting; DPO only if large-scale. Penalties per-violation (SAR 5M admin). EU hosting viable for PRIVATE Saudi farms; **government/ministry deals require KSA hosting** (CST cloud rules). |
+
+## Contract stack — what the market actually does (surveyed: Daftra, Wafeq, Qoyod, Paymob)
+
+Structure norm ≈ Daftra's 14 sections; **liability caps cluster at 1–3 months of fees**; customer owns uploaded data / provider owns aggregates; backups = customer's problem; **explicit export rights are RARE (Daftra has none) — our pledge is a real differentiator**. Gaps not to copy: Daftra publishes no governing-law clause; nobody has an Arabic/English precedence clause. Choose: **bilingual, «النص العربي يسود»**, Egyptian law, 30-day amicable step, then **competent Cairo courts (Economic Court where competent)** — CRCICA arbitration is overkill for small-ticket SaaS (min ≈ $2.3k entry); reserve for enterprise annexes. Click-wrap is enforceable (E-Signature Law 15/2004 + Decree 361/2020; Cassation accepts email evidence): **affirmative checkbox + keep acceptance logs (user, timestamp, IP, ToS version hash) + re-prompt on material changes.**
+
+## The four skeletons (full text in session record; lawyer expands)
+
+1. **ToS (12 clauses)**: definitions/scope (a TOOL — not accounting services, not agronomic consulting) · per-farm license · fees/renewal incl. the harvest-aligned instalment option (license year runs regardless of instalment timing) · **data ownership: the farm owns everything it enters; aggregates only if truly de-identified — stated openly** · PDPL compliance · the export-right clause · SLA-lite (99.5% target, credits as sole remedy) · liability cap = last 3 months' fees (Civil Code Art. 217: fraud/gross-negligence carve-outs cannot be excluded — lawyer confirms survivability) · agronomy disclaimer (below) · suspension WITH notice / 60-day export window post-termination · Egyptian law + Cairo courts · general (e-contract validity, Arabic prevails).
+2. **Privacy Policy (10 sections)** — the key clause is the **dual-role disclosure** (farm = controller for what it enters; Farm OS = processor; worker rights requests route via the employing farm) + the candid **hosting disclosure** (Supabase/AWS eu-west-1 Ireland; transfer permit to be held when the window opens).
+3. **DPA (7 clauses)**: processor duties (documented instructions, security, assistance, RoPA, report-based audits) · authorized sub-processor list + change-notice · transfers acknowledgment · **breach notice to the controller-farm within 24–48h** (so the statutory 72h/3-day clocks are meetable) · return/deletion (60-day export → deletion in ~30 days) · DPA prevails on data matters.
+4. **The export pledge (operative Arabic):** «بياناتك ملكك. يحق للمزرعة في أي وقت — أثناء سريان الاشتراك أو خلال ستين (60) يومًا من انتهائه أو إنهائه لأي سبب، **وحتى أثناء إيقاف الحساب لعدم السداد** — تصدير نسخة كاملة من بياناتها المُدخلة في الخدمة (السجلات المالية، بيانات العاملين، السجلات الزراعية، والمرفقات) بصيغ إلكترونية شائعة قابلة للقراءة الآلية (CSV / XLSX كحد أدنى) عبر أداة تصدير ذاتية داخل الخدمة، دون رسوم إضافية ودون اشتراط موافقة مسبقة من الشركة. لا يجوز تعليق هذا الحق أو تقييده بأي نزاع بين الطرفين.» — enforceable because: self-serve (no discretion gate), defined formats, survives non-payment suspension + 60 days post-termination, fee-free, dispute-proof, tied to the deletion schedule.
+
+## Agronomy-liability clause — RECOMMENDED option (gate-operationalized)
+
+Verified precedents: Climate FieldView ("not a substitute for sound farming practices… consult your agronomist… no economic guarantee") + xarvio ("always read and follow label directions… sole responsibility of the User"). Egyptian regime: Agriculture Law 53/1966 + Decree 974/2017 — the **APC (لجنة مبيدات الآفات الزراعية)** is the sole authority for registration/trading/use; point-of-sale advice is tied to syndicate-registered engineers. The strongest analogue is California's PCA regime where **the property operator's own internal decisions are exempt** — exactly what the agronomist sign-off gate replicates: the template becomes *the farm's own internal decision adopted by its designated engineer*.
+
+**Recommended clause (Option 3):** general-guidance disclaimer + APC-label anchor + **«لا تُفعَّل أي خطة تشغيلية مبنية على قالب زراعي إلا بعد مراجعتها واعتمادها داخل الخدمة من مهندس زراعي مقيد بنقابة المهن الزراعية تُحدده المزرعة، ويُعد هذا الاعتماد قرارًا داخليًا خاصًا بالمزرعة. القوالب ليست وصفة أو توصية بمبيد لأي حالة بعينها.»** — turns the disclaimer into an enforced product mechanic (the existing sign-off gate) and is the strongest position against any "unlicensed practice" characterization. ⚠️ Corrections found: "Law 145/2019" did NOT verify as a pesticide amendment (verified amendments: 13/2014, 7/2018, 34/2018, 164/2022); the syndicate law is 149/1949 — lawyer confirms against the Gazette.
+
+## Entity flag (for the accountant meeting — flags, not conclusions)
+
+Natural solo vehicle: **One-Person Company (شركة الشخص الواحد, Law 4/2018)** — limited liability, GAFI ~3–4 weeks. **Why separate from the farm entity:** (1) VAT mismatch — agriculture largely exempt vs software standard-rated **14%** (confirm SaaS = 14% standard, not the 10% schedule tax) → a mixed entity means partial input-VAT apportionment + messier ETA; (2) **ITIDA Export-IT incentives** (rebates on IT exports — relevant to KSA sales) require an ICT-specialized company; (3) ring-fences farm assets from SaaS liability (incl. agronomy-template risk); (4) clean cap table. Ask the accountant: cost of the second entity vs the mixing mess; VAT classification of SaaS+onboarding bundles; whether the farm's form even permits the added activity.
+
+## Lawyer verification list
+
+ER fee tiers beyond the ≤10k exemption (and whether it waives filing or only fees) · the PDPC adequacy list (EU status) · pesticide-amendment citations · Art. 217 cap survivability · Decree 816/2025 exact date (1 vs 10 Nov) · Consumer-Protection-Law edge for sole-trader micro-farms.

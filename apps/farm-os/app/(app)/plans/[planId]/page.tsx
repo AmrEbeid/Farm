@@ -204,9 +204,6 @@ export default async function MonthlyPlanPage({
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
     { id: "planned_at", header: "التاريخ" },
-    { id: "cost", header: "التكلفة", numeric: true },
-    { id: "approval", header: "موافقة؟" },
-    { id: "status", header: "الحالة", kind: "status" },
     {
       id: "assignees",
       header: "المكلّفون",
@@ -219,6 +216,9 @@ export default async function MonthlyPlanPage({
         />
       ),
     },
+    { id: "cost", header: "التكلفة", numeric: true },
+    { id: "approval", header: "موافقة؟" },
+    { id: "status", header: "الحالة", kind: "status" },
     { id: "dependency", header: "يعتمد على" },
   ];
   const opRows = (ops ?? []).map((o) => ({

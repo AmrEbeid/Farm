@@ -1,5 +1,10 @@
 # RECONCILE-001 — Main Ground-Truth Audit (canonical capability map) — 2026-06-27
 
+> ⚠️ **Superseded for current status (2026-07-02):** this audit was pinned to `main` as of 2026-06-27
+> (~89 migrations; prod at `0084`). Prod is now at 134 applied migrations after the 2026-07-01 deploy wave.
+> It remains a valid historical capability map and rebuttal record; **for "what is live now," use
+> [`STATUS.md`](STATUS.md)** and the reconciled catalogs (FEATURE-REGISTRY / RPC-CATALOG / DATA-DICTIONARY).
+
 *The single source of truth for **what is actually implemented in `main`**. Created because an external
 product assessment (2026-06-27) diagnosed the build as "drifted into ERP dashboards, core loop missing,
 simple roles without org isolation, thin `payment_vouchers`, generic `farm_tasks`." **That diagnosis read
