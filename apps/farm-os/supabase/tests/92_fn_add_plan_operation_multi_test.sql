@@ -14,15 +14,16 @@ select plan(12);
 \set p2    'c9200004-0000-0000-0000-000000000092'
 
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
--- Signature carries the operation-vocabulary p_harvest_stage param (#543/20260701240000, rebuilt into
--- this branch's 20260701250100); the old 9-arg overload was dropped by that re-emit, so this checks
--- the current 10-arg signature.
+-- Signature carries an 11th param (p_preferred_time_of_day, trailing after #543's p_harvest_stage) as
+-- of migration 20260701320000, which DROPPED the superseded 10-arg overload (Postgres resolves
+-- overloads by parameter types, so adding a param changes the function's identity — mirrors the
+-- #520/#545 fn_execute_operation precedent, and #543/#549's own drops of their predecessor overloads).
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text)', 'EXECUTE'),
-  '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
+  '0093/20260701320000: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text)', 'EXECUTE'),
-  '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
+  '0093/20260701320000: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────
 insert into public.plans (id, org_id, type, status, scope_type) values (:'plan', :'orgA', 'monthly', 'approved', 'sector');
@@ -85,11 +86,14 @@ select is((select count(*) from public.plan_operations where plan_id = :'plan' a
   0::bigint, 'ATOMICITY: the rejected material rolled the op back — no orphan operation');
 
 -- ── (c) multi-day validation: ends_on before planned_at is rejected ────────────────────────────────
+-- subtype uses 'pruning_dethorning' (not the old free-text 'pruning') — PR #543's operation-vocabulary
+-- CHECK constraint now range-checks subtype, and the plan_operations insert happens BEFORE this
+-- validation would otherwise matter for a stale value; use a value valid under the composed vocabulary.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok(
-  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'pruning', '2026-07-10'::date, '2026-07-01'::date, 100,
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'pruning_dethorning', '2026-07-10'::date, '2026-07-01'::date, 100,
     '[]'::jsonb, '[]'::jsonb, null, null) $$, current_setting('t.plan', true)),
   '22023', null, 'ends_on before planned_at is rejected (22023)');
 reset role;

@@ -51,6 +51,45 @@ type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; 
   Relationships: T["Relationships"];
 };
 
+/** Add the pesticide-application compliance fields (migration 20260701320000) to
+ *  plan_material_requirements, preserving its relationships. */
+type WithSprayCompliance<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & {
+    target_pest: string | null;
+    apc_registration_ref: string | null;
+    rei_hours: number | null;
+    phi_days: number | null;
+    target_zone: string | null;
+    applicator_person_id: string | null;
+    wind_speed_kmh: number | null;
+    wind_direction: string | null;
+    air_temp_c: number | null;
+  };
+  Insert: T["Insert"] & {
+    target_pest?: string | null;
+    apc_registration_ref?: string | null;
+    rei_hours?: number | null;
+    phi_days?: number | null;
+    target_zone?: string | null;
+    applicator_person_id?: string | null;
+    wind_speed_kmh?: number | null;
+    wind_direction?: string | null;
+    air_temp_c?: number | null;
+  };
+  Update: T["Update"] & {
+    target_pest?: string | null;
+    apc_registration_ref?: string | null;
+    rei_hours?: number | null;
+    phi_days?: number | null;
+    target_zone?: string | null;
+    applicator_person_id?: string | null;
+    wind_speed_kmh?: number | null;
+    wind_direction?: string | null;
+    air_temp_c?: number | null;
+  };
+  Relationships: T["Relationships"];
+};
+
 type AttachmentsTable = {
   Row: {
     id: string;
@@ -761,7 +800,14 @@ export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<
       Tables,
-      "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations" | "plan_labor_requirements"
+      | "farms"
+      | "sectors"
+      | "hawshat"
+      | "lines"
+      | "expenses"
+      | "plan_operations"
+      | "plan_labor_requirements"
+      | "plan_material_requirements"
     > & {
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
@@ -769,6 +815,7 @@ export type Database = Omit<Generated, "public"> & {
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
       plan_operations: WithSignoff<WithDependsOn<WithHarvestStage<Tables["plan_operations"]>>>;
+      plan_material_requirements: WithSprayCompliance<Tables["plan_material_requirements"]>;
       attachments: AttachmentsTable;
       accounts: AccountsTable;
       journal_entries: JournalEntriesTable;
