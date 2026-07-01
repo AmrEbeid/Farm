@@ -9,23 +9,26 @@ recommendation, and where the full design lives. **On your one-line answer to an
 
 ---
 
-## P1 — Reservation model (HIGH: a masked shortage, the cardinal sin) — #512 + #199
+## P1 — Reservation model (HIGH: a masked shortage, the cardinal sin) — #512 + #199   ⏳ NEEDS ONE DECISION
 **What:** executing an operation posts a blind bin-wide stock `release` not scoped to the op that reserved, so
 executing op B can wipe op A's earmark → A's shortage is masked. Design proposal (op-keyed reservations) on **#512**.
-**Decisions:**
+**Why I did NOT auto-implement this** (unlike #216): the reserve/release keying is fundamentally broken —
+reserve posts under `SEED_PLAN_ID` (the coverage wedge), release under the op's real plan, with no op-level
+identity — so fixing execute's blind release ALONE would break the lifecycle (reserves would accumulate,
+never released). It needs a genuine model decision + coordinated app changes, not a surgical patch.
+**Decisions (the blocker is #3):**
 1. **Granularity** — reservations keyed to the operation (recommended; required to fix cleanly) vs the plan.
 2. **#199 semantics** — how a reserved op's demand is counted once: **net by backing reserve** (recommended, safe) vs exclude reserved ops from demand (unsafe) vs stop subtracting reserved from available (changes what "available" means).
-3. **Reserve-on-approval?** — today the only reserve is the coverage wedge; do you want the full approve→reserve→execute→issue lifecycle (larger scope)?
+3. **Reserve-on-approval? (the key call)** — today the only reserve is the coverage wedge; the clean fix needs the full approve→reserve(op-keyed)→execute→issue lifecycle. Confirm you want it, and I implement the whole thing (schema `plan_op_id` + 4 RPCs + app) with the same rigor loop used for #216.
 **Unblocks:** removes the highest-risk masking path; unpins `tests/105`.
 
-## P2 — Unit-of-measure model (masked shortage, both sides) — #216
-**What:** demand/receipt quantities are summed **unit-blind** vs stock, and the write paths default a wrong
-`'kg'` for litre/piece items → a mismatched unit silently corrupts the balance. **Prod probe: 0 existing
-mismatched rows** → the safe fix applies cleanly, no backfill. Design proposal on **#216**.
-**Decisions:**
-4. **Option A (recommended)** — enforce `unit = item.unit` at the `fn_post_movement` funnel + kill the `'kg'` defaults (errs safe: rejects a mismatch). **Option B** — a UoM conversion table (enables bag↔kg entry; heavier).
-5. `pack_size` — stays rounding-only, or also becomes a conversion factor (if B)?
-6. Canonical unit per item category (fertilizer→kg, fuel→L, packaging→قطعة — matches the seed)?
+## P2 — Unit-of-measure model (masked shortage, both sides) — #216   ✅ DONE
+**Shipped (both sides), on-recommendation with independent review + migrate-first:** Option A single-unit
+enforcement — a `plan_material_requirements` trigger + the `fn_post_movement` funnel default a null unit to the
+item's canonical unit and reject a non-null mismatch; `fn_reserve_stock` no longer hardcodes `'kg'`. Demand side
+**PR #521** (`20260701170000`), supply side **PR #522** (`20260701180000`). Prod was clean (0 mismatches), so it
+validated with no backfill. #216 CLOSED. (Option B — a UoM conversion table for bag↔kg *entry* — remains a
+future enhancement if you ever want to enter stock in non-canonical units; not needed for correctness.)
 
 ## P3 — Budget enforcement + price source — #157 (+ #89 mostly done)
 **What:** #89 is largely shipped (`unit_cost` + honest-null discipline). The open item is **#157: budget
