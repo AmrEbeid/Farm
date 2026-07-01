@@ -5,6 +5,7 @@ import { Breadcrumbs, Card, Stat, EmptyState } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { VarianceChart } from "@/components/charts";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAssignees";
 import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR } from "@/lib/labels";
@@ -68,6 +69,37 @@ export default async function PlannedVsActualPage({
 
   const executed = (ops ?? []).filter((o) => o.status === "done" && actualByOp.has(o.id));
 
+  // Who was actually assigned to each executed operation (#398 follow-up — accountability: the PvA
+  // report is exactly where "who did this" matters). Two flat, non-embedded reads, mirroring the plans
+  // page (see lib/database.types.ext.ts for why this table isn't embed-typed).
+  const executedOpIds = executed.map((o) => o.id);
+  const { data: assigneeRows, error: assigneesError } = executedOpIds.length
+    ? await sb
+        .from("plan_operation_assignees")
+        .select("id, plan_op_id, person_id, is_lead")
+        .in("plan_op_id", executedOpIds)
+    : { data: [], error: null };
+  if (assigneesError) throw assigneesError;
+
+  const assigneePersonIds = [...new Set((assigneeRows ?? []).map((a) => a.person_id))];
+  const { data: assigneePeople, error: assigneePeopleError } = assigneePersonIds.length
+    ? await sb.from("people").select("id, name").in("id", assigneePersonIds)
+    : { data: [], error: null };
+  if (assigneePeopleError) throw assigneePeopleError;
+  const assigneeNameById = new Map((assigneePeople ?? []).map((p) => [p.id, p.name]));
+
+  const assigneesByOp = new Map<string, AssigneeInfo[]>();
+  for (const row of assigneeRows ?? []) {
+    const list = assigneesByOp.get(row.plan_op_id) ?? [];
+    list.push({
+      id: row.id,
+      personId: row.person_id,
+      name: assigneeNameById.get(row.person_id) ?? "غير معروف",
+      isLead: row.is_lead,
+    });
+    assigneesByOp.set(row.plan_op_id, list);
+  }
+
   const rows = executed.map((o) => {
     const reqs = (o.plan_material_requirements ?? []) as Array<{
       item_id?: string;
@@ -130,6 +162,20 @@ export default async function PlannedVsActualPage({
     { id: "actual_cost", header: "تكلفة فعلية", numeric: true },
     { id: "var_cost", header: "الانحراف", numeric: true },
     { id: "var_pct", header: "%", numeric: true },
+    {
+      id: "assignees",
+      header: "المكلّفون",
+      // Read-only here (canRemove=false): un-assigning a person from an operation that has already
+      // executed makes no sense — this is the accountability record of who did it, not a live roster.
+      render: (row) => (
+        <OperationAssignees
+          planId={planId}
+          opId={row.id}
+          assignees={assigneesByOp.get(row.id) ?? []}
+          canRemove={false}
+        />
+      ),
+    },
   ];
 
   const totalPlannedCost = sumMoney(executed.map((o) => o.est_cost));

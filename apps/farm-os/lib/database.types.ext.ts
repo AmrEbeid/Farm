@@ -218,6 +218,13 @@ type StructFunctions = {
     };
     Returns: Json;
   };
+  // ── #398 follow-up: gated un-assign RPC for plan_operation_assignees, migration 20260701220000.
+  //    Deletes the (plan_op_id, person_id) row; a person not actually assigned is a safe no-op
+  //    (returns removed:false rather than raising). ──
+  fn_unassign_plan_operation: {
+    Args: { p_op_id: string; p_person_id: string };
+    Returns: Json;
+  };
   // ── STAGE 1 active-org switcher, migration 0085 ──
   fn_set_active_org: {
     Args: { p_org: string };
@@ -308,14 +315,6 @@ type PaymentRequestFundingsTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
-/** #398 slice 1 (migration 0090) — one-or-more-people assignment for a plan operation. Written only
- *  via fn_add_plan_operation_multi (0093); typed RPC-only here until database.types.ts regenerates. */
-type PlanOperationAssigneesTable = {
-  Row: { id: string; org_id: string; plan_op_id: string; person_id: string; is_lead: boolean; created_at: string };
-  Insert: Record<string, never>;
-  Update: Record<string, never>;
-  Relationships: [];
-};
 /** Add the SPEC-0018 payment-routing columns to the generated expenses table. */
 type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
   Row: Omit<T["Row"], PaymentRoutingColumn> & {
@@ -370,6 +369,17 @@ type CustodyFunctions = {
     Returns: string;
   };
   fn_close_payment_request: { Args: { p_request: string }; Returns: undefined };
+};
+
+// ── #398: who's assigned to a plan operation (migration 20260622000090). Augmented here because it
+// predates the last database.types.ts regeneration. Insert/Update are intentionally Record<string,
+// never> — the table is written ONLY via the gated RPCs (fn_add_plan_operation_multi to add,
+// fn_unassign_plan_operation to remove); there is no direct-client-write path (mirrors CustodyAccountsTable). ──
+type PlanOperationAssigneesTable = {
+  Row: { id: string; org_id: string; plan_op_id: string; person_id: string; is_lead: boolean; created_at: string };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
 };
 
 export type Database = Omit<Generated, "public"> & {

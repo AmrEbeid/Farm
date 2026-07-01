@@ -10,6 +10,7 @@ export {
   AppShell,
   Breadcrumbs,
   Button,
+  IconButton,
   Field,
   FormRow,
   Input,
