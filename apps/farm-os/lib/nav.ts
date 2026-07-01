@@ -113,6 +113,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant", "farm_manager"],
       },
       {
+        id: "accounting",
+        label: "المحاسبة",
+        icon: "📒",
+        href: "/accounting",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "custody",
         label: "العهدة وطلبات الصرف",
         icon: "💰",

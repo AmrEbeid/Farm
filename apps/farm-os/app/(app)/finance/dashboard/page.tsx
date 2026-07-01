@@ -38,8 +38,9 @@ export default async function FinanceDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter = "all" } = await searchParams;
-  await requireRole(["owner", "accountant", "farm_manager"]);
+  const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
+  const canSeeAccounting = m.role === "owner" || m.role === "accountant";
 
   const [
     { data: budgets, error: budgetsError },
@@ -201,6 +202,8 @@ export default async function FinanceDashboardPage({
           <HeaderLink href="/budgets">الموازنات</HeaderLink>
           <HeaderLink href="/expenses">المصروفات</HeaderLink>
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
+          {canSeeAccounting && <HeaderLink href="/custody">العهدة</HeaderLink>}
+          {canSeeAccounting && <HeaderLink href="/accounting">المحاسبة</HeaderLink>}
         </div>
       </header>
 

@@ -6,7 +6,7 @@
 -- drawing/capex expenses EXCLUDED (no double-count). Impersonation via request.jwt.claims (harness pattern from
 -- tests 36/82).
 begin;
-select plan(37);
+select plan(39);
 
 -- (no trailing comments on \set lines — psql captures the rest of the line into the value)
 \set org '00000000-0000-0000-0000-000000000001'
@@ -104,10 +104,10 @@ select lives_ok(format($$ select set_config('test.req2', public.fn_create_paymen
   'accountant creates a second payment request');
 select throws_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req2'), current_setting('test.eA')),
   '22023', null, 'reject adding the same expense to another payment request');
-select throws_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eB')),
-  '22023', null, 'reject a paid_from_custody expense from request lines');
-select throws_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eD')),
-  '22023', null, 'reject owner drawing expense D from payment request lines');
+select lives_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eB')),
+  'add a paid_from_custody expense to the request for reporting/replenishment');
+select lives_ok(format($$ select public.fn_add_expense_to_request(%L, %L) $$, current_setting('test.req'), current_setting('test.eD')),
+  'add owner drawing expense D to the request while keeping it separate from operating P&L');
 select lives_ok(format($$ select public.fn_submit_payment_request(%L) $$, current_setting('test.req')),
   'accountant submits the request');
 reset role;
@@ -127,10 +127,14 @@ select lives_ok(format($$ select public.fn_approve_request_final(%L) $$, current
   'owner finally approves');
 
 -- 5) the cardinal money rule (read totals as the owner — RLS-scoped)
-select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) ->> 'post_paid_unpaid')::numeric, 5000::numeric,
-  'totals: only the post_paid_unpaid expense counts (B paid_from_custody EXCLUDED — no double-count)');
-select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) ->> 'net_request')::numeric, 7000::numeric,
-  'totals: net_request = 5,000 unpaid + 2,000 custody top-up (30,000 target − 28,000 balance)');
+select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) ->> 'operating_unpaid')::numeric, 5000::numeric,
+  'totals: operating unpaid stays separate from drawings');
+select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) ->> 'drawing_unpaid')::numeric, 9000::numeric,
+  'totals: owner drawing is included for cash request but separated from operating P&L');
+select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) ->> 'post_paid_unpaid')::numeric, 14000::numeric,
+  'totals: all unpaid request lines count; paid_from_custody B is reported but not double-counted as unpaid');
+select is((public.fn_payment_request_totals(current_setting('test.req')::uuid) ->> 'net_request')::numeric, 16000::numeric,
+  'totals: net_request = 14,000 unpaid + 2,000 custody top-up (30,000 target - 28,000 balance)');
 select is((public.fn_payment_request_totals(current_setting('test.req_null')::uuid) ->> 'net_request')::numeric, 0::numeric,
   'totals: request without a custody account has zero top-up instead of erroring');
 reset role;

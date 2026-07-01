@@ -250,19 +250,43 @@ type CustodyAccountsTable = {
   Relationships: [];
 };
 type CustodyMovementsTable = {
-  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; note: string | null; created_at: string; created_by: string | null };
+  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; note: string | null; created_at: string; created_by: string | null };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type PaymentRequestsTable = {
-  Row: { id: string; org_id: string; request_no: number; period_start: string | null; period_end: string | null; status: string; custody_account_id: string | null; note: string | null; prepared_by: string | null; approved_op_by: string | null; approved_final_by: string | null; submitted_at: string | null; approved_op_at: string | null; approved_final_at: string | null; created_at: string };
+  Row: { id: string; org_id: string; request_no: number; period_start: string | null; period_end: string | null; status: string; custody_account_id: string | null; note: string | null; prepared_by: string | null; approved_op_by: string | null; approved_final_by: string | null; submitted_at: string | null; approved_op_at: string | null; approved_final_at: string | null; approved_post_paid_total: number | null; approved_custody_top_up: number | null; approved_net_request: number | null; created_at: string };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type PaymentRequestLinesTable = {
-  Row: { id: string; org_id: string; payment_request_id: string; expense_id: string; created_at: string };
+  Row: { id: string; org_id: string; payment_request_id: string; expense_id: string; paid_at: string | null; paid_by: string | null; paid_from_custody_account_id: string | null; custody_movement_id: string | null; journal_entry_id: string | null; created_at: string };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type AccountsTable = {
+  Row: { id: string; org_id: string; code: string; name_ar: string; account_type: string; normal_balance: string; active: boolean; created_at: string; created_by: string | null };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type JournalEntriesTable = {
+  Row: { id: string; org_id: string; entry_date: string; source_type: string; source_id: string; description: string | null; status: string; posted_at: string; posted_by: string | null; reversal_of: string | null; created_at: string };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type JournalLinesTable = {
+  Row: { id: string; org_id: string; journal_entry_id: string; account_id: string; debit: number; credit: number; description: string | null; custody_account_id: string | null; custody_movement_id: string | null; expense_id: string | null; payment_request_id: string | null; created_at: string };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type PaymentRequestFundingsTable = {
+  Row: { id: string; org_id: string; payment_request_id: string; custody_account_id: string; custody_movement_id: string | null; journal_entry_id: string | null; occurred_at: string; amount: number; note: string | null; created_at: string; created_by: string | null };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -311,6 +335,16 @@ type CustodyFunctions = {
   fn_approve_request_operational: { Args: { p_request: string }; Returns: undefined };
   fn_approve_request_final: { Args: { p_request: string }; Returns: undefined };
   fn_payment_request_totals: { Args: { p_request: string }; Returns: Json };
+  fn_accounting_trial_balance: { Args: { p_org: string }; Returns: Json };
+  fn_record_payment_request_funding: {
+    Args: { p_request: string; p_custody_account: string; p_amount: number; p_occurred_at?: string; p_note?: string | null };
+    Returns: string;
+  };
+  fn_confirm_request_expense_paid: {
+    Args: { p_request: string; p_expense: string; p_custody_account: string; p_occurred_at?: string; p_paid_by?: string | null; p_note?: string | null };
+    Returns: string;
+  };
+  fn_close_payment_request: { Args: { p_request: string }; Returns: undefined };
 };
 
 export type Database = Omit<Generated, "public"> & {
@@ -322,10 +356,14 @@ export type Database = Omit<Generated, "public"> & {
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
       attachments: AttachmentsTable;
+      accounts: AccountsTable;
+      journal_entries: JournalEntriesTable;
+      journal_lines: JournalLinesTable;
       custody_accounts: CustodyAccountsTable;
       custody_movements: CustodyMovementsTable;
       payment_requests: PaymentRequestsTable;
       payment_request_lines: PaymentRequestLinesTable;
+      payment_request_fundings: PaymentRequestFundingsTable;
     };
     Functions: Public["Functions"] & StructFunctions & CustodyFunctions;
   };
