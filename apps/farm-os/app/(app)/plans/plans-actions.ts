@@ -35,16 +35,3 @@ export async function createPlan(input: {
   revalidatePath("/plans");
   return { ok: true, data: (data as { id?: string } | null)?.id };
 }
-
-export async function setPlanStatus(
-  planId: string,
-  status: "draft" | "active" | "closed" | "abandoned",
-): Promise<Result> {
-  await requireMembership();
-  const sb = await createClient();
-  const { error } = await sb.rpc("fn_set_plan_status", { p_plan_id: planId, p_status: status });
-  if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PLAN_PERM }) };
-  revalidatePath("/plans");
-  revalidatePath(`/plans/${planId}`);
-  return { ok: true };
-}

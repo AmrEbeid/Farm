@@ -61,13 +61,13 @@ export function AddExpense({
   }
 
   const selectClass = "rounded-md border px-2 py-1.5 text-sm";
-  const selectStyle = { borderColor: "var(--border)" } as const;
+  const selectStyle = { borderColor: "var(--line)" } as const;
 
   return (
     <form
       onSubmit={submit}
       className="flex flex-col gap-3 rounded-lg border p-4"
-      style={{ borderColor: "var(--border)" }}
+      style={{ borderColor: "var(--line)" }}
     >
       {msg && <Alert tone={msg.tone} title={msg.text} />}
       <Field label="التاريخ" id="e-date">
