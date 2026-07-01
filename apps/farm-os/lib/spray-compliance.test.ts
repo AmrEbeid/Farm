@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSprayComplianceWindow } from "./spray-compliance";
+import { computeSprayComplianceWindow, mostRestrictiveComplianceWindow } from "./spray-compliance";
 
 describe("computeSprayComplianceWindow", () => {
   it("returns null windows when the operation has not been executed yet (no occurredAt)", () => {
@@ -100,5 +100,81 @@ describe("computeSprayComplianceWindow", () => {
     expect(result.earliestSafeHarvestAt).toBe("2026-07-08T18:00:00.000Z");
     expect(result.withinReentryWindow).toBe(true); // 16h in, before the 24h mark
     expect(result.withinHarvestWindow).toBe(true); // well before the 7-day mark
+  });
+});
+
+describe("mostRestrictiveComplianceWindow", () => {
+  const now = new Date("2026-07-02T00:00:00.000Z");
+
+  it("returns null when there are no windows at all", () => {
+    expect(mostRestrictiveComplianceWindow([], now)).toBeNull();
+  });
+
+  it("returns null when every material has no compliance data", () => {
+    const result = mostRestrictiveComplianceWindow([null, null], now);
+    expect(result).toBeNull();
+  });
+
+  it("matches computeSprayComplianceWindow exactly for a single material (preserves current behavior)", () => {
+    const single = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: 24, phiDays: 7 },
+      now,
+    );
+    const result = mostRestrictiveComplianceWindow([single], now);
+    expect(result).toEqual(single);
+  });
+
+  it("picks the LATEST safeReentryAt and earliestSafeHarvestAt across multiple materials with different windows", () => {
+    // Material A: short REI (24h), long PHI (14d).
+    const a = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: 24, phiDays: 14 },
+      now,
+    );
+    // Material B: longer REI (72h), shorter PHI (3d).
+    const b = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: 72, phiDays: 3 },
+      now,
+    );
+    const result = mostRestrictiveComplianceWindow([a, b], now);
+    // Most restrictive REI is B's (closes later); most restrictive PHI is A's (closes later).
+    expect(result?.safeReentryAt).toBe(b.safeReentryAt);
+    expect(result?.earliestSafeHarvestAt).toBe(a.earliestSafeHarvestAt);
+  });
+
+  it("ignores materials with no compliance data mixed in with materials that have it (never treats missing as 0)", () => {
+    const withData = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: 48, phiDays: 14 },
+      now,
+    );
+    const withoutData = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: null, phiDays: null },
+      now,
+    );
+    const result = mostRestrictiveComplianceWindow([withoutData, withData], now);
+    expect(result?.safeReentryAt).toBe(withData.safeReentryAt);
+    expect(result?.earliestSafeHarvestAt).toBe(withData.earliestSafeHarvestAt);
+  });
+
+  it("recomputes withinReentryWindow/withinHarvestWindow against the chosen (latest) timestamps", () => {
+    const a = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: 1, phiDays: null }, // closes well before `now`
+      now,
+    );
+    const b = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: 100, phiDays: null }, // still open at `now`
+      now,
+    );
+    const result = mostRestrictiveComplianceWindow([a, b], now);
+    expect(result?.safeReentryAt).toBe(b.safeReentryAt);
+    expect(result?.withinReentryWindow).toBe(true);
+  });
+
+  it("handles a raw null entry alongside a real window (a material can have no requirements row at all)", () => {
+    const withData = computeSprayComplianceWindow(
+      { occurredAt: "2026-07-01T10:00:00.000Z", reiHours: 48, phiDays: 14 },
+      now,
+    );
+    const result = mostRestrictiveComplianceWindow([null, withData], now);
+    expect(result).toEqual(withData);
   });
 });

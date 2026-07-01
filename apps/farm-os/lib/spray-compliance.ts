@@ -62,6 +62,48 @@ export function computeSprayComplianceWindow(
   };
 }
 
+/**
+ * Reduce multiple materials' compliance windows to the single MOST RESTRICTIVE one. An operation can
+ * apply 2+ products at once (fn_add_plan_operation_multi) with different REI/PHI values — you can't
+ * re-enter or harvest until ALL of them have cleared, so the window that closes LAST (the latest
+ * safeReentryAt / earliestSafeHarvestAt) is the one that governs, never the first material's window.
+ *
+ * A `null` window (or a null field within a window) means "no compliance data for this material" and
+ * is EXCLUDED from the max — it must never be treated as "0 restriction", which would let a shorter
+ * window from one material silently override a longer, more restrictive window from another
+ * (non-negotiable #1: never manufacture a false "it's safe now" verdict).
+ *
+ * Returns null only when none of the inputs have any compliance data at all (nothing to show a banner
+ * for). withinReentryWindow/withinHarvestWindow are recomputed against `now` from the chosen timestamps,
+ * matching computeSprayComplianceWindow's own semantics.
+ */
+export function mostRestrictiveComplianceWindow(
+  windows: (SprayComplianceWindow | null)[],
+  now: Date = new Date(),
+): SprayComplianceWindow | null {
+  const latestReentry = maxTimestamp(windows.map((w) => w?.safeReentryAt ?? null));
+  const latestHarvest = maxTimestamp(windows.map((w) => w?.earliestSafeHarvestAt ?? null));
+
+  if (latestReentry == null && latestHarvest == null) return null;
+
+  return {
+    safeReentryAt: latestReentry,
+    earliestSafeHarvestAt: latestHarvest,
+    withinReentryWindow: latestReentry != null && now.getTime() < new Date(latestReentry).getTime(),
+    withinHarvestWindow: latestHarvest != null && now.getTime() < new Date(latestHarvest).getTime(),
+  };
+}
+
+// Picks the latest of a set of nullable ISO timestamps, ignoring nulls entirely (a missing value is
+// "no data", not "earliest"/"0" — it must never win or lose the comparison).
+function maxTimestamp(values: (string | null)[]): string | null {
+  return values.reduce<string | null>((latest, v) => {
+    if (v == null) return latest;
+    if (latest == null) return v;
+    return new Date(v).getTime() > new Date(latest).getTime() ? v : latest;
+  }, null);
+}
+
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const d = new Date(value);

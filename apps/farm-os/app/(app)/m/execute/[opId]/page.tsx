@@ -6,7 +6,7 @@ import { Entity360Header } from "@/components/Entity360Header";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR, OP_STATUS_AR, isExecutableOpStatus } from "@/lib/labels";
-import { computeSprayComplianceWindow } from "@/lib/spray-compliance";
+import { computeSprayComplianceWindow, mostRestrictiveComplianceWindow } from "@/lib/spray-compliance";
 
 // Subtype-derived default note (no hardcoded location); blank when subtype is unknown.
 const SUBTYPE_NOTE_AR: Record<string, string> = {
@@ -55,9 +55,6 @@ export default async function ExecutePage({
     phi_days: number | null;
     inventory_items: { name?: string } | null;
   }>;
-  // REI/PHI compliance (below) predates the multi-material feature and is display-only advisory —
-  // sourced from the FIRST material on the op (mirrors laborReq's [0] convention), not per-material.
-  const req = materials[0];
   const laborReq = (op.plan_labor_requirements ?? [])[0] as { count?: number } | undefined;
   const opPill: PillStatus = op.status === "done" ? "done" : isExecutableOpStatus(op.status) ? "active" : "blocked";
 
@@ -65,8 +62,14 @@ export default async function ExecutePage({
   // follow-up). Only computed once the op is actually done: fetch the real execution timestamp from
   // farm_event (never guess it). A done op with no matching farm_event row (shouldn't happen, but
   // never assume) yields occurredAt = null, which computeSprayComplianceWindow renders as "N/A".
+  //
+  // A spray operation can apply MULTIPLE materials (fn_add_plan_operation_multi) with different
+  // rei_hours/phi_days — take the MOST RESTRICTIVE window across all of them (whichever closes last),
+  // never just the first material's row (that could silently drop a longer, more restrictive window
+  // from a second product — the wrong failure mode for a compliance-safety banner).
   let compliance: ReturnType<typeof computeSprayComplianceWindow> | null = null;
-  if (op.status === "done" && (req?.rei_hours != null || req?.phi_days != null)) {
+  const hasComplianceData = materials.some((m) => m.rei_hours != null || m.phi_days != null);
+  if (op.status === "done" && hasComplianceData) {
     const { data: event } = await sb
       .from("farm_event")
       .select("occurred_at, data")
@@ -75,11 +78,16 @@ export default async function ExecutePage({
       .order("occurred_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    compliance = computeSprayComplianceWindow({
-      occurredAt: event?.occurred_at ?? null,
-      reiHours: req?.rei_hours ?? null,
-      phiDays: req?.phi_days ?? null,
-    });
+    const windows = materials.map((m) =>
+      m.rei_hours != null || m.phi_days != null
+        ? computeSprayComplianceWindow({
+            occurredAt: event?.occurred_at ?? null,
+            reiHours: m.rei_hours ?? null,
+            phiDays: m.phi_days ?? null,
+          })
+        : null,
+    );
+    compliance = mostRestrictiveComplianceWindow(windows);
   }
 
   return (
