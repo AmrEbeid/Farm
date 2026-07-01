@@ -52,14 +52,18 @@ select lives_ok(
             values (%L, %L, %L, 0, 'kg') $$, :'orgA', :'op', :'item'),
   '#280 F5: a zero/positive qty still inserts (zero is a benign no-op, only negatives masked)');
 
--- structural invariant: all four non-negativity checks exist
+-- structural invariant: the original four #280 F5 non-negativity checks are present, PLUS the three
+-- spray-compliance ones added by migration 20260701320000 (rei_hours/phi_days/wind_speed_kmh on
+-- plan_material_requirements) — 7 total. Updated (not just re-counted) deliberately: a silent count
+-- bump here would hide a future migration accidentally REMOVING one of the original four while ADDING
+-- new ones elsewhere; this comment plus the +3 breakdown makes the change reviewable in the diff.
 select is(
   (select count(*)::int from pg_constraint c join pg_class t on t.oid = c.conrelid
      join pg_namespace n on n.oid = t.relnamespace
      where n.nspname = 'public' and c.contype = 'c' and c.conname like '%\_nonneg' escape '\'
        and t.relname in ('plan_operations','plan_material_requirements','plan_labor_requirements')),
-  4,
-  '#280 F5: all four non-negativity CHECK constraints are present');
+  7,
+  '#280 F5 + 20260701320000: 4 original + 3 spray-compliance non-negativity CHECK constraints are present');
 
 select * from finish();
 rollback;

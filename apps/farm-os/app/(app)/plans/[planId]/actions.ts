@@ -256,6 +256,14 @@ export interface MaterialLineInput {
   item_id: string;
   qty: number;
   unit: string;
+  // Pesticide-application compliance fields (docs/CLAUDE.md #4) — only meaningful when the parent
+  // operation's subtype is a spray-type op; optional/nullable, never fabricated (non-negotiable #1).
+  target_pest?: string | null;
+  apc_registration_ref?: string | null;
+  rei_hours?: number | null;
+  phi_days?: number | null;
+  target_zone?: string | null; // bunch|crown|trunk|offshoot|whole_palm (DB CHECK-enforced)
+  applicator_person_id?: string | null;
 }
 export interface LaborLineInput {
   person_or_team: string;
@@ -277,6 +285,9 @@ export interface NewMultiOperationInput {
   lead_id: string | null; // which assignee is the lead (must be in assignee_ids)
   // Ripening stage (خلال/رطب/تمر) — only meaningful when subtype === "harvest"; null otherwise.
   harvest_stage?: HarvestStage | null;
+  // Planning-time scheduling preference (e.g. "only spray once the heat breaks") — distinct from the
+  // op's actual execution timestamp, set later at execute time. morning|midday|late_afternoon|evening.
+  preferred_time_of_day?: string | null;
 }
 
 /**
@@ -295,11 +306,26 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
   if (input.materials.length === 0 && input.labor.length === 0) {
     return { ok: false, error: "أضف احتياجًا واحدًا على الأقل (خامة أو عمالة)" };
   }
+  const RECOGNISED_TARGET_ZONES = new Set(["bunch", "crown", "trunk", "offshoot", "whole_palm"]);
   for (const m of input.materials) {
     if (!m.item_id) return { ok: false, error: "اختر الصنف لكل سطر خامة" };
     if (!Number.isFinite(m.qty) || m.qty < 0) {
       return { ok: false, error: "كمية الخامة يجب ألا تكون سالبة" };
     }
+    // Compliance fields (#4) — mirror the RPC's own validation for a fast, friendly error.
+    if (m.rei_hours != null && (!Number.isFinite(m.rei_hours) || m.rei_hours < 0)) {
+      return { ok: false, error: "فترة إعادة الدخول يجب ألا تكون سالبة" };
+    }
+    if (m.phi_days != null && (!Number.isFinite(m.phi_days) || m.phi_days < 0)) {
+      return { ok: false, error: "فترة ما قبل الحصاد يجب ألا تكون سالبة" };
+    }
+    if (m.target_zone && !RECOGNISED_TARGET_ZONES.has(m.target_zone)) {
+      return { ok: false, error: "منطقة الاستهداف غير معروفة" };
+    }
+  }
+  const RECOGNISED_TIMES_OF_DAY = new Set(["morning", "midday", "late_afternoon", "evening"]);
+  if (input.preferred_time_of_day && !RECOGNISED_TIMES_OF_DAY.has(input.preferred_time_of_day)) {
+    return { ok: false, error: "التوقيت المفضّل غير معروف" };
   }
   for (const l of input.labor) {
     if (!Number.isFinite(l.count) || l.count < 0 || !Number.isFinite(l.days) || l.days < 0) {
@@ -329,6 +355,7 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
     p_assignee_ids: input.assignee_ids,
     p_lead_id: input.lead_id,
     p_harvest_stage: input.harvest_stage ?? null,
+    p_preferred_time_of_day: input.preferred_time_of_day ?? null,
   });
   if (error) {
     return {

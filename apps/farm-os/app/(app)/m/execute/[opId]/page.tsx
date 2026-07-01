@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState } from "@/components/ui";
+import { Alert, Card, EmptyState } from "@/components/ui";
 import type { PillStatus } from "@amrebeid/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR, OP_STATUS_AR, isExecutableOpStatus } from "@/lib/labels";
+import { computeSprayComplianceWindow } from "@/lib/spray-compliance";
 
 // Subtype-derived default note (no hardcoded location); blank when subtype is unknown.
 const SUBTYPE_NOTE_AR: Record<string, string> = {
@@ -27,7 +28,7 @@ export default async function ExecutePage({
   const { data: op, error } = await sb
     .from("plan_operations")
     .select(
-      "id, subtype, planned_at, est_cost, status, plan_material_requirements(id, item_id, qty, unit, inventory_items(name)), plan_labor_requirements(count)",
+      "id, subtype, planned_at, est_cost, status, plan_material_requirements(id, item_id, qty, unit, rei_hours, phi_days, inventory_items(name)), plan_labor_requirements(count)",
     )
     .eq("id", opId)
     .maybeSingle();
@@ -50,10 +51,36 @@ export default async function ExecutePage({
     item_id: string;
     qty: number | null;
     unit: string | null;
+    rei_hours: number | null;
+    phi_days: number | null;
     inventory_items: { name?: string } | null;
   }>;
+  // REI/PHI compliance (below) predates the multi-material feature and is display-only advisory —
+  // sourced from the FIRST material on the op (mirrors laborReq's [0] convention), not per-material.
+  const req = materials[0];
   const laborReq = (op.plan_labor_requirements ?? [])[0] as { count?: number } | undefined;
   const opPill: PillStatus = op.status === "done" ? "done" : isExecutableOpStatus(op.status) ? "active" : "blocked";
+
+  // REI/PHI decision support (docs/CLAUDE.md #4) — DISPLAY-ONLY, never an automated block (deferred
+  // follow-up). Only computed once the op is actually done: fetch the real execution timestamp from
+  // farm_event (never guess it). A done op with no matching farm_event row (shouldn't happen, but
+  // never assume) yields occurredAt = null, which computeSprayComplianceWindow renders as "N/A".
+  let compliance: ReturnType<typeof computeSprayComplianceWindow> | null = null;
+  if (op.status === "done" && (req?.rei_hours != null || req?.phi_days != null)) {
+    const { data: event } = await sb
+      .from("farm_event")
+      .select("occurred_at, data")
+      .eq("status", "done")
+      .filter("data->>op_id", "eq", opId)
+      .order("occurred_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    compliance = computeSprayComplianceWindow({
+      occurredAt: event?.occurred_at ?? null,
+      reiHours: req?.rei_hours ?? null,
+      phiDays: req?.phi_days ?? null,
+    });
+  }
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6 p-4">
@@ -79,9 +106,27 @@ export default async function ExecutePage({
           />
         </Card>
       ) : op.status === "done" ? (
-        <Card title="تم التنفيذ">
-          <p>سُجّلت هذه العملية بالفعل.</p>
-        </Card>
+        <>
+          <Card title="تم التنفيذ">
+            <p>سُجّلت هذه العملية بالفعل.</p>
+          </Card>
+          {compliance && (compliance.withinReentryWindow || compliance.withinHarvestWindow) && (
+            <Alert
+              tone="warning"
+              title="تنبيه سلامة: لا تزال فترة الأمان سارية"
+              description={[
+                compliance.withinReentryWindow
+                  ? `فترة إعادة الدخول سارية حتى ${fmtDate(compliance.safeReentryAt)} — تجنّب دخول المنطقة قبل هذا الموعد.`
+                  : null,
+                compliance.withinHarvestWindow
+                  ? `فترة ما قبل الحصاد سارية حتى ${fmtDate(compliance.earliestSafeHarvestAt)} — لا يُحصد المحصول قبل هذا الموعد.`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+          )}
+        </>
       ) : (
         // blocked / abandoned / skipped — terminal, not executable (matches the fn_execute_operation
         // guard, which 22023s these); don't render the form as a dead-end.

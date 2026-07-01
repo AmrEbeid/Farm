@@ -17,12 +17,24 @@ import {
 } from "@/app/(app)/plans/[planId]/actions";
 import { computeEffectiveDate, formatDependencyLabel } from "@/lib/relative-schedule";
 import { HARVEST_STAGE_AR, SUBTYPE_AR } from "@/lib/labels";
+import { TARGET_ZONE_AR, TIME_OF_DAY_AR } from "@/lib/spray-compliance";
 
 type ItemOpt = { id: string; name: string; unit: string | null };
 type PersonOpt = { id: string; name: string };
 /** An existing operation in the same plan, offered as a "depends on" target. Never another plan's ops. */
 type OpOpt = { id: string; label: string; plannedAt: string | null };
-type MatRow = { key: number; itemId: string; qty: string };
+type MatRow = {
+  key: number;
+  itemId: string;
+  qty: string;
+  // Compliance fields (docs/CLAUDE.md #4) — only rendered/sent when subtype === "spraying".
+  targetPest: string;
+  apcRegistrationRef: string;
+  reiHours: string;
+  phiDays: string;
+  targetZone: string; // "" = unset
+  applicatorPersonId: string; // "" = unset
+};
 type LabRow = { key: number; team: string; count: string; days: string; personId: string };
 
 // Rough seasonal/operational order (pruning → offshoots → pollen → pollination → bunch work →
@@ -54,6 +66,34 @@ const HARVEST_STAGE_OPTIONS: SelectOption[] = (["khalal", "rutab", "tamar"] as c
   label: HARVEST_STAGE_AR[value],
 }));
 
+// Pesticide-application-specific fields only make sense for a spray-type op (task scope: "ONLY
+// relevant when the parent operation's subtype is a pesticide/spray-type op").
+const PESTICIDE_SUBTYPES = new Set(["spraying"]);
+
+// A small closed vocabulary (mirrors the DB CHECK, migration 20260701320000) — real farm-report
+// finding: spray instructions specify a SPECIFIC target zone ("drench the bunch-stalks and crown"),
+// not just "the palm" generically.
+const TARGET_ZONES: SelectOption[] = [
+  { value: "", label: "— غير محدد —" },
+  ...Object.entries(TARGET_ZONE_AR).map(([value, label]) => ({ value, label })),
+];
+
+// Planning-time scheduling preference — distinct from the actual execution timestamp (set at
+// execute time). Real farm-report finding: "only spray at day's end once the heat breaks."
+const TIME_OF_DAY_OPTIONS: SelectOption[] = [
+  { value: "", label: "— غير محدد —" },
+  ...Object.entries(TIME_OF_DAY_AR).map(([value, label]) => ({ value, label })),
+];
+
+const emptyMatCompliance = {
+  targetPest: "",
+  apcRegistrationRef: "",
+  reiHours: "",
+  phiDays: "",
+  targetZone: "",
+  applicatorPersonId: "",
+};
+
 /**
  * #398: author an operation with SEVERAL needs (N materials of any kind incl. fuel/gas + N labour lines),
  * a MULTI-DAY span (start + optional end), and ONE-OR-MORE employee assignees with a lead. Submits via
@@ -84,7 +124,7 @@ export function OperationBuilder({
   const [estCost, setEstCost] = useState("0");
   const [seq, setSeq] = useState(2);
   const [materials, setMaterials] = useState<MatRow[]>([
-    { key: 0, itemId: items[0]?.id ?? "", qty: "" },
+    { key: 0, itemId: items[0]?.id ?? "", qty: "", ...emptyMatCompliance },
   ]);
   const [labor, setLabor] = useState<LabRow[]>([]);
   const [assignees, setAssignees] = useState<string[]>([]);
@@ -92,6 +132,9 @@ export function OperationBuilder({
   // Optional "depends on another operation" (relative scheduling, 2026-07-01). "" = no dependency.
   const [dependsOnOpId, setDependsOnOpId] = useState("");
   const [offsetDays, setOffsetDays] = useState("0");
+  const [preferredTimeOfDay, setPreferredTimeOfDay] = useState("");
+
+  const isPesticideOp = PESTICIDE_SUBTYPES.has(subtype);
 
   const itemOptions: SelectOption[] = items.map((i) => ({ value: i.id, label: i.name }));
   const unitOf = (id: string) => items.find((i) => i.id === id)?.unit ?? "kg";
@@ -132,9 +175,26 @@ export function OperationBuilder({
         planned_at: plannedAt,
         ends_on: endsOn || null,
         est_cost: Number(estCost),
+        preferred_time_of_day: preferredTimeOfDay || null,
         materials: materials
           .filter((m) => m.itemId)
-          .map((m) => ({ item_id: m.itemId, qty: Number(m.qty || 0), unit: unitOf(m.itemId) })),
+          .map((m) => ({
+            item_id: m.itemId,
+            qty: Number(m.qty || 0),
+            unit: unitOf(m.itemId),
+            // Compliance fields (#4) — only meaningful/sent for a pesticide-application op; a
+            // non-spray op never carries these (they stay unset server-side, per column defaults).
+            ...(isPesticideOp
+              ? {
+                  target_pest: m.targetPest || null,
+                  apc_registration_ref: m.apcRegistrationRef || null,
+                  rei_hours: m.reiHours ? Number(m.reiHours) : null,
+                  phi_days: m.phiDays ? Number(m.phiDays) : null,
+                  target_zone: m.targetZone || null,
+                  applicator_person_id: m.applicatorPersonId || null,
+                }
+              : {}),
+          })),
         labor: labor.map((l) => ({
           person_or_team: l.team,
           count: Number(l.count || 0),
@@ -278,54 +338,160 @@ export function OperationBuilder({
             </fieldset>
           )}
 
+          {/* Planning-time scheduling preference — e.g. "only spray once the heat breaks" — distinct
+              from the actual execution timestamp (set later, at execute time). Only meaningful for a
+              pesticide-application op; shown for spraying only. */}
+          {isPesticideOp && (
+            <FormRow id="preferred_time_of_day" label="التوقيت المفضّل للرش">
+              <Select
+                options={TIME_OF_DAY_OPTIONS}
+                value={preferredTimeOfDay}
+                onChange={(e) => setPreferredTimeOfDay(e.target.value)}
+              />
+            </FormRow>
+          )}
+
           {/* Several material needs — fertilizers, fuel/gas, any item. */}
           <fieldset className="flex flex-col gap-2 rounded-md border p-3" style={{ borderColor: "var(--line,#e5e7eb)" }}>
             <legend className="px-1 text-sm font-semibold">الاحتياجات من الخامات</legend>
             {materials.map((m, idx) => (
-              <div key={m.key} className="flex items-end gap-2">
-                <div className="flex-1">
-                  <FormRow id={`mat-item-${m.key}`} label="الصنف">
-                    <Select
-                      options={itemOptions}
-                      value={m.itemId}
-                      onChange={(e) =>
-                        setMaterials((p) =>
-                          p.map((x) => (x.key === m.key ? { ...x, itemId: e.target.value } : x)),
-                        )
-                      }
-                    />
-                  </FormRow>
+              <div key={m.key} className="flex flex-col gap-2">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <FormRow id={`mat-item-${m.key}`} label="الصنف">
+                      <Select
+                        options={itemOptions}
+                        value={m.itemId}
+                        onChange={(e) =>
+                          setMaterials((p) =>
+                            p.map((x) => (x.key === m.key ? { ...x, itemId: e.target.value } : x)),
+                          )
+                        }
+                      />
+                    </FormRow>
+                  </div>
+                  <div className="w-28">
+                    <FormRow id={`mat-qty-${m.key}`} label={`الكمية (${unitOf(m.itemId)})`}>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        step="any"
+                        value={m.qty}
+                        onChange={(e) =>
+                          setMaterials((p) =>
+                            p.map((x) => (x.key === m.key ? { ...x, qty: e.target.value } : x)),
+                          )
+                        }
+                      />
+                    </FormRow>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    aria-label="حذف الخامة"
+                    onClick={() => setMaterials((p) => (p.length > 1 ? p.filter((x) => x.key !== m.key) : p))}
+                    disabled={materials.length === 1 && idx === 0}
+                  >
+                    ✕
+                  </Button>
                 </div>
-                <div className="w-28">
-                  <FormRow id={`mat-qty-${m.key}`} label={`الكمية (${unitOf(m.itemId)})`}>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      step="any"
-                      value={m.qty}
-                      onChange={(e) =>
-                        setMaterials((p) =>
-                          p.map((x) => (x.key === m.key ? { ...x, qty: e.target.value } : x)),
-                        )
-                      }
-                    />
-                  </FormRow>
-                </div>
-                <Button
-                  variant="ghost"
-                  aria-label="حذف الخامة"
-                  onClick={() => setMaterials((p) => (p.length > 1 ? p.filter((x) => x.key !== m.key) : p))}
-                  disabled={materials.length === 1 && idx === 0}
-                >
-                  ✕
-                </Button>
+
+                {/* Pesticide-application compliance fields (docs/CLAUDE.md #4) — only shown for a
+                    spray-type subtype; a plain fertilization/irrigation op never sees these. */}
+                {isPesticideOp && (
+                  <div
+                    className="mr-8 grid grid-cols-2 gap-2 rounded-md border p-2 sm:grid-cols-3"
+                    style={{ borderColor: "var(--line,#e5e7eb)" }}
+                  >
+                    <FormRow id={`mat-pest-${m.key}`} label="الآفة المستهدفة">
+                      <Input
+                        value={m.targetPest}
+                        onChange={(e) =>
+                          setMaterials((p) =>
+                            p.map((x) => (x.key === m.key ? { ...x, targetPest: e.target.value } : x)),
+                          )
+                        }
+                      />
+                    </FormRow>
+                    <FormRow id={`mat-apc-${m.key}`} label="رقم تسجيل المبيد (لجنة المبيدات)">
+                      <Input
+                        value={m.apcRegistrationRef}
+                        onChange={(e) =>
+                          setMaterials((p) =>
+                            p.map((x) =>
+                              x.key === m.key ? { ...x, apcRegistrationRef: e.target.value } : x,
+                            ),
+                          )
+                        }
+                      />
+                    </FormRow>
+                    <FormRow id={`mat-zone-${m.key}`} label="منطقة الاستهداف على النخلة">
+                      <Select
+                        options={TARGET_ZONES}
+                        value={m.targetZone}
+                        onChange={(e) =>
+                          setMaterials((p) =>
+                            p.map((x) => (x.key === m.key ? { ...x, targetZone: e.target.value } : x)),
+                          )
+                        }
+                      />
+                    </FormRow>
+                    <FormRow id={`mat-rei-${m.key}`} label="فترة إعادة الدخول (ساعة)">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        step="any"
+                        value={m.reiHours}
+                        onChange={(e) =>
+                          setMaterials((p) =>
+                            p.map((x) => (x.key === m.key ? { ...x, reiHours: e.target.value } : x)),
+                          )
+                        }
+                      />
+                    </FormRow>
+                    <FormRow id={`mat-phi-${m.key}`} label="فترة ما قبل الحصاد (يوم)">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        step="any"
+                        value={m.phiDays}
+                        onChange={(e) =>
+                          setMaterials((p) =>
+                            p.map((x) => (x.key === m.key ? { ...x, phiDays: e.target.value } : x)),
+                          )
+                        }
+                      />
+                    </FormRow>
+                    {people.length > 0 && (
+                      <FormRow id={`mat-applicator-${m.key}`} label="القائم بالرش">
+                        <Select
+                          options={[{ value: "", label: "— غير محدد —" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
+                          value={m.applicatorPersonId}
+                          onChange={(e) =>
+                            setMaterials((p) =>
+                              p.map((x) =>
+                                x.key === m.key ? { ...x, applicatorPersonId: e.target.value } : x,
+                              ),
+                            )
+                          }
+                        />
+                      </FormRow>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             <div>
               <Button
                 variant="ghost"
-                onClick={() => setMaterials((p) => [...p, { key: nextKey(), itemId: items[0]?.id ?? "", qty: "" }])}
+                onClick={() =>
+                  setMaterials((p) => [
+                    ...p,
+                    { key: nextKey(), itemId: items[0]?.id ?? "", qty: "", ...emptyMatCompliance },
+                  ])
+                }
               >
                 + إضافة خامة
               </Button>
