@@ -66,10 +66,13 @@ export function ExecuteForm({
             }
             setError(res.error ?? "تعذّر التنفيذ");
           } catch {
-            // Field PWA is offline-tolerant (non-negotiable #2): a network failure rejects the
-            // server-action fetch and the await throws. Without this catch the button would stay
-            // stuck on its spinner forever (setPending never resets, event-handler throws aren't
-            // caught by an error boundary). Surface a retryable Arabic message instead.
+            // A network failure rejects the server-action fetch and the await throws. Without
+            // this catch the button would stay stuck on its spinner forever (setPending never
+            // resets, event-handler throws aren't caught by an error boundary). Surface a clear,
+            // retryable Arabic message instead. NOTE: this is a retry message, not offline
+            // support — there's no service worker / IndexedDB outbox / queued replay yet, so a
+            // submission made while offline is NOT queued; the field worker must retry once back
+            // online. True offline queueing is a planned future release, not current behaviour.
             setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
           } finally {
             setPending(false);
