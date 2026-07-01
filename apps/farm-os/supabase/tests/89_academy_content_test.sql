@@ -1,4 +1,4 @@
--- 89 — STAGE 10 (SPEC-0008): Care Academy content + the #4 sign-off gate (migration 20260701240000).
+-- 89 — STAGE 10 (SPEC-0008): Care Academy content + the #4 sign-off gate (migration 20260701400000).
 -- Verifies: academy.write maps to owner/agri_engineer only; the CRUD RPCs; that EDITING content RESETS
 -- a prior sign-off (changed figures must be re-reviewed, #4); that a sign-off records a named agronomist;
 -- that CHEMICAL content cannot be signed off without a CURRENT Egyptian pesticide registration; the

@@ -8,6 +8,8 @@
 // store, the editor, and the actual agronomist sign-off WORKFLOW are the gated remainder (they need the
 // real expert). This module guarantees that nothing renders as authoritative without a valid sign-off.
 
+import { fmtDate } from "./dates";
+
 export interface SignOff {
   agronomistName: string; // the named local agronomist (required — #4)
   signedAt: string; // ISO date of sign-off
@@ -61,7 +63,8 @@ export function disclaimer(c: AcademyContent, asOf: Date | string): Disclaimer {
   if (authoritativeness(c, asOf) === "authoritative") {
     return {
       authoritative: true,
-      ar: `معتمد من المهندس ${c.signOff!.agronomistName} — ${c.signOff!.signedAt.slice(0, 10)}`,
+      // fmtDate → Arabic-Indic digits (ar-EG); a raw ISO slice would leak Western digits into the RTL UI.
+      ar: `معتمد من المهندس ${c.signOff!.agronomistName} — ${fmtDate(c.signOff!.signedAt)}`,
     };
   }
   return {

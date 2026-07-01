@@ -11,6 +11,8 @@
 -- structure write RPCs (0081) + attachments (0082): SECURITY DEFINER, pinned empty search_path,
 -- schema-qualified, authorize(perm, org) gate, anon + cross-org guard, exec to authenticated only.
 -- Reads open to all org members (shared agronomy knowledge); soft-delete (0027); audited (0008).
+-- Rollback: additive-only (new table + 3 RPCs; no authorize() re-emit, no existing object altered) —
+-- revert = drop function fn_save/fn_signoff/fn_archive_academy_content + drop table academy_content.
 
 -- ── 1) academy.write is ALREADY in prod's/main's authorize() union — a co-maintainer pinned it in
 -- main (20260629150000: "in-flight academy.write … so a later re-emit can't drop them"; verified present

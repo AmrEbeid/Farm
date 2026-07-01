@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { fmtDate } from "./dates";
 import { authoritativeness, disclaimer, type AcademyContent } from "./academy";
 
 const NOW = "2026-07-01";
@@ -57,10 +58,12 @@ describe("mandatory disclaimer", () => {
     expect(d.ar).toContain("غير معتمد");
   });
 
-  it("authoritative content names the approver + date", () => {
+  it("authoritative content names the approver + date (Arabic-Indic digits, no ISO leak)", () => {
     const d = disclaimer(base({ signOff: { agronomistName: "م. أحمد", signedAt: "2026-06-01" } }), NOW);
     expect(d.authoritative).toBe(true);
     expect(d.ar).toContain("م. أحمد");
-    expect(d.ar).toContain("2026-06-01");
+    // The date must render through fmtDate (ar-EG, Arabic-Indic) — never as a raw ISO slice.
+    expect(d.ar).toContain(fmtDate("2026-06-01"));
+    expect(d.ar).not.toContain("2026-06-01");
   });
 });

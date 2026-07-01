@@ -8,6 +8,7 @@ import {
   signoffAcademyContent,
   archiveAcademyContent,
 } from "@/app/(app)/academy/actions";
+import { fmtDate } from "@/lib/dates";
 
 export interface AcademyItem {
   id: string;
@@ -95,7 +96,7 @@ export function AcademyList({
             {it.body && <p className="mt-2 whitespace-pre-wrap text-sm">{it.body}</p>}
             {it.authoritative ? (
               <p className="mt-2 text-xs text-green-700">
-                معتمد من المهندس {it.agronomistName} — {it.signedAt?.slice(0, 10)}
+                معتمد من المهندس {it.agronomistName} — {fmtDate(it.signedAt)}
               </p>
             ) : (
               <p className="mt-2 text-xs text-amber-700">

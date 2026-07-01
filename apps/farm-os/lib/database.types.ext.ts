@@ -153,7 +153,7 @@ type AttachmentsTable = {
   Relationships: [];
 };
 
-// ── STAGE 10 Care Academy content, migration 20260701240000 ──
+// ── STAGE 10 Care Academy content, migration 20260701400000 ──
 type AcademyContentTable = {
   Row: {
     id: string;
@@ -383,7 +383,7 @@ type StructFunctions = {
     };
     Returns: undefined;
   };
-  // ── STAGE 10 Care Academy, migration 20260701240000 ──
+  // ── STAGE 10 Care Academy, migration 20260701400000 ──
   fn_save_academy_content: {
     Args: {
       p_id: string | null;
