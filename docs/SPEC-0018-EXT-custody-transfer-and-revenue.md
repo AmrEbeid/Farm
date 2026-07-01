@@ -10,6 +10,13 @@ market-driven roadmap). This document does not replace the roadmap's sequencing 
 Slice A/B for three gaps the roadmap named but did not fully specify: (1) multi-holder custody transfer, (2) the
 payment-request report/PDF and other statement exports, (3) revenue/sales with a price finalized after delivery.*
 
+> **Post-wave-3 cross-references (2026-07-02):** (a) `FINANCE-ACCOUNTANT-360-2026-07-02.md` gap #1 — the expense
+> payment-routing UI is unwired — is a **prerequisite** for any flow in this spec that assumes expenses reach the
+> custody/request pipeline from the app; build it first. (b) The revenue model in §3 must carry a **crop dimension
+> from day one** (intercropping fact, issue #595 — seasonal cash crops like بنجر are sold alongside dates). (c) The
+> «sold on the tree» (بيع على النخيل) outcome from `RESEARCH-ops-workflow-egypt-2026-07-02.md` §(a)3 belongs in the
+> same revenue model as a first-class sale type.
+
 *Author: autonomous docs/planning session, Owner: Amr Ebeid. No code has been written under this plan except the
 one slice explicitly marked "IMPLEMENTED" in §9, if any — everything else is design only.*
 
