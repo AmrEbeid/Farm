@@ -291,6 +291,14 @@ type PaymentRequestFundingsTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
+/** #398 slice 1 (migration 0090) — one-or-more-people assignment for a plan operation. Written only
+ *  via fn_add_plan_operation_multi (0093); typed RPC-only here until database.types.ts regenerates. */
+type PlanOperationAssigneesTable = {
+  Row: { id: string; org_id: string; plan_op_id: string; person_id: string; is_lead: boolean; created_at: string };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
 /** Add the SPEC-0018 payment-routing columns to the generated expenses table. */
 type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
   Row: Omit<T["Row"], PaymentRoutingColumn> & {
@@ -364,6 +372,7 @@ export type Database = Omit<Generated, "public"> & {
       payment_requests: PaymentRequestsTable;
       payment_request_lines: PaymentRequestLinesTable;
       payment_request_fundings: PaymentRequestFundingsTable;
+      plan_operation_assignees: PlanOperationAssigneesTable;
     };
     Functions: Public["Functions"] & StructFunctions & CustodyFunctions;
   };

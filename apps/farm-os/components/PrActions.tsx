@@ -36,8 +36,9 @@ export function PrActions({
       if (res.ok) router.refresh();
       else setError(res.error ?? "تعذّر تنفيذ الإجراء");
     } catch {
-      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner —
-      // surface a retryable Arabic message (mirrors ExecuteForm).
+      // Network-failure handling (non-negotiable #2): a network reject must not strand the
+      // spinner — surface a retryable Arabic message (mirrors ExecuteForm). The action is not
+      // queued for replay if the device is actually offline.
       setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
     } finally {
       setPending(false);

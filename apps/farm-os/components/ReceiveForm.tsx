@@ -46,8 +46,10 @@ export function ReceiveForm({ prId, lines }: { prId: string; lines: ReceiveLine[
       if (res.ok) router.refresh();
       else setError(res.error ?? "تعذّر تسجيل الاستلام");
     } catch {
-      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner on
-      // the irreversible inventory path — surface a retryable Arabic message (mirrors ExecuteForm).
+      // Network-failure handling (non-negotiable #2): a network reject must not strand the
+      // spinner on the irreversible inventory path — surface a retryable Arabic message (mirrors
+      // ExecuteForm). There is no offline queue/replay: if the request never reached the server,
+      // the storekeeper must retry once back online.
       setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
     } finally {
       setPending(false);
