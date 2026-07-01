@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computePayroll, type LaborEntry } from "./payroll";
+import {
+  computePayroll,
+  computeLaborCostRollup,
+  type LaborEntry,
+  type LaborRequirementCostInput,
+} from "./payroll";
 
 describe("computePayroll — reconciliation oracle (SPEC-0006 §4.2)", () => {
   it("gross per person = Σ(hours × rate), reconciled to a hand-computed fixture", () => {
@@ -87,5 +92,75 @@ describe("computePayroll — reconciliation oracle (SPEC-0006 §4.2)", () => {
     const b = computePayroll([{ personId: "p1", hours: 1 }, { personId: "p2", hours: 1 }], new Map([["p2", 1], ["p1", 1]]));
     expect(a).toEqual(b);
     expect(a.lines.map((l) => l.personId)).toEqual(["p1", "p2"]);
+  });
+});
+
+describe("computeLaborCostRollup — planned labor cost (labor cost basis)", () => {
+  it("costs a person-linked line as count × days × daily rate", () => {
+    const lines: LaborRequirementCostInput[] = [
+      { id: "l1", count: 3, days: 2, personId: "p1" },
+    ];
+    const rollup = computeLaborCostRollup(lines, new Map([["p1", 100]]));
+    expect(rollup.lines).toEqual([{ id: "l1", manDays: 6, cost: 600 }]);
+    expect(rollup.total).toBe(600);
+    expect(rollup.hasUnpriced).toBe(false);
+    expect(rollup.unpricedCount).toBe(0);
+  });
+
+  it("FLAGS a free-text line (no person_id) as unpriced — never fabricates a rate", () => {
+    const lines: LaborRequirementCostInput[] = [
+      { id: "l1", count: 5, days: 3, personId: null },
+    ];
+    const rollup = computeLaborCostRollup(lines, new Map());
+    expect(rollup.lines[0]).toEqual({ id: "l1", manDays: 15, cost: null });
+    expect(rollup.hasUnpriced).toBe(true);
+    expect(rollup.unpricedCount).toBe(1);
+    expect(rollup.total).toBe(0);
+  });
+
+  it("FLAGS a person-linked line as unpriced when the rate isn't in the map (no rate on file, or the caller lacks payroll.read)", () => {
+    const lines: LaborRequirementCostInput[] = [{ id: "l1", count: 2, days: 1, personId: "p9" }];
+    const rollup = computeLaborCostRollup(lines, new Map());
+    expect(rollup.lines[0].cost).toBeNull();
+    expect(rollup.hasUnpriced).toBe(true);
+  });
+
+  it("rejects a zero or negative rate as unpriced (mirrors computePayroll's non-negotiable #1)", () => {
+    const lines: LaborRequirementCostInput[] = [{ id: "l1", count: 1, days: 1, personId: "p1" }];
+    expect(computeLaborCostRollup(lines, new Map([["p1", 0]])).lines[0].cost).toBeNull();
+    expect(computeLaborCostRollup(lines, new Map([["p1", -10]])).lines[0].cost).toBeNull();
+  });
+
+  it("ignores garbage count/days (negative / non-finite) — man-days floors at 0, never crashes", () => {
+    const lines: LaborRequirementCostInput[] = [
+      { id: "l1", count: -3, days: 2, personId: "p1" },
+      { id: "l2", count: 2, days: Infinity, personId: "p1" },
+      { id: "l3", count: null, days: null, personId: "p1" },
+    ];
+    const rollup = computeLaborCostRollup(lines, new Map([["p1", 100]]));
+    expect(rollup.lines.map((l) => l.manDays)).toEqual([0, 0, 0]);
+    expect(rollup.lines.map((l) => l.cost)).toEqual([0, 0, 0]);
+    expect(rollup.total).toBe(0);
+    expect(rollup.hasUnpriced).toBe(false);
+  });
+
+  it("mixes priced and unpriced lines in one operation — total sums only the KNOWN costs, hasUnpriced flags the rest", () => {
+    const lines: LaborRequirementCostInput[] = [
+      { id: "l1", count: 2, days: 5, personId: "p1" }, // 10 × 150 = 1500
+      { id: "l2", count: 4, days: 3, personId: null }, // free-text crew, unpriced
+    ];
+    const rollup = computeLaborCostRollup(lines, new Map([["p1", 150]]));
+    expect(rollup.total).toBe(1500);
+    expect(rollup.hasUnpriced).toBe(true);
+    expect(rollup.unpricedCount).toBe(1);
+  });
+
+  it("empty input → empty, fully-priced (vacuous) rollup", () => {
+    expect(computeLaborCostRollup([], new Map())).toEqual({
+      lines: [],
+      total: 0,
+      unpricedCount: 0,
+      hasUnpriced: false,
+    });
   });
 });

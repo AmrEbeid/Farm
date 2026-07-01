@@ -14,11 +14,14 @@ begin;
 select plan(10);
 
 -- ===== authenticated-only write RPCs: anon must NOT execute; authenticated MUST =====
+-- Signature updated to the 5-arg form (uuid, numeric, int, text, jsonb) — migration 20260701230000
+-- (#520) added a trailing p_material_actuals jsonb param and explicitly DROPPED the old 4-arg
+-- overload, so this is the only fn_execute_operation signature that now exists.
 select ok(not has_function_privilege('anon',
-  'public.fn_execute_operation(uuid, numeric, int, text)', 'EXECUTE'),
+  'public.fn_execute_operation(uuid, numeric, int, text, jsonb)', 'EXECUTE'),
   '0021: anon cannot EXECUTE fn_execute_operation');
 select ok(has_function_privilege('authenticated',
-  'public.fn_execute_operation(uuid, numeric, int, text)', 'EXECUTE'),
+  'public.fn_execute_operation(uuid, numeric, int, text, jsonb)', 'EXECUTE'),
   '0021: authenticated CAN EXECUTE fn_execute_operation (the legitimate op.execute gate)');
 select ok(not has_function_privilege('anon',
   'public.fn_post_movement(uuid, text, numeric, text, text, numeric, uuid, uuid, uuid, timestamptz)', 'EXECUTE'),

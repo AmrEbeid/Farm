@@ -2,6 +2,55 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-01 (latest) — FULL LIVE DEPLOY: 32 PRs merged, 14 migrations applied, prod ledger reconciled
+> 134/134, Vercel confirmed READY.** Executed the Owner's twice-confirmed "proceed to full live deploy now"
+> mandate: 18 no-schema PRs, then 7 independent schema PRs, then the `authorize()` chain (#557→#558, final
+> 18-perm union), then the 5-layer `fn_add_plan_operation_multi` reconciliation (#543→#549→#562→#560→#563,
+> final **16-arg** signature — every planned farm operation flows through this function). Applied migrations
+> (in order): `fn_unassign_plan_operation`, `execute_multi_material`, `plan_operation_templates`,
+> `owner_pnl_summary_rpc`, `weather_thresholds_settings`, `pest_scouting_traps`, `agronomist_signoff_gate`,
+> `people_labor_write_gates`, `labor_logs`, `fn_add_plan_operation_multi_harvest_stage`,
+> `plan_labor_person_link`+`plan_labor_person_write`, `spray_compliance_fields`, `plan_op_irrigation_basis`,
+> `individual_palm_treatment`, `plan_op_relative_scheduling`. Each migration was pre-checked against the LIVE
+> current-prod function signature before applying, not assumed. **Migration-ledger repair:** discovered (via a
+> full repo-file-list ↔ prod-ledger diff, run as part of this same session's docs update) that the
+> `apply_migration` MCP tool records its OWN auto-generated apply-time version rather than the migration file's
+> intended timestamp; 2 migrations (`plan_op_irrigation_basis`, `individual_palm_treatment`) were still recorded
+> under the wrong auto-generated version, plus 15 stale duplicate ledger rows survived from earlier in the
+> session. Repaired via a direct, verified `UPDATE`/`DELETE` against `supabase_migrations.schema_migrations`
+> (ledger bookkeeping only — no DDL re-run, no data/schema change). **Confirmed: 134/134 repo migration files
+> now exactly match the prod ledger, zero orphans.** Final Vercel production deployment (PR #563, the last
+> merge) confirmed `READY`, aliased to `ebeidfarm.business` + `farm-ui-one.vercel.app`. `get_advisors`: **0
+> ERROR-level findings**; 54 WARN-level, all the expected/deliberate "authenticated can EXECUTE this SECURITY
+> DEFINER RPC" pattern already used throughout this codebase — no new/unexpected security issue. **Not part of
+> this batch:** PR #580 (accounting/custody plan, docs-only, awaiting Owner review, correctly still open).
+> Full detail: `SESSION-BRIEF.md`.
+
+> **2026-07-01 — connected work graph LIVE via PR #582 (`e98c3c9`).**
+> Draft local migration `20260701390000_execute_operation_target_rollup.sql` fixes executed operation rollups for
+> sector/hawsha/line/palm targets by writing `event_locations.farm_id/sector_id/hawsha_id/line_id` and palm
+> `event_assets`, preserving both the #512 no-blind-release behavior and the current multi-material execution
+> contract from `20260701230000_execute_multi_material.sql`. Current `main` owns `20260701230000` for
+> multi-material execution, so this branch moves the rollup fix to `20260701390000`. Latest `main` also introduced a
+> duplicate `20260701230000_operation_subtype_vocab.sql`; this branch renumbers it to `20260701235000` so it remains
+> before `20260701240000_fn_add_plan_operation_multi_harvest_stage.sql`. Local pgTAP is green
+> (**1098/1098**, including
+> `112_execute_multi_material_test.sql` and `113_execute_operation_target_rollup_test.sql`, which also proves
+> palm fallback through `line_id` when `assets.hawsha_id` is missing). App validation is green: full ESLint,
+> `tsc --noEmit`, Vitest **353/353**, production build, and `git diff --check`. GitHub checks must rerun on the
+> pushed rebased head before merge.
+> Prod apply/probe completed on Farm (`veezkmytervjnpxcrbkw`): repaired exact ledger rows for already-applied
+> generated-timestamp migrations, including `20260701235000`, `20260701240000`, `20260701280000`,
+> `20260701300000`, `20260701310000`, `20260701350000`, `20260701370000`, and `20260701380000` after the latest rebase, then recorded
+> `20260701390000_execute_operation_target_rollup` with exact ledger version. Probes
+> confirm five-arg `fn_execute_operation`, no four-arg overload, multi-material refusal preserved, full
+> `event_locations` insert including `asset_id`, palm `event_assets`, and no anon EXECUTE grant.
+> PR #582 is squash-merged to `main`; main `ci`, `db-tests`, and `release` are green. Live unauthenticated smoke on
+> `https://ebeidfarm.business` confirms `/` and `/login` return 200; protected app routes including `/farm`, `/m`,
+> `/people/dashboard`, `/finance/dashboard`, `/accounting`, `/custody`, `/plans`, `/weather/thresholds`,
+> `/farm/pest-scouting`, plus representative real sector/hawsha/line/palm 360 URLs, redirect to `/login` (307)
+> rather than 404/500. Authenticated content smoke still needs a logged-in browser session.
+
 > **2026-07-01 — accounting/custody settlement LIVE via PR #568 (`8ffc4ae`).**
 > Branch `feat/accounting-custody-standalone` / PR #568 introduced
 > `20260701220000_accounting_cash_custody_settlement.sql` plus `/accounting` and request-settlement UI.

@@ -3,6 +3,14 @@
 *Governed under **The AI Project Operating System v3**. Owner: Amr Ebeid. Generated 2026-06-18.*
 `[V]` verified · `[I]` inferred/recommended.
 
+> ⚠️ **Status note (2026-07-02):** §4's per-stage status and §6's risk register are **historical** — the live
+> stage-status table, next actions, and decision queue now live in [`STATUS.md`](STATUS.md) (the only doc that
+> claims currency), refreshed from the 360° review ([`REVIEW-360-2026-07-01.md`](REVIEW-360-2026-07-01.md)).
+> Risk-register deltas recorded there include: single-owner bus factor; AI-agent velocity vs review capacity;
+> prod migration-ledger fragility; no staging environment / monitoring / backup-verify / rollback drill;
+> `authorize()`/`audit_read` re-emit structural debt. The governance model (§2–3, §5) and the market-led
+> control (§8.8) remain in force.
+
 > **How to read this:** §1–2 = the product and how we'll run the build safely. §3 = governance & roles. **§4 = the detailed risk-tiered staged plan (the core).** §5 = verification/evidence. §6 = risk register. §7 = ready-to-paste execution prompts. §8 = **playbook-lens review & enhancements of the current project**. §9 = standards + rhythm + next actions. Companion docs: [README](README.md) · [01 Research](01-research-and-strategy.md) · [02 PRD](02-prd.md) · [03 Architecture](03-architecture-and-data-model.md) · [04 UX](04-ux-and-design-system.md) · [05 GTM](05-gtm-pricing.md) · operating files [CLAUDE.md](CLAUDE.md) / [TRACKER](PROJECT-TRACKER.md) / [SESSION-BRIEF](SESSION-BRIEF.md) / [SPEC-0001](SPEC-0001-stock-coverage-engine.md).
 
 ---

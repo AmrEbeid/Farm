@@ -16,8 +16,10 @@ export interface Forecast {
   humidityPct: number;
 }
 
-// Plausibility envelopes — a value outside these is rejected as garbage/hostile, not stored.
-const RANGE = {
+// Plausibility envelopes — a value outside these is rejected as garbage/hostile, not stored. Exported
+// so a saved-threshold write path (app/(app)/weather/thresholds/actions.ts) can pre-validate against
+// the SAME envelopes as the forecast fields they gate against, instead of duplicating magic numbers.
+export const RANGE = {
   tempC: [-40, 60],
   windKph: [0, 400],
   rainMm: [0, 2000],
@@ -77,6 +79,7 @@ export interface WeatherThresholds {
   pollinateMaxWindKph: number;
   harvestMaxRainMm: number;
   heatStressC: number;
+  frostBelowC: number;
 }
 
 export const DEFAULT_THRESHOLDS: WeatherThresholds = {
@@ -85,7 +88,33 @@ export const DEFAULT_THRESHOLDS: WeatherThresholds = {
   pollinateMaxWindKph: 20,
   harvestMaxRainMm: 1,
   heatStressC: 45,
+  frostBelowC: 2,
 };
+
+/**
+ * Merge a possibly-partial/malformed stored thresholds blob (e.g. `organization.settings.weather_
+ * thresholds`, jsonb) over `base`. Same trust-boundary discipline as `parseForecast`: each field is
+ * independently range-checked (`finiteInRange`, the RANGE envelopes above) and a missing/invalid field
+ * falls back to its OWN default rather than discarding the whole object — an older shape or one bad
+ * field must never silently corrupt every gate.
+ */
+export function mergeThresholds(
+  raw: unknown,
+  base: WeatherThresholds = DEFAULT_THRESHOLDS,
+): WeatherThresholds {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return base;
+  const o = raw as Record<string, unknown>;
+  const pick = (key: keyof WeatherThresholds, lo: number, hi: number): number =>
+    finiteInRange(o[key], lo, hi) ?? base[key];
+  return {
+    sprayMaxWindKph: pick("sprayMaxWindKph", RANGE.windKph[0], RANGE.windKph[1]),
+    pollinateMaxRainMm: pick("pollinateMaxRainMm", RANGE.rainMm[0], RANGE.rainMm[1]),
+    pollinateMaxWindKph: pick("pollinateMaxWindKph", RANGE.windKph[0], RANGE.windKph[1]),
+    harvestMaxRainMm: pick("harvestMaxRainMm", RANGE.rainMm[0], RANGE.rainMm[1]),
+    heatStressC: pick("heatStressC", RANGE.tempC[0], RANGE.tempC[1]),
+    frostBelowC: pick("frostBelowC", RANGE.tempC[0], RANGE.tempC[1]),
+  };
+}
 
 export type GateLevel = "ok" | "advise" | "unknown";
 
@@ -94,7 +123,8 @@ export interface OperationGates {
   pollinate: GateLevel;
   harvest: GateLevel;
   heatStress: boolean | null; // null = unknown (no forecast)
-  reasons: Partial<Record<"spray" | "pollinate" | "harvest" | "heat", string>>;
+  frost: boolean | null; // null = unknown (no forecast)
+  reasons: Partial<Record<"spray" | "pollinate" | "harvest" | "heat" | "frost", string>>;
 }
 
 /**
@@ -108,7 +138,14 @@ export function computeGates(
   thresholds: WeatherThresholds = DEFAULT_THRESHOLDS,
 ): OperationGates {
   if (!f) {
-    return { spray: "unknown", pollinate: "unknown", harvest: "unknown", heatStress: null, reasons: {} };
+    return {
+      spray: "unknown",
+      pollinate: "unknown",
+      harvest: "unknown",
+      heatStress: null,
+      frost: null,
+      reasons: {},
+    };
   }
   const reasons: OperationGates["reasons"] = {};
 
@@ -126,11 +163,18 @@ export function computeGates(
   const heat = f.tempC >= thresholds.heatStressC;
   if (heat) reasons.heat = `حرارة ${Math.round(f.tempC)}°م — إجهاد حراري محتمل`;
 
+  // Frost gate (canonical orchard risk — date-palm bloom/fruit-set is cold-sensitive). Single-reading
+  // check, deliberately NOT a sustained-cold/duration model (keep consistent with the other gates,
+  // which are also single-day threshold checks — see module header).
+  const frost = f.tempC < thresholds.frostBelowC;
+  if (frost) reasons.frost = `⚠️ خطر صقيع — درجة الحرارة المتوقعة ${Math.round(f.tempC)}°م`;
+
   return {
     spray: sprayWindy ? "advise" : "ok",
     pollinate: pollinateBad ? "advise" : "ok",
     harvest: harvestWet ? "advise" : "ok",
     heatStress: heat,
+    frost,
     reasons,
   };
 }

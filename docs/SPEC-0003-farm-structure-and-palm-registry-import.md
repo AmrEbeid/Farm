@@ -48,6 +48,14 @@ Every other document (the 7-yr accounting sheet, prior tallies) reconciles **to*
 the reverse. If the registry file itself is internally inconsistent, **stop and report** — do not pick
 a number.
 
+> **⚠️ Addendum (Owner fact, 2026-07-02 — issue #595): intercropping (زراعات بينية).** The farm grows
+> other crops **between the palms in SOME hawshat** (not all). The current schema cannot express this
+> (crop exists only as `sectors.crop` single-text; hawshat have no crop composition). **The Stage-M
+> import must capture per-hawsha crop composition** — proposed `hawsha_crops` (hawsha_id, crop,
+> planted_count/area, planting_date, notes) — collected during the same ground-truth pass as the palm
+> counts. Palm counts above remain the canonical registry; intercrop composition is additive and does
+> not alter them. Cost-allocation and ops implications are decision-gated in issue #595 (D1–D3).
+
 ## 3. The schema already exists (migration `0003`)
 
 `farms → sectors → hawshat → lines → assets`. Relevant columns:

@@ -34,14 +34,63 @@ export function isExecutableOpStatus(status: string | null | undefined): boolean
   return !NON_EXECUTABLE_OP_STATUSES.has(status ?? "planned");
 }
 
-/** Operation subtype (`plan_operations.subtype`) → Arabic. Centralized so a new subtype is
- *  translated everywhere at once (it was duplicated in 8 screens; "pollination" got missed). */
+/**
+ * Operation subtype (`plan_operations.subtype`) → Arabic. Centralized so a new subtype is
+ * translated everywhere at once (it was duplicated in 8 screens; "pollination" got missed).
+ *
+ * Extended to the real Egyptian date-palm operation vocabulary (FAO Y4360E + Egyptian APC +
+ * agronomy research) beyond the original 5 UI-offered values, matching the CHECK constraint added
+ * on plan_operations.subtype (migration 20260701230000). 'spraying' keeps its original key for
+ * back-compat with existing rows/UI even though "المكافحة" (pest/disease control) is the more
+ * accurate real-world term for it.
+ */
 export const SUBTYPE_AR: Record<string, string> = {
-  fertilization: "تسميد",
-  irrigation: "ري",
-  spraying: "رش",
+  pruning_dethorning: "التقليم / التكريب",
+  offshoot_mgmt: "إدارة الفسائل",
+  pollen_collection: "جمع اللقاح",
   pollination: "تلقيح",
+  bunch_limiting: "تحديد العراجين",
+  thinning: "الخف",
+  bunch_tilting: "التحدير / التقويس",
+  bagging: "التكييس / التغطية",
+  irrigation: "ري",
+  fertilization: "تسميد",
+  pest_scouting: "فحص مصائد السوسة",
+  spraying: "المكافحة",
+  harvest: "الحصاد",
+  post_harvest: "ما بعد الحصاد",
   inspection: "تفتيش",
+};
+
+/**
+ * Dose-bearing operation subtypes (docs/CLAUDE.md non-negotiable #4 — agronomist-signoff-gate).
+ * These are the subtypes whose plan_material_requirements carry an actual NPK/pesticide DOSE
+ * decision, not just a logistics quantity — so until a named agronomist signs off, the op is a
+ * TEMPLATE, not a prescription. Deliberately a small, explicit, extensible constant (not an
+ * inference from arbitrary material categories) — mirrors the migration's authorize()
+ * agronomy.signoff gate, which only distinguishes WHO may sign, not WHICH ops need it (that's here).
+ * Extend this list — not a magic rule — as new dose-bearing subtypes are added.
+ */
+export const DOSE_BEARING_SUBTYPES: ReadonlySet<string> = new Set(["fertilization", "spraying"]);
+
+export function isDoseBearingSubtype(subtype: string | null | undefined): boolean {
+  return DOSE_BEARING_SUBTYPES.has(subtype ?? "");
+}
+
+/** An op is pending agronomist sign-off when it is dose-bearing and neither sign-off column is set. */
+export function isPendingSignoff(
+  subtype: string | null | undefined,
+  signedOffBy: string | null | undefined,
+): boolean {
+  return isDoseBearingSubtype(subtype) && !signedOffBy;
+}
+
+/** Harvest ripening stage (`plan_operations.harvest_stage`) → Arabic. Only meaningful when
+ *  subtype === "harvest" (migration 20260701230000). */
+export const HARVEST_STAGE_AR: Record<string, string> = {
+  khalal: "خلال",
+  rutab: "رطب",
+  tamar: "تمر",
 };
 
 export const PLAN_TYPE_AR: Record<string, string> = {
@@ -102,6 +151,20 @@ export const EMP_TYPE_AR: Record<string, string> = {
   seasonal: "موسمي",
   daily: "يومي",
   contractor: "مقاول",
+};
+
+/** RPW-1: pest-trap status (`pest_traps.status`) → Arabic. */
+export const TRAP_STATUS_AR: Record<string, string> = {
+  active: "نشطة",
+  removed: "مُزالة",
+};
+
+/** RPW-1: pest-incident severity (`pest_incidents.severity`) → Arabic. An observation, not a
+ *  diagnosis — "confirmed" means visually confirmed in the field, not a lab result. */
+export const INCIDENT_SEVERITY_AR: Record<string, string> = {
+  watch: "متابعة",
+  suspected: "اشتباه إصابة",
+  confirmed: "إصابة مؤكدة",
 };
 
 export const PR_STATUS_AR: Record<string, string> = {

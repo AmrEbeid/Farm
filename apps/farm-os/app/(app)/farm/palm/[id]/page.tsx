@@ -8,6 +8,14 @@ import { num } from "@/lib/money";
 import { PalmFile } from "@/components/PalmFile";
 import { type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
+import { getLinkedWorkContext } from "@/lib/linked work context";
+import {
+  LinkedFinanceCard,
+  LinkedPlansCard,
+  LinkedReportCard,
+  LinkedTasksCard,
+  LinkedWorkKpis,
+} from "@/components/linked work sections";
 import { SUBTYPE_AR } from "@/lib/labels";
 
 // assets.status — the closed set from migration 0003.
@@ -54,13 +62,19 @@ export default async function PalmFilePage({
   const { id } = await params;
   const m = await requireMembership();
   const sb = await createClient();
+  const canSeeFinance = ["owner", "accountant"].includes(m.role);
 
-  // asset (+ its sector/hawsha/line for the breadcrumb), its status history, and its media are
-  // independent reads keyed on the asset id — fetch in parallel. RLS scopes all.
+  // asset (+ its sector/hawsha/line for the breadcrumb), its status history, its media, its past
+  // individual treatments (plan_operations targeted at this palm), and the org's inventory items
+  // (for the treatment form's optional material picker) are independent reads keyed on the asset id
+  // — fetch in parallel. RLS scopes all.
   const [
     { data: asset, error: assetError },
     { data: history, error: historyError },
     attachments,
+    linkedWork,
+    { data: treatmentOps, error: treatmentError },
+    { data: items },
   ] = await Promise.all([
     sb
       .from("assets")
@@ -76,10 +90,24 @@ export default async function PalmFilePage({
       .eq("asset_id", id)
       .order("changed_at", { ascending: false }),
     getAttachments("palm", id),
+    getLinkedWorkContext(sb, {
+      orgId: m.orgId,
+      entityType: "palm",
+      entityId: id,
+      canSeeFinance,
+    }),
+    sb
+      .from("plan_operations")
+      .select("id, subtype, status, planned_at, note")
+      .eq("target_type", "palm")
+      .eq("target_id", id)
+      .order("planned_at", { ascending: false }),
+    sb.from("inventory_items").select("id, name, unit").order("name"),
   ]);
   // Surface DB read failures to the segment error boundary instead of a misleading empty page.
   if (assetError) throw assetError;
   if (historyError) throw historyError;
+  if (treatmentError) throw treatmentError;
 
   if (!asset)
     return (
@@ -203,7 +231,23 @@ export default async function PalmFilePage({
         orgId={m.orgId}
         hawshaRedirect={hawsha?.id ? `/farm/hawsha/${hawsha.id}` : "/farm"}
         attachments={attachments}
+        treatmentItems={items ?? []}
+        treatments={(treatmentOps ?? []).map((o) => ({
+          id: o.id,
+          subtype: o.subtype,
+          status: o.status,
+          plannedAt: o.planned_at ? fmtDate(o.planned_at) : null,
+          note: o.note,
+        }))}
       />
+
+      <LinkedWorkKpis context={linkedWork} canSeeFinance={canSeeFinance} />
+      <section className="grid gap-5 xl:grid-cols-2">
+        <LinkedPlansCard context={linkedWork} />
+        <LinkedTasksCard context={linkedWork} />
+      </section>
+      {canSeeFinance && <LinkedFinanceCard context={linkedWork} />}
+      <LinkedReportCard context={linkedWork} title={label} canSeeFinance={canSeeFinance} />
     </div>
   );
 }

@@ -230,6 +230,64 @@ insert into public.budget_lines (id, org_id, budget_id, category, planned, appro
 insert into public.budget_lines (id, org_id, budget_id, category, planned, approved, committed, actual) values ('c6deea25-2afb-5ca4-ae05-204fc882307c','00000000-0000-0000-0000-000000000001','5dda5a95-ea38-58a5-9593-b06faa50d37b','ري ووقود',400000,400000,40000,300000);
 insert into public.budget_lines (id, org_id, budget_id, category, planned, approved, committed, actual) values ('e569b48e-57c6-558f-9f8e-8db1e2e2dd48','00000000-0000-0000-0000-000000000001','5dda5a95-ea38-58a5-9593-b06faa50d37b','عمالة',1400000,1400000,30000,1100000);
 
+-- SPEC-0019 P1-3 "جداول العمليات" — 3 named operation-program templates (real, editable data, not
+-- hardcoded app logic; offsets are RELATIVE to whatever anchor date the user picks at instantiate
+-- time via fn_instantiate_operation_template — never a hardcoded absolute date).
+--
+-- 1) Fertigation split (مارس/مايو/أغسطس): 3 occurrences at offsets 0 / 61 / 153 days from an
+--    anchor of "1 مارس" (61d = 1 May, 153d = 1 Aug on a non-leap calendar) — each repeats the same
+--    سلفات بوتاسيوم + يوريا material lines and seasonal-labour line.
+insert into public.plan_operation_templates (id, org_id, name, subtype, recurrence) values (
+  '00000000-a001-5000-8000-000000000001','00000000-0000-0000-0000-000000000001',
+  'برنامج التسميد — مارس/مايو/أغسطس','fertilization',
+  '[
+     {"offset_days":0,"est_cost":18000,
+      "materials":[{"item_id":"39e22867-fbe2-5cd9-8a76-ce5871a8e8f4","qty":300,"unit":"kg"},
+                   {"item_id":"761c43f2-011b-598b-80cf-96abc48881cb","qty":150,"unit":"kg"}],
+      "labor":[{"person_or_team":"فريق التسميد","count":3,"days":1}]},
+     {"offset_days":61,"est_cost":18000,
+      "materials":[{"item_id":"39e22867-fbe2-5cd9-8a76-ce5871a8e8f4","qty":300,"unit":"kg"},
+                   {"item_id":"761c43f2-011b-598b-80cf-96abc48881cb","qty":150,"unit":"kg"}],
+      "labor":[{"person_or_team":"فريق التسميد","count":3,"days":1}]},
+     {"offset_days":153,"est_cost":18000,
+      "materials":[{"item_id":"39e22867-fbe2-5cd9-8a76-ce5871a8e8f4","qty":300,"unit":"kg"},
+                   {"item_id":"761c43f2-011b-598b-80cf-96abc48881cb","qty":150,"unit":"kg"}],
+      "labor":[{"person_or_team":"فريق التسميد","count":3,"days":1}]}
+   ]'::jsonb
+);
+
+-- 2) Pollination round (٢-٣ لفّات): 3 weekly passes (offsets 0/7/14) — labour only (no pollen line
+--    item exists in the reference inventory yet; add one when the pollen-collection op ships).
+insert into public.plan_operation_templates (id, org_id, name, subtype, recurrence) values (
+  '00000000-a001-5000-8000-000000000002','00000000-0000-0000-0000-000000000001',
+  'جولة التلقيح (٢-٣ لفّات أسبوعية)','pollination',
+  '[
+     {"offset_days":0, "est_cost":6000,"materials":[],"labor":[{"person_or_team":"فريق التلقيح","count":4,"days":1}]},
+     {"offset_days":7, "est_cost":6000,"materials":[],"labor":[{"person_or_team":"فريق التلقيح","count":4,"days":1}]},
+     {"offset_days":14,"est_cost":6000,"materials":[],"labor":[{"person_or_team":"فريق التلقيح","count":4,"days":1}]}
+   ]'::jsonb
+);
+
+-- 3) RPW preventive check (كل ٦ أشهر تقريبًا): 3 occurrences ~180 days apart, using the real
+--    فرمون السوسة (RPW pheromone lure) item already in the reference inventory — modeled as
+--    pest_scouting (trap/lure servicing), not a fabricated drench-chemical item that doesn't exist
+--    in this org's inventory (non-negotiable #1/#4: no invented agronomy inputs).
+insert into public.plan_operation_templates (id, org_id, name, subtype, recurrence) values (
+  '00000000-a001-5000-8000-000000000003','00000000-0000-0000-0000-000000000001',
+  'المكافحة الوقائية لسوسة النخيل (كل ٦ أشهر)','pest_scouting',
+  '[
+     {"offset_days":0,  "est_cost":2000,
+      "materials":[{"item_id":"9987555b-4236-50e3-8fbf-50d7287aa6e0","qty":20,"unit":"قطعة"}],
+      "labor":[{"person_or_team":"مشرف الحقل","count":1,"days":1}]},
+     {"offset_days":180,"est_cost":2000,
+      "materials":[{"item_id":"9987555b-4236-50e3-8fbf-50d7287aa6e0","qty":20,"unit":"قطعة"}],
+      "labor":[{"person_or_team":"مشرف الحقل","count":1,"days":1}]},
+     {"offset_days":360,"est_cost":2000,
+      "materials":[{"item_id":"9987555b-4236-50e3-8fbf-50d7287aa6e0","qty":20,"unit":"قطعة"}],
+      "labor":[{"person_or_team":"مشرف الحقل","count":1,"days":1}]}
+   ]'::jsonb
+);
+
 -- Responsibility: manager accountable for الحصوة sector (auto-routing substrate).
 insert into public.responsibility_assignments (id, org_id, person_id, scope_type, scope_id, responsibility_type) values ('29c87f5a-bf74-57c5-a996-8cb44c221c04','00000000-0000-0000-0000-000000000001','51a562a7-958b-5ef7-ab2c-276895b984f9','sector','2aa10e7e-d6fe-5f6b-88f0-1c3c01bc1d23','accountable_manager');
 
