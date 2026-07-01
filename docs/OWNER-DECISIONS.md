@@ -15,12 +15,17 @@ review that PROVED non-masking arithmetically.** The fix: **remove** `fn_execute
 release (it owned no per-op reserve, so it was wiping unrelated earmarks). Minimal change that cannot mask —
 `reserved` can now only rise → `available` only falls → over-order, the safe direction. `tests/105` (the #512
 pin) is now a passing HARD gate. **All three masked-shortage vectors are now closed (#509, #216, #512).**
-**Remaining (over-order only, SAFE, never masks — owner-gated enhancement, NOT urgent):** the fix leaves coverage
-earmarks accumulating (never released). The coherent removal = op-keyed reservations + an attributed
-release-on-receipt — enhancement **#526** + **#199** double-count. Both need one decision:
-- **Reserve-on-approval? op- vs plan-level?** — approval reserving stock changes what "available" shows = a
-  product decision. On your word I implement the op-keyed model (schema `plan_op_id` + release-on-receipt + engine
-  net-demand) with the same rigor loop. Until then the engine errs safe (over-orders), never masks.
+**Remaining (over-order only, SAFE, never masks — owner-gated, NOT urgent):** #199 (reserved demand double-count)
++ **#526** (earmark accumulation) + a reserve double-subtract (reserving deepens the apparent shortage). A
+read-only investigation proved **no autonomous fix is provably non-masking** — the reserve model has a
+SPEC-vs-code contradiction, so any bin-wide change risks the cardinal sin. **The ONE decision (full evidence on
+#526):**
+- **Does `reserved` mean (a) EXISTING on-hand committed to a plan-op (released at EXECUTE, per SPEC-0001:18) — or
+  (b) an INCOMING purchased-stock earmark (released at RECEIPT, what the live coverage wedge actually does)?**
+  The formula `available = on_hand − reserved` was built for (a); the only live caller implements (b); they
+  disagree. On your answer I implement the provably-safe **op/PR-keyed** model (add `plan_op_id`/`pr_id` to reserve
+  movements, scope `bin.reserved` per key, net #199 op-by-op, release #526 keyed to the fulfilling PR) with the
+  #512 rigor loop. **Until then I hold the current over-ordering — it's the safe state (never masks).**
 
 ## P2 — Unit-of-measure model (masked shortage, both sides) — #216   ✅ DONE
 **Shipped (both sides), on-recommendation with independent review + migrate-first:** Option A single-unit
