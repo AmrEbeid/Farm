@@ -1,6 +1,25 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-06-30)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-01)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-07-01 — AUTONOMOUS SESSION: 10 prod migrations applied migrate-first, all green on `main` (`b05811e`).**
+> Every migration was validated on the local pgTAP harness first, applied to Farm prod (`veezkmytervjnpxcrbkw`)
+> via the MCP `execute_sql` + manual ledger-insert pattern (see memory `farm-prod-migrate-via-mcp`), re-probed on
+> prod, then merged after CI green. Prod ledger head is **`20260701160000`**. The applied set (in order):
+> - `20260630090000` anon table-DML lockdown (#317/PR #485)
+> - `20260630100000` perf-advisor: pr_update RLS InitPlan + FK covering sweep (#486)
+> - `20260701090000` org-settings audit gap (#492)
+> - `20260701100000` plan-subsystem audit triggers (#495)
+> - `20260701110000` event-children audit triggers (#497)
+> - `20260701120000` custody one-cash-out unique backstop (#508)
+> - `20260701130000` **engine masked-shortage fix** — count in_progress/approved op demand (#509) ⚠️ engine surface
+> - `20260701140000` payment-lifecycle claim-first guards (#511)
+> - `20260701150000` sectors/hawshat (org_id, code) unique — import idempotency (#515)
+> - `20260701160000` structure CRUD integrity (archive/restore symmetry, row_count coalesce, archived-parent) (#517)
+> **Still queued as draft PRs, NOT applied:** `0088`+`0097` (#368 accounting), `0091` (#366 academy) — behind their
+> expert/reconciliation gates. **Owner-gated model decisions (NOT migrated):** the reservation-model redesign
+> (#512/#199) and unit-model (#216) — both are masked-shortage-adjacent and need Amr's design call; #512 is pinned
+> by `tests/105` (todo). Full session record + decision queue: issue #505.
 
 > **2026-06-30 — perf-advisor remediation applied to prod (migrate-first), PR #486.** Migration
 > **`20260630100000`**: (1) re-emit `purchase_requests.pr_update` (byte-for-byte from `0070`) with the
