@@ -1,4 +1,20 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-30 by Claude (autonomous session, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
+
+> **2026-07-01 — AUTONOMOUS SESSION COMPLETE: 26 PRs merged, 10 prod migrations, all green on `main` (`b05811e`).**
+> Owner-directed continuous autonomous work with self-merge/self-migrate authority (this session only), holding the
+> integrity rails (no fabricated data, no secrets, CI-green-before-merge, migrate-first, verify-agent-findings).
+> **Adversarially audited every real-code subsystem** and fixed every decision-free defect. Headline: **#509 fixed a
+> real reproduced ENGINE masked shortage** (fn_stock_coverage dropped in_progress op demand — the cardinal sin the
+> #239 oracle had missed; define-check-first, verbatim-safe re-emit). Also shipped: security/audit (anon-DML #485,
+> org-settings/plan/event audit #492/#495/#497), perf (#486), finance drawings-vs-opex #501 + CSV Excel-SUM
+> #502/#507 + custody backstop #508, payment claim-first #511, a11y table-names + colour-status #489/#490/#491/#499,
+> ImportPanel #487, bulk-import hardening #514/#515, structure CRUD integrity #517. **Verified SAFE (no fix
+> needed):** multi-tenant isolation, money pipeline, write-path concurrency, append-only integrity, the canonical
+> palm registry (4,380/299/28), bundle hygiene. **Owner decisions pending** (see #505 hub): reservation-model
+> redesign (#512 masked shortage, pinned by tests/105 + #199), unit-model (#216, masks both sides), pricing
+> (#157/#89), wage (#388), expert gates (#366/#368), leaked-password Auth toggle (#229iii), the 7 #215 + 6 #216
+> decisions. **Environment-blocked:** #500 (DS dist can't rebuild — esbuild postinstall disabled). Issue **#505** is
+> the single hub for the full shipped list + decision queue.
 
 > **2026-06-30 — AUTONOMOUS SESSION (Owner set "keep working, review→merge→migrate on your recommendation").**
 > Repo hygiene: removed 42 stale `" 2"` Finder-duplicate files from the working tree (verified each was identical
