@@ -421,6 +421,13 @@ type PlanOperationAssigneesTable = {
   Relationships: [];
 };
 
+// ── "/finance/pnl" owner P&L period summary, migration 20260701270000. ──
+// Narrowly-scoped, additive to the Stage-7 accounting framework (PR #368, still an unmerged draft) —
+// NOT a replacement for `fn_accounting_pnl_summary`. finance.read gated (owner/accountant only).
+type OwnerPnlFunctions = {
+  fn_owner_pnl_summary: { Args: { p_org: string; p_from: string; p_to: string }; Returns: Json };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses"> & {
@@ -441,7 +448,7 @@ export type Database = Omit<Generated, "public"> & {
       plan_operation_assignees: PlanOperationAssigneesTable;
       plan_operation_templates: PlanOperationTemplatesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions;
   };
 };
 
