@@ -18,6 +18,7 @@ interface Coverage {
   stockout_date: string | null;
   pab: number[];
   first_shortage_period: number | null;
+  first_warning_period: number | null;
   shortage: boolean;
   shortfall: number;
   recommend_qty: number;
@@ -46,12 +47,69 @@ function isCoverage(value: unknown): value is Coverage {
     c.pab.every((n) => typeof n === "number") &&
     (typeof c.first_shortage_period === "number" ||
       c.first_shortage_period === null) &&
+    (typeof c.first_warning_period === "number" ||
+      c.first_warning_period === null) &&
     typeof c.shortage === "boolean" &&
     typeof c.shortfall === "number" &&
     typeof c.recommend_qty === "number" &&
     (typeof c.order_by === "string" || c.order_by === null) &&
     typeof c.message_ar === "string"
   );
+}
+
+// Three verdict states, driven by ALL THREE engine signals — not `shortage` alone:
+//   ok      = never breaches safety stock in the horizon (no warning, no shortage).
+//   warning = stays above zero (never a hard shortage) but dips below safety stock at
+//             some future period, OR the engine recommends an early replenishment
+//             (recommend_qty > 0) even though shortage never fires. A green pill/banner
+//             here would hide a real, actionable early-warning from the engine.
+//   danger  = a real projected shortage (first_shortage_period is set).
+// Precedence: danger > warning > ok.
+type CoverageState = "ok" | "warning" | "danger";
+
+function coverageState(c: Coverage): CoverageState {
+  if (c.shortage) return "danger";
+  if (c.first_warning_period != null || c.recommend_qty > 0) return "warning";
+  return "ok";
+}
+
+const STATE_PILL: Record<CoverageState, { status: "blocked" | "warning" | "active"; label: string }> = {
+  danger: { status: "blocked", label: "نقص" },
+  warning: { status: "warning", label: "تحذير مبكر" },
+  ok: { status: "active", label: "مغطّى" },
+};
+
+const STATE_TONE: Record<CoverageState, "ok" | "warning" | "danger"> = {
+  danger: "danger",
+  warning: "warning",
+  ok: "ok",
+};
+
+// Build the human message CLIENT-SIDE from the structured numeric fields instead of trusting
+// the RPC's `message_ar` string: that string hardcodes "كجم" and "الأسبوع القادم" regardless of
+// the item's real unit or the real first_shortage_period/first_warning_period number (a SQL
+// copy/display bug). Rendering it verbatim also puts a "⚠️ نقص متوقع…" sentence inside a green
+// "ok" box whenever shortage=false but recommend_qty>0. Re-deriving the wording here fixes both
+// without touching the engine SQL (presentation-layer only, per the review).
+function buildVerdictMessage(c: Coverage, unit: string): string {
+  const state = coverageState(c);
+  if (state === "danger") {
+    const periodPhrase =
+      c.first_shortage_period != null ? `الأسبوع رقم ${num(c.first_shortage_period)}` : "الفترة القادمة";
+    return (
+      `⛔ نقص متوقع خلال ${periodPhrase} بعجز ${num(c.shortfall)} ${unit}. ` +
+      `اطلب ${num(c.recommend_qty)} ${unit}${c.order_by ? ` بحد أقصى ${fmtDate(c.order_by)}` : " الآن"}.`
+    );
+  }
+  if (state === "warning") {
+    const periodPhrase =
+      c.first_warning_period != null ? `الأسبوع رقم ${num(c.first_warning_period)}` : "الفترة القادمة";
+    return (
+      `⚠️ المخزون لن ينفد، لكنه سيهبط دون حد الأمان خلال ${periodPhrase}. ` +
+      `يُنصح بطلب ${num(c.recommend_qty)} ${unit} مبكرًا لتفادي النقص.`
+    );
+  }
+  return "✅ المخزون كافٍ. لا حاجة للطلب الآن.";
 }
 
 export default async function CoveragePage({
@@ -99,13 +157,15 @@ export default async function CoveragePage({
   }
   const c: Coverage = data;
   const unit = item?.unit ?? "كجم";
+  const state = coverageState(c);
+  const pill = STATE_PILL[state];
 
   return (
     <div className="flex flex-col gap-6 p-6">
       <Entity360Header
         title={`تغطية المخزون — ${item?.name ?? "صنف"}`}
         subtitle="محرّك التغطية (fn_stock_coverage)"
-        pills={[c.shortage ? { status: "blocked", label: "نقص" } : { status: "active", label: "مغطّى" }]}
+        pills={[{ status: pill.status, label: pill.label }]}
         actions={
           <Link
             href={`/inventory/${itemId}`}
@@ -117,7 +177,7 @@ export default async function CoveragePage({
         }
       />
 
-      <VerdictBanner tone={c.shortage ? "danger" : "ok"}>{c.message_ar}</VerdictBanner>
+      <VerdictBanner tone={STATE_TONE[state]}>{buildVerdictMessage(c, unit)}</VerdictBanner>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="المتاح" value={num(c.available)} unit={unit} />
@@ -125,7 +185,7 @@ export default async function CoveragePage({
           label="أيام التغطية"
           value={coverageDays(c.coverage_days)}
           delta={`المهلة ${num(c.lead_time_days)} يوم`}
-          deltaDirection={c.shortage ? "down" : "none"}
+          deltaDirection={state === "ok" ? "none" : "down"}
         />
         <KpiCard label="نقطة إعادة الطلب" value={num(c.reorder_point)} unit={unit} />
         <KpiCard
@@ -137,7 +197,12 @@ export default async function CoveragePage({
       </section>
 
       <Card title="الرصيد المتوقع عبر الأسابيع">
-        <PabChart series={c.pab} firstShortage={c.first_shortage_period} />
+        <PabChart
+          series={c.pab}
+          firstShortage={c.first_shortage_period}
+          firstWarning={c.first_warning_period}
+          unit={unit}
+        />
         {c.stockout_date && (
           <p className="mt-2 text-sm" style={{ color: "var(--ink-muted)" }}>
             تاريخ نفاد المخزون المتوقع: {fmtDate(c.stockout_date)}
@@ -145,10 +210,16 @@ export default async function CoveragePage({
         )}
       </Card>
 
-      {c.shortage && (
+      {/* Show whenever the engine recommends a purchase (recommend_qty > 0), not only on a hard
+          shortage — a warning-only recommendation (shortage=false, recommend_qty>0) still needs
+          an action affordance, or it's a green dead-end with nothing to act on. */}
+      {c.recommend_qty > 0 && (
         <Card title="الإجراء الموصى به">
           <p className="mb-3">
-            نقص قدره {num(c.shortfall)} {unit}. ننصح بطلب {num(c.recommend_qty)} {unit} اليوم
+            {state === "danger"
+              ? `نقص قدره ${num(c.shortfall)} ${unit}. `
+              : "تنبيه مبكر قبل بلوغ حد الأمان: "}
+            ننصح بطلب {num(c.recommend_qty)} {unit} {state === "danger" ? "اليوم" : "قريبًا"}
             {c.order_by ? ` (آخر موعد للطلب: ${fmtDate(c.order_by)})` : ""}.
           </p>
           {canReserve && (
