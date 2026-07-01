@@ -326,6 +326,45 @@ type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; 
   Update: Omit<T["Update"], PaymentRoutingColumn>;
   Relationships: T["Relationships"];
 };
+// ── SPEC-0019 P1-3 "جداول العمليات" — operation templates (instantiate-only slice). ──
+// Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
+type PlanOperationTemplatesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    name: string;
+    subtype: string;
+    recurrence: Json;
+    created_by: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    name: string;
+    subtype: string;
+    recurrence?: Json;
+    created_by?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    name?: string;
+    subtype?: string;
+    recurrence?: Json;
+    created_by?: string | null;
+    created_at?: string;
+  };
+  Relationships: [];
+};
+type OperationTemplateFunctions = {
+  fn_instantiate_operation_template: {
+    Args: { p_plan_id: string; p_template_id: string; p_anchor_date: string };
+    Returns: Json;
+  };
+};
+
 type CustodyFunctions = {
   fn_save_custody_account: {
     Args: {
@@ -400,8 +439,9 @@ export type Database = Omit<Generated, "public"> & {
       payment_request_lines: PaymentRequestLinesTable;
       payment_request_fundings: PaymentRequestFundingsTable;
       plan_operation_assignees: PlanOperationAssigneesTable;
+      plan_operation_templates: PlanOperationTemplatesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions;
   };
 };
 
