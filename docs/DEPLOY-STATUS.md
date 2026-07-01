@@ -2,14 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-01 — accounting/custody settlement release in progress (migrate-first complete).**
-> Branch `feat/accounting-custody-standalone` / PR #568 introduces
+> **2026-07-01 — accounting/custody settlement LIVE via PR #568 (`8ffc4ae`).**
+> Branch `feat/accounting-custody-standalone` / PR #568 introduced
 > `20260701220000_accounting_cash_custody_settlement.sql` plus `/accounting` and request-settlement UI.
 > Validation is green (local pgTAP 904/904, app Vitest 251/251, lint, production build, diff check; PR checks +
 > CodeRabbit green). The migration was applied to Farm prod (`veezkmytervjnpxcrbkw`) with
 > `supabase db push --yes`; ledger now records `20260701220000 accounting_cash_custody_settlement`. Prod probes
 > confirm the new tables/RPCs exist, FORCE RLS is enabled, authenticated table DML is revoked, and anon cannot execute
-> the new accounting/payment RPCs. **Merge/deploy verification is still pending in this branch note.**
+> the new accounting/payment RPCs. PR #568 was squash-merged to `main` at `8ffc4ae`; post-merge `ci`, `db-tests`,
+> and `release` are green. Live unauthenticated probes on `https://ebeidfarm.business/accounting` and `/custody`
+> return the expected protected-route `307` to `/login` (login `200`), not 404/500.
 
 > **2026-07-01 (cont.) — 5 more prod migrations: the ENGINE masked-shortage program (all migrate-first, green `main`).**
 > Prod ledger head is now **`20260701210000`**. All applied migrate-first + independent-reviewed (engine surface) +

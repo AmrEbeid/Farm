@@ -2,9 +2,8 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
-**Release in progress: standalone cash-method accounting + custody settlement is built on
-`feat/accounting-custody-standalone` / PR #568; prod migration is applied and probed; merge/deploy verification is
-pending.**
+**LIVE:** standalone cash-method accounting + custody settlement shipped via PR #568, squash-merged to `main`
+at `8ffc4ae`; Farm prod migration `20260701220000 accounting_cash_custody_settlement` is applied and probed.
 
 Owner clarified the custody workflow: 30K standing custody can sit with the farm manager, the farm manager may pay
 directly or transfer custody to the accountant, the accountant records all cash/debt expenses in payment requests,
@@ -25,9 +24,12 @@ slice:
 - Prod migration: `20260701220000 accounting_cash_custody_settlement` is applied to Farm prod
   (`veezkmytervjnpxcrbkw`) via `supabase db push --yes`. Post-apply probes confirm tables/RPCs, FORCE RLS,
   authenticated read-only table grants, and anon execute denial on new accounting/payment RPCs.
+- Merge/live verification: PR #568 merged to `main` at `8ffc4ae`; post-merge `ci`, `db-tests`, and `release` are
+  green. Live unauthenticated probes on `https://ebeidfarm.business/accounting` and `/custody` return the expected
+  protected-route `307` to `/login` (login `200`), not 404/500.
 
-**Remaining release step:** merge PR #568, verify Vercel main deployment, then update this note from "pending" to
-"live". Real Excel/PII financial import and statutory P&L remain Stage-M/accountant gated.
+**Remaining accounting boundary:** this is the cash-method custody/request ledger, not the full statutory/management
+P&L. Real Excel/PII financial import and statutory P&L remain Stage-M/accountant gated.
 
 **39 substantive PRs merged, 15 prod migrations (ledger head `20260701210000`), all green on `main`.** Every
 real-code subsystem adversarially audited and every **decision-free** defect fixed. Under the standing "go with

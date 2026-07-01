@@ -1,8 +1,8 @@
 # SPEC-0004 — Accounting: expenses / sales / vouchers + cost allocation + P&L (Stage 7)
 
-*Status: **Release branch update (2026-07-01)** — an operational cash-method accounting kernel is built on
-branch `feat/accounting-custody-standalone` / PR #568, reviewed by CI + CodeRabbit, and **prod-applied migrate-first**
-as `20260701220000 accounting_cash_custody_settlement`; merge/deploy verification is still pending. Stage 7 remains
+*Status: **LIVE cash-method custody ledger slice (2026-07-01)** — an operational cash-method accounting kernel shipped
+via PR #568 (`8ffc4ae`), reviewed by CI + CodeRabbit, **prod-applied migrate-first** as
+`20260701220000 accounting_cash_custody_settlement`, and live-route probed. Stage 7 remains
 **High risk** (financial integrity): this cash-method custody ledger is not the full statutory/management P&L, and
 reconciliation against real financials depends on the privacy-reviewed real-data path (Stage M). Mirrors
 [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md) /
