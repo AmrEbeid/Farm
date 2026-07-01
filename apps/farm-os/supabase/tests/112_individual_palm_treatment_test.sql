@@ -78,12 +78,20 @@ select throws_ok(
 reset role;
 
 -- ── (e) fn_add_plan_operation_multi: a valid palm target overrides the plan-derived scope ────────
+-- NAMED-parameter call (matches how PostgREST/the real app calls this RPC — see migration
+-- 20260701340000's reconciliation header): after the 3-way merge, p_target_type/p_target_id/p_note
+-- sit at positions 13-15 (p_preferred_time_of_day/p_irrigation_basis/p_soil_moisture_reading, from
+-- PRs #562/#560, now occupy positions 10-12) — a positional call here would silently target the
+-- wrong parameters, so this test uses named params to stay correct regardless of final param order.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select set_config('t.res', public.fn_add_plan_operation_multi(
-  :'plan', 'inspection', '2026-07-05'::date, null, 0,
-  '[]'::jsonb, '[]'::jsonb, null, null, 'palm', :'palm1', 'نخلة ضعيفة - معالجة بمنشط جذور')::text, false);
+  p_plan_id => :'plan', p_subtype => 'inspection', p_planned_at => '2026-07-05'::date,
+  p_ends_on => null, p_est_cost => 0, p_materials => '[]'::jsonb, p_labor => '[]'::jsonb,
+  p_assignee_ids => null, p_lead_id => null,
+  p_target_type => 'palm', p_target_id => :'palm1',
+  p_note => 'نخلة ضعيفة - معالجة بمنشط جذور')::text, false);
 reset role;
 
 select is(
@@ -113,12 +121,15 @@ select is(
   'sector', 'omitted target params: falls back to the plan''s own scope_type (backward-compatible)');
 
 -- ── (g) a cross-org palm target is rejected (22023), no orphan op created ─────────────────────────
+-- NAMED-parameter calls (see note on (e) above re: final param positions after the 3-way merge).
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok(
-  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'fertilization', '2026-07-07'::date, null, 0,
-    '[]'::jsonb, '[]'::jsonb, null, null, 'palm', '%s'::uuid) $$, :'plan', :'palmB'),
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'fertilization', p_planned_at => '2026-07-07'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_target_type => 'palm', p_target_id => '%s'::uuid) $$, :'plan', :'palmB'),
   '22023', null, 'a palm from a different org is rejected (22023)');
 reset role;
 
@@ -127,8 +138,10 @@ select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok(
-  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'fertilization', '2026-07-08'::date, null, 0,
-    '[]'::jsonb, '[]'::jsonb, null, null, 'palm', '%s'::uuid) $$, :'plan', :'notpalm'),
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'fertilization', p_planned_at => '2026-07-08'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_target_type => 'palm', p_target_id => '%s'::uuid) $$, :'plan', :'notpalm'),
   '22023', null, 'a target_id that is not an asset of type ''palm'' is rejected (22023)');
 reset role;
 
@@ -137,8 +150,10 @@ select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select throws_ok(
-  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'fertilization', '2026-07-09'::date, null, 0,
-    '[]'::jsonb, '[]'::jsonb, null, null, 'palm', null) $$, :'plan'),
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'fertilization', p_planned_at => '2026-07-09'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_target_type => 'palm', p_target_id => null) $$, :'plan'),
   '22023', null, 'target_type=''palm'' with a null target_id is rejected (22023)');
 reset role;
 

@@ -14,13 +14,14 @@ select plan(12);
 \set p2    'c9200004-0000-0000-0000-000000000092'
 
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
--- Signature updated by migration 20260701340000 (individual-palm treatment: new trailing OPTIONAL
--- p_target_type/p_target_id/p_note params, layered on the full 5-branch reconciliation chain).
+-- Final signature after the 3-way reconciliation (#562 → #560 → #563, migration 20260701340000):
+-- 15-arg — original 9 + p_preferred_time_of_day (#562) + p_irrigation_basis/p_soil_moisture_reading
+-- (#560) + p_target_type/p_target_id/p_note (#563, this migration).
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,uuid,text)', 'EXECUTE'),
   '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,text,uuid,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text,uuid,text)', 'EXECUTE'),
   '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────
