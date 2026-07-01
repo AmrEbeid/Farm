@@ -5,12 +5,15 @@
 -- authority) can sign off, every other role is refused with 42501; (c) a successful sign-off stamps the
 -- CALLER's linked person + now(), never a client-supplied value; (d) a direct-REST write that tries to
 -- SET signed_off_by/at without agronomy.signoff is rejected by the guard trigger, while CLEARING it (the
--- safe direction) is not extra-gated; (e) editing plan_material_requirements for a signed-off op clears
--- its sign-off; (f) cross-org rejection; (g) a non-existent op raises P0002.
+-- safe direction) is not extra-gated; (d.1) the OTHER agronomy.signoff role can sign off a currently-
+-- unsigned op, AND signing off an ALREADY-signed-off op is refused (22023, claim-first) rather than
+-- silently re-stamping a new caller's identity/timestamp over the existing one (independent review
+-- finding, 2026-07-01); (e) editing plan_material_requirements for a signed-off op clears its sign-off;
+-- (f) cross-org rejection; (g) a non-existent op raises P0002.
 -- Run via supabase test db or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(25);
+select plan(27);
 
 -- ===== grants =====
 select ok(not has_function_privilege('anon', 'public.fn_sign_off_plan_operation(uuid)', 'EXECUTE'),
@@ -150,12 +153,27 @@ reset role;
 select is((select count(*) from public.plan_operations where id = :'opSpoof'), 0::bigint,
   'agronomy-signoff: the rejected INSERT left no row behind');
 
--- ===== owner re-signs (the other agronomy.signoff role) =====
+-- ===== the OTHER agronomy.signoff role (owner) signs off a currently-UNSIGNED op — opFert was
+-- cleared by the direct-clear test above (d), so this is NOT a re-sign of an already-signed op (that
+-- case is asserted separately right below) =====
 select pg_temp.as_user(current_setting('t.owner'));
 select set_config('t.res2', public.fn_sign_off_plan_operation(:'opFert')::text, false);
 reset role;
 select is((select signed_off_by::text from public.plan_operations where id = :'opFert'), current_setting('t.owner_person', true),
   'agronomy-signoff: owner CAN sign off, stamping their own linked person');
+
+-- ===== idempotency guard: signing off an ALREADY-signed-off op is refused, not silently re-stamped.
+-- opFert is currently signed off by the owner (immediately above); attempting to sign it off again —
+-- even with a DIFFERENT permitted role (agri_engineer) — must raise 22023 and leave the existing
+-- signed_off_by untouched, never overwrite it with the new caller's identity. =====
+select pg_temp.as_user(current_setting('t.eng'));
+select throws_ok(
+  format($$ select public.fn_sign_off_plan_operation('%s'::uuid) $$, current_setting('t.opFert', true)),
+  '22023', null,
+  'agronomy-signoff: signing off an already-signed-off op raises 22023 (claim-first, no silent re-stamp)');
+reset role;
+select is((select signed_off_by::text from public.plan_operations where id = :'opFert'), current_setting('t.owner_person', true),
+  'agronomy-signoff: the rejected re-sign attempt left signed_off_by UNCHANGED (still the owner, not overwritten by eng)');
 
 -- ===== (e) editing plan_material_requirements for a signed-off op clears the sign-off =====
 select pg_temp.as_user(current_setting('t.mgr'));

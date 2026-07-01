@@ -17,7 +17,11 @@
 --      person via a follow-up migration once that decision is made (see docs/SPEC-0019-operations.md §5
 --      D3 if present on a later checkout — it is not merged as of this migration).
 --   3. fn_sign_off_plan_operation(p_op_id) — SECURITY DEFINER RPC gated on agronomy.signoff, stamps
---      signed_off_by/at from the caller's session (never client-supplied values).
+--      signed_off_by/at from the caller's session (never client-supplied values). Claim-first: the
+--      final UPDATE only fires while signed_off_by IS NULL (mirrors fn_execute_operation's claim-first
+--      guard), so a SECOND call on an already-signed-off op cannot silently re-stamp a new caller's
+--      identity/timestamp over the existing one — it raises 22023 instead (independent review finding,
+--      2026-07-01: a silent re-stamp would weaken exactly the audit trail this gate exists to protect).
 --   4. A defense-in-depth guard trigger mirroring pr_guard_approval (migration 0017): a direct-REST
 --      write to plan_operations that SETS signed_off_by/at to a non-null value must also come from an
 --      agronomy.signoff holder — otherwise a plan.write farm_manager could spoof sign-off directly via
@@ -126,6 +130,7 @@ declare
   v_org       uuid;
   v_person_id uuid;
   v_now       timestamptz := now();
+  v_claimed   int;
 begin
   select po.org_id into v_org from public.plan_operations po where po.id = p_op_id;
   if v_org is null then
@@ -151,9 +156,16 @@ begin
     raise exception 'no person record linked to the current user in org %', v_org using errcode = 'P0001';
   end if;
 
+  -- claim-first (mirrors fn_execute_operation's EXE-1 guard): only stamp while still pending, so a
+  -- second sign-off call on an already-signed-off op cannot silently overwrite the FIRST signer's
+  -- identity/timestamp — that would weaken exactly the audit trail this gate exists to protect.
   update public.plan_operations
      set signed_off_by = v_person_id, signed_off_at = v_now
-   where id = p_op_id and org_id = v_org;
+   where id = p_op_id and org_id = v_org and signed_off_by is null;
+  get diagnostics v_claimed = row_count;
+  if v_claimed = 0 then
+    raise exception 'operation % is already signed off', p_op_id using errcode = '22023';
+  end if;
 
   return jsonb_build_object('operationId', p_op_id, 'signedOffBy', v_person_id, 'signedOffAt', v_now);
 end $$;

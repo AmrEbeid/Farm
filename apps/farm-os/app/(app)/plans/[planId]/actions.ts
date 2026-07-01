@@ -475,6 +475,10 @@ export async function instantiateOperationTemplate(
  *
  * fn_sign_off_plan_operation stamps signed_off_by/at from the CALLER's session server-side — this
  * action passes only the op id, never a person id or timestamp.
+ *
+ * Idempotency: the RPC only stamps while signed_off_by is still null (claim-first). A second call on
+ * an already-signed-off op raises 22023 rather than silently re-stamping a new caller's identity/time
+ * over the existing one — a silent re-stamp would weaken the audit trail this gate exists to protect.
  */
 export async function signOffPlanOperation(planId: string, opId: string) {
   await requireMembership();
@@ -490,6 +494,7 @@ export async function signOffPlanOperation(planId: string, opId: string) {
           "42501": "ليس لديك صلاحية اعتماد هذه العملية (يقتصر الاعتماد على المالك أو المهندس الزراعي)",
           P0001: "لا يوجد سجل موظف مرتبط بحسابك في هذه المزرعة",
           P0002: "العملية غير موجودة",
+          "22023": "العملية معتمدة بالفعل",
         },
         "تعذّر اعتماد العملية",
       ),
