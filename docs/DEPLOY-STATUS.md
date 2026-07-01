@@ -2,12 +2,14 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-01 — NOT DEPLOYED: draft standalone accounting/custody settlement branch.**
-> Branch `feat/accounting-custody-standalone` introduces local migration
-> `20260701220000_accounting_cash_custody_settlement.sql` plus `/accounting` and request-settlement UI. Local
-> validation is green (pgTAP 894/894, app Vitest 251/251, lint, production build, diff check), but **no prod DB
-> migration/apply/merge/push was performed**. This is high-risk money/RLS logic and remains behind independent review
-> and explicit Owner migration approval.
+> **2026-07-01 — accounting/custody settlement release in progress (migrate-first complete).**
+> Branch `feat/accounting-custody-standalone` / PR #568 introduces
+> `20260701220000_accounting_cash_custody_settlement.sql` plus `/accounting` and request-settlement UI.
+> Validation is green (local pgTAP 904/904, app Vitest 251/251, lint, production build, diff check; PR checks +
+> CodeRabbit green). The migration was applied to Farm prod (`veezkmytervjnpxcrbkw`) with
+> `supabase db push --yes`; ledger now records `20260701220000 accounting_cash_custody_settlement`. Prod probes
+> confirm the new tables/RPCs exist, FORCE RLS is enabled, authenticated table DML is revoked, and anon cannot execute
+> the new accounting/payment RPCs. **Merge/deploy verification is still pending in this branch note.**
 
 > **2026-07-01 (cont.) — 5 more prod migrations: the ENGINE masked-shortage program (all migrate-first, green `main`).**
 > Prod ledger head is now **`20260701210000`**. All applied migrate-first + independent-reviewed (engine surface) +

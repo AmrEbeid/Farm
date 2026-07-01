@@ -2,8 +2,9 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
-**Draft branch after final-state note: standalone cash-method accounting + custody settlement built locally on
-`feat/accounting-custody-standalone`; not merged, not pushed, not prod-applied.**
+**Release in progress: standalone cash-method accounting + custody settlement is built on
+`feat/accounting-custody-standalone` / PR #568; prod migration is applied and probed; merge/deploy verification is
+pending.**
 
 Owner clarified the custody workflow: 30K standing custody can sit with the farm manager, the farm manager may pay
 directly or transfer custody to the accountant, the accountant records all cash/debt expenses in payment requests,
@@ -17,12 +18,16 @@ slice:
   settlement tab for owner funding, payout confirmation, funding list, and close.
 - Docs: updated SPEC-0004, SPEC-0018, tracker, deploy status, and added
   `docs/accounting standalone market research.md` with the market scan sources and Farm OS mapping.
-- Validation: pgTAP **894/894**, app Vitest **251/251**, ESLint clean, Next production build green, `git diff --check`
-  clean. Local dev server starts at `http://localhost:3000`, but browser smoke of authenticated pages is
-  environment-blocked until Supabase URL/anon env vars are supplied in the worktree.
+- Validation: local pgTAP **904/904**, app Vitest **251/251**, ESLint clean, Next production build green,
+  `git diff --check` clean; PR #568 checks and CodeRabbit are green. Local dev server starts at
+  `http://localhost:3000`, but browser smoke of authenticated pages is environment-blocked until Supabase URL/anon
+  env vars are supplied in the worktree.
+- Prod migration: `20260701220000 accounting_cash_custody_settlement` is applied to Farm prod
+  (`veezkmytervjnpxcrbkw`) via `supabase db push --yes`. Post-apply probes confirm tables/RPCs, FORCE RLS,
+  authenticated read-only table grants, and anon execute denial on new accounting/payment RPCs.
 
-**Hard stop/gate:** money/RLS logic needs independent review before merge. Prod migration/apply requires explicit
-Owner approval. Real Excel/PII financial import and statutory P&L remain Stage-M/accountant gated.
+**Remaining release step:** merge PR #568, verify Vercel main deployment, then update this note from "pending" to
+"live". Real Excel/PII financial import and statutory P&L remain Stage-M/accountant gated.
 
 **39 substantive PRs merged, 15 prod migrations (ledger head `20260701210000`), all green on `main`.** Every
 real-code subsystem adversarially audited and every **decision-free** defect fixed. Under the standing "go with

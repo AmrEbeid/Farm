@@ -1,9 +1,10 @@
 # SPEC-0018 — العهدة وطلبات الصرف (Custody & Payment Requests)
 
-*Status: **Built on `main`; draft settlement/accounting extension built locally 2026-07-01**. Backend schema/RPCs were reviewed, applied to Farm prod, and merged via #468
+*Status: **Built on `main`; settlement/accounting extension in PR #568 release flow 2026-07-01**. Backend schema/RPCs were reviewed, applied to Farm prod, and merged via #468
 (`27065f1`). Frontend routes/actions were refreshed against that live backend and merged via #474 (`2eb6025`).
-Branch `feat/accounting-custody-standalone` adds the owner-requested cash-method settlement/accounting slice, but it
-is **not merged and not prod-applied** until independent money/RLS review and Owner migration approval.
+Branch `feat/accounting-custody-standalone` adds the owner-requested cash-method settlement/accounting slice; its
+production migration `20260701220000 accounting_cash_custody_settlement` is **applied and probed migrate-first**,
+with PR checks + CodeRabbit green. Merge/deploy verification is still pending.
 This spec intentionally avoids real line-item amounts, receipt details, worker matrices, and payment identifiers;
 real Ebeid financial/PII import remains Stage-M gated.*
 

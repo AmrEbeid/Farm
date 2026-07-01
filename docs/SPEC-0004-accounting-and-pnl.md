@@ -1,10 +1,11 @@
 # SPEC-0004 — Accounting: expenses / sales / vouchers + cost allocation + P&L (Stage 7)
 
-*Status: **DRAFT branch update (2026-07-01)** — an operational cash-method accounting kernel is built
-locally on branch `feat/accounting-custody-standalone`, but is **not merged, not prod-applied, and not
-trusted for real Ebeid financials yet**. Stage 7 remains **High risk** (financial integrity);
-independent review is REQUIRED before merge/migration, and reconciliation against real financials depends
-on the privacy-reviewed real-data path (Stage M). Mirrors [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md) /
+*Status: **Release branch update (2026-07-01)** — an operational cash-method accounting kernel is built on
+branch `feat/accounting-custody-standalone` / PR #568, reviewed by CI + CodeRabbit, and **prod-applied migrate-first**
+as `20260701220000 accounting_cash_custody_settlement`; merge/deploy verification is still pending. Stage 7 remains
+**High risk** (financial integrity): this cash-method custody ledger is not the full statutory/management P&L, and
+reconciliation against real financials depends on the privacy-reviewed real-data path (Stage M). Mirrors
+[`SPEC-0001`](SPEC-0001-stock-coverage-engine.md) /
 [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) / [`SPEC-0003`](SPEC-0003-farm-structure-and-palm-registry-import.md).*
 
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 7, [`03-architecture-and-data-model.md`](03-architecture-and-data-model.md),
