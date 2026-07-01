@@ -51,7 +51,11 @@ export async function parseUpload(
   ws.eachRow({ includeEmpty: false }, (row) => {
     const cells: string[] = [];
     row.eachCell({ includeEmpty: true }, (cell) => {
-      cells.push(cell.value == null ? "" : String(cell.value));
+      // A formula / rich-text / hyperlink / error cell has an OBJECT value that String()s to
+      // "[object Object]" — silent garbage in string columns. Use exceljs's formatted-text accessor for
+      // those. Primitives (numbers, plain strings) keep String() so numeric parsing is unaffected.
+      const raw = cell.value;
+      cells.push(raw == null ? "" : typeof raw === "object" ? cell.text : String(raw));
     });
     matrix.push(cells);
   });
