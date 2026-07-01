@@ -2,7 +2,8 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Every server
 function with a stable `RPC-NNN` id: purpose, args, return, the rule it enforces (→ `BR-NNN`), side effects, and
-the feature it serves (→ `FEAT-NNN`). Reconciled to `main` 2026-06-30 (through SPEC-0018 backend migrations
+the feature it serves (→ `FEAT-NNN`). Reconciled to `main` 2026-07-01 (through the cash-method accounting kernel
+`20260701220000`, PR #568 — GL + custody settlement; prior SPEC-0018 custody/payment backend
 `20260629150000`/`20260629150100`). Maturity **L3**.
 All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (BR-053).*
 
@@ -48,6 +49,10 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-037** | `fn_approve_request_operational(p_request)` | request | void | Submitted -> operationally approved | BR-069 | `payment_requests` | FEAT-028 |
 | **RPC-038** | `fn_approve_request_final(p_request)` | request | void | Operationally approved -> final approved (owner only) | BR-069 | `payment_requests` | FEAT-028 |
 | **RPC-039** | `fn_payment_request_totals(p_request)` | request | jsonb | Derived net request = post-paid unpaid + custody top-up | BR-048/066 | (reads) | FEAT-028 |
+| **RPC-040** | `fn_accounting_trial_balance(p_org)` | org | jsonb | Finance-gated trial balance: debit/credit totals + balance per account | BR-066/116 | (reads) | FEAT-030 |
+| **RPC-041** | `fn_record_payment_request_funding(…)` | request,custody_account,amount,date?,note? | jsonb | Record owner funds into custody (amount_in) **before** payout; posts Dr custody / Cr owner-funding | BR-067/119 | `payment_request_fundings`,`custody_movements`,`journal_entries`,`journal_lines` | FEAT-028/030 |
+| **RPC-042** | `fn_confirm_request_expense_paid(…)` | request,expense,custody_account,date?,paid_by?,note? | jsonb | Confirm a request line paid from a chosen custody source; posts cash-out + Dr expense-kind account / Cr custody | BR-047/119 | `payment_request_lines`,`custody_movements`,`journal_entries`,`journal_lines` | FEAT-028/030 |
+| **RPC-043** | `fn_close_payment_request(p_request)` | request | jsonb | Close a request only once every line has `paid_at` | BR-069/120 | `payment_requests` | FEAT-028/030 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |
@@ -62,9 +67,14 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-T08** | `assets_parent_same_org` | `assets` BEFORE INS/UPD | parent FK same-org guard | BR-052 | FEAT-003 |
 | **RPC-T09** | `people_reports_to_same_org` | `people` BEFORE INS/UPD | `reports_to` same-org guard | BR-072 | FEAT-019 |
 | **RPC-T10** | `expense_guard_routed_money_immutable` | `expenses` BEFORE UPDATE OF total,kind | routed expense amount/kind immutable after custody/payment routing | BR-047/048 | FEAT-028 |
+| **RPC-T11** | `journal_lines_balance_guard` | `journal_lines` deferred constraint trigger (per entry, at commit) | reject any journal entry whose Σdebit ≠ Σcredit (double-entry integrity) | BR-116 | FEAT-030 |
 
 **Notes:** `fn_post_movement` (RPC-008) and `fn_bin_rebuild` (RPC-011) are **internal** (EXECUTE revoked from
 `authenticated` in `0037`/`0030`) — clients reserve via `fn_reserve_stock` (RPC-010) and receive via
-`fn_post_receipt` (RPC-009). Idempotency = claim-first (RPC-009, RPC-017). Atomicity = single transaction
-(RPC-009, RPC-014, RPC-017, RPC-018, RPC-026, RPC-031, RPC-034..RPC-038). Maintenance: a new RPC → next free
-`RPC-NNN` + add its `BR`/`FEAT`.
+`fn_post_receipt` (RPC-009). The GL kernel helpers `fn_ensure_account`, `fn_account_for_expense_kind`, and
+`fn_post_two_line_journal` (`20260701220000`) are likewise **internal** (no client EXECUTE) — journals are posted
+only as a side effect of the gated finance RPCs. RPC-030/031/035/038/039 were **re-emitted** in `20260701220000`
+to post the matching journal entry / carry settlement fields (FEAT-030). Idempotency = claim-first (RPC-009,
+RPC-017) + unique `(org, source_type, source_id)` on journal postings (RPC-041/042, BR-117). Atomicity = single
+transaction (RPC-009, RPC-014, RPC-017, RPC-018, RPC-026, RPC-031, RPC-034..RPC-038, RPC-041..RPC-043). Maintenance:
+a new RPC → next free `RPC-NNN` + add its `BR`/`FEAT`.
