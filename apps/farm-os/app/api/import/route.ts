@@ -23,6 +23,7 @@ import { resolveRefs, reverseResolveRefs, type RefLookup, type ReverseRefLookup 
 import { seenKeysOf, computeMatchPlan, matchKeyOf, type ExistingRow } from "@/lib/import/match";
 import { planCommit } from "@/lib/import/commit-plan";
 import { getSourceRow, type ImportDescriptor } from "@/lib/import/types";
+import { looseFrom } from "@/lib/import/db-loose";
 import "@/lib/import/descriptors"; // side-effect: register all descriptors
 
 export const runtime = "nodejs"; // exceljs needs the Node runtime
@@ -51,12 +52,8 @@ async function fetchExistingRows(
   const fromRow = descriptor.fromRow;
 
   // sb is generated against the Database types, which don't know about a descriptor's dynamic
-  // table name — loosely typed the same way the ref lookups below already are.
-  type LooseQuery = Promise<{ data: Record<string, unknown>[] | null; error: unknown }> & {
-    eq: (col: string, val: unknown) => LooseQuery;
-    in: (col: string, vals: string[]) => LooseQuery;
-  };
-  const fromLoose = sb.from as unknown as (table: string) => { select: (cols: string) => LooseQuery };
+  // table name — loosely typed via the shared helper (same cast the ref lookups below use).
+  const fromLoose = looseFrom(sb);
 
   const { data, error } = await fromLoose(descriptor.table).select("*").eq("org_id", orgId).eq("archived", false);
   if (error) throw error;
@@ -138,16 +135,7 @@ export async function POST(req: Request): Promise<Response> {
 
   // Resolve any ref columns (code → id) via RLS-scoped lookups. Read-only; runs in both modes.
   const sb = await createClient();
-  const fromLoose = sb.from as unknown as (
-    table: string,
-  ) => {
-    select: (cols: string) => {
-      in: (col: string, vals: string[]) => RefQuery;
-    };
-  };
-  type RefQuery = Promise<{ data: Record<string, unknown>[] | null; error: unknown }> & {
-    eq: (col: string, val: unknown) => RefQuery;
-  };
+  const fromLoose = looseFrom(sb);
   const refLookup: RefLookup = async (spec, codes) => {
     // Constrain resolution to the ACTIVE org. RLS narrows to all of the user's orgs, so without this a
     // multi-org user's ref (e.g. a farm code that exists only in another of their orgs) would resolve
@@ -176,9 +164,15 @@ export async function POST(req: Request): Promise<Response> {
     return map;
   };
 
+  // resolveRefs and fetchExistingRows are independent DB round-trips (neither depends on the
+  // other's result) — kick both off together instead of paying for them sequentially. Each is
+  // still awaited/caught on its own so a failure keeps its own distinct Arabic error message.
+  const resolvedPromise = resolveRefs(descriptor, dry.okRows, refLookup);
+  const existingPromise = fetchExistingRows(descriptor, sb, member.orgId);
+
   let resolved;
   try {
-    resolved = await resolveRefs(descriptor, dry.okRows, refLookup);
+    resolved = await resolvedPromise;
   } catch {
     // A ref lookup hit a real DB error (now surfaced from refLookup, not swallowed
     // into an empty result). Fail the request rather than reporting valid rows as
@@ -197,7 +191,7 @@ export async function POST(req: Request): Promise<Response> {
   // hasn't opted into table/matchKey — preserves today's insert-only behavior.
   let existing: { id: string; row: Record<string, unknown> }[];
   try {
-    existing = await fetchExistingRows(descriptor, sb, member.orgId);
+    existing = await existingPromise;
   } catch {
     return NextResponse.json(
       { error: "تعذّر التحقق من السجلات الحالية. حاول مرة أخرى." },
