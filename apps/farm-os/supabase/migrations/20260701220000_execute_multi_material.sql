@@ -86,6 +86,58 @@
 -- `fn_execute_operation(uuid, numeric, int, text)` (with its LIMIT-1 body) callable side-by-side with
 -- the new 5-arg one. An explicit DROP of the old signature is required before the create-or-replace
 -- below, or the bug this migration fixes would remain reachable.
+--
+-- ADDITIONAL FIX (flagged by #566 while building read-only KPI queries, out of that PR's scope —
+-- not yet merged, so not fixed there): the `event_locations` insert below unconditionally wrote the
+-- op's target_id as `sector_id`, regardless of what `plan_operations.target_type` actually is. This
+-- is silently wrong today whenever target_type is `hawsha`/`farm` (target_id is not a sector id in
+-- those cases — the row picks up a `sector_id` that resolves to a WRONG or nonexistent sector) and
+-- would be actively dangerous once PR #563 (`feat/individual-palm-treatment`, open) merges: it
+-- introduces `target_type='palm'` operations whose target_id is an `assets.id` (a specific palm),
+-- not a sector — blindly writing that into `sector_id` would either violate the `sector_id` FK (if
+-- the palm id doesn't happen to collide with a real sector id — normal case) or, worse, silently
+-- attribute the event to whatever unrelated sector that uuid happens to match (pathological but not
+-- impossible across tables). Fixed by making the insert target_type-aware: a `case` on target_type
+-- populates ONLY the matching event_locations column, leaving the others null. `event_locations` has
+-- no palm/asset-level column yet (it was never needed before #563), so this migration adds one
+-- (`asset_id`, FK to `assets(id)`, nullable, sibling to the existing farm_id/sector_id/hawsha_id/
+-- line_id — same pattern `assets` itself already uses for its own farm/sector/hawsha/line columns).
+--
+-- BACKWARD COMPATIBILITY: `target_type` has no CHECK constraint and is NULL in every existing test
+-- fixture and in any op not authored via fn_add_plan_operation(_multi) (which is the only place that
+-- sets it, always to a real value via `coalesce(scope_type, 'sector')`). NULL is therefore a
+-- legitimate "unspecified target" state, not just a test-fixture gap — this fix preserves the
+-- EXACT pre-existing behaviour for it (write target_id into sector_id), so every existing test
+-- (which never sets target_type) is byte-identical. Only a NON-null, unrecognized target_type now
+-- raises loudly (22023) rather than silently mis-writing a column — per the non-negotiable of never
+-- fabricating/guessing which structure level a target belongs to.
+alter table public.event_locations add column if not exists asset_id uuid references public.assets(id);
+create index if not exists event_locations_asset_idx on public.event_locations(asset_id);
+
+-- RLS re-emit (mirrors the #306 cross-org-FK residual pattern from 20260622000064, tests/74's
+-- invariant): a member-writable nullable FK to an org-scoped table must be same-org-validated in the
+-- table's WITH CHECK, or tests/74 fails loudly. asset_id is added to the SAME clause list that
+-- farm_id/sector_id/hawsha_id/line_id already use here — every other predicate (org_id, op.execute,
+-- the parent-event EXISTS) is carried over VERBATIM from 20260622000064, unchanged.
+drop policy if exists tenant_all on public.event_locations;
+create policy tenant_all on public.event_locations for all to authenticated
+  using (org_id in (select public.user_org_ids()))
+  with check (
+    org_id in (select public.user_org_ids())
+    and public.authorize('op.execute', org_id)
+    and exists (select 1 from public.farm_event e where e.id = event_locations.event_id and e.org_id = event_locations.org_id)
+    and (event_locations.farm_id is null
+         or exists (select 1 from public.farms f where f.id = event_locations.farm_id and f.org_id = event_locations.org_id))
+    and (event_locations.sector_id is null
+         or exists (select 1 from public.sectors s where s.id = event_locations.sector_id and s.org_id = event_locations.org_id))
+    and (event_locations.hawsha_id is null
+         or exists (select 1 from public.hawshat h where h.id = event_locations.hawsha_id and h.org_id = event_locations.org_id))
+    and (event_locations.line_id is null
+         or exists (select 1 from public.lines l where l.id = event_locations.line_id and l.org_id = event_locations.org_id))
+    and (event_locations.asset_id is null
+         or exists (select 1 from public.assets a where a.id = event_locations.asset_id and a.org_id = event_locations.org_id))
+  );
+
 drop function if exists public.fn_execute_operation(uuid, numeric, int, text);
 
 create or replace function public.fn_execute_operation(
@@ -102,6 +154,7 @@ set search_path = ''
 as $$
 declare
   v_org uuid; v_plan uuid; v_subtype text; v_target uuid; v_est numeric; v_status text;
+  v_target_type text;
   v_person uuid; v_event uuid; v_actual_cost numeric; v_now timestamptz := now();
   v_claimed int;
   v_mat_count int;
@@ -130,8 +183,8 @@ begin
 
   -- the operation (material requirements are loaded separately below, AFTER the claim, so the
   -- LIMIT-1 masking bug cannot recur: every row on the op is read, not just one).
-  select po.org_id, po.plan_id, po.subtype, po.target_id, po.est_cost, po.status
-    into v_org, v_plan, v_subtype, v_target, v_est, v_status
+  select po.org_id, po.plan_id, po.subtype, po.target_id, po.target_type, po.est_cost, po.status
+    into v_org, v_plan, v_subtype, v_target, v_target_type, v_est, v_status
     from public.plan_operations po
     where po.id = p_op_id;
   if v_org is null then
@@ -283,7 +336,38 @@ begin
                              'material_actuals', v_result_actuals))
   returning id into v_event;
 
-  insert into public.event_locations (event_id, org_id, sector_id) values (v_event, v_org, v_target);
+  -- event_locations: populate ONLY the column matching the op's actual target_type, never a blind
+  -- sector_id (see the migration header — this is the fix for the bug #566 flagged). v_target_type
+  -- is null for every op authored before target_type existed / not authored via
+  -- fn_add_plan_operation(_multi) — that legacy/unspecified state keeps the exact pre-existing
+  -- behaviour (sector_id) so no existing caller/test regresses. A non-null, unrecognized
+  -- target_type is refused loudly rather than guessing a column (never fabricate/mis-attribute).
+  -- Same-org validation of target_id against its structure table already happens at authoring time
+  -- (fn_add_plan_operation_multi validates a supplied palm target's org before insert; sector/hawsha
+  -- targets are plan-scope-derived from the plan's own org) — re-validating here would be redundant
+  -- defence-in-depth, not a closed gap; the FK on each event_locations column (sector_id/hawsha_id/
+  -- line_id/asset_id all reference their own org-scoped table) still catches a nonexistent target_id
+  -- outright even if authoring-time validation were ever bypassed.
+  -- NOTE: a simple `case v_target_type when ...` cannot match NULL (`x = NULL` is never true in SQL),
+  -- so NULL is handled as its own explicit branch via a searched CASE (`case when ... is null`),
+  -- not folded into the simple form above.
+  case
+    when v_target_type is null then
+      insert into public.event_locations (event_id, org_id, sector_id) values (v_event, v_org, v_target);
+    when v_target_type = 'farm' then
+      insert into public.event_locations (event_id, org_id, farm_id) values (v_event, v_org, v_target);
+    when v_target_type = 'sector' then
+      insert into public.event_locations (event_id, org_id, sector_id) values (v_event, v_org, v_target);
+    when v_target_type = 'hawsha' then
+      insert into public.event_locations (event_id, org_id, hawsha_id) values (v_event, v_org, v_target);
+    when v_target_type = 'line' then
+      insert into public.event_locations (event_id, org_id, line_id) values (v_event, v_org, v_target);
+    when v_target_type = 'palm' then
+      insert into public.event_locations (event_id, org_id, asset_id) values (v_event, v_org, v_target);
+    else
+      raise exception 'operation % has unrecognized target_type %', p_op_id, v_target_type
+        using errcode = '22023';
+  end case;
 
   -- 2) consume EVERY material: one quantities row PER material + one fn_post_movement issue PER
   --    material against ITS OWN item_id (never combined/summed across items). Sourced straight from

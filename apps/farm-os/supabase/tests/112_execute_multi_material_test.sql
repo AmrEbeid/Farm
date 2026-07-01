@@ -26,10 +26,20 @@
 -- H2 (adversarial-review — zero coverage before this file): the central safety refusal (">1 material
 -- + no p_material_actuals → 22023") had no test. The "H2" section below proves it via throws_ok.
 --
+-- TARGET-TYPE (flagged by #566, fixed in this same migration): fn_execute_operation used to write the
+-- op's target_id into event_locations.sector_id UNCONDITIONALLY, regardless of target_type — silently
+-- wrong for hawsha/farm-scoped ops and actively dangerous for the palm-scoped ops PR #563 introduces
+-- (target_id there is an assets.id, not a sector). The "TARGET-TYPE" section below proves: a
+-- target_type='hawsha' op populates hawsha_id (not sector_id) — the pre-existing real-world common
+-- case, now covered; a target_type='palm' op populates the new asset_id column (not sector_id); a
+-- target_type=null op keeps writing sector_id (byte-identical legacy behaviour, since target_type has
+-- no CHECK constraint and is null for every op not authored via fn_add_plan_operation(_multi)); and an
+-- unrecognized non-null target_type is refused (22023) rather than silently mis-attributing the event.
+--
 -- Run via test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(30);
+select plan(37);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set item1 'c0000000-0000-0000-0000-000000000112'
@@ -56,6 +66,14 @@ select plan(30);
 \set reqC  'd0000000-0000-0000-0000-000000000118'
 \set reqD  'd0000000-0000-0000-0000-000000000119'
 \set bogusReq 'd0000000-0000-0000-0000-00000000ffff'
+\set farm    'e0000000-0000-0000-0000-000000000112'
+\set sector  'e0000000-0000-0000-0000-000000000113'
+\set hawsha  'e0000000-0000-0000-0000-000000000114'
+\set palm    'e0000000-0000-0000-0000-000000000115'
+\set opHawsha 'c0000000-0000-0000-0000-000000002118'
+\set opPalm   'c0000000-0000-0000-0000-000000002119'
+\set opNull   'c0000000-0000-0000-0000-000000002120'
+\set opBad    'c0000000-0000-0000-0000-000000002121'
 
 select set_config('t.sup', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'supervisor' limit 1), false);
@@ -313,6 +331,78 @@ select is((select on_hand from public.inventory_bin where item_id = :'item7' and
   '#520 H2: the refused call issued no stock for item7');
 select is((select status from public.plan_operations where id = :'op6'), 'reserved',
   '#520 H2: the refused call left op6 unclaimed (still reserved, not done)');
+
+-- ============================================================================================
+-- TARGET-TYPE (#566) — event_locations must populate the column matching target_type, never a blind
+-- sector_id. Zero-material ops (no p_material_actuals needed) isolate the event_locations behaviour
+-- cleanly from the material-consumption logic already covered above.
+-- ============================================================================================
+insert into public.farms (id, org_id, name, code) values (:'farm', :'orgA', 'مزرعة 112', 'F112');
+insert into public.sectors (id, org_id, farm_id, name, code)
+  values (:'sector', :'orgA', :'farm', 'قطاع 112', 'S112');
+insert into public.hawshat (id, org_id, sector_id, name, code)
+  values (:'hawsha', :'orgA', :'sector', 'حوشة 112', 'H112');
+insert into public.assets (id, org_id, type, hawsha_id, sector_id, name)
+  values (:'palm', :'orgA', 'palm', :'hawsha', :'sector', 'نخلة 112');
+
+-- (i) target_type='hawsha' — the real-world common case (fn_add_plan_operation_multi's actual
+-- default today) — must populate hawsha_id, NOT sector_id.
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_type, target_id, est_cost, approval_needed, status)
+  values (:'opHawsha', :'orgA', :'plan', 'inspection', 'hawsha', :'hawsha', 0, false, 'reserved');
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select set_config('t.resH', public.fn_execute_operation(:'opHawsha', 0, 0, 'hawsha target')::text, false);
+reset role;
+select set_config('t.eventH', (current_setting('t.resH')::jsonb ->> 'event_id'), false);
+select is((select hawsha_id from public.event_locations where event_id = current_setting('t.eventH', true)::uuid),
+  :'hawsha'::uuid, '#566: target_type=hawsha populates event_locations.hawsha_id');
+select is((select sector_id from public.event_locations where event_id = current_setting('t.eventH', true)::uuid),
+  null, '#566: target_type=hawsha leaves sector_id null (not the target hawsha id mis-written there)');
+
+-- (ii) target_type='palm' — PR #563's shape: target_id is an assets.id, not a sector. Must populate
+-- the new asset_id column, NOT sector_id (the pre-fix bug this migration closes).
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_type, target_id, est_cost, approval_needed, status)
+  values (:'opPalm', :'orgA', :'plan', 'inspection', 'palm', :'palm', 0, false, 'reserved');
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select set_config('t.resP', public.fn_execute_operation(:'opPalm', 0, 0, 'palm target')::text, false);
+reset role;
+select set_config('t.eventP', (current_setting('t.resP')::jsonb ->> 'event_id'), false);
+select is((select asset_id from public.event_locations where event_id = current_setting('t.eventP', true)::uuid),
+  :'palm'::uuid, '#566: target_type=palm populates the new event_locations.asset_id (not sector_id)');
+select is((select sector_id from public.event_locations where event_id = current_setting('t.eventP', true)::uuid),
+  null, '#566: target_type=palm leaves sector_id null — the pre-fix bug would have written the palm id here');
+
+-- (iii) target_type=null — legacy/unspecified (no CHECK constraint; every pre-existing test/caller
+-- never sets it) — must keep the EXACT pre-existing behaviour: sector_id = target_id. Byte-identical
+-- to tests/18's fixture shape (target_type omitted entirely).
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est_cost, approval_needed, status)
+  values (:'opNull', :'orgA', :'plan', 'inspection', :'sector', 0, false, 'reserved');
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select set_config('t.resN', public.fn_execute_operation(:'opNull', 0, 0, 'null target_type')::text, false);
+reset role;
+select set_config('t.eventN', (current_setting('t.resN')::jsonb ->> 'event_id'), false);
+select is((select sector_id from public.event_locations where event_id = current_setting('t.eventN', true)::uuid),
+  :'sector'::uuid, '#566 legacy: target_type=null still populates sector_id (unchanged pre-existing behaviour)');
+
+-- (iv) an unrecognized, non-null target_type must be refused loudly (22023), never silently
+-- mis-writing a column or silently doing nothing.
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_type, target_id, est_cost, approval_needed, status)
+  values (:'opBad', :'orgA', :'plan', 'inspection', 'planet', :'sector', 0, false, 'reserved');
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  format($$ select public.fn_execute_operation(%L, 0, 0, 'bad target_type') $$, :'opBad'),
+  '22023', null,
+  '#566: an unrecognized non-null target_type is refused (22023), never silently mis-attributed');
+reset role;
+select is((select status from public.plan_operations where id = :'opBad'), 'reserved',
+  '#566: the refused unrecognized-target_type call left opBad unclaimed (still reserved, not done)');
 
 select * from finish();
 rollback;
