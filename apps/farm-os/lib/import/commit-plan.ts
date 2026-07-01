@@ -24,10 +24,11 @@ const KEY_SEP = "\u0001"; // unit separator — avoids cross-field key collision
 export function planCommit(
   descriptor: ImportDescriptor,
   okRows: Record<string, unknown>[],
-  opts: { chunkSize?: number } = {},
+  opts: { chunkSize?: number; matchedIds?: Map<number, string> } = {},
 ): CommitPlan {
   const chunkSize = opts.chunkSize && opts.chunkSize > 0 ? opts.chunkSize : DEFAULT_CHUNK;
   const dedupe = descriptor.dedupeKey ?? [];
+  const matchedIds = opts.matchedIds ?? new Map<number, string>();
 
   const calls: RpcCall[] = [];
   const skipped: { row: number; reason: string }[] = [];
@@ -43,7 +44,11 @@ export function planCommit(
       }
       seen.add(key);
     }
-    calls.push({ rpc: descriptor.rpc, args: descriptor.toRpcArgs(row), sourceRow: rowNum });
+    calls.push({
+      rpc: descriptor.rpc,
+      args: descriptor.toRpcArgs(row, matchedIds.get(rowNum) ?? null),
+      sourceRow: rowNum,
+    });
   });
 
   const chunks: RpcCall[][] = [];

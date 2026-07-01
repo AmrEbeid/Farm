@@ -31,9 +31,13 @@ export async function renderWorkbook(spec: WorkbookSpec): Promise<Buffer> {
   return Buffer.from(out as ArrayBuffer);
 }
 
-/** Generate the downloadable template for a descriptor. */
-export async function generateTemplate(d: ImportDescriptor): Promise<Buffer> {
-  return renderWorkbook(buildTemplateSpec(d));
+/** Generate the downloadable template for a descriptor. `existingRows` (already shaped by the
+ * descriptor's fromRow + reverseResolveRefs) pre-fills the data sheet for reconcile-upsert. */
+export async function generateTemplate(
+  d: ImportDescriptor,
+  existingRows: Record<string, unknown>[] = [],
+): Promise<Buffer> {
+  return renderWorkbook(buildTemplateSpec(d, existingRows));
 }
 
 /** Parse an uploaded .xlsx buffer into raw row objects (validation is `validateRows`). */
