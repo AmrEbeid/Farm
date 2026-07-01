@@ -2,12 +2,21 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
-**36 substantive PRs merged, 15 prod migrations (ledger head `20260701210000`), all green on `main`.** Every
+**39 substantive PRs merged, 15 prod migrations (ledger head `20260701210000`), all green on `main`.** Every
 real-code subsystem adversarially audited and every **decision-free** defect fixed. Under the standing "go with
 your recommendation, don't wait" directive I also **implemented the owner-gated engine masked-shortage items**,
 each with the full rigor loop (lifecycle investigation → design → define-check-first → pgTAP oracle →
-independent-review agent that PROVES non-masking → migrate-first → prod re-probe). VERIFIED SAFE: multi-tenant
-isolation, money pipeline, append-only integrity, the canonical palm registry (4,380/299/28), bundle hygiene.
+independent-review agent that PROVES non-masking → migrate-first → prod re-probe).
+
+**Three highest-stakes surfaces VERIFIED after all 15 session migrations (holistic re-audits caught real
+INTERACTIONS that per-change reviews missed):**
+- **ENGINE** — masked-shortage-free (final re-audit clean; see below).
+- **FINANCE/money** — the drawings-vs-opex non-negotiable (#6) was read-only (#501) with NO write side; now
+  enforceable end-to-end: kind selector at entry (#532) + kind in the ledger (#533). Custody↔expense cash path
+  verified guarded (no double-count/sign error). Residuals (frozen budget actuals, honest-null totals) filed #534.
+- **SECURITY/isolation** — prod probe across all 15 migrations: every tenant table FORCE-RLS, anon zero DML, trigger
+  fns no client execute, fn_post_movement internal, no gated RPC anon-executable. No regression.
+Other VERIFIED SAFE: append-only integrity, the canonical palm registry (4,380/299/28), bundle hygiene.
 
 **🎯 ALL FIVE ENGINE masked-shortage vectors found this session (the cardinal sin) are CLOSED; a final holistic
 re-audit confirms the engine is masked-shortage-free:**
