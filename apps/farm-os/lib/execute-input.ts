@@ -3,8 +3,16 @@ export interface ParsedExecuteInput {
   laborCount: number;
 }
 
-/** One material's parsed actual, for a multi-material operation (#520). */
+/**
+ * One material's parsed actual, for a multi-material operation (#520). Keyed by `requirementId` (=
+ * the plan_material_requirements row's own `id`), NOT `itemId` — an operation can legitimately carry
+ * two separate requirement rows for the SAME item (e.g. two applications of the same fertilizer on
+ * different sub-dates), so item_id alone cannot tell rows apart. `itemId` is still carried through
+ * for debuggability/display, but `requirementId` is the field the RPC uses to match this actual back
+ * to its planned requirement row.
+ */
 export interface ParsedMaterialActual {
+  requirementId: string;
   itemId: string;
   actualQty: number;
 }
@@ -43,7 +51,7 @@ export function parseExecuteInput(qty: string, labor: string):
  * parseExecuteInput, applied to every material line plus the shared labor field.
  */
 export function parseMaterialActuals(
-  entries: { itemId: string; qty: string }[],
+  entries: { requirementId: string; itemId: string; qty: string }[],
   labor: string,
 ):
   | { ok: true; value: ParsedMultiMaterialInput }
@@ -59,7 +67,7 @@ export function parseMaterialActuals(
     if (actualQty == null) {
       return { ok: false, error: INVALID_MATERIAL_INPUT };
     }
-    materialActuals.push({ itemId: entry.itemId, actualQty });
+    materialActuals.push({ requirementId: entry.requirementId, itemId: entry.itemId, actualQty });
   }
 
   return { ok: true, value: { materialActuals, laborCount } };

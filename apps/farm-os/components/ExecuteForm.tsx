@@ -6,8 +6,14 @@ import { Button, FormRow, Input, Textarea, Alert } from "@/components/ui";
 import { executeOperation } from "@/app/(app)/m/execute/[opId]/actions";
 import { parseExecuteInput, parseMaterialActuals } from "@/lib/execute-input";
 
-/** One material on the operation, for the #520 per-material qty fields. */
+/**
+ * One material on the operation, for the #520 per-material qty fields. `requirementId` (=
+ * plan_material_requirements.id) is the row's own identity — an operation can carry two rows for the
+ * SAME itemId (e.g. two applications of the same fertilizer on different sub-dates), so requirementId
+ * (never itemId) is used as the React key and as the field the RPC payload is matched on.
+ */
 export interface ExecuteFormMaterial {
+  requirementId: string;
   itemId: string;
   defaultQty: number | null;
   unit: string;
@@ -63,7 +69,7 @@ export function ExecuteForm({
         </FormRow>
       ) : (
         materials.map((m, i) => (
-          <FormRow key={m.itemId} id={`qty-${m.itemId}`} label={`${m.name ?? "خامة"} (${m.unit})`}>
+          <FormRow key={m.requirementId} id={`qty-${m.requirementId}`} label={`${m.name ?? "خامة"} (${m.unit})`}>
             <Input
               type="number"
               inputMode="numeric"
@@ -103,7 +109,11 @@ export function ExecuteForm({
                 })()
               : await (async () => {
                   const parsed = parseMaterialActuals(
-                    materials.map((m, i) => ({ itemId: m.itemId, qty: matQtys[i] ?? "" })),
+                    materials.map((m, i) => ({
+                      requirementId: m.requirementId,
+                      itemId: m.itemId,
+                      qty: matQtys[i] ?? "",
+                    })),
                     labor,
                   );
                   if (!parsed.ok) return { ok: false as const, error: parsed.error };

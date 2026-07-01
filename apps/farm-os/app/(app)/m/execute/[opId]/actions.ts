@@ -6,8 +6,15 @@ import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import type { Json } from "@/lib/database.types.ext";
 
-/** One material's actual, for a multi-material operation (#520). */
+/**
+ * One material's actual, for a multi-material operation (#520). `requirementId` (=
+ * plan_material_requirements.id) is the AUTHORITATIVE match key sent to the RPC — an operation can
+ * carry two requirement rows for the SAME itemId (e.g. two applications of the same fertilizer on
+ * different sub-dates), so the RPC matches actuals back to requirement rows by requirementId, never
+ * by itemId (which is included alongside only for debuggability).
+ */
 export interface MaterialActualInput {
+  requirementId: string;
   itemId: string;
   actualQty: number;
 }
@@ -48,9 +55,14 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
     p_labor_count: input.laborCount,
     p_note: input.note,
     // omitted (undefined) for a 0/1-material op — the RPC's legacy fallback then uses p_actual_qty.
+    // requirement_id is the field the RPC matches on; item_id rides along only for debuggability.
     p_material_actuals:
       input.materialActuals && input.materialActuals.length > 0
-        ? (input.materialActuals.map((m) => ({ item_id: m.itemId, actual_qty: m.actualQty })) as unknown as Json)
+        ? (input.materialActuals.map((m) => ({
+            requirement_id: m.requirementId,
+            item_id: m.itemId,
+            actual_qty: m.actualQty,
+          })) as unknown as Json)
         : undefined,
   });
 

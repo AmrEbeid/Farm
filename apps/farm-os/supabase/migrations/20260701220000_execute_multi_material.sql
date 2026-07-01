@@ -13,12 +13,26 @@
 -- THE FIX: accept the actuals for ALL of the op's materials and loop every
 -- plan_material_requirements row, never just the first.
 --
--- CONTRACT CHANGE — new param `p_material_actuals jsonb default null`, shaped like
--- fn_add_plan_operation_multi's `p_materials` (an array of `{"item_id": "...", "actual_qty": ...}`).
--- Appended LAST with a default so the existing 4-positional-arg call shape (used by tests 18/26/58 and
--- today's client) keeps resolving to the SAME function — this is a signature change (a 5th parameter),
--- so the exact-signature catalog probes in tests/19 are updated to match, but no EXISTING caller has to
--- change how it invokes the RPC.
+-- CONTRACT CHANGE — new param `p_material_actuals jsonb default null`, an array of
+-- `{"requirement_id": "...", "item_id": "...", "actual_qty": ...}` — one entry PER
+-- plan_material_requirements ROW on the op. Appended LAST with a default so the existing
+-- 4-positional-arg call shape (used by tests 18/26/58 and today's client) keeps resolving to the SAME
+-- function — this is a signature change (a 5th parameter), so the exact-signature catalog probes in
+-- tests/19 are updated to match, but no EXISTING caller has to change how it invokes the RPC.
+--
+-- MATCH KEY — `requirement_id` (= plan_material_requirements.id), NOT `item_id`: an operation can
+-- legitimately carry TWO SEPARATE plan_material_requirements rows for the SAME item_id (e.g. two
+-- applications of the same fertilizer on different sub-dates within a multi-day operation) — there is
+-- no `UNIQUE(plan_op_id, item_id)` constraint and none is being added here (duplicate-item rows are
+-- valid input, not an edge case to reject). An earlier revision of this migration matched each
+-- requirement row to its actuals entry by `item_id` with `limit 1`; when two rows shared an item_id,
+-- BOTH resolved to the same first-matching actuals entry, silently discarding the other actual quantity
+-- and issuing the wrong stock amount (reproduced: two requirement rows qty 5/20 same item + actuals
+-- [5,20] → on_hand only dropped by 10, double-counting the first, instead of 25). `id` is the
+-- requirement row's own primary key, so it uniquely identifies one planned-material-need row
+-- regardless of how many rows share an item_id — that is the correct, and now the ONLY, match key used
+-- below. `item_id` is still carried in each actuals entry/output for debuggability, but is never used
+-- to resolve which requirement row an actual belongs to.
 --
 -- BACKWARD COMPATIBILITY (the deliberately least-risky choice, per the review): when
 -- p_material_actuals is null/empty —
@@ -43,12 +57,17 @@
 -- `actual_qty × (est_cost ÷ planned_qty)` computation (share = 1), so the common case's numbers are
 -- unchanged.
 --
--- PER-MATERIAL WORK: for every plan_material_requirements row on the op — validate its actual_qty is
--- present, non-negative and finite (mirrors the existing 22023 convention), insert its OWN `quantities`
--- consumption row, and call fn_post_movement('issue', ...) against ITS OWN item_id (never a combined/
--- summed quantity across different items). `data.material_actuals` on the farm_event now carries the
--- per-material breakdown; the legacy scalar `data.actual_qty` is preserved for the 0/1-material case
--- (null for >1 materials, where a single scalar has no coherent meaning) so existing readers of the
+-- PER-MATERIAL WORK: for every plan_material_requirements row on the op — matched to its actuals entry
+-- by `requirement_id` (= the row's own `id`), NEVER by `item_id` (see MATCH KEY above) — validate its
+-- actual_qty is present, non-negative and finite (mirrors the existing 22023 convention), insert its
+-- OWN `quantities` consumption row, and call fn_post_movement('issue', ...) against ITS OWN item_id
+-- (never a combined/summed quantity across different items). A requirement row with no matching
+-- actuals entry (missing/wrong requirement_id) raises 22023 rather than silently defaulting/skipping;
+-- a mismatched/stale/cross-op requirement_id in the actuals array is rejected the same way (it can
+-- never match one of THIS op's rows, so the row it was meant for is left unmatched → 22023). `data.
+-- material_actuals` on the farm_event now carries the per-material breakdown (including each row's
+-- requirement_id); the legacy scalar `data.actual_qty` is preserved for the 0/1-material case (null for
+-- >1 materials, where a single scalar has no coherent meaning) so existing readers of the
 -- single-material shape (the PvA report) keep working unchanged for the common case.
 --
 -- ATOMICITY / IDEMPOTENCY: unchanged. The whole per-material loop runs inside this same function body
@@ -160,7 +179,10 @@ begin
     v_actuals := '[]'::jsonb;
   elsif v_mat_count = 1 then
     -- legacy fallback: the op's one material takes the scalar p_actual_qty (unchanged behaviour).
-    select jsonb_build_array(jsonb_build_object('item_id', pmr.item_id, 'actual_qty', p_actual_qty))
+    -- requirement_id is still populated (= that one row's id) so this flows through the SAME
+    -- requirement_id-keyed matching loop below as the explicit multi-material path.
+    select jsonb_build_array(jsonb_build_object(
+        'requirement_id', pmr.id, 'item_id', pmr.item_id, 'actual_qty', p_actual_qty))
       into v_actuals
       from public.plan_material_requirements pmr
       where pmr.plan_op_id = p_op_id;
@@ -171,8 +193,10 @@ begin
       using errcode = '22023';
   end if;
 
-  -- a supplied array must cover EXACTLY the op's materials (catches a stray/mismatched item_id loudly
-  -- rather than silently under-consuming one material or over-consuming a wrong one).
+  -- a supplied array must cover EXACTLY the op's materials (catches a stray/mismatched requirement_id
+  -- loudly rather than silently under-consuming one material or over-consuming a wrong one; a length
+  -- mismatch alone isn't sufficient on its own — the per-row match below also rejects a same-length
+  -- array whose requirement_ids don't correspond 1:1 to this op's rows).
   if jsonb_array_length(v_actuals) <> v_mat_count then
     raise exception 'operation % expects % material actuals, got %',
       p_op_id, v_mat_count, jsonb_array_length(v_actuals)
@@ -196,19 +220,27 @@ begin
     v_actual_cost := 0;
 
     -- pass 2: one iteration per material — validate, price, consume (quantities + fn_post_movement).
+    -- Ordered by pmr.id (the row's own identity), not item_id — deterministic even when two rows
+    -- share an item_id (see the MATCH KEY note in the header).
     for v_rec in
-      select pmr.item_id, pmr.qty, pmr.unit
+      select pmr.id as req_id, pmr.item_id, pmr.qty, pmr.unit
         from public.plan_material_requirements pmr
         where pmr.plan_op_id = p_op_id
-        order by pmr.item_id
+        order by pmr.id
     loop
+      -- Match this REQUIREMENT ROW (not this item) to its actuals entry by requirement_id. `id` is
+      -- plan_material_requirements' primary key, so `limit 1` is safe here (at most one row in
+      -- v_actuals can carry a given requirement_id, unlike item_id which can repeat across rows).
       select (elem->>'actual_qty')::numeric into v_actual_i
         from jsonb_array_elements(v_actuals) elem
-        where (elem->>'item_id')::uuid = v_rec.item_id
+        where (elem->>'requirement_id')::uuid = v_rec.req_id
         limit 1;
 
       if v_actual_i is null or v_actual_i < 0 or v_actual_i = 'NaN'::numeric then
-        raise exception 'invalid actual_qty % for material %', v_actual_i, v_rec.item_id
+        -- No actuals entry has THIS row's requirement_id — either it was simply omitted, or the
+        -- caller supplied a stale/mismatched/cross-op requirement_id that (correctly) cannot match
+        -- any row here. Either way: refuse loudly rather than silently skipping/mis-issuing.
+        raise exception 'invalid actual_qty % for material requirement %', v_actual_i, v_rec.req_id
           using errcode = '22023';
       end if;
 
@@ -225,8 +257,8 @@ begin
       -- the done farm_event is inserted AFTER this loop (needs v_event); the consumption row below
       -- references v_event, so materials are recorded once v_event exists — see below.
       v_result_actuals := v_result_actuals || jsonb_build_array(jsonb_build_object(
-        'item_id', v_rec.item_id, 'unit', v_rec.unit, 'planned_qty', v_rec.qty,
-        'actual_qty', v_actual_i, 'actual_cost', v_cost_i));
+        'requirement_id', v_rec.req_id, 'item_id', v_rec.item_id, 'unit', v_rec.unit,
+        'planned_qty', v_rec.qty, 'actual_qty', v_actual_i, 'actual_cost', v_cost_i));
     end loop;
 
     v_actual_cost := trim_scale(v_actual_cost);

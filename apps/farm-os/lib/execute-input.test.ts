@@ -27,12 +27,12 @@ describe("parseExecuteInput", () => {
 });
 
 describe("parseMaterialActuals", () => {
-  it("parses one entry per material, preserving itemId order", () => {
+  it("parses one entry per material, preserving requirementId order", () => {
     expect(
       parseMaterialActuals(
         [
-          { itemId: "a", qty: "5" },
-          { itemId: "b", qty: "10" },
+          { requirementId: "r1", itemId: "a", qty: "5" },
+          { requirementId: "r2", itemId: "b", qty: "10" },
         ],
         "3",
       ),
@@ -40,18 +40,42 @@ describe("parseMaterialActuals", () => {
       ok: true,
       value: {
         materialActuals: [
-          { itemId: "a", actualQty: 5 },
-          { itemId: "b", actualQty: 10 },
+          { requirementId: "r1", itemId: "a", actualQty: 5 },
+          { requirementId: "r2", itemId: "b", actualQty: 10 },
         ],
         laborCount: 3,
       },
     });
   });
 
-  it("allows an explicit zero on any material or on labor", () => {
-    expect(parseMaterialActuals([{ itemId: "a", qty: "0" }], "0")).toEqual({
+  it("keeps two rows for the SAME itemId distinct by requirementId (#520 H1)", () => {
+    // Two plan_material_requirements rows can legitimately share an item_id (e.g. two applications
+    // of the same fertilizer on different sub-dates) — requirementId, not itemId, must be what
+    // distinguishes them all the way through to the RPC payload.
+    expect(
+      parseMaterialActuals(
+        [
+          { requirementId: "r1", itemId: "same-item", qty: "5" },
+          { requirementId: "r2", itemId: "same-item", qty: "20" },
+        ],
+        "1",
+      ),
+    ).toEqual({
       ok: true,
-      value: { materialActuals: [{ itemId: "a", actualQty: 0 }], laborCount: 0 },
+      value: {
+        materialActuals: [
+          { requirementId: "r1", itemId: "same-item", actualQty: 5 },
+          { requirementId: "r2", itemId: "same-item", actualQty: 20 },
+        ],
+        laborCount: 1,
+      },
+    });
+  });
+
+  it("allows an explicit zero on any material or on labor", () => {
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "0" }], "0")).toEqual({
+      ok: true,
+      value: { materialActuals: [{ requirementId: "r1", itemId: "a", actualQty: 0 }], laborCount: 0 },
     });
   });
 
@@ -59,8 +83,8 @@ describe("parseMaterialActuals", () => {
     expect(
       parseMaterialActuals(
         [
-          { itemId: "a", qty: "5" },
-          { itemId: "b", qty: "" },
+          { requirementId: "r1", itemId: "a", qty: "5" },
+          { requirementId: "r2", itemId: "b", qty: "" },
         ],
         "2",
       ),
@@ -68,7 +92,11 @@ describe("parseMaterialActuals", () => {
   });
 
   it("rejects a negative quantity on any material or blank/negative labor", () => {
-    expect(parseMaterialActuals([{ itemId: "a", qty: "-1" }], "1")).toMatchObject({ ok: false });
-    expect(parseMaterialActuals([{ itemId: "a", qty: "1" }], "")).toMatchObject({ ok: false });
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "-1" }], "1")).toMatchObject({
+      ok: false,
+    });
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "1" }], "")).toMatchObject({
+      ok: false,
+    });
   });
 });

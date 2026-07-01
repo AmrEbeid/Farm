@@ -27,7 +27,7 @@ export default async function ExecutePage({
   const { data: op, error } = await sb
     .from("plan_operations")
     .select(
-      "id, subtype, planned_at, est_cost, status, plan_material_requirements(item_id, qty, unit, inventory_items(name)), plan_labor_requirements(count)",
+      "id, subtype, planned_at, est_cost, status, plan_material_requirements(id, item_id, qty, unit, inventory_items(name)), plan_labor_requirements(count)",
     )
     .eq("id", opId)
     .maybeSingle();
@@ -46,6 +46,7 @@ export default async function ExecutePage({
   // material is rendered below (ExecuteForm collapses to the pre-#520 single-field look when there
   // is exactly one, or none, on the op).
   const materials = (op.plan_material_requirements ?? []) as Array<{
+    id: string;
     item_id: string;
     qty: number | null;
     unit: string | null;
@@ -67,6 +68,7 @@ export default async function ExecutePage({
           <ExecuteForm
             opId={opId}
             materials={materials.map((m) => ({
+              requirementId: m.id,
               itemId: m.item_id,
               defaultQty: m.qty != null ? Number(m.qty) : null,
               unit: m.unit ?? "كجم",

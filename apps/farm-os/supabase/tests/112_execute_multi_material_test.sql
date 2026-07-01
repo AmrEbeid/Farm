@@ -11,19 +11,51 @@
 --   (d) a second call on the same op_id still 23505s (idempotency preserved), and
 --   (e) an existing SINGLE-material op (the common/legacy case, no p_material_actuals) still executes
 --       end-to-end unchanged (byte-identical formula/behaviour to tests/18).
+--
+-- H1 (adversarial-review CRITICAL, reproduced): plan_material_requirements has NO
+-- UNIQUE(plan_op_id, item_id) constraint, and an op can legitimately carry TWO SEPARATE requirement
+-- rows for the SAME item (e.g. two applications of the same fertilizer on different sub-dates). An
+-- earlier revision matched each requirement row to its actuals entry by item_id with `limit 1`, so
+-- both rows resolved to the SAME first-matching actuals entry — silently discarding the other actual
+-- quantity and issuing the wrong stock amount. The fix matches by `requirement_id` (the row's own
+-- `id`) instead. This file's "duplicate item_id" section proves: on_hand drops by the SUM of both
+-- actuals (not just one), TWO separate quantities rows are recorded (not merged), a mismatched/unknown
+-- requirement_id in the actuals array is rejected (22023), and a requirement row with no matching
+-- actuals entry is rejected (22023).
+--
+-- H2 (adversarial-review — zero coverage before this file): the central safety refusal (">1 material
+-- + no p_material_actuals → 22023") had no test. The "H2" section below proves it via throws_ok.
+--
 -- Run via test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(19);
+select plan(30);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set item1 'c0000000-0000-0000-0000-000000000112'
 \set item2 'c0000000-0000-0000-0000-000000000113'
 \set item3 'c0000000-0000-0000-0000-000000000114'
 \set item4 'c0000000-0000-0000-0000-000000000115'
+\set item5 'c0000000-0000-0000-0000-000000000116'
+\set item6 'c0000000-0000-0000-0000-000000000117'
+\set item7 'c0000000-0000-0000-0000-000000000118'
+\set item8 'c0000000-0000-0000-0000-000000000119'
+\set item9 'c0000000-0000-0000-0000-000000000120'
 \set plan  'c0000000-0000-0000-0000-000000001112'
 \set op    'c0000000-0000-0000-0000-000000002112'
 \set op2   'c0000000-0000-0000-0000-000000002113'
+\set op3   'c0000000-0000-0000-0000-000000002114'
+\set op4   'c0000000-0000-0000-0000-000000002115'
+\set op6   'c0000000-0000-0000-0000-000000002117'
+\set req1  'd0000000-0000-0000-0000-000000000112'
+\set req2  'd0000000-0000-0000-0000-000000000113'
+\set req3  'd0000000-0000-0000-0000-000000000114'
+\set req4  'd0000000-0000-0000-0000-000000000115'
+\set reqA  'd0000000-0000-0000-0000-000000000116'
+\set reqB  'd0000000-0000-0000-0000-000000000117'
+\set reqC  'd0000000-0000-0000-0000-000000000118'
+\set reqD  'd0000000-0000-0000-0000-000000000119'
+\set bogusReq 'd0000000-0000-0000-0000-00000000ffff'
 
 select set_config('t.sup', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'supervisor' limit 1), false);
@@ -38,32 +70,47 @@ insert into public.inventory_items (id, org_id, name, unit, pack_size, safety_st
   (:'item1', :'orgA', 'صنف 112-1', 'kg', 1, 0, 0, 10),
   (:'item2', :'orgA', 'صنف 112-2', 'kg', 1, 0, 0, 30),
   (:'item3', :'orgA', 'صنف 112-3', 'kg', 1, 0, 0, null),
-  (:'item4', :'orgA', 'صنف 112-4', 'kg', 1, 0, 0, 20);
+  (:'item4', :'orgA', 'صنف 112-4', 'kg', 1, 0, 0, 20),
+  (:'item5', :'orgA', 'صنف 112-5', 'kg', 1, 0, 0, 5),
+  (:'item6', :'orgA', 'صنف 112-6', 'kg', 1, 0, 0, 5),
+  (:'item7', :'orgA', 'صنف 112-7', 'kg', 1, 0, 0, 8),
+  (:'item8', :'orgA', 'صنف 112-8', 'kg', 1, 0, 0, 8),
+  (:'item9', :'orgA', 'صنف 112-9', 'kg', 1, 0, 0, 8);
 
 insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved, ordered, projected) values
   (:'orgA', :'item1', 'main', 0, 0, 0, 0),
   (:'orgA', :'item2', 'main', 0, 0, 0, 0),
   (:'orgA', :'item3', 'main', 0, 0, 0, 0),
-  (:'orgA', :'item4', 'main', 0, 0, 0, 0);
+  (:'orgA', :'item4', 'main', 0, 0, 0, 0),
+  (:'orgA', :'item5', 'main', 0, 0, 0, 0),
+  (:'orgA', :'item6', 'main', 0, 0, 0, 0),
+  (:'orgA', :'item7', 'main', 0, 0, 0, 0),
+  (:'orgA', :'item8', 'main', 0, 0, 0, 0),
+  (:'orgA', :'item9', 'main', 0, 0, 0, 0);
 select public.fn_post_movement(:'item1', 'receipt', 1000, 'main', 'kg');
 select public.fn_post_movement(:'item2', 'receipt', 1000, 'main', 'kg');
 select public.fn_post_movement(:'item3', 'receipt', 1000, 'main', 'kg');
 select public.fn_post_movement(:'item4', 'receipt', 1000, 'main', 'kg');
+select public.fn_post_movement(:'item5', 'receipt', 1000, 'main', 'kg');
+select public.fn_post_movement(:'item6', 'receipt', 1000, 'main', 'kg');
+select public.fn_post_movement(:'item7', 'receipt', 500, 'main', 'kg');
+select public.fn_post_movement(:'item8', 'receipt', 500, 'main', 'kg');
+select public.fn_post_movement(:'item9', 'receipt', 500, 'main', 'kg');
 
 insert into public.plans (id, org_id, status) values (:'plan', :'orgA', 'active');
 
 insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est_cost, approval_needed, status)
   values (:'op', :'orgA', :'plan', 'fertilization', null, 400, false, 'reserved');
-insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit) values
-  (:'orgA', :'op', :'item1', 5, 'kg'),
-  (:'orgA', :'op', :'item2', 5, 'kg'),
-  (:'orgA', :'op', :'item3', 5, 'kg');
+insert into public.plan_material_requirements (id, org_id, plan_op_id, item_id, qty, unit) values
+  (:'req1', :'orgA', :'op', :'item1', 5, 'kg'),
+  (:'req2', :'orgA', :'op', :'item2', 5, 'kg'),
+  (:'req3', :'orgA', :'op', :'item3', 5, 'kg');
 
 -- a SECOND op with exactly one material — the common/legacy case (mirrors tests/18's fixture).
 insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est_cost, approval_needed, status)
   values (:'op2', :'orgA', :'plan', 'fertilization', null, 500, false, 'reserved');
-insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
-  values (:'orgA', :'op2', :'item4', 25, 'kg');
+insert into public.plan_material_requirements (id, org_id, plan_op_id, item_id, qty, unit)
+  values (:'req4', :'orgA', :'op2', :'item4', 25, 'kg');
 
 -- ===== execute the 3-material op (supervisor holds op.execute) =====
 select set_config('request.jwt.claims',
@@ -72,9 +119,9 @@ set local role authenticated;
 select set_config('t.res', public.fn_execute_operation(
   :'op', 0, 3, 'تنفيذ متعدد المواد',
   jsonb_build_array(
-    jsonb_build_object('item_id', :'item1', 'actual_qty', 5),
-    jsonb_build_object('item_id', :'item2', 'actual_qty', 10),
-    jsonb_build_object('item_id', :'item3', 'actual_qty', 2)
+    jsonb_build_object('requirement_id', :'req1', 'item_id', :'item1', 'actual_qty', 5),
+    jsonb_build_object('requirement_id', :'req2', 'item_id', :'item2', 'actual_qty', 10),
+    jsonb_build_object('requirement_id', :'req3', 'item_id', :'item3', 'actual_qty', 2)
   ))::text, false);
 reset role;
 select set_config('t.event', (current_setting('t.res')::jsonb ->> 'event_id'), false);
@@ -116,8 +163,8 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 select throws_ok(
   format($$ select public.fn_execute_operation(%L, 0, 3, 'again',
-    jsonb_build_array(jsonb_build_object('item_id', %L::uuid, 'actual_qty', 5))) $$,
-    :'op', :'item1'),
+    jsonb_build_array(jsonb_build_object('requirement_id', %L::uuid, 'item_id', %L::uuid, 'actual_qty', 5))) $$,
+    :'op', :'req1', :'item1'),
   '23505', null,
   '#520 EXE-1: a second fn_execute_operation on the multi-material op is refused (already executed)');
 reset role;
@@ -155,6 +202,117 @@ select throws_ok(
   '23505', null,
   '#520 legacy: a second execute on the single-material op is still refused (already executed)');
 reset role;
+
+-- ============================================================================================
+-- H1 regression — TWO plan_material_requirements rows for the SAME item_id on one op (item5,
+-- qty 5 and qty 20 — e.g. two applications of the same fertilizer on different sub-dates). Before
+-- the fix, matching by item_id with `limit 1` made BOTH rows resolve to the SAME first actuals entry:
+-- on_hand would only drop by 10 (double-counting the qty-5 actual), never 25. Matching by
+-- requirement_id (each row's own primary key) fixes this.
+-- ============================================================================================
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est_cost, approval_needed, status)
+  values (:'op3', :'orgA', :'plan', 'fertilization', null, 100, false, 'reserved');
+insert into public.plan_material_requirements (id, org_id, plan_op_id, item_id, qty, unit) values
+  (:'reqA', :'orgA', :'op3', :'item5', 5, 'kg'),
+  (:'reqB', :'orgA', :'op3', :'item5', 20, 'kg');
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select set_config('t.res3', public.fn_execute_operation(
+  :'op3', 0, 1, 'H1 regression: two requirements, same item',
+  jsonb_build_array(
+    jsonb_build_object('requirement_id', :'reqA', 'item_id', :'item5', 'actual_qty', 5),
+    jsonb_build_object('requirement_id', :'reqB', 'item_id', :'item5', 'actual_qty', 20)
+  ))::text, false);
+reset role;
+select set_config('t.event3', (current_setting('t.res3')::jsonb ->> 'event_id'), false);
+
+-- (a) on_hand for item5 drops by the SUM of both actuals (25), not just one (10 would mean the
+-- pre-fix double-count-the-first bug is back).
+select is((select on_hand from public.inventory_bin where item_id = :'item5' and location = 'main'), 975::numeric,
+  '#520 H1: on_hand for the shared item drops by the SUM of both requirements'' actuals (1000 − 25), not just one');
+
+-- (b) TWO separate quantities rows are recorded (one per requirement row), not merged into one.
+select is((select count(*)::int from public.quantities where event_id = current_setting('t.event3', true)::uuid), 2,
+  '#520 H1: two separate quantities rows recorded (one per requirement), not merged into one');
+select is((select array_agg(inventory_adjustment order by inventory_adjustment)
+  from public.quantities where event_id = current_setting('t.event3', true)::uuid),
+  array[-20, -5]::numeric[],
+  '#520 H1: the two quantities rows carry -5 and -20 respectively — neither actual was discarded or double-applied');
+
+select is((select status from public.plan_operations where id = :'op3'), 'done',
+  '#520 H1: the duplicate-item-id operation is marked done');
+
+-- (c) a mismatched/unknown requirement_id in the actuals array is rejected (22023), never silently
+-- ignored — even though the array length still matches the op's material count.
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est_cost, approval_needed, status)
+  values (:'op4', :'orgA', :'plan', 'fertilization', null, 100, false, 'reserved');
+insert into public.plan_material_requirements (id, org_id, plan_op_id, item_id, qty, unit) values
+  (:'reqC', :'orgA', :'op4', :'item6', 5, 'kg'),
+  (:'reqD', :'orgA', :'op4', :'item6', 20, 'kg');
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  format($$ select public.fn_execute_operation(%L, 0, 1, 'H1 mismatched requirement_id',
+    jsonb_build_array(
+      jsonb_build_object('requirement_id', %L::uuid, 'item_id', %L::uuid, 'actual_qty', 5),
+      jsonb_build_object('requirement_id', %L::uuid, 'item_id', %L::uuid, 'actual_qty', 20)
+    )) $$,
+    :'op4', :'reqC', :'item6', :'bogusReq', :'item6'),
+  '22023', null,
+  '#520 H1(c): an actuals entry with a requirement_id that is not one of this op''s rows is rejected (22023)');
+reset role;
+
+-- (d) a requirement row with NO matching actuals entry is rejected (22023) — same array length, but
+-- one entry is a duplicate of another requirement_id instead of covering the missing row.
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  format($$ select public.fn_execute_operation(%L, 0, 1, 'H1 missing requirement actuals',
+    jsonb_build_array(
+      jsonb_build_object('requirement_id', %L::uuid, 'item_id', %L::uuid, 'actual_qty', 5),
+      jsonb_build_object('requirement_id', %L::uuid, 'item_id', %L::uuid, 'actual_qty', 7)
+    )) $$,
+    :'op4', :'reqC', :'item6', :'reqC', :'item6'),
+  '22023', null,
+  '#520 H1(d): a requirement row with no matching actuals entry (reqD never referenced) is rejected (22023)');
+reset role;
+
+-- both rejected attempts above must roll back cleanly: no stock issued, op4 never flipped to done.
+select is((select on_hand from public.inventory_bin where item_id = :'item6' and location = 'main'), 1000::numeric,
+  '#520 H1: the two rejected op4 attempts issued NO stock (on_hand untouched)');
+select is((select status from public.plan_operations where id = :'op4'), 'reserved',
+  '#520 H1: op4 was never claimed/marked done by either rejected attempt');
+
+-- ============================================================================================
+-- H2 — the central safety refusal has zero test coverage before this file: a >1-material operation
+-- executed WITHOUT p_material_actuals must be refused (22023), never silently executed against a
+-- guessed/partial material.
+-- ============================================================================================
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est_cost, approval_needed, status)
+  values (:'op6', :'orgA', :'plan', 'fertilization', null, 300, false, 'reserved');
+insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit) values
+  (:'orgA', :'op6', :'item7', 5, 'kg'),
+  (:'orgA', :'op6', :'item8', 5, 'kg'),
+  (:'orgA', :'op6', :'item9', 5, 'kg');
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  format($$ select public.fn_execute_operation(%L, 5, 1, 'H2: no p_material_actuals supplied') $$, :'op6'),
+  '22023', null,
+  '#520 H2: a >1-material op executed WITHOUT p_material_actuals is refused (22023), not silently executed');
+reset role;
+
+select is((select on_hand from public.inventory_bin where item_id = :'item7' and location = 'main'), 500::numeric,
+  '#520 H2: the refused call issued no stock for item7');
+select is((select status from public.plan_operations where id = :'op6'), 'reserved',
+  '#520 H2: the refused call left op6 unclaimed (still reserved, not done)');
 
 select * from finish();
 rollback;
