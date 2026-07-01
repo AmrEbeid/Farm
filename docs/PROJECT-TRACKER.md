@@ -1,7 +1,7 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
 
-> **2026-07-01 — CONNECTED WORK GRAPH PR-READY; not live yet.**
-> Local branch `feat/connected-work-graph` is rebased onto current `origin/main` and now links the farm structure,
+> **2026-07-01 — CONNECTED WORK GRAPH LIVE via PR #582 (`e98c3c9`).**
+> Farm OS now links the farm structure,
 > operations, assignment, field dashboard, accountant dashboard, custody/accounting, and printable entity reports.
 > Scope: sector/hawsha/line/palm 360 pages now show linked plans, tasks, activity, finance (owner/accountant only),
 > and reports; planned operations must have at least one assignee; people/person and `/m` dashboards read
@@ -21,8 +21,11 @@
 > `20260701235000`, `20260701240000`, `20260701280000`, `20260701300000`, `20260701310000`, `20260701350000`,
 > `20260701370000`, and `20260701380000` after the latest rebase). Post-apply probes
 > confirm five-arg `fn_execute_operation`, no four-arg overload, multi-material refusal preserved, full location
-> insert present, palm `event_assets` present, and no anon EXECUTE. **Not merged or live yet.** Remaining gates:
-> merge -> Vercel deploy -> live protected-route/authenticated smoke.
+> insert present, palm `event_assets` present, and no anon EXECUTE. PR #582 is squash-merged to `main`; main
+> `ci`, `db-tests`, and `release` are green. Live unauthenticated smoke on `https://ebeidfarm.business` confirms
+> `/` and `/login` return 200; protected app routes including `/farm`, `/m`, `/people/dashboard`,
+> `/finance/dashboard`, `/accounting`, `/custody`, `/plans`, `/weather/thresholds`, `/farm/pest-scouting`, plus
+> representative real sector/hawsha/line/palm 360 URLs, redirect to `/login` (307) rather than 404/500.
 
 > **2026-07-01 (later) — import templates shipped; accounting/custody audited, roadmapped, cataloged (5 PRs merged).**
 > Under an open "keep working" directive, integrity rails held (no fabricated data, CI-green-before-merge,

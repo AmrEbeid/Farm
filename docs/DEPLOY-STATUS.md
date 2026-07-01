@@ -2,7 +2,7 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-01 — connected work graph prod migration applied; merge/live smoke pending.**
+> **2026-07-01 — connected work graph LIVE via PR #582 (`e98c3c9`).**
 > Draft local migration `20260701390000_execute_operation_target_rollup.sql` fixes executed operation rollups for
 > sector/hawsha/line/palm targets by writing `event_locations.farm_id/sector_id/hawsha_id/line_id` and palm
 > `event_assets`, preserving both the #512 no-blind-release behavior and the current multi-material execution
@@ -21,8 +21,11 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > `20260701390000_execute_operation_target_rollup` with exact ledger version. Probes
 > confirm five-arg `fn_execute_operation`, no four-arg overload, multi-material refusal preserved, full
 > `event_locations` insert including `asset_id`, palm `event_assets`, and no anon EXECUTE grant.
-> Required live order remaining: merge to `main` -> Vercel auto-deploy -> live smoke on 360 pages, `/m`, `/people`,
-> `/finance/dashboard`, and custody/accounting links.
+> PR #582 is squash-merged to `main`; main `ci`, `db-tests`, and `release` are green. Live unauthenticated smoke on
+> `https://ebeidfarm.business` confirms `/` and `/login` return 200; protected app routes including `/farm`, `/m`,
+> `/people/dashboard`, `/finance/dashboard`, `/accounting`, `/custody`, `/plans`, `/weather/thresholds`,
+> `/farm/pest-scouting`, plus representative real sector/hawsha/line/palm 360 URLs, redirect to `/login` (307)
+> rather than 404/500. Authenticated content smoke still needs a logged-in browser session.
 
 > **2026-07-01 — accounting/custody settlement LIVE via PR #568 (`8ffc4ae`).**
 > Branch `feat/accounting-custody-standalone` / PR #568 introduced
