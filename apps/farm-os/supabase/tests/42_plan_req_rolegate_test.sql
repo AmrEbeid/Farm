@@ -16,8 +16,10 @@ select plan(9);
 -- resolve real engine-demand fixtures + role members in orgA
 select set_config('test.planop', (select id::text from public.plan_operations
   where org_id = '00000000-0000-0000-0000-000000000001' order by id limit 1), false);
+-- a kg item: the requirement inserts below use unit 'kg', which the #216 reconcile trigger validates
+-- against the item's canonical unit (order-by-id alone picks the L item — a real mismatch).
 select set_config('test.item', (select id::text from public.inventory_items
-  where org_id = '00000000-0000-0000-0000-000000000001' order by id limit 1), false);
+  where org_id = '00000000-0000-0000-0000-000000000001' and unit = 'kg' order by id limit 1), false);
 select set_config('test.ownerA', (select user_id::text from public.organization_member
   where org_id = '00000000-0000-0000-0000-000000000001' and role = 'owner' limit 1), false);
 select set_config('test.skA', (select user_id::text from public.organization_member

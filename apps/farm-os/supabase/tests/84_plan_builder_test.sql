@@ -9,7 +9,9 @@ select plan(17);
 select set_config('test.mgr', (select user_id::text from public.organization_member where org_id = :'org' and role = 'farm_manager' limit 1), false);
 select set_config('test.sup', (select user_id::text from public.organization_member where org_id = :'org' and role = 'supervisor' limit 1), false);
 select set_config('test.person', (select id::text from public.people where org_id = :'org' order by id limit 1), false);
-select set_config('test.item', (select id::text from public.inventory_items where org_id = :'org' order by id limit 1), false);
+-- a kg item: fn_add_plan_operation below passes unit 'kg', which the #216 reconcile trigger validates
+-- against the item's canonical unit (order-by-id alone picks the L item — a real mismatch).
+select set_config('test.item', (select id::text from public.inventory_items where org_id = :'org' and unit = 'kg' order by id limit 1), false);
 
 create or replace function pg_temp.as_user(uid text) returns void language plpgsql as $$
 begin
