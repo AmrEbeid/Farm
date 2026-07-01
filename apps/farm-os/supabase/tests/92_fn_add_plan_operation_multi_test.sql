@@ -14,11 +14,13 @@ select plan(12);
 \set p2    'c9200004-0000-0000-0000-000000000092'
 
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
+-- Signature carries the operation-vocabulary p_harvest_stage param (20260701240000); the old 9-arg
+-- overload was dropped by that re-emit, so this checks the current 10-arg signature.
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text)', 'EXECUTE'),
   '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text)', 'EXECUTE'),
   '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────

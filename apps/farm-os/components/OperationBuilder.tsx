@@ -13,8 +13,10 @@ import {
 import {
   addPlanOperationMulti,
   setPlanOperationDependency,
+  type HarvestStage,
 } from "@/app/(app)/plans/[planId]/actions";
 import { computeEffectiveDate, formatDependencyLabel } from "@/lib/relative-schedule";
+import { HARVEST_STAGE_AR, SUBTYPE_AR } from "@/lib/labels";
 
 type ItemOpt = { id: string; name: string; unit: string | null };
 type PersonOpt = { id: string; name: string };
@@ -23,13 +25,34 @@ type OpOpt = { id: string; label: string; plannedAt: string | null };
 type MatRow = { key: number; itemId: string; qty: string };
 type LabRow = { key: number; team: string; count: string; days: string };
 
-const SUBTYPES: SelectOption[] = [
-  { value: "fertilization", label: "تسميد" },
-  { value: "irrigation", label: "ري" },
-  { value: "spraying", label: "رش" },
-  { value: "pollination", label: "تلقيح" },
-  { value: "inspection", label: "تفتيش" },
-];
+// Rough seasonal/operational order (pruning → offshoots → pollen → pollination → bunch work →
+// irrigation/fertilization → pest control → harvest → post-harvest → inspection), sourced from
+// lib/labels.ts SUBTYPE_AR — the single place the Arabic vocabulary is defined (migration
+// 20260701230000 constrains plan_operations.subtype to exactly this set).
+const SUBTYPE_ORDER = [
+  "pruning_dethorning",
+  "offshoot_mgmt",
+  "pollen_collection",
+  "pollination",
+  "bunch_limiting",
+  "thinning",
+  "bunch_tilting",
+  "bagging",
+  "irrigation",
+  "fertilization",
+  "pest_scouting",
+  "spraying",
+  "harvest",
+  "post_harvest",
+  "inspection",
+] as const;
+
+const SUBTYPES: SelectOption[] = SUBTYPE_ORDER.map((value) => ({ value, label: SUBTYPE_AR[value] }));
+
+const HARVEST_STAGE_OPTIONS: SelectOption[] = (["khalal", "rutab", "tamar"] as const).map((value) => ({
+  value,
+  label: HARVEST_STAGE_AR[value],
+}));
 
 /**
  * #398: author an operation with SEVERAL needs (N materials of any kind incl. fuel/gas + N labour lines),
@@ -55,6 +78,7 @@ export function OperationBuilder({
 
   const today = new Date().toISOString().split("T")[0];
   const [subtype, setSubtype] = useState("fertilization");
+  const [harvestStage, setHarvestStage] = useState<HarvestStage>("khalal");
   const [plannedAt, setPlannedAt] = useState(today);
   const [endsOn, setEndsOn] = useState(""); // empty = single-day
   const [estCost, setEstCost] = useState("0");
@@ -118,6 +142,7 @@ export function OperationBuilder({
         })),
         assignee_ids: assignees,
         lead_id: leadId || null,
+        harvest_stage: subtype === "harvest" ? harvestStage : null,
       });
       // `res.ok` alone doesn't narrow (addPlanOperationMulti's return type isn't a discriminated
       // literal union), so check operationId's presence directly — the real success signal.
@@ -187,6 +212,17 @@ export function OperationBuilder({
           <FormRow id="subtype" label="نوع العملية">
             <Select options={SUBTYPES} value={subtype} onChange={(e) => setSubtype(e.target.value)} />
           </FormRow>
+
+          {/* Harvest stage (خلال/رطب/تمر) — only meaningful for a harvest operation. */}
+          {subtype === "harvest" && (
+            <FormRow id="harvest_stage" label="مرحلة النضج">
+              <Select
+                options={HARVEST_STAGE_OPTIONS}
+                value={harvestStage}
+                onChange={(e) => setHarvestStage(e.target.value as HarvestStage)}
+              />
+            </FormRow>
+          )}
 
           {/* Multi-day: start + optional end. */}
           <div className="grid grid-cols-2 gap-3">

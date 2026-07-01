@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "./labels";
+import { HARVEST_STAGE_AR, OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "./labels";
 
 // lib/labels was untested. isExecutableOpStatus backs the fn_execute_operation guard (migration 0057)
 // and its UI affordances (/m, /m/execute), so a regression here is a security-relevant bug — a status
@@ -53,13 +53,38 @@ describe("OP_STATUS_AR — completeness vs the status vocabulary", () => {
   });
 });
 
-describe("SUBTYPE_AR — completeness (locks in the pollination fix #289)", () => {
-  it.each(["fertilization", "irrigation", "spraying", "pollination", "inspection"])(
-    "has a non-empty Arabic label for offerable subtype %s",
-    (s) => expect(SUBTYPE_AR[s]).toBeTruthy(),
+describe("SUBTYPE_AR — completeness (locks in the pollination fix #289 + the operation-vocabulary expansion)", () => {
+  // Must match the plan_operations.subtype CHECK set (migration 20260701230000) so every
+  // persisted subtype renders with an Arabic label instead of leaking a raw English key.
+  const EXPECTED = [
+    "fertilization",
+    "irrigation",
+    "spraying",
+    "pollination",
+    "inspection",
+    "pruning_dethorning",
+    "offshoot_mgmt",
+    "pollen_collection",
+    "bunch_limiting",
+    "thinning",
+    "bunch_tilting",
+    "bagging",
+    "pest_scouting",
+    "harvest",
+    "post_harvest",
+  ];
+
+  it.each(EXPECTED)("has a non-empty Arabic label for offerable subtype %s", (s) =>
+    expect(SUBTYPE_AR[s]).toBeTruthy(),
   );
 
   it("includes pollination = تلقيح (the subtype that leaked raw English before #289)", () => {
     expect(SUBTYPE_AR.pollination).toBe("تلقيح");
   });
+});
+
+describe("HARVEST_STAGE_AR — completeness (ripening stage, migration 20260701230000)", () => {
+  it.each(["khalal", "rutab", "tamar"])("has a non-empty Arabic label for harvest stage %s", (s) =>
+    expect(HARVEST_STAGE_AR[s]).toBeTruthy(),
+  );
 });

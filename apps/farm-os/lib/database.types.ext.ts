@@ -34,6 +34,15 @@ type WithDependsOn<T extends { Row: object; Insert: object; Update: object; Rela
   Relationships: T["Relationships"];
 };
 
+/** Add the operation-vocabulary harvest_stage column (migration 20260701230000) to
+ *  plan_operations, preserving its relationships. */
+type WithHarvestStage<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { harvest_stage: string | null };
+  Insert: T["Insert"] & { harvest_stage?: string | null };
+  Update: T["Update"] & { harvest_stage?: string | null };
+  Relationships: T["Relationships"];
+};
+
 type AttachmentsTable = {
   Row: {
     id: string;
@@ -214,7 +223,9 @@ type StructFunctions = {
     Returns: Json;
   };
   // ── #398 slice 2: atomic multi-line operation create (multi-day + N materials + N labour +
-  //    assignees), migrations 0090 (schema) / 0093 (RPC). p_materials/p_labor are jsonb line arrays. ──
+  //    assignees), migrations 0090 (schema) / 0093 (RPC). p_materials/p_labor are jsonb line arrays.
+  //    p_harvest_stage (optional, default null) added by the operation-vocabulary re-emit
+  //    (migration 20260701240000) for the harvest ripening stage (خلال/رطب/تمر). ──
   fn_add_plan_operation_multi: {
     Args: {
       p_plan_id: string;
@@ -226,6 +237,7 @@ type StructFunctions = {
       p_labor: Json;
       p_assignee_ids: string[];
       p_lead_id: string | null;
+      p_harvest_stage?: string | null;
     };
     Returns: Json;
   };
@@ -745,7 +757,7 @@ export type Database = Omit<Generated, "public"> & {
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
-      plan_operations: WithSignoff<WithDependsOn<Tables["plan_operations"]>>;
+      plan_operations: WithSignoff<WithDependsOn<WithHarvestStage<Tables["plan_operations"]>>>;
       attachments: AttachmentsTable;
       accounts: AccountsTable;
       journal_entries: JournalEntriesTable;
