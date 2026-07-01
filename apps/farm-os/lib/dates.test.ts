@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtDate } from "./dates";
+import { fmtDate, daysSince } from "./dates";
 
 // Anchor valid-date assertions to the module's own formatter so they stay stable
 // across ICU/Node versions; assert the dash sentinel exactly for invalid input.
@@ -45,5 +45,35 @@ describe("fmtDate", () => {
     const epoch = new Date(0);
     expect(fmtDate(epoch)).toBe(FMT.format(epoch));
     expect(fmtDate(epoch)).not.toBe("—");
+  });
+});
+
+describe("daysSince", () => {
+  const now = new Date("2026-04-01T00:00:00Z");
+
+  it("returns null (never 0) for null/undefined/empty/unparseable — no fabricated 'today'", () => {
+    expect(daysSince(null, now)).toBeNull();
+    expect(daysSince(undefined, now)).toBeNull();
+    expect(daysSince("", now)).toBeNull();
+    expect(daysSince("not-a-date", now)).toBeNull();
+  });
+
+  it("computes whole days between a past date and now", () => {
+    expect(daysSince("2026-03-01T00:00:00Z", now)).toBe(31);
+    expect(daysSince("2026-03-31T00:00:00Z", now)).toBe(1);
+  });
+
+  it("returns 0 for the same instant", () => {
+    expect(daysSince("2026-04-01T00:00:00Z", now)).toBe(0);
+  });
+
+  it("accepts a Date object equivalently to the same ISO string", () => {
+    const d = new Date("2026-03-15T00:00:00Z");
+    expect(daysSince(d, now)).toBe(daysSince("2026-03-15T00:00:00Z", now));
+  });
+
+  it("defaults `now` to the current moment when omitted", () => {
+    const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    expect(daysSince(past)).toBe(5);
   });
 });

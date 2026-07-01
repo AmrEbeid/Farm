@@ -11,6 +11,7 @@
 // re-state what's already there). Keep the shapes in sync with migrations 0051–0053.
 
 import type { Database as Generated, Json } from "./database.types";
+import type { WeatherThresholds } from "./weather";
 
 type Public = Generated["public"];
 type Tables = Public["Tables"];
@@ -20,6 +21,16 @@ type WithArchived<T extends { Row: object; Insert: object; Update: object; Relat
   Row: T["Row"] & { archived: boolean };
   Insert: T["Insert"] & { archived?: boolean };
   Update: T["Update"] & { archived?: boolean };
+  Relationships: T["Relationships"];
+};
+
+/** Relative operation scheduling (2026-07-01, migration 20260701350000): add the optional
+ *  "depends on another operation" columns to the generated plan_operations table entry. Both
+ *  nullable — most operations leave them unset and behave exactly as before. */
+type WithDependsOn<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { depends_on_op_id: string | null; depends_on_offset_days: number | null };
+  Insert: T["Insert"] & { depends_on_op_id?: string | null; depends_on_offset_days?: number | null };
+  Update: T["Update"] & { depends_on_op_id?: string | null; depends_on_offset_days?: number | null };
   Relationships: T["Relationships"];
 };
 
@@ -326,6 +337,45 @@ type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; 
   Update: Omit<T["Update"], PaymentRoutingColumn>;
   Relationships: T["Relationships"];
 };
+// ── SPEC-0019 P1-3 "جداول العمليات" — operation templates (instantiate-only slice). ──
+// Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
+type PlanOperationTemplatesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    name: string;
+    subtype: string;
+    recurrence: Json;
+    created_by: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    name: string;
+    subtype: string;
+    recurrence?: Json;
+    created_by?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    name?: string;
+    subtype?: string;
+    recurrence?: Json;
+    created_by?: string | null;
+    created_at?: string;
+  };
+  Relationships: [];
+};
+type OperationTemplateFunctions = {
+  fn_instantiate_operation_template: {
+    Args: { p_plan_id: string; p_template_id: string; p_anchor_date: string };
+    Returns: Json;
+  };
+};
+
 type CustodyFunctions = {
   fn_save_custody_account: {
     Args: {
@@ -382,14 +432,273 @@ type PlanOperationAssigneesTable = {
   Relationships: [];
 };
 
+// ── "/finance/pnl" owner P&L period summary, migration 20260701270000. ──
+// Narrowly-scoped, additive to the Stage-7 accounting framework (PR #368, still an unmerged draft) —
+// NOT a replacement for `fn_accounting_pnl_summary`. finance.read gated (owner/accountant only).
+type OwnerPnlFunctions = {
+  fn_owner_pnl_summary: { Args: { p_org: string; p_from: string; p_to: string }; Returns: Json };
+};
+
+// ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
+type WeatherFunctions = {
+  fn_update_weather_thresholds: {
+    Args: { p_org: string; p_thresholds: WeatherThresholds };
+    Returns: undefined;
+  };
+};
+
+// ── RPW-1 «مكافحة سوسة النخيل الحمراء» — pest-trap register + catch/incident log, migration
+// 20260701300000. Augmented here until database.types.ts is regenerated from prod (then a
+// harmless no-op — see file header). Relationships mirror the `assets` table's FK-embed shape
+// (referencedRelation = the table name used in a PostgREST embed like `sectors(name)`).
+type PestTrapsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    code: string;
+    label: string;
+    sector_id: string | null;
+    hawsha_id: string | null;
+    line_id: string | null;
+    installed_at: string;
+    lure_changed_at: string | null;
+    status: string;
+    notes: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    code: string;
+    label: string;
+    sector_id?: string | null;
+    hawsha_id?: string | null;
+    line_id?: string | null;
+    installed_at: string;
+    lure_changed_at?: string | null;
+    status?: string;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    code?: string;
+    label?: string;
+    sector_id?: string | null;
+    hawsha_id?: string | null;
+    line_id?: string | null;
+    installed_at?: string;
+    lure_changed_at?: string | null;
+    status?: string;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "pest_traps_org_id_fkey";
+      columns: ["org_id"];
+      isOneToOne: false;
+      referencedRelation: "organization";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_traps_sector_id_fkey";
+      columns: ["sector_id"];
+      isOneToOne: false;
+      referencedRelation: "sectors";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_traps_hawsha_id_fkey";
+      columns: ["hawsha_id"];
+      isOneToOne: false;
+      referencedRelation: "hawshat";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_traps_line_id_fkey";
+      columns: ["line_id"];
+      isOneToOne: false;
+      referencedRelation: "lines";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type PestTrapCatchesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    trap_id: string;
+    checked_at: string;
+    catch_count: number;
+    notes: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    trap_id: string;
+    checked_at: string;
+    catch_count: number;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    trap_id?: string;
+    checked_at?: string;
+    catch_count?: number;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "pest_trap_catches_org_id_fkey";
+      columns: ["org_id"];
+      isOneToOne: false;
+      referencedRelation: "organization";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_trap_catches_trap_id_fkey";
+      columns: ["trap_id"];
+      isOneToOne: false;
+      referencedRelation: "pest_traps";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type PestIncidentsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    trap_id: string | null;
+    asset_id: string | null;
+    reported_at: string;
+    severity: string;
+    notes: string | null;
+    response_action: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    trap_id?: string | null;
+    asset_id?: string | null;
+    reported_at: string;
+    severity: string;
+    notes?: string | null;
+    response_action?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    trap_id?: string | null;
+    asset_id?: string | null;
+    reported_at?: string;
+    severity?: string;
+    notes?: string | null;
+    response_action?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "pest_incidents_org_id_fkey";
+      columns: ["org_id"];
+      isOneToOne: false;
+      referencedRelation: "organization";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_incidents_trap_id_fkey";
+      columns: ["trap_id"];
+      isOneToOne: false;
+      referencedRelation: "pest_traps";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_incidents_asset_id_fkey";
+      columns: ["asset_id"];
+      isOneToOne: false;
+      referencedRelation: "assets";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type PestScoutingFunctions = {
+  fn_save_trap: {
+    Args: {
+      p_org: string;
+      p_code: string;
+      p_label: string;
+      p_installed_at: string;
+      p_sector_id?: string | null;
+      p_hawsha_id?: string | null;
+      p_line_id?: string | null;
+      p_lure_changed_at?: string | null;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_update_trap: {
+    Args: {
+      p_trap_id: string;
+      p_lure_changed_at?: string | null;
+      p_status?: string | null;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_log_trap_catch: {
+    Args: {
+      p_trap_id: string;
+      p_checked_at: string;
+      p_catch_count: number;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_report_pest_incident: {
+    Args: {
+      p_reported_at: string;
+      p_severity: string;
+      p_trap_id?: string | null;
+      p_asset_id?: string | null;
+      p_notes?: string | null;
+      p_response_action?: string | null;
+    };
+    Returns: Json;
+  };
+};
+
+// ── agronomist-signoff-gate (docs/CLAUDE.md non-negotiable #4) — plan_operations.signed_off_by/at +
+// fn_sign_off_plan_operation. Augmented here until database.types.ts is regenerated from prod (then a
+// harmless no-op, like the other augmentations in this file). ──
+type WithSignoff<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { signed_off_by: string | null; signed_off_at: string | null };
+  Insert: T["Insert"] & { signed_off_by?: string | null; signed_off_at?: string | null };
+  Update: T["Update"] & { signed_off_by?: string | null; signed_off_at?: string | null };
+  Relationships: T["Relationships"];
+};
+type SignoffFunctions = {
+  fn_sign_off_plan_operation: { Args: { p_op_id: string }; Returns: Json };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
-    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses"> & {
+    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations"> & {
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
+      plan_operations: WithSignoff<WithDependsOn<Tables["plan_operations"]>>;
       attachments: AttachmentsTable;
       accounts: AccountsTable;
       journal_entries: JournalEntriesTable;
@@ -400,8 +709,12 @@ export type Database = Omit<Generated, "public"> & {
       payment_request_lines: PaymentRequestLinesTable;
       payment_request_fundings: PaymentRequestFundingsTable;
       plan_operation_assignees: PlanOperationAssigneesTable;
+      plan_operation_templates: PlanOperationTemplatesTable;
+      pest_traps: PestTrapsTable;
+      pest_trap_catches: PestTrapCatchesTable;
+      pest_incidents: PestIncidentsTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions;
   };
 };
 
