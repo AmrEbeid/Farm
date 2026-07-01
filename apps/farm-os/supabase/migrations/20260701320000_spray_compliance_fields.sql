@@ -257,7 +257,7 @@ begin
       target_pest, apc_registration_ref, rei_hours, phi_days, target_zone,
       applicator_person_id, wind_speed_kmh, wind_direction, air_temp_c)
     values (
-      v_org, v_op_id, (v_mat->>'item_id')::uuid, (v_mat->>'qty')::numeric, coalesce(v_mat->>'unit', 'kg'),
+      v_org, v_op_id, (v_mat->>'item_id')::uuid, (v_mat->>'qty')::numeric, nullif(v_mat->>'unit', ''),
       nullif(v_mat->>'target_pest', ''), nullif(v_mat->>'apc_registration_ref', ''),
       (v_mat->>'rei_hours')::numeric, (v_mat->>'phi_days')::numeric, v_zone,
       v_applicator, (v_mat->>'wind_speed_kmh')::numeric, nullif(v_mat->>'wind_direction', ''),

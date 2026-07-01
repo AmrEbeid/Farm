@@ -5,9 +5,14 @@
 -- — no new gate needed for additive columns; a storekeeper without plan.write is still refused), and
 -- (e) fn_add_plan_operation_multi accepts + persists the new optional per-material compliance fields,
 -- rejecting an unrecognised target_zone (22023) and validating applicator_person_id is an active
--- member of the plan's org. Run via test-shims/run-pgtap-local.sh.
+-- member of the plan's org, and (f) a regression guard: an omitted/blank unit on a NON-kg item still
+-- defaults via trg_pmr_unit_reconcile to the item's real unit — this migration's re-emit of
+-- fn_add_plan_operation_multi had regressed the unit expression to coalesce(v_mat->>'unit','kg')
+-- (vs main's nullif(v_mat->>'unit', '') from 20260701170000), which would mislabel an omitted unit on
+-- a non-kg item as the literal 'kg' and get it correctly-but-spuriously rejected by the trigger.
+-- Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(18);
+select plan(20);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set plan  'b1200000-0000-0000-0000-000000000112'
@@ -117,6 +122,26 @@ select is(
   (select preferred_time_of_day from public.plan_operations
      where id = ((current_setting('t.res')::jsonb)->>'operationId')::uuid),
   'late_afternoon', 'fn_add_plan_operation_multi persists preferred_time_of_day on plan_operations');
+
+-- ── (f) regression guard: an OMITTED unit on a non-kg item must succeed and default via the trigger to
+-- the item's real unit ('L' for item1) — NOT get silently coalesced to the literal string 'kg' (which the
+-- fail-closed trg_pmr_unit_reconcile would then correctly-but-spuriously reject as a unit mismatch).
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select lives_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'spraying', '2026-07-18'::date, null, 100,
+    '[{"item_id":"%s","qty":6,"target_zone":"whole_palm"}]'::jsonb, '[]'::jsonb, null, null) $$,
+    :'plan', :'item1'),
+  'a material line with an omitted unit on a non-kg (L) item succeeds via fn_add_plan_operation_multi (no spurious 22023)');
+reset role;
+
+select is(
+  (select unit from public.plan_material_requirements
+     where plan_op_id = (select id from public.plan_operations
+       where plan_id = :'plan' and planned_at = '2026-07-18'::date)
+       and target_zone = 'whole_palm'),
+  'L', 'the omitted unit defaults to the item''s real unit (L) via the trigger, not a hardcoded ''kg''');
 
 -- an unrecognised target_zone inside the RPC's jsonb payload is rejected with a clean 22023 (not a raw
 -- 23514 constraint violation) — the RPC validates before insert, per its own header comment.
