@@ -14,6 +14,7 @@ import {
   addPlanOperationMulti,
   setPlanOperationDependency,
   type HarvestStage,
+  type IrrigationBasis,
 } from "@/app/(app)/plans/[planId]/actions";
 import { computeEffectiveDate, formatDependencyLabel } from "@/lib/relative-schedule";
 import { HARVEST_STAGE_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -94,6 +95,14 @@ const emptyMatCompliance = {
   applicatorPersonId: "",
 };
 
+// Owner finding A (this session): irrigation frequency is often decided from a soil-moisture test,
+// not picked from a fixed calendar. Record-keeping only — tags the BASIS of the scheduling
+// decision, not a new scheduling algorithm.
+const IRRIGATION_BASIS_OPTIONS: SelectOption[] = [
+  { value: "fixed_schedule", label: "بناءً على جدول ثابت" },
+  { value: "soil_test", label: "بناءً على فحص التربة" },
+];
+
 /**
  * #398: author an operation with SEVERAL needs (N materials of any kind incl. fuel/gas + N labour lines),
  * a MULTI-DAY span (start + optional end), and ONE-OR-MORE employee assignees with a lead. Submits via
@@ -122,6 +131,8 @@ export function OperationBuilder({
   const [plannedAt, setPlannedAt] = useState(today);
   const [endsOn, setEndsOn] = useState(""); // empty = single-day
   const [estCost, setEstCost] = useState("0");
+  const [irrigationBasis, setIrrigationBasis] = useState<IrrigationBasis>("fixed_schedule");
+  const [soilMoistureReading, setSoilMoistureReading] = useState("");
   const [seq, setSeq] = useState(2);
   const [materials, setMaterials] = useState<MatRow[]>([
     { key: 0, itemId: items[0]?.id ?? "", qty: "", ...emptyMatCompliance },
@@ -210,6 +221,9 @@ export function OperationBuilder({
         assignee_ids: assignees,
         lead_id: leadId || null,
         harvest_stage: subtype === "harvest" ? harvestStage : null,
+        irrigation_basis: subtype === "irrigation" ? irrigationBasis : null,
+        soil_moisture_reading:
+          subtype === "irrigation" && irrigationBasis === "soil_test" ? soilMoistureReading : null,
       });
       // `res.ok` alone doesn't narrow (addPlanOperationMulti's return type isn't a discriminated
       // literal union), so check operationId's presence directly — the real success signal.
@@ -289,6 +303,32 @@ export function OperationBuilder({
                 onChange={(e) => setHarvestStage(e.target.value as HarvestStage)}
               />
             </FormRow>
+          )}
+
+          {/* Soil-test-driven irrigation (Owner finding A): the FREQUENCY of an irrigation program
+              is often decided from a soil-moisture test rather than a fixed calendar. This is a
+              context/record field only — it tags the basis of the decision, it does not change
+              how the resulting plan_operations rows are modeled or scheduled. */}
+          {subtype === "irrigation" && (
+            <fieldset className="flex flex-col gap-2 rounded-md border p-3" style={{ borderColor: "var(--line,#e5e7eb)" }}>
+              <legend className="px-1 text-sm font-semibold">أساس جدول الري</legend>
+              <FormRow id="irrigation_basis" label="أساس القرار">
+                <Select
+                  options={IRRIGATION_BASIS_OPTIONS}
+                  value={irrigationBasis}
+                  onChange={(e) => setIrrigationBasis(e.target.value as IrrigationBasis)}
+                />
+              </FormRow>
+              {irrigationBasis === "soil_test" && (
+                <FormRow id="soil_moisture_reading" label="قراءة فحص التربة">
+                  <Input
+                    value={soilMoistureReading}
+                    placeholder="مثال: رطوبة منخفضة أو 15%"
+                    onChange={(e) => setSoilMoistureReading(e.target.value)}
+                  />
+                </FormRow>
+              )}
+            </fieldset>
           )}
 
           {/* Multi-day: start + optional end. */}

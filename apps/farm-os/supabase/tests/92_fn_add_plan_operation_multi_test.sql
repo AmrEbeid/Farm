@@ -14,16 +14,15 @@ select plan(12);
 \set p2    'c9200004-0000-0000-0000-000000000092'
 
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
--- Signature carries an 11th param (p_preferred_time_of_day, trailing after #543's p_harvest_stage) as
--- of migration 20260701320000, which DROPPED the superseded 10-arg overload (Postgres resolves
--- overloads by parameter types, so adding a param changes the function's identity — mirrors the
--- #520/#545 fn_execute_operation precedent, and #543/#549's own drops of their predecessor overloads).
+-- Signature extended by migration 20260701330000 with two trailing OPTIONAL params
+-- (p_irrigation_basis, p_soil_moisture_reading) — update the has_function_privilege signature
+-- string accordingly (Postgres identifies the function by its full arg-type list).
 select ok(not has_function_privilege('anon',
   'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
-  '0093/20260701320000: anon cannot EXECUTE fn_add_plan_operation_multi');
+  '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
   'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text)', 'EXECUTE'),
-  '0093/20260701320000: authenticated CAN EXECUTE fn_add_plan_operation_multi');
+  '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────
 insert into public.plans (id, org_id, type, status, scope_type) values (:'plan', :'orgA', 'monthly', 'approved', 'sector');
