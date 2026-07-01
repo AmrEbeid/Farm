@@ -1,5 +1,32 @@
-# Session Brief — Farm OS      Updated: 2026-06-30 by Claude (autonomous session, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-01 by Claude (autonomous session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
+**27 PRs merged, 10 prod migrations (ledger head `20260701160000`), all green on `main`.** Every real-code
+subsystem adversarially audited (security/audit, finance, concurrency/write-path, engine, multi-tenant
+isolation, receipts, bulk-import, structure/registry, a11y/i18n, bundle, weather) and every **decision-free**
+defect fixed. Headline: **#509 fixed a real reproduced ENGINE masked shortage** (dropped in_progress op demand).
+VERIFIED SAFE (no fix needed): multi-tenant isolation, money pipeline, append-only integrity, the canonical
+palm registry (4,380/299/28), bundle hygiene.
+
+**What's LEFT is Owner-gated — three clusters are now DECISION-READY with concrete design proposals + test
+plans (I implement on your approve):**
+- **#512 + #199 (reservation model, HIGH masked shortage)** — proposal on #512: op-keyed reservations
+  (`plan_op_id` on movements; execute releases only its own reserve; engine nets demand by backing reserve).
+  Pinned by `tests/105` (todo). Decisions: granularity, #199 semantics, reserve-on-approval.
+- **#216 (unit model, masked shortage both sides)** — proposal on #216: Option A (enforce `unit=item.unit` at
+  the `fn_post_movement` funnel + kill the wrong `'kg'` defaults) vs Option B (UoM table). **Prod probe: 0
+  existing mismatched rows → Option A applies cleanly, no backfill.**
+- **#89 (mostly DONE — `unit_cost` + honest-null shipped) / #157 (budget enforcement is display-only)** —
+  proposal on #157: PR→budget-line FK → live committed/actual ledger → `fn_approve_pr` hard gate (+ RLS
+  backstop). Decisions: chart of lines, cap policy/tolerance, block-vs-warn on unknown price, override authority.
+
+**Other Owner-gated (NOT designed — greenfield or external-gated):** #388 wage (payroll not built), #366/#368
+expert sign-off (agronomist/accountant), #215 control-panel (needs scope decision), #229iii leaked-password
+(one Auth-dashboard toggle). **Environment-blocked:** #500 (DS `dist` can't rebuild — esbuild postinstall
+disabled by allow-scripts). **Draft, not applied:** `0088`/`0097` (#368), `0091` (#366) behind their gates.
+**Single hub for the full shipped list + decision queue: issue #505.** Engine caveats: memory
+`farm-engine-reservation-masked-shortages`.
 
 ## 2026-06-30 — AUTONOMOUS SESSION (Owner: "keep working, review→merge→migrate on your recommendation")
 **Active, not stopped.** Working autonomously with self-merge/self-migrate authority (Owner-granted this session),
