@@ -464,3 +464,40 @@ export async function instantiateOperationTemplate(
   revalidatePath(`/plans/${planId}`);
   return { ok: true as const, ...result };
 }
+
+/**
+ * Sign off a dose-bearing plan operation (docs/CLAUDE.md non-negotiable #4 — agronomist-signoff-gate).
+ *
+ * GENERIC MECHANISM ONLY: this makes the sign-off STATE visible/settable — it does not (yet) gate
+ * fn_execute_operation or the stock-coverage engine's demand on it (deliberately deferred; see the
+ * migration header). `agronomy.signoff` is currently granted to owner/agri_engineer as a REASONABLE
+ * DEFAULT, not a final Owner decision on WHO the real named agronomist is.
+ *
+ * fn_sign_off_plan_operation stamps signed_off_by/at from the CALLER's session server-side — this
+ * action passes only the op id, never a person id or timestamp.
+ */
+export async function signOffPlanOperation(planId: string, opId: string) {
+  await requireMembership();
+  const sb = await createClient();
+
+  const { data, error } = await sb.rpc("fn_sign_off_plan_operation", { p_op_id: opId });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        {
+          "42501": "ليس لديك صلاحية اعتماد هذه العملية (يقتصر الاعتماد على المالك أو المهندس الزراعي)",
+          P0001: "لا يوجد سجل موظف مرتبط بحسابك في هذه المزرعة",
+          P0002: "العملية غير موجودة",
+        },
+        "تعذّر اعتماد العملية",
+      ),
+    };
+  }
+  const result = data as { operationId: string; signedOffBy: string; signedOffAt: string } | null;
+  if (!result?.operationId) return { ok: false, error: "تعذّر اعتماد العملية" };
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true, signedOffAt: result.signedOffAt };
+}
