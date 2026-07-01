@@ -37,18 +37,18 @@
 | 19 | **KSA compliance pack** (subsidy-ready records, ترشيد water evidence, Saudi Date Mark quality records) | The 1k+ palm commercial white space; time to 2027 Year of the Date Palm |
 | 20 | **English secondary locale** (owner/investor-facing reports only; field stays Arabic-first) | GCC investors/partners; cheap once labels are centralized |
 | 21 | **Zr3i carbon-MRV export partnership** (read-only registry/practices export) | Monetizes the registry; keeps Zr3i out of ops |
-| 22 | **Multi-crop generalization** (the intercropped fruits) — palms stay first-class | Already half-true in the schema; unlocks mixed farms |
+| 22 | **Multi-crop generalization** — palms stay first-class | ⬆️ **Elevated 2026-07-02 (issue #595)**: the Owner confirmed intercropping (زراعات بينية) between palms in SOME hawshat at the reference farm — no longer a scale feature but a reference-farm modeling requirement. The `hawsha_crops` composition capture now rides the Stage-M import (SPEC-0003 addendum); intercrop ops/vocabulary/revenue follow post-Stage-M (#595 D3). |
 
-## Tier 4 — later / weigh carefully
+## Tier 4 — later / weigh carefully *(re-ranked 2026-07-02 after the ops/customer research waves)*
 
-| # | Idea | Caution |
+| # | Idea | Status / caution |
 |---|---|---|
-| 23 | عبدالجليل AI assistant (Stage 11) | After the spine exists; read-only RLS-scoped RPCs only (SPEC-0005) |
-| 24 | Arabic voice-note → transcribed operation notes | Genuinely good for literacy; needs a transcription service decision (PII review) |
-| 25 | QR/NFC tags per palm/line → scan-to-360 → record | Physicalizes the moat; hardware + labeling logistics — pilot one hawsha first |
-| 26 | Buyer/CRM-light + sales orders | Only when revenue module (Slice A) is real and used |
-| 27 | Photo-based pest/disease ID | Liability-adjacent (non-negotiable #4); only as "suggest + agronomist confirms," never diagnosis |
-| 28 | Anomaly alerts ("labor cost/feddan spiked 40%") | Needs ≥1 full season of real data to be honest |
+| 23 | عبدالجليل AI assistant (Stage 11) | **Stays last by design** — but its rails are being built ahead of it (pending-actions inbox BOOM-P5, WhatsApp SPEC-0022, season spine SPEC-0021). After Season 1, on real data, per SPEC-0005. |
+| 24 | Arabic voice-note → transcribed operation notes | **Merged into SPEC-0022 phase 2** — workflow research proved voice is THE dispatch channel (literacy). Standalone no more; needs the transcription-service PII decision. |
+| 25 | ~~QR/NFC tags per palm/line~~ | **PROMOTED out of Tier 4** → `OPS-PLAN-2026-07.md` **Lane 2 (L2-2)**: supervisor-device + laminated QR badges for palms AND workers — the market-first leapfrog. Pilot one hawsha first still applies. |
+| 26 | Buyer/CRM-light + sales orders | **Split**: the *minimal* sales model (buyer, hawsha, **crop** — required by intercropping #595 — qty, price, "sold on the tree" outcome) moved into BOOM-P3 / OPS-PLAN L2-4. Full CRM (pipeline/contacts) stays Tier 4. |
+| 27 | Photo-based pest/disease ID | **Stays firmly** — liability-adjacent (non-negotiable #4); CV research-stage; the RPW route module (L3-4) covers the need with human scouting. Only ever "suggest + agronomist confirms." |
+| 28 | Anomaly alerts ("labor cost/feddan spiked 40%") | **Stays — physics**: needs ≥1 real season for a baseline or it fabricates alarms; rails (alert center #11, inbox) come first. |
 
 ## Standing DO-NOT-BUILD (from MARKET-DELTA §5)
 
