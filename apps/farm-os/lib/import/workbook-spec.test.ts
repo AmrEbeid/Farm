@@ -39,6 +39,29 @@ describe("buildTemplateSpec", () => {
   });
 });
 
+describe("buildTemplateSpec with existing rows", () => {
+  it("adds one data-sheet row per existing record, after the header", () => {
+    const spec = buildTemplateSpec(d, [{ name: "أحمد", kind: "a" }, { name: "سعد", kind: "b" }]);
+    const data = spec.sheets[1];
+    expect(data.rows).toEqual([
+      ["الاسم *", "النوع"],
+      ["أحمد", "a"],
+      ["سعد", "b"],
+    ]);
+  });
+
+  it("sanitizes existing-row cell values the same way as the example row", () => {
+    const evil: ImportDescriptor = { ...d, columns: [d.columns[0]] };
+    const spec = buildTemplateSpec(evil, [{ name: "=HYPERLINK(1)" }]);
+    expect(spec.sheets[1].rows[1]).toEqual(["'=HYPERLINK(1)"]);
+  });
+
+  it("defaults to a header-only sheet when no existing rows are given", () => {
+    const spec = buildTemplateSpec(d);
+    expect(spec.sheets[1].rows).toHaveLength(1);
+  });
+});
+
 describe("parseRows", () => {
   it("maps data rows to objects keyed by column key, matching Arabic headers", () => {
     const matrix = [

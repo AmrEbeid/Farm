@@ -1,6 +1,58 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-06-30)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-01)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-07-01 — accounting/custody settlement LIVE via PR #568 (`8ffc4ae`).**
+> Branch `feat/accounting-custody-standalone` / PR #568 introduced
+> `20260701220000_accounting_cash_custody_settlement.sql` plus `/accounting` and request-settlement UI.
+> Validation is green (local pgTAP 904/904, app Vitest 251/251, lint, production build, diff check; PR checks +
+> CodeRabbit green). The migration was applied to Farm prod (`veezkmytervjnpxcrbkw`) with
+> `supabase db push --yes`; ledger now records `20260701220000 accounting_cash_custody_settlement`. Prod probes
+> confirm the new tables/RPCs exist, FORCE RLS is enabled, authenticated table DML is revoked, and anon cannot execute
+> the new accounting/payment RPCs. PR #568 was squash-merged to `main` at `8ffc4ae`; post-merge `ci`, `db-tests`,
+> and `release` are green. Live unauthenticated probes on `https://ebeidfarm.business/accounting` and `/custody`
+> return the expected protected-route `307` to `/login` (login `200`), not 404/500.
+
+> **2026-07-01 (cont.) — 5 more prod migrations: the ENGINE masked-shortage program (all migrate-first, green `main`).**
+> Prod ledger head is now **`20260701210000`**. All applied migrate-first + independent-reviewed (engine surface) +
+> prod re-probed. A holistic re-audit after the first batch caught two masked shortages introduced by the batch
+> itself (per-change reviews missed the INTERACTIONS); both fixed; a final re-audit confirms the engine is
+> **masked-shortage-free**. The set (in order):
+> - `20260701170000` #216 demand — pmr.unit reconcile trigger (reject a 'ton' requirement) (#521)
+> - `20260701180000` #216 supply — fn_post_movement unit reconcile + fn_reserve_stock null (#522) ⚠️ engine
+> - `20260701190000` #512 — fn_execute_operation drops the blind release (reservation-wipe mask) (#525) ⚠️ engine
+> - `20260701200000` — clamp fn_stock_coverage bucket origin to today (regression from #509) (#529) ⚠️ engine
+> - `20260701210000` — fn_post_receipt inherits the item unit (stuck-PR phantom-supply mask) (#530) ⚠️ engine
+> **All 5 masked-shortage vectors found this session are closed (#509/#216/#512 + the two re-audit findings), each
+> with an independent-review proof of non-masking.** Remaining reservation work (#199 double-count, #526 earmark
+> accumulation) is OVER-ORDER only (safe), owner-gated on the reserve-lifecycle decision.
+
+> **2026-07-01 — AUTONOMOUS SESSION: 10 prod migrations applied migrate-first, all green on `main` (`b05811e`).**
+> Every migration was validated on the local pgTAP harness first, applied to Farm prod (`veezkmytervjnpxcrbkw`)
+> via the MCP `execute_sql` + manual ledger-insert pattern (see memory `farm-prod-migrate-via-mcp`), re-probed on
+> prod, then merged after CI green. Prod ledger head is **`20260701160000`**. The applied set (in order):
+> - `20260630090000` anon table-DML lockdown (#317/PR #485)
+> - `20260630100000` perf-advisor: pr_update RLS InitPlan + FK covering sweep (#486)
+> - `20260701090000` org-settings audit gap (#492)
+> - `20260701100000` plan-subsystem audit triggers (#495)
+> - `20260701110000` event-children audit triggers (#497)
+> - `20260701120000` custody one-cash-out unique backstop (#508)
+> - `20260701130000` **engine masked-shortage fix** — count in_progress/approved op demand (#509) ⚠️ engine surface
+> - `20260701140000` payment-lifecycle claim-first guards (#511)
+> - `20260701150000` sectors/hawshat (org_id, code) unique — import idempotency (#515)
+> - `20260701160000` structure CRUD integrity (archive/restore symmetry, row_count coalesce, archived-parent) (#517)
+> **Still queued as draft PRs, NOT applied:** `0088`+`0097` (#368 accounting), `0091` (#366 academy) — behind their
+> expert/reconciliation gates. **Owner-gated model decisions (NOT migrated):** the reservation-model redesign
+> (#512/#199) and unit-model (#216) — both are masked-shortage-adjacent and need Amr's design call; #512 is pinned
+> by `tests/105` (todo). Full session record + decision queue: issue #505.
+
+> **2026-06-30 — perf-advisor remediation applied to prod (migrate-first), PR #486.** Migration
+> **`20260630100000`**: (1) re-emit `purchase_requests.pr_update` (byte-for-byte from `0070`) with the
+> `current_setting('app.posting_receipt')` read wrapped as an InitPlan subselect (fixes `auth_rls_initplan`
+> WARN; semantically identical — per-tx GUC); (2) re-run the idempotent `0096` catalog FK-covering-index
+> sweep to cover `plan_operation_assignees.org_id` + `residue_test_results.org_id` (created after `0096`).
+> Local pgTAP 826/826; applied to prod (ledger `20260630100000`); re-probe: 0 uncovered FKs, GUC wrapped.
+> Deliberately left the ~80 `unused_index` INFO findings (pilot DB → "unused" = "not yet exercised").
 
 > **2026-06-30 — #317 residual anon table-DML lockdown applied to prod (migrate-first), PR #485.** A read-only
 > prod grant probe found `anon` still held `INSERT,UPDATE` on `public.attachments` + `public.plan_operation_assignees`

@@ -37,6 +37,17 @@ function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
   }
 }
 
+// Palm-cell colour encodes health status; carry it in the cell's accessible name too so SR / colourblind
+// users aren't left with colour alone (WCAG 1.4.1). Same Arabic status words used on the palm-360 page.
+const PALM_STATUS_AR: Record<PalmStatus, string> = {
+  healthy: "سليمة",
+  watch: "تحت المراقبة",
+  sick: "مريضة",
+  dead: "ميتة",
+  removed: "مُزالة",
+  male: "ذكر",
+};
+
 export default async function SectorFilePage({
   params,
   searchParams,
@@ -152,10 +163,11 @@ export default async function SectorFilePage({
     if (!lineMap.has(lineId)) {
       lineMap.set(lineId, { id: lineId, label: `خط ${num(lineNo)}`, cells: [] });
     }
+    const palmCellStatus = palmStatus(a.status, a.sex);
     lineMap.get(lineId)!.cells.push({
       id: a.id,
-      status: palmStatus(a.status, a.sex),
-      ariaLabel: a.id_tag ?? a.id,
+      status: palmCellStatus,
+      ariaLabel: `${a.id_tag ?? a.id} — ${PALM_STATUS_AR[palmCellStatus]}`,
     });
   }
   const palmLines = Array.from(lineMap.values());
@@ -262,7 +274,7 @@ export default async function SectorFilePage({
           )}
 
           <Card title="الحوشات">
-            <SimpleTable columns={hawshaColumns} rows={hawshaRows} empty="لا توجد حوشات" />
+            <SimpleTable columns={hawshaColumns} rows={hawshaRows} ariaLabel="الحوشات" empty="لا توجد حوشات" />
           </Card>
         </div>
       )}

@@ -1,7 +1,10 @@
 # SPEC-0018 — العهدة وطلبات الصرف (Custody & Payment Requests)
 
-*Status: **Built on `main`**. Backend schema/RPCs were reviewed, applied to Farm prod, and merged via #468
+*Status: **Built on `main`; settlement/accounting extension live via PR #568 (`8ffc4ae`) on 2026-07-01**. Backend schema/RPCs were reviewed, applied to Farm prod, and merged via #468
 (`27065f1`). Frontend routes/actions were refreshed against that live backend and merged via #474 (`2eb6025`).
+Branch `feat/accounting-custody-standalone` adds the owner-requested cash-method settlement/accounting slice; its
+production migration `20260701220000 accounting_cash_custody_settlement` is **applied and probed migrate-first**,
+with PR checks + CodeRabbit green. Post-merge `main` checks are green and live protected-route probes pass.
 This spec intentionally avoids real line-item amounts, receipt details, worker matrices, and payment identifiers;
 real Ebeid financial/PII import remains Stage-M gated.*
 
@@ -18,7 +21,7 @@ The paper «إذن صرف المزارع» mixes three finance truths that must 
 
 - a permanent custody float held by farm staff,
 - cash expenses paid from that custody,
-- post-paid operating expenses requested from the owner.
+- post-paid expenses requested from the owner.
 
 Before SPEC-0018, the process was hand-totaled, proof lived outside the app, and the custody top-up was computed
 manually. The main risks were stale balances, missing approval trace, and double-counting a cash-paid expense in an
@@ -43,11 +46,19 @@ No new migration is required after #468. #474 was frontend-only.
 
 - **Current custody = Σ(amount_in) − Σ(amount_out)** from `custody_movements`.
 - A `paid_from_custody` expense posts exactly one linked custody cash out-movement equal to the expense total.
-- A `post_paid_unpaid` expense is eligible for a payment request and does not hit custody.
+- A `post_paid_unpaid` expense is eligible for a payment request and does not hit accounting until paid.
+- A `paid_from_custody` expense may also be included in a draft request for reporting/replenishment, but it must
+  already have a custody cash-out movement.
 - **Custody top-up = MAX(0, target_float − current_custody)**.
-- **Net request = post_paid_unpaid linked request lines + custody top-up**.
-- `drawing` and `capex` expenses are excluded from custody/request math; only `operating` expenses can use
-  custody/request routing.
+- **Net request before funding = post_paid_unpaid linked request lines + custody top-up**.
+- Owner approval snapshots the approved request amount. Owner transfer is then recorded as `payment_request_funding`
+  and a custody `amount_in` movement before any payout is confirmed.
+- A standing custody receipt from the owner (`استلام عهدة من المالك`, such as the farm-manager float) posts to the
+  cash ledger as owner funding; internal custody handovers remain custody-account balance movements, not new funding.
+- Confirming a request payout records a custody `amount_out`, marks the request line paid, and posts the accounting
+  journal from the selected custody source.
+- `operating`, `capex`, and `drawing` expenses may be represented in the request, but request totals keep them
+  separated so owner drawings do not contaminate operating P&L.
 - Routed expense amount/kind is immutable; corrections must be explicit reversals/new lines.
 
 ## 4. Tables
@@ -58,10 +69,12 @@ Implemented in `apps/farm-os/supabase/migrations/20260629150000_custody_and_expe
 | Table | Purpose | Notes |
 |---|---|---|
 | `custody_accounts` | Custody float account per holder | `holder_label`, optional `holder_user_id`, `target_float`, `active`; finance-read RLS; writes via `fn_save_custody_account`. |
-| `custody_movements` | Append-only custody cash ledger | exactly one of `amount_in`/`amount_out` must be positive; optional `expense_id`; direct DML revoked. |
-| `payment_requests` | Monthly request header/lifecycle | per-org `request_no`, period, status, optional linked custody account, approver stamps. |
-| `payment_request_lines` | Expenses included in a request | one request per expense; only operating `post_paid_unpaid` expenses accepted by RPC. |
+| `custody_movements` | Append-only custody cash ledger | exactly one of `amount_in`/`amount_out` must be positive; optional `expense_id`; draft extension adds optional `payment_request_id` + `journal_entry_id`; direct DML revoked. |
+| `payment_requests` | Monthly request header/lifecycle | per-org `request_no`, period, status, optional linked custody account, approver stamps; draft extension snapshots approved totals. |
+| `payment_request_lines` | Expenses included in a request | one request per expense; draft extension stores settlement fields (`paid_at`, `paid_by`, custody source, movement, journal). |
 | `expenses` extension | Payment routing | `payment_status`, `paid_by`, and `kind` are present in this apply path; routing fields are RPC-controlled. |
+| `payment_request_fundings` | Owner transfers into custody for a request | draft extension; links request, custody account, custody movement, journal entry, amount, and date. |
+| `accounts` / `journal_entries` / `journal_lines` | Cash-method accounting kernel | draft extension; owner/accountant read, no direct DML, journals created only by RPCs. |
 
 The receipt/media extension is not part of the shipped slice. Existing `attachments` remains available for node
 media; finance-confidential receipt handling needs a later receipt/proof slice before real receipt images are
@@ -79,14 +92,18 @@ tables.
 | `fn_set_expense_payment_status` | Set payment routing; `paid_from_custody` posts the linked cash movement once. |
 | `fn_custody_balance` | Derived account balance, finance-read gated. |
 | `fn_create_payment_request` | Create a draft request with the next per-org request number. |
-| `fn_add_expense_to_request` | Add an eligible operating post-paid expense to a draft request. |
+| `fn_add_expense_to_request` | Add an eligible post-paid or already custody-paid expense to a draft request. |
 | `fn_submit_payment_request` | `draft -> submitted`. |
 | `fn_approve_request_operational` | `submitted -> approved_operational`. |
 | `fn_approve_request_final` | `approved_operational -> approved_final`; owner-only. |
 | `fn_payment_request_totals` | Derived unpaid/top-up/net totals. |
+| `fn_accounting_trial_balance` | Draft extension: owner/accountant cash trial balance. |
+| `fn_record_payment_request_funding` | Draft extension: record owner funding as custody first and post journal Dr custody / Cr owner funding. |
+| `fn_confirm_request_expense_paid` | Draft extension: confirm a request line paid from a selected custody source and post the expense/drawing/capex journal. |
+| `fn_close_payment_request` | Draft extension: close a funded request after all lines are paid. |
 
-Not built in this slice: `fn_close_month`, `fn_import_from_sheet`, receipt attach RPCs, owner disbursement posting,
-and `paid/closed` lifecycle transitions.
+Not built in this slice: `fn_close_month`, `fn_import_from_sheet`, receipt attach RPCs, bank reconciliation,
+month close, tax, or real-data import.
 
 ## 6. Roles and Permissions
 
@@ -115,10 +132,13 @@ Implemented in #474:
   recent payment requests.
 - `/custody/request/[requestId]`: printable Arabic request 360 page with status, period, line summary, category
   summary, totals, lifecycle buttons, and signature blocks.
-- `CustodyForms.tsx`: create custody account, record movement, create request, and add eligible expense lines to a
-  draft request.
+- Draft branch extension: request settlement tab records owner funding, confirms payout from selected custody
+  source, lists funding rows, and closes the request when all lines are paid.
+- `CustodyForms.tsx`: create custody account, record movement, create request, add eligible expense lines to a
+  draft request, and on the draft branch perform funding/payment/close actions.
 - `RequestLifecycle.tsx` + `lib/request-lifecycle.ts`: UI gating for submit, operational approve, and final approve.
-- Nav/help entries: owner/accountant see `العهدة وطلبات الصرف`; farm manager does not.
+- Nav/help entries: owner/accountant see `العهدة وطلبات الصرف`; farm manager does not. Draft branch also adds
+  `/accounting` to the Finance module for owner/accountant only.
 
 All route reads throw on Supabase/RPC errors instead of fabricating financial zeroes.
 
@@ -126,6 +146,7 @@ All route reads throw on Supabase/RPC errors instead of fabricating financial ze
 
 Backend:
 
+- Draft branch local pgTAP after the settlement/accounting extension: **894/894**.
 - Local pgTAP on the clean backend lane: **800/800**.
 - PR #468 checks: app CI, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel.
 - Prod preflight found only `20260629150000` and `20260629150100` pending, and no remote object/column collision.
@@ -133,6 +154,8 @@ Backend:
 
 Frontend:
 
+- Draft branch validation after the settlement/accounting extension: app Vitest **251/251**, ESLint clean, Next
+  production build green, `git diff --check` clean.
 - Local Node 20 Vitest after #474 review: **234/234**.
 - PR #474 checks: app typecheck/lint/test/build, pgTAP/db, aggregate typecheck/build/storybook, gitleaks, Vercel.
 - Post-merge `main` checks after `2eb6025`: `ci`, `db-tests`, and `release` all passed.
@@ -141,7 +164,7 @@ Frontend:
 
 - Receipt/proof capture with finance-confidential attachment RLS.
 - Month close / period locking.
-- Owner payment/disbursement posting after final approval.
+- Bank reconciliation / proof matching.
 - Real Google Sheet/Excel import path and dry-run tooling.
 - Farm-manager finance participation, if the owner explicitly ratifies it.
 - Rich custody charts and missing-proof/duplicate-proof flags.

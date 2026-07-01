@@ -217,7 +217,7 @@ export default async function PeopleDashboardPage({
           {workloadRows.length === 0 ? (
             <EmptyState title="لا يوجد أعضاء نشطون" />
           ) : (
-            <SimpleTable columns={workloadColumns} rows={workloadRows} empty="—" />
+            <SimpleTable columns={workloadColumns} rows={workloadRows} ariaLabel="عبء العمل حسب الشخص" empty="—" />
           )}
         </Card>
       )}
@@ -229,7 +229,7 @@ export default async function PeopleDashboardPage({
           {unassignedRows.length === 0 ? (
             <EmptyState title="لا توجد عمليات بلا مسؤول" />
           ) : (
-            <SimpleTable columns={operationColumns} rows={unassignedRows} empty="—" />
+            <SimpleTable columns={operationColumns} rows={unassignedRows} ariaLabel="عمليات بلا مسؤول" empty="—" />
           )}
         </Card>
           )}
@@ -238,7 +238,7 @@ export default async function PeopleDashboardPage({
           {directoryRows.length === 0 ? (
             <EmptyState title="لا يوجد أعضاء نشطون" />
           ) : (
-            <SimpleTable columns={directoryColumns} rows={directoryRows} empty="—" />
+            <SimpleTable columns={directoryColumns} rows={directoryRows} ariaLabel="دليل الفريق" empty="—" />
           )}
         </Card>
           )}

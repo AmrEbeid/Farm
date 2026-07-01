@@ -28,7 +28,10 @@ function normHeader(s: string): string {
 
 /** Build the renderer-agnostic template for a descriptor. The data sheet is header-only
  * (the worked example lives on the instructions sheet, so it is never imported). */
-export function buildTemplateSpec(d: ImportDescriptor): WorkbookSpec {
+export function buildTemplateSpec(
+  d: ImportDescriptor,
+  existingRows: Record<string, unknown>[] = [],
+): WorkbookSpec {
   const instructions: string[][] = [
     [sanitizeCell(d.titleAr)],
     [sanitizeCell("الأعمدة المطلوبة معلّمة بنجمة (*). صيغة التاريخ: " + DATE_HINT)],
@@ -50,6 +53,7 @@ export function buildTemplateSpec(d: ImportDescriptor): WorkbookSpec {
   ];
 
   const header = d.columns.map((c) => sanitizeCell(c.required ? c.labelAr + " *" : c.labelAr));
+  const dataRows = existingRows.map((r) => d.columns.map((c) => sanitizeCell(r[c.key])));
 
   const dropdowns = d.columns
     .map((c, i) => (c.type === "enum" ? { col: i, values: c.enumValues ?? [] } : null))
@@ -58,7 +62,7 @@ export function buildTemplateSpec(d: ImportDescriptor): WorkbookSpec {
   return {
     sheets: [
       { name: INSTRUCTIONS_SHEET, rows: instructions },
-      { name: DATA_SHEET, rows: [header], dropdowns },
+      { name: DATA_SHEET, rows: [header, ...dataRows], dropdowns },
     ],
   };
 }

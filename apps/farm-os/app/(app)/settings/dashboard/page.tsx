@@ -148,7 +148,7 @@ export default async function SettingsDashboardPage({
               />
             </div>
           )}
-          <SimpleTable columns={roleColumns} rows={roleRows} empty="لا توجد عضويات" />
+          <SimpleTable columns={roleColumns} rows={roleRows} ariaLabel="توزيع الأدوار" empty="لا توجد عضويات" />
         </Card>
           )}
         </section>
@@ -156,7 +156,7 @@ export default async function SettingsDashboardPage({
 
       {(filter === "all" || filter === "links") && (
         <Card title="روابط الإدارة">
-          <SimpleTable columns={linkColumns} rows={linkRows} empty="لا توجد روابط" />
+          <SimpleTable columns={linkColumns} rows={linkRows} ariaLabel="روابط الإدارة" empty="لا توجد روابط" />
         </Card>
       )}
     </div>

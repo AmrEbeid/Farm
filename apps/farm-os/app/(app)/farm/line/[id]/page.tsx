@@ -236,7 +236,7 @@ export default async function LineFilePage({
             {palmRows.length === 0 ? (
               <EmptyState title="لا يوجد نخيل مسجّل على هذا الخط" />
             ) : (
-              <SimpleTable columns={palmColumns} rows={palmRows} empty="—" />
+              <SimpleTable columns={palmColumns} rows={palmRows} ariaLabel="النخيل في هذا الخط" empty="—" />
             )}
           </Card>
         </div>

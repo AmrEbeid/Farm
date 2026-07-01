@@ -157,6 +157,8 @@ export default async function PlanningDashboardPage({
     };
   });
 
+  const operationCardTitle = filter === "due" ? "عمليات مستحقة" : "العمليات القادمة";
+
   const checkColumns: SimpleColumn[] = [
     { id: "kind", header: "الفحص" },
     { id: "plan", header: "الخطة" },
@@ -249,7 +251,7 @@ export default async function PlanningDashboardPage({
           {planAttentionRows.length === 0 ? (
             <EmptyState title="لا توجد خطط نشطة تحتاج متابعة" />
           ) : (
-            <SimpleTable columns={planColumns} rows={planAttentionRows} empty="—" />
+            <SimpleTable columns={planColumns} rows={planAttentionRows} ariaLabel="خطط تحتاج متابعة" empty="—" />
           )}
         </Card>
       )}
@@ -257,11 +259,11 @@ export default async function PlanningDashboardPage({
       {(filter === "all" || filter === "operations" || filter === "due" || filter === "checks") && (
         <section className="grid gap-4 md:grid-cols-2">
           {(filter === "all" || filter === "operations" || filter === "due") && (
-        <Card title={filter === "due" ? "عمليات مستحقة" : "العمليات القادمة"}>
+        <Card title={operationCardTitle}>
           {operationRows.length === 0 ? (
             <EmptyState title="لا توجد عمليات مفتوحة" />
           ) : (
-            <SimpleTable columns={operationColumns} rows={operationRows} empty="—" />
+            <SimpleTable columns={operationColumns} rows={operationRows} ariaLabel={operationCardTitle} empty="—" />
           )}
         </Card>
           )}
@@ -270,7 +272,7 @@ export default async function PlanningDashboardPage({
           {checkRows.length === 0 ? (
             <EmptyState title="لا توجد فحوص محظورة" />
           ) : (
-            <SimpleTable columns={checkColumns} rows={checkRows} empty="—" />
+            <SimpleTable columns={checkColumns} rows={checkRows} ariaLabel="الفحوص المحظورة" empty="—" />
           )}
         </Card>
           )}

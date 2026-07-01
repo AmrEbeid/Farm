@@ -8,11 +8,15 @@ import {
   recordCustodyMovement,
   createPaymentRequest,
   addExpenseToRequest,
+  recordPaymentRequestFunding,
+  confirmRequestExpensePaid,
+  closePaymentRequest,
 } from "@/app/(app)/custody/actions";
 
 type Acct = { id: string; holder_label: string };
 type Msg = { tone: "ok" | "danger"; text: string } | null;
 type PaymentRequestExpense = { id: string; label: string };
+type PayableRequestExpense = { id: string; label: string };
 
 const MOVEMENT_TYPES = [
   "استلام عهدة من المالك",
@@ -180,7 +184,7 @@ export function AddExpenseToPaymentRequest({
   }
 
   if (expenses.length === 0) {
-    return <p style={{ color: "var(--ink-muted)" }}>لا توجد مصروفات آجلة متاحة للإضافة.</p>;
+    return <p style={{ color: "var(--ink-muted)" }}>لا توجد مصروفات مؤهلة متاحة للإضافة.</p>;
   }
 
   return (
@@ -188,7 +192,7 @@ export function AddExpenseToPaymentRequest({
       <div role="alert" aria-live="assertive" aria-atomic="true">
         {msg && <Alert tone={msg.tone} title={msg.text} />}
       </div>
-      <Field label="مصروف آجل غير مدفوع" id="request-expense">
+      <Field label="مصروف مؤهل للطلب" id="request-expense">
         <Select
           id="request-expense"
           value={expenseId}
@@ -199,6 +203,213 @@ export function AddExpenseToPaymentRequest({
       <div>
         <Button disabled={pending || !expenseId} onClick={submit}>
           {pending ? "جارٍ الإضافة…" : "إضافة للطلب"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function RecordRequestFunding({
+  requestId,
+  accounts,
+  remainingToFund,
+}: {
+  requestId: string;
+  accounts: Acct[];
+  remainingToFund: number;
+}) {
+  const router = useRouter();
+  const [custodyAccountId, setCustodyAccountId] = useState(accounts[0]?.id ?? "");
+  const [amount, setAmount] = useState(remainingToFund > 0 ? String(remainingToFund) : "");
+  const [occurredAt, setOccurredAt] = useState("");
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState(false);
+  const [msg, setMsg] = useState<Msg>(null);
+
+  async function submit() {
+    if (!custodyAccountId) return;
+    setPending(true);
+    setMsg(null);
+    let res: { ok: boolean; error?: string };
+    try {
+      res = await recordPaymentRequestFunding({
+        requestId,
+        custodyAccountId,
+        amount: Number(amount),
+        occurredAt: occurredAt || null,
+        note: note || null,
+      });
+    } catch {
+      res = { ok: false, error: "تعذّر الاتصال بالخادم. حاول مرة أخرى." };
+    }
+    setPending(false);
+    if (res.ok) {
+      setMsg({ tone: "ok", text: "تم تسجيل تمويل المالك كعهدة" });
+      router.refresh();
+    } else {
+      setMsg({ tone: "danger", text: res.error ?? "تعذّر تسجيل التمويل" });
+    }
+  }
+
+  if (accounts.length === 0) {
+    return <p style={{ color: "var(--ink-muted)" }}>أضف حساب عهدة قبل تسجيل تمويل المالك.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div role="alert" aria-live="assertive" aria-atomic="true">
+        {msg && <Alert tone={msg.tone} title={msg.text} />}
+      </div>
+      <Field label="إيداع التمويل في عهدة" id="funding-account">
+        <Select
+          id="funding-account"
+          value={custodyAccountId}
+          onChange={(e) => setCustodyAccountId(e.target.value)}
+          options={accounts.map((a) => ({ value: a.id, label: a.holder_label }))}
+        />
+      </Field>
+      <Field label="المبلغ المستلم من المالك" id="funding-amount">
+        <Input id="funding-amount" type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </Field>
+      <Field label="تاريخ الاستلام" id="funding-date">
+        <Input id="funding-date" type="date" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+      </Field>
+      <Field label="ملاحظات" id="funding-note">
+        <Input id="funding-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
+      </Field>
+      <div>
+        <Button disabled={pending || !custodyAccountId || Number(amount) <= 0} onClick={submit}>
+          {pending ? "جارٍ التسجيل…" : "تسجيل التمويل"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function ConfirmRequestExpensePayment({
+  requestId,
+  expenses,
+  accounts,
+}: {
+  requestId: string;
+  expenses: PayableRequestExpense[];
+  accounts: Acct[];
+}) {
+  const router = useRouter();
+  const [expenseId, setExpenseId] = useState(expenses[0]?.id ?? "");
+  const [custodyAccountId, setCustodyAccountId] = useState(accounts[0]?.id ?? "");
+  const [occurredAt, setOccurredAt] = useState("");
+  const [paidBy, setPaidBy] = useState("");
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState(false);
+  const [msg, setMsg] = useState<Msg>(null);
+  const selectedExpenseId = expenses.some((expense) => expense.id === expenseId)
+    ? expenseId
+    : expenses[0]?.id ?? "";
+
+  async function submit() {
+    if (!selectedExpenseId || !custodyAccountId) return;
+    setPending(true);
+    setMsg(null);
+    let res: { ok: boolean; error?: string };
+    try {
+      res = await confirmRequestExpensePaid({
+        requestId,
+        expenseId: selectedExpenseId,
+        custodyAccountId,
+        occurredAt: occurredAt || null,
+        paidBy: paidBy || null,
+        note: note || null,
+      });
+    } catch {
+      res = { ok: false, error: "تعذّر الاتصال بالخادم. حاول مرة أخرى." };
+    }
+    setPending(false);
+    if (res.ok) {
+      setMsg({ tone: "ok", text: "تم تأكيد السداد من العهدة" });
+      router.refresh();
+    } else {
+      setMsg({ tone: "danger", text: res.error ?? "تعذّر تأكيد السداد" });
+    }
+  }
+
+  if (accounts.length === 0) {
+    return <p style={{ color: "var(--ink-muted)" }}>أضف حساب عهدة قبل تأكيد السداد.</p>;
+  }
+  if (expenses.length === 0) {
+    return <p style={{ color: "var(--ink-muted)" }}>لا توجد بنود ممولة تنتظر تأكيد السداد.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div role="alert" aria-live="assertive" aria-atomic="true">
+        {msg && <Alert tone={msg.tone} title={msg.text} />}
+      </div>
+      <Field label="البند المطلوب سداده" id="pay-expense">
+        <Select
+          id="pay-expense"
+          value={selectedExpenseId}
+          onChange={(e) => setExpenseId(e.target.value)}
+          options={expenses.map((e) => ({ value: e.id, label: e.label }))}
+        />
+      </Field>
+      <Field label="مصدر العهدة" id="pay-account">
+        <Select
+          id="pay-account"
+          value={custodyAccountId}
+          onChange={(e) => setCustodyAccountId(e.target.value)}
+          options={accounts.map((a) => ({ value: a.id, label: a.holder_label }))}
+        />
+      </Field>
+      <Field label="تاريخ السداد" id="pay-date">
+        <Input id="pay-date" type="date" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+      </Field>
+      <Field label="تم الدفع بواسطة" id="pay-by">
+        <Input id="pay-by" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} maxLength={80} />
+      </Field>
+      <Field label="ملاحظات" id="pay-note">
+        <Input id="pay-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
+      </Field>
+      <div>
+        <Button disabled={pending || !selectedExpenseId || !custodyAccountId} onClick={submit}>
+          {pending ? "جارٍ التأكيد…" : "تأكيد السداد"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function ClosePaymentRequestButton({ requestId }: { requestId: string }) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [msg, setMsg] = useState<Msg>(null);
+
+  async function submit() {
+    setPending(true);
+    setMsg(null);
+    let res: { ok: boolean; error?: string };
+    try {
+      res = await closePaymentRequest(requestId);
+    } catch {
+      res = { ok: false, error: "تعذّر الاتصال بالخادم. حاول مرة أخرى." };
+    }
+    setPending(false);
+    if (res.ok) {
+      setMsg({ tone: "ok", text: "تم إقفال طلب الصرف" });
+      router.refresh();
+    } else {
+      setMsg({ tone: "danger", text: res.error ?? "تعذّر إقفال الطلب" });
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div role="alert" aria-live="assertive" aria-atomic="true">
+        {msg && <Alert tone={msg.tone} title={msg.text} />}
+      </div>
+      <div>
+        <Button disabled={pending} onClick={submit}>
+          {pending ? "جارٍ الإقفال…" : "إقفال الطلب"}
         </Button>
       </div>
     </div>

@@ -9,7 +9,8 @@ type Result = { ok: boolean; error?: string };
 type RequestLifecycleRpc =
   | "fn_submit_payment_request"
   | "fn_approve_request_operational"
-  | "fn_approve_request_final";
+  | "fn_approve_request_final"
+  | "fn_close_payment_request";
 
 const PERM: Record<string, string> = {
   "42501": "ليس لديك صلاحية لهذا الإجراء",
@@ -38,6 +39,28 @@ function isValidDateOnly(value: string): boolean {
 function normalizeOptionalDate(value?: string | null): string | null {
   const date = value?.trim();
   return date ? date : null;
+}
+
+function normalizeOptionalText(value?: string | null): string | null {
+  const text = value?.trim();
+  return text ? text : null;
+}
+
+function validateOptionalDate(value?: string | null): string | null | Result {
+  const date = normalizeOptionalDate(value);
+  if (date && !isValidDateOnly(date)) return { ok: false, error: "التاريخ غير صالح" };
+  return date;
+}
+
+function isResult(value: string | null | Result): value is Result {
+  return typeof value === "object" && value !== null;
+}
+
+function revalidateFinancePaths(requestId?: string) {
+  revalidatePath("/custody");
+  revalidatePath("/expenses");
+  revalidatePath("/accounting");
+  if (requestId) revalidatePath(`/custody/request/${requestId}`);
 }
 
 /** Create a custody account through the backend RPC-only write path. */
@@ -85,7 +108,7 @@ export async function recordCustodyMovement(input: {
     p_note: input.note ?? null,
   });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تسجيل الحركة") };
-  revalidatePath("/custody");
+  revalidateFinancePaths();
   return { ok: true };
 }
 
@@ -105,8 +128,7 @@ export async function setExpensePaymentStatus(input: {
     p_paid_by: input.paidBy ?? null,
   });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تحديث حالة الدفع") };
-  revalidatePath("/custody");
-  revalidatePath("/expenses");
+  revalidateFinancePaths();
   return { ok: true };
 }
 
@@ -144,8 +166,7 @@ async function callOnRequest(rpc: RequestLifecycleRpc, requestId: string, fallba
   const sb = await createClient();
   const { error } = await sb.rpc(rpc, { p_request: requestId });
   if (error) return { ok: false, error: toArabicError(error, PERM, fallback) };
-  revalidatePath("/custody");
-  revalidatePath(`/custody/request/${requestId}`);
+  revalidateFinancePaths(requestId);
   return { ok: true };
 }
 
@@ -155,7 +176,64 @@ export async function addExpenseToRequest(requestId: string, expenseId: string):
   const sb = await createClient();
   const { error } = await sb.rpc("fn_add_expense_to_request", { p_request: requestId, p_expense: expenseId });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر إضافة البند") };
-  revalidatePath(`/custody/request/${requestId}`);
+  revalidateFinancePaths(requestId);
+  return { ok: true };
+}
+
+/** Record owner-transferred funds against an approved request; DB records it as custody first. */
+export async function recordPaymentRequestFunding(input: {
+  requestId: string;
+  custodyAccountId: string;
+  amount: number;
+  occurredAt?: string | null;
+  note?: string | null;
+}): Promise<Result> {
+  if (!input.requestId || !input.custodyAccountId) return { ok: false, error: "البيانات ناقصة" };
+  if (!isFinitePositive(input.amount)) return { ok: false, error: "المبلغ يجب أن يكون أكبر من صفر" };
+  const occurredAt = validateOptionalDate(input.occurredAt);
+  if (isResult(occurredAt)) return occurredAt;
+
+  await requireCustodyFinanceRole();
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_record_payment_request_funding", {
+    p_request: input.requestId,
+    p_custody_account: input.custodyAccountId,
+    p_amount: input.amount,
+    p_occurred_at: occurredAt ?? undefined,
+    p_note: normalizeOptionalText(input.note),
+  });
+  if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تسجيل تمويل المالك") };
+  revalidateFinancePaths(input.requestId);
+  return { ok: true };
+}
+
+/** Confirm a request expense was actually paid from the selected custody source. */
+export async function confirmRequestExpensePaid(input: {
+  requestId: string;
+  expenseId: string;
+  custodyAccountId: string;
+  occurredAt?: string | null;
+  paidBy?: string | null;
+  note?: string | null;
+}): Promise<Result> {
+  if (!input.requestId || !input.expenseId || !input.custodyAccountId) {
+    return { ok: false, error: "البيانات ناقصة" };
+  }
+  const occurredAt = validateOptionalDate(input.occurredAt);
+  if (isResult(occurredAt)) return occurredAt;
+
+  await requireCustodyFinanceRole();
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_confirm_request_expense_paid", {
+    p_request: input.requestId,
+    p_expense: input.expenseId,
+    p_custody_account: input.custodyAccountId,
+    p_occurred_at: occurredAt ?? undefined,
+    p_paid_by: normalizeOptionalText(input.paidBy),
+    p_note: normalizeOptionalText(input.note),
+  });
+  if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تأكيد السداد") };
+  revalidateFinancePaths(input.requestId);
   return { ok: true };
 }
 
@@ -167,4 +245,7 @@ export async function approveRequestOperational(id: string): Promise<Result> {
 }
 export async function approveRequestFinal(id: string): Promise<Result> {
   return callOnRequest("fn_approve_request_final", id, "تعذّر الاعتماد النهائي");
+}
+export async function closePaymentRequest(id: string): Promise<Result> {
+  return callOnRequest("fn_close_payment_request", id, "تعذّر إقفال الطلب");
 }

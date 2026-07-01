@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
+import { egp } from "@/lib/money";
 
-type CellKind = "text" | "num" | "status" | "tag-danger" | "tag-ok" | "tag-warn";
+// "money": the row carries the RAW number and this formats it (egp) for display, so the SAME table is
+// extractable — ExportButton/exportToCsv then serialize the raw number (Excel SUM works) instead of a
+// formatted "١٬٢٣٤ ج.م" string. (SPEC-0017 export contract; see lib/export-csv.ts.)
+type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn";
 
 export interface SimpleColumn {
   id: string;
@@ -27,16 +31,24 @@ export function SimpleTable({
   columns,
   rows,
   caption,
+  ariaLabel,
   empty,
 }: {
   columns: SimpleColumn[];
   rows: SimpleRow[];
   caption?: string;
+  /**
+   * Accessible name for the table when there is no visible `caption` (the usual case here — the page
+   * `<h1>` already labels the screen). Forwarded to the underlying `<table aria-label>` so screen-reader
+   * users hear what the table is without a visually-redundant caption. Pass the page/section heading text.
+   */
+  ariaLabel?: string;
   empty?: string;
 }) {
   return (
     <DataTable<SimpleRow>
       caption={caption}
+      aria-label={ariaLabel}
       columns={columns.map((c, i) => ({
         id: c.id,
         header: c.header,
@@ -69,6 +81,8 @@ function renderCell(c: SimpleColumn, row: SimpleRow): React.ReactNode {
   const v = row[c.id];
   if (v == null || v === "") return "—";
   switch (c.kind) {
+    case "money":
+      return egp(Number(v));
     case "status":
       return <StatusPill status={statusFor(String(v))}>{String(v)}</StatusPill>;
     case "tag-danger":

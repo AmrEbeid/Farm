@@ -163,7 +163,7 @@ export default async function PlannedVsActualPage({
 
           <section>
             <h2 className="mb-3 text-lg font-semibold">التفاصيل</h2>
-            <SimpleTable columns={columns} rows={rows} />
+            <SimpleTable columns={columns} rows={rows} ariaLabel="التفاصيل" />
           </section>
         </>
       )}

@@ -1,5 +1,167 @@
-# Session Brief — Farm OS      Updated: 2026-06-30 by Codex (Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-01 by Claude (autonomous session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
+**LIVE:** standalone cash-method accounting + custody settlement shipped via PR #568, squash-merged to `main`
+at `8ffc4ae`; Farm prod migration `20260701220000 accounting_cash_custody_settlement` is applied and probed.
+
+Owner clarified the custody workflow: 30K standing custody can sit with the farm manager, the farm manager may pay
+directly or transfer custody to the accountant, the accountant records all cash/debt expenses in payment requests,
+owner funding must be recorded as custody first, and cash-method accounting should post only after funds are received
+and payouts are confirmed from the chosen custody source. Implemented the recommended first standalone accounting
+slice:
+- DB: `20260701220000_accounting_cash_custody_settlement.sql` adds `accounts`, `journal_entries`,
+  `journal_lines`, `payment_request_fundings`, request settlement fields, standing owner-custody funding journals,
+  and controlled accounting/settlement RPCs.
+- UI: `/accounting` cash trial balance + recent journals; `/custody` all-kind payable KPIs; payment request
+  settlement tab for owner funding, payout confirmation, funding list, and close.
+- Docs: updated SPEC-0004, SPEC-0018, tracker, deploy status, and added
+  `docs/accounting standalone market research.md` with the market scan sources and Farm OS mapping.
+- Validation: local pgTAP **904/904**, app Vitest **251/251**, ESLint clean, Next production build green,
+  `git diff --check` clean; PR #568 checks and CodeRabbit are green. Local dev server starts at
+  `http://localhost:3000`, but browser smoke of authenticated pages is environment-blocked until Supabase URL/anon
+  env vars are supplied in the worktree.
+- Prod migration: `20260701220000 accounting_cash_custody_settlement` is applied to Farm prod
+  (`veezkmytervjnpxcrbkw`) via `supabase db push --yes`. Post-apply probes confirm tables/RPCs, FORCE RLS,
+  authenticated read-only table grants, and anon execute denial on new accounting/payment RPCs.
+- Merge/live verification: PR #568 merged to `main` at `8ffc4ae`; post-merge `ci`, `db-tests`, and `release` are
+  green. Live unauthenticated probes on `https://ebeidfarm.business/accounting` and `/custody` return the expected
+  protected-route `307` to `/login` (login `200`), not 404/500.
+
+**Remaining accounting boundary:** this is the cash-method custody/request ledger, not the full statutory/management
+P&L. Real Excel/PII financial import and statutory P&L remain Stage-M/accountant gated.
+
+**39 substantive PRs merged, 15 prod migrations (ledger head `20260701210000`), all green on `main`.** Every
+real-code subsystem adversarially audited and every **decision-free** defect fixed. Under the standing "go with
+your recommendation, don't wait" directive I also **implemented the owner-gated engine masked-shortage items**,
+each with the full rigor loop (lifecycle investigation → design → define-check-first → pgTAP oracle →
+independent-review agent that PROVES non-masking → migrate-first → prod re-probe).
+
+**Three highest-stakes surfaces VERIFIED after all 15 session migrations (holistic re-audits caught real
+INTERACTIONS that per-change reviews missed):**
+- **ENGINE** — masked-shortage-free (final re-audit clean; see below).
+- **FINANCE/money** — the drawings-vs-opex non-negotiable (#6) was read-only (#501) with NO write side; now
+  enforceable end-to-end: kind selector at entry (#532) + kind in the ledger (#533). Custody↔expense cash path
+  verified guarded (no double-count/sign error). Residuals (frozen budget actuals, honest-null totals) filed #534.
+- **SECURITY/isolation** — prod probe across all 15 migrations: every tenant table FORCE-RLS, anon zero DML, trigger
+  fns no client execute, fn_post_movement internal, no gated RPC anon-executable. No regression.
+Other VERIFIED SAFE: append-only integrity, the canonical palm registry (4,380/299/28), bundle hygiene.
+
+**🎯 ALL FIVE ENGINE masked-shortage vectors found this session (the cardinal sin) are CLOSED; a final holistic
+re-audit confirms the engine is masked-shortage-free:**
+- ✅ **#509** — engine dropped in_progress/approved op demand (`20260701130000`).
+- ✅ **#216** — unit-model mask, BOTH sides (demand `20260701170000`/#521 + supply `20260701180000`/#522):
+  reject a unit ≠ item.unit; errs safe. CLOSED.
+- ✅ **#512** — reservation-wipe mask (`20260701190000`/#525): removed execute's blind release (proved arithmetically
+  it can only raise reserved → over-order). `tests/105` now a passing HARD gate. CLOSED.
+- ✅ **#529** (`20260701200000`) — a REGRESSION my own #509 introduced: widening the ORIGIN `min(planned_at)` query let
+  a stale-dated in_progress op push near-term demand past the horizon. Fix: clamp the bucket origin to today. `tests/110`.
+- ✅ **#530** (`20260701210000`) — a latent interaction of #216 supply: `fn_post_receipt` passed the PR-line unit → a
+  non-kg mismatch rejected the receipt → stuck-'approved' PR → phantom supply. Fix: inherit the item unit. `tests/111`.
+  ⚠️ **Lesson: after engine changes, re-audit the COMBINED state (per-change reviews miss interactions) + prod-probe
+  every touched table.** See memory `farm-engine-reservation-masked-shortages`.
+- **Remaining reservation work is OVER-ORDER ONLY (safe, never masks):** #199 double-count + **#526** (earmark
+  accumulation). Both = the op-keyed reservation model (attributed release-on-receipt), owner-gated on ONE decision
+  (**reserve-on-approval? op- vs plan-level?** — changes what "available" shows = a product call; full evidence #526).
+  On that decision I implement the whole op-keyed model with the same rigor loop. NOT urgent.
+
+**Other Owner-gated (need a decision or real data — NOT auto-implementable):**
+- **#157 budget enforcement** (display-only) — needs the real chart of budget accounts (financial data, must not
+  fabricate — non-negotiable #1) + cap policy. #89 mostly DONE (`unit_cost` + honest-null shipped). Proposal on #157.
+- **#388 wage** (payroll greenfield), **#366/#368** expert sign-off (agronomist/accountant; drafts `0091`/`0088`+`0097`
+  staged, NOT applied), **#215** control-panel (scope decision), **#229iii** leaked-password (one Auth-dashboard toggle).
+- **Environment-blocked:** #500 (DS `dist` can't rebuild — esbuild postinstall disabled by allow-scripts).
+
+**Hub for the full shipped list + decision queue: issue #505; the prioritized decision packet: `docs/OWNER-DECISIONS.md`.**
+Engine caveats: memory `farm-engine-reservation-masked-shortages`.
+
+## 2026-06-30 — AUTONOMOUS SESSION (Owner: "keep working, review→merge→migrate on your recommendation")
+**Active, not stopped.** Working autonomously with self-merge/self-migrate authority (Owner-granted this session),
+holding the integrity rails: no fabricated data, no secret exposure, CI-green-before-merge, migrate-first.
+Supabase MCP **can reach Farm prod** (`veezkmytervjnpxcrbkw`, zeluu org — not Zeal), so the full loop incl. prod
+apply is available here.
+
+**Done this session:**
+1. Repo hygiene — removed 42 stale `" 2"` Finder-duplicate files (each verified identical/older copy of its tracked
+   original; the 2 inside `.claude/worktrees/` left alone).
+2. **#317 closed end-to-end** — live prod probe found `anon` still held INSERT/UPDATE on `attachments` +
+   `plan_operation_assignees`; authored migration `20260630090000` + anon-no-DML invariant in `tests/97`; local
+   pgTAP 826/826; applied to prod migrate-first (re-probe: anon DML none); **PR #485 merged**, main green
+   (`7287da3`).
+3. Issue board reconciled — **#188 closed** (orphaned-reservation fix verified at `coverage/actions.ts:122-137`);
+   **#229** scoped to leaked-password (iii) Owner toggle ((i) anon-exec + (ii) FK indexes verified resolved on
+   prod); **#199** ENGINE-RESV-1 left OPEN — owner-gated engine semantics (must NOT auto-decide; masked-shortage risk).
+4. **Perf-advisor remediation (PR #486)** — migration `20260630100000`: `pr_update` RLS InitPlan wrap +
+   re-run `0096` FK-covering sweep (covered `plan_operation_assignees.org_id` + `residue_test_results.org_id`).
+   Local pgTAP 826/826; applied to prod migrate-first (0 uncovered FKs, GUC wrapped). Skipped ~80 `unused_index`
+   findings on purpose (pilot DB).
+5. **ImportPanel i18n + failures (PR #487, merged, main green `f6aec09`)** — app-only: Arabic-Indic digits via
+   `num()` + render the dropped commit `failures`/`skipped` reasons. tsc/eslint/build/vitest 251 green. (Component
+   is latent — not yet route-mounted.) Note: local `next build` first failed on a missing transitive dep `tmp`
+   (exceljs) — local node_modules gap, fixed with `npm install` (lockfile unchanged); not a code issue.
+6. **Table a11y — capability + FULL rollout (PRs #489, #490, #491; #488 CLOSED; main green `e164132`).**
+   Added optional `ariaLabel` to SimpleTable/FilterableTable → `<table aria-label>` (DataTable already spreads
+   `...rest`, so NO design-system change / no visible-caption dup). Then named **every** list/data table:
+   #489 suppliers (MasterTable→title); #490 the 6 single-table list pages (by `<h1>`); #491 44 tables across 22
+   multi-table list/detail/dashboard pages (each by its section heading; 2 filter-dependent card titles hoisted
+   to consts to prevent drift). Reused existing Arabic copy throughout; no visible UI change; jest-axe + CI green.
+
+7. **#215 control-panel research + org-settings audit fix (PR #492).** Resumed the paused #215 lane: produced an
+   evidence-cited narrow plan (posted as a #215 comment — scope boundary tenant-config vs platform-admin, narrowest
+   first slice, 7 open Owner decisions). The research surfaced a real compliance gap — `fn_update_org_settings` wrote
+   no audit row and `organization` had no audit trigger (prod: 0 triggers, 0 org audit rows). Fixed: migration
+   `20260701090000` adds an explicit `audit_log` write in the RPC (org has no `org_id` col → can't use the fn_audit
+   trigger; re-emitted from the CURRENT 0095 body — the harness caught an initial re-emit-from-0086 regression of
+   #383). pgTAP 827/827; applied to prod migrate-first; test 86 extended.
+
+8. **Defect-hunt sweep → 2 fixes (PRs #493, #495).** Ran parallel hunters (DB security/audit + app
+   data-integrity); both confirmed the codebase is well-guarded, surfacing two real classes:
+   (a) **PR #493** — `coverage/actions.ts` had 4 RLS reads discarding `{ error }`, so a transient read failure
+   silently defeated the #188 idempotency guard (dup PR + double reserve) and corrupted `needed_by`; each now
+   aborts via `toArabicError`. App-only.
+   (b) **PR #495** — the plan subsystem (`plans`/`plan_operations`/`plan_material_requirements`/
+   `plan_labor_requirements`/`quantities`) was un-audited; migration `20260701100000` adds fn_audit triggers
+   (excluding churn/already-audited/projection tables). pgTAP 833/833; applied to prod migrate-first; **#494 closed**.
+
+10. **Audit-coverage workstream COMPLETE (PR #497, migration `20260701110000`).** Audited the event-detail
+    children (`event_locations`/`event_followups`/`event_attachments`). pgTAP caught that `event_assets` is a
+    junction table with no `id` column (fn_audit logs `new.id` → would break writes); dropped it + asserted the
+    exclusion. Every substantive member-writable org_id table is now audited; remaining untriggered org tables
+    are all intentional (recursive/churn/projection/transient/history/junction/already-audited).
+
+11. **a11y: status-not-colour-alone (PR #499).** Frontend hunt found domain status conveyed by colour only on
+    the farm-map views; palm cells (sector/hawsha 360) + FarmCroquis hawsha cells now carry the status in the
+    accessible name (reusing existing Arabic copy; WCAG 1.4.1). Heavy-import hunt came back clean (exceljs lazy +
+    server-only, recharts split/unconsumed). Filed **#500** (DS Tabs `aria-controls` dangles on inactive tabs —
+    needs a deliberate DS pass).
+
+12. **Finance dashboard drawings-vs-opex fix (PR #501).** A money-correctness hunt verified the SQL pipeline
+    solid (custody balance, payment totals, idempotency, drawings routing all correct) and found one app bug: the
+    dashboard split operating vs owner-drawings by FREE-TEXT, ignoring the authoritative `expenses.kind`
+    (CLAUDE.md #6 violation, wrong both ways). Fixed to classify by `kind` (capex excluded from both totals).
+13. **Concurrency/idempotency audit — write path verified SAFE.** No live double-write/lost-update: FOR UPDATE
+    locks, claim-first patterns, append-only ledger, derived balances all confirmed. Filed hardening only.
+
+**Session result:** 15 PRs (#485–#501, incl. docs #496/#498); **5 prod migrations** applied migrate-first
+(`20260630090000`, `20260630100000`, `20260701090000`, `20260701100000`, `20260701110000`); issues
+#317/#188/#488/#494 closed, #229 scoped to leaked-password, #199 left owner-gated, #215 narrow plan posted,
+**#500/#502/#503 filed** (DS-tabs aria-controls / CSV raw-export / payment-lifecycle hardening — all deliberate
+or owner-timed). Delegated 9 worktree/research/hunter agents. Decision-free SHIPPABLE surface comprehensively
+cleared (security/audit complete, perf, silent-failures, a11y table-names + status-colour, i18n, bundle hygiene,
+finance correctness, write-path concurrency verified).
+
+**DEFINITIVE STATE (end of session): every domain audited; decision-free shippable surface cleared + verified.**
+**20 PRs merged, 7 prod migrations, all green on `main` (`99ec021`).** Adversarial hunts swept security/audit,
+data-integrity, finance/money, concurrency/write-path, frontend/a11y/i18n, bundle, the research lane (#215–226),
+AND the stock-coverage **engine**. Key outcome: **#509 fixed a real, reproduced masked shortage** (the engine's
+cardinal sin) — `fn_stock_coverage` dropped `in_progress` op demand; the heavy existing oracle had missed it
+(migration `20260701130000`, define-check-first via `tests/102`, ENGINE invariants verified intact on prod).
+Also shipped after the earlier "cleared" note: #502 (CSV raw-money export → Excel SUM), #508 (custody
+one-cash-out unique backstop). **The single hub — full shipped list, filed backlog, and the complete Owner
+decision queue — is issue #505.** Remaining work is Owner-decision-gated (#199, #157/#89 pricing, #388 wage,
+#366/#368 expert gates, #229iii leaked-password toggle, the 7 #215 + 6 #216 decisions incl. the unit-model
+masking risk, per-issue #217–226) or deliberately deferred (#500 DS-tabs dist rebuild; #503 claim-first with the
+disbursement slice). Do NOT build the gated items ahead of the Owner's answers.
 
 ## 2026-06-30 — SAFE STOP: #215 control-panel research paused
 **Stop point.** Stopped at Owner request. Local `main` is at `e567115` (`docs: record unknown cost display fix`).

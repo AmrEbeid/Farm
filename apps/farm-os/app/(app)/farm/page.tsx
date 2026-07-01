@@ -4,6 +4,7 @@ import { requireMembership } from "@/lib/auth";
 import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StructureForm } from "@/components/StructureForm";
+import { ImportPanel } from "@/components/import/ImportPanel";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -158,16 +159,26 @@ export default async function FarmStructurePage() {
         />
       )}
 
+      {canEditStructure && (
+        <Card title="استيراد بيانات الهيكل">
+          <div className="space-y-4">
+            <ImportPanel descriptorKey="sectors" titleAr="القطاعات" />
+            <ImportPanel descriptorKey="hawshat" titleAr="الأحواش" />
+            <ImportPanel descriptorKey="lines" titleAr="الخطوط" />
+          </div>
+        </Card>
+      )}
+
       <Card title="نخيل يحتاج عناية">
         {attentionRows.length === 0 ? (
           <EmptyState title="لا يوجد نخيل يحتاج عناية" />
         ) : (
-          <SimpleTable columns={attentionColumns} rows={attentionRows} empty="—" />
+          <SimpleTable columns={attentionColumns} rows={attentionRows} ariaLabel="نخيل يحتاج عناية" empty="—" />
         )}
       </Card>
 
       <Card title="القطاعات">
-        <SimpleTable columns={columns} rows={rows} empty="لا توجد قطاعات" />
+        <SimpleTable columns={columns} rows={rows} ariaLabel="القطاعات" empty="لا توجد قطاعات" />
       </Card>
 
       <Card title="السجل الزمني للمزرعة">

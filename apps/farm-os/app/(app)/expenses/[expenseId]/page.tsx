@@ -193,7 +193,7 @@ export default async function Expense360Page({
             {linkRows.length === 0 ? (
               <EmptyState title="لا توجد روابط مرتبطة بهذا المصروف" />
             ) : (
-              <SimpleTable columns={linkColumns} rows={linkRows} empty="—" />
+              <SimpleTable columns={linkColumns} rows={linkRows} ariaLabel="الروابط" empty="—" />
             )}
           </Card>
         </div>
@@ -205,7 +205,7 @@ export default async function Expense360Page({
             {eventRows.length === 0 ? (
               <EmptyState title="لا يوجد نشاط مرتبط" />
             ) : (
-              <SimpleTable columns={eventColumns} rows={eventRows} empty="—" />
+              <SimpleTable columns={eventColumns} rows={eventRows} ariaLabel="النشاط المرتبط" empty="—" />
             )}
           </Card>
         </div>

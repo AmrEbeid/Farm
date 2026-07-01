@@ -17,7 +17,7 @@ import { getSourceRow, setSourceRow, type ImportColumn, type ImportDescriptor, t
 export type ResolvedRefSpec = RefSpec & { idColumn: string };
 export type RefLookup = (spec: ResolvedRefSpec, codes: string[]) => Promise<Map<string, string>>;
 
-function refColumns(d: ImportDescriptor): { col: ImportColumn; spec: ResolvedRefSpec }[] {
+export function refColumns(d: ImportDescriptor): { col: ImportColumn; spec: ResolvedRefSpec }[] {
   return d.columns
     .filter((c): c is ImportColumn & { ref: RefSpec } => c.ref != null)
     .map((c) => ({ col: c, spec: { idColumn: "id", ...c.ref } }));
@@ -62,4 +62,35 @@ export async function resolveRefs(
   });
 
   return { rows: out, errors };
+}
+
+export type ReverseRefLookup = (spec: ResolvedRefSpec, ids: string[]) => Promise<Map<string, string>>;
+
+/** Reverse of resolveRefs: maps each ref column's id back to its human code, for the
+ * template-prefill display. Runs on rows already shaped by a descriptor's `fromRow`
+ * (ref columns still hold ids at this point). An id with no resolvable code (data gone
+ * stale between fetch and render) falls back to an empty string rather than throwing —
+ * the template is a display/edit surface, not the source of truth. */
+export async function reverseResolveRefs(
+  descriptor: ImportDescriptor,
+  rows: Record<string, unknown>[],
+  lookup: ReverseRefLookup,
+): Promise<Record<string, unknown>[]> {
+  const refs = refColumns(descriptor);
+  if (refs.length === 0) return rows;
+
+  const maps = new Map<string, Map<string, string>>();
+  for (const { col, spec } of refs) {
+    const ids = [...new Set(rows.map((r) => String(r[col.key] ?? "")).filter((v) => v !== ""))];
+    maps.set(col.key, ids.length > 0 ? await lookup(spec, ids) : new Map());
+  }
+
+  return rows.map((row) => {
+    const out = { ...row };
+    for (const { col } of refs) {
+      const id = String(row[col.key] ?? "");
+      out[col.key] = id === "" ? "" : (maps.get(col.key)?.get(id) ?? "");
+    }
+    return out;
+  });
 }

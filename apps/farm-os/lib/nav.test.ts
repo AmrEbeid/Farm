@@ -80,6 +80,7 @@ describe("APP_MODULES", () => {
       .find((m) => m.id === "finance-module")
       ?.pages.map((p) => p.id);
     expect(managerFinancePages).toContain("expenses");
+    expect(managerFinancePages).not.toContain("accounting");
     expect(managerFinancePages).not.toContain("custody");
   });
 
@@ -125,6 +126,7 @@ describe("APP_MODULES", () => {
     expect(findActiveNavItem("/finance/dashboard")?.id).toBe("finance-dashboard");
     expect(findActiveNavItem("/budgets/123")?.id).toBe("budgets");
     expect(findActiveNavItem("/expenses/123")?.id).toBe("expenses");
+    expect(findActiveNavItem("/accounting")?.id).toBe("accounting");
     expect(findActiveNavItem("/budget/123/check")?.id).toBe("budgets");
     expect(findActiveNavItem("/people/dashboard")?.id).toBe("people-dashboard");
     expect(findActiveNavItem("/people/123")?.id).toBe("people");

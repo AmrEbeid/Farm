@@ -29,8 +29,21 @@ export interface ImportDescriptor {
   rpc: string; // gated write path, e.g. "fn_save_sale"
   role: string; // who may import (mirrors the RPC's own gate)
   columns: ImportColumn[];
-  toRpcArgs: (row: Record<string, unknown>) => Record<string, unknown>;
+  toRpcArgs: (row: Record<string, unknown>, matchedId?: string | null) => Record<string, unknown>;
   dedupeKey?: string[]; // business key: upsert where the RPC supports it, else skip/flag dupes
+  /** DB table this descriptor reads from for prefill + reconcile-upsert. Unset = today's
+   * blank-template, insert-only behavior (no prefill, no matching). */
+  table?: string;
+  /** The `fn_archive_structure` p_type value for this table (e.g. "sector", "hawsha",
+   * "line") — required alongside `table` to support archive-by-omission. */
+  archiveType?: string;
+  /** Business key used to match an uploaded row to an existing DB row (update) vs. treat
+   * it as new (insert), and to detect rows missing from the file (archive candidates). */
+  matchKey?: string[];
+  /** Reverse of `toRpcArgs`: maps a queried DB row to column-key-shaped values for the
+   * template. Ref columns should be left holding the raw id — `reverseResolveRefs`
+   * converts them to their human code before rendering. */
+  fromRow?: (dbRow: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export interface RowError {

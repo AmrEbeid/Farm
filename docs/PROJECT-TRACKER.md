@@ -1,4 +1,31 @@
-# Project Tracker — Farm OS      Last updated: 2026-06-30 by Claude (autonomous session, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
+
+> **2026-07-01 — DRAFT branch built: standalone cash-method accounting + custody settlement (`feat/accounting-custody-standalone`).**
+> Responding to the Owner's updated custody workflow, this branch adds the first standalone accounting kernel tied to
+> custody/payment requests: `accounts`, `journal_entries`, `journal_lines`, `payment_request_fundings`, settlement
+> fields on request lines, standing owner-custody funding journals, owner-funding-as-custody RPC,
+> payout-confirmation RPC, close-request RPC, `/accounting`, and a settlement tab on `/custody/request/[requestId]`.
+> Market scan recorded in
+> [`accounting standalone market research.md`](accounting%20standalone%20market%20research.md). Validation is green:
+> pgTAP **894/894**, app Vitest **251/251**, ESLint, production build, and `git diff --check`. **Not merged, not
+> pushed, not prod-applied.** Because this is money/RLS logic, next gate is independent review before any merge or
+> migration, then explicit Owner approval for prod apply.
+
+> **2026-07-01 — AUTONOMOUS SESSION COMPLETE: 26 PRs merged, 10 prod migrations, all green on `main` (`b05811e`).**
+> Owner-directed continuous autonomous work with self-merge/self-migrate authority (this session only), holding the
+> integrity rails (no fabricated data, no secrets, CI-green-before-merge, migrate-first, verify-agent-findings).
+> **Adversarially audited every real-code subsystem** and fixed every decision-free defect. Headline: **#509 fixed a
+> real reproduced ENGINE masked shortage** (fn_stock_coverage dropped in_progress op demand — the cardinal sin the
+> #239 oracle had missed; define-check-first, verbatim-safe re-emit). Also shipped: security/audit (anon-DML #485,
+> org-settings/plan/event audit #492/#495/#497), perf (#486), finance drawings-vs-opex #501 + CSV Excel-SUM
+> #502/#507 + custody backstop #508, payment claim-first #511, a11y table-names + colour-status #489/#490/#491/#499,
+> ImportPanel #487, bulk-import hardening #514/#515, structure CRUD integrity #517. **Verified SAFE (no fix
+> needed):** multi-tenant isolation, money pipeline, write-path concurrency, append-only integrity, the canonical
+> palm registry (4,380/299/28), bundle hygiene. **Owner decisions pending** (see #505 hub): reservation-model
+> redesign (#512 masked shortage, pinned by tests/105 + #199), unit-model (#216, masks both sides), pricing
+> (#157/#89), wage (#388), expert gates (#366/#368), leaked-password Auth toggle (#229iii), the 7 #215 + 6 #216
+> decisions. **Environment-blocked:** #500 (DS dist can't rebuild — esbuild postinstall disabled). Issue **#505** is
+> the single hub for the full shipped list + decision queue.
 
 > **2026-06-30 — AUTONOMOUS SESSION (Owner set "keep working, review→merge→migrate on your recommendation").**
 > Repo hygiene: removed 42 stale `" 2"` Finder-duplicate files from the working tree (verified each was identical
@@ -10,7 +37,11 @@
 > shows anon DML = none); **PR #485** open, merging on green. Issue board verified: **#188** (orphaned reservation)
 > and **#229 (i)+(ii)** (anon-exec RPCs, FK covering indexes) are already resolved on `main`; **#229 (iii)**
 > leaked-password is an Owner dashboard toggle; **#199** ENGINE-RESV-1 stays open as an owner-gated engine-semantics
-> decision (must not auto-decide — masked-shortage risk).
+> decision (must not auto-decide — masked-shortage risk). **Cycle 2:** performance-advisor remediation **PR #486**
+> — migration `20260630100000` wraps the `pr_update` RLS GUC read as an InitPlan subselect (`auth_rls_initplan`
+> WARN) and re-runs the `0096` catalog FK-covering sweep (covered `plan_operation_assignees.org_id` +
+> `residue_test_results.org_id`); local pgTAP 826/826, applied to prod migrate-first (0 uncovered FKs). The ~80
+> `unused_index` INFO findings were deliberately left (pilot DB).
 
 > **2026-06-30 — SAFE STOP at Owner request; #215 control-panel research paused; repo green.** Local `main`
 > is at `e567115` (`docs: record unknown cost display fix`) and GitHub `ci`, `db-tests`, and `release` are green
@@ -747,7 +778,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Framework built on synthetic (2026-06-27, draft PR #368)** | `expenses.kind` (#6 drawings/capex separation) + `sales` + `fn_save_sale`/`fn_set_expense_kind`/`fn_accounting_pnl_summary` (budget.write) + the pure P&L engine (`lib/pnl.ts`) + `/accounting` report. Migration `0088` + `0097` draft (Owner applies after gates). Latest #368 validation: pgTAP 709/709, app CI green at `0625150`. **GATES STILL OPEN:** the dual-run reconciliation vs the real 7-yr Excel + privacy review (Stage M) + fresh visible final review of money/RLS logic before merge/migrate. |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger live (PR #568); full P&L still gated** | Branch `feat/accounting-custody-standalone` added source-linked cash ledger + request settlement for custody/payment requests. Validation green (local pgTAP 904/904, app 251/251, lint/build, PR checks + CodeRabbit). Prod migration `20260701220000 accounting_cash_custody_settlement` is applied/probed migrate-first; PR #568 merged at `8ffc4ae`; post-merge `ci`/`db-tests`/`release` green; live `/accounting` and `/custody` protected-route probes pass. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review. |
 | 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |

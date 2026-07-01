@@ -225,7 +225,7 @@ export default async function Budget360Page({
             {lineRows.length === 0 ? (
               <EmptyState title="لا توجد بنود موازنة" />
             ) : (
-              <SimpleTable columns={lineColumns} rows={lineRows} empty="—" />
+              <SimpleTable columns={lineColumns} rows={lineRows} ariaLabel="بنود الموازنة" empty="—" />
             )}
           </Card>
         </div>
@@ -237,7 +237,7 @@ export default async function Budget360Page({
             {prRows.length === 0 ? (
               <EmptyState title="لا توجد طلبات شراء مرتبطة" />
             ) : (
-              <SimpleTable columns={prColumns} rows={prRows} empty="—" />
+              <SimpleTable columns={prColumns} rows={prRows} ariaLabel="طلبات شراء مرتبطة" empty="—" />
             )}
           </Card>
         </div>
@@ -249,7 +249,7 @@ export default async function Budget360Page({
             {expenseRows.length === 0 ? (
               <EmptyState title="لا توجد مصروفات مرتبطة بالفئة" />
             ) : (
-              <SimpleTable columns={expenseColumns} rows={expenseRows} empty="—" />
+              <SimpleTable columns={expenseColumns} rows={expenseRows} ariaLabel="مصروفات من نفس الفئة" empty="—" />
             )}
           </Card>
         </div>

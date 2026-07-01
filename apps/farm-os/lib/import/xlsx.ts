@@ -31,9 +31,13 @@ export async function renderWorkbook(spec: WorkbookSpec): Promise<Buffer> {
   return Buffer.from(out as ArrayBuffer);
 }
 
-/** Generate the downloadable template for a descriptor. */
-export async function generateTemplate(d: ImportDescriptor): Promise<Buffer> {
-  return renderWorkbook(buildTemplateSpec(d));
+/** Generate the downloadable template for a descriptor. `existingRows` (already shaped by the
+ * descriptor's fromRow + reverseResolveRefs) pre-fills the data sheet for reconcile-upsert. */
+export async function generateTemplate(
+  d: ImportDescriptor,
+  existingRows: Record<string, unknown>[] = [],
+): Promise<Buffer> {
+  return renderWorkbook(buildTemplateSpec(d, existingRows));
 }
 
 /** Parse an uploaded .xlsx buffer into raw row objects (validation is `validateRows`). */
@@ -51,7 +55,11 @@ export async function parseUpload(
   ws.eachRow({ includeEmpty: false }, (row) => {
     const cells: string[] = [];
     row.eachCell({ includeEmpty: true }, (cell) => {
-      cells.push(cell.value == null ? "" : String(cell.value));
+      // A formula / rich-text / hyperlink / error cell has an OBJECT value that String()s to
+      // "[object Object]" — silent garbage in string columns. Use exceljs's formatted-text accessor for
+      // those. Primitives (numbers, plain strings) keep String() so numeric parsing is unaffected.
+      const raw = cell.value;
+      cells.push(raw == null ? "" : typeof raw === "object" ? cell.text : String(raw));
     });
     matrix.push(cells);
   });

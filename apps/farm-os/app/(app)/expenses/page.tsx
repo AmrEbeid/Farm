@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -9,6 +8,14 @@ import { AddExpense } from "@/components/AddExpense";
 // Roles that pass authorize('budget.write') — the gate the expenses RLS WITH CHECK enforces.
 const WRITE_ROLES = ["owner", "accountant"];
 
+// Expense classification (expenses.kind). Owner drawings (مسحوبات) must be visible as distinct from operating
+// expenses in the ledger (non-negotiable #6), not hidden in an undifferentiated list.
+const KIND_LABELS: Record<string, string> = {
+  operating: "تشغيلي",
+  drawing: "مسحوبات",
+  capex: "رأسمالي",
+};
+
 export default async function ExpensesListPage() {
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
@@ -16,7 +23,7 @@ export default async function ExpensesListPage() {
   const [{ data: expenses, error }, { data: suppliers }] = await Promise.all([
     sb
       .from("expenses")
-      .select("id, date, category, description, total, supplier_id")
+      .select("id, date, category, description, total, kind, supplier_id")
       .order("date", { ascending: false }),
     sb.from("suppliers").select("id, name").order("name"),
   ]);
@@ -27,9 +34,10 @@ export default async function ExpensesListPage() {
   const columns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
     { id: "category", header: "الفئة" },
+    { id: "kind", header: "النوع" },
     { id: "description", header: "البيان" },
     { id: "supplier", header: "المورّد" },
-    { id: "total", header: "المبلغ", numeric: true },
+    { id: "total", header: "المبلغ", numeric: true, kind: "money" },
   ];
 
   const rows = (expenses ?? []).map((e) => ({
@@ -37,9 +45,10 @@ export default async function ExpensesListPage() {
     href: `/expenses/${e.id}`,
     date: e.date ? fmtDate(e.date) : "—",
     category: e.category ?? "—",
+    kind: KIND_LABELS[e.kind ?? "operating"] ?? "—",
     description: e.description ?? "—",
     supplier: e.supplier_id ? supMap.get(e.supplier_id) ?? "—" : "—",
-    total: e.total != null ? egp(Number(e.total)) : "—",
+    total: e.total != null ? Number(e.total) : undefined,
   }));
 
   return (
@@ -54,10 +63,11 @@ export default async function ExpensesListPage() {
         />
       )}
       <FilterableTable
+        ariaLabel="المصروفات"
         columns={columns}
         rows={rows}
         empty="لا توجد مصروفات مسجّلة"
-        searchColumns={["category", "description", "supplier"]}
+        searchColumns={["category", "kind", "description", "supplier"]}
         placeholder="ابحث في المصروفات…"
         exportFilename="expenses"
       />
