@@ -27,7 +27,7 @@ export default async function PlannedVsActualPage({
   ] = await Promise.all([
       sb
         .from("plan_operations")
-        .select("id, subtype, est_cost, status, plan_material_requirements(qty, unit)")
+        .select("id, subtype, est_cost, status, plan_material_requirements(item_id, qty, unit)")
         .eq("plan_id", planId)
         .order("priority"),
       // actuals from done farm_events for this plan
@@ -44,33 +44,79 @@ export default async function PlannedVsActualPage({
   if (opsError) throw opsError;
   if (eventsError) throw eventsError;
 
-  const actualByOp = new Map<string, { qty: number; cost: number }>();
+  // #520: a done farm_event now carries `material_actuals` (one entry per material on the op) —
+  // `actual_qty`/(the legacy scalar) stays meaningful only for a 0/1-material op (null for >1, where
+  // no single quantity/unit is coherent across different materials). Older events (recorded before
+  // this migration) never had material_actuals at all — the per-op fallback below covers them.
+  type MaterialActual = { item_id?: string; actual_qty?: number };
+  const actualByOp = new Map<string, { qty: number; cost: number; materialActuals: MaterialActual[] | null }>();
   for (const ev of events ?? []) {
-    const d = (ev.data ?? {}) as { op_id?: string; actual_qty?: number; actual_cost?: number };
-    if (d.op_id) actualByOp.set(d.op_id, { qty: Number(d.actual_qty ?? 0), cost: Number(d.actual_cost ?? 0) });
+    const d = (ev.data ?? {}) as {
+      op_id?: string;
+      actual_qty?: number | null;
+      actual_cost?: number;
+      material_actuals?: MaterialActual[];
+    };
+    if (d.op_id) {
+      actualByOp.set(d.op_id, {
+        qty: Number(d.actual_qty ?? 0),
+        cost: Number(d.actual_cost ?? 0),
+        materialActuals: Array.isArray(d.material_actuals) ? d.material_actuals : null,
+      });
+    }
   }
 
   const executed = (ops ?? []).filter((o) => o.status === "done" && actualByOp.has(o.id));
 
   const rows = executed.map((o) => {
-    const req = (o.plan_material_requirements ?? [])[0] as { qty?: number; unit?: string } | undefined;
-    const plannedQty = Number(req?.qty ?? 0);
-    const plannedCost = moneyNumber(o.est_cost);
+    const reqs = (o.plan_material_requirements ?? []) as Array<{
+      item_id?: string;
+      qty?: number;
+      unit?: string;
+    }>;
     const act = actualByOp.get(o.id)!;
-    const varQty = act.qty - plannedQty;
+    const plannedCost = moneyNumber(o.est_cost);
     const varCost = plannedCost == null ? null : act.cost - plannedCost;
     const varPct =
       plannedCost != null && plannedCost > 0
         ? Math.round(((varCost ?? 0) / plannedCost) * 1000) / 10
         : null;
+
+    // Quantity display: the common (0/1-material) case renders one "qty unit" value exactly as
+    // before #520. A >1-material op renders one "qty unit" per material, joined — a single scalar
+    // has no coherent meaning once units/quantities differ across materials, so var_qty is left as
+    // "—" for that case rather than showing a misleading combined number.
+    let plannedQtyStr: string;
+    let actualQtyStr: string;
+    let varQtyStr: string;
+    if (reqs.length <= 1) {
+      const req = reqs[0];
+      const plannedQty = Number(req?.qty ?? 0);
+      // Legacy events (recorded before #520) have no material_actuals; fall back to the scalar.
+      const actualQty =
+        act.materialActuals?.find((m) => !req?.item_id || m.item_id === req.item_id)?.actual_qty ?? act.qty;
+      plannedQtyStr = `${num(plannedQty)} ${req?.unit ?? ""}`;
+      actualQtyStr = `${num(actualQty)} ${req?.unit ?? ""}`;
+      varQtyStr = num(actualQty - plannedQty);
+    } else {
+      plannedQtyStr = reqs.map((r) => `${num(Number(r.qty ?? 0))} ${r.unit ?? ""}`).join("، ");
+      actualQtyStr = reqs
+        .map((r) => {
+          const a = act.materialActuals?.find((m) => m.item_id === r.item_id)?.actual_qty ?? null;
+          return `${a == null ? "—" : num(Number(a))} ${r.unit ?? ""}`;
+        })
+        .join("، ");
+      varQtyStr = "—";
+    }
+
     return {
       id: o.id,
       op: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
-      planned_qty: `${num(plannedQty)} ${req?.unit ?? ""}`,
-      actual_qty: `${num(act.qty)} ${req?.unit ?? ""}`,
+      planned_qty: plannedQtyStr,
+      actual_qty: actualQtyStr,
       planned_cost: egpValue(o.est_cost),
       actual_cost: egp(act.cost),
-      var_qty: num(varQty),
+      var_qty: varQtyStr,
       var_cost: egp(varCost),
       var_pct: varPct == null ? "—" : `${num(varPct, 1)}٪`,
     };

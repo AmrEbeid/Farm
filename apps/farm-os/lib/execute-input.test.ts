@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseExecuteInput } from "./execute-input";
+import { parseExecuteInput, parseMaterialActuals } from "./execute-input";
 
 describe("parseExecuteInput", () => {
   it("rejects blank quantity or labor instead of coercing them to zero", () => {
@@ -23,5 +23,80 @@ describe("parseExecuteInput", () => {
   it("rejects invalid or negative numbers", () => {
     expect(parseExecuteInput("-1", "1")).toMatchObject({ ok: false });
     expect(parseExecuteInput("1", "x")).toMatchObject({ ok: false });
+  });
+});
+
+describe("parseMaterialActuals", () => {
+  it("parses one entry per material, preserving requirementId order", () => {
+    expect(
+      parseMaterialActuals(
+        [
+          { requirementId: "r1", itemId: "a", qty: "5" },
+          { requirementId: "r2", itemId: "b", qty: "10" },
+        ],
+        "3",
+      ),
+    ).toEqual({
+      ok: true,
+      value: {
+        materialActuals: [
+          { requirementId: "r1", itemId: "a", actualQty: 5 },
+          { requirementId: "r2", itemId: "b", actualQty: 10 },
+        ],
+        laborCount: 3,
+      },
+    });
+  });
+
+  it("keeps two rows for the SAME itemId distinct by requirementId (#520 H1)", () => {
+    // Two plan_material_requirements rows can legitimately share an item_id (e.g. two applications
+    // of the same fertilizer on different sub-dates) — requirementId, not itemId, must be what
+    // distinguishes them all the way through to the RPC payload.
+    expect(
+      parseMaterialActuals(
+        [
+          { requirementId: "r1", itemId: "same-item", qty: "5" },
+          { requirementId: "r2", itemId: "same-item", qty: "20" },
+        ],
+        "1",
+      ),
+    ).toEqual({
+      ok: true,
+      value: {
+        materialActuals: [
+          { requirementId: "r1", itemId: "same-item", actualQty: 5 },
+          { requirementId: "r2", itemId: "same-item", actualQty: 20 },
+        ],
+        laborCount: 1,
+      },
+    });
+  });
+
+  it("allows an explicit zero on any material or on labor", () => {
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "0" }], "0")).toEqual({
+      ok: true,
+      value: { materialActuals: [{ requirementId: "r1", itemId: "a", actualQty: 0 }], laborCount: 0 },
+    });
+  });
+
+  it("rejects a blank quantity on ANY material, not just the first", () => {
+    expect(
+      parseMaterialActuals(
+        [
+          { requirementId: "r1", itemId: "a", qty: "5" },
+          { requirementId: "r2", itemId: "b", qty: "" },
+        ],
+        "2",
+      ),
+    ).toEqual({ ok: false, error: "أدخل كمية صالحة لكل خامة وعدد العمال قبل إنهاء العملية." });
+  });
+
+  it("rejects a negative quantity on any material or blank/negative labor", () => {
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "-1" }], "1")).toMatchObject({
+      ok: false,
+    });
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "1" }], "")).toMatchObject({
+      ok: false,
+    });
   });
 });
