@@ -43,6 +43,14 @@ type WithHarvestStage<T extends { Row: object; Insert: object; Update: object; R
   Relationships: T["Relationships"];
 };
 
+/** Add the labor-cost-basis person_id FK (migration 20260701250000) to an existing table entry. */
+type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { person_id: string | null };
+  Insert: T["Insert"] & { person_id?: string | null };
+  Update: T["Update"] & { person_id?: string | null };
+  Relationships: T["Relationships"];
+};
+
 type AttachmentsTable = {
   Row: {
     id: string;
@@ -751,7 +759,10 @@ type LaborLogsTable = {
 
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
-    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations"> & {
+    Tables: Omit<
+      Tables,
+      "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations" | "plan_labor_requirements"
+    > & {
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;
@@ -773,6 +784,7 @@ export type Database = Omit<Generated, "public"> & {
       pest_trap_catches: PestTrapCatchesTable;
       pest_incidents: PestIncidentsTable;
       labor_logs: LaborLogsTable;
+      plan_labor_requirements: WithLaborPersonId<Tables["plan_labor_requirements"]>;
     };
     Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions;
   };
