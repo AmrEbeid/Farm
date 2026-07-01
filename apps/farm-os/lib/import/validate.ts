@@ -23,7 +23,7 @@ function isValidIsoDate(s: string): boolean {
 // Arabic-Indic (٠–٩ U+0660–0669) + Extended-Arabic (۰–۹ U+06F0–06F9) digits → ASCII, so numeric cells
 // typed in Arabic digits parse (Arabic-RTL-first). Applied ONLY to numeric columns — never to string
 // columns, where Arabic digits in a name/code must be preserved verbatim.
-function normalizeDigits(s: string): string {
+export function normalizeDigits(s: string): string {
   return s
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
