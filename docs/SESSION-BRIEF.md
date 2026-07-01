@@ -1,6 +1,35 @@
 # Session Brief — Farm OS      Updated: 2026-07-01 by Claude (autonomous session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-07-01 (later still) — accounting/custody operating-model plan (docs only, isolated worktree)
+Docs/planning-only task in isolated worktree `farm-accounting-plan` (branch
+`docs/accounting-custody-financial-system`), stopped before any implementation. Read the full existing state first:
+SPEC-0018 (custody/payment-requests, built + live), SPEC-0004 (accounting/P&L, cash-method slice live via PR #568),
+`ROADMAP-accounting-custody-2026-07-01.md` (Slices A-D already sequenced), `DRAFT-chart-of-accounts-date-palm.md`
+(drafted, unratified, 0 rows in prod), and the actual migrations (`20260629150000`, `20260629150100`,
+`20260701220000`) to confirm exact live schema/RPCs rather than assume. Finding: the Owner's restated operating
+model (farm-manager custody float → accountant records expenses → monthly payment request → owner approval →
+funds-received-as-custody-first → payout confirmation → cash-method P&L) is **~80% already built** by SPEC-0018 +
+SPEC-0004's live kernel — confirmed by reading `fn_record_payment_request_funding`/`fn_confirm_request_expense_paid`
+directly. Produced **`docs/SPEC-0018-EXT-custody-transfer-and-revenue.md`**, scoped to the genuine gaps only: (1) no
+atomic holder-to-holder custody-transfer RPC exists (today a handover needs two manual, non-atomic movement calls);
+(2) payment-request PDF export + a report set (custody ledger by holder, cash expenses, unpaid/debt obligations,
+owner funding/replenishment) don't exist yet as dedicated reports, though most of the underlying totals are already
+derivable via `fn_payment_request_totals`; (3) revenue/sales is genuinely greenfield (no `sales`/`buyers` table
+exists) and needs the delivery-before-price mechanic the Owner described, designed as an extension of SPEC-0004's
+already-planned (but not-yet-detailed) `sales` table. Staged a 7-slice plan (holder-transfer → reports →
+PDF → revenue schema → revenue reports → role-based dashboard/import parity), each independently gateable, plus a
+pgTAP acceptance-test plan for the money invariants (cash conservation across a transfer with zero journal effect,
+idempotent/immutable price-finalization, honest pending-price null-preservation, no double-bucketing between
+paid/unpaid, RLS confidentiality). Surfaced exact Owner decisions: farm-manager direct finance access vs
+accountant-only recording (SPEC-0018 §6 already flagged this as deferred — restated, not re-decided here); full-vs-
+partial custody handover semantics; whether payment-request rejection needs a first-class state; cash-customer
+buyer identity; `sale.write` role scope; PDF library choice (new-dependency hard stop). **No code implemented** —
+the task's own bar ("lean toward NOT implementing if the smallest safe slice isn't obviously clear-cut") wasn't
+cleared even for the smallest slice (custody transfer), because it's money-movement logic gated on an Owner
+decision (handover semantics) and this project's rules require independent review before any money-logic merge.
+Draft PR opened for Owner review; not merged, no migration authored or applied.
+
 ## 2026-07-01 (later addendum) — import templates shipped + accounting/custody audited & roadmapped
 Session under an open "keep working" directive; standing integrity rails held (no fabricated data, CI-green-before-merge, migrate-first, one PR at a time). Merged to `main`:
 - **Bulk-import templates — prefill + reconcile-upsert (farm structure), SHIPPED & LIVE.** PR **#561** (feature) + PR **#569** (prod-500 hotfix). Downloading a sectors/hawshat/**lines** template now pre-fills it with the org's current active rows (ref columns shown as human codes); re-uploading **matches by business key → updates**, inserts new rows, and **archives rows removed from the file** (via `fn_archive_structure`) behind an explicit server-side `confirmArchive` gate. New `lines` descriptor added (`dedupeKey` mirrors `matchKey` on all three). Verified **live over HTTP on prod** (owner session) — all three templates return valid `.xlsx`. The #569 hotfix fixed a `looseFrom` detached-`this` bug that 500'd every template download (`db-loose.ts` now calls `sb.from(table)` through a closure; regression test added).

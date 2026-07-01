@@ -1,5 +1,18 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
 
+> **2026-07-01 (later still) — accounting/custody operating-model plan, docs-only (draft PR, isolated worktree).**
+> Read the Owner's restated day-to-day operating model against the actual live schema/RPCs (not the docs summary)
+> and found it **~80% already built** by the live SPEC-0018 + SPEC-0004 kernel. Produced
+> [`SPEC-0018-EXT-custody-transfer-and-revenue.md`](SPEC-0018-EXT-custody-transfer-and-revenue.md), scoped to the
+> real gaps only: (1) no atomic holder-to-holder custody-transfer RPC; (2) payment-request PDF export + a
+> custody-ledger/cash-expense/unpaid-obligation/owner-funding report set; (3) revenue/sales with
+> delivery-before-price (genuinely greenfield — no `sales`/`buyers` table exists). Staged a 7-slice plan +
+> pgTAP acceptance-test plan + exact Owner decisions (farm-manager finance-access scope, handover semantics,
+> request-rejection state, cash-buyer identity, `sale.write` role, PDF library). **No code implemented** — the
+> smallest slice (custody transfer) is still money-movement logic gated on an Owner decision, so this stopped at
+> the plan per the task's own bar. This does not change the existing roadmap's Slice A→D sequencing below; it is
+> a companion detail doc.
+
 > **2026-07-01 (later) — import templates shipped; accounting/custody audited, roadmapped, cataloged (5 PRs merged).**
 > Under an open "keep working" directive, integrity rails held (no fabricated data, CI-green-before-merge,
 > migrate-first, one PR at a time). **SHIPPED & LIVE: bulk-import prefill + reconcile-upsert for farm structure**
