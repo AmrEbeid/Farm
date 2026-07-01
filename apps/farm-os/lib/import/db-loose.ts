@@ -13,5 +13,9 @@ export type LooseQuery = Promise<{ data: Record<string, unknown>[] | null; error
 type LooseFrom = (table: string) => { select: (cols: string) => LooseQuery };
 
 export function looseFrom(sb: { from: (table: string) => unknown }): LooseFrom {
-  return sb.from as unknown as LooseFrom;
+  // Must call sb.from(table) through a closure, NOT re-export the bare method
+  // (`sb.from as unknown as LooseFrom`) — Supabase's PostgrestClient.from() reads
+  // internal state off `this`, so a detached reference throws "Cannot read properties
+  // of undefined (reading 'rest')" the instant it's invoked without `sb` as receiver.
+  return (table: string) => sb.from(table) as ReturnType<LooseFrom>;
 }
