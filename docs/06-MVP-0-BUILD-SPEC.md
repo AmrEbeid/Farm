@@ -1,6 +1,11 @@
 # 06 — MVP-0 Build Spec (the first build)
 *The tight, buildable document. A developer or Claude Code builds **only** what is here — nothing more. Risk: Low–Medium (it is a non-production pilot on a single reference tenant). Owner: Amr Ebeid.*
 
+> ⚠️ **HISTORICAL (2026-07-02):** MVP-0 shipped and has been far exceeded (accounting/custody kernel, weather
+> gates, pest scouting, labor, templates and more are live — see [`STATUS.md`](STATUS.md)). Kept as the build
+> record. **Retired decision:** auth is **email + password** (Owner decision 2026-06-24, no SMS/phone-OTP);
+> the "phone OTP" row below is stale — do not reintroduce it.
+
 > **Why MVP-0 exists:** the master plan's MVP is still large. MVP-0 is the *proof-of-value prototype* that answers one question before we invest in the full ERP: **will farms actually use planning + stock coverage + farm files?** It is deliberately smaller than MVP.
 
 ---

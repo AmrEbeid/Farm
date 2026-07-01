@@ -1,9 +1,13 @@
 # 03 — Architecture & Data Model
 
 > ⚠️ Legacy / migration-history note  
-> Some schema examples in this document describe earlier prototype or migration-from structures.  
-> For current production ground truth, use:
-> `docs/RECONCILE-001-main-ground-truth-2026-06-27.md`
+> Some schema examples in this document describe earlier prototype or migration-from structures —
+> **in particular, tables like `payment_vouchers`, `ledger_entries`, and `farm_tasks` in §3.4–§3.5 do NOT
+> exist on `main`**; the real financial layer is the cash-accounting GL kernel
+> (`accounts` / `journal_entries` / `journal_lines`, migration `20260701220000`) + custody/payment requests
+> (SPEC-0018), and work is connected via the event spine + connected work graph (PR #582).
+> For current production ground truth, use: [`STATUS.md`](STATUS.md) +
+> `docs/RECONCILE-001-main-ground-truth-2026-06-27.md` (historical) + the reconciled catalogs.
 
 Stack: **Next.js (App Router) + TypeScript + Tailwind** · **Supabase** (Postgres + PostGIS + Auth + Storage + Realtime + RLS) · **Vercel**. Arabic RTL-first, mobile/offline-tolerant PWA.
 
