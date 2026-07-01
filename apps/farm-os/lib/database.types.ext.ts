@@ -235,6 +235,20 @@ type StructFunctions = {
     };
     Returns: undefined;
   };
+  // ── #520 multi-material execute: p_material_actuals jsonb, migration 20260701220000 ──
+  // Array of {item_id, actual_qty} — one entry per plan_material_requirements row on the op.
+  // Overrides the generated (stale, pre-#520) 4-arg Args once database.types.ts is regenerated;
+  // until then this augmentation supplies the 5th param so the RPC call below type-checks.
+  fn_execute_operation: {
+    Args: {
+      p_op_id: string;
+      p_actual_qty: number;
+      p_labor_count: number;
+      p_note?: string | null;
+      p_material_actuals?: Json;
+    };
+    Returns: Json;
+  };
 };
 
 // ── SPEC-0018 «العهدة وطلبات الصرف» — custody + payment requests. ──

@@ -4,23 +4,40 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, FormRow, Input, Textarea, Alert } from "@/components/ui";
 import { executeOperation } from "@/app/(app)/m/execute/[opId]/actions";
-import { parseExecuteInput } from "@/lib/execute-input";
+import { parseExecuteInput, parseMaterialActuals } from "@/lib/execute-input";
+
+/** One material on the operation, for the #520 per-material qty fields. */
+export interface ExecuteFormMaterial {
+  itemId: string;
+  defaultQty: number | null;
+  unit: string;
+  name: string | null;
+}
 
 export function ExecuteForm({
   opId,
-  defaultQty,
+  materials,
   defaultLabor = null,
   defaultNote = "",
-  unit,
 }: {
   opId: string;
-  defaultQty: number | null;
+  // #520: an operation can carry several materials (fn_add_plan_operation_multi). 0 or 1 materials
+  // render the SAME single qty field as before #520 (the common case's look/feel is unchanged); only
+  // >1 materials render one field per material.
+  materials: ExecuteFormMaterial[];
   defaultLabor?: number | null;
   defaultNote?: string;
-  unit: string;
 }) {
   const router = useRouter();
-  const [qty, setQty] = useState(defaultQty != null ? String(defaultQty) : "");
+  const single = materials.length <= 1;
+  const soleUnit = materials[0]?.unit ?? "كجم";
+
+  const [qty, setQty] = useState(materials[0]?.defaultQty != null ? String(materials[0].defaultQty) : "");
+  // Prefill each material field from its own plan_material_requirements.qty, same rationale as the
+  // single-field prefill below: never a hardcoded magic default (non-negotiable #1).
+  const [matQtys, setMatQtys] = useState<string[]>(
+    materials.map((m) => (m.defaultQty != null ? String(m.defaultQty) : "")),
+  );
   // Prefill from the op's planned labor (plan_labor_requirements.count) like qty — never a
   // hardcoded magic default, which would persist fabricated actual-labor data (non-negotiable #1).
   const [labor, setLabor] = useState(defaultLabor != null ? String(defaultLabor) : "");
@@ -33,9 +50,34 @@ export function ExecuteForm({
       <div aria-live="assertive" aria-atomic="true">
         {error && <Alert tone="danger" title={error} />}
       </div>
-      <FormRow id="qty" label={`الكمية المستخدمة (${unit})`}>
-        <Input type="number" inputMode="numeric" min={0} step="any" value={qty} onChange={(e) => setQty(e.target.value)} />
-      </FormRow>
+      {single ? (
+        <FormRow id="qty" label={`الكمية المستخدمة (${soleUnit})`}>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step="any"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+          />
+        </FormRow>
+      ) : (
+        materials.map((m, i) => (
+          <FormRow key={m.itemId} id={`qty-${m.itemId}`} label={`${m.name ?? "خامة"} (${m.unit})`}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step="any"
+              value={matQtys[i] ?? ""}
+              onChange={(e) => {
+                const next = e.target.value;
+                setMatQtys((prev) => prev.map((v, idx) => (idx === i ? next : v)));
+              }}
+            />
+          </FormRow>
+        ))
+      )}
       <FormRow id="labor" label="عدد العمال">
         <Input type="number" inputMode="numeric" min={0} step="any" value={labor} onChange={(e) => setLabor(e.target.value)} />
       </FormRow>
@@ -48,18 +90,33 @@ export function ExecuteForm({
         onClick={async () => {
           setPending(true);
           setError(null);
-          const parsed = parseExecuteInput(qty, labor);
-          if (!parsed.ok) {
-            setError(parsed.error);
-            setPending(false);
-            return;
-          }
           try {
-            const res = await executeOperation(opId, {
-              actualQty: parsed.value.actualQty,
-              laborCount: parsed.value.laborCount,
-              note,
-            });
+            const res = single
+              ? await (async () => {
+                  const parsed = parseExecuteInput(qty, labor);
+                  if (!parsed.ok) return { ok: false as const, error: parsed.error };
+                  return executeOperation(opId, {
+                    actualQty: parsed.value.actualQty,
+                    laborCount: parsed.value.laborCount,
+                    note,
+                  });
+                })()
+              : await (async () => {
+                  const parsed = parseMaterialActuals(
+                    materials.map((m, i) => ({ itemId: m.itemId, qty: matQtys[i] ?? "" })),
+                    labor,
+                  );
+                  if (!parsed.ok) return { ok: false as const, error: parsed.error };
+                  return executeOperation(opId, {
+                    // fn_execute_operation ignores this scalar whenever materialActuals is supplied
+                    // (a required legacy positional param — see the RPC's 5th-param contract); 0 is an
+                    // explicit, harmless placeholder.
+                    actualQty: 0,
+                    materialActuals: parsed.value.materialActuals,
+                    laborCount: parsed.value.laborCount,
+                    note,
+                  });
+                })();
             if (res.ok) {
               router.push("/m?done=1");
               return;
