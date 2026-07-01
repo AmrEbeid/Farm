@@ -141,6 +141,37 @@ export async function runPlanChecks(planId: string) {
   return { ok: true, checks };
 }
 
+export type PlanStatus = "draft" | "active" | "closed" | "abandoned";
+
+/**
+ * Move a plan through its lifecycle (draft → active → closed/abandoned) via the
+ * plan.write-gated SECURITY DEFINER RPC fn_set_plan_status (migration 0084). The RPC enforces
+ * both the org-scoped authorize() check and the cross-org guard; this action only keeps the
+ * request authenticated and maps the DB error to a field-safe Arabic message (mirrors
+ * addPlanOperation's SQLSTATE map — P0002 = plan not found, 42501 = missing plan.write).
+ */
+export async function setPlanStatus(planId: string, status: PlanStatus) {
+  await requireMembership();
+  const sb = await createClient();
+
+  const { error } = await sb.rpc("fn_set_plan_status", { p_plan_id: planId, p_status: status });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "ليس لديك صلاحية تعديل الخطة", P0002: "الخطة غير موجودة" },
+        "تعذّر تغيير حالة الخطة",
+      ),
+    };
+  }
+
+  // The list page also renders plan.status (plans/page.tsx), so revalidate both.
+  revalidatePath("/plans");
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true };
+}
+
 export interface NewOperationInput {
   subtype: string;
   planned_at: string; // yyyy-mm-dd
