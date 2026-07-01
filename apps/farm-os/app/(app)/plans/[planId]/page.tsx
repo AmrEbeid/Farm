@@ -10,6 +10,7 @@ import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { OperationBuilder } from "@/components/OperationBuilder";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
+import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { POTASSIUM_ID } from "@/lib/nav";
 import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
@@ -173,6 +174,7 @@ export default async function MonthlyPlanPage({
         actions={
           canEditPlan ? (
             <>
+              <PlanStatusActions planId={planId} status={planStatus} />
               <PlanChecksRunner planId={planId} />
               <OperationBuilder planId={planId} items={items ?? []} people={people ?? []} />
             </>
