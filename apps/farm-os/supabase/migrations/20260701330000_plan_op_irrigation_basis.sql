@@ -29,6 +29,39 @@
 -- already has RLS deny-by-default + FORCE RLS (migration 0006 tenant_all policy, 0028 FORCE RLS)
 -- and is written only through fn_add_plan_operation / fn_add_plan_operation_multi (SECURITY DEFINER,
 -- plan.write org-scoped). Adding nullable columns does not change who can read/write the row.
+--
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
+-- CROSS-PR RECONCILIATION (3-way conflict on fn_add_plan_operation_multi, resolved this session):
+-- PR #562 (feat/spray-compliance-record), PR #560 (this branch), and PR #563
+-- (feat/individual-palm-treatment) each independently re-emitted fn_add_plan_operation_multi from
+-- the SAME 9-arg base (migration 20260701170000). #562 is the most-reviewed/most-trusted of the
+-- three and is treated as LAYER 1 — it is UNCHANGED. This migration is now LAYER 2: it REQUIRES
+-- #562's migration (20260701320000_spray_compliance_fields.sql) to have already been applied, and
+-- re-emits the RPC starting from #562's 10-arg signature (not the original 9-arg), carrying #562's
+-- per-material spray-compliance loop logic forward VERBATIM and adding this branch's own two
+-- irrigation params as new trailing optional params (positions 11-12). Result: a 12-arg signature.
+-- PR #563 will further extend THIS 12-arg signature to 15-arg (its own migration documents that).
+--
+-- Required apply order: #562 → #560 (this migration) → #563.
+--
+-- Why this is safe to compose: #562's change is scoped to the MATERIALS LOOP (nine new per-material
+-- compliance columns + preferred_time_of_day on the main op row); this branch's change is scoped to
+-- the plan_operations INSERT itself (two new columns, irrigation_basis/soil_moisture_reading) and
+-- touches no per-material logic. The two additions touch disjoint statements inside the function
+-- body — no incompatible overlap, a straightforward union.
+--
+-- BUG CARRIED FORWARD FROM MAIN, NOT INTRODUCED HERE: this branch's original draft (pre-reconciliation)
+-- had regressed the per-material unit-insert from `nullif(v_mat->>'unit', '')` (the fix landed in
+-- migration 20260701170000, unit-of-measure reconciliation, DEMAND side) back to
+-- `coalesce(v_mat->>'unit', 'kg')`. #562's own migration independently carries the SAME regression
+-- (also `coalesce(..., 'kg')`) — both branches appear to have been authored from a stale pre-170000
+-- copy of the function. This reconciliation RESTORES the current main/`nullif` behaviour in the
+-- combined function below (matching #563, which forked after 170000 and kept it correct), since
+-- carrying the regression forward here would reintroduce a known-fixed defect into a NEWLY-authored
+-- combined function. #562's OWN migration file is untouched — this decision only affects what this
+-- (560) and the downstream (563) migrations emit. Flagged explicitly for owner visibility; see the
+-- session's PR comments on #560/#562/#563 for the full callout.
+-- ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 alter table public.plan_operations
   add column if not exists irrigation_basis text,
@@ -46,29 +79,33 @@ comment on column public.plan_operations.soil_moisture_reading is
   'Free-text soil-moisture reading that justified irrigation_basis = ''soil_test'' (e.g. '
   '"رطوبة منخفضة" or "18%"). Record-keeping only — not a structured measurement pipeline.';
 
--- Extend fn_add_plan_operation_multi (0093) with two new OPTIONAL trailing params so the
+-- Extend fn_add_plan_operation_multi — re-emit FROM #562's 10-arg signature (NOT the original 9-arg;
+-- #562 applies first in the corrected order) — with two new OPTIONAL trailing params so the
 -- OperationBuilder UI can set the basis/reading at create time. Postgres identifies a function by
 -- (name, arg TYPE list) — appending new parameters changes that signature, so `create or replace`
--- alone would create a SECOND overload (9-arg and 11-arg both existing) instead of truly replacing
--- it, which then makes any untyped/literal 9-arg call ambiguous ("is not unique") at the call site.
--- DROP the old 9-arg signature explicitly first, then create the 11-arg version — every existing
--- caller (the app's addPlanOperationMulti, any other branch/direct-RPC caller) keeps working
--- unchanged because both new trailing params default to NULL and a 9-positional-arg call still
--- resolves (there being only ONE overload left).
-drop function if exists public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid);
+-- alone would create a SECOND overload (10-arg and 12-arg both existing) instead of truly replacing
+-- it, which then makes any untyped/literal 9-or-10-arg call ambiguous ("is not unique") at the call
+-- site. DROP #562's 10-arg signature explicitly first, then create the 12-arg version — every
+-- existing caller (the app's addPlanOperationMulti, any other branch/direct-RPC caller) keeps
+-- working unchanged because Supabase/PostgREST calls this RPC with NAMED parameters (not
+-- positional) — each caller sets only the params it knows about and the rest resolve to their
+-- DEFAULT (null), regardless of final parameter order or count.
+drop function if exists public.fn_add_plan_operation_multi(
+  uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text);
 
-create function public.fn_add_plan_operation_multi(
-  p_plan_id      uuid,
-  p_subtype      text,
-  p_planned_at   date,
-  p_ends_on      date,
-  p_est_cost     numeric,
-  p_materials    jsonb,
-  p_labor        jsonb,
-  p_assignee_ids uuid[],
-  p_lead_id      uuid,
-  p_irrigation_basis      text default null,
-  p_soil_moisture_reading text default null)
+create or replace function public.fn_add_plan_operation_multi(
+  p_plan_id               uuid,
+  p_subtype               text,
+  p_planned_at            date,
+  p_ends_on               date,
+  p_est_cost              numeric,
+  p_materials             jsonb,
+  p_labor                 jsonb,
+  p_assignee_ids          uuid[],
+  p_lead_id               uuid,
+  p_preferred_time_of_day text default null,  -- from PR #562 (spray-compliance-record)
+  p_irrigation_basis      text default null,  -- from this PR (#560)
+  p_soil_moisture_reading text default null)  -- from this PR (#560)
 returns jsonb
 language plpgsql
 volatile
@@ -87,6 +124,8 @@ declare
   v_n_mat      int := 0;
   v_n_lab      int := 0;
   v_n_asg      int := 0;
+  v_zone       text;
+  v_applicator uuid;
 begin
   select pl.org_id, pl.scope_type, pl.scope_id
     into v_org, v_scope_type, v_scope_id
@@ -116,6 +155,12 @@ begin
   if p_lead_id is not null and (p_assignee_ids is null or not (p_lead_id = any (p_assignee_ids))) then
     raise exception 'lead % must be one of the assignees', p_lead_id using errcode = '22023';
   end if;
+  -- preferred_time_of_day: same closed vocabulary as the table CHECK (clean 22023, not raw 23514).
+  if p_preferred_time_of_day is not null
+     and p_preferred_time_of_day not in ('morning','midday','late_afternoon','evening') then
+    raise exception 'preferred_time_of_day % is not a recognised value', p_preferred_time_of_day
+      using errcode = '22023';
+  end if;
   -- irrigation-basis vocabulary (the table CHECK also enforces this; validate early for a clean 22023).
   if p_irrigation_basis is not null and p_irrigation_basis not in ('fixed_schedule', 'soil_test') then
     raise exception 'invalid irrigation_basis %', p_irrigation_basis using errcode = '22023';
@@ -135,13 +180,14 @@ begin
 
   insert into public.plan_operations (org_id, plan_id, subtype, target_type, target_id, planned_at,
                                       ends_on, priority, responsible_person_id, est_cost, approval_needed, status,
-                                      irrigation_basis, soil_moisture_reading)
+                                      preferred_time_of_day, irrigation_basis, soil_moisture_reading)
   values (v_org, p_plan_id, p_subtype, coalesce(v_scope_type, 'sector'), v_scope_id, p_planned_at,
           p_ends_on, 1, p_lead_id, p_est_cost, true, 'planned',
-          p_irrigation_basis, p_soil_moisture_reading)
+          p_preferred_time_of_day, p_irrigation_basis, p_soil_moisture_reading)
   returning id into v_op_id;
 
-  -- materials: each item must be in the plan's org; qty non-negative.
+  -- materials: each item must be in the plan's org; qty non-negative; optional compliance fields
+  -- (from PR #562 — carried forward verbatim, including its validation of target_zone/applicator).
   for v_mat in select * from jsonb_array_elements(coalesce(p_materials, '[]'::jsonb)) loop
     if not exists (select 1 from public.inventory_items it
                    where it.id = (v_mat->>'item_id')::uuid and it.org_id = v_org) then
@@ -150,8 +196,32 @@ begin
     if coalesce((v_mat->>'qty')::numeric, 0) < 0 then
       raise exception 'material qty must be non-negative' using errcode = '22023';
     end if;
-    insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
-    values (v_org, v_op_id, (v_mat->>'item_id')::uuid, (v_mat->>'qty')::numeric, coalesce(v_mat->>'unit', 'kg'));
+
+    v_zone := nullif(v_mat->>'target_zone', '');
+    if v_zone is not null and v_zone not in ('bunch','crown','trunk','offshoot','whole_palm') then
+      raise exception 'target_zone % is not a recognised zone', v_zone using errcode = '22023';
+    end if;
+
+    v_applicator := nullif(v_mat->>'applicator_person_id', '')::uuid;
+    if v_applicator is not null and not exists (
+         select 1 from public.people pe where pe.id = v_applicator and pe.org_id = v_org and pe.active) then
+      raise exception 'applicator % is not an active member of org %', v_applicator, v_org using errcode = '22023';
+    end if;
+
+    -- unit: null when omitted/blank → the trg_pmr_unit_reconcile trigger (migration 20260701170000)
+    -- defaults it to the item's canonical unit and rejects a real mismatch. See the reconciliation
+    -- note at the top of this file: restores main's `nullif` behaviour (both #562's and this
+    -- branch's own pre-reconciliation drafts had regressed to `coalesce(..., 'kg')`).
+    insert into public.plan_material_requirements (
+      org_id, plan_op_id, item_id, qty, unit,
+      target_pest, apc_registration_ref, rei_hours, phi_days, target_zone,
+      applicator_person_id, wind_speed_kmh, wind_direction, air_temp_c)
+    values (
+      v_org, v_op_id, (v_mat->>'item_id')::uuid, (v_mat->>'qty')::numeric, nullif(v_mat->>'unit', ''),
+      nullif(v_mat->>'target_pest', ''), nullif(v_mat->>'apc_registration_ref', ''),
+      (v_mat->>'rei_hours')::numeric, (v_mat->>'phi_days')::numeric, v_zone,
+      v_applicator, (v_mat->>'wind_speed_kmh')::numeric, nullif(v_mat->>'wind_direction', ''),
+      (v_mat->>'air_temp_c')::numeric);
     v_n_mat := v_n_mat + 1;
   end loop;
 
@@ -183,6 +253,6 @@ begin
     'operationId', v_op_id, 'materials', v_n_mat, 'labor', v_n_lab, 'assignees', v_n_asg);
 end $$;
 
-revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text) from public;
-revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text) from anon;
-grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text) to authenticated;
+revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text) from public;
+revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text) from anon;
+grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text) to authenticated;

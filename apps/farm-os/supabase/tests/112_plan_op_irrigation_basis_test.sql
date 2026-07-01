@@ -39,13 +39,20 @@ select lives_ok(
 
 -- ── (c) fn_add_plan_operation_multi persists the basis end-to-end (extended signature, both new
 --        trailing params optional) ────────────────────────────────────────────────────────────────
+-- NAMED-parameter call (matches how PostgREST/the real app calls this RPC — see migration
+-- 20260701330000's reconciliation note): after the 3-way merge, p_irrigation_basis/
+-- p_soil_moisture_reading sit at positions 11-12 (p_preferred_time_of_day, from PR #562, is now
+-- position 10) — a positional call here would silently target the wrong parameter, so this test
+-- uses named params to stay correct regardless of final parameter order.
 select set_config('request.jwt.claims',
   json_build_object('sub', (select user_id::text from public.organization_member
     where org_id = :'orgA' and role = 'farm_manager' limit 1), 'role', 'authenticated')::text, true);
 set local role authenticated;
 select set_config('t.res', public.fn_add_plan_operation_multi(
-  :'plan', 'irrigation', '2026-07-15'::date, null, 0,
-  '[]'::jsonb, '[]'::jsonb, null, null, 'soil_test', '15%')::text, false);
+  p_plan_id => :'plan', p_subtype => 'irrigation', p_planned_at => '2026-07-15'::date,
+  p_ends_on => null, p_est_cost => 0, p_materials => '[]'::jsonb, p_labor => '[]'::jsonb,
+  p_assignee_ids => null, p_lead_id => null,
+  p_irrigation_basis => 'soil_test', p_soil_moisture_reading => '15%')::text, false);
 reset role;
 
 select is(
