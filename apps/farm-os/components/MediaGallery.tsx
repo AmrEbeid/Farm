@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Button, Alert, Input, EmptyState } from "@/components/ui";
+import { Card, Button, Alert, Input, EmptyState, ConfirmDialog, useToast } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 import {
   addAttachment,
@@ -58,9 +58,14 @@ export function MediaGallery({
   canAttach: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  // Attachment id awaiting delete confirmation, or null when the dialog is closed. This is
+  // the first ConfirmDialog wired into the app (foundation PR) — previously "حذف" removed
+  // the attachment on a single click with no confirmation at all.
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -119,15 +124,19 @@ export function MediaGallery({
     }
   }
 
-  async function remove(id: string) {
+  async function confirmRemove() {
+    if (!removeTarget) return;
     setPending(true);
     setError(null);
-    const res = await archiveAttachment(id, true);
+    const res = await archiveAttachment(removeTarget, true);
     setPending(false);
     if (!res.ok) {
       setError(res.error ?? "تعذّر حذف المرفق");
+      setRemoveTarget(null);
       return;
     }
+    setRemoveTarget(null);
+    toast.ok("تم حذف المرفق");
     router.refresh();
   }
 
@@ -181,7 +190,7 @@ export function MediaGallery({
                 )}
                 {a.caption && <span className="truncate text-xs">{a.caption}</span>}
                 {canAttach && (
-                  <Button variant="ghost" onClick={() => remove(a.id)} disabled={pending}>
+                  <Button variant="ghost" onClick={() => setRemoveTarget(a.id)} disabled={pending}>
                     حذف
                   </Button>
                 )}
@@ -190,6 +199,18 @@ export function MediaGallery({
           </ul>
         )}
       </div>
+      <ConfirmDialog
+        open={removeTarget !== null}
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={confirmRemove}
+        loading={pending}
+        tone="danger"
+        title="حذف المرفق"
+        description="سيتم حذف هذا المرفق ولن يظهر بعد ذلك في القائمة."
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        closeLabel="إغلاق"
+      />
     </Card>
   );
 }

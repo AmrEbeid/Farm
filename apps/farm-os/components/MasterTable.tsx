@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Input, Alert } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Button, Field, Input, Alert, useToast } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 
@@ -53,6 +54,8 @@ export function MasterTable({
   exportFilename?: string;
   empty?: string;
 }) {
+  const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
@@ -81,7 +84,10 @@ export function MasterTable({
     if (r.ok) {
       setOpen(false);
       setForm({});
-      window.location.reload();
+      // Targeted re-fetch of the Server Component tree (not a full page reload) — the
+      // list re-renders with fresh data while a toast confirms the write succeeded.
+      toast.ok("تمت الإضافة بنجاح");
+      router.refresh();
     } else {
       setMsg({ tone: "danger", text: r.error ?? "تعذّر الحفظ" });
     }
