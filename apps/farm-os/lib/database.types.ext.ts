@@ -437,6 +437,236 @@ type WeatherFunctions = {
   };
 };
 
+// ── RPW-1 «مكافحة سوسة النخيل الحمراء» — pest-trap register + catch/incident log, migration
+// 20260701300000. Augmented here until database.types.ts is regenerated from prod (then a
+// harmless no-op — see file header). Relationships mirror the `assets` table's FK-embed shape
+// (referencedRelation = the table name used in a PostgREST embed like `sectors(name)`).
+type PestTrapsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    code: string;
+    label: string;
+    sector_id: string | null;
+    hawsha_id: string | null;
+    line_id: string | null;
+    installed_at: string;
+    lure_changed_at: string | null;
+    status: string;
+    notes: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    code: string;
+    label: string;
+    sector_id?: string | null;
+    hawsha_id?: string | null;
+    line_id?: string | null;
+    installed_at: string;
+    lure_changed_at?: string | null;
+    status?: string;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    code?: string;
+    label?: string;
+    sector_id?: string | null;
+    hawsha_id?: string | null;
+    line_id?: string | null;
+    installed_at?: string;
+    lure_changed_at?: string | null;
+    status?: string;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "pest_traps_org_id_fkey";
+      columns: ["org_id"];
+      isOneToOne: false;
+      referencedRelation: "organization";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_traps_sector_id_fkey";
+      columns: ["sector_id"];
+      isOneToOne: false;
+      referencedRelation: "sectors";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_traps_hawsha_id_fkey";
+      columns: ["hawsha_id"];
+      isOneToOne: false;
+      referencedRelation: "hawshat";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_traps_line_id_fkey";
+      columns: ["line_id"];
+      isOneToOne: false;
+      referencedRelation: "lines";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type PestTrapCatchesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    trap_id: string;
+    checked_at: string;
+    catch_count: number;
+    notes: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    trap_id: string;
+    checked_at: string;
+    catch_count: number;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    trap_id?: string;
+    checked_at?: string;
+    catch_count?: number;
+    notes?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "pest_trap_catches_org_id_fkey";
+      columns: ["org_id"];
+      isOneToOne: false;
+      referencedRelation: "organization";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_trap_catches_trap_id_fkey";
+      columns: ["trap_id"];
+      isOneToOne: false;
+      referencedRelation: "pest_traps";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type PestIncidentsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    trap_id: string | null;
+    asset_id: string | null;
+    reported_at: string;
+    severity: string;
+    notes: string | null;
+    response_action: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    trap_id?: string | null;
+    asset_id?: string | null;
+    reported_at: string;
+    severity: string;
+    notes?: string | null;
+    response_action?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    trap_id?: string | null;
+    asset_id?: string | null;
+    reported_at?: string;
+    severity?: string;
+    notes?: string | null;
+    response_action?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "pest_incidents_org_id_fkey";
+      columns: ["org_id"];
+      isOneToOne: false;
+      referencedRelation: "organization";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_incidents_trap_id_fkey";
+      columns: ["trap_id"];
+      isOneToOne: false;
+      referencedRelation: "pest_traps";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "pest_incidents_asset_id_fkey";
+      columns: ["asset_id"];
+      isOneToOne: false;
+      referencedRelation: "assets";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type PestScoutingFunctions = {
+  fn_save_trap: {
+    Args: {
+      p_org: string;
+      p_code: string;
+      p_label: string;
+      p_installed_at: string;
+      p_sector_id?: string | null;
+      p_hawsha_id?: string | null;
+      p_line_id?: string | null;
+      p_lure_changed_at?: string | null;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_update_trap: {
+    Args: {
+      p_trap_id: string;
+      p_lure_changed_at?: string | null;
+      p_status?: string | null;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_log_trap_catch: {
+    Args: {
+      p_trap_id: string;
+      p_checked_at: string;
+      p_catch_count: number;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_report_pest_incident: {
+    Args: {
+      p_reported_at: string;
+      p_severity: string;
+      p_trap_id?: string | null;
+      p_asset_id?: string | null;
+      p_notes?: string | null;
+      p_response_action?: string | null;
+    };
+    Returns: Json;
+  };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses"> & {
@@ -456,8 +686,11 @@ export type Database = Omit<Generated, "public"> & {
       payment_request_fundings: PaymentRequestFundingsTable;
       plan_operation_assignees: PlanOperationAssigneesTable;
       plan_operation_templates: PlanOperationTemplatesTable;
+      pest_traps: PestTrapsTable;
+      pest_trap_catches: PestTrapCatchesTable;
+      pest_incidents: PestIncidentsTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions;
   };
 };
 

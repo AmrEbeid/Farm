@@ -81,7 +81,9 @@ select is(
         'fn_close_payment_request',                -- close funded request after every line is confirmed paid
         'fn_instantiate_operation_template',       -- gated template-instantiate RPC (SPEC-0019 P1-3, migration 20260701260000)
         'fn_owner_pnl_summary',                    -- gated owner P&L period-summary read RPC (migration 20260701270000)
-        'fn_update_weather_thresholds'              -- gated weather-thresholds settings RPC (SPEC-0007 §3, migration 20260701370000)
+        'fn_update_weather_thresholds',             -- gated weather-thresholds settings RPC (SPEC-0007 §3, migration 20260701370000)
+        'fn_save_trap', 'fn_update_trap',          -- gated pest-scouting trap RPCs (RPW-1, migration 20260701380000)
+        'fn_log_trap_catch', 'fn_report_pest_incident' -- gated pest-scouting catch/incident RPCs (RPW-1)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )
