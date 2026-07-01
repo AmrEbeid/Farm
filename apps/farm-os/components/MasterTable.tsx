@@ -71,7 +71,10 @@ export function MasterTable({
     try {
       r = await onCreate(values);
     } catch {
-      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner.
+      // A network reject must not strand the spinner. This is a clear retry message, not
+      // offline support: there's no service worker / IndexedDB outbox / queued replay, so a
+      // submission made while offline is NOT queued — the user must retry once back online.
+      // Queued/replayed offline submissions are a planned future release.
       r = { ok: false, error: "تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى." };
     }
     setPending(false);
