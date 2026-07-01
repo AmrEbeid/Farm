@@ -315,6 +315,9 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
   if (input.harvest_stage != null && !HARVEST_STAGES.includes(input.harvest_stage)) {
     return { ok: false, error: "مرحلة الحصاد غير صالحة" };
   }
+  if (input.assignee_ids.length === 0) {
+    return { ok: false, error: "كل عملية يجب أن تُسند إلى شخص واحد على الأقل" };
+  }
 
   const sb = await createClient();
   const { data, error } = await sb.rpc("fn_add_plan_operation_multi", {

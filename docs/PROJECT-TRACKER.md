@@ -1,5 +1,29 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
 
+> **2026-07-01 — CONNECTED WORK GRAPH PR-READY; not live yet.**
+> Local branch `feat/connected-work-graph` is rebased onto current `origin/main` and now links the farm structure,
+> operations, assignment, field dashboard, accountant dashboard, custody/accounting, and printable entity reports.
+> Scope: sector/hawsha/line/palm 360 pages now show linked plans, tasks, activity, finance (owner/accountant only),
+> and reports; planned operations must have at least one assignee; people/person and `/m` dashboards read
+> `plan_operation_assignees`; owner unassigned alerts use the assignment table; `/finance/dashboard` now surfaces
+> custody balances, due/near-due payment work, unpaid post-paid expenses, and recent journals. New migration
+> `20260701390000_execute_operation_target_rollup.sql` re-emits `fn_execute_operation` so executed sector/hawsha/
+> line/palm operations write the full event-location ancestor chain and palm `event_assets`, while preserving the
+> current multi-material execution contract from `20260701230000_execute_multi_material.sql`. Current `main` owns
+> `20260701230000` for multi-material execution, so this branch moves the rollup fix to `20260701390000`.
+> Latest `main` also introduced a duplicate `20260701230000_operation_subtype_vocab.sql`; this branch renumbers it
+> to `20260701235000` so it remains before `20260701240000_fn_add_plan_operation_multi_harvest_stage.sql`.
+> Validation after rebasing onto `origin/main` (`59978d5`): duplicate migration check clean; `git diff --check`
+> clean; full ESLint clean; `npx tsc --noEmit` clean; app Vitest **353/353**; local pgTAP **1098/1098**;
+> production build green. GitHub checks must rerun on the pushed rebased head before merge.
+> Prod migration gate is complete: the Farm prod ledger now records exact repo versions `20260701230000` and
+> `20260701390000` (plus repaired exact ledger rows for already-applied mainline migrations, including
+> `20260701235000`, `20260701240000`, `20260701280000`, `20260701300000`, `20260701310000`, `20260701350000`,
+> `20260701370000`, and `20260701380000` after the latest rebase). Post-apply probes
+> confirm five-arg `fn_execute_operation`, no four-arg overload, multi-material refusal preserved, full location
+> insert present, palm `event_assets` present, and no anon EXECUTE. **Not merged or live yet.** Remaining gates:
+> merge -> Vercel deploy -> live protected-route/authenticated smoke.
+
 > **2026-07-01 (later) — import templates shipped; accounting/custody audited, roadmapped, cataloged (5 PRs merged).**
 > Under an open "keep working" directive, integrity rails held (no fabricated data, CI-green-before-merge,
 > migrate-first, one PR at a time). **SHIPPED & LIVE: bulk-import prefill + reconcile-upsert for farm structure**

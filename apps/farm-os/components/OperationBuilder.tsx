@@ -127,6 +127,10 @@ export function OperationBuilder({
     setPending(true);
     setError(null);
     try {
+      if (people.length > 0 && assignees.length === 0) {
+        setError("اختر مكلّفًا واحدًا على الأقل للعملية.");
+        return;
+      }
       const res = await addPlanOperationMulti(planId, {
         subtype,
         planned_at: plannedAt,

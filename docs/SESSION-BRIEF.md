@@ -1,6 +1,57 @@
 # Session Brief — Farm OS      Updated: 2026-07-01 by Claude (autonomous session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-07-01 — connected work graph branch ready for review; not live yet
+Responding to the Owner's complaint that hawsha/sub-farm/palm 360s were poor and not connected to operations,
+plans, assignment, person dashboards, accountant dashboard, custody, accounting, and reports, local branch
+`feat/connected-work-graph` now implements the connected-work layer.
+
+Implemented:
+- Shared server helper `apps/farm-os/lib/linked work context.ts` resolves farm/sector/hawsha/line/palm ancestors and
+  pulls related plans, operations, assignees, events, expenses, payment requests, custody movements, journals, and
+  accounts.
+- Shared UI `components/linked work sections.tsx` plus `print button.tsx` adds linked KPIs, plans/tasks/finance
+  cards, and printable entity reports.
+- Sector/hawsha/line/palm 360 pages now show linked plans, tasks, activity, finance (owner/accountant only), and
+  reports. Palm pages render the same linked-work panels below the existing palm file.
+- Operation creation now requires assignees; plan detail shows assignees; owner/people/person/mobile dashboards use
+  `plan_operation_assignees` with legacy `responsible_person_id` fallback.
+- `/m` defaults linked field users to their own assigned tasks, with a show-all toggle.
+- `/finance/dashboard` now shows accountant-relevant custody balances, payment-request follow-up, near-due PRs,
+  unpaid post-paid expenses, and recent accounting journals.
+- Migration `20260701390000_execute_operation_target_rollup.sql` re-emits `fn_execute_operation` so executed
+  sector/hawsha/line/palm planned operations write the full ancestor event-location chain; palm events also write
+  `event_assets`. The re-emit is based on the current multi-material execution body from
+  `20260701230000_execute_multi_material.sql`. Tests `112_execute_multi_material_test.sql` and
+  `113_execute_operation_target_rollup_test.sql` cover multi-material execution plus sector/hawsha/line/palm rollup
+  and the palm fallback through `line_id` when `assets.hawsha_id` is missing.
+- Mainline migration-version collision repair: current `main` owns `20260701230000` for multi-material execution,
+  so this branch moves the rollup fix to `20260701390000` and keeps future prod migration ordering unambiguous.
+- Latest `main` also introduced a duplicate `20260701230000_operation_subtype_vocab.sql`; this branch renumbers it
+  to `20260701235000` so the vocabulary column/check migration still runs before the
+  `20260701240000_fn_add_plan_operation_multi_harvest_stage.sql` RPC re-emit.
+
+Validation on current `origin/main` base (`59978d5`):
+- duplicate migration check clean.
+- `git diff --check` clean.
+- `npm run lint -- --max-warnings=0` clean.
+- `npx tsc --noEmit` clean.
+- `npx vitest run`: **38 files / 353 tests passed**.
+- `bash apps/farm-os/supabase/test-shims/run-pgtap-local.sh`: **1098 ok / 0 not_ok / 0 file_failures**.
+- `npm run build`: green Next production build.
+- PR #582 checks/CodeRabbit: must rerun after pushing the latest rebased head.
+- Prod migration: exact ledger rows repaired for already-applied generated-timestamp migrations. The rollup body was
+  already applied/probed on Farm prod (`veezkmytervjnpxcrbkw`); after the latest rebase it is now recorded under exact
+  version `20260701390000`. Exact ledger versions `20260701230000`, `20260701235000`, `20260701240000`,
+  `20260701280000`, `20260701300000`, `20260701310000`, `20260701350000`, `20260701370000`, `20260701380000`, and
+  `20260701390000` were repaired after catalog/ledger probes proved those generated-timestamp schemas were already present. Probes confirm five-arg execute
+  function, no four-arg overload, multi-material refusal preserved, full location insert and palm `event_assets`, and
+  no anon EXECUTE grant.
+
+Status: PR #582 is prod-migrated and locally green on the latest base. **Not pushed after the latest rebase, not
+merged, and not live yet.** Remaining gates: force-push -> GitHub checks -> merge -> Vercel deploy -> authenticated
+smoke.
+
 ## 2026-07-01 (later addendum) — import templates shipped + accounting/custody audited & roadmapped
 Session under an open "keep working" directive; standing integrity rails held (no fabricated data, CI-green-before-merge, migrate-first, one PR at a time). Merged to `main`:
 - **Bulk-import templates — prefill + reconcile-upsert (farm structure), SHIPPED & LIVE.** PR **#561** (feature) + PR **#569** (prod-500 hotfix). Downloading a sectors/hawshat/**lines** template now pre-fills it with the org's current active rows (ref columns shown as human codes); re-uploading **matches by business key → updates**, inserts new rows, and **archives rows removed from the file** (via `fn_archive_structure`) behind an explicit server-side `confirmArchive` gate. New `lines` descriptor added (`dedupeKey` mirrors `matchKey` on all three). Verified **live over HTTP on prod** (owner session) — all three templates return valid `.xlsx`. The #569 hotfix fixed a `looseFrom` detached-`this` bug that 500'd every template download (`db-loose.ts` now calls `sb.from(table)` through a closure; regression test added).

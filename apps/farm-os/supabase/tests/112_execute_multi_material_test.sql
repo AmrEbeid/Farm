@@ -1,5 +1,5 @@
 -- 112 — #520 (oracle, hard gate): fn_execute_operation must consume EVERY material on a multi-material
--- operation, not just the first by item_id order (migration 20260701220000). Before the fix, an op
+-- operation, not just the first by item_id order (migration 20260701230000). Before the fix, an op
 -- created via fn_add_plan_operation_multi with several materials had its stock issued, its
 -- `quantities` consumption row written, and its actual_cost computed from ONLY ONE material — every
 -- other material's stock silently stayed un-decremented. This test builds a 3-material operation
@@ -30,9 +30,9 @@
 -- op's target_id into event_locations.sector_id UNCONDITIONALLY, regardless of target_type — silently
 -- wrong for hawsha/farm-scoped ops and actively dangerous for the palm-scoped ops PR #563 introduces
 -- (target_id there is an assets.id, not a sector). The "TARGET-TYPE" section below proves: a
--- target_type='hawsha' op populates hawsha_id (not sector_id) — the pre-existing real-world common
--- case, now covered; a target_type='palm' op populates the new asset_id column (not sector_id); a
--- target_type=null op keeps writing sector_id (byte-identical legacy behaviour, since target_type has
+-- target_type='hawsha' op populates hawsha_id plus its parent sector/farm — the pre-existing
+-- real-world common case, now covered; a target_type='palm' op populates the new asset_id column
+-- plus its parent hawsha/sector/farm; a target_type=null op keeps writing sector_id (byte-identical legacy behaviour, since target_type has
 -- no CHECK constraint and is null for every op not authored via fn_add_plan_operation(_multi)); and an
 -- unrecognized non-null target_type is refused (22023) rather than silently mis-attributing the event.
 --
@@ -358,7 +358,7 @@ select set_config('t.eventH', (current_setting('t.resH')::jsonb ->> 'event_id'),
 select is((select hawsha_id from public.event_locations where event_id = current_setting('t.eventH', true)::uuid),
   :'hawsha'::uuid, '#566: target_type=hawsha populates event_locations.hawsha_id');
 select is((select sector_id from public.event_locations where event_id = current_setting('t.eventH', true)::uuid),
-  null, '#566: target_type=hawsha leaves sector_id null (not the target hawsha id mis-written there)');
+  :'sector'::uuid, '#566: target_type=hawsha rolls up the parent sector_id');
 
 -- (ii) target_type='palm' — PR #563's shape: target_id is an assets.id, not a sector. Must populate
 -- the new asset_id column, NOT sector_id (the pre-fix bug this migration closes).
@@ -373,7 +373,7 @@ select set_config('t.eventP', (current_setting('t.resP')::jsonb ->> 'event_id'),
 select is((select asset_id from public.event_locations where event_id = current_setting('t.eventP', true)::uuid),
   :'palm'::uuid, '#566: target_type=palm populates the new event_locations.asset_id (not sector_id)');
 select is((select sector_id from public.event_locations where event_id = current_setting('t.eventP', true)::uuid),
-  null, '#566: target_type=palm leaves sector_id null — the pre-fix bug would have written the palm id here');
+  :'sector'::uuid, '#566: target_type=palm rolls up the parent sector_id, not the palm id');
 
 -- (iii) target_type=null — legacy/unspecified (no CHECK constraint; every pre-existing test/caller
 -- never sets it) — must keep the EXACT pre-existing behaviour: sector_id = target_id. Byte-identical

@@ -97,10 +97,31 @@ export default async function PeopleDashboardPage({
     payrollRun = computePayroll(labor, rates);
   }
 
+  const operationIds = (operations ?? []).map((op) => op.id);
+  const { data: assignees, error: assigneesError } = operationIds.length
+    ? await sb
+        .from("plan_operation_assignees")
+        .select("plan_op_id, person_id")
+        .in("plan_op_id", operationIds)
+    : { data: [], error: null };
+  if (assigneesError) throw assigneesError;
+
   const activePeople = (people ?? []).filter((p) => p.active);
   const openOperations = (operations ?? []).filter((op) => isExecutableOpStatus(op.status));
-  const assignedOps = openOperations.filter((op) => op.responsible_person_id);
-  const unassignedOps = openOperations.filter((op) => !op.responsible_person_id);
+  const assigneesByOperation = new Map<string, string[]>();
+  for (const assignee of assignees ?? []) {
+    const current = assigneesByOperation.get(assignee.plan_op_id) ?? [];
+    current.push(assignee.person_id);
+    assigneesByOperation.set(assignee.plan_op_id, current);
+  }
+  const assignedOps = openOperations.filter((op) => {
+    const current = assigneesByOperation.get(op.id) ?? [];
+    return current.length > 0 || Boolean(op.responsible_person_id);
+  });
+  const unassignedOps = openOperations.filter((op) => {
+    const current = assigneesByOperation.get(op.id) ?? [];
+    return current.length === 0 && !op.responsible_person_id;
+  });
   const typeCounts = activePeople.reduce<Record<string, number>>((acc, person) => {
     const type = person.employment_type ?? "unknown";
     acc[type] = (acc[type] ?? 0) + 1;
@@ -109,8 +130,14 @@ export default async function PeopleDashboardPage({
 
   const opsByPerson = new Map<string, number>();
   for (const op of assignedOps) {
-    if (!op.responsible_person_id) continue;
-    opsByPerson.set(op.responsible_person_id, (opsByPerson.get(op.responsible_person_id) ?? 0) + 1);
+    const current = assigneesByOperation.get(op.id) ?? [];
+    if (current.length > 0) {
+      for (const personId of current) {
+        opsByPerson.set(personId, (opsByPerson.get(personId) ?? 0) + 1);
+      }
+    } else if (op.responsible_person_id) {
+      opsByPerson.set(op.responsible_person_id, (opsByPerson.get(op.responsible_person_id) ?? 0) + 1);
+    }
   }
 
   // Chart data — derived from the people / operations already fetched (no new queries).

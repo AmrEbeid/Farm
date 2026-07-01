@@ -1,6 +1,6 @@
 -- Farm OS — operation vocabulary (2/2): fn_add_plan_operation_multi re-emit adding an optional
 -- p_harvest_stage param so a harvest operation can record its ripening stage (خلال/رطب/تمر,
--- migration 20260701230000's plan_operations.harvest_stage column + CHECK).
+-- migration 20260701235000's plan_operations.harvest_stage column + CHECK).
 --
 -- Re-emitted from the CURRENT definition (20260701170000, the unit-reconciliation 'kg'-default
 -- fix) — see the authorize()-re-emit footgun: a re-emit copied from an older base silently drops

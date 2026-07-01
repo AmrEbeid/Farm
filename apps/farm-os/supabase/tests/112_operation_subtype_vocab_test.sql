@@ -1,4 +1,4 @@
--- 112 — operation vocabulary (migration 20260701230000): plan_operations.subtype is constrained to
+-- 112 — operation vocabulary (migration 20260701235000): plan_operations.subtype is constrained to
 -- the real Egyptian date-palm operation set (the 5 pre-existing values + ~10 newly modeled ones —
 -- pruning/dethorning, offshoot management, pollen collection, bunch limiting, thinning, bunch
 -- tilting, bagging, pest scouting, harvest, post-harvest), and plan_operations.harvest_stage

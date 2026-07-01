@@ -11,13 +11,21 @@ import { StructureArchiveButton } from "@/components/StructureArchiveButton";
 import { MediaGallery } from "@/components/MediaGallery";
 import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
+import { getLinkedWorkContext } from "@/lib/linked work context";
+import {
+  LinkedFinanceCard,
+  LinkedPlansCard,
+  LinkedReportCard,
+  LinkedTasksCard,
+  LinkedWorkKpis,
+} from "@/components/linked work sections";
 import type { TabItem } from "@amrebeid/ui";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 import { fmtDate } from "@/lib/dates";
 
-const TAB_IDS = ["overview", "palms", "activity", "media"] as const;
+const TAB_IDS = ["overview", "palms", "plans", "tasks", "activity", "finance", "media", "report"] as const;
 type SectorTab = (typeof TAB_IDS)[number];
 
 function palmStatus(assetStatus: string, sex: string | null): PalmStatus {
@@ -57,19 +65,22 @@ export default async function SectorFilePage({
 }) {
   const { id } = await params;
   const { tab: rawTab } = await searchParams;
-  const tab: SectorTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
+  let tab: SectorTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
     ? (rawTab as SectorTab)
     : "overview";
   const m = await requireMembership();
   const sb = await createClient();
   const canEditStructure = ["owner", "farm_manager"].includes(m.role);
   const canAttach = ["owner", "farm_manager", "agri_engineer", "supervisor"].includes(m.role);
+  const canSeeFinance = ["owner", "accountant"].includes(m.role);
+  if (tab === "finance" && !canSeeFinance) tab = "overview";
 
   const [
     { data: sector, error: sectorError },
     { data: locs, error: locsError },
     { data: assets, error: assetsError },
     attachments,
+    linkedWork,
   ] = await Promise.all([
     sb
       .from("sectors")
@@ -89,6 +100,12 @@ export default async function SectorFilePage({
       .eq("archived", false)
       .order("id_tag"),
     getAttachments("sector", id),
+    getLinkedWorkContext(sb, {
+      orgId: m.orgId,
+      entityType: "sector",
+      entityId: id,
+      canSeeFinance,
+    }),
   ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
@@ -176,8 +193,12 @@ export default async function SectorFilePage({
   const tabItems: TabItem[] = [
     { id: "overview", label: "نظرة عامة" },
     { id: "palms", label: `النخيل (${num(palmTotal)})` },
+    { id: "plans", label: `الخطط (${num(linkedWork.plans.length)})` },
+    { id: "tasks", label: `المهام (${num(linkedWork.openOperations.length)})` },
     { id: "activity", label: `النشاط (${num(activities.length)})` },
+    ...(canSeeFinance ? [{ id: "finance", label: "المالية" }] : []),
     { id: "media", label: "المرفقات" },
+    { id: "report", label: "تقرير" },
   ];
 
   return (
@@ -213,6 +234,8 @@ export default async function SectorFilePage({
           value={sector.area_feddan != null ? `${num(sector.area_feddan)} فدان` : "—"}
         />
       </section>
+
+      <LinkedWorkKpis context={linkedWork} canSeeFinance={canSeeFinance} />
 
       <EntityTabs items={tabItems} value={tab} />
 
@@ -315,6 +338,24 @@ export default async function SectorFilePage({
         </div>
       )}
 
+      {tab === "plans" && (
+        <div role="tabpanel" id={tabPanelId("plans")} aria-labelledby={tabId("plans")} tabIndex={0}>
+          <LinkedPlansCard context={linkedWork} />
+        </div>
+      )}
+
+      {tab === "tasks" && (
+        <div role="tabpanel" id={tabPanelId("tasks")} aria-labelledby={tabId("tasks")} tabIndex={0}>
+          <LinkedTasksCard context={linkedWork} />
+        </div>
+      )}
+
+      {tab === "finance" && canSeeFinance && (
+        <div role="tabpanel" id={tabPanelId("finance")} aria-labelledby={tabId("finance")} tabIndex={0}>
+          <LinkedFinanceCard context={linkedWork} />
+        </div>
+      )}
+
       {tab === "media" && (
         <div role="tabpanel" id={tabPanelId("media")} aria-labelledby={tabId("media")} tabIndex={0}>
           <MediaGallery
@@ -324,6 +365,12 @@ export default async function SectorFilePage({
             initial={attachments}
             canAttach={canAttach}
           />
+        </div>
+      )}
+
+      {tab === "report" && (
+        <div role="tabpanel" id={tabPanelId("report")} aria-labelledby={tabId("report")} tabIndex={0}>
+          <LinkedReportCard context={linkedWork} title={sector.name} canSeeFinance={canSeeFinance} />
         </div>
       )}
     </div>

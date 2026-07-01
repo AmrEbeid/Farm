@@ -43,7 +43,7 @@ export default async function OwnerDashboard() {
     sb.from("budget_lines").select("category, approved, committed, actual"),
     sb.from("inventory_items").select("id, reorder_point, min_stock, inventory_bin(on_hand, reserved)"),
     sb.from("plans").select("id, status"),
-    sb.from("plan_operations").select("status, planned_at, responsible_person_id, plan_id"),
+    sb.from("plan_operations").select("id, status, planned_at, responsible_person_id, plan_id"),
     sb.from("plan_checks").select("result, plan_id"),
     sb.from("assets").select("status"),
     sb.from("people").select("active"),
@@ -51,6 +51,19 @@ export default async function OwnerDashboard() {
   ]);
   for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError]) {
     if (e) throw e;
+  }
+
+  const opIds = (ops ?? []).map((op) => op.id);
+  const { data: assignees, error: assigneesError } = opIds.length
+    ? await sb
+        .from("plan_operation_assignees")
+        .select("plan_op_id, person_id")
+        .in("plan_op_id", opIds)
+    : { data: [], error: null };
+  if (assigneesError) throw assigneesError;
+  const assigneeCounts = new Map<string, number>();
+  for (const assignee of assignees ?? []) {
+    assigneeCounts.set(assignee.plan_op_id, (assigneeCounts.get(assignee.plan_op_id) ?? 0) + 1);
   }
 
   const today = new Date();
@@ -92,8 +105,12 @@ export default async function OwnerDashboard() {
   const dueThisWeek = activeOps.filter(
     (o) => LIVE_OP.has(o.status) && o.planned_at != null && o.planned_at <= isoWeek,
   );
-  const dueThisWeekUnassigned = dueThisWeek.filter((o) => o.responsible_person_id == null).length;
-  const unassignedOps = activeOps.filter((o) => LIVE_OP.has(o.status) && o.responsible_person_id == null);
+  const dueThisWeekUnassigned = dueThisWeek.filter(
+    (o) => (assigneeCounts.get(o.id) ?? 0) === 0 && o.responsible_person_id == null,
+  ).length;
+  const unassignedOps = activeOps.filter(
+    (o) => LIVE_OP.has(o.status) && (assigneeCounts.get(o.id) ?? 0) === 0 && o.responsible_person_id == null,
+  );
   const blockedChecks = (checks ?? []).filter((c) => c.result === "block" && activePlanIds.has(c.plan_id));
   const palmAttention = (assets ?? []).filter((a) => PALM_ATTENTION.has(a.status));
   const activePeople = (people ?? []).filter((p) => p.active).length;
