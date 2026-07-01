@@ -1,6 +1,72 @@
 # Session Brief — Farm OS      Updated: 2026-07-01 by Claude (autonomous session, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
+## 2026-07-01 (latest) — FULL LIVE DEPLOY: 32 PRs merged, 14 migrations applied, production confirmed READY
+Owner explicitly, twice, asked whether to proceed with a full unattended live deploy of all 30 accumulated draft
+PRs (staged as the recommended, safer sequence — no-schema PRs first, then schema-bearing PRs in dependency
+order — rather than one simultaneous batch); Owner's final answer both times was **"Yes, proceed to full live
+deploy now… using my own judgment throughout with no further check-ins."** This session executed that mandate.
+
+**Sequence executed:**
+1. **18 no-schema PRs** merged first (safest lane): #536, #537, #538, #539, #541, #544, #546, #547, #548, #550,
+   #551, #553, #554, #564, #565, #566, #570, #571.
+2. **7 independent schema PRs**, each migrate-first-then-merge: #542 (`fn_unassign_plan_operation`), #545
+   (execute-multi-material actuals fix), #552 (operation templates + `fn_instantiate_operation_template`), #555
+   (owner P&L summary RPC, additive to #368), #556 (weather-gate thresholds, editable per-org), #559 (RPW
+   pest-scouting traps/catches/incidents), #572 (relative operation scheduling — optional depends-on/offset).
+3. **The `authorize()` re-emit chain** (2 PRs, strict order): #557 (agronomist-signoff-gate — new
+   `agronomy.signoff` perm, 15-perm union) → #558 (people/labor write gates — `people.write`+`labor.write`,
+   final 18-perm union). Each re-emit built on the PRIOR PR's union, not the stale original base — the exact
+   footgun `docs/CLAUDE.md`/test 97 exist to catch.
+4. **The `fn_add_plan_operation_multi` 5-layer chain** (the highest-blast-radius function in the product — every
+   planned farm operation flows through it), strict order: #543 (operation vocabulary + `harvest_stage`, Layer
+   0, 10-arg) → #549 (labor-cost person_id link, Layer 1, body-only) → #562 (spray/pesticide compliance fields +
+   `preferred_time_of_day`, Layer 2, 11-arg) → #560 (soil-test irrigation basis, Layer 3, 13-arg) → #563
+   (individual-palm rescue treatments + `note`, Layer 4/FINAL, **16-arg**).
+
+**Reconciliation discipline on the 5-layer chain:** an initial pass found only 3 of the 5 branches touching this
+function; a brute-force `grep` across every open branch's migrations found the other 2 (#543, #549) that would
+otherwise have silently dropped `harvest_stage`/labor `person_id` depending on merge order. Each layer was
+rebuilt to `DROP` the *predecessor layer's* signature (not the original 9-arg) and re-validated on the full
+local pgTAP harness before being trusted. An independent adversarial review of the assembled chain traced every
+`DROP FUNCTION` in the lineage (confirmed no dangerous duplicate-overload state anywhere) and caught a real gap:
+a pre-existing test (54, non-negativity CHECK count) needed updating for 3 new spray-compliance constraints —
+this was found to already be fixed on the branch by the time of re-verification. Two further stale-signature
+regressions surfaced live during THIS session's own execution (not caught by any prior review): intermediate
+branches' own test files (112 on both #560 and #563) still asserted their SUPERSEDED arg-count signatures once
+later layers bumped the arg count further — fixed in-flight (`760e181`, `55e6e9f`) each time, restoring 0
+pgTAP failures before proceeding.
+
+**All 14 migrations applied to production** (Farm Supabase `veezkmytervjnpxcrbkw`), each individually pre-verified
+against the LIVE current-prod function signature before applying (never assumed): `fn_unassign_plan_operation`,
+`execute_multi_material`, `plan_operation_templates`, `owner_pnl_summary_rpc`, `weather_thresholds_settings`,
+`pest_scouting_traps`, `agronomist_signoff_gate`, `people_labor_write_gates`, `labor_logs`,
+`fn_add_plan_operation_multi_harvest_stage`, `plan_labor_person_link`+`plan_labor_person_write`,
+`spray_compliance_fields`, `plan_op_irrigation_basis`, `individual_palm_treatment`, `plan_op_relative_scheduling`.
+
+**Migration-ledger repair (found + fixed during this session's own docs pass):** the `apply_migration` MCP tool
+auto-assigns its OWN real-apply-time version stamp rather than honoring the migration file's embedded timestamp —
+this had already silently happened for every one of this session's applies. Most had already been repaired to
+their exact repo version by intervening work (see the connected-work-graph entry below), but a full repo-vs-ledger
+diff found **2 migrations still recorded under the wrong (auto-generated) version** (`plan_op_irrigation_basis`,
+`individual_palm_treatment` — the last two applied) **and 15 stale duplicate rows** (the same migration recorded
+twice: once correctly, once under its auto-generated version). Fixed via a direct, verified `UPDATE`/`DELETE`
+against `supabase_migrations.schema_migrations` (bookkeeping only — no DDL re-run, no data change). **Full
+repo-file-list ↔ prod-ledger diff now confirms exactly 134/134 versions match, zero orphans either direction.**
+**Lesson for future sessions: always pass an explicit target version when using `apply_migration`, or repair the
+ledger before calling the apply done — don't just trust the tool's auto-assigned version.**
+
+**Final verification:** Vercel production deployment (`farm-ui`, aliased to `ebeidfarm.business` +
+`farm-ui-one.vercel.app`) confirmed `READY` for the final merge (#563). `get_advisors` security scan: **0
+ERROR-level findings**; 54 WARN-level findings, all the expected "authenticated can EXECUTE this SECURITY
+DEFINER RPC" pattern deliberately used for every write RPC in this codebase — no new/unexpected issue.
+
+**Not part of this deploy batch, correctly left open:** PR #580 (`docs/accounting-custody-financial-system`) —
+a separate, explicitly docs-only accounting/custody operating-model plan (reconciling the Owner's restated
+custody/payment/revenue workflow against the already-live #568 kernel + SPEC-0018), stopped per its own explicit
+"do not continue automatically" instruction, awaiting Owner review. PR #366 (Care Academy) is unrelated,
+pre-existing, and untouched.
+
 ## 2026-07-01 — connected work graph LIVE via PR #582
 Responding to the Owner's complaint that hawsha/sub-farm/palm 360s were poor and not connected to operations,
 plans, assignment, person dashboards, accountant dashboard, custody, accounting, and reports, local branch

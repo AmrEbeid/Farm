@@ -1,5 +1,34 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
 
+> **2026-07-01 (latest) — FULL LIVE DEPLOY COMPLETE: 32 PRs merged, 14 migrations applied, prod confirmed READY.**
+> Under the Owner's explicit, twice-confirmed "proceed to full live deploy now… using my own judgment throughout"
+> mandate, executed the staged sequence: 18 no-schema PRs first (#536-#571 range), then 7 independent
+> schema-bearing PRs (#542/#545/#552/#555/#556/#559/#572, each migrate-first-then-merge), then the `authorize()`
+> re-emit chain (#557→#558, final 18-permission union incl. `agronomy.signoff`/`people.write`/`labor.write`), then
+> the 5-layer `fn_add_plan_operation_multi` reconciliation (#543→#549→#562→#560→#563 — Layer 0 operation
+> vocabulary/harvest_stage → Layer 1 labor-cost person_id → Layer 2 spray/pesticide compliance fields +
+> preferred_time_of_day → Layer 3 soil-test irrigation basis → Layer 4/FINAL individual-palm rescue treatments,
+> ending at a **16-arg signature** — the highest-blast-radius function in the product, every planned farm
+> operation flows through it). Each of the 5 layers was independently rebuilt to `DROP` the *predecessor layer's*
+> exact signature (not the stale original), re-validated on the full local pgTAP harness, and pre-verified against
+> the LIVE current-prod signature before applying. An independent adversarial review traced the full `DROP
+> FUNCTION` lineage end-to-end (no dangerous duplicate-overload state found); two stale-signature test-file
+> regressions (inherited-branch test 112 asserting a superseded arg count on both #560 and #563) were caught and
+> fixed live during this session's own execution, restoring 0 pgTAP failures each time before proceeding.
+> **All 14 migrations applied to Farm prod (`veezkmytervjnpxcrbkw`)**, each pre-checked against the live current
+> signature/base first — never assumed. **Migration-ledger repair:** a full repo-vs-prod-ledger diff (done as part
+> of this same docs pass) found the `apply_migration` tool had recorded 2 of this session's migrations under its
+> own auto-generated apply-time version instead of the intended repo version, plus 15 stale duplicate rows left
+> over from earlier in the session (already partially repaired by intervening work) — fixed via a direct,
+> verified ledger `UPDATE`/`DELETE` (bookkeeping only, no DDL re-run). **Full diff now confirms 134/134 repo
+> migration files exactly match the prod ledger, zero orphans either direction.** Final verification: Vercel
+> production deployment confirmed `READY` (aliased to `ebeidfarm.business`); `get_advisors` security scan shows
+> **0 ERROR-level findings** (54 WARN-level, all the expected/deliberate "authenticated can EXECUTE this SECURITY
+> DEFINER RPC" pattern used throughout this codebase). **Correctly NOT part of this batch:** PR #580
+> (accounting/custody operating-model plan, docs-only, stopped per its own explicit instruction, awaiting Owner
+> review) and pre-existing #366 (Care Academy, untouched). Full detail: `SESSION-BRIEF.md` 2026-07-01 (latest)
+> entry.
+
 > **2026-07-01 — CONNECTED WORK GRAPH LIVE via PR #582 (`e98c3c9`).**
 > Farm OS now links the farm structure,
 > operations, assignment, field dashboard, accountant dashboard, custody/accounting, and printable entity reports.
