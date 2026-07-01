@@ -357,6 +357,56 @@ export async function unassignPlanOperationAssignee(planId: string, opId: string
   return { ok: true };
 }
 
+/**
+ * Relative operation scheduling (owner finding, 2026-07-01): set/clear an operation's OPTIONAL
+ * "depends on another operation" relationship (depends_on_op_id + depends_on_offset_days,
+ * migration 20260701350000). planned_at is left UNCHANGED — it stays authoritative; the effective
+ * date is computed at read time (lib/relative-schedule.ts). This is a plain, separate update on
+ * plan_operations (not a new/changed RPC): the existing tenant_all RLS policy already gates writes
+ * on plan.write + org-scope (migration 0070), and a DB trigger (plan_operations_dependency_same_plan)
+ * enforces the dependency is in the SAME PLAN. Does NOT touch fn_add_plan_operation_multi or
+ * fn_execute_operation.
+ */
+export async function setPlanOperationDependency(
+  planId: string,
+  opId: string,
+  dependsOnOpId: string | null,
+  offsetDays: number | null,
+) {
+  await requireMembership();
+
+  if (dependsOnOpId === opId) {
+    return { ok: false, error: "لا يمكن أن تعتمد العملية على نفسها" };
+  }
+  if (dependsOnOpId && offsetDays != null && !Number.isFinite(offsetDays)) {
+    return { ok: false, error: "قيمة الأيام غير صالحة" };
+  }
+
+  const sb = await createClient();
+  const { error } = await sb
+    .from("plan_operations")
+    .update({
+      depends_on_op_id: dependsOnOpId,
+      depends_on_offset_days: dependsOnOpId ? (offsetDays ?? 0) : null,
+    })
+    .eq("id", opId)
+    .eq("plan_id", planId);
+
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "ليس لديك صلاحية تعديل الخطة" },
+        "تعذّر حفظ الاعتماد على العملية الأخرى",
+      ),
+    };
+  }
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true };
+}
+
 interface InstantiateTemplateResult {
   templateId: string;
   created: number;
