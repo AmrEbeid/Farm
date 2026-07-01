@@ -43,6 +43,15 @@ type WithHarvestStage<T extends { Row: object; Insert: object; Update: object; R
   Relationships: T["Relationships"];
 };
 
+/** Add the soil-test-driven irrigation record-keeping columns (migration 20260701330000) to
+ *  plan_operations, preserving its relationships. */
+type WithIrrigationBasis<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { irrigation_basis: string | null; soil_moisture_reading: string | null };
+  Insert: T["Insert"] & { irrigation_basis?: string | null; soil_moisture_reading?: string | null };
+  Update: T["Update"] & { irrigation_basis?: string | null; soil_moisture_reading?: string | null };
+  Relationships: T["Relationships"];
+};
+
 /** Add the labor-cost-basis person_id FK (migration 20260701250000) to an existing table entry. */
 type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
   Row: T["Row"] & { person_id: string | null };
@@ -272,7 +281,9 @@ type StructFunctions = {
   // ── #398 slice 2: atomic multi-line operation create (multi-day + N materials + N labour +
   //    assignees), migrations 0090 (schema) / 0093 (RPC). p_materials/p_labor are jsonb line arrays.
   //    p_harvest_stage (optional, default null) added by the operation-vocabulary re-emit
-  //    (migration 20260701240000) for the harvest ripening stage (خلال/رطب/تمر). ──
+  //    (migration 20260701240000) for the harvest ripening stage (خلال/رطب/تمر). Further extended by
+  //    migration 20260701330000 with two trailing OPTIONAL params so an irrigation op can record
+  //    whether it was soil-test-driven (and the reading that justified it). ──
   fn_add_plan_operation_multi: {
     Args: {
       p_plan_id: string;
@@ -285,6 +296,8 @@ type StructFunctions = {
       p_assignee_ids: string[];
       p_lead_id: string | null;
       p_harvest_stage?: string | null;
+      p_irrigation_basis?: string | null;
+      p_soil_moisture_reading?: string | null;
     };
     Returns: Json;
   };
@@ -814,7 +827,7 @@ export type Database = Omit<Generated, "public"> & {
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
-      plan_operations: WithSignoff<WithDependsOn<WithHarvestStage<Tables["plan_operations"]>>>;
+      plan_operations: WithSignoff<WithDependsOn<WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>>>;
       plan_material_requirements: WithSprayCompliance<Tables["plan_material_requirements"]>;
       attachments: AttachmentsTable;
       accounts: AccountsTable;

@@ -273,6 +273,7 @@ export interface LaborLineInput {
 }
 const HARVEST_STAGES = ["khalal", "rutab", "tamar"] as const;
 export type HarvestStage = (typeof HARVEST_STAGES)[number];
+export type IrrigationBasis = "fixed_schedule" | "soil_test";
 
 export interface NewMultiOperationInput {
   subtype: string;
@@ -288,6 +289,12 @@ export interface NewMultiOperationInput {
   // Planning-time scheduling preference (e.g. "only spray once the heat breaks") — distinct from the
   // op's actual execution timestamp, set later at execute time. morning|midday|late_afternoon|evening.
   preferred_time_of_day?: string | null;
+  // Only meaningful when subtype === "irrigation" (Owner finding A, this session): tag WHETHER the
+  // irrigation schedule was calendar-fixed or decided from a soil-moisture test, and (when
+  // soil-test) the free-text reading that justified it. Record-keeping only — no scheduling
+  // algorithm attached. Both null for any non-irrigation op.
+  irrigation_basis?: IrrigationBasis | null;
+  soil_moisture_reading?: string | null;
 }
 
 /**
@@ -344,6 +351,14 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
   if (input.assignee_ids.length === 0) {
     return { ok: false, error: "كل عملية يجب أن تُسند إلى شخص واحد على الأقل" };
   }
+  // B4: irrigation_basis is only meaningful for subtype === "irrigation"; a soil-test basis needs
+  // a reading (mirrors the RPC's own vocabulary CHECK — validate early for a clean Arabic error).
+  if (input.irrigation_basis && input.subtype !== "irrigation") {
+    return { ok: false, error: "أساس الري ينطبق فقط على عمليات الري" };
+  }
+  if (input.irrigation_basis === "soil_test" && !input.soil_moisture_reading?.trim()) {
+    return { ok: false, error: "أدخل قراءة فحص التربة" };
+  }
 
   const sb = await createClient();
   const { data, error } = await sb.rpc("fn_add_plan_operation_multi", {
@@ -359,6 +374,8 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
     p_lead_id: input.lead_id,
     p_harvest_stage: input.harvest_stage ?? null,
     p_preferred_time_of_day: input.preferred_time_of_day ?? null,
+    p_irrigation_basis: input.irrigation_basis ?? null,
+    p_soil_moisture_reading: input.irrigation_basis === "soil_test" ? (input.soil_moisture_reading ?? null) : null,
   });
   if (error) {
     return {
