@@ -24,6 +24,16 @@ type WithArchived<T extends { Row: object; Insert: object; Update: object; Relat
   Relationships: T["Relationships"];
 };
 
+/** Relative operation scheduling (2026-07-01, migration 20260701350000): add the optional
+ *  "depends on another operation" columns to the generated plan_operations table entry. Both
+ *  nullable — most operations leave them unset and behave exactly as before. */
+type WithDependsOn<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & { depends_on_op_id: string | null; depends_on_offset_days: number | null };
+  Insert: T["Insert"] & { depends_on_op_id?: string | null; depends_on_offset_days?: number | null };
+  Update: T["Update"] & { depends_on_op_id?: string | null; depends_on_offset_days?: number | null };
+  Relationships: T["Relationships"];
+};
+
 type AttachmentsTable = {
   Row: {
     id: string;
@@ -669,12 +679,13 @@ type PestScoutingFunctions = {
 
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
-    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses"> & {
+    Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations"> & {
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
+      plan_operations: WithDependsOn<Tables["plan_operations"]>;
       attachments: AttachmentsTable;
       accounts: AccountsTable;
       journal_entries: JournalEntriesTable;

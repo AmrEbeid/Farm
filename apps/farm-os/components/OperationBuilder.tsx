@@ -10,10 +10,16 @@ import {
   Select,
   type SelectOption,
 } from "@/components/ui";
-import { addPlanOperationMulti } from "@/app/(app)/plans/[planId]/actions";
+import {
+  addPlanOperationMulti,
+  setPlanOperationDependency,
+} from "@/app/(app)/plans/[planId]/actions";
+import { computeEffectiveDate, formatDependencyLabel } from "@/lib/relative-schedule";
 
 type ItemOpt = { id: string; name: string; unit: string | null };
 type PersonOpt = { id: string; name: string };
+/** An existing operation in the same plan, offered as a "depends on" target. Never another plan's ops. */
+type OpOpt = { id: string; label: string; plannedAt: string | null };
 type MatRow = { key: number; itemId: string; qty: string };
 type LabRow = { key: number; team: string; count: string; days: string };
 
@@ -34,10 +40,13 @@ export function OperationBuilder({
   planId,
   items,
   people = [],
+  existingOps = [],
 }: {
   planId: string;
   items: ItemOpt[];
   people?: PersonOpt[];
+  /** Other operations already in this plan — offered as "depends on another operation" targets. */
+  existingOps?: OpOpt[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -56,9 +65,26 @@ export function OperationBuilder({
   const [labor, setLabor] = useState<LabRow[]>([]);
   const [assignees, setAssignees] = useState<string[]>([]);
   const [leadId, setLeadId] = useState("");
+  // Optional "depends on another operation" (relative scheduling, 2026-07-01). "" = no dependency.
+  const [dependsOnOpId, setDependsOnOpId] = useState("");
+  const [offsetDays, setOffsetDays] = useState("0");
 
   const itemOptions: SelectOption[] = items.map((i) => ({ value: i.id, label: i.name }));
   const unitOf = (id: string) => items.find((i) => i.id === id)?.unit ?? "kg";
+  const dependencyOptions: SelectOption[] = [
+    { value: "", label: "بدون اعتماد" },
+    ...existingOps.map((o) => ({ value: o.id, label: o.label })),
+  ];
+  const selectedDependency = existingOps.find((o) => o.id === dependsOnOpId) ?? null;
+  const parsedOffset = Number(offsetDays || 0);
+  const effectiveDate =
+    selectedDependency && Number.isFinite(parsedOffset)
+      ? computeEffectiveDate(selectedDependency.plannedAt, parsedOffset)
+      : null;
+  const dependencyDisplay =
+    selectedDependency && Number.isFinite(parsedOffset)
+      ? formatDependencyLabel(selectedDependency.label, parsedOffset)
+      : null;
   const nextKey = () => {
     const k = seq;
     setSeq(seq + 1);
@@ -93,12 +119,34 @@ export function OperationBuilder({
         assignee_ids: assignees,
         lead_id: leadId || null,
       });
-      if (res.ok) {
-        setOpen(false);
-        router.refresh();
-      } else {
+      // `res.ok` alone doesn't narrow (addPlanOperationMulti's return type isn't a discriminated
+      // literal union), so check operationId's presence directly — the real success signal.
+      if (!res.ok || !res.operationId) {
         setError(res.error ?? "تعذّر الحفظ");
+        return;
       }
+      const operationId = res.operationId;
+
+      // Optional "depends on another operation" (relative scheduling): a separate, additive
+      // follow-up write on the newly created op — planned_at itself is untouched. A failure here
+      // must not be silently swallowed: the operation IS created, but its dependency note failed to
+      // save, so surface that distinctly rather than pretending everything saved.
+      if (dependsOnOpId) {
+        const depRes = await setPlanOperationDependency(
+          planId,
+          operationId,
+          dependsOnOpId,
+          Number.isFinite(parsedOffset) ? parsedOffset : 0,
+        );
+        if (!depRes.ok) {
+          setError(`تم إنشاء العملية، لكن تعذّر حفظ الاعتماد على العملية الأخرى: ${depRes.error}`);
+          router.refresh();
+          return;
+        }
+      }
+
+      setOpen(false);
+      router.refresh();
     } catch {
       // Network-failure handling (non-negotiable #2): a network reject must not strand the
       // spinner. This surfaces a retryable message; the operation is not queued for replay if
@@ -154,6 +202,42 @@ export function OperationBuilder({
               />
             </FormRow>
           </div>
+
+          {/* Optional: schedule this operation RELATIVE TO another operation in the same plan
+              ("spray after tilting completes") instead of (or alongside) an absolute date. planned_at
+              above stays the stored/authoritative date; this is a display-only note + a computed
+              effective date, never a silent rewrite. */}
+          {existingOps.length > 0 && (
+            <fieldset className="flex flex-col gap-2 rounded-md border p-3" style={{ borderColor: "var(--line,#e5e7eb)" }}>
+              <legend className="px-1 text-sm font-semibold">يعتمد على عملية أخرى (اختياري)</legend>
+              <FormRow id="depends-on" label="العملية">
+                <Select
+                  options={dependencyOptions}
+                  value={dependsOnOpId}
+                  onChange={(e) => setDependsOnOpId(e.target.value)}
+                />
+              </FormRow>
+              {dependsOnOpId && (
+                <>
+                  <FormRow id="offset-days" label="الفارق بالأيام (سالب = قبل، موجب = بعد)">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      step="1"
+                      value={offsetDays}
+                      onChange={(e) => setOffsetDays(e.target.value)}
+                    />
+                  </FormRow>
+                  {dependencyDisplay && (
+                    <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+                      {dependencyDisplay}
+                      {effectiveDate ? ` — التاريخ الفعلي المتوقع: ${effectiveDate}` : ""}
+                    </p>
+                  )}
+                </>
+              )}
+            </fieldset>
+          )}
 
           {/* Several material needs — fertilizers, fuel/gas, any item. */}
           <fieldset className="flex flex-col gap-2 rounded-md border p-3" style={{ borderColor: "var(--line,#e5e7eb)" }}>

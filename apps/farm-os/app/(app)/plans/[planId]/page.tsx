@@ -17,6 +17,7 @@ import { POTASSIUM_ID } from "@/lib/nav";
 import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, PLAN_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
+import { formatDependencyLabel } from "@/lib/relative-schedule";
 
 const PLAN_TYPE_AR: Record<string, string> = {
   weekly: "الأسبوعية",
@@ -85,7 +86,9 @@ export default async function MonthlyPlanPage({
       .maybeSingle(),
     sb
       .from("plan_operations")
-      .select("id, subtype, planned_at, est_cost, status, approval_needed")
+      .select(
+        "id, subtype, planned_at, est_cost, status, approval_needed, depends_on_op_id, depends_on_offset_days",
+      )
       .eq("plan_id", planId)
       .order("planned_at"),
     sb
@@ -154,6 +157,23 @@ export default async function MonthlyPlanPage({
     occurrenceCount: Array.isArray(t.recurrence) ? t.recurrence.length : 0,
   }));
 
+  // Relative operation scheduling (2026-07-01): an op may OPTIONALLY depend on another op in the
+  // same plan (depends_on_op_id + depends_on_offset_days, migration 20260701350000). planned_at
+  // stays authoritative and unchanged; this is a read-time, presentation-only lookup + pure
+  // computation (lib/relative-schedule.ts) — never a fabricated date.
+  const opLabel = (o: { id: string; subtype: string | null }) =>
+    SUBTYPE_AR[o.subtype ?? ""] ?? "عملية";
+  const opsById = new Map((ops ?? []).map((o) => [o.id, o]));
+  const dependencyNote = (o: {
+    depends_on_op_id: string | null;
+    depends_on_offset_days: number | null;
+  }): string => {
+    if (!o.depends_on_op_id) return "";
+    const dep = opsById.get(o.depends_on_op_id);
+    if (!dep) return "";
+    return formatDependencyLabel(opLabel(dep), o.depends_on_offset_days);
+  };
+
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
     { id: "planned_at", header: "التاريخ" },
@@ -172,14 +192,24 @@ export default async function MonthlyPlanPage({
         />
       ),
     },
+    { id: "dependency", header: "يعتمد على" },
   ];
   const opRows = (ops ?? []).map((o) => ({
     id: o.id,
-    subtype: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
+    subtype: opLabel(o),
     planned_at: fmtDate(o.planned_at),
     cost: egpValue(o.est_cost),
     approval: o.approval_needed ? "نعم" : "لا",
     status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
+    dependency: dependencyNote(o) || "—",
+  }));
+
+  // Existing ops offered to the OperationBuilder's "depends on another operation" picker — same
+  // plan only (the DB trigger enforces this too; this is just what's shown to choose from).
+  const existingOpOptions = (ops ?? []).map((o) => ({
+    id: o.id,
+    label: opLabel(o),
+    plannedAt: o.planned_at,
   }));
 
   const stockCheck = (checks ?? []).find((c) => c.kind === "stock");
@@ -247,7 +277,13 @@ export default async function MonthlyPlanPage({
               <PlanStatusActions planId={planId} status={planStatus} />
               <PlanChecksRunner planId={planId} />
               <OperationTemplatePicker planId={planId} templates={templateOptions} />
-              <OperationBuilder planId={planId} items={items ?? []} people={people ?? []} />
+              <OperationBuilder
+                planId={planId}
+                items={items ?? []}
+                people={people ?? []}
+                existingOps={existingOpOptions}
+              />
+
             </>
           ) : undefined
         }

@@ -13,9 +13,14 @@
 -- has no such collision: a column is "validated" only if its own qualified name appears in the predicate.
 --
 -- Documented non-RLS validations (each verified in the #306 reviews):
---   inventory_bin.item_id        — fn_post_movement resolves the item's org and rejects a cross-org caller
---   people.reports_to_person_id  — the people_reports_to_same_org trigger (self-ref; RLS can't express it)
---   assets.parent_id             — the assets_parent_same_org trigger (self-ref; RLS can't express it)
+--   inventory_bin.item_id           — fn_post_movement resolves the item's org and rejects a cross-org caller
+--   people.reports_to_person_id     — the people_reports_to_same_org trigger (self-ref; RLS can't express it)
+--   assets.parent_id                — the assets_parent_same_org trigger (self-ref; RLS can't express it)
+--   plan_operations.depends_on_op_id — the plan_operations_dependency_same_plan trigger (self-ref, relative
+--                                      operation scheduling, migration 20260701350000; RLS can't express it,
+--                                      same footgun as the two rows above — no NEW-row alias for a
+--                                      self-referential subquery in WITH CHECK). The trigger enforces
+--                                      SAME-PLAN, which is strictly stronger than same-org.
 -- (palm_status_history.asset_id is NOT exempt — it is genuinely RLS-gated, so the precise match validates
 --  it directly; keeping it exempt would hide a future regression of that real gate.)
 --
@@ -50,7 +55,8 @@ with member_fk as (
 exempt(child, fk_col) as (values
   ('inventory_bin','item_id'),
   ('people','reports_to_person_id'),
-  ('assets','parent_id')
+  ('assets','parent_id'),
+  ('plan_operations','depends_on_op_id')
 )
 select is(
   (select coalesce(string_agg(m.child||'.'||m.fk_col, ', ' order by m.child||'.'||m.fk_col), '(none)')
