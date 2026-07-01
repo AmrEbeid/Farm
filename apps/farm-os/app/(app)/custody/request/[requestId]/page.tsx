@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import type { PillStatus, TabItem } from "@amrebeid/ui";
-import { Alert, Breadcrumbs, Card, EmptyState } from "@/components/ui";
+import type { ApprovalStep, PillStatus, TabItem } from "@amrebeid/ui";
+import { Alert, ApprovalChain, Breadcrumbs, Card, EmptyState } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -89,7 +89,9 @@ export default async function PaymentRequestPage({
 
   const { data: req, error: reqError } = await sb
     .from("payment_requests")
-    .select("id, request_no, status, period_start, period_end, custody_account_id, note, approved_post_paid_total, approved_custody_top_up, approved_net_request")
+    .select(
+      "id, request_no, status, period_start, period_end, custody_account_id, note, approved_post_paid_total, approved_custody_top_up, approved_net_request, created_at, prepared_by, submitted_at, approved_op_by, approved_op_at, approved_final_by, approved_final_at",
+    )
     .eq("id", requestId)
     .maybeSingle();
   if (reqError) throw reqError;
@@ -123,8 +125,20 @@ export default async function PaymentRequestPage({
   if (accountsRes.error) throw accountsRes.error;
   if (fundingsRes.error) throw fundingsRes.error;
 
+  // Approval-trail actors — resolve the real prepared_by/approved_op_by/approved_final_by
+  // user ids to people.name (org-scoped; people.tenant_all + the id/name/user_id column
+  // grant already allow any org member to read a colleague's name, so no extra gate needed
+  // beyond the finance.read this page already requires).
+  const actorIds = Array.from(
+    new Set(
+      [req.prepared_by, req.approved_op_by, req.approved_final_by].filter(
+        (id): id is string => id != null,
+      ),
+    ),
+  );
+
   const ids = (linesRes.data ?? []).map((l) => l.expense_id);
-  const [expensesRes, acctRes, availableExpensesRes] = await Promise.all([
+  const [expensesRes, acctRes, availableExpensesRes, actorsRes] = await Promise.all([
     ids.length
       ? sb.from("expenses").select("id, date, description, category, total, payment_status, kind").in("id", ids)
       : Promise.resolve({ data: [] as { id: string; date: string | null; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null }[], error: null }),
@@ -139,10 +153,14 @@ export default async function PaymentRequestPage({
           .order("date", { ascending: false })
           .limit(150)
       : Promise.resolve({ data: [] as { id: string; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null }[], error: null }),
+    actorIds.length
+      ? sb.from("people").select("user_id, name").in("user_id", actorIds)
+      : Promise.resolve({ data: [] as { user_id: string | null; name: string | null }[], error: null }),
   ]);
   if (expensesRes.error) throw expensesRes.error;
   if (acctRes.error) throw acctRes.error;
   if (availableExpensesRes.error) throw availableExpensesRes.error;
+  if (actorsRes.error) throw actorsRes.error;
 
   const t: Totals = (totalsRes.data as Totals) ?? {};
   const requestLines = linesRes.data ?? [];
@@ -251,6 +269,52 @@ export default async function PaymentRequestPage({
   const remainingToFund = Number(t.remaining_to_fund ?? t.net_request ?? 0);
   const pendingLineCount = payableExpenseOptions.length;
 
+  // Approval trail: each stage renders ONLY when its actor+timestamp columns are actually
+  // populated (real data or absent — never fabricated). Stages not yet reached show as
+  // "requested" (not started); the paper إذن صرف carries three signatures — محاسب
+  // (prepare/submit), مدير المزرعة (operational), المالك (final) — mirrored here 1:1.
+  const actorNames = new Map(
+    (actorsRes.data ?? [])
+      .filter((p): p is { user_id: string; name: string | null } => p.user_id != null)
+      .map((p) => [p.user_id, p.name ?? "—"]),
+  );
+  const preparedByName = req.prepared_by ? (actorNames.get(req.prepared_by) ?? "—") : null;
+  const approvedOpByName = req.approved_op_by ? (actorNames.get(req.approved_op_by) ?? "—") : null;
+  const approvedFinalByName = req.approved_final_by
+    ? (actorNames.get(req.approved_final_by) ?? "—")
+    : null;
+
+  const approvalSteps: ApprovalStep[] = [
+    {
+      id: "prepared",
+      state: "approved",
+      actor: `إنشاء المسودة — ${preparedByName ?? "—"}`,
+      note: fmtDate(req.created_at),
+    },
+    {
+      id: "submitted",
+      state: req.submitted_at ? "approved" : "pending",
+      actor: req.submitted_at ? "إرسال للاعتماد" : "بانتظار الإرسال للاعتماد",
+      note: req.submitted_at ? fmtDate(req.submitted_at) : undefined,
+    },
+    {
+      id: "approved_op",
+      state: req.approved_op_at ? "approved" : req.submitted_at ? "pending" : "requested",
+      actor: req.approved_op_at
+        ? `اعتماد تشغيلي (مدير المزرعة) — ${approvedOpByName ?? "—"}`
+        : "اعتماد تشغيلي (مدير المزرعة)",
+      note: req.approved_op_at ? fmtDate(req.approved_op_at) : undefined,
+    },
+    {
+      id: "approved_final",
+      state: req.approved_final_at ? "approved" : req.approved_op_at ? "pending" : "requested",
+      actor: req.approved_final_at
+        ? `اعتماد نهائي (المالك) — ${approvedFinalByName ?? "—"}`
+        : "اعتماد نهائي (المالك)",
+      note: req.approved_final_at ? fmtDate(req.approved_final_at) : undefined,
+    },
+  ];
+
   const tabItems: TabItem[] = [
     { id: "overview", label: "نظرة عامة" },
     { id: "expenses", label: `المصروفات (${num(lineRows.length)})` },
@@ -303,6 +367,10 @@ export default async function PaymentRequestPage({
           className="flex flex-col gap-5"
         >
           <RequestLifecycle requestId={req.id} status={req.status} role={m.role} />
+
+          <Card title="مسار الاعتماد">
+            <ApprovalChain steps={approvalSteps} ariaLabel="مسار اعتماد طلب الصرف" />
+          </Card>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Card title="تشغيلي آجل"><p className="text-xl font-bold">{egp(t.operating_unpaid ?? 0)}</p></Card>
