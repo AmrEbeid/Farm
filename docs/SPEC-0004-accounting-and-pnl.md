@@ -1,10 +1,10 @@
 # SPEC-0004 — Accounting: expenses / sales / vouchers + cost allocation + P&L (Stage 7)
 
-*Status: **DRAFT for Owner review** — design + decision-support only. No code, no migration, no data.
-Stage 7 is **High risk** (financial integrity); it must not start before its predecessor gates close,
-and **independent review is REQUIRED** on every slice. Reconciliation against real financials depends
-on the privacy-reviewed real-data path (Stage M) — this spec defines the model + the oracle so the
-Owner can ratify the direction first. Mirrors [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md) /
+*Status: **DRAFT branch update (2026-07-01)** — an operational cash-method accounting kernel is built
+locally on branch `feat/accounting-custody-standalone`, but is **not merged, not prod-applied, and not
+trusted for real Ebeid financials yet**. Stage 7 remains **High risk** (financial integrity);
+independent review is REQUIRED before merge/migration, and reconciliation against real financials depends
+on the privacy-reviewed real-data path (Stage M). Mirrors [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md) /
 [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) / [`SPEC-0003`](SPEC-0003-farm-structure-and-palm-registry-import.md).*
 
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 7, [`03-architecture-and-data-model.md`](03-architecture-and-data-model.md),
@@ -53,6 +53,27 @@ rows are visible only to `owner`/`accountant` (payroll-grade confidentiality), w
 legacy sheet's **data-quality defects** forward (typos like `العام الحقلي`, the embedded
 Gmail/password — flag, don't propagate, #6); putting real financials into any third-party model
 (#lethal-trifecta / Stage M privacy review); presenting a P&L that hasn't passed reconciliation.
+
+### 3.1 Cash-method accounting slice built on the draft branch (2026-07-01)
+
+The current branch implements the first standalone accounting slice **only for cash-method custody/payment
+settlement**:
+
+- `accounts`, `journal_entries`, and `journal_lines` provide a minimal double-entry ledger.
+- Owner custody receipts recorded as `استلام عهدة من المالك` post Dr custody cash / Cr owner funding, so the
+  standing farm-manager float appears in accounting.
+- `payment_request_fundings` records owner transfers into custody before payout.
+- `payment_request_lines` now carry settlement fields (`paid_at`, `paid_by`, custody source, movement, journal).
+- New RPCs post accounting effects through controlled paths:
+  `fn_accounting_trial_balance`, `fn_record_payment_request_funding`,
+  `fn_confirm_request_expense_paid`, and `fn_close_payment_request`.
+- `/accounting` shows a cash trial balance and recent journals for owner/accountant only.
+- `/custody/request/[requestId]` now supports the full workflow: request lines → owner final approval →
+  owner funding recorded as custody → accountant confirms payout from selected custody source → close.
+
+This is **not** yet the full statutory accounting stage: no bank reconciliation, tax/VAT, accrual/AP aging,
+depreciation, sales ledger, balance sheet close, real Excel dual-run, or real-data import has been done.
+It is the operational cash ledger needed to stop custody/payment-request money from living only in reports.
 
 ## 4. Acceptance (the oracle)
 
@@ -109,13 +130,13 @@ reconciliation.
 
 ## 7. Build-now plan + resolved decisions (2026-06-27, from the Farm × Zeal × market deep-dive)
 
-**Verdict — stay a management P&L, do NOT build a general ledger.** A three-way review (Farm's #368,
-the Zeal finance OS, and the ag-software market — Figured/Conservis/Granular/QuickBooks-for-farms)
-converges: every farm tool that works is a **cost-center-tagged management P&L that sits on top of
-QuickBooks/Xero or an accountant**, not its own double-entry GL. Building a real GL is ~$200k+ and
-"impossibly hard to retrofit" — the wrong altitude for a single-farm pilot. #368 is **already the
-right shape** (single-entry, `kind`-classified, owner-drawings separated, no-fabrication P&L). The
-job is to close the cheap dimensional gaps, **not** to add a ledger.
+**Amended verdict (2026-07-01): build a narrow operational cash ledger, not a statutory GL.** The earlier
+warning against building a full general ledger still stands for statutory close, bank feeds, tax, accrual,
+depreciation, and real financial statement production. The new Owner requirement changes the custody/payment
+request slice: Farm OS must stand alone for daily cash accountability, so the branch adds a minimal double-entry
+cash ledger around custody and payment-request settlement. The ledger is intentionally small, source-linked,
+cash-method, and owner/accountant-only; formal accounting and real P&L remain behind reconciliation and expert
+review gates.
 
 **Build now (fold into Stage 7 slices 2–3) · Defer (statutory / finance-owned):**
 

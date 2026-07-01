@@ -34,7 +34,7 @@ export default async function CustodyDashboardPage() {
       .select("id, request_no, status, period_start, period_end, created_at")
       .order("created_at", { ascending: false })
       .limit(15),
-    sb.from("expenses").select("total").eq("payment_status", "post_paid_unpaid").eq("kind", "operating"),
+    sb.from("expenses").select("total, kind").eq("payment_status", "post_paid_unpaid"),
   ]);
   if (accountsRes.error) throw accountsRes.error;
   if (movementsRes.error) throw movementsRes.error;
@@ -55,7 +55,16 @@ export default async function CustodyDashboardPage() {
   const totalBalance = balances.reduce((s, b) => s + b, 0);
   const totalTarget = acctList.reduce((s, a) => s + Number(a.target_float ?? 0), 0);
   const totalTopUp = acctList.reduce((s, a, i) => s + Math.max(0, Number(a.target_float ?? 0) - balances[i]), 0);
-  const unpaidPostPaid = (unpaidRes.data ?? []).reduce((s, e) => s + Number(e.total ?? 0), 0);
+  const unpaidOperating = (unpaidRes.data ?? [])
+    .filter((e) => (e.kind ?? "operating") === "operating")
+    .reduce((s, e) => s + Number(e.total ?? 0), 0);
+  const unpaidCapex = (unpaidRes.data ?? [])
+    .filter((e) => e.kind === "capex")
+    .reduce((s, e) => s + Number(e.total ?? 0), 0);
+  const unpaidDrawing = (unpaidRes.data ?? [])
+    .filter((e) => e.kind === "drawing")
+    .reduce((s, e) => s + Number(e.total ?? 0), 0);
+  const unpaidPostPaid = unpaidOperating + unpaidCapex + unpaidDrawing;
   const netRequest = unpaidPostPaid + totalTopUp;
 
   const acctCols: SimpleColumn[] = [
@@ -114,11 +123,13 @@ export default async function CustodyDashboardPage() {
 
       <CustodyForms accounts={acctList.map((a) => ({ id: a.id, holder_label: a.holder_label }))} />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
         <KpiCard label="الرصيد الحالي للعهدة" value={egp(totalBalance)} />
         <KpiCard label="العهدة المستهدفة" value={egp(totalTarget)} />
         <KpiCard label="التغذية المطلوبة" value={egp(totalTopUp)} />
-        <KpiCard label="آجل غير مدفوع" value={egp(unpaidPostPaid)} />
+        <KpiCard label="آجل تشغيلي" value={egp(unpaidOperating)} />
+        <KpiCard label="آجل رأسمالي" value={egp(unpaidCapex)} />
+        <KpiCard label="آجل مسحوبات" value={egp(unpaidDrawing)} />
         <KpiCard label="صافي المطلوب من المالك" value={egp(netRequest)} />
       </div>
 

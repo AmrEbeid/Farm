@@ -2,6 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-01 — NOT DEPLOYED: draft standalone accounting/custody settlement branch.**
+> Branch `feat/accounting-custody-standalone` introduces local migration
+> `20260701220000_accounting_cash_custody_settlement.sql` plus `/accounting` and request-settlement UI. Local
+> validation is green (pgTAP 894/894, app Vitest 251/251, lint, production build, diff check), but **no prod DB
+> migration/apply/merge/push was performed**. This is high-risk money/RLS logic and remains behind independent review
+> and explicit Owner migration approval.
+
 > **2026-07-01 (cont.) — 5 more prod migrations: the ENGINE masked-shortage program (all migrate-first, green `main`).**
 > Prod ledger head is now **`20260701210000`**. All applied migrate-first + independent-reviewed (engine surface) +
 > prod re-probed. A holistic re-audit after the first batch caught two masked shortages introduced by the batch

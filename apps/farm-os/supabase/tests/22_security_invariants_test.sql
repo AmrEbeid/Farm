@@ -73,7 +73,11 @@ select is(
         'fn_custody_balance', 'fn_set_expense_kind', -- derived custody read + #6 drawings split helpers (SPEC-0018)
         'fn_create_payment_request', 'fn_add_expense_to_request', -- payment-request RPCs (SPEC-0018)
         'fn_submit_payment_request', 'fn_approve_request_operational', 'fn_approve_request_final', -- lifecycle through final approval
-        'fn_payment_request_totals'                -- derived request totals read RPC (SPEC-0018)
+        'fn_payment_request_totals',               -- derived request totals read RPC (SPEC-0018)
+        'fn_accounting_trial_balance',             -- standalone accounting read RPC (cash-method custody slice)
+        'fn_record_payment_request_funding',       -- owner funds received as custody after final approval
+        'fn_confirm_request_expense_paid',         -- cash-method request-line payment confirmation
+        'fn_close_payment_request'                 -- close funded request after every line is confirmed paid
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

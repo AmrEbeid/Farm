@@ -2,6 +2,28 @@
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-01 — AUTONOMOUS SESSION FINAL STATE (for the next session / Owner)
+**Draft branch after final-state note: standalone cash-method accounting + custody settlement built locally on
+`feat/accounting-custody-standalone`; not merged, not pushed, not prod-applied.**
+
+Owner clarified the custody workflow: 30K standing custody can sit with the farm manager, the farm manager may pay
+directly or transfer custody to the accountant, the accountant records all cash/debt expenses in payment requests,
+owner funding must be recorded as custody first, and cash-method accounting should post only after funds are received
+and payouts are confirmed from the chosen custody source. Implemented the recommended first standalone accounting
+slice:
+- DB: `20260701220000_accounting_cash_custody_settlement.sql` adds `accounts`, `journal_entries`,
+  `journal_lines`, `payment_request_fundings`, request settlement fields, standing owner-custody funding journals,
+  and controlled accounting/settlement RPCs.
+- UI: `/accounting` cash trial balance + recent journals; `/custody` all-kind payable KPIs; payment request
+  settlement tab for owner funding, payout confirmation, funding list, and close.
+- Docs: updated SPEC-0004, SPEC-0018, tracker, deploy status, and added
+  `docs/accounting standalone market research.md` with the market scan sources and Farm OS mapping.
+- Validation: pgTAP **894/894**, app Vitest **251/251**, ESLint clean, Next production build green, `git diff --check`
+  clean. Local dev server starts at `http://localhost:3000`, but browser smoke of authenticated pages is
+  environment-blocked until Supabase URL/anon env vars are supplied in the worktree.
+
+**Hard stop/gate:** money/RLS logic needs independent review before merge. Prod migration/apply requires explicit
+Owner approval. Real Excel/PII financial import and statutory P&L remain Stage-M/accountant gated.
+
 **39 substantive PRs merged, 15 prod migrations (ledger head `20260701210000`), all green on `main`.** Every
 real-code subsystem adversarially audited and every **decision-free** defect fixed. Under the standing "go with
 your recommendation, don't wait" directive I also **implemented the owner-gated engine masked-shortage items**,
