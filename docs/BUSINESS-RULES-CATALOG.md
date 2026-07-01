@@ -3,8 +3,9 @@
 *Tier 1 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Each rule has a
 stable `BR-NNN` id, the enforcing object (RPC / trigger / RLS policy / constraint / grant) with its migration, a
 test reference, and the `FEAT-NNN` it belongs to. **This is the source for the rule-based "Why?" surface**
-([`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)). Reconciled to `main` 2026-06-30 (through SPEC-0018
-backend migrations `20260629150000`/`20260629150100`, responsibility gate `20260629141650`, SPEC-0016 export
+([`SPEC-0014`](SPEC-0014-knowledge-living-documentation.md)). Reconciled to `main` 2026-07-01 (through the
+cash-method accounting kernel `20260701220000` (PR #568), SPEC-0018 backend migrations
+`20260629150000`/`20260629150100`, responsibility gate `20260629141650`, SPEC-0016 export
 compliance `20260622000092`, and pgTAP suite). Maturity **L3**. IDs stable + append-only.*
 
 Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supabase/tests/`.
@@ -60,6 +61,15 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-047** | A custody-paid expense can post only one custody cash out-movement; controlled payment-routing columns are RPC-only, and routed amount/kind cannot drift after posting. | column grants + `fn_record_custody_movement` / `fn_set_expense_payment_status` / `expense_guard_routed_money_immutable` (`20260629150000`) | `102_custody_payment` | FEAT-028 |
 | **BR-048** | Payment request lines can include only operating `post_paid_unpaid` expenses; each expense can belong to one request only; paid-cash/drawings/capex are excluded from request math, and routed request-line amount/kind/status cannot drift. | `fn_add_expense_to_request` + `fn_payment_request_totals` + `fn_set_expense_payment_status` + `expense_guard_routed_money_immutable` (`20260629150100`) | `103_payment_request` | FEAT-028 |
 
+## General ledger (double-entry) integrity
+| BR | Rule | Enforced by (migration) | Test | FEAT |
+|---|---|---|---|---|
+| **BR-116** | Every journal entry must balance: Σdebit = Σcredit across its lines (an unbalanced entry is a hard error). | `journal_lines_balance_guard` deferred constraint trigger (`20260701220000`) | `112_accounting_cash_custody_settlement` | FEAT-030 |
+| **BR-117** | Journal postings are idempotent per `(org, source_type, source_id)` — re-posting the same source cannot double-journal. | UNIQUE + early-return in `fn_post_two_line_journal` (`20260701220000`) | `112_accounting_cash_custody_settlement` | FEAT-030 |
+| **BR-118** | Each journal line is one-sided: exactly one of `debit`/`credit` is positive. | CHECK `((debit>0) <> (credit>0))` on `journal_lines` (`20260701220000`) | `112_accounting_cash_custody_settlement` | FEAT-030 |
+| **BR-119** | Owner funds are recorded into custody (`amount_in`) **before** any payout — posting Dr custody / Cr owner-funding; each confirmed payout posts Dr expense-kind account / Cr custody (cash-method). | `fn_record_payment_request_funding` / `fn_confirm_request_expense_paid` (`20260701220000`) | `112_accounting_cash_custody_settlement` | FEAT-028/030 |
+| **BR-120** | A payment request closes only when every line has been paid (`paid_at` set). | `fn_close_payment_request` (`20260701220000`) | `112_accounting_cash_custody_settlement` | FEAT-028/030 |
+
 ## Tenant isolation & access control
 | BR | Rule | Enforced by | Test | FEAT |
 |---|---|---|---|---|
@@ -80,7 +90,7 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-063** | Budgets/lines/expenses writable only with `budget.write` (owner/accountant). | RLS WITH CHECK (`0043`/`0044`) | `43_budget_rolegate`, `44_expenses_rolegate` | FEAT-008/013 |
 | **BR-064** | Farm structure writable only with `structure.write` (owner/farm_manager). | RLS + `fn_save_*` (`0081`) | `82_structure_crud` | FEAT-003 |
 | **BR-065** | Palm status history writes only via `fn_update_palm_status`. | write-gate (`0073`) | `73_palm_history_write_gate` | FEAT-004 |
-| **BR-066** | Finance-confidential custody/payment-request rows and derived balances are readable only with `finance.read` (owner/accountant). | RLS + read RPC gates (`20260629150000`/`20260629150100`) | `102_custody_payment`, `103_payment_request` | FEAT-028 |
+| **BR-066** | Finance-confidential custody/payment-request rows, the GL tables (`accounts`/`journal_entries`/`journal_lines`/`payment_request_fundings`), and derived balances/trial-balance are readable only with `finance.read` (owner/accountant); GL tables are RPC-only writes + audited. | RLS + read RPC gates (`20260629150000`/`20260629150100`/`20260701220000`) | `102_custody_payment`, `103_payment_request`, `112_accounting_cash_custody_settlement` | FEAT-028/030 |
 | **BR-067** | Custody account/movement writes require `custody.write` (owner/accountant) and same-org references. | RPC gates + direct DML revokes (`20260629150000`) | `102_custody_payment` | FEAT-028 |
 | **BR-068** | Payment request preparation requires `request.prepare` (owner/accountant); request tables are RPC-only. | RPC gates + direct DML revokes (`20260629150100`) | `103_payment_request` | FEAT-028 |
 | **BR-069** | Payment requests require operational approval by owner/accountant before final owner approval. | lifecycle RPC gates (`20260629150100`) | `103_payment_request` | FEAT-028 |
@@ -125,12 +135,12 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | BR | Rule | Source | FEAT |
 |---|---|---|---|
 | **BR-110** | Never fabricate farm/financial data; if missing, say so. | CLAUDE.md #1 | all |
-| **BR-111** | Owner drawings (مسحوبات) are separated from operating expenses in any P&L. | CLAUDE.md #6; `expenses.kind` | FEAT-013/023 |
+| **BR-111** | Owner drawings (مسحوبات) are separated from operating expenses in any P&L — now enforced **structurally**: `expenses.kind` routes to a distinct account (operating→`5000`, capex→`1500`, drawing→`3100` owner-drawings equity), so a drawing can never post to the operating-expense account. | CLAUDE.md #6; `expenses.kind`; `fn_account_for_expense_kind` (`20260701220000`) | FEAT-013/023/030 |
 | **BR-112** | Pricing is per-farm (EGP), never per-seat. | CLAUDE.md #3 | FEAT-027 |
 | **BR-113** | Agronomy content is an editable template, not a prescription (needs agronomist + pesticide-registration sign-off). | CLAUDE.md #4 | FEAT-024 |
 | **BR-114** | The AI assistant is read-only, RLS-scoped, no PII, no outbound (lethal-trifecta never combined). | CLAUDE.md Security; `assistant-policy.ts` | FEAT-021 |
 | **BR-115** | Export readiness never fabricates certificate/residue/MRL evidence and fails closed when required validity evidence is missing. | CLAUDE.md #1; `lib/export-readiness.ts` | FEAT-029 |
 
-*~55 rules; the agent extraction found ~68 candidate constraints — the remainder (additional parent-existence
+*~60 rules; the agent extraction found ~68 candidate constraints — the remainder (additional parent-existence
 EXISTS checks, definer-EXECUTE lockdowns per function, supplier/item write gates) are covered by the families
 above (BR-052/BR-055/BR-062). Add new rules with the next free id in the relevant family.*
