@@ -14,15 +14,15 @@ select plan(12);
 \set p2    'c9200004-0000-0000-0000-000000000092'
 
 -- ── grant lockdown ───────────────────────────────────────────────────────────────────────────────
--- Signature extended by migration 20260701330000 to 12-arg (re-emitted on top of #562's 10-arg:
--- p_preferred_time_of_day, then this branch's p_irrigation_basis, p_soil_moisture_reading) — update
--- the has_function_privilege signature string accordingly (Postgres identifies the function by its
--- full arg-type list).
+-- Signature extended by migration 20260701330000 to 13-arg (re-emitted on top of Layer 2/#562's
+-- 11-arg, which already carries #543's p_harvest_stage + #549's labour person_id: this branch adds
+-- its own trailing p_irrigation_basis, p_soil_moisture_reading) — update the has_function_privilege
+-- signature string accordingly (Postgres identifies the function by its full arg-type list).
 select ok(not has_function_privilege('anon',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
   '0093: anon cannot EXECUTE fn_add_plan_operation_multi');
 select ok(has_function_privilege('authenticated',
-  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text)', 'EXECUTE'),
+  'public.fn_add_plan_operation_multi(uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text)', 'EXECUTE'),
   '0093: authenticated CAN EXECUTE fn_add_plan_operation_multi');
 
 -- ── fixtures (org 001) ───────────────────────────────────────────────────────────────────────────
@@ -87,8 +87,8 @@ select is((select count(*) from public.plan_operations where plan_id = :'plan' a
 
 -- ── (c) multi-day validation: ends_on before planned_at is rejected ────────────────────────────────
 -- subtype uses 'pruning_dethorning' (not the old free-text 'pruning') — PR #543's operation-vocabulary
--- CHECK constraint now range-checks subtype, and the plan_operations insert happens BEFORE this
--- validation would otherwise matter for a stale value; use a value valid under the composed vocabulary.
+-- CHECK constraint (rebuilt into this branch's apply chain) now range-checks subtype, and the
+-- plan_operations insert happens before this assertion's own validation would matter for a stale value.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
 set local role authenticated;
