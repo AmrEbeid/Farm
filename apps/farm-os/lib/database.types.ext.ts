@@ -690,6 +690,53 @@ type SignoffFunctions = {
   fn_sign_off_plan_operation: { Args: { p_op_id: string }; Returns: Json };
 };
 
+// ── SPEC-0006 slice 2 — `labor_logs` (ACTUAL day-to-day attendance), migration 20260701310000. ──
+// Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
+type LaborLogsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    person_id: string | null;
+    team_name: string | null;
+    work_date: string;
+    hours: number;
+    plan_op_id: string | null;
+    note: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    org_id: string;
+    person_id?: string | null;
+    team_name?: string | null;
+    work_date: string;
+    hours: number;
+    plan_op_id?: string | null;
+    note?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    org_id?: string;
+    person_id?: string | null;
+    team_name?: string | null;
+    work_date?: string;
+    hours?: number;
+    plan_op_id?: string | null;
+    note?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "labor_logs_person_id_fkey";
+      columns: ["person_id"];
+      isOneToOne: false;
+      referencedRelation: "people";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<Tables, "farms" | "sectors" | "hawshat" | "lines" | "expenses" | "plan_operations"> & {
@@ -713,6 +760,7 @@ export type Database = Omit<Generated, "public"> & {
       pest_traps: PestTrapsTable;
       pest_trap_catches: PestTrapCatchesTable;
       pest_incidents: PestIncidentsTable;
+      labor_logs: LaborLogsTable;
     };
     Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions;
   };

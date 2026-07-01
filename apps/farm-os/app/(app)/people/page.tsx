@@ -2,16 +2,19 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { PeopleDirectoryGrouped, type PersonGroup, type PersonRow } from "@/components/PeopleDirectoryGrouped";
+import { PersonCreateForm } from "@/components/PersonCreateForm";
 import { EMP_TYPE_AR } from "@/lib/labels";
 
 const NO_MANAGER_GROUP_ID = undefined;
 
-// Read-only team directory, grouped one level by direct manager (reports_to_person_id) instead of a
-// flat list — "فريق <المدير>" sections, collapsible. Member-readable columns only — phone/email are
-// PII-locked (0048) and the wage `rate` was moved to people_compensation (0046), so neither is
-// selected here.
+// Team directory, grouped one level by direct manager (reports_to_person_id) instead of a
+// flat list — "فريق <المدير>" sections, collapsible — PLUS an onboarding form (SPEC-0006 — gated to
+// people.write roles: owner/farm_manager, migration 20260701300000). Member-readable columns only —
+// phone/email are PII-locked (0048) and the wage `rate` lives in people_compensation (0046), so
+// neither is selected here.
+const PEOPLE_WRITE_ROLES = ["owner", "farm_manager"];
 export default async function PeopleDirectoryPage() {
-  await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
+  const m = await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const sb = await createClient();
 
   const { data: people, error } = await sb
@@ -27,6 +30,8 @@ export default async function PeopleDirectoryPage() {
   const managerIds = new Set(
     all.map((p) => p.reports_to_person_id).filter((id): id is string => id != null),
   );
+  const canWrite = PEOPLE_WRITE_ROLES.includes(m.role);
+  const activeManagers = all.filter((p) => p.active);
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "الاسم" },
@@ -70,6 +75,7 @@ export default async function PeopleDirectoryPage() {
         <h1 className="text-2xl font-bold">الفريق</h1>
         <p style={{ color: "var(--ink-muted)" }}>دليل العاملين بالمزرعة</p>
       </header>
+      {canWrite && <PersonCreateForm managers={activeManagers} />}
       <PeopleDirectoryGrouped
         ariaLabel="الفريق"
         columns={columns}

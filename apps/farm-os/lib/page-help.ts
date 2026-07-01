@@ -330,6 +330,15 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "يتحمّل انقطاع الشبكة لكنه ليس بلا اتصال كامل؛ بدون شبكة قد لا تُحمَّل الصفحة؛ لا تُكرّر الإرسال.",
     related: ["plans"],
   },
+  attendance: {
+    title: "تسجيل الحضور",
+    what: "تسجيل يدوي لحضور عضو فريق أو فريق غير مسجّل ليوم عمل واحد (ساعات + ملاحظة).",
+    why: "ليكون هناك سجل فعلي للعمالة اليومية يُبنى عليه لاحقًا تقدير الأجور، بدل الاعتماد على الذاكرة.",
+    when: "يوميًا، عند انتهاء يوم عمل لعامل أو فريق ميداني.",
+    how: "اختر عضو فريق أو أدخل اسم فريق غير مسجّل، حدّد التاريخ وعدد الساعات، ثم احفظ.",
+    avoid: "لا تُظهر الصفحة أي أجر أو معدل؛ التسجيل هنا للساعات فقط ولا يُنشئ رقمًا تلقائيًا.",
+    related: ["mobile", "people-dashboard", "plans"],
+  },
   "field-execute": {
     title: "تنفيذ عملية ميدانية",
     what: "صفحة تنفيذ عملية واحدة من خطة، تسجل الكمية والعمالة والملاحظات الفعلية.",
@@ -420,7 +429,7 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/suppliers\/[^/]+(?:\/)?$/, helpId: "supplier-360" },
   { pattern: /^\/budgets\/[^/]+(?:\/)?$/, helpId: "budget-360" },
   { pattern: /^\/expenses\/[^/]+(?:\/)?$/, helpId: "expense-360" },
-  { pattern: /^\/people\/(?!dashboard(?:\/|$))[^/]+(?:\/)?$/, helpId: "person-360" },
+  { pattern: /^\/people\/(?!dashboard(?:\/|$)|attendance(?:\/|$))[^/]+(?:\/)?$/, helpId: "person-360" },
 ];
 
 /** Returns the help for a nav id, or null if none is defined. */

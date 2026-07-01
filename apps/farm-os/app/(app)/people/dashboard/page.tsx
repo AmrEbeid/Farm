@@ -8,8 +8,9 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryBarChart, CategoryDoughnut } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
-import { num } from "@/lib/money";
+import { egp, num } from "@/lib/money";
 import { EMP_TYPE_AR, OP_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
+import { computePayroll, type LaborEntry } from "@/lib/payroll";
 
 type PlanEmbed = {
   type?: string | null;
@@ -30,12 +31,20 @@ export default async function PeopleDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter = "all" } = await searchParams;
-  await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
+  const m = await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const sb = await createClient();
+
+  // Current calendar month, for the payroll ESTIMATE below (a rolling window, not a closed/idempotent
+  // payroll run — see the PR description for that scope decision).
+  const now = new Date();
+  const periodStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const periodEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const periodEnd = periodEndDate.toISOString().slice(0, 10);
 
   const [
     { data: people, error: peopleError },
     { data: operations, error: operationsError },
+    { data: canSeePayroll },
   ] = await Promise.all([
     sb
       .from("people")
@@ -46,9 +55,47 @@ export default async function PeopleDashboardPage({
       .select("id, plan_id, subtype, planned_at, status, responsible_person_id, plans(type, period_start, period_end)")
       .order("planned_at")
       .limit(80),
+    // Payroll estimate is wage-derived (SPEC-0006 confidentiality): only owner/accountant
+    // (payroll.read) ever see it — everyone else gets the dashboard exactly as before.
+    sb.rpc("authorize", { perm: "payroll.read", p_org: m.orgId }),
   ]);
   if (peopleError) throw peopleError;
   if (operationsError) throw operationsError;
+
+  // ── Payroll estimate (payroll.read only) — SPEC-0006 slice 3, ATTENDANCE-DERIVED, not a formal
+  // closed/idempotent payroll run. `people_compensation` is itself RLS-gated to payroll.read
+  // (migration 0046/0072/0079), so this read naturally returns nothing for an unauthorized caller —
+  // `canSeePayroll` is defense-in-depth, not the only gate, and the section simply never renders
+  // otherwise (mirrors the `reports/[planId]/pva` planned-labor-cost pattern).
+  let payrollRun: ReturnType<typeof computePayroll> | null = null;
+  if (canSeePayroll) {
+    const { data: laborLogs, error: laborError } = await sb
+      .from("labor_logs")
+      .select("person_id, hours")
+      .gte("work_date", periodStart)
+      .lte("work_date", periodEnd)
+      .not("person_id", "is", null);
+    if (laborError) throw laborError;
+
+    const personIds = [...new Set((laborLogs ?? []).map((l) => l.person_id as string))];
+    const rates = new Map<string, number>();
+    if (personIds.length > 0) {
+      const { data: comp, error: compError } = await sb
+        .from("people_compensation")
+        .select("person_id, rate")
+        .in("person_id", personIds);
+      if (compError) throw compError;
+      for (const row of comp ?? []) {
+        if (typeof row.rate === "number" && Number.isFinite(row.rate) && row.rate > 0) {
+          rates.set(row.person_id, row.rate);
+        }
+      }
+    }
+    const labor: LaborEntry[] = (laborLogs ?? [])
+      .filter((l): l is { person_id: string; hours: number } => l.person_id != null)
+      .map((l) => ({ personId: l.person_id, hours: Number(l.hours ?? 0) }));
+    payrollRun = computePayroll(labor, rates);
+  }
 
   const activePeople = (people ?? []).filter((p) => p.active);
   const openOperations = (operations ?? []).filter((op) => isExecutableOpStatus(op.status));
@@ -176,6 +223,47 @@ export default async function PeopleDashboardPage({
           />
         </DashboardKpiLink>
       </section>
+
+      {/* SPEC-0006: يومي/مقاول segmentation alongside دائم/موسمي — a display-layer fix, the labels
+          already existed in EMP_TYPE_AR but had no dedicated breakdown here before. */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="دائم" value={num(typeCounts.permanent ?? 0)} />
+        <KpiCard label="موسمي" value={num(typeCounts.seasonal ?? 0)} />
+        <KpiCard label="يومي" value={num(typeCounts.daily ?? 0)} />
+        <KpiCard label="مقاول" value={num(typeCounts.contractor ?? 0)} />
+      </section>
+
+      {payrollRun && (
+        <Card title="تقدير الأجور (الشهر الحالي)">
+          {payrollRun.lines.length === 0 ? (
+            <EmptyState title="لا توجد ساعات مسجّلة هذا الشهر" description="سجّل الحضور من صفحة تسجيل الحضور." />
+          ) : (
+            <>
+              <p className="mb-3" style={{ color: "var(--ink-muted)" }}>
+                تقدير من سجلات الحضور الفعلية (ساعات × معدل)، وليس رواتب مغلقة رسميًا. الأعضاء بلا معدل
+                مسجّل يظهرون بعلامة &quot;غير مسعّر&quot; ولا يُحسب لهم مبلغ.
+              </p>
+              <SimpleTable
+                columns={[
+                  { id: "person", header: "الشخص" },
+                  { id: "hours", header: "الساعات", numeric: true },
+                  { id: "gross", header: "التقدير", numeric: true },
+                ]}
+                rows={payrollRun.lines.map((line) => ({
+                  id: line.personId,
+                  href: `/people/${line.personId}`,
+                  person: (people ?? []).find((p) => p.id === line.personId)?.name ?? "—",
+                  hours: num(line.hours, 1),
+                  gross: line.rateMissing ? "غير مسعّر" : egp(line.gross),
+                }))}
+                ariaLabel="تقدير الأجور"
+                empty="—"
+              />
+              <p className="mt-3 font-semibold">الإجمالي: {egp(payrollRun.total)}</p>
+            </>
+          )}
+        </Card>
+      )}
 
       {(filter === "all" || filter === "workload" || filter === "directory") &&
         (workloadChartData.length > 0 || employmentMix.length > 0) && (
