@@ -61,41 +61,55 @@
 -- harness run alongside.
 --
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════
--- CROSS-PR RECONCILIATION (3-way conflict on fn_add_plan_operation_multi, resolved this session):
--- PR #562 (feat/spray-compliance-record), PR #560 (feat/soil-test-irrigation-and-templates), and
--- PR #563 (this branch) each independently re-emitted fn_add_plan_operation_multi from the SAME
--- 9-arg base (migration 20260701170000). This migration is now the FINAL, COMBINED signature,
--- layered as:
---   LAYER 1 — PR #562 (most-reviewed/most-trusted of the three; UNCHANGED, no edits to its branch):
---             adds p_preferred_time_of_day (plan_operations) + nine per-material spray-compliance
---             columns on plan_material_requirements (target_pest, apc_registration_ref, rei_hours,
---             phi_days, target_zone, applicator_person_id, wind_speed_kmh, wind_direction, air_temp_c),
---             handled in the MATERIALS LOOP. Produces a 10-arg signature.
---   LAYER 2 — PR #560: adds p_irrigation_basis + p_soil_moisture_reading (plan_operations columns,
---             set on the main INSERT only — no materials-loop involvement). Re-emitted ON TOP OF
---             #562's 10-arg (not the original 9-arg). Produces a 12-arg signature.
---   LAYER 3 — PR #563 (this migration): adds p_target_type / p_target_id (override the plan-scope-
---             derived target, validated against the `assets` table) + p_note (plan_operations free-
---             text column). Re-emitted ON TOP OF #560's 12-arg. Produces the FINAL 15-arg signature.
+-- CROSS-PR RECONCILIATION (FINAL LAYERED CHAIN — supersedes the earlier partial 3-way merge):
 --
--- REQUIRED APPLY ORDER: #562 → #560 → #563 (this migration). This migration's DROP FUNCTION targets
--- the 12-ARG signature #560 produces (uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text)
--- — NOT the original 9-arg — because by the time this migration runs, the live function is already
--- #560's 12-arg version.
+-- This session found FIVE branches (not three) independently re-emitting
+-- fn_add_plan_operation_multi from the same 9-arg base. The full, corrected layering:
 --
--- WHY THE THREE CHANGES COMPOSE CLEANLY (no overlapping logic, a straightforward union):
---   • #562's change is scoped to the MATERIALS LOOP (per-material-line validation + extra insert
---     columns) and the preferred_time_of_day scalar on the main INSERT.
---   • #560's change is scoped to the plan_operations INSERT's column list (two more scalars) —
---     touches no per-material logic, no target-resolution logic.
---   • #563's change is scoped to TARGET resolution (a new block BEFORE the dedup check, computing
---     v_target_type/v_target_id) and the plan_operations INSERT's column list (one more scalar,
---     `note`) plus using v_target_type/v_target_id instead of the raw scope values in that INSERT
---     and in the dedup lookup.
--- All three touch the SAME insert statement's column list (additively — different columns) and
--- otherwise touch disjoint sections of the function body. No conflicting overlap was found.
+--   LAYER 0 — PR #543 (feat/operation-vocabulary; UNCHANGED, no edits to its branch): adds
+--             p_harvest_stage (plan_operations column) + the operation-subtype vocabulary CHECK.
+--             Produces a 10-arg signature.
+--   LAYER 1 — PR #549 (feat/labor-cost-rollup): adds a labour-loop v_lab_person validation/write
+--             (plan_labor_requirements.person_id, optional, from a sibling migration). Re-emitted
+--             ON TOP OF #543's 10-arg. Body-only change; still 10-arg.
+--   LAYER 2 — PR #562 (feat/spray-compliance-record): adds p_preferred_time_of_day
+--             (plan_operations) + nine per-material spray-compliance columns on
+--             plan_material_requirements (target_pest, apc_registration_ref, rei_hours, phi_days,
+--             target_zone, applicator_person_id, wind_speed_kmh, wind_direction, air_temp_c),
+--             handled in the MATERIALS LOOP. Re-emitted ON TOP OF #549's 10-arg. Produces an
+--             11-arg signature.
+--   LAYER 3 — PR #560 (feat/soil-test-irrigation-and-templates): adds p_irrigation_basis +
+--             p_soil_moisture_reading (plan_operations columns, set on the main INSERT only — no
+--             materials/labour-loop involvement). Re-emitted ON TOP OF #562's 11-arg. Produces a
+--             13-arg signature.
+--   LAYER 4 — PR #563 (this migration): adds p_target_type / p_target_id (override the
+--             plan-scope-derived target, validated against the `assets` table) + p_note
+--             (plan_operations free-text column). Re-emitted ON TOP OF #560's 13-arg. Produces the
+--             FINAL 16-arg signature.
 --
--- FINAL 15-PARAM LIST (in signature order) and each param's origin:
+-- REQUIRED APPLY ORDER: #543 → #549 → #562 → #560 → #563 (this migration). This migration's DROP
+-- FUNCTION targets the 13-ARG signature #560 produces
+-- (uuid,text,date,date,numeric,jsonb,jsonb,uuid[],uuid,text,text,text,text) — NOT the original
+-- 9-arg — because by the time this migration runs, the live function is already #560's 13-arg
+-- version.
+--
+-- WHY THE FOUR CHANGES COMPOSE CLEANLY (no overlapping logic, a straightforward union):
+--   • #543's change (Layer 0) is the harvest_stage scalar on the main INSERT — no loop involvement.
+--   • #549's change (Layer 1) is scoped to the LABOUR LOOP (person_id validation + write) — touches
+--     no materials-loop or target-resolution logic.
+--   • #562's change (Layer 2) is scoped to the MATERIALS LOOP (per-material-line validation + extra
+--     insert columns) and the preferred_time_of_day scalar on the main INSERT.
+--   • #560's change (Layer 3) is scoped to the plan_operations INSERT's column list (two more
+--     scalars) — touches no per-material or labour logic, no target-resolution logic.
+--   • #563's change (Layer 4, this migration) is scoped to TARGET resolution (a new block BEFORE
+--     the dedup check, computing v_target_type/v_target_id) and the plan_operations INSERT's
+--     column list (one more scalar, `note`) plus using v_target_type/v_target_id instead of the raw
+--     scope values in that INSERT and in the dedup lookup.
+-- All four touch the SAME insert statement's column list (additively — different columns) and
+-- otherwise touch disjoint sections of the function body (labour loop vs materials loop vs main
+-- INSERT vs target resolution). No conflicting overlap was found.
+--
+-- FINAL 16-PARAM LIST (in signature order) and each param's origin:
 --   1.  p_plan_id                uuid    — original (9-arg base)
 --   2.  p_subtype                text    — original
 --   3.  p_planned_at             date    — original
@@ -105,30 +119,28 @@
 --   7.  p_labor                  jsonb   — original
 --   8.  p_assignee_ids           uuid[]  — original
 --   9.  p_lead_id                uuid    — original
---   10. p_preferred_time_of_day text    — PR #562 (spray-compliance-record)
---   11. p_irrigation_basis      text    — PR #560 (soil-test-irrigation-and-templates)
---   12. p_soil_moisture_reading text    — PR #560 (soil-test-irrigation-and-templates)
---   13. p_target_type           text    — PR #563 (individual-palm-treatment, this branch)
---   14. p_target_id             uuid    — PR #563 (individual-palm-treatment, this branch)
---   15. p_note                  text    — PR #563 (individual-palm-treatment, this branch)
--- Every trailing param defaults to null — every existing caller (app-layer callers in all three
+--   10. p_harvest_stage          text    — PR #543 (operation-vocabulary), Layer 0
+--   11. p_preferred_time_of_day text    — PR #562 (spray-compliance-record), Layer 2
+--   12. p_irrigation_basis      text    — PR #560 (soil-test-irrigation-and-templates), Layer 3
+--   13. p_soil_moisture_reading text    — PR #560 (soil-test-irrigation-and-templates), Layer 3
+--   14. p_target_type           text    — PR #563 (individual-palm-treatment, this branch), Layer 4
+--   15. p_target_id             uuid    — PR #563 (individual-palm-treatment, this branch), Layer 4
+--   16. p_note                  text    — PR #563 (individual-palm-treatment, this branch), Layer 4
+-- (PR #549/Layer 1's person_id change is a labour-loop BODY change, not a new scalar PARAMETER —
+-- it does not add an entry to this positional list.)
+-- Every trailing param defaults to null — every existing caller (app-layer callers in all five
 -- branches use Supabase/PostgREST NAMED-parameter calls, sb.rpc("fn_add_plan_operation_multi",
 -- {p_x: ...}), which resolves by parameter NAME, not position) needs zero code changes regardless
 -- of this final order, and omitting a param yields byte-for-byte the same behaviour as before that
 -- param existed.
 --
--- BUG FIX CARRIED FORWARD FROM MAIN, FLAGGED FOR VISIBILITY (not introduced by this reconciliation):
--- both #562's and #560's OWN draft migrations had independently regressed the per-material
+-- BUG FIX CARRIED FORWARD FROM MAIN (not introduced by this reconciliation, informational only):
+-- #562's and #560's OWN draft migrations had, pre-rebuild, independently regressed the per-material
 -- unit-insert from `nullif(v_mat->>'unit', '')` (the fix landed in migration 20260701170000, unit-
--- of-measure reconciliation, DEMAND side — the fix that lets the trg_pmr_unit_reconcile trigger
--- correctly default an omitted unit to the item's canonical unit instead of forcing 'kg') back to
--- `coalesce(v_mat->>'unit', 'kg')`. This branch (#563) forked after 170000 and kept the fix intact,
--- so the combined function below uses `nullif(...)`, matching main and #563's own already-reviewed
--- code — NOT a silent behaviour change introduced by merging, but a restoration of a fix that #562/
--- #560 each independently, accidentally dropped in their own re-emits (likely authored from a stale
--- pre-170000 copy of the function). #562's own migration FILE is untouched, per instruction; this
--- decision only affects what THIS (563) and the intermediate (560) migrations emit. See the PR
--- comments on #560/#562/#563 for the full callout to the owner.
+-- of-measure reconciliation, DEMAND side) back to `coalesce(v_mat->>'unit', 'kg')`. Both branches'
+-- CURRENT rebuilt HEADs (as of this Layer-4 rebuild) already carry the CORRECT `nullif` form
+-- forward — this migration simply carries that already-correct body forward verbatim; no fix is
+-- applied here.
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 -- ── 1) plans: tag column + at-most-one-per-org partial unique index ────────────────────────
@@ -149,7 +161,8 @@ alter table public.plan_operations
 -- ── 2) fn_get_or_create_individual_treatment_plan: find-or-create the org's implicit plan ──
 -- Not an operation-creation RPC — it only resolves/creates the PARENT PLAN CONTAINER that
 -- fn_add_plan_operation_multi still requires a plan_id for. Mirrors fn_create_plan's authz.
--- Unaffected by the #562/#560 layering (independent RPC, no signature collision).
+-- Unaffected by the Layer 0-3 signature changes to fn_add_plan_operation_multi (independent RPC,
+-- no signature collision).
 create or replace function public.fn_get_or_create_individual_treatment_plan(p_org uuid)
 returns uuid
 language plpgsql
@@ -203,13 +216,14 @@ revoke all     on function public.fn_get_or_create_individual_treatment_plan(uui
 revoke execute on function public.fn_get_or_create_individual_treatment_plan(uuid) from anon;
 grant  execute on function public.fn_get_or_create_individual_treatment_plan(uuid) to authenticated;
 
--- ── 3) fn_add_plan_operation_multi: FINAL COMBINED RE-EMIT — #562 (10-arg) + #560 (12-arg) + #563
--- (this migration, 15-arg). See the reconciliation header above for the full param list/origins.
+-- ── 3) fn_add_plan_operation_multi: FINAL COMBINED RE-EMIT — #543 (10-arg) + #549 (10-arg, body) +
+-- #562 (11-arg) + #560 (13-arg) + #563 (this migration, 16-arg). See the reconciliation header
+-- above for the full param list/origins.
 --
--- DROP targets #560's 12-arg signature (the live function by the time this migration runs, given
--- the required apply order #562 → #560 → #563) — NOT the original 9-arg.
+-- DROP targets #560's 13-arg signature (the live function by the time this migration runs, given
+-- the required apply order #543 → #549 → #562 → #560 → #563) — NOT the original 9-arg.
 drop function if exists public.fn_add_plan_operation_multi(
-  uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text);
+  uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text, text);
 
 create or replace function public.fn_add_plan_operation_multi(
   p_plan_id               uuid,
@@ -221,12 +235,13 @@ create or replace function public.fn_add_plan_operation_multi(
   p_labor                 jsonb,
   p_assignee_ids          uuid[],
   p_lead_id               uuid,
-  p_preferred_time_of_day text default null,  -- PR #562 (spray-compliance-record)
-  p_irrigation_basis      text default null,  -- PR #560 (soil-test-irrigation-and-templates)
-  p_soil_moisture_reading text default null,  -- PR #560 (soil-test-irrigation-and-templates)
-  p_target_type           text default null,  -- PR #563 (individual-palm-treatment, this branch)
-  p_target_id             uuid default null,  -- PR #563 (individual-palm-treatment, this branch)
-  p_note                  text default null)  -- PR #563 (individual-palm-treatment, this branch)
+  p_harvest_stage         text default null,  -- PR #543 (operation-vocabulary), Layer 0
+  p_preferred_time_of_day text default null,  -- PR #562 (spray-compliance-record), Layer 2
+  p_irrigation_basis      text default null,  -- PR #560 (soil-test-irrigation-and-templates), Layer 3
+  p_soil_moisture_reading text default null,  -- PR #560 (soil-test-irrigation-and-templates), Layer 3
+  p_target_type           text default null,  -- PR #563 (individual-palm-treatment, this branch), Layer 4
+  p_target_id             uuid default null,  -- PR #563 (individual-palm-treatment, this branch), Layer 4
+  p_note                  text default null)  -- PR #563 (individual-palm-treatment, this branch), Layer 4
 returns jsonb
 language plpgsql
 volatile
@@ -240,6 +255,7 @@ declare
   v_op_id        uuid;
   v_mat          jsonb;
   v_lab          jsonb;
+  v_lab_person   uuid;
   v_pid          uuid;
   v_dup          uuid;
   v_n_mat        int := 0;
@@ -329,16 +345,17 @@ begin
 
   insert into public.plan_operations (org_id, plan_id, subtype, target_type, target_id, planned_at,
                                       ends_on, priority, responsible_person_id, est_cost, approval_needed,
-                                      status, preferred_time_of_day, irrigation_basis, soil_moisture_reading,
-                                      note)
+                                      status, harvest_stage, preferred_time_of_day, irrigation_basis,
+                                      soil_moisture_reading, note)
   values (v_org, p_plan_id, p_subtype, v_target_type, v_target_id, p_planned_at,
           p_ends_on, 1, p_lead_id, p_est_cost, true, 'planned',
-          p_preferred_time_of_day, p_irrigation_basis, p_soil_moisture_reading,
+          p_harvest_stage, p_preferred_time_of_day, p_irrigation_basis, p_soil_moisture_reading,
           nullif(btrim(p_note), ''))
   returning id into v_op_id;
 
   -- materials: each item must be in the plan's org; qty non-negative; optional compliance fields
-  -- (from PR #562 — carried forward verbatim, including its validation of target_zone/applicator).
+  -- (from PR #562/Layer 2 — carried forward verbatim, including its validation of target_zone/
+  -- applicator and the correct `nullif` unit handling).
   for v_mat in select * from jsonb_array_elements(coalesce(p_materials, '[]'::jsonb)) loop
     if not exists (select 1 from public.inventory_items it
                    where it.id = (v_mat->>'item_id')::uuid and it.org_id = v_org) then
@@ -361,9 +378,9 @@ begin
 
     -- unit: null when omitted/blank → the trg_pmr_unit_reconcile trigger (migration 20260701170000)
     -- defaults it to the item's canonical unit and rejects a real mismatch. See the reconciliation
-    -- note at the top of this file: restores main's `nullif` behaviour (both #562's and #560's
-    -- pre-reconciliation drafts had regressed to `coalesce(..., 'kg')`; this branch (#563) already
-    -- had it correct and that correctness is what's carried into this combined function).
+    -- note at the top of this file: this restores/preserves main's `nullif` behaviour — both #562's
+    -- and #560's pre-rebuild drafts had regressed to `coalesce(..., 'kg')`, but their CURRENT
+    -- rebuilt HEADs already carry the correct form, which this migration carries forward unchanged.
     insert into public.plan_material_requirements (
       org_id, plan_op_id, item_id, qty, unit,
       target_pest, apc_registration_ref, rei_hours, phi_days, target_zone,
@@ -377,13 +394,22 @@ begin
     v_n_mat := v_n_mat + 1;
   end loop;
 
-  -- labour: non-negative count/days.
+  -- labour: non-negative count/days; an OPTIONAL person_id (from PR #549/Layer 1) must be an ACTIVE
+  -- same-org person — mirrors the assignee validation below. A line with no person_id stays
+  -- free-text-only (unchanged). Untouched by this branch's own change.
   for v_lab in select * from jsonb_array_elements(coalesce(p_labor, '[]'::jsonb)) loop
     if coalesce((v_lab->>'count')::int, 0) < 0 or coalesce((v_lab->>'days')::numeric, 0) < 0 then
       raise exception 'labour count/days must be non-negative' using errcode = '22023';
     end if;
-    insert into public.plan_labor_requirements (org_id, plan_op_id, person_or_team, count, days)
-    values (v_org, v_op_id, v_lab->>'person_or_team', (v_lab->>'count')::int, (v_lab->>'days')::numeric);
+    v_lab_person := nullif(v_lab->>'person_id', '')::uuid;
+    if v_lab_person is not null
+       and not exists (select 1 from public.people pe
+                       where pe.id = v_lab_person and pe.org_id = v_org and pe.active) then
+      raise exception 'labour person % is not an active member of org %', v_lab_person, v_org
+        using errcode = '22023';
+    end if;
+    insert into public.plan_labor_requirements (org_id, plan_op_id, person_or_team, count, days, person_id)
+    values (v_org, v_op_id, v_lab->>'person_or_team', (v_lab->>'count')::int, (v_lab->>'days')::numeric, v_lab_person);
     v_n_lab := v_n_lab + 1;
   end loop;
 
@@ -405,9 +431,9 @@ begin
     'operationId', v_op_id, 'materials', v_n_mat, 'labor', v_n_lab, 'assignees', v_n_asg);
 end $$;
 
--- The parameter list changed again (3 new trailing defaulted args vs #560's 12-arg), so this is a
+-- The parameter list changed again (3 new trailing defaulted args vs #560's 13-arg), so this is a
 -- NEW overload as far as Postgres identity is concerned unless the predecessor signature is dropped
--- (done above). Re-grant explicitly under the final 15-arg signature.
-revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text, text, uuid, text) from public;
-revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text, text, uuid, text) from anon;
-grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text, text, uuid, text) to authenticated;
+-- (done above). Re-grant explicitly under the final 16-arg signature.
+revoke all     on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text, text, text, uuid, text) from public;
+revoke execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text, text, text, uuid, text) from anon;
+grant  execute on function public.fn_add_plan_operation_multi(uuid, text, date, date, numeric, jsonb, jsonb, uuid[], uuid, text, text, text, text, text, uuid, text) to authenticated;
