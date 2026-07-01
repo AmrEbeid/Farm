@@ -9,7 +9,7 @@ import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryDoughnut, CategoryBarChart } from "@/components/charts";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { fmtDate } from "@/lib/dates";
-import { egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
+import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
@@ -57,6 +57,10 @@ export default async function PlanningDashboardPage({
     { data: plans, error: plansError },
     { data: operations, error: operationsError },
     { data: checks, error: checksError },
+    { data: executedOps, error: executedOpsError },
+    { data: sectors, error: sectorsError },
+    { data: hawshat, error: hawshatError },
+    { data: doneEvents, error: doneEventsError },
   ] = await Promise.all([
     sb
       .from("plans")
@@ -73,10 +77,32 @@ export default async function PlanningDashboardPage({
       .select("id, kind, result, plan_id, plans(id, type, period_start, period_end, status)")
       .order("kind")
       .limit(50),
+    // Cost-per-operation / cost-per-scope KPIs (SPEC-operational-kpis): only DONE
+    // operations carry a real, incurred cost — planned/reserved ops are estimates
+    // for the OTHER KPI cards above, not "spend". target_type/target_id is set by
+    // fn_add_plan_operation(_multi) from the parent plan's own scope (farm/sector/
+    // hawsha), so it is always populated — a real, query-backed dimension, not a
+    // free-form field the UI lets users set independently.
+    sb
+      .from("plan_operations")
+      .select("id, subtype, est_cost, target_type, target_id")
+      .eq("status", "done"),
+    sb.from("sectors").select("id, name").eq("archived", false),
+    sb.from("hawshat").select("id, name, palm_count_barhi, palm_count_male").eq("archived", false),
+    // Actual cost per executed operation, same source + shape as the per-plan
+    // "المخطط مقابل الفعلي" report (reports/[planId]/pva): fn_execute_operation
+    // embeds { op_id, actual_cost } in the done farm_event's data jsonb — read
+    // here farm-wide and matched to plan_operations.id in memory (mirrors the
+    // PVA report's own in-memory join; no DB-side jsonb filter needed).
+    sb.from("farm_event").select("status, data").eq("status", "done"),
   ]);
   if (plansError) throw plansError;
   if (operationsError) throw operationsError;
   if (checksError) throw checksError;
+  if (executedOpsError) throw executedOpsError;
+  if (sectorsError) throw sectorsError;
+  if (hawshatError) throw hawshatError;
+  if (doneEventsError) throw doneEventsError;
 
   const planRowsById = new Map((plans ?? []).map((p) => [p.id, p]));
   const activePlans = (plans ?? []).filter((p) => p.status === "active");
@@ -114,6 +140,83 @@ export default async function PlanningDashboardPage({
   )
     .filter(([, cost]) => cost > 0)
     .map(([name, cost]) => ({ plan: name, "التكلفة": cost }));
+
+  // ── Operational cost KPIs (real data only — done operations, real est_cost) ──
+  // "Cost" here is the operation's own planned/estimated cost realized at
+  // execution (fn_execute_operation flips status to 'done'; it does not touch
+  // est_cost, so this is the same figure booked when the operation was
+  // authored — not a separate actuals ledger). No fabricated numbers: an
+  // operation with a null est_cost is excluded from the average/sum, exactly
+  // like sumMoney/egpSummary do elsewhere on this page.
+  const doneOpsWithCost = (executedOps ?? []).filter((o) => moneyNumber(o.est_cost) != null);
+  const doneCostSummary = sumMoney((executedOps ?? []).map((o) => o.est_cost));
+  const avgCostPerOperation =
+    doneOpsWithCost.length > 0 ? doneCostSummary.total / doneOpsWithCost.length : null;
+
+  // Planned vs. actual cost, farm-wide — same op_id → actual_cost join the PVA
+  // report does per-plan (reports/[planId]/pva/page.tsx:47-51), applied across
+  // all executed operations rather than one plan.
+  const actualCostByOp = new Map<string, number>();
+  for (const ev of doneEvents ?? []) {
+    const d = (ev.data ?? {}) as { op_id?: string; actual_cost?: number };
+    if (d.op_id) actualCostByOp.set(d.op_id, Number(d.actual_cost ?? 0));
+  }
+  const opsWithActuals = doneOpsWithCost.filter((o) => actualCostByOp.has(o.id));
+  const totalActualCost = opsWithActuals.reduce((s, o) => s + (actualCostByOp.get(o.id) ?? 0), 0);
+  const totalPlannedForActuals = sumMoney(opsWithActuals.map((o) => o.est_cost));
+  const costVariance =
+    opsWithActuals.length > 0 && !totalPlannedForActuals.hasUnknown
+      ? totalActualCost - totalPlannedForActuals.total
+      : null;
+
+  const sectorNameById = new Map((sectors ?? []).map((s) => [s.id, s.name]));
+  const hawshaById = new Map((hawshat ?? []).map((h) => [h.id, h]));
+
+  // Cost by scope (sector/hawsha) — only operations whose target resolves to a
+  // known, non-archived sector/hawsha are counted, so an archived/deleted scope
+  // silently drops out rather than showing under a fake "غير معروف" bucket with
+  // real money attached to it.
+  const costByScope = new Map<string, number>();
+  for (const op of executedOps ?? []) {
+    const cost = moneyNumber(op.est_cost);
+    if (cost == null || cost <= 0 || !op.target_id) continue;
+    const label =
+      op.target_type === "hawsha"
+        ? hawshaById.get(op.target_id)?.name
+        : op.target_type === "sector"
+          ? sectorNameById.get(op.target_id)
+          : op.target_type === "farm"
+            ? "المزرعة (عام)"
+            : null;
+    if (!label) continue;
+    costByScope.set(label, (costByScope.get(label) ?? 0) + cost);
+  }
+  const costByScopeChart = Array.from(costByScope.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, cost]) => ({ scope: name, "التكلفة": cost }));
+
+  // Cost per palm — only for hawsha-scoped spend, divided by that hawsha's own
+  // registered palm count (palm_count_barhi + palm_count_male, from the Nov-2025
+  // canonical registry). A hawsha with zero registered palms is excluded rather
+  // than divided-by-zero or shown as an estimate.
+  const hawshaCost = new Map<string, number>();
+  for (const op of executedOps ?? []) {
+    if (op.target_type !== "hawsha" || !op.target_id) continue;
+    const cost = moneyNumber(op.est_cost);
+    if (cost == null || cost <= 0) continue;
+    hawshaCost.set(op.target_id, (hawshaCost.get(op.target_id) ?? 0) + cost);
+  }
+  let totalHawshaCost = 0;
+  let totalPalmsWithCost = 0;
+  for (const [hawshaId, cost] of hawshaCost) {
+    const h = hawshaById.get(hawshaId);
+    const palms = Number(h?.palm_count_barhi ?? 0) + Number(h?.palm_count_male ?? 0);
+    if (palms <= 0) continue;
+    totalHawshaCost += cost;
+    totalPalmsWithCost += palms;
+  }
+  const costPerPalm = totalPalmsWithCost > 0 ? totalHawshaCost / totalPalmsWithCost : null;
 
   const planColumns: SimpleColumn[] = [
     { id: "type", header: "الخطة" },
@@ -241,6 +344,54 @@ export default async function PlanningDashboardPage({
                 columnHeader="نوع الخطة"
               />
             </Card>
+          )}
+        </section>
+      )}
+
+      {filter === "all" && (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-lg font-bold">كفاءة التشغيل (من العمليات المنفذة فعليًا)</h2>
+          {doneOpsWithCost.length === 0 ? (
+            <Card title="تكلفة التشغيل">
+              <EmptyState
+                title="بيانات غير متوفرة بعد"
+                description="لا توجد عمليات مُنفَّذة (منفذ) بتكلفة مسجّلة حتى الآن — ستظهر هذه المؤشرات بعد تنفيذ عمليات ميدانية فعلية."
+              />
+            </Card>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <KpiCard
+                  label="متوسط تكلفة العملية المنفذة"
+                  value={egp(avgCostPerOperation)}
+                  delta={`من ${num(doneOpsWithCost.length)} عملية منفذة`}
+                />
+                <KpiCard
+                  label="متوسط التكلفة لكل نخلة"
+                  value={costPerPalm != null ? egp(costPerPalm) : "بيانات غير متوفرة بعد"}
+                  delta={costPerPalm != null ? `عبر ${num(totalPalmsWithCost)} نخلة مسجّلة` : "يحتاج حوشات بها نخيل مسجَّل"}
+                />
+                <KpiCard label="إجمالي تكلفة العمليات المنفذة" value={egp(doneCostSummary.total)} />
+                <KpiCard
+                  label="انحراف التكلفة (فعلي − مخطط)"
+                  value={costVariance != null ? egp(costVariance) : "بيانات غير متوفرة بعد"}
+                  delta={costVariance != null ? `عبر ${num(opsWithActuals.length)} عملية` : "يحتاج تكلفة فعلية مسجّلة"}
+                  deltaDirection={costVariance != null ? (costVariance > 0 ? "down" : "none") : "none"}
+                />
+              </div>
+              {costByScopeChart.length > 0 && (
+                <Card title="تكلفة العمليات المنفذة حسب القطاع/الحوشة">
+                  <CategoryBarChart
+                    data={costByScopeChart}
+                    categoryKey="scope"
+                    series={[{ dataKey: "التكلفة", name: "التكلفة (ج.م)" }]}
+                    ariaLabel="تكلفة العمليات المنفذة حسب القطاع أو الحوشة"
+                    caption="تكلفة العمليات المنفذة حسب القطاع/الحوشة"
+                    columnHeader="القطاع/الحوشة"
+                  />
+                </Card>
+              )}
+            </>
           )}
         </section>
       )}
