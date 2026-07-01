@@ -1,13 +1,11 @@
--- 105 — #512 PINNED KNOWN BUG (todo): fn_execute_operation posts a blind, bin-wide `release` that is not
--- scoped to the op/plan that actually reserved, so executing an UNRELATED operation wipes another
--- reservation → the engine over-states `available` → a masked shortage (SPEC-0001 #1, the cardinal sin).
---
--- reserved is a bin-wide aggregate greatest(0, Σreserve − Σrelease) with no plan/op scoping
--- (fn_bin_rebuild 0013), and execute releases v_req_qty unconditionally (0057:108-111). The correct fix
--- needs op-level reservation scoping — a reservation-model decision, tracked in #512 (same surface as
--- #199). Until then this test PINS the desired behavior wrapped in todo_start/todo_end so it documents the
--- gap and catches regressions WITHOUT failing CI; remove the wrapper when the fix lands and it becomes a
--- hard gate. Mirrors test 18's fn_execute_operation setup. Run via test-shims/run-pgtap-local.sh.
+-- 105 — #512 FIXED (hard gate): fn_execute_operation no longer posts a blind bin-wide `release`
+-- (migration 20260701190000). Previously it released v_req_qty unconditionally (0057:108-111), and since
+-- `reserved` is a bin-wide aggregate greatest(0, Σreserve − Σrelease) with no plan/op scoping (fn_bin_rebuild
+-- 0013), executing an UNRELATED op wiped another op's earmark → the engine over-stated `available` → a masked
+-- shortage (SPEC-0001 #1, the cardinal sin). Execute owns no per-op reservation (reserves are item-level
+-- coverage earmarks under SEED_PLAN), so removing its release means a real earmark ALWAYS survives an unrelated
+-- execute. This test now asserts that survival as a HARD gate (the todo wrapper was removed when the fix
+-- landed). Mirrors test 18's fn_execute_operation setup. Run via test-shims/run-pgtap-local.sh.
 
 begin;
 select plan(2);
@@ -40,20 +38,17 @@ select is(
   (select reserved from public.inventory_bin where item_id = :'item' and location = 'main'), 100::numeric,
   '#512 baseline: the 100-unit earmark is reserved before the unrelated op executes');
 
--- execute the UNRELATED op (supervisor). It issues 100 AND posts a blind release 100.
+-- execute the UNRELATED op (supervisor). It issues 100 and (after the fix) does NOT release.
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
 set local role authenticated;
 select set_config('t.ignore', public.fn_execute_operation(:'op', 100, 1, 'exec')::text, false);
 reset role;
 
--- CORRECT behavior: the unrelated op did not reserve anything, so the 100-unit earmark must SURVIVE.
--- CURRENT (buggy) behavior: the blind release wipes it → reserved = 0 → available over-stated → mask.
-select todo_start('#512: op-level reservation scoping not yet decided — remove wrapper when the fix lands');
+-- The unrelated op reserved nothing, so the 100-unit earmark MUST survive (no blind release). Hard gate.
 select is(
   (select reserved from public.inventory_bin where item_id = :'item' and location = 'main'), 100::numeric,
   '#512: executing an unrelated (never-reserved) op must NOT release the 100-unit earmark');
-select todo_end();
 
 select * from finish();
 rollback;

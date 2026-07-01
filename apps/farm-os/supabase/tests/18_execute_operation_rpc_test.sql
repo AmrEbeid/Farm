@@ -58,8 +58,11 @@ select is((select status from public.plan_operations where id = :'op'), 'done',
   'Option A: the operation is marked done');
 select is((select on_hand from public.inventory_bin where item_id = :'item' and location='main'), 120::numeric,
   'Option A: stock issued — on_hand 600 → 120 (−480)');
-select is((select reserved from public.inventory_bin where item_id = :'item' and location='main'), 0::numeric,
-  'Option A: reservation released — reserved 500 → 0');
+-- #512 (migration 20260701190000): execute no longer posts a blind release (it owned no per-op reservation),
+-- so the pre-existing earmark SURVIVES — reserved stays 500. (A blind release here wiped unrelated earmarks →
+-- masked shortage; the earmark is freed by an attributed release-on-receipt, not by execute.)
+select is((select reserved from public.inventory_bin where item_id = :'item' and location='main'), 500::numeric,
+  '#512: reserved 500 survives execute (no blind release); freed by release-on-receipt, not execute');
 select isnt((select count(*) from public.farm_event
   where plan_id = :'plan' and status='done' and subtype='fertilization'), 0::bigint,
   'Option A: a done farm_event was recorded');
