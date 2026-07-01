@@ -60,6 +60,7 @@ select is(
         'fn_reserve_stock',                       -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
         'fn_add_plan_operation',                  -- atomic plan-operation authoring RPC (CREATE-3 #196, migration 0038)
         'fn_add_plan_operation_multi',            -- atomic multi-line op authoring (materials+labour+assignees+multi-day, #398 slice 2, migration 0093)
+        'fn_unassign_plan_operation',              -- gated un-assign RPC for plan_operation_assignees (#398 follow-up, migration 20260701220000)
         'fn_update_palm_status',                  -- gated + atomic palm status RPC (PALM-STATUS-1 #238, migration 0039)
         'fn_save_sector', 'fn_save_hawsha',       -- gated structure CRUD RPCs (STRUCT-1, migration 0081)
         'fn_save_line', 'fn_save_palm',           -- gated structure CRUD RPCs (STRUCT-1, migration 0081)
@@ -79,7 +80,13 @@ select is(
         'fn_accounting_trial_balance',             -- standalone accounting read RPC (cash-method custody slice)
         'fn_record_payment_request_funding',       -- owner funds received as custody after final approval
         'fn_confirm_request_expense_paid',         -- cash-method request-line payment confirmation
-        'fn_close_payment_request'                 -- close funded request after every line is confirmed paid
+        'fn_close_payment_request',                -- close funded request after every line is confirmed paid
+        'fn_instantiate_operation_template',       -- gated template-instantiate RPC (SPEC-0019 P1-3, migration 20260701260000)
+        'fn_owner_pnl_summary',                    -- gated owner P&L period-summary read RPC (migration 20260701270000)
+        'fn_update_weather_thresholds',             -- gated weather-thresholds settings RPC (SPEC-0007 §3, migration 20260701370000)
+        'fn_save_trap', 'fn_update_trap',          -- gated pest-scouting trap RPCs (RPW-1, migration 20260701380000)
+        'fn_log_trap_catch', 'fn_report_pest_incident', -- gated pest-scouting catch/incident RPCs (RPW-1)
+        'fn_sign_off_plan_operation'                -- agronomy.signoff-gated sign-off RPC (agronomist-signoff-gate)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

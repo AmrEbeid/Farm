@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Input, Alert } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Button, Field, Input, Alert, useToast } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 
@@ -53,6 +54,8 @@ export function MasterTable({
   exportFilename?: string;
   empty?: string;
 }) {
+  const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
@@ -71,14 +74,20 @@ export function MasterTable({
     try {
       r = await onCreate(values);
     } catch {
-      // Offline-tolerant (non-negotiable #2): a network reject must not strand the spinner.
+      // A network reject must not strand the spinner. This is a clear retry message, not
+      // offline support: there's no service worker / IndexedDB outbox / queued replay, so a
+      // submission made while offline is NOT queued — the user must retry once back online.
+      // Queued/replayed offline submissions are a planned future release.
       r = { ok: false, error: "تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى." };
     }
     setPending(false);
     if (r.ok) {
       setOpen(false);
       setForm({});
-      window.location.reload();
+      // Targeted re-fetch of the Server Component tree (not a full page reload) — the
+      // list re-renders with fresh data while a toast confirms the write succeeded.
+      toast.ok("تمت الإضافة بنجاح");
+      router.refresh();
     } else {
       setMsg({ tone: "danger", text: r.error ?? "تعذّر الحفظ" });
     }
@@ -99,7 +108,7 @@ export function MasterTable({
       </header>
 
       {canWrite && open && (
-        <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--border)" }}>
+        <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
           <div role="alert" aria-live="assertive" aria-atomic="true">
             {msg && <Alert tone={msg.tone} title={msg.text} />}
           </div>

@@ -16,9 +16,15 @@ import { num } from "@/lib/money";
 export function PabChart({
   series,
   firstShortage,
+  firstWarning,
+  unit = "كجم",
 }: {
   series: number[];
   firstShortage: number | null;
+  /** First period the balance dips below safety stock (may be set even when firstShortage is null). */
+  firstWarning?: number | null;
+  /** The item's real unit (never hardcode "كجم" — that masked the item's actual unit). */
+  unit?: string;
 }) {
   const data = series.map((value, i) => ({
     period: i === 0 ? "الآن" : `أسبوع ${num(i)}`,
@@ -29,17 +35,25 @@ export function PabChart({
       <LineChart
         data={data}
         categoryKey="period"
-        series={[{ dataKey: "الرصيد المتوقع", name: "الرصيد المتوقع (كجم)" }]}
+        series={[{ dataKey: "الرصيد المتوقع", name: `الرصيد المتوقع (${unit})` }]}
         ariaLabel="الرصيد المتوقع للمخزون عبر الأسابيع"
         curve="monotone"
         showDots
         height={260}
         tableFallback={{ caption: "الرصيد المتوقع", columnHeader: "الفترة" }}
       />
-      {firstShortage != null && (
+      {/* A real shortage supersedes an early warning — the warning period is always <= the
+          shortage period when both fire, so showing both would be redundant. */}
+      {firstShortage != null ? (
         <p className="mt-2 text-sm" style={{ color: "var(--danger, #b91c1c)" }}>
           أول نقص متوقع في الأسبوع {num(firstShortage)} (يهبط الرصيد دون الصفر).
         </p>
+      ) : (
+        firstWarning != null && (
+          <p className="mt-2 text-sm" style={{ color: "var(--warning, #b45309)" }}>
+            يهبط الرصيد دون حد الأمان في الأسبوع {num(firstWarning)} (تحذير مبكر — لن ينفد المخزون).
+          </p>
+        )
       )}
     </div>
   );

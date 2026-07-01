@@ -2,8 +2,9 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Every table with a
 stable `TBL-NNN` id, purpose, key columns, foreign keys, RLS posture, and the feature it serves (→ `FEAT-NNN`).
-Reconciled to `main` 2026-06-30 (46 tables incl. `user_active_org`, SPEC-0018 custody/payment backend, and
-SPEC-0016 export-compliance slice 1).
+Reconciled to `main` 2026-07-01 (50 tables incl. `user_active_org`, SPEC-0018 custody/payment backend,
+SPEC-0016 export-compliance slice 1, and the cash-method accounting kernel GL tables from PR #568
+`20260701220000`).
 Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**; only deviations are noted.*
 
 ## Tenancy & people
@@ -67,7 +68,15 @@ Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**
 | **TBL-039** | `custody_accounts` | Custody float accounts | id, org_id, holder_label, holder_user_id?, target_float, active | organization | reads require `finance.read`; writes via `fn_save_custody_account` / `custody.write`; audited | FEAT-028 |
 | **TBL-040** | `custody_movements` | Append-only custody cash ledger | id, org_id, custody_account_id, occurred_at, movement_type, amount_in/out, expense_id? | organization, custody_accounts, expenses | reads require `finance.read`; inserts via `fn_record_custody_movement`; one side only; audited | FEAT-028 |
 | **TBL-041** | `payment_requests` | Payment request header / approval lifecycle | id, org_id, request_no, period_start/end, status, custody_account_id?, approver stamps | organization, custody_accounts | reads require `finance.read`; writes via request RPCs; final approval owner-only; audited | FEAT-028 |
-| **TBL-042** | `payment_request_lines` | Payment request expense lines | id, org_id, payment_request_id, expense_id | organization, payment_requests, expenses | RPC-only; one request per expense; only operating `post_paid_unpaid` expenses | FEAT-028 |
+| **TBL-042** | `payment_request_lines` | Payment request expense lines | id, org_id, payment_request_id, expense_id, **paid_at, paid_by, paid_from_custody_account_id, custody_movement_id, journal_entry_id** (settlement, `20260701220000`) | organization, payment_requests, expenses, custody_accounts, custody_movements, journal_entries | RPC-only; one request per expense; only operating `post_paid_unpaid` expenses; settlement fields set by `fn_confirm_request_expense_paid` | FEAT-028/030 |
+
+## General ledger (accounting kernel — PR #568)
+| TBL | Table | Purpose | Key columns | FKs | Notes | FEAT |
+|---|---|---|---|---|---|---|
+| **TBL-047** | `accounts` | Chart of accounts | id, org_id, code, name_ar, account_type, normal_balance | organization | UNIQUE(org_id,code); reads `finance.read`; writes via `fn_ensure_account` (internal); audited | FEAT-030 |
+| **TBL-048** | `journal_entries` | Double-entry journal header | id, org_id, entry_date, source_type, source_id, status∈{posted,reversed}, reversal_of? | organization, journal_entries(self) | UNIQUE(org_id,source_type,source_id) → idempotent posting (BR-117); reads `finance.read`; RPC-only; audited | FEAT-030 |
+| **TBL-049** | `journal_lines` | Double-entry journal lines | id, org_id, journal_entry_id, account_id, debit, credit, description, custody_account_id?, custody_movement_id?, expense_id?, payment_request_id? | organization, journal_entries, accounts, custody_accounts/movements, expenses, payment_requests | CHECK one-sided ((debit>0)⊻(credit>0)); Σdebit=Σcredit per entry via deferred trigger (BR-116); reads `finance.read`; RPC-only; audited | FEAT-030 |
+| **TBL-050** | `payment_request_fundings` | Owner funds received into custody for a request | id, org_id, payment_request_id, custody_account_id, amount, occurred_at, custody_movement_id?, journal_entry_id? | organization, payment_requests, custody_accounts, custody_movements, journal_entries | reads `finance.read`; writes via `fn_record_payment_request_funding`; audited | FEAT-028/030 |
 
 ## Export compliance
 | TBL | Table | Purpose | Key columns | FKs | Notes | FEAT |
@@ -79,6 +88,9 @@ Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**
 
 **Hierarchies:** location `farms→sectors→hawshat→lines→assets`; planning `plans→plan_operations→{material,labor}_requirements`;
 budget `budgets→budget_lines`; custody/payment `custody_accounts→custody_movements` and `payment_requests→payment_request_lines`;
-export compliance `residue_tests→residue_test_results`; events denormalize the ancestor chain in `event_locations` for roll-up.
-**Note (`sales` table):** referenced by draft PR #368 (FEAT-023) — **not on `main`**. Maintenance: new table →
-next free `TBL-047` + its `FEAT`/RLS note.
+export compliance `residue_tests→residue_test_results`; general ledger `journal_entries→journal_lines→accounts`
+(with `payment_request_fundings` linking a request to its custody-in movement + journal entry); events denormalize
+the ancestor chain in `event_locations` for roll-up.
+**Note (`sales` table):** referenced by draft PR #368 (FEAT-023) — **still not on `main`** (revenue/A-R is Slice A
+of [`ROADMAP-accounting-custody-2026-07-01.md`](ROADMAP-accounting-custody-2026-07-01.md)). Maintenance: new table →
+next free `TBL-051` + its `FEAT`/RLS note.

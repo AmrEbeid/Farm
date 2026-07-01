@@ -5,6 +5,7 @@ import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/c
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StructureForm } from "@/components/StructureForm";
 import { ImportPanel } from "@/components/import/ImportPanel";
+import { PalmSearch } from "@/components/PalmSearch";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -148,6 +149,10 @@ export default async function FarmStructurePage() {
       <Link href="/farm/croquis" className="inline-flex w-fit items-center gap-2 text-sm font-medium text-[var(--brand,#2f7d49)] hover:underline">
         🗺️ عرض كروكي المزرعة
       </Link>
+
+      <Card title="بحث عن نخلة">
+        <PalmSearch />
+      </Card>
 
       {canEditStructure && farm?.id && (
         <StructureForm

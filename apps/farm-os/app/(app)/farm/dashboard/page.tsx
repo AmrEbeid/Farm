@@ -7,6 +7,7 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryBarChart, CategoryDoughnut } from "@/components/charts";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -187,6 +188,10 @@ export default async function FarmDashboardPage({
           <HeaderLink href="/farm/croquis">الكروكي</HeaderLink>
         </div>
       </header>
+
+      {/* First-run guidance: no palms registered yet on this page's own tally
+          (totalBarhi, already computed above) — disappears once real data exists. */}
+      {totalBarhi === 0 && <OnboardingChecklist />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/farm/dashboard?filter=sectors" active={filter === "sectors"}>

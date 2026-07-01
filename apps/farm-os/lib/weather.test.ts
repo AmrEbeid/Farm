@@ -3,6 +3,7 @@ import {
   parseForecast,
   parseForecastList,
   computeGates,
+  mergeThresholds,
   DEFAULT_THRESHOLDS,
 } from "./weather";
 
@@ -66,6 +67,7 @@ describe("computeGates — deterministic gating (SPEC-0007 §4.3)", () => {
     expect(g.pollinate).toBe("ok");
     expect(g.harvest).toBe("ok");
     expect(g.heatStress).toBe(false);
+    expect(g.frost).toBe(false);
   });
 
   it("advises against spraying in wind above the threshold (advisory, not blocked)", () => {
@@ -85,6 +87,27 @@ describe("computeGates — deterministic gating (SPEC-0007 §4.3)", () => {
     expect(g.heatStress).toBe(true);
     expect(g.reasons.heat).toBeTruthy();
   });
+
+  it("flags frost risk below the frost threshold", () => {
+    const g = computeGates({ ...GOOD, tempC: DEFAULT_THRESHOLDS.frostBelowC - 1 });
+    expect(g.frost).toBe(true);
+    expect(g.reasons.frost).toBeTruthy();
+  });
+
+  it("does NOT flag frost at/above the frost threshold (boundary — inclusive on the safe side)", () => {
+    const atThreshold = computeGates({ ...GOOD, tempC: DEFAULT_THRESHOLDS.frostBelowC });
+    expect(atThreshold.frost).toBe(false);
+    expect(atThreshold.reasons.frost).toBeUndefined();
+
+    const aboveThreshold = computeGates({ ...GOOD, tempC: DEFAULT_THRESHOLDS.frostBelowC + 5 });
+    expect(aboveThreshold.frost).toBe(false);
+  });
+
+  it("no frost risk on a warm day", () => {
+    const g = computeGates({ ...GOOD, tempC: 30 });
+    expect(g.frost).toBe(false);
+    expect(g.reasons.frost).toBeUndefined();
+  });
 });
 
 describe("graceful degradation (SPEC-0007 §2.4 / §4.3)", () => {
@@ -94,6 +117,43 @@ describe("graceful degradation (SPEC-0007 §2.4 / §4.3)", () => {
     expect(g.pollinate).toBe("unknown");
     expect(g.harvest).toBe("unknown");
     expect(g.heatStress).toBeNull();
+    expect(g.frost).toBeNull();
     // unknown is advisory: no gate level is ever "blocked" from this module.
+  });
+});
+
+describe("mergeThresholds — safe per-field merge of a stored (jsonb) override", () => {
+  it("returns the defaults untouched when nothing is stored", () => {
+    expect(mergeThresholds(null)).toEqual(DEFAULT_THRESHOLDS);
+    expect(mergeThresholds(undefined)).toEqual(DEFAULT_THRESHOLDS);
+    expect(mergeThresholds("not an object")).toEqual(DEFAULT_THRESHOLDS);
+    expect(mergeThresholds([1, 2, 3])).toEqual(DEFAULT_THRESHOLDS);
+  });
+
+  it("applies a fully valid override", () => {
+    const override = {
+      sprayMaxWindKph: 12,
+      pollinateMaxRainMm: 2,
+      pollinateMaxWindKph: 18,
+      harvestMaxRainMm: 3,
+      heatStressC: 42,
+      frostBelowC: 4,
+    };
+    expect(mergeThresholds(override)).toEqual(override);
+  });
+
+  it("falls back per-field when one value is missing/garbage — a bad field never corrupts the rest", () => {
+    const merged = mergeThresholds({
+      sprayMaxWindKph: 12,
+      frostBelowC: "not a number", // garbage — falls back to the default for THIS field only
+    });
+    expect(merged.sprayMaxWindKph).toBe(12);
+    expect(merged.frostBelowC).toBe(DEFAULT_THRESHOLDS.frostBelowC);
+    expect(merged.heatStressC).toBe(DEFAULT_THRESHOLDS.heatStressC);
+  });
+
+  it("rejects an out-of-range stored value for a field (falls back to default, not clamped)", () => {
+    const merged = mergeThresholds({ frostBelowC: 999 });
+    expect(merged.frostBelowC).toBe(DEFAULT_THRESHOLDS.frostBelowC);
   });
 });

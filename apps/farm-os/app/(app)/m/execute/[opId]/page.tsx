@@ -27,7 +27,7 @@ export default async function ExecutePage({
   const { data: op, error } = await sb
     .from("plan_operations")
     .select(
-      "id, subtype, planned_at, est_cost, status, plan_material_requirements(qty, unit), plan_labor_requirements(count)",
+      "id, subtype, planned_at, est_cost, status, plan_material_requirements(id, item_id, qty, unit, inventory_items(name)), plan_labor_requirements(count)",
     )
     .eq("id", opId)
     .maybeSingle();
@@ -42,7 +42,16 @@ export default async function ExecutePage({
       </div>
     );
 
-  const req = (op.plan_material_requirements ?? [])[0] as { qty?: number; unit?: string } | undefined;
+  // #520: an op can carry several materials (fn_add_plan_operation_multi). One qty field per
+  // material is rendered below (ExecuteForm collapses to the pre-#520 single-field look when there
+  // is exactly one, or none, on the op).
+  const materials = (op.plan_material_requirements ?? []) as Array<{
+    id: string;
+    item_id: string;
+    qty: number | null;
+    unit: string | null;
+    inventory_items: { name?: string } | null;
+  }>;
   const laborReq = (op.plan_labor_requirements ?? [])[0] as { count?: number } | undefined;
   const opPill: PillStatus = op.status === "done" ? "done" : isExecutableOpStatus(op.status) ? "active" : "blocked";
 
@@ -58,10 +67,15 @@ export default async function ExecutePage({
         <Card title="سجّل الفعلي">
           <ExecuteForm
             opId={opId}
-            defaultQty={req?.qty != null ? Number(req.qty) : null}
+            materials={materials.map((m) => ({
+              requirementId: m.id,
+              itemId: m.item_id,
+              defaultQty: m.qty != null ? Number(m.qty) : null,
+              unit: m.unit ?? "كجم",
+              name: m.inventory_items?.name ?? null,
+            }))}
             defaultLabor={laborReq?.count != null ? Number(laborReq.count) : null}
             defaultNote={SUBTYPE_NOTE_AR[op.subtype ?? ""] ?? ""}
-            unit={req?.unit ?? "كجم"}
           />
         </Card>
       ) : op.status === "done" ? (

@@ -43,7 +43,7 @@ export function SettingsForm({ org }: { org: OrgSettings }) {
   }
 
   const selectClass = "rounded-md border px-2 py-1.5 text-sm";
-  const selectStyle = { borderColor: "var(--border)" } as const;
+  const selectStyle = { borderColor: "var(--line)" } as const;
 
   return (
     <form onSubmit={save} className="flex flex-col gap-4">

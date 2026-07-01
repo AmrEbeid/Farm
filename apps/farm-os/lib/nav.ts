@@ -49,6 +49,7 @@ export const APP_MODULES: AppModule[] = [
       { id: "farm", label: "هيكل المزرعة", icon: "🌴", href: "/farm" },
       { id: "farm-croquis", label: "الكروكي", icon: "🗺️", href: "/farm/croquis" },
       { id: "academy", label: "أكاديمية الرعاية", icon: "📚", href: "/academy" },
+      { id: "pest-scouting", label: "مكافحة سوسة النخيل الحمراء", icon: "🐛", href: "/farm/pest-scouting" },
     ],
   },
   {
@@ -160,6 +161,13 @@ export const APP_MODULES: AppModule[] = [
     pages: [
       { id: "weather-dashboard", label: "لوحة الطقس والمخاطر", icon: "🌤️", href: "/weather/dashboard" },
       { id: "weather", label: "الطقس", icon: "🌤️", href: "/weather" },
+      {
+        id: "weather-thresholds",
+        label: "عتبات الطقس",
+        icon: "🌡️",
+        href: "/weather/thresholds",
+        roles: ["owner", "farm_manager"],
+      },
     ],
   },
   {

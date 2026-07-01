@@ -12,6 +12,7 @@ const OP_AR: Record<keyof OperationGates["reasons"], string> = {
   pollinate: "التلقيح",
   harvest: "الحصاد",
   heat: "إجهاد حراري",
+  frost: "الصقيع",
 };
 
 function fmtDay(iso: string): string {

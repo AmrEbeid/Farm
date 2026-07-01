@@ -8,6 +8,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryDoughnut } from "@/components/charts";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -59,6 +60,13 @@ export default async function InventoryDashboardPage({
     const reserved = Number(bin?.reserved ?? 0);
     const available = onHand - reserved;
     const threshold = Number(it.reorder_point ?? it.min_stock ?? 0);
+    // STATIC level check against today's `available` — NOT the engine's forward-looking
+    // projection. fn_stock_coverage can return shortage=true for an item that looks fine here
+    // (plenty on hand today, demand spike next week), which is why the label below is an honest
+    // point-in-time reading of the reorder threshold ("جيد" implied a coverage verdict this check
+    // doesn't compute) and every row links to the authoritative per-item coverage page. Batching
+    // fn_stock_coverage across this whole list is deferred — a separate, performance-sensitive
+    // change (N+1 RPC calls per item), not done here.
     const needsReorder = threshold > 0 && available < threshold;
 
     return {
@@ -66,11 +74,12 @@ export default async function InventoryDashboardPage({
       href: `/inventory/${it.id}`,
       name: it.name,
       category: it.category ?? "—",
-      status: needsReorder ? "إعادة الطلب" : "جيد",
+      status: needsReorder ? "تحت حد إعادة الطلب" : "فوق حد إعادة الطلب",
       metric: `${num(available)} ${it.unit ?? ""}`.trim(),
       date: "—",
       filterKey: needsReorder ? "reorder" : "all",
       sortWeight: needsReorder ? 0 : 3,
+      coverageHref: `/inventory/${it.id}/coverage`,
     };
   });
 
@@ -97,6 +106,8 @@ export default async function InventoryDashboardPage({
               ? "active-pr"
               : "all",
       sortWeight: pr.status === "submitted" ? 1 : pr.status === "partially_received" ? 2 : active ? 3 : 4,
+      // No per-item coverage page for a purchase request row.
+      coverageHref: undefined as string | undefined,
     };
   });
 
@@ -117,8 +128,8 @@ export default async function InventoryDashboardPage({
 
   // Chart data — derived from the items / PRs already fetched (no new queries).
   const itemsByStatus = [
-    { name: "سليم", value: itemRows.length - reorderItems },
-    { name: "يحتاج إعادة طلب", value: reorderItems },
+    { name: "فوق حد إعادة الطلب", value: itemRows.length - reorderItems },
+    { name: "تحت حد إعادة الطلب", value: reorderItems },
   ].filter((d) => d.value > 0);
   const prsByStatus = Object.entries(
     (prs ?? []).reduce<Record<string, number>>((acc, pr) => {
@@ -134,6 +145,7 @@ export default async function InventoryDashboardPage({
     { id: "status", header: "الحالة", kind: "status" },
     { id: "metric", header: "المؤشر" },
     { id: "date", header: "التاريخ" },
+    { id: "coverage", header: "تغطية المخزون", kind: "link" },
   ];
 
   const rows: SimpleRow[] = filteredRows.map((row) => ({
@@ -144,6 +156,9 @@ export default async function InventoryDashboardPage({
     status: row.status,
     metric: row.metric,
     date: row.date,
+    // Only item rows carry a coverage link — PR rows leave this blank ("—").
+    coverage: row.coverageHref ? "عرض تغطية المخزون" : undefined,
+    coverage_href: row.coverageHref,
   }));
 
   return (
@@ -160,6 +175,10 @@ export default async function InventoryDashboardPage({
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
         </div>
       </header>
+
+      {/* First-run guidance: no inventory items registered yet (already-fetched
+          `items`, no new query) — disappears once the org has real stock. */}
+      {(items ?? []).length === 0 && <OnboardingChecklist />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={filter === "reorder"}>

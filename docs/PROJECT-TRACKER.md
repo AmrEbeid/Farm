@@ -1,5 +1,22 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
 
+> **2026-07-01 (later) — import templates shipped; accounting/custody audited, roadmapped, cataloged (5 PRs merged).**
+> Under an open "keep working" directive, integrity rails held (no fabricated data, CI-green-before-merge,
+> migrate-first, one PR at a time). **SHIPPED & LIVE: bulk-import prefill + reconcile-upsert for farm structure**
+> (PR **#561** + prod-500 hotfix **#569**) — sectors/hawshat/**lines** templates pre-fill with current org data;
+> re-upload updates-by-business-key / inserts / archives-omitted rows behind a server-side `confirmArchive` gate;
+> verified live over HTTP on prod. **Accounting + custody deep audit + market gap roadmap** (PR **#573**,
+> `ROADMAP-accounting-custody-2026-07-01.md`) — the #568 GL kernel + custody settlement confirmed live; sequenced
+> slices A (revenue/A-R + P&L/balance-sheet + period close) → B (per-feddan/tree costing) → C (ETA/VAT, gated) → D
+> (deferred, incl. bearer-plant IAS 16/41). **Docs-catalog reconciliation** for the #568 kernel (PR **#574**:
+> +FEAT-030, +BR-116..120, +TBL-047..050, +RPC-040..043). SESSION-BRIEF updated (PR **#575**). Repo hygiene: removed
+> a corrupt local ref that was aborting fetches.
+> **OPEN GATE — accounting/custody next slices need Owner decisions before build:** (1) the real **chart of accounts**
+> to seed (`accounts` is empty); (2) the **Egyptian ETA e-invoicing legal determination** (agriculture-exemption
+> claim *refuted* — needs the Owner's accountant; gates Slice C); (3) **#157** budget cap policy + actuals basis.
+> Plus independent review (money logic) before any Slice-A merge/migration. Design lives in SPEC-0004; sequencing in
+> the roadmap.
+
 > **2026-07-01 — DRAFT branch built: standalone cash-method accounting + custody settlement (`feat/accounting-custody-standalone`).**
 > Responding to the Owner's updated custody workflow, this branch adds the first standalone accounting kernel tied to
 > custody/payment requests: `accounts`, `journal_entries`, `journal_lines`, `payment_request_fundings`, settlement

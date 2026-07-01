@@ -7,7 +7,7 @@ import { Readex_Pro, Tajawal } from "next/font/google";
 // predev). To refresh manually: `npm run sync:ds-css`. Do NOT hand-edit it.
 import "./farm-os-ui.css";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ui";
+import { ThemeProvider, ToastProvider } from "@/components/ui";
 
 // Direction A ("The Registry") typographic voice — self-hosted via next/font (no runtime
 // Google request; Arabic + Latin subsets). Readex Pro = display (engineered, confident
@@ -67,7 +67,12 @@ export default function RootLayout({
     >
       <body className="min-h-full">
         <ThemeProvider scheme="light" density="comfortable" brand="#2f7d49">
-          {children}
+          {/*
+           * App-wide toast host: mounted once here (inside ThemeProvider, so the
+           * portal-rendered Toaster picks up the theme/brand tokens via useTheme())
+           * so any page/component can call useToast() without its own provider.
+           */}
+          <ToastProvider>{children}</ToastProvider>
         </ThemeProvider>
       </body>
     </html>

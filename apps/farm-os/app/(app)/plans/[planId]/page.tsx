@@ -3,17 +3,28 @@ import type { ReactNode } from "react";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Alert, Card, KpiCard, LoopStepper, type LoopStep } from "@/components/ui";
+import { Alert, Breadcrumbs, Card, KpiCard, LoopStepper, type LoopStep } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { OperationBuilder } from "@/components/OperationBuilder";
+import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAssignees";
+import { OperationTemplatePicker, type TemplateOpt } from "@/components/OperationTemplatePicker";
+import { OperationSignOff } from "@/components/OperationSignOff";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
+import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { POTASSIUM_ID } from "@/lib/nav";
 import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR, PLAN_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
+import {
+  OP_STATUS_AR,
+  PLAN_STATUS_AR,
+  SUBTYPE_AR,
+  isDoseBearingSubtype,
+  isExecutableOpStatus,
+} from "@/lib/labels";
+import { formatDependencyLabel } from "@/lib/relative-schedule";
 
 const PLAN_TYPE_AR: Record<string, string> = {
   weekly: "الأسبوعية",
@@ -64,15 +75,21 @@ export default async function MonthlyPlanPage({
   // Only plan.write roles can add operations / run plan checks (the actions 42501 otherwise) —
   // don't show the edit controls to the other roles as dead-end affordances.
   const canEditPlan = ["owner", "farm_manager"].includes(m.role);
+  // agronomy.signoff (agronomist-signoff-gate, docs/CLAUDE.md non-negotiable #4): defense-in-depth UI
+  // mirror of the DB gate (authorize()'s owner/agri_engineer grant is a REASONABLE DEFAULT, not the
+  // Owner's final word on who the named agronomist is — see the migration header). The RPC re-checks
+  // this itself regardless of what this hides.
+  const canSignOff = ["owner", "agri_engineer"].includes(m.role);
   const sb = await createClient();
 
-  // These four reads are independent, so issue them in parallel.
+  // These reads are independent, so issue them in parallel.
   const [
     { data: plan, error: planError },
     { data: ops, error: opsError },
     { data: checks, error: checksError },
     { data: items, error: itemsError },
     { data: people, error: peopleError },
+    { data: templates, error: templatesError },
   ] = await Promise.all([
     sb
       .from("plans")
@@ -81,7 +98,9 @@ export default async function MonthlyPlanPage({
       .maybeSingle(),
     sb
       .from("plan_operations")
-      .select("id, subtype, planned_at, est_cost, status, approval_needed")
+      .select(
+        "id, subtype, planned_at, est_cost, status, approval_needed, depends_on_op_id, depends_on_offset_days, signed_off_by, signed_off_at",
+      )
       .eq("plan_id", planId)
       .order("planned_at"),
     sb
@@ -91,6 +110,9 @@ export default async function MonthlyPlanPage({
     sb.from("inventory_items").select("id, name, unit").order("name"),
     // Active employees for the operation-assignee picker (#398). Org-scoped by RLS; names only.
     sb.from("people").select("id, name").eq("active", true).order("name"),
+    // SPEC-0019 P1-3: the org's named operation templates ("جداول العمليات"), for the
+    // "استخدام برنامج جاهز" instantiate picker. Org-scoped by RLS; read is unaffected by plan.write.
+    sb.from("plan_operation_templates").select("id, name, subtype, recurrence").order("name"),
   ]);
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
@@ -99,6 +121,7 @@ export default async function MonthlyPlanPage({
   if (checksError) throw checksError;
   if (itemsError) throw itemsError;
   if (peopleError) throw peopleError;
+  if (templatesError) throw templatesError;
 
   // .maybeSingle() returns null (no error) for a bogus or RLS-hidden id — show a
   // not-found message instead of rendering a blank "الخطة " header (mirrors farm/sector).
@@ -106,20 +129,114 @@ export default async function MonthlyPlanPage({
     return <div className="p-6">الخطة غير موجودة.</div>;
   }
 
+  // #398 follow-up: who's assigned to each operation was stored (plan_operation_assignees) but never
+  // surfaced anywhere. Two flat, non-embedded reads — the assignee rows depend on the op ids just
+  // fetched above, and the person names depend on the assignee rows' person_ids — rather than a
+  // resource-embed (avoids typing a Supabase embed for a table not yet in the generated
+  // database.types.ts; see the augmentation in lib/database.types.ext.ts).
+  const opIds = (ops ?? []).map((o) => o.id);
+  const { data: assigneeRows, error: assigneesError } = opIds.length
+    ? await sb
+        .from("plan_operation_assignees")
+        .select("id, plan_op_id, person_id, is_lead")
+        .in("plan_op_id", opIds)
+    : { data: [], error: null };
+  if (assigneesError) throw assigneesError;
+
+  const assigneePersonIds = [...new Set((assigneeRows ?? []).map((a) => a.person_id))];
+  const { data: assigneePeople, error: assigneePeopleError } = assigneePersonIds.length
+    ? await sb.from("people").select("id, name").in("id", assigneePersonIds)
+    : { data: [], error: null };
+  if (assigneePeopleError) throw assigneePeopleError;
+  const assigneeNameById = new Map((assigneePeople ?? []).map((p) => [p.id, p.name]));
+
+  const assigneesByOp = new Map<string, AssigneeInfo[]>();
+  for (const row of assigneeRows ?? []) {
+    const list = assigneesByOp.get(row.plan_op_id) ?? [];
+    list.push({
+      id: row.id,
+      personId: row.person_id,
+      name: assigneeNameById.get(row.person_id) ?? "غير معروف",
+      isLead: row.is_lead,
+    });
+    assigneesByOp.set(row.plan_op_id, list);
+  }
+
+  const templateOptions: TemplateOpt[] = (templates ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    subtype: t.subtype,
+    occurrenceCount: Array.isArray(t.recurrence) ? t.recurrence.length : 0,
+  }));
+
+  // Relative operation scheduling (2026-07-01): an op may OPTIONALLY depend on another op in the
+  // same plan (depends_on_op_id + depends_on_offset_days, migration 20260701350000). planned_at
+  // stays authoritative and unchanged; this is a read-time, presentation-only lookup + pure
+  // computation (lib/relative-schedule.ts) — never a fabricated date.
+  const opLabel = (o: { id: string; subtype: string | null }) =>
+    SUBTYPE_AR[o.subtype ?? ""] ?? "عملية";
+  const opsById = new Map((ops ?? []).map((o) => [o.id, o]));
+  const dependencyNote = (o: {
+    depends_on_op_id: string | null;
+    depends_on_offset_days: number | null;
+  }): string => {
+    if (!o.depends_on_op_id) return "";
+    const dep = opsById.get(o.depends_on_op_id);
+    if (!dep) return "";
+    return formatDependencyLabel(opLabel(dep), o.depends_on_offset_days);
+  };
+
+  // Sign-off (agronomist-signoff-gate): names for whoever signed off — a small follow-up read rather
+  // than an embedded PostgREST join, since signed_off_by can (in principle) point at a person outside
+  // the active-employee list already fetched above. Skipped entirely when nothing is signed.
+  const signedOffIds = [...new Set((ops ?? []).map((o) => o.signed_off_by).filter((id): id is string => !!id))];
+  const { data: signers, error: signersError } =
+    signedOffIds.length > 0
+      ? await sb.from("people").select("id, name").in("id", signedOffIds)
+      : { data: [], error: null };
+  if (signersError) throw signersError;
+  const signerNameById = new Map((signers ?? []).map((p) => [p.id, p.name]));
+
+  // Dose-bearing ops (fertilization/spraying) needing agronomist sign-off (non-negotiable #4). This is
+  // a GENERIC mechanism — it does not gate execution or the engine's demand in this slice.
+  const signoffOps = (ops ?? []).filter((o) => isDoseBearingSubtype(o.subtype));
+
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
     { id: "planned_at", header: "التاريخ" },
     { id: "cost", header: "التكلفة", numeric: true },
     { id: "approval", header: "موافقة؟" },
     { id: "status", header: "الحالة", kind: "status" },
+    {
+      id: "assignees",
+      header: "المكلّفون",
+      render: (row) => (
+        <OperationAssignees
+          planId={planId}
+          opId={row.id}
+          assignees={assigneesByOp.get(row.id) ?? []}
+          canRemove={canEditPlan}
+        />
+      ),
+    },
+    { id: "dependency", header: "يعتمد على" },
   ];
   const opRows = (ops ?? []).map((o) => ({
     id: o.id,
-    subtype: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
+    subtype: opLabel(o),
     planned_at: fmtDate(o.planned_at),
     cost: egpValue(o.est_cost),
     approval: o.approval_needed ? "نعم" : "لا",
     status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
+    dependency: dependencyNote(o) || "—",
+  }));
+
+  // Existing ops offered to the OperationBuilder's "depends on another operation" picker — same
+  // plan only (the DB trigger enforces this too; this is just what's shown to choose from).
+  const existingOpOptions = (ops ?? []).map((o) => ({
+    id: o.id,
+    label: opLabel(o),
+    plannedAt: o.planned_at,
   }));
 
   const stockCheck = (checks ?? []).find((c) => c.kind === "stock");
@@ -166,6 +283,17 @@ export default async function MonthlyPlanPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      <Breadcrumbs
+        ariaLabel="المسار"
+        items={[
+          { id: "plans", label: "كل الخطط", href: "/plans" },
+          {
+            id: "plan",
+            label: `الخطة ${PLAN_TYPE_AR[plan.type ?? ""] ?? ""} · ${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`,
+          },
+        ]}
+      />
+
       <Entity360Header
         title={`الخطة ${PLAN_TYPE_AR[plan.type ?? ""] ?? ""}`}
         subtitle={`${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`}
@@ -173,8 +301,16 @@ export default async function MonthlyPlanPage({
         actions={
           canEditPlan ? (
             <>
+              <PlanStatusActions planId={planId} status={planStatus} />
               <PlanChecksRunner planId={planId} />
-              <OperationBuilder planId={planId} items={items ?? []} people={people ?? []} />
+              <OperationTemplatePicker planId={planId} templates={templateOptions} />
+              <OperationBuilder
+                planId={planId}
+                items={items ?? []}
+                people={people ?? []}
+                existingOps={existingOpOptions}
+              />
+
             </>
           ) : undefined
         }
@@ -269,7 +405,35 @@ export default async function MonthlyPlanPage({
           id={tabPanelId("operations")}
           aria-labelledby={tabId("operations")}
           tabIndex={0}
+          className="flex flex-col gap-4"
         >
+          {signoffOps.length > 0 && (
+            // agronomist-signoff-gate (non-negotiable #4): a dose-bearing op (fertilization/spraying)
+            // is a TEMPLATE, not a prescription, until a named agronomist signs off. This is the
+            // GENERIC mechanism only — execution/engine behaviour is unchanged by this state.
+            <Card title="اعتماد العمليات ذات الجرعات">
+              <ul className="flex flex-col gap-3">
+                {signoffOps.map((o) => (
+                  <li
+                    key={o.id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-b-0 last:pb-0"
+                    style={{ borderColor: "var(--line)" }}
+                  >
+                    <span>
+                      {SUBTYPE_AR[o.subtype ?? ""] ?? "عملية"} — {fmtDate(o.planned_at)}
+                    </span>
+                    <OperationSignOff
+                      planId={planId}
+                      opId={o.id}
+                      signedOffByName={o.signed_off_by ? (signerNameById.get(o.signed_off_by) ?? null) : null}
+                      signedOffAt={o.signed_off_at}
+                      canSignOff={canSignOff}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card title="العمليات المخطّطة">
             <SimpleTable columns={opColumns} rows={opRows} ariaLabel="العمليات المخطّطة" empty="لا توجد عمليات بعد" />
           </Card>

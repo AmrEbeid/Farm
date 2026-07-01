@@ -141,6 +141,37 @@ export async function runPlanChecks(planId: string) {
   return { ok: true, checks };
 }
 
+export type PlanStatus = "draft" | "active" | "closed" | "abandoned";
+
+/**
+ * Move a plan through its lifecycle (draft → active → closed/abandoned) via the
+ * plan.write-gated SECURITY DEFINER RPC fn_set_plan_status (migration 0084). The RPC enforces
+ * both the org-scoped authorize() check and the cross-org guard; this action only keeps the
+ * request authenticated and maps the DB error to a field-safe Arabic message (mirrors
+ * addPlanOperation's SQLSTATE map — P0002 = plan not found, 42501 = missing plan.write).
+ */
+export async function setPlanStatus(planId: string, status: PlanStatus) {
+  await requireMembership();
+  const sb = await createClient();
+
+  const { error } = await sb.rpc("fn_set_plan_status", { p_plan_id: planId, p_status: status });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "ليس لديك صلاحية تعديل الخطة", P0002: "الخطة غير موجودة" },
+        "تعذّر تغيير حالة الخطة",
+      ),
+    };
+  }
+
+  // The list page also renders plan.status (plans/page.tsx), so revalidate both.
+  revalidatePath("/plans");
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true };
+}
+
 export interface NewOperationInput {
   subtype: string;
   planned_at: string; // yyyy-mm-dd
@@ -292,4 +323,186 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
 
   revalidatePath(`/plans/${planId}`);
   return { ok: true, operationId: result.operationId };
+}
+
+/**
+ * Un-assign a person from a plan operation (#398 follow-up — assignees could be added but never
+ * removed through the app). Wraps fn_unassign_plan_operation (migration 20260701220000), which is
+ * plan.write-gated org-scoped, resolving the org directly from the operation (mirrors
+ * fn_add_plan_operation_multi's org resolution). Un-assigning someone who isn't actually assigned is a
+ * safe no-op server-side (the RPC returns removed:false, no exception) — the action always reports
+ * `ok: true` for that case rather than surfacing a confusing error for what is, from the caller's point
+ * of view, already the desired end state (the person is not assigned).
+ */
+export async function unassignPlanOperationAssignee(planId: string, opId: string, personId: string) {
+  await requireMembership();
+  const sb = await createClient();
+
+  const { error } = await sb.rpc("fn_unassign_plan_operation", {
+    p_op_id: opId,
+    p_person_id: personId,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "ليس لديك صلاحية تعديل الخطة", P0002: "العملية غير موجودة" },
+        "تعذّر إزالة المكلّف",
+      ),
+    };
+  }
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true };
+}
+
+/**
+ * Relative operation scheduling (owner finding, 2026-07-01): set/clear an operation's OPTIONAL
+ * "depends on another operation" relationship (depends_on_op_id + depends_on_offset_days,
+ * migration 20260701350000). planned_at is left UNCHANGED — it stays authoritative; the effective
+ * date is computed at read time (lib/relative-schedule.ts). This is a plain, separate update on
+ * plan_operations (not a new/changed RPC): the existing tenant_all RLS policy already gates writes
+ * on plan.write + org-scope (migration 0070), and a DB trigger (plan_operations_dependency_same_plan)
+ * enforces the dependency is in the SAME PLAN. Does NOT touch fn_add_plan_operation_multi or
+ * fn_execute_operation.
+ */
+export async function setPlanOperationDependency(
+  planId: string,
+  opId: string,
+  dependsOnOpId: string | null,
+  offsetDays: number | null,
+) {
+  await requireMembership();
+
+  if (dependsOnOpId === opId) {
+    return { ok: false, error: "لا يمكن أن تعتمد العملية على نفسها" };
+  }
+  if (dependsOnOpId && offsetDays != null && !Number.isFinite(offsetDays)) {
+    return { ok: false, error: "قيمة الأيام غير صالحة" };
+  }
+
+  const sb = await createClient();
+  const { error } = await sb
+    .from("plan_operations")
+    .update({
+      depends_on_op_id: dependsOnOpId,
+      depends_on_offset_days: dependsOnOpId ? (offsetDays ?? 0) : null,
+    })
+    .eq("id", opId)
+    .eq("plan_id", planId);
+
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "ليس لديك صلاحية تعديل الخطة" },
+        "تعذّر حفظ الاعتماد على العملية الأخرى",
+      ),
+    };
+  }
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true };
+}
+
+interface InstantiateTemplateResult {
+  templateId: string;
+  created: number;
+  deduped: number;
+  occurrences: { operationId: string; plannedAt: string; deduped: boolean }[];
+}
+
+/**
+ * Instantiate a named operation template (SPEC-0019 P1-3 "جداول العمليات") onto a plan: creates one
+ * dated operation per occurrence in the template's recurrence, anchored to `anchorDate`. Delegates
+ * ALL operation-creation logic (validation/atomicity/the (plan,subtype,planned_at) dedup) to
+ * fn_instantiate_operation_template, which itself only ever calls the existing
+ * fn_add_plan_operation_multi in a loop — no operation-creation logic is duplicated here or in SQL.
+ *
+ * A repeat call with the SAME anchor date on the SAME plan is dedup-safe: every occurrence lands on
+ * the SAME planned_at as before, so the RPC's existing CREATE-2 dedup returns `deduped: true` for
+ * each one instead of creating a duplicate — surfaced honestly via `deduped`/`created` counts rather
+ * than reported as a plain success.
+ */
+export async function instantiateOperationTemplate(
+  planId: string,
+  templateId: string,
+  anchorDate: string, // yyyy-mm-dd
+) {
+  await requireMembership();
+
+  if (!anchorDate) {
+    return { ok: false as const, error: "اختر تاريخًا مرجعيًا لبدء البرنامج" };
+  }
+
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_instantiate_operation_template", {
+    p_plan_id: planId,
+    p_template_id: templateId,
+    p_anchor_date: anchorDate,
+  });
+  if (error) {
+    return {
+      ok: false as const,
+      error: toArabicError(
+        error,
+        {
+          "42501": "ليس لديك صلاحية تعديل الخطة",
+          P0002: "الخطة أو البرنامج غير موجود",
+          "22023": "بيانات غير صالحة",
+        },
+        "تعذّر تطبيق البرنامج",
+      ),
+    };
+  }
+
+  const result = data as InstantiateTemplateResult | null;
+  if (!result) return { ok: false as const, error: "تعذّر تطبيق البرنامج" };
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true as const, ...result };
+}
+
+/**
+ * Sign off a dose-bearing plan operation (docs/CLAUDE.md non-negotiable #4 — agronomist-signoff-gate).
+ *
+ * GENERIC MECHANISM ONLY: this makes the sign-off STATE visible/settable — it does not (yet) gate
+ * fn_execute_operation or the stock-coverage engine's demand on it (deliberately deferred; see the
+ * migration header). `agronomy.signoff` is currently granted to owner/agri_engineer as a REASONABLE
+ * DEFAULT, not a final Owner decision on WHO the real named agronomist is.
+ *
+ * fn_sign_off_plan_operation stamps signed_off_by/at from the CALLER's session server-side — this
+ * action passes only the op id, never a person id or timestamp.
+ *
+ * Idempotency: the RPC only stamps while signed_off_by is still null (claim-first). A second call on
+ * an already-signed-off op raises 22023 rather than silently re-stamping a new caller's identity/time
+ * over the existing one — a silent re-stamp would weaken the audit trail this gate exists to protect.
+ */
+export async function signOffPlanOperation(planId: string, opId: string) {
+  await requireMembership();
+  const sb = await createClient();
+
+  const { data, error } = await sb.rpc("fn_sign_off_plan_operation", { p_op_id: opId });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        {
+          "42501": "ليس لديك صلاحية اعتماد هذه العملية (يقتصر الاعتماد على المالك أو المهندس الزراعي)",
+          P0001: "لا يوجد سجل موظف مرتبط بحسابك في هذه المزرعة",
+          P0002: "العملية غير موجودة",
+          "22023": "العملية معتمدة بالفعل",
+        },
+        "تعذّر اعتماد العملية",
+      ),
+    };
+  }
+  const result = data as { operationId: string; signedOffBy: string; signedOffAt: string } | null;
+  if (!result?.operationId) return { ok: false, error: "تعذّر اعتماد العملية" };
+
+  revalidatePath(`/plans/${planId}`);
+  return { ok: true, signedOffAt: result.signedOffAt };
 }

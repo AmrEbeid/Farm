@@ -12,7 +12,7 @@ function Section({ q, a }: { q: string; a: string }) {
   return (
     <div>
       <div className="font-bold">{q}</div>
-      <div style={{ color: "var(--muted)" }}>{a}</div>
+      <div style={{ color: "var(--ink-muted)" }}>{a}</div>
     </div>
   );
 }

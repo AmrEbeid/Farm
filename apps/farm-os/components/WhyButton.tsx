@@ -26,7 +26,7 @@ export function WhyButton({ code }: { code: string | null | undefined }) {
             <span className="font-bold">ماذا تفعل: </span>
             {why.next}
           </div>
-          {why.rule && <div style={{ color: "var(--muted)" }}>القاعدة: {why.rule}</div>}
+          {why.rule && <div style={{ color: "var(--ink-muted)" }}>القاعدة: {why.rule}</div>}
         </div>
       </Drawer>
     </>

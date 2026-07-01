@@ -40,6 +40,7 @@ export default async function SettingsDashboardPage({
     sb
       .from("people")
       .select("id, active")
+      .eq("org_id", membership.orgId)
       .order("created_at", { ascending: false }),
     sb
       .from("organization_member")
