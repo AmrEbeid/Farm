@@ -6,7 +6,8 @@ import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import {
   budgetCheckResultForKnownCost,
-  summarizePlannedFertilizationCost,
+  summarizePlannedCostByCategory,
+  worstBudgetVerdict,
 } from "@/lib/budget-check";
 import type { Json } from "@/lib/database.types";
 
@@ -44,7 +45,11 @@ export async function runPlanChecks(planId: string) {
   if (opsErr) return { ok: false, error: "تعذّر قراءة عمليات الخطة، حاول مرة أخرى." };
 
   const materialIds = new Set<string>();
-  const plannedCost = summarizePlannedFertilizationCost(ops ?? []);
+  // Generalized budget input (operation-vocabulary expansion): EVERY planned operation's est_cost
+  // now contributes to a budget check, grouped by whichever budget_lines category its subtype maps
+  // to (summarizePlannedCostByCategory) — not just fertilization ops, which silently contributed
+  // nothing before this.
+  const plannedByCategory = summarizePlannedCostByCategory(ops ?? []);
   for (const op of ops ?? []) {
     for (const r of (op.plan_material_requirements ?? []) as { item_id: string }[]) {
       materialIds.add(r.item_id);
@@ -78,39 +83,50 @@ export async function runPlanChecks(planId: string) {
     }
   }
 
-  // budget check: compare added plan cost against the أسمدة line's available
-  const { data: line, error: budgetErr } = await sb
-    .from("budget_lines")
-    .select("category, approved, committed, actual")
-    .eq("org_id", m.orgId)
-    .eq("category", "أسمدة")
-    .maybeSingle();
-  // A read error must not be confused with "no budget line" (a legitimate null): a failed read
-  // would otherwise persist budget = "ok" (a false pass). A genuinely-absent line stays "ok"
-  // unless the plan also has unknown costs, which must not be treated as free.
-  if (budgetErr) return { ok: false, error: "تعذّر قراءة بنود الميزانية، حاول مرة أخرى." };
+  // budget check: compare added plan cost against EACH category the plan's operations touch
+  // (generalized from the old fertilization-only/"أسمدة"-only check — see summarizePlannedCostByCategory).
+  const categories = [...plannedByCategory.keys()];
   let budgetResult: "ok" | "warn" | "block" = "ok";
   let budgetDetail: Json = {};
-  if (line) {
-    const available =
-      Number(line.approved) - Number(line.committed) - Number(line.actual);
-    const added = plannedCost.knownCost;
-    budgetResult = budgetCheckResultForKnownCost(available, added, plannedCost.hasUnknownCost);
-    budgetDetail = {
-      category: "أسمدة",
-      available,
-      added,
-      after: available - added,
-      unknown_cost_count: plannedCost.unknownCostCount,
-    };
-  } else if (plannedCost.hasUnknownCost) {
-    budgetResult = "warn";
-    budgetDetail = {
-      category: "أسمدة",
-      added: plannedCost.knownCost,
-      unknown_cost_count: plannedCost.unknownCostCount,
-      note: "تكلفة بعض عمليات الأسمدة غير معروفة",
-    };
+  if (categories.length > 0) {
+    const { data: lines, error: budgetErr } = await sb
+      .from("budget_lines")
+      .select("category, approved, committed, actual")
+      .eq("org_id", m.orgId)
+      .in("category", categories);
+    // A read error must not be confused with "no budget line" (a legitimate null): a failed read
+    // would otherwise persist budget = "ok" (a false pass). A genuinely-absent line stays "ok"
+    // unless the plan also has unknown costs, which must not be treated as free.
+    if (budgetErr) return { ok: false, error: "تعذّر قراءة بنود الميزانية، حاول مرة أخرى." };
+    const lineByCategory = new Map((lines ?? []).map((l) => [l.category, l]));
+
+    const perCategoryResults: Array<"ok" | "warn" | "block"> = [];
+    const byCategory: Record<string, Json> = {};
+    for (const category of categories) {
+      const cost = plannedByCategory.get(category)!;
+      const line = lineByCategory.get(category);
+      if (line) {
+        const available = Number(line.approved) - Number(line.committed) - Number(line.actual);
+        const added = cost.knownCost;
+        const result = budgetCheckResultForKnownCost(available, added, cost.hasUnknownCost);
+        perCategoryResults.push(result);
+        byCategory[category] = {
+          available,
+          added,
+          after: available - added,
+          unknown_cost_count: cost.unknownCostCount,
+        };
+      } else if (cost.hasUnknownCost) {
+        perCategoryResults.push("warn");
+        byCategory[category] = {
+          added: cost.knownCost,
+          unknown_cost_count: cost.unknownCostCount,
+          note: `تكلفة بعض عمليات بند ${category} غير معروفة`,
+        };
+      }
+    }
+    budgetResult = worstBudgetVerdict(perCategoryResults);
+    budgetDetail = { by_category: byCategory };
   }
 
   const checks = [
@@ -246,6 +262,9 @@ export interface LaborLineInput {
   count: number;
   days: number;
 }
+const HARVEST_STAGES = ["khalal", "rutab", "tamar"] as const;
+export type HarvestStage = (typeof HARVEST_STAGES)[number];
+
 export interface NewMultiOperationInput {
   subtype: string;
   planned_at: string; // yyyy-mm-dd (the start / demand date)
@@ -255,6 +274,8 @@ export interface NewMultiOperationInput {
   labor: LaborLineInput[];
   assignee_ids: string[]; // one or more employees
   lead_id: string | null; // which assignee is the lead (must be in assignee_ids)
+  // Ripening stage (خلال/رطب/تمر) — only meaningful when subtype === "harvest"; null otherwise.
+  harvest_stage?: HarvestStage | null;
 }
 
 /**
@@ -290,6 +311,9 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
   if (input.lead_id && !input.assignee_ids.includes(input.lead_id)) {
     return { ok: false, error: "المسؤول يجب أن يكون من بين المكلّفين" };
   }
+  if (input.harvest_stage != null && !HARVEST_STAGES.includes(input.harvest_stage)) {
+    return { ok: false, error: "مرحلة الحصاد غير صالحة" };
+  }
 
   const sb = await createClient();
   const { data, error } = await sb.rpc("fn_add_plan_operation_multi", {
@@ -303,6 +327,7 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
     p_labor: input.labor as unknown as Json,
     p_assignee_ids: input.assignee_ids,
     p_lead_id: input.lead_id,
+    p_harvest_stage: input.harvest_stage ?? null,
   });
   if (error) {
     return {
@@ -313,6 +338,7 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
           "42501": "ليس لديك صلاحية تعديل الخطة",
           P0002: "الخطة غير موجودة",
           "22023": "بيانات العملية غير صالحة",
+          "23514": "بيانات العملية غير صالحة",
         },
         "تعذّر إنشاء العملية",
       ),
