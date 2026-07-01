@@ -2,13 +2,12 @@
 
 *Web-researched delta vs the June-2026 internal research (docs 01/05, MARKET-RESEARCH-2026-06-26, PRICING-RESEARCH-89). Confidence: **[2+]** = ≥2 independent sources, **[1]** = single-source. Owner: Amr Ebeid.*
 
-## 1. 🔴 URGENT — Egypt ETA e-invoicing assumption REFUTED
+## 1. ⚠️ Egypt ETA e-invoicing — claim now DISPUTED; accountant determination still the action
 
-The roadmap treated ETA (Slice C) as "gated, maybe deferrable." That no longer holds:
-- Resolution 281/2025 **halved the mandatory registration threshold to EGP 250,000 annual gross revenue**; registration deadline **2026-03-31 (already passed)**; tiered penalties (EGP 20k immediate + EGP 1k/day non-registration; up to EGP 10k/invoice; invoicing suspension); **QR codes mandatory on printed e-receipts**. **[2+]**
-- Agricultural relief covers only small artisanal farmers/fishermen (Circular 53/2023) **[1]**. A farm grossing EGP 6–20M is ~25–80× the threshold.
-- **Action (this month):** Owner's accountant determination (entity form matters — the drafted memo #578 is the input). Default assumption flips to **"probably obligated, deadline passed."**
-- **Build posture:** integrate a submission layer (Daftra/Wafeq) — do NOT build native ETA submission (e-signature + legal maintenance burden).
+**Correction (2026-07-02, same day):** the initially-researched claim — "Resolution 281/2025 halved the registration threshold to EGP 250,000; deadline 2026-03-31 passed; escalating penalties" — **FAILED independent cross-verification**. Its provenance traces to SEO-blog compliance guides; tier-1 compliance vendors (Sovos, Comarch) describe Resolution 281/2025 as a **B2C e-receipt geographic/stage expansion** (Sept 2025), and no PwC/EY/Deloitte/official-ETA source confirms a threshold cut. A parallel verification run (Zeal finance research, 2026-07-02) reached the same refutation independently.
+- **What still stands [2+]:** Egypt's e-invoicing/e-receipt system is genuinely expanding (B2C e-receipt waves, QR requirements); B2B e-invoicing mandates for VAT-registered businesses phased in since 2020–23; agricultural relief applies only to small artisanal farmers/fishermen (Circular 53/2023) **[1]** — a commercial wholesale farm may already be in scope on the OLD rules.
+- **Action (unchanged, this month):** Owner's accountant determination (the drafted memo #578 is the input). Treat obligation as **plausible-not-proven**; do not use deadline-fear framing in any sales or planning material until determined.
+- **Build posture (unchanged):** if obligated, integrate a submission layer (Daftra/Wafeq) — do NOT build native ETA submission.
 
 ## 2. Competitive delta
 

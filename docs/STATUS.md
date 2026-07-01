@@ -25,7 +25,7 @@
 
 ## Top next actions (in order)
 
-1. **Owner+accountant meeting**: ETA e-invoicing determination (**urgent — threshold now EGP 250k, deadline passed 2026-03-31, penalties escalate**; see `MARKET-DELTA-2026-07-02.md` §1) + ratify chart of accounts (#577) + ETA memo (#578).
+1. **Owner+accountant meeting**: ETA e-invoicing determination (obligation **plausible-not-proven** — the "EGP 250k threshold / deadline passed" claim is DISPUTED after cross-verification; see `MARKET-DELTA-2026-07-02.md` §1) + ratify chart of accounts (#577) + ETA memo (#578).
 2. **Owner: close Stage 0** (#362) — one afternoon; unlocks the real-data path.
 3. **Owner: 1-click** leaked-password Auth toggle (#229 iii).
 4. **Owner decisions (cheap)**: wage model #388 · #157 budget-cap (4 one-line answers) · #199/#526 reservation semantics (one line).
