@@ -35,4 +35,10 @@ describe("xlsx adapter", () => {
       { name: "سعد", kind: "b" },
     ]);
   });
+
+  it("passes existingRows through to buildTemplateSpec so the data sheet is pre-filled", async () => {
+    const buf = await generateTemplate(d, [{ name: "أحمد", kind: "a" }]);
+    const parsed = await parseUpload(buf, d);
+    expect(parsed).toEqual([{ name: "أحمد", kind: "a" }]);
+  });
 });

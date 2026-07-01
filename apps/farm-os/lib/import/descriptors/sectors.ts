@@ -13,6 +13,12 @@ export const sectorsDescriptor: ImportDescriptor = {
   titleAr: "القطاعات",
   rpc: "fn_save_sector",
   role: "structure.write",
+  table: "sectors",
+  archiveType: "sector",
+  matchKey: ["code"],
+  // Same key as matchKey: two rows sharing a code in one upload must not both resolve to the
+  // same existing id (planCommit would then fire two RPC calls with the identical p_id).
+  dedupeKey: ["code"],
   columns: [
     { key: "farmId", labelAr: "كود المزرعة", type: "string", required: true, example: "F-01", ref: { table: "farms", codeColumn: "code", activeColumn: "archived", activeValue: false } },
     { key: "name", labelAr: "الاسم", type: "string", required: true, example: "القطاع الشمالي" },
@@ -22,8 +28,17 @@ export const sectorsDescriptor: ImportDescriptor = {
     { key: "plantingDate", labelAr: "تاريخ الزراعة", type: "date", required: false, format: "YYYY-MM-DD", example: "2020-03-01" },
     { key: "notes", labelAr: "ملاحظات", type: "string", required: false, example: "" },
   ],
-  toRpcArgs: (r) => ({
-    p_id: null,
+  fromRow: (r) => ({
+    farmId: r.farm_id,
+    name: r.name,
+    code: r.code,
+    crop: r.crop ?? "",
+    areaFeddan: r.area_feddan ?? "",
+    plantingDate: r.planting_date ?? "",
+    notes: r.notes ?? "",
+  }),
+  toRpcArgs: (r, matchedId) => ({
+    p_id: matchedId ?? null,
     p_farm_id: r.farmId, // resolved from the farm code by resolveRefs
     p_name: r.name,
     p_code: r.code,

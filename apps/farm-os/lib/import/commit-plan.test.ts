@@ -44,4 +44,10 @@ describe("planCommit", () => {
     expect(plan.calls).toHaveLength(2);
     expect(plan.skipped).toEqual([]);
   });
+
+  it("passes the matched existing id into toRpcArgs as the second argument (update, not insert)", () => {
+    const spy: ImportDescriptor = { ...base, toRpcArgs: (r, matchedId) => ({ p_name: r.name, p_id: matchedId ?? null }) };
+    const plan = planCommit(spy, [setSourceRow({ name: "أحمد" }, 1)], { matchedIds: new Map([[1, "existing-id"]]) });
+    expect(plan.calls[0].args).toEqual({ p_name: "أحمد", p_id: "existing-id" });
+  });
 });

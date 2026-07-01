@@ -4,6 +4,7 @@ import { requireMembership } from "@/lib/auth";
 import { KpiCard, Card, FileTimeline, EmptyState, type TimelineEvent } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StructureForm } from "@/components/StructureForm";
+import { ImportPanel } from "@/components/import/ImportPanel";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -156,6 +157,16 @@ export default async function FarmStructurePage() {
           triggerLabel="إضافة قطاع"
           triggerVariant="primary"
         />
+      )}
+
+      {canEditStructure && (
+        <Card title="استيراد بيانات الهيكل">
+          <div className="space-y-4">
+            <ImportPanel descriptorKey="sectors" titleAr="القطاعات" />
+            <ImportPanel descriptorKey="hawshat" titleAr="الأحواش" />
+            <ImportPanel descriptorKey="lines" titleAr="الخطوط" />
+          </div>
+        </Card>
       )}
 
       <Card title="نخيل يحتاج عناية">
