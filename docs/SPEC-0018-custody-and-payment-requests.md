@@ -162,6 +162,11 @@ Frontend:
 
 ## 9. Current Gaps / Later Slices
 
+*See also [`SPEC-0018-EXT-custody-transfer-and-revenue.md`](SPEC-0018-EXT-custody-transfer-and-revenue.md) —
+a 2026-07-01 planning-only extension detailing the holder-to-holder custody transfer gap, the payment-request
+PDF/report set, and the revenue/sales-with-pending-price design that reconciles with (and extends) this spec and
+SPEC-0004.*
+
 - Receipt/proof capture with finance-confidential attachment RLS.
 - Month close / period locking.
 - Bank reconciliation / proof matching.

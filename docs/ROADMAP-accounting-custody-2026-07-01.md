@@ -203,3 +203,16 @@ This is a roadmap for **Owner review**, not a build order. On approval (and the 
 first move is **Slice A** authored as a SPEC-0004 revision + implementation plan (revenue + P&L/balance-sheet +
 period close over the existing kernel), followed by the docs-catalog quick win. Nothing here is implemented until
 its slice is separately specced, planned, and Owner-gated.
+
+## 11. Companion detail doc (2026-07-01)
+
+[`SPEC-0018-EXT-custody-transfer-and-revenue.md`](SPEC-0018-EXT-custody-transfer-and-revenue.md) fills in three
+gaps this roadmap named at a high level but did not fully detail, against the Owner's restated day-to-day
+operating model: (1) an explicit holder-to-holder custody-transfer RPC (no journal effect, cash-conservation
+tested); (2) the payment-request PDF export + the custody-ledger/cash-expense/unpaid-obligation/owner-funding
+report set (mostly read-only over data that already exists via `fn_payment_request_totals`); (3) the
+delivery-before-price mechanic for Slice A's planned `sales` table (a sale can be delivered with `price_status =
+'pending'` and posts no journal entry until `fn_finalize_sale_price` runs). It does not change this roadmap's
+Slice A→D sequencing — Slice 5 in the companion doc (revenue schema) is the same work as this roadmap's Slice A
+revenue line, just with the pending-price detail filled in, and still depends on this roadmap's chart-of-accounts
+gate (§7 decision 3).
