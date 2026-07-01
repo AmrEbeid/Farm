@@ -298,6 +298,9 @@ type CustodyFunctions = {
     Args: { p_expense: string; p_status: ExpensePaymentStatus; p_custody_account?: string | null; p_paid_by?: string | null };
     Returns: undefined;
   };
+  // Classify an expense (operating / drawing / capex) — the ONLY write path for expenses.kind (the column is
+  // omitted from the expenses Insert type above, so it cannot be set by a direct insert). budget.write gated.
+  fn_set_expense_kind: { Args: { p_id: string; p_kind: ExpenseKind }; Returns: Json };
   fn_custody_balance: { Args: { p_account: string }; Returns: number };
   fn_create_payment_request: {
     Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null; p_custody_account?: string | null; p_note?: string | null };
