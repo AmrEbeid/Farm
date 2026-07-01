@@ -1,6 +1,26 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-01 by Claude (autonomous session, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-02 by Claude (review/strategy session, for Owner: Amr Ebeid)
 
-> **2026-07-01 (latest) — FULL LIVE DEPLOY COMPLETE: 32 PRs merged, 14 migrations applied, prod confirmed READY.**
+> **2026-07-02 (latest) — 360° REVIEW + BOOM STRATEGY recorded; STATUS.md now the source of truth; ETA claim corrected.**
+> Owner-gated docs chain merged in order #586 → #588 → #589 (Owner "go"; #586's tracker/brief prepend conflicts
+> resolved keeping both sides). **#588**: `STATUS.md` (single source of truth — honest stage table, ranked
+> owner-decision queue, feature-freeze rule), `REVIEW-360-2026-07-01.md` (5-lane review: DB/security A−,
+> architecture B+, frontend B+/field-mobile C+, plan C+ — incl. the frontend work-list F1–F11 and the
+> money-integrity DB lane), SPEC-0021 season-cycle engine + SPEC-0022 WhatsApp field layer (drafts, build-gated),
+> `MARKET-DELTA-2026-07-02.md`, `PRODUCT-IDEAS-BACKLOG-2026-07.md` (28 ideas/4 tiers), 5 stale-doc banners.
+> **#589**: `BOOM-PLAN-2026-07.md` (reposition as the absentee owner's control/anti-leakage instrument;
+> OS-ification lane P1–P5; sell through exporters/agronomist consultants; harvest-aligned pricing; 12-month
+> sequence; 5 Owner decision asks in §8) + `LINKAGE-MAP-2026-07-02.md` (code-verified: integrated OS for
+> materials, adjacent modules for money/labor/yield/signals; top-10 broken links) + customer-demand research
+> (incl. the 10-question Arabic design-partner interview guide) + GTM growth-levers research.
+> **⚠️ Integrity correction:** the first-wave "ETA e-invoicing EGP-250k threshold / deadline passed" claim
+> FAILED cross-verification (SEO-blog provenance; tier-1 vendors describe Res. 281/2025 as a B2C e-receipt
+> expansion; independently refuted by a parallel verification) — downgraded to DISPUTED in `MARKET-DELTA` §1 /
+> `STATUS.md`; the accountant determination (#578) remains the unchanged top action, deadline-fear framing
+> removed. No code, migration, prod apply, or data change in this chain — docs only. **Standing directive
+> (Owner, 2026-07-02): sessions create PRs and STOP — the Owner merges.** Next: ops-module focused
+> 360 + research (in flight), then the STATUS.md top actions.
+
+> **2026-07-01 — FULL LIVE DEPLOY COMPLETE: 32 PRs merged, 14 migrations applied, prod confirmed READY.**
 > Under the Owner's explicit, twice-confirmed "proceed to full live deploy now… using my own judgment throughout"
 > mandate, executed the staged sequence: 18 no-schema PRs first (#536-#571 range), then 7 independent
 > schema-bearing PRs (#542/#545/#552/#555/#556/#559/#572, each migrate-first-then-merge), then the `authorize()`
