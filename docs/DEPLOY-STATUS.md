@@ -2,6 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-01 (cont.) — 5 more prod migrations: the ENGINE masked-shortage program (all migrate-first, green `main`).**
+> Prod ledger head is now **`20260701210000`**. All applied migrate-first + independent-reviewed (engine surface) +
+> prod re-probed. A holistic re-audit after the first batch caught two masked shortages introduced by the batch
+> itself (per-change reviews missed the INTERACTIONS); both fixed; a final re-audit confirms the engine is
+> **masked-shortage-free**. The set (in order):
+> - `20260701170000` #216 demand — pmr.unit reconcile trigger (reject a 'ton' requirement) (#521)
+> - `20260701180000` #216 supply — fn_post_movement unit reconcile + fn_reserve_stock null (#522) ⚠️ engine
+> - `20260701190000` #512 — fn_execute_operation drops the blind release (reservation-wipe mask) (#525) ⚠️ engine
+> - `20260701200000` — clamp fn_stock_coverage bucket origin to today (regression from #509) (#529) ⚠️ engine
+> - `20260701210000` — fn_post_receipt inherits the item unit (stuck-PR phantom-supply mask) (#530) ⚠️ engine
+> **All 5 masked-shortage vectors found this session are closed (#509/#216/#512 + the two re-audit findings), each
+> with an independent-review proof of non-masking.** Remaining reservation work (#199 double-count, #526 earmark
+> accumulation) is OVER-ORDER only (safe), owner-gated on the reserve-lifecycle decision.
+
 > **2026-07-01 — AUTONOMOUS SESSION: 10 prod migrations applied migrate-first, all green on `main` (`b05811e`).**
 > Every migration was validated on the local pgTAP harness first, applied to Farm prod (`veezkmytervjnpxcrbkw`)
 > via the MCP `execute_sql` + manual ledger-insert pattern (see memory `farm-prod-migrate-via-mcp`), re-probed on
