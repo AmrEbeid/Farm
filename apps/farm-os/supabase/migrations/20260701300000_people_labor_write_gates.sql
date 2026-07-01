@@ -24,9 +24,19 @@
 -- `suppliers`/`responsibility_assignments` direct-REST + RLS-gate precedent.
 --
 -- MIGRATION-ORDER NOTE. authorize() is re-emitted by several migrations (checked every in-flight
--- session branch: 20260629150000_custody_and_expense_payment.sql is confirmed the latest/highest-
--- numbered re-emit anywhere this session), so this migration re-emits from it, carrying its full union
--- plus the two new permissions below.
+-- session branch). At the time this migration was authored, 20260629150000_custody_and_expense_
+-- payment.sql was the latest/highest-numbered re-emit on `main`, but a SIBLING in-flight PR —
+-- #557 (feat/agronomist-signoff-gate, migration 20260701280000_agronomist_signoff_gate.sql) — ALSO
+-- re-emits authorize(), adding `agronomy.signoff` (owner/agri_engineer). Both PRs independently
+-- re-emitting from the same base migration is exactly the collision docs/CLAUDE.md's authorize()
+-- re-emit footgun warns about: whichever merges/applies second would silently drop the other's new
+-- permission if it re-emitted from the old base instead of the sibling's.
+--
+-- RESOLUTION (reconciled 2026-07-01): this migration now BUILDS ON PR #557's authorize() re-emit
+-- (agronomy.signoff), not the original 20260629150000 base — this PR's own additions are
+-- people.write/labor.write, giving PR #557 → PR #558 a safe apply order. PR #557 MUST be
+-- applied/merged before this one; it is not touched by this change (its own logic is unmodified),
+-- only used as the base union for this re-emit.
 --
 -- ADR-0006 conventions: SECURITY DEFINER + search_path=''; fully schema-qualified; drop-then-create /
 -- create-or-replace policies; append-only. DRAFT — never applied to any remote DB from this session.
@@ -49,14 +59,15 @@ as $$
          or (perm = 'budget.write'           and m.role in ('owner','accountant'))
          or (perm = 'payroll.read'           and m.role in ('owner','accountant'))
          or (perm = 'structure.write'        and m.role in ('owner','farm_manager'))
-         or (perm = 'academy.write'          and m.role in ('owner','agri_engineer'))
-         or (perm = 'export.write'           and m.role in ('owner','farm_manager'))
-         or (perm = 'responsibility.write'   and m.role in ('owner','farm_manager'))
-         or (perm = 'finance.read'           and m.role in ('owner','accountant'))
-         or (perm = 'custody.write'          and m.role in ('owner','accountant'))
-         or (perm = 'request.prepare'        and m.role in ('owner','accountant'))
-         or (perm = 'request.approve.op'     and m.role in ('owner','accountant'))
-         or (perm = 'request.approve.final'  and m.role = 'owner')
+         or (perm = 'academy.write'          and m.role in ('owner','agri_engineer'))   -- in-flight #366 (forward-compat)
+         or (perm = 'export.write'           and m.role in ('owner','farm_manager'))     -- in-flight #400 (forward-compat)
+         or (perm = 'responsibility.write'   and m.role in ('owner','farm_manager'))     -- in-flight #444 (forward-compat)
+         or (perm = 'finance.read'           and m.role in ('owner','accountant'))        -- SPEC-0018 confidential finance reads
+         or (perm = 'custody.write'          and m.role in ('owner','accountant'))        -- SPEC-0018 finance-only custody writes
+         or (perm = 'request.prepare'        and m.role in ('owner','accountant'))        -- SPEC-0018 finance-only payment prep
+         or (perm = 'request.approve.op'     and m.role in ('owner','accountant'))        -- SPEC-0018 finance approval
+         or (perm = 'request.approve.final'  and m.role = 'owner')                       -- SPEC-0018 owner final approval
+         or (perm = 'agronomy.signoff'       and m.role in ('owner','agri_engineer'))    -- PR #557: non-negotiable #4 sign-off gate (REASONABLE DEFAULT, not Owner's final word)
          or (perm = 'people.write'           and m.role in ('owner','farm_manager'))                 -- SPEC-0006: onboarding
          or (perm = 'labor.write'            and m.role in ('owner','farm_manager','supervisor')) )  -- SPEC-0006: attendance
   )
