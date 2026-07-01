@@ -7,6 +7,7 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { BudgetDoughnut, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -98,6 +99,12 @@ export default async function OwnerDashboard() {
   const activePeople = (people ?? []).filter((p) => p.active).length;
   const totalBarhi = (hawshat ?? []).reduce((s, h) => s + Number(h.palm_count_barhi ?? 0), 0);
 
+  // First-run signal: genuinely new/empty org, reused from data already fetched
+  // above (no extra query) — zero registered palms AND zero plans. This naturally
+  // stops being true (and the checklist stops rendering) once real data exists, so
+  // there's no separate "dismissed" state to persist or clean up.
+  const isNewOrg = totalBarhi === 0 && (plans ?? []).length === 0;
+
   const totalApproved = budgetLines.reduce((s, b) => s + Number(b.approved ?? 0), 0);
   const totalUsed = budgetLines.reduce((s, b) => s + Number(b.committed ?? 0) + Number(b.actual ?? 0), 0);
   const available = totalApproved - totalUsed;
@@ -158,6 +165,11 @@ export default async function OwnerDashboard() {
           <Link href="/purchase-requests"><Button variant="primary" size="sm">طلبات الشراء</Button></Link>
         </div>
       </header>
+
+      {/* First-run guidance: only for a genuinely empty org (zero palms, zero
+          plans) — gated on data already fetched above, so it disappears on its
+          own once the org has real data (no separate dismiss state to persist). */}
+      {isNewOrg && <OnboardingChecklist />}
 
       {/* Alert rail — most-severe first; only shows what actually needs attention */}
       {alerts.length > 0 && (

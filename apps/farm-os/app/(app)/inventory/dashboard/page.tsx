@@ -8,6 +8,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryDoughnut } from "@/components/charts";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -174,6 +175,10 @@ export default async function InventoryDashboardPage({
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
         </div>
       </header>
+
+      {/* First-run guidance: no inventory items registered yet (already-fetched
+          `items`, no new query) — disappears once the org has real stock. */}
+      {(items ?? []).length === 0 && <OnboardingChecklist />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={filter === "reorder"}>
