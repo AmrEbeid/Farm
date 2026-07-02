@@ -57,7 +57,7 @@ export default async function PurchaseRequestsPage({
   };
 
   const columns: SimpleColumn[] = [
-    { id: "code", header: "الرمز" },
+    { id: "code", header: "الرمز", kind: "code" },
     { id: "items", header: "الأصناف" },
     { id: "remaining", header: "الكمية المتبقية" },
     { id: "needed_by", header: "مطلوب بحلول" },
