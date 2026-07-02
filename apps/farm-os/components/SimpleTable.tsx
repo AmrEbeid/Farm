@@ -3,12 +3,15 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
+import { Code } from "@/components/Code";
 import { egp } from "@/lib/money";
 
 // "money": the row carries the RAW number and this formats it (egp) for display, so the SAME table is
 // extractable — ExportButton/exportToCsv then serialize the raw number (Excel SUM works) instead of a
 // formatted "١٬٢٣٤ ج.م" string. (SPEC-0017 export contract; see lib/export-csv.ts.)
-type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn" | "link";
+// "code": an LTR technical string (PR code, phone, ref) bidi-isolated for the RTL layout (F4). The
+// raw string is still what exportToCsv serializes — the wrapper is display-only.
+type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn" | "link" | "code";
 
 export interface SimpleColumn {
   id: string;
@@ -102,6 +105,8 @@ function renderCell(c: SimpleColumn, row: SimpleRow): React.ReactNode {
       return <Tag tone="ok">{String(v)}</Tag>;
     case "tag-warn":
       return <Tag tone="warning">{String(v)}</Tag>;
+    case "code":
+      return <Code>{String(v)}</Code>;
     case "link": {
       // Convention: the row carries the link target in `${c.id}_href` and the visible
       // label in `row[c.id]` (v). Falls back to plain text if no href was supplied.

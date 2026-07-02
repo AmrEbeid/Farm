@@ -47,7 +47,7 @@ export default async function SuppliersListPage({
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "المورّد" },
-    { id: "phone", header: "الهاتف" },
+    { id: "phone", header: "الهاتف", kind: "code" },
     { id: "terms", header: "الشروط" },
     { id: "lead_time", header: "مدة التوريد (يوم)", numeric: true },
     { id: "open_lines", header: "بنود جارية", numeric: true },

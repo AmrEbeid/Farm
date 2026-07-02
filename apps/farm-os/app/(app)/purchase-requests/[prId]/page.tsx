@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { Code } from "@/components/Code";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { PrActions } from "@/components/PrActions";
@@ -205,7 +206,7 @@ export default async function PurchaseRequestPage({
               <DescriptionList
                 layout="inline"
                 items={[
-                  { id: "code", term: "الرمز", description: pr.code },
+                  { id: "code", term: "الرمز", description: <Code>{pr.code}</Code> },
                   { id: "needed", term: "مطلوب بحلول", description: pr.needed_by ? fmtDate(pr.needed_by) : "—" },
                   { id: "status", term: "الحالة", description: PR_STATUS_AR[pr.status] ?? "غير معروف" },
                 ]}
