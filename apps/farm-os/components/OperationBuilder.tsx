@@ -191,8 +191,12 @@ export function OperationBuilder({
         ends_on: endsOn || null,
         est_cost: Number(estCost),
         preferred_time_of_day: preferredTimeOfDay || null,
+        // Drop only the ignored/blank material rows (the default row auto-selects an item but
+        // leaves qty empty). A row where the planner actually typed a qty — including "0" or a
+        // negative — is kept so the server rejects it loudly; silently dropping it would understate
+        // demand (the masked-shortage direction SPEC-0001 forbids), never fabricate (#1, F2).
         materials: materials
-          .filter((m) => m.itemId)
+          .filter((m) => m.itemId && m.qty.trim() !== "")
           .map((m) => ({
             item_id: m.itemId,
             qty: Number(m.qty || 0),
@@ -210,14 +214,26 @@ export function OperationBuilder({
                 }
               : {}),
           })),
-        labor: labor.map((l) => ({
-          person_or_team: l.team,
-          count: Number(l.count || 0),
-          days: Number(l.days || 0),
-          // Optional cost-basis link (labor cost rollup): only set when the planner picked a real
-          // person from the org's people list; "" (no selection) stays a free-text-only line.
-          person_id: l.personId || null,
-        })),
+        // Drop entirely-blank labor rows (a leftover "+ إضافة عمالة" row the planner never
+        // filled); a partially-filled row — including one where only the cost-link person was
+        // picked — still goes through so the server surfaces a clear "must be > 0" error rather
+        // than silently swallowing the planner's intent (F2).
+        labor: labor
+          .filter(
+            (l) =>
+              l.team.trim() !== "" ||
+              l.count.trim() !== "" ||
+              l.days.trim() !== "" ||
+              l.personId !== "",
+          )
+          .map((l) => ({
+            person_or_team: l.team,
+            count: Number(l.count || 0),
+            days: Number(l.days || 0),
+            // Optional cost-basis link (labor cost rollup): only set when the planner picked a real
+            // person from the org's people list; "" (no selection) stays a free-text-only line.
+            person_id: l.personId || null,
+          })),
         assignee_ids: assignees,
         lead_id: leadId || null,
         harvest_stage: subtype === "harvest" ? harvestStage : null,
@@ -398,7 +414,7 @@ export function OperationBuilder({
           {/* Several material needs — fertilizers, fuel/gas, any item. */}
           <fieldset className="flex flex-col gap-2 rounded-md border p-3" style={{ borderColor: "var(--line,#e5e7eb)" }}>
             <legend className="px-1 text-sm font-semibold">الاحتياجات من الخامات</legend>
-            {materials.map((m, idx) => (
+            {materials.map((m) => (
               <div key={m.key} className="flex flex-col gap-2">
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
@@ -433,8 +449,7 @@ export function OperationBuilder({
                   <Button
                     variant="ghost"
                     aria-label="حذف الخامة"
-                    onClick={() => setMaterials((p) => (p.length > 1 ? p.filter((x) => x.key !== m.key) : p))}
-                    disabled={materials.length === 1 && idx === 0}
+                    onClick={() => setMaterials((p) => p.filter((x) => x.key !== m.key))}
                   >
                     ✕
                   </Button>
