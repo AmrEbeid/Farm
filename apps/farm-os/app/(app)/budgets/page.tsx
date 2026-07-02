@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { Alert, KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
+import { egp, num } from "@/lib/money";
 
 // Read-only budgets overview: planned vs approved/committed/actual, with derived available.
 export default async function BudgetsPage() {
@@ -43,6 +45,9 @@ export default async function BudgetsPage() {
     };
   });
 
+  const totalPlanned = rows.reduce((s, r) => s + r.planned, 0);
+  const totalApproved = rows.reduce((s, r) => s + r.approved, 0);
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
@@ -51,6 +56,21 @@ export default async function BudgetsPage() {
           المخطط مقابل المعتمد والملتزم والفعلي، والمتاح المتبقّي
         </p>
       </header>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <KpiCard label="عدد الموازنات" value={num(rows.length)} />
+        <KpiCard label="إجمالي المخطط" value={egp(totalPlanned)} />
+        <KpiCard label="إجمالي المعتمد" value={egp(totalApproved)} />
+      </div>
+
+      {/* Honesty note (#157): committed/actual are foundation-era figures no code updates yet —
+          approval doesn't read budget_lines and expenses don't roll up here. Say so instead of
+          letting «المتاح» read as a live control. The real budget gate is an owner-gated decision. */}
+      <Alert tone="warning" title="أرقام تأسيسية — ليست رقابة حية">
+        «الملتزم» و«الفعلي» أرقام تأسيسية غير محدّثة تلقائيًا بعد — بوابة الموازنة الفعلية (ربط الاعتماد
+        والمصروفات بالموازنة) قرار قيد الدراسة (#157). لا تعتمد على «المتاح» كرقابة حية حتى إشعار آخر.
+      </Alert>
+
       <FilterableTable
         ariaLabel="الموازنات"
         columns={columns}

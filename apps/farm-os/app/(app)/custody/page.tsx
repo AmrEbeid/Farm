@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CustodyForms } from "@/components/CustodyForms";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
@@ -18,9 +20,24 @@ const REQ_STATUS_AR: Record<string, string> = {
   closed: "مُقفل",
 };
 
-export default async function CustodyDashboardPage() {
+type RequestFilter = "all" | "awaiting" | "settled";
+
+function parseRequestFilter(raw: string | undefined): RequestFilter {
+  return raw === "awaiting" || raw === "settled" ? raw : "all";
+}
+
+// Stages where someone still owes an action (submit→approve→fund/pay chain).
+const AWAITING_STATUSES = ["submitted", "approved_operational", "approved_final"];
+const SETTLED_STATUSES = ["paid", "closed"];
+
+export default async function CustodyDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ requests?: string }>;
+}) {
   await requireRole(["owner", "accountant"]);
   const sb = await createClient();
+  const requestFilter = parseRequestFilter((await searchParams).requests);
 
   const [accountsRes, movementsRes, requestsRes, unpaidRes] = await Promise.all([
     sb.from("custody_accounts").select("id, holder_label, target_float, active").order("holder_label"),
@@ -29,11 +46,12 @@ export default async function CustodyDashboardPage() {
       .select("id, occurred_at, movement_type, amount_in, amount_out, custody_account_id, note")
       .order("occurred_at", { ascending: false })
       .limit(15),
+    // Full request list (not a 15-row sample) so the approval queue is complete —
+    // FINANCE-ACCOUNTANT-360: approvers previously had to scan a truncated list.
     sb
       .from("payment_requests")
       .select("id, request_no, status, period_start, period_end, created_at")
-      .order("created_at", { ascending: false })
-      .limit(15),
+      .order("created_at", { ascending: false }),
     sb.from("expenses").select("total, kind").eq("payment_status", "post_paid_unpaid"),
   ]);
   if (accountsRes.error) throw accountsRes.error;
@@ -97,20 +115,40 @@ export default async function CustodyDashboardPage() {
     out: Number(m.amount_out) > 0 ? egp(Number(m.amount_out)) : "—",
   }));
 
+  const allRequests = requestsRes.data ?? [];
+  const requestChips: { key: RequestFilter; label: string; value: number; danger?: boolean }[] = [
+    { key: "all", label: "كل طلبات الصرف", value: allRequests.length },
+    {
+      key: "awaiting",
+      label: "بانتظار إجراء",
+      value: allRequests.filter((r) => AWAITING_STATUSES.includes(r.status)).length,
+      danger: true,
+    },
+    { key: "settled", label: "مدفوعة/مقفلة", value: allRequests.filter((r) => SETTLED_STATUSES.includes(r.status)).length },
+  ];
+
   const reqCols: SimpleColumn[] = [
     { id: "no", header: "رقم الطلب", numeric: true },
-    { id: "status", header: "الحالة" },
+    { id: "status", header: "الحالة", kind: "status" },
     { id: "period", header: "الفترة" },
     { id: "created", header: "أُنشئ في" },
   ];
-  const reqRows = (requestsRes.data ?? []).map((r) => ({
-    id: r.id,
-    href: `/custody/request/${r.id}`,
-    no: num(r.request_no),
-    status: REQ_STATUS_AR[r.status] ?? r.status,
-    period: r.period_start ? `${fmtDate(r.period_start)} → ${r.period_end ? fmtDate(r.period_end) : "…"}` : "—",
-    created: fmtDate(r.created_at),
-  }));
+  const reqRows = allRequests
+    .filter((r) =>
+      requestFilter === "awaiting"
+        ? AWAITING_STATUSES.includes(r.status)
+        : requestFilter === "settled"
+          ? SETTLED_STATUSES.includes(r.status)
+          : true,
+    )
+    .map((r) => ({
+      id: r.id,
+      href: `/custody/request/${r.id}`,
+      no: num(r.request_no),
+      status: REQ_STATUS_AR[r.status] ?? r.status,
+      period: r.period_start ? `${fmtDate(r.period_start)} → ${r.period_end ? fmtDate(r.period_end) : "…"}` : "—",
+      created: fmtDate(r.created_at),
+    }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -146,7 +184,30 @@ export default async function CustodyDashboardPage() {
       </Card>
 
       <Card title="طلبات الصرف">
-        <SimpleTable columns={reqCols} rows={reqRows} ariaLabel="طلبات الصرف" empty="لا توجد طلبات صرف بعد" />
+        <div className="mb-4 grid gap-4 sm:grid-cols-3">
+          {requestChips.map((chip) => (
+            <DashboardKpiLink
+              key={chip.key}
+              href={chip.key === "all" ? "/custody" : `/custody?requests=${chip.key}`}
+              active={requestFilter === chip.key}
+            >
+              <KpiCard
+                label={chip.label}
+                value={num(chip.value)}
+                deltaDirection={chip.danger && chip.value > 0 ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+          ))}
+        </div>
+        <FilterableTable
+          ariaLabel="طلبات الصرف"
+          columns={reqCols}
+          rows={reqRows}
+          empty={requestFilter === "all" ? "لا توجد طلبات صرف بعد" : "لا طلبات مطابقة لهذا الفلتر"}
+          searchColumns={["no", "status", "period"]}
+          placeholder="ابحث في الطلبات…"
+          exportFilename="payment-requests"
+        />
       </Card>
     </div>
   );
