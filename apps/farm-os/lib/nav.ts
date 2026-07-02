@@ -89,6 +89,7 @@ export const APP_MODULES: AppModule[] = [
         href: "/inventory/dashboard",
       },
       { id: "inventory", label: "الأصناف", icon: "📦", href: "/inventory" },
+      { id: "inventory-movements", label: "حركات المخزون", icon: "📜", href: "/inventory/movements" },
       { id: "purchase", label: "طلبات الشراء", icon: "🧾", href: "/purchase-requests" },
       { id: "suppliers", label: "الموردون", icon: "🏷️", href: "/suppliers" },
     ],
