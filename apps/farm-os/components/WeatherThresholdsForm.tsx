@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Field, Input, Alert } from "@/components/ui";
+import { useSubmit } from "@/components/useSubmit";
 import { updateWeatherThresholds } from "@/app/(app)/weather/thresholds/actions";
 import type { WeatherThresholds } from "@/lib/weather";
 
@@ -18,22 +19,22 @@ export function WeatherThresholdsForm({ thresholds }: { thresholds: WeatherThres
   const [harvestMaxRainMm, setHarvestMaxRainMm] = useState(String(thresholds.harvestMaxRainMm));
   const [heatStressC, setHeatStressC] = useState(String(thresholds.heatStressC));
   const [frostBelowC, setFrostBelowC] = useState(String(thresholds.frostBelowC));
-  const [pending, setPending] = useState(false);
+  const { pending, submit } = useSubmit();
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
     setMsg(null);
-    const r = await updateWeatherThresholds({
-      sprayMaxWindKph: Number(sprayMaxWindKph),
-      pollinateMaxRainMm: Number(pollinateMaxRainMm),
-      pollinateMaxWindKph: Number(pollinateMaxWindKph),
-      harvestMaxRainMm: Number(harvestMaxRainMm),
-      heatStressC: Number(heatStressC),
-      frostBelowC: Number(frostBelowC),
-    });
-    setPending(false);
+    const r = await submit(() =>
+      updateWeatherThresholds({
+        sprayMaxWindKph: Number(sprayMaxWindKph),
+        pollinateMaxRainMm: Number(pollinateMaxRainMm),
+        pollinateMaxWindKph: Number(pollinateMaxWindKph),
+        harvestMaxRainMm: Number(harvestMaxRainMm),
+        heatStressC: Number(heatStressC),
+        frostBelowC: Number(frostBelowC),
+      }),
+    );
     setMsg(
       r.ok
         ? { tone: "ok", text: "تم حفظ عتبات الطقس" }

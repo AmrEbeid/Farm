@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Alert, FormRow, Input, Textarea, Select, Card } from "@/components/ui";
+import { useSubmit } from "@/components/useSubmit";
 import {
   saveSector,
   saveHawsha,
@@ -78,7 +79,7 @@ export function StructureForm({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const { pending, submit } = useSubmit();
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState<StructureInitial>(initial);
 
@@ -86,59 +87,58 @@ export function StructureForm({
     setF((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function submit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
     setError(null);
-    let res: { ok: boolean; error?: string };
-    if (level === "sector") {
-      res = await saveSector({
-        id: mode === "edit" ? initial.id : null,
-        farmId: context.farmId ?? null,
-        name: (f.name ?? "").trim(),
-        code: (f.code ?? "").trim(),
-        crop: f.crop ?? null,
-        areaFeddan: f.areaFeddan ?? null,
-        plantingDate: f.plantingDate || null,
-        notes: f.notes ?? null,
-      });
-    } else if (level === "hawsha") {
-      res = await saveHawsha({
-        id: mode === "edit" ? initial.id : null,
-        sectorId: context.sectorId ?? null,
-        name: (f.name ?? "").trim(),
-        code: (f.code ?? "").trim(),
-        areaQirat: f.areaQirat ?? null,
-        rowCount: f.rowCount ?? null,
-        palmCountBarhi: f.palmCountBarhi ?? null,
-        palmCountMale: f.palmCountMale ?? null,
-        plantingDate: f.plantingDate || null,
-        notes: f.notes ?? null,
-      });
-    } else if (level === "line") {
-      res = await saveLine({
-        id: mode === "edit" ? initial.id : null,
-        hawshaId: context.hawshaId ?? null,
-        lineNo: f.lineNo ?? 0,
-        lineCode: f.lineCode ?? null,
-        palmCount: f.palmCount ?? null,
-        direction: f.direction ?? null,
-        notes: f.notes ?? null,
-      });
-    } else {
-      res = await savePalm({
-        id: mode === "edit" ? initial.id : null,
-        hawshaId: context.hawshaId ?? null,
-        lineId: context.lineId ?? null,
-        name: f.name ?? null,
-        variety: f.variety ?? null,
-        sex: f.sex || null,
-        idTag: f.idTag ?? null,
-        plantingDate: f.plantingDate || null,
-        healthStatus: f.healthStatus ?? null,
-      });
-    }
-    setPending(false);
+    const res = await submit(() => {
+      if (level === "sector") {
+        return saveSector({
+          id: mode === "edit" ? initial.id : null,
+          farmId: context.farmId ?? null,
+          name: (f.name ?? "").trim(),
+          code: (f.code ?? "").trim(),
+          crop: f.crop ?? null,
+          areaFeddan: f.areaFeddan ?? null,
+          plantingDate: f.plantingDate || null,
+          notes: f.notes ?? null,
+        });
+      } else if (level === "hawsha") {
+        return saveHawsha({
+          id: mode === "edit" ? initial.id : null,
+          sectorId: context.sectorId ?? null,
+          name: (f.name ?? "").trim(),
+          code: (f.code ?? "").trim(),
+          areaQirat: f.areaQirat ?? null,
+          rowCount: f.rowCount ?? null,
+          palmCountBarhi: f.palmCountBarhi ?? null,
+          palmCountMale: f.palmCountMale ?? null,
+          plantingDate: f.plantingDate || null,
+          notes: f.notes ?? null,
+        });
+      } else if (level === "line") {
+        return saveLine({
+          id: mode === "edit" ? initial.id : null,
+          hawshaId: context.hawshaId ?? null,
+          lineNo: f.lineNo ?? 0,
+          lineCode: f.lineCode ?? null,
+          palmCount: f.palmCount ?? null,
+          direction: f.direction ?? null,
+          notes: f.notes ?? null,
+        });
+      } else {
+        return savePalm({
+          id: mode === "edit" ? initial.id : null,
+          hawshaId: context.hawshaId ?? null,
+          lineId: context.lineId ?? null,
+          name: f.name ?? null,
+          variety: f.variety ?? null,
+          sex: f.sex || null,
+          idTag: f.idTag ?? null,
+          plantingDate: f.plantingDate || null,
+          healthStatus: f.healthStatus ?? null,
+        });
+      }
+    });
     if (res.ok) {
       if (mode === "create") setF({});
       setOpen(false);
@@ -161,7 +161,7 @@ export function StructureForm({
 
   return (
     <Card title={title}>
-      <form onSubmit={submit} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div aria-live="assertive" aria-atomic="true">
           {error && <Alert tone="danger" title={error} />}
         </div>

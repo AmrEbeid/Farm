@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field, Input, Select, Alert, type SelectOption } from "@/components/ui";
+import { useSubmit } from "@/components/useSubmit";
 import { createPerson } from "@/app/(app)/people/actions";
 import { EMP_TYPE_AR } from "@/lib/labels";
 
@@ -29,7 +30,7 @@ export interface ManagerOption {
 export function PersonCreateForm({ managers }: { managers: ManagerOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const { pending, submit } = useSubmit();
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [position, setPosition] = useState("");
@@ -42,18 +43,18 @@ export function PersonCreateForm({ managers }: { managers: ManagerOption[] }) {
     ...managers.map((p) => ({ value: p.id, label: p.name })),
   ];
 
-  async function submit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
     setError(null);
-    const res = await createPerson({
-      name,
-      position: position || null,
-      employmentType: employmentType || null,
-      reportsToPersonId: reportsTo || null,
-      active: active === "true",
-    });
-    setPending(false);
+    const res = await submit(() =>
+      createPerson({
+        name,
+        position: position || null,
+        employmentType: employmentType || null,
+        reportsToPersonId: reportsTo || null,
+        active: active === "true",
+      }),
+    );
     if (res.ok) {
       setOpen(false);
       setName("");
@@ -77,7 +78,7 @@ export function PersonCreateForm({ managers }: { managers: ManagerOption[] }) {
 
   return (
     <Card title="عضو فريق جديد">
-      <form onSubmit={submit} className="flex flex-col gap-3">
+      <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <div aria-live="assertive" aria-atomic="true">
           {error && <Alert tone="danger" title={error} />}
         </div>

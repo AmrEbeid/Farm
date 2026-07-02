@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Input, Alert, useToast } from "@/components/ui";
+import { useSubmit } from "@/components/useSubmit";
 import { createExpense, type ExpenseKind } from "@/app/(app)/expenses/actions";
 
 // Owner drawings (مسحوبات) must be separable from operating expenses (non-negotiable #6). Classifying at
@@ -27,25 +28,25 @@ export function AddExpense({
   const [kind, setKind] = useState<ExpenseKind>("operating");
   const [supplierId, setSupplierId] = useState("");
   const [payment, setPayment] = useState("");
-  const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
+  const { pending, submit } = useSubmit();
   const router = useRouter();
   const toast = useToast();
 
-  async function submit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
     setMsg(null);
-    const r = await createExpense({
-      date: date || null,
-      category,
-      description: description || null,
-      total: Number(total),
-      kind,
-      supplierId: supplierId || null,
-      paymentMethod: payment || null,
-    });
-    setPending(false);
+    const r = await submit(() =>
+      createExpense({
+        date: date || null,
+        category,
+        description: description || null,
+        total: Number(total),
+        kind,
+        supplierId: supplierId || null,
+        paymentMethod: payment || null,
+      }),
+    );
     if (r.ok) {
       setOpen(false);
       setDate("");
@@ -77,7 +78,7 @@ export function AddExpense({
 
   return (
     <form
-      onSubmit={submit}
+      onSubmit={onSubmit}
       className="flex flex-col gap-3 rounded-lg border p-4"
       style={{ borderColor: "var(--line)" }}
     >
