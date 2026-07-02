@@ -28,10 +28,14 @@ export const OP_STATUS_AR: Record<string, string> = {
  * execute affordances (`/m`, `/m/execute/[opId]`) so they match the server, not as the enforcement
  * itself (the RPC is the enforcement).
  */
-const NON_EXECUTABLE_OP_STATUSES = new Set(["done", "blocked", "abandoned", "skipped"]);
+// Terminal/non-actionable operation statuses. Exported so a data-fetch can drop them at the
+// source (e.g. the /m field feed, F5) using the SAME definition the execute-gate uses here —
+// one source of truth for "executable".
+export const NON_EXECUTABLE_OP_STATUSES = ["done", "blocked", "abandoned", "skipped"] as const;
+const NON_EXECUTABLE_OP_STATUS_SET = new Set<string>(NON_EXECUTABLE_OP_STATUSES);
 
 export function isExecutableOpStatus(status: string | null | undefined): boolean {
-  return !NON_EXECUTABLE_OP_STATUSES.has(status ?? "planned");
+  return !NON_EXECUTABLE_OP_STATUS_SET.has(status ?? "planned");
 }
 
 /**

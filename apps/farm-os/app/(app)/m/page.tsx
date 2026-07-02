@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Card, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { egpValue, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
+import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus, NON_EXECUTABLE_OP_STATUSES } from "@/lib/labels";
 
 function pill(s: string): "active" | "done" | "scheduled" {
   if (s === "done") return "done";
@@ -87,6 +87,12 @@ export default async function MobileHomePage({
   const { data: ops, error } = await sb
     .from("plan_operations")
     .select("id, subtype, planned_at, est_cost, status, responsible_person_id")
+    // F5: bound the field feed. It was fetching EVERY plan_operation ever (mostly the
+    // season-over-season backlog of terminal `done` rows) and discarding them client-side.
+    // Drop terminal statuses at the source using the same set the execute-gate uses — they are
+    // never actionable in the field view (the execute button is already hidden for them, and the
+    // overdue bucket already requires an executable status), so this hides no actionable work.
+    .not("status", "in", `(${NON_EXECUTABLE_OP_STATUSES.join(",")})`)
     .order("planned_at");
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
