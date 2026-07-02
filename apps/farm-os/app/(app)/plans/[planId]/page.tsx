@@ -143,12 +143,20 @@ export default async function MonthlyPlanPage({
     : { data: [], error: null };
   if (assigneesError) throw assigneesError;
 
+  // #398 + agronomist-signoff: resolve names for everyone this plan references — both operation
+  // assignees AND whoever signed off a dose-bearing op — in ONE id-keyed read (previously two
+  // separate `.from("people")` round-trips). Either id can point at a person outside the active-
+  // employee list fetched above (an assignee or signer may be inactive), so this stays a flat
+  // `.in("id", …)` lookup rather than reusing that list. A person's name is identical regardless of
+  // which set referenced them, so a single id→name map serves both consumers.
   const assigneePersonIds = [...new Set((assigneeRows ?? []).map((a) => a.person_id))];
-  const { data: assigneePeople, error: assigneePeopleError } = assigneePersonIds.length
-    ? await sb.from("people").select("id, name").in("id", assigneePersonIds)
+  const signedOffIds = [...new Set((ops ?? []).map((o) => o.signed_off_by).filter((id): id is string => !!id))];
+  const namePersonIds = [...new Set([...assigneePersonIds, ...signedOffIds])];
+  const { data: namePeople, error: namePeopleError } = namePersonIds.length
+    ? await sb.from("people").select("id, name").in("id", namePersonIds)
     : { data: [], error: null };
-  if (assigneePeopleError) throw assigneePeopleError;
-  const assigneeNameById = new Map((assigneePeople ?? []).map((p) => [p.id, p.name]));
+  if (namePeopleError) throw namePeopleError;
+  const nameById = new Map((namePeople ?? []).map((p) => [p.id, p.name]));
 
   const assigneesByOp = new Map<string, AssigneeInfo[]>();
   for (const row of assigneeRows ?? []) {
@@ -156,7 +164,7 @@ export default async function MonthlyPlanPage({
     list.push({
       id: row.id,
       personId: row.person_id,
-      name: assigneeNameById.get(row.person_id) ?? "غير معروف",
+      name: nameById.get(row.person_id) ?? "غير معروف",
       isLead: row.is_lead,
     });
     assigneesByOp.set(row.plan_op_id, list);
@@ -186,16 +194,8 @@ export default async function MonthlyPlanPage({
     return formatDependencyLabel(opLabel(dep), o.depends_on_offset_days);
   };
 
-  // Sign-off (agronomist-signoff-gate): names for whoever signed off — a small follow-up read rather
-  // than an embedded PostgREST join, since signed_off_by can (in principle) point at a person outside
-  // the active-employee list already fetched above. Skipped entirely when nothing is signed.
-  const signedOffIds = [...new Set((ops ?? []).map((o) => o.signed_off_by).filter((id): id is string => !!id))];
-  const { data: signers, error: signersError } =
-    signedOffIds.length > 0
-      ? await sb.from("people").select("id, name").in("id", signedOffIds)
-      : { data: [], error: null };
-  if (signersError) throw signersError;
-  const signerNameById = new Map((signers ?? []).map((p) => [p.id, p.name]));
+  // Sign-off actor names come from the combined `nameById` map built above (was a separate
+  // `.from("people")` read; the agronomist-signoff-gate names are now folded into that single lookup).
 
   // Dose-bearing ops (fertilization/spraying) needing agronomist sign-off (non-negotiable #4). This is
   // a GENERIC mechanism — it does not gate execution or the engine's demand in this slice.
@@ -425,7 +425,7 @@ export default async function MonthlyPlanPage({
                     <OperationSignOff
                       planId={planId}
                       opId={o.id}
-                      signedOffByName={o.signed_off_by ? (signerNameById.get(o.signed_off_by) ?? null) : null}
+                      signedOffByName={o.signed_off_by ? (nameById.get(o.signed_off_by) ?? null) : null}
                       signedOffAt={o.signed_off_at}
                       canSignOff={canSignOff}
                     />
