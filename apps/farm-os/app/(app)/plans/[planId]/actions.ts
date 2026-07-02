@@ -316,8 +316,11 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
   const RECOGNISED_TARGET_ZONES = new Set(["bunch", "crown", "trunk", "offshoot", "whole_palm"]);
   for (const m of input.materials) {
     if (!m.item_id) return { ok: false, error: "اختر الصنف لكل سطر خامة" };
-    if (!Number.isFinite(m.qty) || m.qty < 0) {
-      return { ok: false, error: "كمية الخامة يجب ألا تكون سالبة" };
+    // A material line must carry a positive quantity — a zero-qty requirement fabricates a
+    // meaningless need that pollutes coverage/budget math (docs/CLAUDE.md #1). Mirror the
+    // stricter check the single-op addPlanOperation already enforces.
+    if (!Number.isFinite(m.qty) || m.qty <= 0) {
+      return { ok: false, error: "كمية الخامة يجب أن تكون أكبر من صفر" };
     }
     // Compliance fields (#4) — mirror the RPC's own validation for a fast, friendly error.
     if (m.rei_hours != null && (!Number.isFinite(m.rei_hours) || m.rei_hours < 0)) {
@@ -335,8 +338,12 @@ export async function addPlanOperationMulti(planId: string, input: NewMultiOpera
     return { ok: false, error: "التوقيت المفضّل غير معروف" };
   }
   for (const l of input.labor) {
-    if (!Number.isFinite(l.count) || l.count < 0 || !Number.isFinite(l.days) || l.days < 0) {
-      return { ok: false, error: "عدد العمال والأيام يجب ألا يكونا سالبين" };
+    // A labor line must carry a positive worker count AND a positive number of days — a
+    // zero on either side is a fabricated no-op line (no cost, no demand) that should never
+    // be persisted (docs/CLAUDE.md #1). The OperationBuilder client drops fully-blank rows;
+    // this check is the authoritative gate for any caller of this action boundary.
+    if (!Number.isFinite(l.count) || l.count <= 0 || !Number.isFinite(l.days) || l.days <= 0) {
+      return { ok: false, error: "عدد العمال وعدد الأيام يجب أن يكونا أكبر من صفر" };
     }
   }
   if (input.ends_on && input.ends_on < input.planned_at) {
