@@ -64,6 +64,7 @@ export function WeatherThresholdsForm({ thresholds }: { thresholds: WeatherThres
         <Input
           id="wt-pollinate-rain"
           type="number"
+          inputMode="decimal"
           min={0}
           step="0.1"
           value={pollinateMaxRainMm}
@@ -86,6 +87,7 @@ export function WeatherThresholdsForm({ thresholds }: { thresholds: WeatherThres
         <Input
           id="wt-harvest-rain"
           type="number"
+          inputMode="decimal"
           min={0}
           step="0.1"
           value={harvestMaxRainMm}

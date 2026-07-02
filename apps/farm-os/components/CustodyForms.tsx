@@ -82,7 +82,7 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
             <Input id="c-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} />
           </Field>
           <Field label="العهدة المستهدفة (ج.م)" id="c-target">
-            <Input id="c-target" type="number" min={0} value={target} onChange={(e) => setTarget(e.target.value)} />
+            <Input id="c-target" type="number" inputMode="decimal" min={0} value={target} onChange={(e) => setTarget(e.target.value)} />
           </Field>
           <div>
             <Button disabled={pending} onClick={() => run(() => createCustodyAccount({ holderLabel: label, targetFloat: Number(target) }), "تمت إضافة حساب العهدة")}>
@@ -107,7 +107,7 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
               options={[{ value: "in", label: "وارد (استلام)" }, { value: "out", label: "صادر (صرف/تسليم)" }]} />
           </Field>
           <Field label="المبلغ (ج.م)" id="m-amount">
-            <Input id="m-amount" type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Input id="m-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
           <Field label="ملاحظات" id="m-note">
             <Input id="m-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
@@ -269,7 +269,7 @@ export function RecordRequestFunding({
         />
       </Field>
       <Field label="المبلغ المستلم من المالك" id="funding-amount">
-        <Input id="funding-amount" type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <Input id="funding-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
       </Field>
       <Field label="تاريخ الاستلام" id="funding-date">
         <Input id="funding-date" type="date" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
