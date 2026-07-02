@@ -110,6 +110,7 @@ export function LaborLogForm({ people }: { people: PersonOption[] }) {
             <Input
               id="labor-hours"
               type="number"
+              inputMode="decimal"
               min={0.5}
               step={0.5}
               value={hours}

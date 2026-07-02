@@ -174,7 +174,7 @@ export function PalmTreatmentPanel({
                     <FormRow id="treat-qty" label={`الكمية${unitOf(itemId) ? ` (${unitOf(itemId)})` : ""}`}>
                       <Input
                         type="number"
-                        inputMode="numeric"
+                        inputMode="decimal"
                         min={0}
                         step="any"
                         value={qty}

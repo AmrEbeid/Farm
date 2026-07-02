@@ -60,7 +60,7 @@ export function ExecuteForm({
         <FormRow id="qty" label={`الكمية المستخدمة (${soleUnit})`}>
           <Input
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min={0}
             step="any"
             value={qty}
@@ -72,7 +72,7 @@ export function ExecuteForm({
           <FormRow key={m.requirementId} id={`qty-${m.requirementId}`} label={`${m.name ?? "خامة"} (${m.unit})`}>
             <Input
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min={0}
               step="any"
               value={matQtys[i] ?? ""}

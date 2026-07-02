@@ -434,7 +434,7 @@ export function OperationBuilder({
                     <FormRow id={`mat-qty-${m.key}`} label={`الكمية (${unitOf(m.itemId)})`}>
                       <Input
                         type="number"
-                        inputMode="numeric"
+                        inputMode="decimal"
                         min={0}
                         step="any"
                         value={m.qty}
@@ -498,7 +498,7 @@ export function OperationBuilder({
                     <FormRow id={`mat-rei-${m.key}`} label="فترة إعادة الدخول (ساعة)">
                       <Input
                         type="number"
-                        inputMode="numeric"
+                        inputMode="decimal"
                         min={0}
                         step="any"
                         value={m.reiHours}
@@ -512,7 +512,7 @@ export function OperationBuilder({
                     <FormRow id={`mat-phi-${m.key}`} label="فترة ما قبل الحصاد (يوم)">
                       <Input
                         type="number"
-                        inputMode="numeric"
+                        inputMode="decimal"
                         min={0}
                         step="any"
                         value={m.phiDays}
@@ -589,7 +589,7 @@ export function OperationBuilder({
                   <FormRow id={`lab-days-${l.key}`} label="الأيام">
                     <Input
                       type="number"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       min={0}
                       step="any"
                       value={l.days}
@@ -663,7 +663,7 @@ export function OperationBuilder({
           <FormRow id="cost" label="التكلفة التقديرية (ج.م)">
             <Input
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min={0}
               value={estCost}
               onChange={(e) => setEstCost(e.target.value)}

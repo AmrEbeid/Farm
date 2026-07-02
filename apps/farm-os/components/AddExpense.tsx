@@ -93,7 +93,7 @@ export function AddExpense({
         <Input id="e-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
       </Field>
       <Field label="المبلغ (ج.م)" id="e-total">
-        <Input id="e-total" type="number" min={0} step="0.01" value={total} onChange={(e) => setTotal(e.target.value)} required />
+        <Input id="e-total" type="number" inputMode="decimal" min={0} step="0.01" value={total} onChange={(e) => setTotal(e.target.value)} required />
       </Field>
       <Field label="نوع المصروف" id="e-kind">
         <select
