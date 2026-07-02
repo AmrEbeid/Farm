@@ -459,7 +459,7 @@ export function OperationBuilder({
                     spray-type subtype; a plain fertilization/irrigation op never sees these. */}
                 {isPesticideOp && (
                   <div
-                    className="mr-8 grid grid-cols-2 gap-2 rounded-md border p-2 sm:grid-cols-3"
+                    className="ms-8 grid grid-cols-2 gap-2 rounded-md border p-2 sm:grid-cols-3"
                     style={{ borderColor: "var(--line,#e5e7eb)" }}
                   >
                     <FormRow id={`mat-pest-${m.key}`} label="الآفة المستهدفة">

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { toArabicError } from "@/lib/errors";
 
 export interface OrgSettingsInput {
   orgId: string;
@@ -26,10 +27,20 @@ export async function updateOrgSettings(
     p_fiscal_year_start: input.fiscalYearStart,
   });
   if (error) {
-    if (error.code === "23514") return { ok: false, error: "اسم المزرعة مطلوب" };
-    if (error.code === "42501")
-      return { ok: false, error: "غير مصرّح لك بتعديل إعدادات المزرعة" };
-    return { ok: false, error: "تعذّر حفظ الإعدادات" };
+    // Field-safe Arabic mapping via the shared table (never leaks raw English). The two
+    // context-specific overrides preserve the previous phrasing; any other SQLSTATE now gets
+    // its DEFAULT_AR message (still field-safe) or the settings-specific fallback.
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        {
+          "23514": "اسم المزرعة مطلوب",
+          "42501": "غير مصرّح لك بتعديل إعدادات المزرعة",
+        },
+        "تعذّر حفظ الإعدادات",
+      ),
+    };
   }
   revalidatePath("/settings");
   revalidatePath("/", "layout");
