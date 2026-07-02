@@ -14,6 +14,7 @@ import {
   EmptyState,
   type SelectOption,
 } from "@/components/ui";
+import { useSubmit, NETWORK_ERROR } from "@/components/useSubmit";
 import { recordEvent, setEventStatus } from "@/app/(app)/farm/event-actions";
 
 export interface ActivityItem {
@@ -69,7 +70,7 @@ export function RecordActivity({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const { pending, submit } = useSubmit();
   const [error, setError] = useState<string | null>(null);
   const [type, setType] = useState("operation");
   const [subtype, setSubtype] = useState("");
@@ -79,28 +80,27 @@ export function RecordActivity({
   const [qtyLabel, setQtyLabel] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
     setError(null);
     const qv = qtyValue.trim() === "" ? null : Number(qtyValue);
     if (qv != null && (!Number.isFinite(qv) || qv <= 0)) {
-      setPending(false);
       setError("القيمة يجب أن تكون رقمًا أكبر من صفر");
       return;
     }
-    const res = await recordEvent({
-      locationType,
-      locationId,
-      type: type as "operation" | "inspection" | "issue" | "note",
-      subtype: subtype.trim() || null,
-      status,
-      note: note.trim() || null,
-      qtyValue: qv,
-      qtyMeasure: qv != null ? "count" : null,
-      qtyLabel: qtyLabel.trim() || null,
-    });
-    setPending(false);
+    const res = await submit(() =>
+      recordEvent({
+        locationType,
+        locationId,
+        type: type as "operation" | "inspection" | "issue" | "note",
+        subtype: subtype.trim() || null,
+        status,
+        note: note.trim() || null,
+        qtyValue: qv,
+        qtyMeasure: qv != null ? "count" : null,
+        qtyLabel: qtyLabel.trim() || null,
+      }),
+    );
     if (res.ok) {
       setSubtype("");
       setNote("");
@@ -114,12 +114,21 @@ export function RecordActivity({
   }
 
   async function markDone(id: string) {
+    // Per-item busy flag (not the form's `pending`), so this doesn't use useSubmit — but it needs
+    // the same guarantee: a thrown request must reset busyId and surface a retryable error rather
+    // than leaving the row's button spinning forever (F3).
     setBusyId(id);
     setError(null);
-    const res = await setEventStatus(id, "done");
-    setBusyId(null);
-    if (res.ok) router.refresh();
-    else setError(res.error ?? "تعذّر تحديث الحالة");
+    try {
+      const res = await setEventStatus(id, "done");
+      if (res.ok) router.refresh();
+      else setError(res.error ?? "تعذّر تحديث الحالة");
+    } catch (e) {
+      console.error("markDone failed:", e);
+      setError(NETWORK_ERROR);
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
@@ -131,7 +140,7 @@ export function RecordActivity({
 
         {canRecord &&
           (open ? (
-            <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border border-[var(--color-border,#e5e7eb)] p-3">
+            <form onSubmit={onSubmit} className="flex flex-col gap-3 rounded-lg border border-[var(--color-border,#e5e7eb)] p-3">
               <FormRow id="ev-type" label="النوع">
                 <Select options={TYPE_OPTIONS} value={type} onChange={(e) => setType(e.target.value)} />
               </FormRow>

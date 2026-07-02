@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field, Input, Select, Alert, type SelectOption } from "@/components/ui";
+import { useSubmit } from "@/components/useSubmit";
 import { createLaborLog } from "@/app/(app)/people/actions";
 
 export interface PersonOption {
@@ -28,7 +29,7 @@ export function LaborLogForm({ people }: { people: PersonOption[] }) {
   const [workDate, setWorkDate] = useState(todayIso());
   const [hours, setHours] = useState("8");
   const [note, setNote] = useState("");
-  const [pending, setPending] = useState(false);
+  const { pending, submit } = useSubmit();
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
 
   const personOptions: SelectOption[] = [
@@ -36,18 +37,18 @@ export function LaborLogForm({ people }: { people: PersonOption[] }) {
     ...people.map((p) => ({ value: p.id, label: p.name })),
   ];
 
-  async function submit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
     setMsg(null);
-    const res = await createLaborLog({
-      personId: mode === "person" ? personId || null : null,
-      teamName: mode === "team" ? teamName || null : null,
-      workDate,
-      hours: Number(hours),
-      note: note || null,
-    });
-    setPending(false);
+    const res = await submit(() =>
+      createLaborLog({
+        personId: mode === "person" ? personId || null : null,
+        teamName: mode === "team" ? teamName || null : null,
+        workDate,
+        hours: Number(hours),
+        note: note || null,
+      }),
+    );
     if (res.ok) {
       setMsg({ tone: "ok", text: "تم تسجيل الحضور" });
       setNote("");
@@ -59,7 +60,7 @@ export function LaborLogForm({ people }: { people: PersonOption[] }) {
 
   return (
     <Card title="تسجيل حضور">
-      <form onSubmit={submit} className="flex flex-col gap-3">
+      <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <div aria-live="assertive" aria-atomic="true">
           {msg && <Alert tone={msg.tone} title={msg.text} />}
         </div>

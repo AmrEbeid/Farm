@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Button, Alert, FormRow, Input, Select, type SelectOption } from "@/components/ui";
+import { useSubmit } from "@/components/useSubmit";
 import { createPlan } from "@/app/(app)/plans/plans-actions";
 
 const TYPE_OPTIONS: SelectOption[] = [
@@ -19,22 +20,22 @@ const TYPE_OPTIONS: SelectOption[] = [
 export function PlanCreateForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const { pending, submit } = useSubmit();
   const [error, setError] = useState<string | null>(null);
   const [type, setType] = useState<"weekly" | "monthly" | "quarterly" | "annual">("monthly");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
 
-  async function submit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (start && end && end < start) {
       setError("تاريخ النهاية يجب أن يكون بعد البداية");
       return;
     }
-    setPending(true);
     setError(null);
-    const res = await createPlan({ type, periodStart: start || null, periodEnd: end || null });
-    setPending(false);
+    const res = await submit(() =>
+      createPlan({ type, periodStart: start || null, periodEnd: end || null }),
+    );
     if (res.ok && res.data) {
       router.push(`/plans/${res.data}`);
     } else if (res.ok) {
@@ -55,7 +56,7 @@ export function PlanCreateForm() {
 
   return (
     <Card title="خطة جديدة">
-      <form onSubmit={submit} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div aria-live="assertive" aria-atomic="true">
           {error && <Alert tone="danger" title={error} />}
         </div>

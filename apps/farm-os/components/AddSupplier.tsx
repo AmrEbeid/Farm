@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Input, Alert, useToast } from "@/components/ui";
+import { useSubmit } from "@/components/useSubmit";
 import { createSupplier } from "@/app/(app)/suppliers/actions";
 
 /** Add-supplier form, shown only to inventory.write roles (the page gates it). */
@@ -12,22 +13,22 @@ export function AddSupplier() {
   const [phone, setPhone] = useState("");
   const [terms, setTerms] = useState("");
   const [lead, setLead] = useState("");
-  const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
+  const { pending, submit } = useSubmit();
   const router = useRouter();
   const toast = useToast();
 
-  async function submit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
     setMsg(null);
-    const r = await createSupplier({
-      name,
-      phone: phone || null,
-      terms: terms || null,
-      leadTimeDays: lead ? Number(lead) : null,
-    });
-    setPending(false);
+    const r = await submit(() =>
+      createSupplier({
+        name,
+        phone: phone || null,
+        terms: terms || null,
+        leadTimeDays: lead ? Number(lead) : null,
+      }),
+    );
     if (r.ok) {
       setOpen(false);
       setName("");
@@ -53,7 +54,7 @@ export function AddSupplier() {
 
   return (
     <form
-      onSubmit={submit}
+      onSubmit={onSubmit}
       className="flex flex-col gap-3 rounded-lg border p-4"
       style={{ borderColor: "var(--line)" }}
     >
