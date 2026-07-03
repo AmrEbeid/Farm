@@ -92,9 +92,12 @@
 
 /* ---- Hero ---- */
 .site__hero {
+  /* gold glow → dark-green legibility overlay → the orchard photo (Barhi at Khalal) */
   background:
-    radial-gradient(120% 100% at 100% 0%, rgba(199, 154, 58, 0.28), transparent 55%),
-    linear-gradient(160deg, var(--g-green-deep) 0%, var(--g-green) 62%, #3c8a52 100%);
+    radial-gradient(120% 100% at 100% 0%, rgba(199, 154, 58, 0.22), transparent 55%),
+    linear-gradient(150deg, rgba(15, 32, 22, 0.9) 0%, rgba(31, 61, 40, 0.74) 52%, rgba(31, 61, 40, 0.55) 100%),
+    url("/site/hero-orchard.jpg") center / cover no-repeat;
+  background-color: var(--g-green-deep);
   color: #fff;
 }
 .site__hero-inner {
