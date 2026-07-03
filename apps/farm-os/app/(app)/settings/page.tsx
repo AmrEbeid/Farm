@@ -6,11 +6,15 @@ import { SettingsForm } from "@/components/SettingsForm";
 export default async function SettingsPage() {
   const m = await requireRole(["owner"]);
   const sb = await createClient();
-  const { data: org } = await sb
+  const { data: org, error } = await sb
     .from("organization")
     .select("id, name, locale, currency, area_unit, fiscal_year_start")
     .eq("id", m.orgId)
     .single();
+
+  // A6: a transient read error must not silently fall through to the "not found" branch. PGRST116 is
+  // .single()'s genuine 0-row case (keep the friendly message); anything else is a real failure.
+  if (error && error.code !== "PGRST116") throw error;
 
   if (!org) {
     return <p className="p-4">تعذّر تحميل بيانات المزرعة.</p>;

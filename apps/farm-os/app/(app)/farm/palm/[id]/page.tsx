@@ -134,15 +134,19 @@ export default async function PalmFilePage({
   }));
 
   // activities recorded against this palm (linked via event_assets)
-  const { data: evAssets } = await sb.from("event_assets").select("event_id").eq("asset_id", id);
+  // A6: surface DB read failures to the segment error boundary — a swallowed transient error would
+  // render an empty "activities" section, silently hiding real work (non-negotiable #1).
+  const { data: evAssets, error: evAssetsError } = await sb.from("event_assets").select("event_id").eq("asset_id", id);
+  if (evAssetsError) throw evAssetsError;
   const palmEventIds = (evAssets ?? []).map((e) => e.event_id);
-  const { data: palmEvents } = palmEventIds.length
+  const { data: palmEvents, error: palmEventsError } = palmEventIds.length
     ? await sb
         .from("farm_event")
         .select("id, subtype, status, occurred_at")
         .in("id", palmEventIds)
         .order("occurred_at", { ascending: false })
-    : { data: [] };
+    : { data: [], error: null };
+  if (palmEventsError) throw palmEventsError;
   const activities: ActivityItem[] = (palmEvents ?? []).map((e) => ({
     id: e.id,
     title: e.subtype ? SUBTYPE_AR[e.subtype] ?? "نشاط" : "نشاط",
