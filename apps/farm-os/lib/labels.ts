@@ -164,6 +164,19 @@ export const PAYMENT_STATUS_AR: Record<string, string> = {
   cancelled: "ملغى",
 };
 
+/**
+ * Payment-/funding-request lifecycle status (`payment_requests.status`) → Arabic. Hoisted here
+ * (A5 follow-up) from two byte-identical copies (finance dashboard + linked-work sections).
+ */
+export const REQUEST_STATUS_AR: Record<string, string> = {
+  draft: "مسودة",
+  submitted: "مُرسل",
+  approved_operational: "اعتماد تشغيلي",
+  approved_final: "اعتماد نهائي",
+  paid: "مدفوع",
+  closed: "مُقفل",
+};
+
 export const PAYMENT_METHOD_AR: Record<string, string> = {
   cash: "نقدي",
   bank: "تحويل بنكي",

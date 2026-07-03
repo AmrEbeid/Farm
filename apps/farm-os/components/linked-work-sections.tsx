@@ -5,7 +5,7 @@ import { PrintButton } from "@/components/print-button";
 import type { LinkedOperation, LinkedWorkContext } from "@/lib/linked-work-context";
 import { fmtDate } from "@/lib/dates";
 import { egp, egpValue, num } from "@/lib/money";
-import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, EXPENSE_KIND_AR, PAYMENT_STATUS_AR } from "@/lib/labels";
+import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, EXPENSE_KIND_AR, PAYMENT_STATUS_AR, REQUEST_STATUS_AR } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
   farm: "المزرعة",
@@ -17,14 +17,7 @@ const SCOPE_AR: Record<string, string> = {
 
 // PAYMENT_STATUS_AR + EXPENSE_KIND_AR now hoisted to lib/labels.ts (A5).
 
-const REQUEST_STATUS_AR: Record<string, string> = {
-  draft: "مسودة",
-  submitted: "مُرسل",
-  approved_operational: "اعتماد تشغيلي",
-  approved_final: "اعتماد نهائي",
-  paid: "مدفوع",
-  closed: "مُقفل",
-};
+// REQUEST_STATUS_AR now hoisted to lib/labels.ts (A5 follow-up).
 
 export function LinkedWorkKpis({
   context,
