@@ -5,6 +5,7 @@ import { Card, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { egpValue, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus, NON_EXECUTABLE_OP_STATUSES } from "@/lib/labels";
+import { PendingExecutions } from "@/components/PendingExecutions";
 
 function pill(s: string): "active" | "done" | "scheduled" {
   if (s === "done") return "done";
@@ -146,6 +147,9 @@ export default async function MobileHomePage({
       </header>
 
       {done && <Alert tone="ok" title="تم تسجيل العملية بنجاح." />}
+
+      {/* F1: on-device outbox of executions that failed to send (network drop) — resend on reconnect. */}
+      <PendingExecutions />
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{m.personId ? "مهامي المخطّطة" : "العمليات المخطّطة"}</h2>

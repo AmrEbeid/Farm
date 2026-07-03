@@ -3,8 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, FormRow, Input, Textarea, Alert } from "@/components/ui";
-import { executeOperation } from "@/app/(app)/m/execute/[opId]/actions";
+import { executeOperation, type ExecuteInput } from "@/app/(app)/m/execute/[opId]/actions";
 import { parseExecuteInput, parseMaterialActuals } from "@/lib/execute-input";
+import { addToOutbox, removeFromOutbox } from "@/lib/exec-outbox";
+
+/** F1: honest offline banner — saved locally, NOT sent. Never claim the op was recorded. */
+const OFFLINE_SAVED_MSG =
+  "تعذّر الاتصال بالخادم. حُفظ التسجيل على هذا الجهاز — افتح «الميدان» وأعد إرساله عند عودة الاتصال.";
+/** Shown when saving to the device ALSO failed (storage full/disabled) — must not claim it was
+ *  saved, or the worker would look for it on «الميدان» where nothing is queued. */
+const OFFLINE_UNSAVED_MSG =
+  "تعذّر الاتصال بالخادم وتعذّر الحفظ على هذا الجهاز. أبقِ هذه الصفحة مفتوحة وأعد المحاولة عند عودة الاتصال.";
 
 /**
  * One material on the operation, for the #520 per-material qty fields. `requirementId` (=
@@ -22,11 +31,14 @@ export interface ExecuteFormMaterial {
 
 export function ExecuteForm({
   opId,
+  opLabel,
   materials,
   defaultLabor = null,
   defaultNote = "",
 }: {
   opId: string;
+  /** F1: Arabic op label carried into the offline outbox entry for the /m queue display. */
+  opLabel: string;
   // #520: an operation can carry several materials (fn_add_plan_operation_multi). 0 or 1 materials
   // render the SAME single qty field as before #520 (the common case's look/feel is unchanged); only
   // >1 materials render one field per material.
@@ -126,7 +138,9 @@ export function ExecuteForm({
           // Client-side validation first — surface field-level errors and STOP before the server
           // round-trip if anything is invalid. The server (fn_execute_operation) remains the
           // authoritative gate; this is a UX layer, not the enforcement.
-          let action: () => Promise<{ ok: boolean; error?: string }>;
+          // Build the exact ExecuteInput payload once, so the network-failure path can persist it to
+          // the offline outbox verbatim (F1) — the resend replays this identical payload.
+          let payload: ExecuteInput;
           if (single) {
             const parsed = parseExecuteInput(qty, labor);
             if (!parsed.ok) {
@@ -134,7 +148,7 @@ export function ExecuteForm({
               return;
             }
             const { actualQty, laborCount } = parsed.value;
-            action = () => executeOperation(opId, { actualQty, laborCount, note });
+            payload = { actualQty, laborCount, note };
           } else {
             const parsed = parseMaterialActuals(
               materials.map((m, i) => ({
@@ -149,34 +163,39 @@ export function ExecuteForm({
               return;
             }
             const { materialActuals, laborCount } = parsed.value;
-            action = () =>
-              executeOperation(opId, {
-                // fn_execute_operation ignores this scalar whenever materialActuals is supplied
-                // (a required legacy positional param — see the RPC's 5th-param contract); 0 is an
-                // explicit, harmless placeholder.
-                actualQty: 0,
-                materialActuals,
-                laborCount,
-                note,
-              });
+            payload = {
+              // fn_execute_operation ignores this scalar whenever materialActuals is supplied
+              // (a required legacy positional param — see the RPC's 5th-param contract); 0 is an
+              // explicit, harmless placeholder.
+              actualQty: 0,
+              materialActuals,
+              laborCount,
+              note,
+            };
           }
           setPending(true);
           try {
-            const res = await action();
+            const res = await executeOperation(opId, payload);
+            // The server RESPONDED (accept or reject) → drop any stale queued copy for this op; the
+            // outbox only exists to survive a network gap, and the server is authoritative.
+            removeFromOutbox(opId);
             if (res.ok) {
               router.push("/m?done=1");
               return;
             }
+            // A real server rejection (validation/authz) — show it; do NOT queue (nothing to retry
+            // offline; the input itself was refused).
             setError(res.error ?? "تعذّر التنفيذ");
           } catch {
-            // A network failure rejects the server-action fetch and the await throws. Without
-            // this catch the button would stay stuck on its spinner forever (setPending never
-            // resets, event-handler throws aren't caught by an error boundary). Surface a clear,
-            // retryable Arabic message instead. NOTE: this is a retry message, not offline
-            // support — there's no service worker / IndexedDB outbox / queued replay yet, so a
-            // submission made while offline is NOT queued; the field worker must retry once back
-            // online. True offline queueing is a planned future release, not current behaviour.
-            setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+            // NETWORK failure: the server-action fetch rejected and the await threw (also prevents the
+            // spinner stranding forever). F1 — persist the payload to the on-device outbox so it
+            // survives an app-close, and tell the worker HONESTLY it was saved locally (not sent). They
+            // resend it with an explicit tap from «الميدان» when back online (fn_execute_operation is
+            // idempotent, so a duplicate resend is safe).
+            const saved = addToOutbox({ id: opId, opId, opLabel, payload, queuedAt: new Date().toISOString() });
+            // Only promise a resend if it was ACTUALLY persisted — otherwise tell the worker to keep
+            // this page open (nothing will be queued on «الميدان»).
+            setError(saved ? OFFLINE_SAVED_MSG : OFFLINE_UNSAVED_MSG);
           } finally {
             setPending(false);
           }
