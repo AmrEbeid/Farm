@@ -76,37 +76,34 @@ export function LaborLogForm({ people }: { people: PersonOption[] }) {
           />
         </Field>
         {mode === "person" ? (
-          <Field label="عضو الفريق *" id="labor-person">
+          <Field label="عضو الفريق" id="labor-person" required>
             <Select
               id="labor-person"
               options={personOptions}
               value={personId}
               onChange={(e) => setPersonId(e.target.value)}
-              required
             />
           </Field>
         ) : (
-          <Field label="اسم الفريق *" id="labor-team">
+          <Field label="اسم الفريق" id="labor-team" required>
             <Input
               id="labor-team"
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               maxLength={120}
-              required
             />
           </Field>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <Field label="التاريخ *" id="labor-date">
+          <Field label="التاريخ" id="labor-date" required>
             <Input
               id="labor-date"
               type="date"
               value={workDate}
               onChange={(e) => setWorkDate(e.target.value)}
-              required
             />
           </Field>
-          <Field label="عدد الساعات *" id="labor-hours">
+          <Field label="عدد الساعات" id="labor-hours" required>
             <Input
               id="labor-hours"
               type="number"
@@ -115,7 +112,6 @@ export function LaborLogForm({ people }: { people: PersonOption[] }) {
               step={0.5}
               value={hours}
               onChange={(e) => setHours(e.target.value)}
-              required
             />
           </Field>
         </div>

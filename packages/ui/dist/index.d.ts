@@ -90,13 +90,17 @@ interface FieldProps {
     id: string;
     /** Error message; sets aria-invalid and shows red text. */
     error?: string;
+    /** Marks the field required: renders a decorative (aria-hidden) marker on the label and injects
+     *  the native `required` attribute onto the control — so consumers stop hand-typing "*" into the
+     *  label string (which some screen readers announce as "star"). */
+    required?: boolean;
     /** The control. Defaults to a text input if children are omitted. */
     children?: React.ReactNode;
     /** Placeholder for the default input. */
     placeholder?: string;
 }
 /** Labelled form field wrapper. Pass a custom control as children, or use the default input. */
-declare function Field({ label, id, error, children, placeholder }: FieldProps): React.JSX.Element;
+declare function Field({ label, id, error, required, children, placeholder }: FieldProps): React.JSX.Element;
 
 type VerdictTone = "ok" | "warning" | "danger";
 interface VerdictBannerProps extends React.HTMLAttributes<HTMLDivElement> {
