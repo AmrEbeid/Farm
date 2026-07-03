@@ -1,7 +1,21 @@
-# Session Brief — Farm OS      Updated: 2026-07-03 by Claude (frontend review-cycle execution, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-03 by Claude (public website build + made OS-editable, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-03 (latest) — REVIEW-360 frontend + architecture lanes EXECUTED: 14 PRs merged, safe backlog cleared
+## 2026-07-03 (latest) — PUBLIC EXPORT WEBSITE built, shipped, and made OS-EDITABLE (8 PRs; prod migration applied)
+
+Autonomous session under the Owner's standing `/goal` mandate (*"go with your recommendation, use advisor, don't wait for my inputs, don't stop until I stop you"* — the Stop hook clarified: act **through** gates, don't park). Brainstormed → built the public marketing site at `/` (ebeidfarm.business) for **مزرعة عُبيد للتمور / Ebeid Farm**, then made its content editable from inside the OS.
+
+**What's live (main `298986f`):**
+- **The site** (#636): bilingual AR/EN — hero + gold trust badges, KPI strip (115 feddans / 4,380 palms / 202 t China / 5 blocks), about, why-barhi, production-blocks table, **Certifications & Traceability with the REAL proof scans** (GlobalGAP GGN 4059883915303, China GACC reg QEGY1425102400002, QCAP, CAPQ — each linking its live registry), supply specs, contact, persistent «تسجيل الدخول»→/login. Content = real (owner `profile.html` + official docs; nothing fabricated). Excluded a stray Zeal DocuSign PDF from Downloads.
+- **Polish/brand** (#638–#641): RTL phone bidi fix; Stitch-generated logo in header + favicon + iOS/Android PWA icons; green certifications band; orchard hero (AI, Owner's prompt, via Stitch — representative, real proofs stay in certs); 2-col supply-specs + green "Commercial Enquiries" card (working WhatsApp/email/phone, no fake form).
+- **SEO/social** (#642): ⚠️ `robots.ts` was `Disallow: /` (blocked ALL indexing) → now indexes the public home, keeps the OS out; branded 1200×630 OG/Twitter card; metadataBase + canonical; Organization JSON-LD; sitemap.
+- **OS-editable** (#637): migration `20260701420000_site_content` — org-scoped `site_content` (RLS+FORCE RLS), `fn_save_site_content` (SECURITY DEFINER, `authorize('site.write')`=owner), **authorize() re-emitted 18→19 perms (none dropped)**; owner editor at **`/website`** (nav «الموقع»); public page reads server-side (service-role, no anon surface) with ISR + defaults fallback. **Migration APPLIED to prod** (`veezkmytervjnpxcrbkw` reachable via Supabase MCP this session) via `execute_sql`+ledger row, full pre/post verification, advisor clean. CI green incl. pgTAP (new `tests/116`).
+
+**Design tool:** Stitch MCP (project `16742245710457363382`) — used for the visual direction (it independently reproduced the IA = validation), the logo, and the hero; full export zip reviewed. Live site matches it and beats it (real proofs, RTL, honest contact).
+
+**Next session:** (1) enquiry-form call — buttons shipped (recommendation); a server form = save-to-OS (migration) or email (provider key), Owner's decision; (2) **real farm scenery photos** → add gallery + swap the AI hero; (3) optional: regen `database.types.ext.ts` from prod to drop the `as any` casts on `site_content`/`fn_save_site_content`; (4) domain→org mapping for true multi-tenant public sites. **Unchanged core priority remains Stage-M real data** (Stage 0 #362 → CoA → registry import) — the website is the front door, not that path.
+
+## 2026-07-03 — REVIEW-360 frontend + architecture lanes EXECUTED: 14 PRs merged, safe backlog cleared
 
 Autonomous session under the Owner's explicit standing mandate — *"figure out the merge order and do it, then keep working until I stop you; always review then merge; do not wait for my inputs"* — which **overrides** the usual stop-before-merge protocol (flagged at session start). Review stayed the safety valve: every PR passed the full gauntlet (`tsc`/`eslint`/`vitest`/`next build`) **and** an adversarial review (Fable-5 or `farm-os-pr-reviewer`) before merge; CI-green-before-merge enforced via the poller.
 
