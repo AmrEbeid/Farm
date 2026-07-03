@@ -24,6 +24,25 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Number-formatting discipline (project non-negotiable #1: no Western-digit leaks). `.toFixed()`
+    // ALWAYS renders ASCII 0-9 with a `.` separator — a Western-digit leak wherever its output reaches
+    // the UI — and there is no ar-EG variant of it. All user-facing numbers must go through
+    // `num`/`pct`/`egpValue` in `lib/money` (Intl `ar-EG-u-nu-arab`, tabular). Zero `.toFixed()` uses
+    // exist today, so this is a pure regression guard, not a migration. (`toLocaleString` is NOT banned
+    // here: `lib/relative-schedule.ts` uses `toLocaleString("ar-EG")` correctly; a stricter
+    // locale-aware rule that allows only the ar-EG form is a possible follow-up.)
+    rules: {
+      "no-restricted-properties": [
+        "error",
+        {
+          property: "toFixed",
+          message:
+            "toFixed() leaks Western digits — use num()/pct()/egpValue() from lib/money (ar-EG Arabic-Indic). Non-negotiable #1.",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
