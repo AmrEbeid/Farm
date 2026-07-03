@@ -51,7 +51,13 @@ interface KpiCardProps extends React.HTMLAttributes<HTMLDivElement> {
     icon?: React.ReactNode;
     /** Optional delta line under the value. */
     delta?: React.ReactNode;
-    /** Direction of the delta — colors it green (up) or red (down). */
+    /**
+     * Delta VALENCE (not a literal trend): `"down"` = attention/concern (red + a ⚠ mark), `"up"` =
+     * positive/active (green + a ✓ mark), `"none"` = neutral. The mark is the non-colour cue required by
+     * WCAG 1.4.1 (use of colour) so the state is distinguishable without seeing red/green; it's
+     * aria-hidden because the delta TEXT already carries the meaning for assistive tech. Named
+     * `deltaDirection` for back-compat, but consumers already use it as valence (down=problem, up=ok).
+     */
     deltaDirection?: "up" | "down" | "none";
 }
 /** Dashboard metric tile: label + icon, large tabular value, optional delta. */

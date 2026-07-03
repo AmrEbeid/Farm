@@ -18,6 +18,22 @@ describe("KpiCard", () => {
     expect(delta.className).toContain("fos-kpi__delta--down");
   });
 
+  it("adds a non-colour VALENCE mark (WCAG 1.4.1): ⚠ for down, ✓ for up, none for neutral", () => {
+    const down = render(<KpiCard label="x" value="1" delta="d" deltaDirection="down" />);
+    const downMark = down.container.querySelector(".fos-kpi__delta-mark")!;
+    expect(downMark.textContent).toContain("⚠");
+    expect(downMark).toHaveAttribute("aria-hidden", "true");
+    down.unmount();
+
+    const up = render(<KpiCard label="x" value="1" delta="d" deltaDirection="up" />);
+    expect(up.container.querySelector(".fos-kpi__delta-mark")!.textContent).toContain("✓");
+    up.unmount();
+
+    // Neutral delta stays colour-free with no mark — nothing to disambiguate.
+    const none = render(<KpiCard label="x" value="1" delta="d" deltaDirection="none" />);
+    expect(none.container.querySelector(".fos-kpi__delta-mark")).toBeNull();
+  });
+
   it("omits the delta when not provided", () => {
     const { container } = render(<KpiCard label="x" value="1" />);
     expect(container.querySelector(".fos-kpi__delta")).toBeNull();

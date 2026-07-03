@@ -95,7 +95,9 @@ export default async function BudgetCheckPage({
               label="المتاح"
               value={egp(v.available)}
               delta={`عمليات هذا البند ${egp(v.thisOp)}${v.hasUnknownCost ? " + تكلفة غير معروفة" : ""}`}
-              deltaDirection="down"
+              // Attention only when the category isn't within budget (mirrors the VerdictBanner tone
+              // above) — was unconditionally "down", so it flagged even a comfortably-ok budget.
+              deltaDirection={v.verdict === "ok" ? "none" : "down"}
             />
           </section>
 

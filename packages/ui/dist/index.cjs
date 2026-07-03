@@ -72,7 +72,11 @@ function KpiCard({
       " ",
       unit != null && /* @__PURE__ */ jsxRuntime.jsx("small", { children: unit })
     ] }),
-    delta != null && /* @__PURE__ */ jsxRuntime.jsx("div", { className: `fos-kpi__delta${deltaDirection !== "none" ? ` fos-kpi__delta--${deltaDirection}` : ""}`, children: delta })
+    delta != null && /* @__PURE__ */ jsxRuntime.jsxs("div", { className: `fos-kpi__delta${deltaDirection !== "none" ? ` fos-kpi__delta--${deltaDirection}` : ""}`, children: [
+      deltaDirection !== "none" && /* @__PURE__ */ jsxRuntime.jsx("span", { className: "fos-kpi__delta-mark", "aria-hidden": "true", children: deltaDirection === "down" ? "\u26A0\uFE0E" : "\u2713" }),
+      deltaDirection !== "none" ? " " : null,
+      delta
+    ] })
   ] });
 }
 function Alert({ tone = "info", title, description, icon, className = "", ...rest }) {
