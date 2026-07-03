@@ -50,17 +50,21 @@ export async function registerTrap(input: RegisterTrapInput): Promise<Result<str
   let lineId: string | null = null;
 
   if (input.sectorCode?.trim()) {
-    const { data } = await sb.from("sectors").select("id").eq("code", input.sectorCode.trim()).maybeSingle();
+    const { data, error } = await sb.from("sectors").select("id").eq("code", input.sectorCode.trim()).maybeSingle();
+    // A6: a transient DB error must NOT read as "not found" — distinguish it from a genuine miss.
+    if (error) return { ok: false, error: toArabicError(error) };
     if (!data) return { ok: false, error: `القطاع بالرمز "${input.sectorCode.trim()}" غير موجود` };
     sectorId = data.id;
   }
   if (input.hawshaCode?.trim()) {
-    const { data } = await sb.from("hawshat").select("id").eq("code", input.hawshaCode.trim()).maybeSingle();
+    const { data, error } = await sb.from("hawshat").select("id").eq("code", input.hawshaCode.trim()).maybeSingle();
+    if (error) return { ok: false, error: toArabicError(error) };
     if (!data) return { ok: false, error: `الحوشة بالرمز "${input.hawshaCode.trim()}" غير موجودة` };
     hawshaId = data.id;
   }
   if (input.lineCode?.trim()) {
-    const { data } = await sb.from("lines").select("id").eq("line_code", input.lineCode.trim()).maybeSingle();
+    const { data, error } = await sb.from("lines").select("id").eq("line_code", input.lineCode.trim()).maybeSingle();
+    if (error) return { ok: false, error: toArabicError(error) };
     if (!data) return { ok: false, error: `الخط بالرمز "${input.lineCode.trim()}" غير موجود` };
     lineId = data.id;
   }
@@ -116,7 +120,8 @@ export async function logCatch(input: LogCatchInput): Promise<Result> {
   await requireMembership();
   const sb = await createClient();
 
-  const { data: trap } = await sb.from("pest_traps").select("id").eq("code", trapCode).maybeSingle();
+  const { data: trap, error: trapError } = await sb.from("pest_traps").select("id").eq("code", trapCode).maybeSingle();
+  if (trapError) return { ok: false, error: toArabicError(trapError) };
   if (!trap) return { ok: false, error: `المصيدة بالرمز "${trapCode}" غير موجودة` };
 
   const { error } = await sb.rpc("fn_log_trap_catch", {
@@ -158,7 +163,8 @@ export async function updateTrap(input: UpdateTrapInput): Promise<Result> {
   await requireMembership();
   const sb = await createClient();
 
-  const { data: trap } = await sb.from("pest_traps").select("id").eq("code", trapCode).maybeSingle();
+  const { data: trap, error: trapError } = await sb.from("pest_traps").select("id").eq("code", trapCode).maybeSingle();
+  if (trapError) return { ok: false, error: toArabicError(trapError) };
   if (!trap) return { ok: false, error: `المصيدة بالرمز "${trapCode}" غير موجودة` };
 
   const { error } = await sb.rpc("fn_update_trap", {
@@ -213,17 +219,19 @@ export async function reportIncident(input: ReportIncidentInput): Promise<Result
   let assetId: string | null = null;
 
   if (trapCode) {
-    const { data } = await sb.from("pest_traps").select("id").eq("code", trapCode).maybeSingle();
+    const { data, error } = await sb.from("pest_traps").select("id").eq("code", trapCode).maybeSingle();
+    if (error) return { ok: false, error: toArabicError(error) };
     if (!data) return { ok: false, error: `المصيدة بالرمز "${trapCode}" غير موجودة` };
     trapId = data.id;
   }
   if (palmIdTag) {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("assets")
       .select("id")
       .eq("id_tag", palmIdTag)
       .eq("type", "palm")
       .maybeSingle();
+    if (error) return { ok: false, error: toArabicError(error) };
     if (!data) return { ok: false, error: `النخلة برقم التعريف "${palmIdTag}" غير موجودة` };
     assetId = data.id;
   }
