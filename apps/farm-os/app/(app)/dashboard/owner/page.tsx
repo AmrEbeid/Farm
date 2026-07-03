@@ -226,7 +226,10 @@ export default async function OwnerDashboard() {
             label="موافقات معلّقة"
             value={num(pending.length)}
             delta={overduePOs.length ? `${num(overduePOs.length)} طلب معتمد متأخر` : "لا طلبات متأخرة"}
-            deltaDirection={pending.length ? "up" : "none"}
+            // Attention (not "up"/positive) + gated on the delta's OWN subject (overdue POs), which
+            // it describes — was mis-set to "up" gated on `pending.length`, so it flagged overdue
+            // orders as positive/green. Overdue = concern.
+            deltaDirection={overduePOs.length ? "down" : "none"}
           />
         </DashboardKpiLink>
         <DashboardKpiLink href="/plans/dashboard" active={false}>
