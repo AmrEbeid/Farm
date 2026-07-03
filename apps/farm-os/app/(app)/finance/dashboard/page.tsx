@@ -9,7 +9,7 @@ import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { BudgetDoughnut, VarianceChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
-import { PR_STATUS_AR, EXPENSE_KIND_AR } from "@/lib/labels";
+import { PR_STATUS_AR, EXPENSE_KIND_AR, REQUEST_STATUS_AR } from "@/lib/labels";
 
 type SupplierEmbed = { name?: string | null };
 
@@ -31,14 +31,7 @@ const FILTER_LABEL_AR: Record<string, string> = {
 type ExpenseKind = "operating" | "drawing" | "capex";
 // EXPENSE_KIND_AR now hoisted to lib/labels.ts (A5).
 
-const REQUEST_STATUS_AR: Record<string, string> = {
-  draft: "مسودة",
-  submitted: "مُرسل",
-  approved_operational: "اعتماد تشغيلي",
-  approved_final: "اعتماد نهائي",
-  paid: "مدفوع",
-  closed: "مُقفل",
-};
+// REQUEST_STATUS_AR now hoisted to lib/labels.ts (A5 follow-up).
 
 export default async function FinanceDashboardPage({
   searchParams,
