@@ -1,21 +1,23 @@
 # Session Brief — Farm OS      Updated: 2026-07-03 by Claude (frontend review-cycle execution, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-03 (latest) — frontend review-cycle EXECUTED: 9 PRs merged, safe backlog cleared
+## 2026-07-03 (latest) — REVIEW-360 frontend + architecture lanes EXECUTED: 14 PRs merged, safe backlog cleared
 
 Autonomous session under the Owner's explicit standing mandate — *"figure out the merge order and do it, then keep working until I stop you; always review then merge; do not wait for my inputs"* — which **overrides** the usual stop-before-merge protocol (flagged at session start). Review stayed the safety valve: every PR passed the full gauntlet (`tsc`/`eslint`/`vitest`/`next build`) **and** an adversarial review (Fable-5 or `farm-os-pr-reviewer`) before merge; CI-green-before-merge enforced via the poller.
 
 **Merged (all auto-deployed to prod, main = `4e5efe5`+):**
 - **Dependabot:** #599 (dev-deps), #600 (next 16.2.10), #601 (vite 8). **#602 closed** (@types/node 26 — runtime skew vs Node 20 CI/24 local; proper aligned Node bump queued, tracker).
 - **REVIEW-360 frontend work-list:** #607 **F2** (fabricated-zero write path — the HIGH one), #608 **F3** (useSubmit ×8 forms), #609 **F4** (bidi `<Code>`), #610 **F5** (bounded `/m` feed), #611 **F8** (decimal keypad), #612 **F10-safe** (logical prop + `toArabicError` + people-lookup merge), #613 **F7** (field-level validation), #614 **F6** (storekeeper `/m/receive`), #615 **F11-slice** (`/m`+`/finance` error boundaries).
-- Full per-item disposition table now lives in **`REVIEW-360-2026-07-01.md` §3 → "Frontend work-list — execution status (2026-07-03)"**.
+- **Hardening + architecture (§2):** #616 (docs capstone), #617 **lint guard** (ban `.toFixed()` — permanent no-Western-digit-leak rule, 0 current violations), #618 **A5+A8** (hoist duplicated label maps to `labels.ts` + delete dead `AddSupplier`/`WhyButton`), #619 **A6** (8 reads stop swallowing DB errors → transient error no longer reads as "not found"), #620 **A4** (rename the 3 space-named files to kebab-case).
+- Full per-item disposition tables now live in **`REVIEW-360-2026-07-01.md`** — §3 (frontend) and §2 (architecture) "execution status (2026-07-03)" blocks.
 
-**The safe autonomous frontend backlog is exhausted.** What's left is NOT self-mergeable and is now an **Owner queue** (details in the review's execution-status table):
+**The safe autonomous backlog across BOTH lanes (frontend §3 + architecture §2) is exhausted.** What's left is NOT self-mergeable and is now an **Owner queue** (details in the review's execution-status table):
 1. **F1 offline outbox — needs an Owner DECISION** (not a coding task): replay of a *stock-issuing* execute op on reconnect must be **auto** vs **confirm-on-reconnect**. Recommend confirm-on-reconnect (idempotency makes replay safe from double-posting, but not from *unwanted* posting). PR-2 (PWA icons) is blocked on the **brand logo asset**.
 2. **F9 `next/image`** — held: naive swap on the MediaGallery's short-lived signed URLs is a known footgun and can't be live-verified from here; needs an approach call.
 3. **F10 `/dashboard` JWT-claim routing** — held: runtime-auth, needs a live check.
 4. **DS-rebuild batch** (`@amrebeid/ui` + dist): KpiCard delta arrow+text (WCAG 1.4.1 — note `deltaDirection` is overloaded good/bad vs up/down, so the indicator needs a design call), `Field.required` (unblocks F7's LaborLogForm), PageHeader/Stat consolidation.
 5. Pre-existing Owner-gated items unchanged: **F2 DB CHECK enforcement migration** (#8 tracker), the money-integrity DB lane (custody↔GL magic-string P1, `fn_reverse_journal_entry`, audit_read pin), and everything in `STATUS.md`.
+6. **Architecture (§2) blocked items:** A1 (regen `database.types.ext.ts` — needs Farm-prod Supabase access), A2 (`packages/ui/dist` drift guard — the byte-diff approach risks false-positives from macOS-vs-Linux `tsup` nondeterminism; safer path is gitignore-dist + build-in-CI, an Owner call), A3 (jsdom component tests — needs `@testing-library/react` added, a dependency hard-stop). A6-remainder = the `authorize()` discards, which already fail-closed (correct, not a bug).
 
 **Reserved hard line held all session:** no Supabase migrations applied, no prod data mutated — those remain Owner-only and were never in scope of "merge PRs".
 
