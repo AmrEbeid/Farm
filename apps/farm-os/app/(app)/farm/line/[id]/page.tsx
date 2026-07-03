@@ -116,15 +116,19 @@ export default async function LineFilePage({
   }));
 
   // activities recorded against this line (event_locations.line_id rollup)
-  const { data: locs } = await sb.from("event_locations").select("event_id").eq("line_id", id);
+  // A6: surface DB read failures to the segment error boundary — a swallowed transient error would
+  // render an empty "activities" section, silently hiding real work (non-negotiable #1).
+  const { data: locs, error: locsError } = await sb.from("event_locations").select("event_id").eq("line_id", id);
+  if (locsError) throw locsError;
   const eventIds = (locs ?? []).map((l) => l.event_id);
-  const { data: events } = eventIds.length
+  const { data: events, error: eventsError } = eventIds.length
     ? await sb
         .from("farm_event")
         .select("id, subtype, status, occurred_at")
         .in("id", eventIds)
         .order("occurred_at", { ascending: false })
-    : { data: [] };
+    : { data: [], error: null };
+  if (eventsError) throw eventsError;
   const activities: ActivityItem[] = (events ?? []).map((e) => ({
     id: e.id,
     title: e.subtype ? SUBTYPE_AR[e.subtype] ?? "نشاط" : "نشاط",
