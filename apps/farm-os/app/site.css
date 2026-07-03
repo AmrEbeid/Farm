@@ -332,7 +332,12 @@
 .site__contact h2 { color: #fff; }
 .site__contact-person { color: var(--g-gold-soft); font-weight: 700; margin: 0.75rem 0 0.25rem; font-size: 1.1rem; }
 .site__contact-addr { color: #d7e5d9; margin: 0 0 1.25rem; }
-.site__contact-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+/* Supply specs + enquiries side-by-side (Stitch layout). */
+.site__supply-grid { display: grid; gap: 2rem; align-items: start; }
+@media (min-width: 900px) {
+  .site__supply-grid { grid-template-columns: 1.05fr 0.95fr; gap: 3rem; }
+}
+.site__contact-actions { display: flex; flex-direction: column; gap: 0.6rem; }
 .site__contact-btn {
   background: var(--g-gold);
   color: #21170a;

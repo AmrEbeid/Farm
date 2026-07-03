@@ -186,19 +186,6 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
           </div>
         </section>
 
-        {/* ---- Supply & specs ---- */}
-        <section id="supply" className="site__section">
-          <div className="site__section-head"><h2>{t(c.specs.heading)}</h2></div>
-          <dl className="site__specs">
-            {c.specs.rows.map((s, i) => (
-              <div key={i} className="site__spec">
-                <dt>{t(s.label)}</dt>
-                <dd>{t(s.value)}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-
         {/* ---- Why partner ---- */}
         <section className="site__section site__band">
           <div className="site__section-head"><h2>{t(c.whyPartner.heading)}</h2></div>
@@ -209,28 +196,42 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
           </ul>
         </section>
 
-        {/* ---- Contact ---- */}
-        <section id="contact" className="site__section">
-          <div className="site__contact">
-            <h2>{t(c.contact.heading)}</h2>
-            <p className="site__contact-person">{t(c.contact.person)}</p>
-            <p className="site__contact-addr">{t(c.contact.address)}</p>
-            <div className="site__contact-actions">
-              {/* Latin values are wrapped in <bdi dir="ltr"> so their "+20 …" phone/email runs
-                  keep left-to-right order and the leading "+" stays put inside the RTL layout. */}
-              <a href={`mailto:${c.contact.email}`} className="site__contact-btn">
-                ✉︎ <bdi dir="ltr">{c.contact.email}</bdi>
-              </a>
-              {primaryPhone && (
-                <a href={waLink(primaryPhone)} target="_blank" rel="noopener noreferrer" className="site__contact-btn site__contact-btn--wa">
-                  WhatsApp · <bdi dir="ltr">{primaryPhone}</bdi>
+        {/* ---- Supply specs + Commercial enquiries (2-column, Stitch layout) ---- */}
+        <section id="supply" className="site__section">
+          <div className="site__supply-grid">
+            <div>
+              <div className="site__section-head"><h2>{t(c.specs.heading)}</h2></div>
+              <dl className="site__specs">
+                {c.specs.rows.map((s, i) => (
+                  <div key={i} className="site__spec">
+                    <dt>{t(s.label)}</dt>
+                    <dd>{t(s.value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <div id="contact" className="site__contact">
+              <h2>{t(c.contact.heading)}</h2>
+              <p className="site__contact-person">{t(c.contact.person)}</p>
+              <p className="site__contact-addr">{t(c.contact.address)}</p>
+              <div className="site__contact-actions">
+                {/* Latin values are wrapped in <bdi dir="ltr"> so their "+20 …" phone/email runs
+                    keep left-to-right order and the leading "+" stays put inside the RTL layout. */}
+                {primaryPhone && (
+                  <a href={waLink(primaryPhone)} target="_blank" rel="noopener noreferrer" className="site__contact-btn site__contact-btn--wa">
+                    WhatsApp · <bdi dir="ltr">{primaryPhone}</bdi>
+                  </a>
+                )}
+                <a href={`mailto:${c.contact.email}`} className="site__contact-btn">
+                  ✉︎ <bdi dir="ltr">{c.contact.email}</bdi>
                 </a>
-              )}
-              {c.contact.phones.map((p) => (
-                <a key={p} href={`tel:${p.replace(/[^0-9+]/g, "")}`} className="site__contact-btn site__contact-btn--ghost">
-                  ☎ <bdi dir="ltr">{p}</bdi>
-                </a>
-              ))}
+                {c.contact.phones.map((p) => (
+                  <a key={p} href={`tel:${p.replace(/[^0-9+]/g, "")}`} className="site__contact-btn site__contact-btn--ghost">
+                    ☎ <bdi dir="ltr">{p}</bdi>
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </section>
