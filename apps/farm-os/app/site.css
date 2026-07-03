@@ -57,6 +57,7 @@
   font-size: 1.05rem;
 }
 .site__brand-mark { font-size: 1.35rem; }
+.site__brand-logo { height: 40px; width: auto; display: block; }
 .site__nav {
   display: flex;
   gap: 1.1rem;
@@ -187,6 +188,16 @@
 }
 .site__band { max-width: none; background: var(--g-cream); }
 .site__band > * { max-width: var(--g-maxw); margin-inline: auto; }
+
+/* Green cert band (Stitch treatment): white proof cards pop against deep green. */
+.site__band--green {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(199, 154, 58, 0.16), transparent 55%),
+    linear-gradient(160deg, var(--g-green-deep), var(--g-green-dark));
+  color: #eef3ec;
+}
+.site__band--green .site__section-head h2 { color: #fff; }
+.site__band--green .site__intro { color: var(--g-gold-soft); }
 .site__section-head { margin-block-end: 1.5rem; }
 .site__section-head h2 {
   font-size: clamp(1.5rem, 3.5vw, 2.1rem);
