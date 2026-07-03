@@ -1,0 +1,344 @@
+/* =====================================================================
+ * Public export-credibility website (`/`). Scoped under `.site` so nothing
+ * leaks into the app shell. Premium green/gold/cream brand from the owner's
+ * profile.html. Logical properties throughout so the AR (rtl) and EN (ltr)
+ * views mirror correctly from the same rules.
+ * ===================================================================== */
+
+.site {
+  --g-green: #2e6b3e;
+  --g-green-dark: #1f3d28;
+  --g-green-deep: #163021;
+  --g-gold: #c79a3a;
+  --g-gold-soft: #e8d29a;
+  --g-cream: #f7f4ec;
+  --g-ink: #23291f;
+  --g-muted: #5c6350;
+  --g-line: #e6ddc7;
+  --g-maxw: 1140px;
+
+  color: var(--g-ink);
+  background: #fff;
+  font-family: var(--font-tajawal), system-ui, sans-serif;
+  line-height: 1.7;
+}
+.site h1,
+.site h2,
+.site h3 {
+  font-family: var(--font-readex), var(--font-tajawal), sans-serif;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* ---- Header ---- */
+.site__header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-block-end: 1px solid var(--g-line);
+}
+.site__bar {
+  max-width: var(--g-maxw);
+  margin-inline: auto;
+  padding: 0.7rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.site__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--g-green-dark);
+  text-decoration: none;
+  font-size: 1.05rem;
+}
+.site__brand-mark { font-size: 1.35rem; }
+.site__nav {
+  display: flex;
+  gap: 1.1rem;
+  margin-inline-start: auto;
+  flex-wrap: wrap;
+}
+.site__nav a {
+  color: var(--g-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding-block: 0.25rem;
+  border-block-end: 2px solid transparent;
+}
+.site__nav a:hover { color: var(--g-green); border-block-end-color: var(--g-gold); }
+.site__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-inline-start: 0.5rem;
+}
+.site__lang {
+  background: none;
+  border: 1px solid var(--g-line);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--g-green-dark);
+  cursor: pointer;
+}
+.site__lang:hover { border-color: var(--g-gold); }
+
+/* ---- Hero ---- */
+.site__hero {
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(199, 154, 58, 0.28), transparent 55%),
+    linear-gradient(160deg, var(--g-green-deep) 0%, var(--g-green) 62%, #3c8a52 100%);
+  color: #fff;
+}
+.site__hero-inner {
+  max-width: var(--g-maxw);
+  margin-inline: auto;
+  padding: 4.5rem 1.25rem 4rem;
+}
+.site__eyebrow {
+  color: var(--g-gold-soft);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+.site__title {
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  max-width: 22ch;
+}
+.site__lede {
+  margin: 1.1rem 0 0;
+  max-width: 60ch;
+  color: #eef3ec;
+  font-size: 1.08rem;
+}
+.site__badges {
+  list-style: none;
+  padding: 0;
+  margin: 1.75rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.site__badge {
+  border: 1px solid var(--g-gold);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.site__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-start: 2rem;
+}
+.site__cta a { text-decoration: none; }
+.site__hero-loc {
+  margin-block-start: 2rem;
+  color: #cfe0d1;
+  font-size: 0.9rem;
+}
+
+/* ---- Stat strip ---- */
+.site__stats {
+  max-width: var(--g-maxw);
+  margin: -2.25rem auto 0;
+  padding-inline: 1.25rem;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+@media (min-width: 720px) {
+  .site__stats { grid-template-columns: repeat(4, 1fr); }
+}
+.site__stat {
+  background: #fff;
+  border: 1px solid var(--g-line);
+  border-radius: 14px;
+  padding: 1.2rem 1rem;
+  text-align: center;
+  box-shadow: 0 12px 30px -20px rgba(31, 61, 40, 0.5);
+}
+.site__stat-n {
+  display: block;
+  font-family: var(--font-readex), sans-serif;
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 700;
+  color: var(--g-green);
+  font-variant-numeric: tabular-nums;
+}
+.site__stat-l { color: var(--g-muted); font-size: 0.9rem; }
+
+/* ---- Sections ---- */
+.site__section {
+  max-width: var(--g-maxw);
+  margin-inline: auto;
+  padding: 3.5rem 1.25rem;
+}
+.site__band { max-width: none; background: var(--g-cream); }
+.site__band > * { max-width: var(--g-maxw); margin-inline: auto; }
+.site__section-head { margin-block-end: 1.5rem; }
+.site__section-head h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+  color: var(--g-green-dark);
+  padding-block-end: 0.5rem;
+  border-block-end: 3px solid var(--g-gold);
+  display: inline-block;
+}
+.site__prose, .site__intro { max-width: 68ch; color: var(--g-ink); font-size: 1.05rem; }
+.site__intro { color: var(--g-muted); margin-block-start: 0.75rem; }
+.site__note { color: var(--g-muted); font-size: 0.95rem; margin-block-start: 1rem; max-width: 72ch; }
+
+/* ---- Why Barhi features ---- */
+.site__features {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.site__feature {
+  background: #fff;
+  border: 1px solid var(--g-line);
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+.site__feature-ic { font-size: 1.8rem; }
+.site__feature h3 { color: var(--g-green); margin: 0.6rem 0 0.4rem; font-size: 1.15rem; }
+.site__feature p { margin: 0; color: var(--g-muted); }
+
+/* ---- Table ---- */
+.site__table-wrap { overflow-x: auto; }
+.site__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+.site__table th {
+  background: var(--g-green);
+  color: #fff;
+  padding: 0.7rem 0.75rem;
+  text-align: start;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.site__table td {
+  padding: 0.65rem 0.75rem;
+  border-block-end: 1px solid var(--g-line);
+  font-variant-numeric: tabular-nums;
+}
+.site__table tbody tr:nth-child(even) td { background: #faf8f2; }
+.site__table-total td {
+  font-weight: 700;
+  color: var(--g-green-dark);
+  background: var(--g-cream) !important;
+  border-block-start: 2px solid var(--g-gold);
+}
+
+/* ---- Certifications ---- */
+.site__certs {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.site__cert {
+  background: #fff;
+  border: 1px solid var(--g-line);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 14px 34px -26px rgba(31, 61, 40, 0.55);
+}
+.site__cert-thumb {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--g-cream);
+  overflow: hidden;
+}
+.site__cert-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.site__cert-body { padding: 1.1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.site__cert-body h3 { color: var(--g-green-dark); font-size: 1.05rem; }
+.site__cert-body p { margin: 0; color: var(--g-muted); font-size: 0.92rem; }
+.site__cert-verify {
+  margin-block-start: auto;
+  color: var(--g-green);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.92rem;
+  display: flex;
+  flex-direction: column;
+}
+.site__cert-verify:hover { color: var(--g-gold); }
+.site__cert-host { color: var(--g-muted); font-weight: 400; font-size: 0.8rem; }
+
+/* ---- Specs ---- */
+.site__specs { display: grid; gap: 0; margin: 0; }
+.site__spec {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.2rem;
+  padding: 0.9rem 0;
+  border-block-end: 1px solid var(--g-line);
+}
+@media (min-width: 640px) {
+  .site__spec { grid-template-columns: 240px 1fr; gap: 1rem; align-items: baseline; }
+}
+.site__spec dt { font-weight: 700; color: var(--g-green-dark); margin: 0; }
+.site__spec dd { margin: 0; color: var(--g-ink); }
+
+/* ---- Why partner bullets ---- */
+.site__bullets { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.site__bullets li {
+  padding-inline-start: 1.9rem;
+  position: relative;
+  color: var(--g-ink);
+}
+.site__bullets li::before {
+  content: "🌴";
+  position: absolute;
+  inset-inline-start: 0;
+}
+
+/* ---- Contact ---- */
+.site__contact {
+  background: linear-gradient(160deg, var(--g-green-dark), var(--g-green-deep));
+  color: #fff;
+  border-radius: 18px;
+  padding: 2.25rem;
+}
+.site__contact h2 { color: #fff; }
+.site__contact-person { color: var(--g-gold-soft); font-weight: 700; margin: 0.75rem 0 0.25rem; font-size: 1.1rem; }
+.site__contact-addr { color: #d7e5d9; margin: 0 0 1.25rem; }
+.site__contact-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+.site__contact-btn {
+  background: var(--g-gold);
+  color: #21170a;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+}
+.site__contact-btn:hover { filter: brightness(1.05); }
+.site__contact-btn--wa { background: #25d366; color: #06340f; }
+.site__contact-btn--ghost { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); }
+
+/* ---- Footer ---- */
+.site__footer {
+  background: var(--g-green-deep);
+  color: #cfe0d1;
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+}
+.site__footer-brand { color: #fff; font-weight: 700; margin: 0 0 0.35rem; }
+.site__footer-tag { color: var(--g-gold-soft); margin: 0 0 0.75rem; font-size: 0.95rem; }
+.site__footer-note { color: #9fb6a3; font-size: 0.8rem; margin: 0; max-width: 60ch; margin-inline: auto; }
