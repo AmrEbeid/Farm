@@ -91,6 +91,15 @@ export const APP_MODULES: AppModule[] = [
       { id: "inventory", label: "الأصناف", icon: "📦", href: "/inventory" },
       { id: "inventory-movements", label: "حركات المخزون", icon: "📜", href: "/inventory/movements" },
       { id: "purchase", label: "طلبات الشراء", icon: "🧾", href: "/purchase-requests" },
+      {
+        // F6: storekeeper mobile receive surface. Roles match the desktop `canReceive` set and the
+        // fn_post_receipt authz, so it appears only for those who can actually post a receipt.
+        id: "m-receive",
+        label: "استلام المخزون",
+        icon: "📥",
+        href: "/m/receive",
+        roles: ["storekeeper", "owner", "farm_manager"],
+      },
       { id: "suppliers", label: "الموردون", icon: "🏷️", href: "/suppliers" },
     ],
   },
