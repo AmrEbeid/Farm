@@ -108,24 +108,31 @@ function Progress({ value, tone = "default", label, className = "", ...rest }) {
     }
   );
 }
-function Field({ label, id, error, children, placeholder }) {
+function Field({ label, id, error, required, children, placeholder }) {
   const errorId = `${id}-err`;
   let control = children;
-  if (children != null && React22__namespace.isValidElement(children) && error) {
+  if (children != null && React22__namespace.isValidElement(children) && (error || required)) {
     const childProps = children.props;
     control = React22__namespace.cloneElement(children, {
-      "aria-invalid": childProps["aria-invalid"] ?? true,
-      "aria-describedby": childProps["aria-describedby"] ? `${childProps["aria-describedby"]} ${errorId}` : errorId
+      required: required || childProps.required,
+      ...error ? {
+        "aria-invalid": childProps["aria-invalid"] ?? true,
+        "aria-describedby": childProps["aria-describedby"] ? `${childProps["aria-describedby"]} ${errorId}` : errorId
+      } : {}
     });
   }
   return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "fos-field", children: [
-    /* @__PURE__ */ jsxRuntime.jsx("label", { className: "fos-field__label", htmlFor: id, children: label }),
+    /* @__PURE__ */ jsxRuntime.jsxs("label", { className: "fos-field__label", htmlFor: id, children: [
+      label,
+      required && /* @__PURE__ */ jsxRuntime.jsx("span", { className: "fos-field__req", "aria-hidden": "true", children: " *" })
+    ] }),
     control ?? /* @__PURE__ */ jsxRuntime.jsx(
       "input",
       {
         id,
         className: "fos-field__control",
         placeholder,
+        required,
         "aria-invalid": error ? true : void 0,
         "aria-describedby": error ? errorId : void 0
       }

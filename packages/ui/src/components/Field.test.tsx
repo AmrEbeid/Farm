@@ -61,8 +61,36 @@ describe("Field", () => {
     expect(screen.getByLabelText("نوع")).toHaveAttribute("aria-describedby", "hint kind-err");
   });
 
+  it("required: injects native `required` onto a custom control and shows an aria-hidden marker", () => {
+    render(
+      <Field label="عضو الفريق" id="member" required>
+        <select id="member"><option>أ</option></select>
+      </Field>
+    );
+    // Regex match (per the FormRow convention): the "*" marker is in the label textContent but is
+    // aria-hidden, so it's decorative-only.
+    const control = screen.getByLabelText(/عضو الفريق/);
+    expect(control).toBeRequired();
+    const marker = document.querySelector(".fos-field__req")!;
+    expect(marker).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("required: sets `required` on the default input too", () => {
+    render(<Field label="الكمية" id="qty" required />);
+    expect(screen.getByLabelText(/الكمية/)).toBeRequired();
+  });
+
   it("has no axe violations", async () => {
     const { container } = render(<Field label="الاسم" id="name" />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("has no axe violations for a required custom control", async () => {
+    const { container } = render(
+      <Field label="عضو الفريق" id="member" required>
+        <select id="member"><option>أ</option></select>
+      </Field>
+    );
     expect(await axe(container)).toHaveNoViolations();
   });
 
