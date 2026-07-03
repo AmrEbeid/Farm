@@ -5,7 +5,7 @@ import { PrintButton } from "@/components/print button";
 import type { LinkedOperation, LinkedWorkContext } from "@/lib/linked work context";
 import { fmtDate } from "@/lib/dates";
 import { egp, egpValue, num } from "@/lib/money";
-import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR } from "@/lib/labels";
+import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, EXPENSE_KIND_AR, PAYMENT_STATUS_AR } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
   farm: "المزرعة",
@@ -15,18 +15,7 @@ const SCOPE_AR: Record<string, string> = {
   palm: "نخلة",
 };
 
-const PAYMENT_STATUS_AR: Record<string, string> = {
-  paid_from_custody: "مدفوع من العهدة",
-  post_paid_unpaid: "آجل غير مدفوع",
-  paid_by_owner: "مدفوع من المالك",
-  cancelled: "ملغى",
-};
-
-const EXPENSE_KIND_AR: Record<string, string> = {
-  operating: "تشغيلي",
-  drawing: "مسحوبات مالك",
-  capex: "رأسمالي",
-};
+// PAYMENT_STATUS_AR + EXPENSE_KIND_AR now hoisted to lib/labels.ts (A5).
 
 const REQUEST_STATUS_AR: Record<string, string> = {
   draft: "مسودة",

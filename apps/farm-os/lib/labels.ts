@@ -140,6 +140,30 @@ export const EXPENSE_STATUS_AR: Record<string, string> = {
   cancelled: "ملغاة",
 };
 
+/**
+ * Expense classification (`expenses.kind`) → Arabic. Hoisted here (A5) from three duplicated
+ * copies (finance dashboard, custody/payment-request, linked-work sections). Keeps owner drawings
+ * (مسحوبات) DISTINCT from operating spend and capex per non-negotiable #6 — never fold drawings into
+ * operating in a P&L.
+ */
+export const EXPENSE_KIND_AR: Record<string, string> = {
+  operating: "تشغيلي",
+  drawing: "مسحوبات مالك",
+  capex: "رأسمالي",
+};
+
+/**
+ * Payment status for custody / payment-request expenses (`expenses.payment_status`) → Arabic.
+ * Hoisted here (A5) from two copies that had drifted on the "cancelled" spelling (ملغي vs ملغى);
+ * normalized to the standard «ملغى».
+ */
+export const PAYMENT_STATUS_AR: Record<string, string> = {
+  post_paid_unpaid: "آجل غير مدفوع",
+  paid_from_custody: "مدفوع من العهدة",
+  paid_by_owner: "مدفوع من المالك",
+  cancelled: "ملغى",
+};
+
 export const PAYMENT_METHOD_AR: Record<string, string> = {
   cash: "نقدي",
   bank: "تحويل بنكي",
