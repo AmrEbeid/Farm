@@ -1,73 +1,29 @@
-import Link from "next/link";
-import { Button } from "@/components/ui";
+import type { Metadata } from "next";
+import "./site.css";
+import { SiteLanding } from "@/components/site/SiteLanding";
+import { SITE_CONTENT_DEFAULTS } from "@/lib/site-content";
 
-// Public, unauthenticated landing — Direction A ("The Registry") prototype.
-// The hero states the product's thesis (the stock-coverage wedge); the hawsha
-// grid is an ABSTRACT brand motif, not a data display. Per non-negotiable #1
-// (never fabricate farm data) this page shows NO farm figures — real KPIs live
-// behind auth on the role dashboards, each from a live org-scoped query.
+// Public, unauthenticated export-credibility website for Ebeid Farm. Server-rendered for SEO;
+// the AR⇄EN toggle and text direction live in the SiteLanding client island. Phase 1 renders
+// the typed defaults (real figures from the 2025 farm record + official certificates — nothing
+// fabricated, non-negotiable #1). Phase 2 will read the same shape from the DB
+// (fn_get_site_content) with these defaults as the fallback. Employee login lives in the
+// header → /login → the Farm OS.
 
-// Decorative signature cells. A handful are accented (active / watch) purely to
-// hint at the registry's status tracking — they assert no real count or state.
-const ACCENT: Record<number, "active" | "watch"> = {
-  3: "active",
-  9: "watch",
-  12: "active",
-  18: "active",
-  21: "watch",
-  25: "active",
+export const metadata: Metadata = {
+  // `absolute` so the root layout's "· نظام تشغيل المزارع" template does NOT append the
+  // internal app name to the public marketing page's <title>.
+  title: { absolute: "مزرعة عُبيد للتمور · Ebeid Farm — Premium Barhi Dates" },
+  description:
+    "Ebeid Farm — premium fresh Barhi dates from El-Sharkia, Egypt. GLOBALG.A.P. certified, approved for China (GACC), residue-free (QCAP). Single-source, fully traceable export supply.",
+  openGraph: {
+    title: "Ebeid Farm — Premium Fresh Barhi Dates · GLOBALG.A.P. · Approved for China",
+    description:
+      "Certified Egyptian exporter of fresh Barhi dates — 202 tons approved for China, GLOBALG.A.P. certified, fully traceable.",
+    type: "website",
+  },
 };
 
 export default function Home() {
-  return (
-    <main className="landing">
-      <div className="landing__inner">
-        <section className="landing__hero">
-          <p className="landing__eyebrow">نظام تشغيل المزارع · نخيل البلح والفاكهة</p>
-
-          <h1 className="landing__title">
-            اعرف نقص مخزونك{" "}
-            <span className="landing__title-accent">قبل</span> أن تقف في الغيط.
-          </h1>
-
-          <p className="landing__lede">
-            من الخطة إلى تغطية المخزون إلى اعتماد الصرف — حلقة واحدة تربط ما تنوي
-            تنفيذه بما يكفيك فعلاً من السماد والخامات، حوشة بحوشة.
-          </p>
-
-          <div className="landing__cta">
-            <Link href="/login">
-              <Button variant="primary">تسجيل الدخول</Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="ghost">لوحة المعلومات</Button>
-            </Link>
-          </div>
-
-          <ul className="landing__pillars">
-            <li>
-              <span>التخطيط</span> خطة أسبوعية بعملياتها وكمياتها
-            </li>
-            <li>
-              <span>تغطية المخزون</span> إنذار النفاد قبل الوصول للحقل
-            </li>
-            <li>
-              <span>الموازنة والاعتماد</span> صرف محكوم بحدودٍ معتمدة
-            </li>
-          </ul>
-        </section>
-
-        <aside className="landing__signature" aria-hidden="true">
-          <div className="hawsha-grid">
-            {Array.from({ length: 28 }, (_, i) => (
-              <span key={i} data-state={ACCENT[i]} />
-            ))}
-          </div>
-          <p className="landing__signature-label">
-            الحوشة — وحدة الإدارة والمتابعة في المزرعة
-          </p>
-        </aside>
-      </div>
-    </main>
-  );
+  return <SiteLanding content={SITE_CONTENT_DEFAULTS} />;
 }
