@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { EXPENSE_KIND_AR, PAYMENT_STATUS_AR } from "@/lib/labels";
 import type { ApprovalStep, PillStatus, TabItem } from "@amrebeid/ui";
 import { Alert, ApprovalChain, Breadcrumbs, Card, EmptyState } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
@@ -56,18 +57,7 @@ type Totals = {
   net_request?: number;
 };
 
-const EXPENSE_KIND_AR: Record<string, string> = {
-  operating: "تشغيلي",
-  capex: "رأسمالي",
-  drawing: "مسحوبات مالك",
-};
-
-const PAYMENT_STATUS_AR: Record<string, string> = {
-  post_paid_unpaid: "آجل غير مدفوع",
-  paid_from_custody: "مدفوع من العهدة",
-  paid_by_owner: "مدفوع من المالك",
-  cancelled: "ملغي",
-};
+// EXPENSE_KIND_AR + PAYMENT_STATUS_AR now hoisted to lib/labels.ts (A5).
 
 const TAB_IDS = ["overview", "expenses", "settlement", "add"] as const;
 type RequestTab = (typeof TAB_IDS)[number];

@@ -9,7 +9,7 @@ import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { BudgetDoughnut, VarianceChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
-import { PR_STATUS_AR } from "@/lib/labels";
+import { PR_STATUS_AR, EXPENSE_KIND_AR } from "@/lib/labels";
 
 type SupplierEmbed = { name?: string | null };
 
@@ -29,11 +29,7 @@ const FILTER_LABEL_AR: Record<string, string> = {
 // only via fn_set_expense_kind — NOT free-text. Owner drawings must be separated from operating expenses
 // (CLAUDE.md #6), and capex is neither. Arabic labels match docs/page-help ("تشغيلي/مسحوبات/رأسمالي").
 type ExpenseKind = "operating" | "drawing" | "capex";
-const EXPENSE_KIND_AR: Record<ExpenseKind, string> = {
-  operating: "تشغيلي",
-  drawing: "مسحوبات مالك",
-  capex: "رأسمالي",
-};
+// EXPENSE_KIND_AR now hoisted to lib/labels.ts (A5).
 
 const REQUEST_STATUS_AR: Record<string, string> = {
   draft: "مسودة",
