@@ -27,6 +27,8 @@ const body = Tajawal({
 });
 
 export const metadata: Metadata = {
+  // Resolves relative OG/Twitter image + canonical URLs to absolute (needed for social previews).
+  metadataBase: new URL("https://ebeidfarm.business"),
   applicationName: "نظام تشغيل المزارع",
   title: {
     default: "نظام تشغيل المزارع",
