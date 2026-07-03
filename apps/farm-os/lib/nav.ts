@@ -196,6 +196,7 @@ export const APP_MODULES: AppModule[] = [
       { id: "settings-dashboard", label: "لوحة الإدارة", icon: "⚙️", href: "/settings/dashboard" },
       { id: "profile", label: "الملف الشخصي", icon: "👤", href: "/profile" },
       { id: "settings", label: "إعدادات المؤسسة", icon: "⚙️", href: "/settings", roles: ["owner"] },
+      { id: "website", label: "الموقع", icon: "🌐", href: "/website", roles: ["owner"] },
     ],
   },
 ];

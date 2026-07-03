@@ -37,7 +37,7 @@ select is(
        'pr.approve', 'plan.write', 'op.execute', 'inventory.write', 'budget.write',
        'payroll.read', 'structure.write', 'academy.write', 'export.write', 'responsibility.write',
        'finance.read', 'custody.write', 'request.prepare', 'request.approve.op', 'request.approve.final',
-       'agronomy.signoff', 'people.write', 'labor.write'
+       'agronomy.signoff', 'people.write', 'labor.write', 'site.write'
      ]) as perm
      where position(perm in pg_get_functiondef('public.authorize(text, uuid)'::regprocedure)) = 0),
   0,
