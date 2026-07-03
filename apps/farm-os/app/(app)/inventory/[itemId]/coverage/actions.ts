@@ -146,11 +146,17 @@ export async function createPurchaseRequestFromShortage(
     }
   }
 
-  const { data: item } = await sb
+  const { data: item, error: itemError } = await sb
     .from("inventory_items")
     .select("name, unit, preferred_supplier_id, unit_cost")
     .eq("id", itemId)
     .single();
+  // A6: a transient read error must NOT masquerade as "item not found" and silently block a
+  // legitimate PR. PGRST116 is .single()'s genuine 0-row (nonexistent / RLS-hidden cross-org item)
+  // case — keep the specific message for it; any other error is a real failure, surfaced retryably.
+  if (itemError && itemError.code !== "PGRST116") {
+    return { ok: false, error: toArabicError(itemError) };
+  }
   // Don't create a PR line for a nonexistent / cross-org item (RLS hides it → .single() returns null):
   // that would persist an orphan PR pointing at an invalid item_id.
   if (!item) {
