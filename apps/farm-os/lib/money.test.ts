@@ -11,6 +11,28 @@ import {
 } from "./money";
 
 describe("money formatters", () => {
+  it("renders Arabic-Indic digits, never Western 0-9 (non-negotiable #1: no digit leaks)", () => {
+    // These helpers are THE enforcement point for the no-Western-digit-leak rule. The other tests
+    // assert self-consistency (egpValue === egp) but not the actual glyphs — a locale/formatter
+    // regression could silently emit ASCII 0-9 and still pass. Assert the real Arabic-Indic numerals
+    // (٠-٩, U+0660-0669) and the ABSENCE of any ASCII digit, across every formatter that emits one.
+    const arabicDigit = /[٠-٩]/;
+    const asciiDigit = /[0-9]/;
+    for (const out of [
+      num(1234567),
+      num(3.5, 1),
+      num(12.34, 2),
+      egp(1500),
+      egpValue("2400"),
+      pct(42),
+      coverageDays(4.2),
+      egpSummary(sumMoney([100, "250"])),
+    ]) {
+      expect(out).toMatch(arabicDigit);
+      expect(out).not.toMatch(asciiDigit);
+    }
+  });
+
   it("egp/num/pct guard null and NaN with an em dash", () => {
     expect(egp(null)).toBe("—");
     expect(num(undefined)).toBe("—");
