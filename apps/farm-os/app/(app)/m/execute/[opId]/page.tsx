@@ -102,6 +102,7 @@ export default async function ExecutePage({
         <Card title="سجّل الفعلي">
           <ExecuteForm
             opId={opId}
+            opLabel={SUBTYPE_AR[op.subtype ?? ""] ?? "عملية"}
             materials={materials.map((m) => ({
               requirementId: m.id,
               itemId: m.item_id,
