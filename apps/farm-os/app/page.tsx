@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import "./site.css";
 import { SiteLanding } from "@/components/site/SiteLanding";
-import { SITE_CONTENT_DEFAULTS } from "@/lib/site-content";
+import { loadSiteContent } from "@/lib/site-content-db";
+
+// ISR: statically rendered, re-read from the DB at most every 5 min; the editor's server action
+// also revalidatePath("/") on save for an immediate refresh. Falls back to the typed defaults when
+// the DB is unconfigured / the table isn't applied yet, so the build stays green.
+export const revalidate = 300;
 
 // Public, unauthenticated export-credibility website for Ebeid Farm. Server-rendered for SEO;
 // the AR⇄EN toggle and text direction live in the SiteLanding client island. Phase 1 renders
@@ -51,14 +56,15 @@ const jsonLd = {
   knowsAbout: ["Barhi dates", "date export", "GLOBALG.A.P.", "phytosanitary export"],
 };
 
-export default function Home() {
+export default async function Home() {
+  const content = await loadSiteContent();
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <SiteLanding content={SITE_CONTENT_DEFAULTS} />
+      <SiteLanding content={content} />
     </>
   );
 }
