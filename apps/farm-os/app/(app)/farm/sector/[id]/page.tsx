@@ -11,14 +11,14 @@ import { StructureArchiveButton } from "@/components/StructureArchiveButton";
 import { MediaGallery } from "@/components/MediaGallery";
 import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
-import { getLinkedWorkContext } from "@/lib/linked work context";
+import { getLinkedWorkContext } from "@/lib/linked-work-context";
 import {
   LinkedFinanceCard,
   LinkedPlansCard,
   LinkedReportCard,
   LinkedTasksCard,
   LinkedWorkKpis,
-} from "@/components/linked work sections";
+} from "@/components/linked-work-sections";
 import type { TabItem } from "@amrebeid/ui";
 import type { TimelineEvent, PalmLine, PalmStatus } from "@/components/ui";
 import { num } from "@/lib/money";

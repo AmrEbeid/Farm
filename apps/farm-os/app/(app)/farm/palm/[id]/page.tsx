@@ -8,14 +8,14 @@ import { num } from "@/lib/money";
 import { PalmFile } from "@/components/PalmFile";
 import { type ActivityItem } from "@/components/RecordActivity";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
-import { getLinkedWorkContext } from "@/lib/linked work context";
+import { getLinkedWorkContext } from "@/lib/linked-work-context";
 import {
   LinkedFinanceCard,
   LinkedPlansCard,
   LinkedReportCard,
   LinkedTasksCard,
   LinkedWorkKpis,
-} from "@/components/linked work sections";
+} from "@/components/linked-work-sections";
 import { SUBTYPE_AR } from "@/lib/labels";
 
 // assets.status — the closed set from migration 0003.
