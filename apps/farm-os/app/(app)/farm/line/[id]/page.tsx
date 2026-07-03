@@ -13,14 +13,14 @@ import { RecordActivity, type ActivityItem } from "@/components/RecordActivity";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { getAttachments } from "@/app/(app)/farm/structure-actions";
-import { getLinkedWorkContext } from "@/lib/linked work context";
+import { getLinkedWorkContext } from "@/lib/linked-work-context";
 import {
   LinkedFinanceCard,
   LinkedPlansCard,
   LinkedReportCard,
   LinkedTasksCard,
   LinkedWorkKpis,
-} from "@/components/linked work sections";
+} from "@/components/linked-work-sections";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR } from "@/lib/labels";

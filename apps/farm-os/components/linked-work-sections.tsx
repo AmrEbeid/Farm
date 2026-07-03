@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
-import { PrintButton } from "@/components/print button";
-import type { LinkedOperation, LinkedWorkContext } from "@/lib/linked work context";
+import { PrintButton } from "@/components/print-button";
+import type { LinkedOperation, LinkedWorkContext } from "@/lib/linked-work-context";
 import { fmtDate } from "@/lib/dates";
 import { egp, egpValue, num } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, EXPENSE_KIND_AR, PAYMENT_STATUS_AR } from "@/lib/labels";
