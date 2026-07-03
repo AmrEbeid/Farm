@@ -175,7 +175,9 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {lang === "ar" ? "التحقق على السجل" : "Verify on registry"} ↗
+                    {cert.verifyIsRegistry
+                      ? lang === "ar" ? "التحقق على السجل" : "Verify on registry"
+                      : lang === "ar" ? "الجهة المانحة" : "Issuing authority"} ↗
                     <span className="site__cert-host">{cert.verifyLabel}</span>
                   </a>
                 </div>

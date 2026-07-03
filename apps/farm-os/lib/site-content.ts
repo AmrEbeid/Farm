@@ -54,6 +54,12 @@ export interface SiteCert {
   verifyUrl: string;
   /** Short label for the verify link, e.g. "database.globalgap.org". */
   verifyLabel: string;
+  /**
+   * true → a public registry a buyer can independently search (GlobalGAP, China GACC);
+   * false → the issuing authority's official site (QCAP, CAPQ) — the link is labelled
+   * "official site" rather than "verify on registry" so it doesn't overpromise.
+   */
+  verifyIsRegistry: boolean;
 }
 
 /** A "why partner" bullet. */
@@ -119,7 +125,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       ar: "أبو شلبي · فاقوس · الشرقية · مصر",
       en: "Abou Shalaby, Faqous, El-Sharkia, Egypt",
     },
-    season: { ar: "موسم 2025 / 2026", en: "Season 2025 / 2026" },
+    season: { ar: "موسم ٢٠٢٥ / ٢٠٢٦", en: "Season 2025 / 2026" },
   },
   hero: {
     headline: {
@@ -147,7 +153,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
   about: {
     heading: { ar: "من نحن", en: "About Us" },
     body: {
-      ar: "مزرعة متخصصة في إنتاج تمور البرحي الطازجة عالية الجودة بمحافظة الشرقية، تمتد على نحو 115 فداناً وتضم قرابة 4,380 نخلة برحي موزعة على خمسة قطاعات إنتاجية. نعتمد منظومة زراعية حديثة قائمة على الممارسات الزراعية الجيدة، تضمن منتجاً آمناً ومتجانساً يلبي اشتراطات الأسواق التصديرية.",
+      ar: "مزرعة متخصصة في إنتاج تمور البرحي الطازجة عالية الجودة بمحافظة الشرقية، تمتد على نحو ١١٥ فداناً وتضم قرابة ٤٬٣٨٠ نخلة برحي موزعة على خمسة قطاعات إنتاجية. نعتمد منظومة زراعية حديثة قائمة على الممارسات الزراعية الجيدة، تضمن منتجاً آمناً ومتجانساً يلبي اشتراطات الأسواق التصديرية.",
       en: "A farm specialized in premium fresh Barhi dates in El-Sharkia, Egypt — about 115 feddans and ~4,380 Barhi palms across five production blocks. We run a modern, Good-Agricultural-Practice–based system that delivers a safe, uniform product meeting export-market requirements.",
     },
   },
@@ -166,7 +172,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         icon: "🟡",
         title: { ar: "ثمار ذهبية منتظمة", en: "Uniform Golden Fruit" },
         body: {
-          ar: "ثمار ذهبية منتظمة الحجم (15–20 جم) ومظهر تسويقي جذاب على العنقود، مع قيمة غذائية عالية.",
+          ar: "ثمار ذهبية منتظمة الحجم (١٥–٢٠ جم) ومظهر تسويقي جذاب على العنقود، مع قيمة غذائية عالية.",
           en: "Uniform golden fruit (15–20 g) with an attractive on-cluster appearance and high nutritional value.",
         },
       },
@@ -174,7 +180,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         icon: "📈",
         title: { ar: "طلب عالمي متنامٍ", en: "Growing Global Demand" },
         body: {
-          ar: "طلب عالمي متنامٍ على البرحي الطازج بمعدل نمو يقارب 6–7% سنوياً، وصلاحية جيدة للتداول بسلسلة التبريد.",
+          ar: "طلب عالمي متنامٍ على البرحي الطازج بمعدل نمو يقارب ٦–٧٪ سنوياً، وصلاحية جيدة للتداول بسلسلة التبريد.",
           en: "Global demand for fresh Barhi is growing ~6–7% per year, with good shelf life through the cold chain.",
         },
       },
@@ -212,6 +218,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         image: "/site/proofs/globalgap-registry.jpeg",
         verifyUrl: "https://database.globalgap.org/globalgap/indexJSF.faces",
         verifyLabel: "database.globalgap.org",
+        verifyIsRegistry: true,
       },
       {
         title: { ar: "تكويد الصين (GACC)", en: "China GACC Coding" },
@@ -222,6 +229,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         image: "/site/proofs/china-gacc-record.jpeg",
         verifyUrl: "https://scintl.chinaport.gov.cn/aprwebserver/pages/apr/public/html/companyList.html",
         verifyLabel: "chinaport.gov.cn",
+        verifyIsRegistry: true,
       },
       {
         title: { ar: "خلو المتبقيات (QCAP)", en: "Residue-Free (QCAP)" },
@@ -232,16 +240,18 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         image: "/site/proofs/qcap-residue-cert.jpeg",
         verifyUrl: "https://www.qcap-egypt.com",
         verifyLabel: "qcap-egypt.com",
+        verifyIsRegistry: false,
       },
       {
         title: { ar: "اعتماد المزرعة (CAPQ) 2025", en: "CAPQ Farm Approval 2025" },
         detail: {
-          ar: "الحجر الزراعي المصري · برحي · 202 طن معتمدة للصين",
+          ar: "الحجر الزراعي المصري · برحي · ٢٠٢ طن معتمدة للصين",
           en: "Egyptian Plant Quarantine · Barhi · 202 tons approved for China",
         },
         image: "/site/proofs/capq-farm-approval.jpeg",
         verifyUrl: "https://www.capq.gov.eg",
         verifyLabel: "capq.gov.eg",
+        verifyIsRegistry: false,
       },
     ],
   },
@@ -254,7 +264,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       },
       {
         label: { ar: "الكمية المعتمدة للصين (2025)", en: "Approved Quantity (China, 2025)" },
-        value: { ar: "202 طن (CAPQ)", en: "202 tons (CAPQ)" },
+        value: { ar: "٢٠٢ طن (CAPQ)", en: "202 tons (CAPQ)" },
       },
       {
         label: { ar: "الموسم", en: "Season" },
@@ -263,7 +273,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       {
         label: { ar: "التعبئة", en: "Packaging" },
         value: {
-          ar: "حسب طلب العميل (كراتين 5 / 10 كجم، عبوات عناقيد، تغليف مبرّد)",
+          ar: "حسب طلب العميل (كراتين ٥ / ١٠ كجم، عبوات عناقيد، تغليف مبرّد)",
           en: "To buyer spec (5 / 10 kg cartons, cluster packs, chilled packaging)",
         },
       },
@@ -285,7 +295,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
     bullets: [
       {
         text: {
-          ar: "مصدر واحد معتمد — جودة متجانسة وكميات يمكن التعاقد عليها (202 طن معتمدة للصين موسم 2025).",
+          ar: "مصدر واحد معتمد — جودة متجانسة وكميات يمكن التعاقد عليها (٢٠٢ طن معتمدة للصين موسم ٢٠٢٥).",
           en: "A single certified source — uniform quality and contractable volume (202 tons approved for China, 2025).",
         },
       },

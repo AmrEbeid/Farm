@@ -11,7 +11,9 @@ import { SITE_CONTENT_DEFAULTS } from "@/lib/site-content";
 // header → /login → the Farm OS.
 
 export const metadata: Metadata = {
-  title: "مزرعة عُبيد للتمور · Ebeid Farm — Premium Barhi Dates",
+  // `absolute` so the root layout's "· نظام تشغيل المزارع" template does NOT append the
+  // internal app name to the public marketing page's <title>.
+  title: { absolute: "مزرعة عُبيد للتمور · Ebeid Farm — Premium Barhi Dates" },
   description:
     "Ebeid Farm — premium fresh Barhi dates from El-Sharkia, Egypt. GLOBALG.A.P. certified, approved for China (GACC), residue-free (QCAP). Single-source, fully traceable export supply.",
   openGraph: {
