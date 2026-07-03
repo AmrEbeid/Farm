@@ -216,17 +216,19 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
             <p className="site__contact-person">{t(c.contact.person)}</p>
             <p className="site__contact-addr">{t(c.contact.address)}</p>
             <div className="site__contact-actions">
+              {/* Latin values are wrapped in <bdi dir="ltr"> so their "+20 …" phone/email runs
+                  keep left-to-right order and the leading "+" stays put inside the RTL layout. */}
               <a href={`mailto:${c.contact.email}`} className="site__contact-btn">
-                ✉︎ {c.contact.email}
+                ✉︎ <bdi dir="ltr">{c.contact.email}</bdi>
               </a>
               {primaryPhone && (
                 <a href={waLink(primaryPhone)} target="_blank" rel="noopener noreferrer" className="site__contact-btn site__contact-btn--wa">
-                  WhatsApp · {primaryPhone}
+                  WhatsApp · <bdi dir="ltr">{primaryPhone}</bdi>
                 </a>
               )}
               {c.contact.phones.map((p) => (
                 <a key={p} href={`tel:${p.replace(/[^0-9+]/g, "")}`} className="site__contact-btn site__contact-btn--ghost">
-                  ☎ {p}
+                  ☎ <bdi dir="ltr">{p}</bdi>
                 </a>
               ))}
             </div>
