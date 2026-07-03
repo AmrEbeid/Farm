@@ -1,6 +1,6 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-02 (from the 360° review, `REVIEW-360-2026-07-01.md`). Owner: Amr Ebeid.*
+*Updated: 2026-07-03 (public export website built + shipped + made OS-editable). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
@@ -9,7 +9,7 @@
 | Stage | Status | Evidence / blocker |
 |---|---|---|
 | 0 Security remediation | ~50% | #362 open: legacy repo history, spreadsheet creds, leaked-password toggle, demo-cred plan. **Gates all real data.** |
-| 1 SaaS foundation (RLS/RBAC/audit) | ✅ Done | 55/55 tables FORCE RLS; `authorize()` 18-perm union pinned by tests/97. |
+| 1 SaaS foundation (RLS/RBAC/audit) | ✅ Done | 55/55 tables FORCE RLS; `authorize()` **19-perm** union pinned by tests/97 (added `site.write` 2026-07-03). |
 | 2 Farm structure + registry | 85% code / **0% real data** | Real Nov-2025 registry (4,380/299/28) never imported (#239); prod palms are synthetic. Import path shipped (#561, SPEC-0020). |
 | 3 Activity/event model | ✅ ~95% | Event spine + rollups + connected work graph (#582). |
 | 4 Planning workspace | ✅ ~95% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC. |
@@ -22,6 +22,7 @@
 | 11 AI عبدالجليل | 5% | Policy lib only. Correctly last. |
 | M Real-data migration | **0% — THE PRIORITY** | Blocked by: Stage 0 (#362) → privacy review → chart-of-accounts seed → registry import → Excel reconciliation. |
 | P Production deploy controls | ⚠️ Bypassed | Prod deploys continuously without Stage-P controls (no staging, no monitoring, no rollback drill) — see review R-items. |
+| W Public website (`/`) | ✅ **LIVE + OS-editable** | ebeidfarm.business — bilingual AR/EN Ebeid Farm export site (hero, KPIs, blocks, **real** GlobalGAP/GACC/QCAP/CAPQ proofs, specs, contact) + logo/favicon/PWA icons + SEO/OG + JSON-LD. Content editable in-OS at **`/website`** (`site.write`=owner); migration `20260701420000` applied to prod. PRs #636/#638–#642 + #637. Real scenery photos still pending (gallery omitted, not faked). |
 
 ## Top next actions (in order)
 
@@ -36,6 +37,8 @@
 ## Feature freeze
 
 Until Stage M lands and the farm runs one real week on real data: **no new modules, no new plan-op columns/params, no new research-lane builds.** New ideas go to `PRODUCT-IDEAS-BACKLOG-2026-07.md`, not to code.
+
+*Exception (2026-07-03, Owner-directed):* the **public marketing website + its OS-editable content model** shipped — it's the front door / brand surface for buyers, not a farm-data module (no plan-op/registry/finance surface). Deliberate, logged, not scope creep.
 
 ## Owner decision queue (ranked; hub = issue #505 + OWNER-DECISIONS.md)
 

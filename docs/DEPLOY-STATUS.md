@@ -2,7 +2,26 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-02 (latest) — STAGE 10 ACADEMY LIVE via #366 (`cedf0dd`); prod ledger head `20260701400000`; PR queue = ZERO.**
+> **2026-07-03 (latest) — PUBLIC EXPORT WEBSITE LIVE + OS-EDITABLE; prod ledger head `20260701420000`.**
+> Built and shipped the public marketing site at `/` (ebeidfarm.business) for Ebeid Farm — bilingual AR/EN,
+> real GlobalGAP/GACC/QCAP/CAPQ proofs, logo + favicon + iOS/Android PWA icons, orchard hero, SEO/OG/JSON-LD/
+> sitemap (⚠️ `robots.ts` had been `Disallow: /`, blocking ALL indexing — now allows the public home, keeps the
+> OS out). Then made its content **editable from inside the OS**: migration **`20260701420000_site_content`**
+> (org-scoped `site_content` RLS+FORCE RLS; `fn_save_site_content` SECURITY DEFINER gated by
+> `authorize('site.write')`=owner; **`authorize()` re-emitted 18→19 perms, none dropped**) + owner editor at
+> **`/website`** (nav «الموقع»). **Migrate-first applied to prod** `veezkmytervjnpxcrbkw` via `execute_sql` +
+> explicit ledger row (the `apply_migration` version-footgun pattern) — the Farm project WAS reachable via the
+> Supabase MCP this session (org `dicbxecebgdxkhmtavrz`/zeluu; not Zeal). Pre-apply probes: authorize()=18 perms
+> (exact re-emit-base match), table absent. Post-apply probes: FORCE RLS ✓, RPC anon EXEC 0/auth 1 ✓,
+> authorize()=**19** perms (labor/academy.write retained) ✓, ledger head `20260701420000` ✓, security advisor
+> clean (only the generic SECURITY-DEFINER-executable WARN every gated RPC carries). CI green incl. pgTAP
+> (new `tests/116`; guard tests 22/97 updated). PRs **#636**(site) **#638**(RTL phone bidi) **#639**(logo+icons+
+> green cert band) **#640**(hero) **#641**(2-col enquiries card) **#642**(SEO/social) all merged+live; **#637**
+> (Phase 2) rebased onto main, CI-green, squash-merged (`298986f`). Content editable now: owner → `/website` →
+> edit → save (revalidates `/`). `site_content` has 0 rows → public page renders the typed defaults until first
+> edit. Not done: `database.types.ext.ts` regen (RPC/table still cast `as any`); real farm photos; enquiry form.
+>
+> **2026-07-02 — STAGE 10 ACADEMY LIVE via #366 (`cedf0dd`); prod ledger head `20260701400000`; PR queue = ZERO.**
 > Under the Owner's "keep working until this task and all other open PRs are finished" mandate: the stale
 > Stage-10 draft **#366** was finished properly — fast-forwarded to its maintained head, merged with current
 > `main`, and its migration **renumbered `20260701240000_academy_content` → `20260701400000`** (main had since
