@@ -50,6 +50,13 @@ export function ExecuteForm({
   const [note, setNote] = useState(defaultNote);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // F7: field-keyed client-validation errors (parser output), threaded into each FormRow so the DS
+  // marks the exact control aria-invalid instead of only showing the top banner. Keys: "qty"
+  // (single), each material's requirementId (multi), "labor". Server stays authoritative.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Clear a field's error as soon as the user edits it (standard forgiving-validation UX).
+  const clearFieldError = (key: string) =>
+    setFieldErrors((prev) => (prev[key] ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key)) : prev));
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,19 +64,28 @@ export function ExecuteForm({
         {error && <Alert tone="danger" title={error} />}
       </div>
       {single ? (
-        <FormRow id="qty" label={`الكمية المستخدمة (${soleUnit})`}>
+        <FormRow id="qty" label={`الكمية المستخدمة (${soleUnit})`} required error={fieldErrors.qty}>
           <Input
             type="number"
             inputMode="decimal"
             min={0}
             step="any"
             value={qty}
-            onChange={(e) => setQty(e.target.value)}
+            onChange={(e) => {
+              setQty(e.target.value);
+              clearFieldError("qty");
+            }}
           />
         </FormRow>
       ) : (
         materials.map((m, i) => (
-          <FormRow key={m.requirementId} id={`qty-${m.requirementId}`} label={`${m.name ?? "خامة"} (${m.unit})`}>
+          <FormRow
+            key={m.requirementId}
+            id={`qty-${m.requirementId}`}
+            label={`${m.name ?? "خامة"} (${m.unit})`}
+            required
+            error={fieldErrors[m.requirementId]}
+          >
             <Input
               type="number"
               inputMode="decimal"
@@ -79,13 +95,24 @@ export function ExecuteForm({
               onChange={(e) => {
                 const next = e.target.value;
                 setMatQtys((prev) => prev.map((v, idx) => (idx === i ? next : v)));
+                clearFieldError(m.requirementId);
               }}
             />
           </FormRow>
         ))
       )}
-      <FormRow id="labor" label="عدد العمال">
-        <Input type="number" inputMode="numeric" min={0} step="any" value={labor} onChange={(e) => setLabor(e.target.value)} />
+      <FormRow id="labor" label="عدد العمال" required error={fieldErrors.labor}>
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step="any"
+          value={labor}
+          onChange={(e) => {
+            setLabor(e.target.value);
+            clearFieldError("labor");
+          }}
+        />
       </FormRow>
       <FormRow id="note" label="ملاحظة">
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
@@ -94,39 +121,48 @@ export function ExecuteForm({
         variant="primary"
         loading={pending}
         onClick={async () => {
-          setPending(true);
           setError(null);
+          setFieldErrors({});
+          // Client-side validation first — surface field-level errors and STOP before the server
+          // round-trip if anything is invalid. The server (fn_execute_operation) remains the
+          // authoritative gate; this is a UX layer, not the enforcement.
+          let action: () => Promise<{ ok: boolean; error?: string }>;
+          if (single) {
+            const parsed = parseExecuteInput(qty, labor);
+            if (!parsed.ok) {
+              setFieldErrors(parsed.fieldErrors);
+              return;
+            }
+            const { actualQty, laborCount } = parsed.value;
+            action = () => executeOperation(opId, { actualQty, laborCount, note });
+          } else {
+            const parsed = parseMaterialActuals(
+              materials.map((m, i) => ({
+                requirementId: m.requirementId,
+                itemId: m.itemId,
+                qty: matQtys[i] ?? "",
+              })),
+              labor,
+            );
+            if (!parsed.ok) {
+              setFieldErrors(parsed.fieldErrors);
+              return;
+            }
+            const { materialActuals, laborCount } = parsed.value;
+            action = () =>
+              executeOperation(opId, {
+                // fn_execute_operation ignores this scalar whenever materialActuals is supplied
+                // (a required legacy positional param — see the RPC's 5th-param contract); 0 is an
+                // explicit, harmless placeholder.
+                actualQty: 0,
+                materialActuals,
+                laborCount,
+                note,
+              });
+          }
+          setPending(true);
           try {
-            const res = single
-              ? await (async () => {
-                  const parsed = parseExecuteInput(qty, labor);
-                  if (!parsed.ok) return { ok: false as const, error: parsed.error };
-                  return executeOperation(opId, {
-                    actualQty: parsed.value.actualQty,
-                    laborCount: parsed.value.laborCount,
-                    note,
-                  });
-                })()
-              : await (async () => {
-                  const parsed = parseMaterialActuals(
-                    materials.map((m, i) => ({
-                      requirementId: m.requirementId,
-                      itemId: m.itemId,
-                      qty: matQtys[i] ?? "",
-                    })),
-                    labor,
-                  );
-                  if (!parsed.ok) return { ok: false as const, error: parsed.error };
-                  return executeOperation(opId, {
-                    // fn_execute_operation ignores this scalar whenever materialActuals is supplied
-                    // (a required legacy positional param — see the RPC's 5th-param contract); 0 is an
-                    // explicit, harmless placeholder.
-                    actualQty: 0,
-                    materialActuals: parsed.value.materialActuals,
-                    laborCount: parsed.value.laborCount,
-                    note,
-                  });
-                })();
+            const res = await action();
             if (res.ok) {
               router.push("/m?done=1");
               return;
