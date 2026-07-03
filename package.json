@@ -23,6 +23,7 @@
   "overrides": {
     "react": "$react",
     "react-dom": "$react-dom",
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "@types/node": "^22"
   }
 }
