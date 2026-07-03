@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: { absolute: "مزرعة عُبيد للتمور · Ebeid Farm — Premium Barhi Dates" },
   description:
     "Ebeid Farm — premium fresh Barhi dates from El-Sharkia, Egypt. GLOBALG.A.P. certified, approved for China (GACC), residue-free (QCAP). Single-source, fully traceable export supply.",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Ebeid Farm — Premium Fresh Barhi Dates · GLOBALG.A.P. · Approved for China",
     description:
@@ -24,6 +25,40 @@ export const metadata: Metadata = {
   },
 };
 
+// Organization structured data (schema.org) so search engines understand the exporter, its
+// certifications, and how to contact it. All values are the real, owner-provided facts.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Ebeid Farm",
+  alternateName: "مزرعة عُبيد للتمور",
+  legalName: "Obaid Company for Dates",
+  url: "https://ebeidfarm.business",
+  logo: "https://ebeidfarm.business/icon.png",
+  image: "https://ebeidfarm.business/opengraph-image.png",
+  description:
+    "Certified Egyptian exporter of premium fresh Barhi dates from El-Sharkia — GLOBALG.A.P. certified, approved for China (GACC), residue-free (QCAP), single-source and fully traceable.",
+  email: "ebeidfarm@gmail.com",
+  telephone: "+201002174773",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Abou Shalaby, Faqous",
+    addressRegion: "El-Sharkia",
+    addressCountry: "EG",
+    postalCode: "44641",
+  },
+  areaServed: ["CN", "AE", "SA", "KW", "EU", "EG"],
+  knowsAbout: ["Barhi dates", "date export", "GLOBALG.A.P.", "phytosanitary export"],
+};
+
 export default function Home() {
-  return <SiteLanding content={SITE_CONTENT_DEFAULTS} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <SiteLanding content={SITE_CONTENT_DEFAULTS} />
+    </>
+  );
 }
