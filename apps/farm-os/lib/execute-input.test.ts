@@ -6,10 +6,20 @@ describe("parseExecuteInput", () => {
     expect(parseExecuteInput("", "2")).toEqual({
       ok: false,
       error: "أدخل الكمية وعدد العمال قبل إنهاء العملية.",
+      fieldErrors: { qty: "أدخل كمية صالحة." },
     });
     expect(parseExecuteInput("4", "   ")).toEqual({
       ok: false,
       error: "أدخل الكمية وعدد العمال قبل إنهاء العملية.",
+      fieldErrors: { labor: "أدخل عدد عمال صالح." },
+    });
+  });
+
+  it("keys a field error to EACH offending field (F7), not just a banner", () => {
+    // Both blank → both keys present so the form can mark both controls at once.
+    expect(parseExecuteInput("", "")).toMatchObject({
+      ok: false,
+      fieldErrors: { qty: "أدخل كمية صالحة.", labor: "أدخل عدد عمال صالح." },
     });
   });
 
@@ -88,7 +98,28 @@ describe("parseMaterialActuals", () => {
         ],
         "2",
       ),
-    ).toEqual({ ok: false, error: "أدخل كمية صالحة لكل خامة وعدد العمال قبل إنهاء العملية." });
+    ).toEqual({
+      ok: false,
+      error: "أدخل كمية صالحة لكل خامة وعدد العمال قبل إنهاء العملية.",
+      fieldErrors: { r2: "أدخل كمية صالحة." },
+    });
+  });
+
+  it("keys the field error to the offending requirementId and to labor (F7)", () => {
+    // A bad material row AND blank labor → the map carries both the requirementId key and "labor",
+    // so the multi-material form marks exactly the wrong controls.
+    expect(
+      parseMaterialActuals(
+        [
+          { requirementId: "r1", itemId: "a", qty: "5" },
+          { requirementId: "r2", itemId: "b", qty: "-3" },
+        ],
+        "",
+      ),
+    ).toMatchObject({
+      ok: false,
+      fieldErrors: { r2: "أدخل كمية صالحة.", labor: "أدخل عدد عمال صالح." },
+    });
   });
 
   it("rejects a negative quantity on any material or blank/negative labor", () => {

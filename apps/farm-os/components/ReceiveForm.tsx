@@ -33,6 +33,11 @@ export function ReceiveForm({ prId, lines }: { prId: string; lines: ReceiveLine[
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // F7: per-line client-validation errors keyed by itemId, threaded into each FormRow so the DS
+  // marks the offending control aria-invalid — instead of the storekeeper only learning of an
+  // over-receipt from the RPC's 23514 banner after a round-trip. Server (fn_post_receipt) still caps
+  // and rejects over-receipt; this is a UX pre-check, not the enforcement.
+  const [lineErrors, setLineErrors] = useState<Record<string, string>>({});
 
   if (openLines.length === 0) {
     return <p style={{ color: "var(--ink-muted)" }}>تم استلام جميع الأصناف.</p>;
@@ -57,6 +62,36 @@ export function ReceiveForm({ prId, lines }: { prId: string; lines: ReceiveLine[
   }
 
   function submitPartial() {
+    setError(null);
+    // Per-line client pre-check (F7): flag any line whose typed qty is non-numeric, negative, or
+    // exceeds the remaining-on-order. This mirrors the input's `max`/`min` and the RPC's over-receipt
+    // rejection, but as a field-level error so the storekeeper sees WHICH line is wrong before submit.
+    // Float tolerance: `remaining` is JS float arithmetic (qty − receivedQty) while the server
+    // compares against Postgres numeric, so a legitimate exact entry (e.g. remaining 0.2 stored as
+    // 0.199…9) must NOT be blocked here where the RPC would accept it. Compare with a small epsilon;
+    // the RPC stays the authoritative cap.
+    const EPS = 1e-9;
+    const errs: Record<string, string> = {};
+    for (const l of openLines) {
+      const raw = (qtys[l.itemId] ?? "").trim();
+      if (raw === "") continue; // a blank line just isn't part of this partial receipt.
+      const n = Number(raw);
+      const remaining = l.qty - l.receivedQty;
+      if (!Number.isFinite(n) || n < 0) {
+        errs[l.itemId] = "أدخل كمية صالحة.";
+      } else if (n > remaining + EPS) {
+        // Show the remaining at 2 dp so the message can't contradict the check (num()'s default
+        // 0-dp rounding could otherwise claim "3" while rejecting 2.7). Unit appended only when set.
+        const remainingLabel = `${num(remaining, 2)}${l.unit ? ` ${l.unit}` : ""}`;
+        errs[l.itemId] = `الكمية تتجاوز المتبقي (${remainingLabel})`;
+      }
+    }
+    if (Object.keys(errs).length > 0) {
+      setLineErrors(errs);
+      return;
+    }
+    setLineErrors({});
+
     // Send only lines with a positive qty; the RPC caps each at its remaining and rejects over-receipt.
     const lineMap = openLines
       .map((l) => ({ item_id: l.itemId, qty: Number(qtys[l.itemId] ?? "0") }))
@@ -84,6 +119,7 @@ export function ReceiveForm({ prId, lines }: { prId: string; lines: ReceiveLine[
               key={l.itemId}
               id={`recv-${l.itemId}`}
               label={`${l.name} — المتبقي ${num(remaining)} ${l.unit}`.trim()}
+              error={lineErrors[l.itemId]}
             >
               <Input
                 type="number"
@@ -91,9 +127,16 @@ export function ReceiveForm({ prId, lines }: { prId: string; lines: ReceiveLine[
                 min={0}
                 max={remaining}
                 value={qtys[l.itemId] ?? ""}
-                onChange={(e) =>
-                  setQtys((prev) => ({ ...prev, [l.itemId]: e.target.value }))
-                }
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setQtys((prev) => ({ ...prev, [l.itemId]: next }));
+                  // Clear this line's error as the user corrects it.
+                  setLineErrors((prev) =>
+                    prev[l.itemId]
+                      ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== l.itemId))
+                      : prev,
+                  );
+                }}
               />
             </FormRow>
           );

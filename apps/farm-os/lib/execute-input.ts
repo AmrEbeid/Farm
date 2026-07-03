@@ -25,6 +25,19 @@ export interface ParsedMultiMaterialInput {
 const INVALID_EXECUTE_INPUT = "أدخل الكمية وعدد العمال قبل إنهاء العملية.";
 const INVALID_MATERIAL_INPUT = "أدخل كمية صالحة لكل خامة وعدد العمال قبل إنهاء العملية.";
 
+/** Per-field messages (F7). Keyed so the form can mark the offending FormRow, not just a banner. */
+const FIELD_QTY_INVALID = "أدخل كمية صالحة.";
+const FIELD_LABOR_INVALID = "أدخل عدد عمال صالح.";
+
+/**
+ * Field-keyed validation errors returned alongside the banner-summary `error`. Keys are the same
+ * ids the form gives its FormRows: `"qty"` (single-material), each material's `requirementId`
+ * (multi-material), and `"labor"`. The form threads each into `FormRow error=` so the DS marks the
+ * exact control `aria-invalid` (F7) instead of showing a banner alone. The `error` summary stays for
+ * a11y announcement / any consumer that only wants one message.
+ */
+export type ExecuteFieldErrors = Record<string, string>;
+
 function parseNonBlankNumber(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -34,12 +47,15 @@ function parseNonBlankNumber(value: string): number | null {
 
 export function parseExecuteInput(qty: string, labor: string):
   | { ok: true; value: ParsedExecuteInput }
-  | { ok: false; error: string } {
+  | { ok: false; error: string; fieldErrors: ExecuteFieldErrors } {
   const actualQty = parseNonBlankNumber(qty);
   const laborCount = parseNonBlankNumber(labor);
 
   if (actualQty == null || laborCount == null) {
-    return { ok: false, error: INVALID_EXECUTE_INPUT };
+    const fieldErrors: ExecuteFieldErrors = {};
+    if (actualQty == null) fieldErrors.qty = FIELD_QTY_INVALID;
+    if (laborCount == null) fieldErrors.labor = FIELD_LABOR_INVALID;
+    return { ok: false, error: INVALID_EXECUTE_INPUT, fieldErrors };
   }
 
   return { ok: true, value: { actualQty, laborCount } };
@@ -55,20 +71,26 @@ export function parseMaterialActuals(
   labor: string,
 ):
   | { ok: true; value: ParsedMultiMaterialInput }
-  | { ok: false; error: string } {
+  | { ok: false; error: string; fieldErrors: ExecuteFieldErrors } {
+  // Collect ALL offending fields (not just the first) so the form can mark every bad control at once
+  // rather than making the user fix-and-resubmit one field at a time.
+  const fieldErrors: ExecuteFieldErrors = {};
   const laborCount = parseNonBlankNumber(labor);
-  if (laborCount == null) {
-    return { ok: false, error: INVALID_MATERIAL_INPUT };
-  }
+  if (laborCount == null) fieldErrors.labor = FIELD_LABOR_INVALID;
 
   const materialActuals: ParsedMaterialActual[] = [];
   for (const entry of entries) {
     const actualQty = parseNonBlankNumber(entry.qty);
     if (actualQty == null) {
-      return { ok: false, error: INVALID_MATERIAL_INPUT };
+      fieldErrors[entry.requirementId] = FIELD_QTY_INVALID;
+      continue;
     }
     materialActuals.push({ requirementId: entry.requirementId, itemId: entry.itemId, actualQty });
   }
 
-  return { ok: true, value: { materialActuals, laborCount } };
+  if (Object.keys(fieldErrors).length > 0) {
+    return { ok: false, error: INVALID_MATERIAL_INPUT, fieldErrors };
+  }
+
+  return { ok: true, value: { materialActuals, laborCount: laborCount as number } };
 }
