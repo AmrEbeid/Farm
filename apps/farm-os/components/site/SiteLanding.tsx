@@ -34,9 +34,9 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
       {/* ---- Header ---- */}
       <header className="site__header">
         <div className="site__bar">
-          <a href="#top" className="site__brand">
-            <span className="site__brand-mark" aria-hidden="true">🌴</span>
-            <span className="site__brand-name">{t(c.brand.name)}</span>
+          <a href="#top" className="site__brand" aria-label={t(c.brand.name)}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- small static brand logo */}
+            <img className="site__brand-logo" src="/site/ebeid-logo.png" alt={t(c.brand.name)} />
           </a>
           <nav className="site__nav" aria-label={lang === "ar" ? "روابط الموقع" : "Site links"}>
             {nav.map((n) => (
@@ -149,7 +149,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
         </section>
 
         {/* ---- Certifications & proof ---- */}
-        <section id="certifications" className="site__section site__band">
+        <section id="certifications" className="site__section site__band site__band--green">
           <div className="site__section-head">
             <h2>{t(c.certifications.heading)}</h2>
             <p className="site__intro">{t(c.certifications.intro)}</p>
