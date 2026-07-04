@@ -48,6 +48,14 @@ export const APP_MODULES: AppModule[] = [
     pages: [{ id: "record", label: "سجّل عملية", icon: "➕", href: "/record" }],
   },
   {
+    // SPEC-0025 U-4: the reports hub — every report, grouped by the question it answers.
+    id: "reports-module",
+    label: "التقارير",
+    icon: "📈",
+    dashboardHref: "/reports",
+    pages: [{ id: "reports-hub", label: "كل التقارير", icon: "📈", href: "/reports" }],
+  },
+  {
     id: "farm-module",
     label: "المزرعة",
     icon: "🌴",
