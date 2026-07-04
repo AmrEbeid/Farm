@@ -1,7 +1,47 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-7b live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-8b live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-7b offshoot bank UI/reporting live
+## 2026-07-04 (latest) — SPEC-0024 S-8b operational dashboard/360 linkage live
+
+Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-8b is now merged and
+live via PR **#673** (`main` merge commit **`ad9b6f3`**). **No Supabase migration** was needed; this slice improves
+the presentation/linkage layer over already-live planning, operations, custody, payment-request, and accounting data.
+
+**Completed and live:**
+- Sector/hawsha/line/palm 360 linked-work context:
+  - operation parent plans are merged into linked plan lists;
+  - operation target labels and links resolve for sector/hawsha/line/palm references;
+  - assignee names resolve from both `plan_operation_assignees` and legacy `responsible_person_id`.
+- Linked work tabs:
+  - plans and tasks are searchable, sortable, and CSV-exportable;
+  - task rows show operation, target, parent plan, date, assignee, estimated cost, and status;
+  - plan rows show scope, open-operation count, due-operation count, and latest activity.
+- Manager/agri dashboard:
+  - own assigned open work;
+  - due assigned work;
+  - unassigned operation pressure.
+- Finance dashboard:
+  - accountant-facing custody table/KPI;
+  - open payment requests separated from paid/closed history;
+  - ready-to-pay, unpaid post-paid, unclassified-expense, and recent-entry signals.
+
+**Safety/accuracy:**
+- no `fn_execute_operation` or `fn_add_plan_operation_multi` change;
+- no custody/cash/journal posting change;
+- no RLS or `public.authorize()` change;
+- no fabricated operation, finance, or registry data.
+
+**Validation:** local `git diff --check`, `npx tsc --noEmit`, full eslint, focused linked/nav/help tests **20/20**,
+app Vitest **464/464**, `npm run build`, Recharts code-split guard, server/client-boundary guard, and full pgTAP
+**1322/1322** all green. PR checks, CodeRabbit, Vercel preview, and post-merge `main` `ci`, `db-tests`, `release`,
+Supabase Preview, Vercel production, and gitleaks are green for `ad9b6f3`.
+
+**Resume point:** recommended next slice is **S-10 revenue/A/R + close** as the next accounting-money slice. S-6
+historical workbook import remains Stage-M/real-data gated; Stage 0 still gates real registry/accounting data import.
+The broader OPS lane can continue deeper 360 usability after S-10, but S-8b closes the immediate "assigned tasks and
+linked operations/plans are missing from dashboards/360" gap.
+
+## 2026-07-04 — SPEC-0024 S-7b offshoot bank UI/reporting live
 
 Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-7b is now merged and
 live via PR **#672** (`main` merge commit **`5f87000`**). **No Supabase migration** was needed; this slice uses the

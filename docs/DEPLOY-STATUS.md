@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-7b offshoot bank UI/reporting LIVE; no migration.**
+> **2026-07-04 (latest) — SPEC-0024 S-8b operational dashboard/360 linkage LIVE; no migration.**
+> PR **#673** merged to `main` at **`ad9b6f3`**. Scope: shared sector/hawsha/line/palm 360 linked-work context
+> now resolves operation parent plans, operation target labels/hrefs, assignee names, and legacy responsible-person
+> names; linked plan/task sections now show plan, target, assignees, open/due counts, search, sort, and export.
+> `/dashboard/manager` now surfaces own assigned open work, due assigned work, and unassigned operations.
+> `/finance/dashboard` now separates accountant custody, open payment requests, ready-to-pay requests, unpaid
+> post-paid expenses, unclassified expenses, and recent accounting entries. **No Supabase migration / prod DB apply.**
+> Boundaries held: no operation execution RPC change, no journal/cash/custody posting change, no RLS/authorize
+> change. Validation before merge: `git diff --check`, `tsc`, full eslint, focused linked/nav/help tests **20/20**,
+> app Vitest **464/464**, production build, Recharts guard, server/client-boundary guard, and full pgTAP
+> **1322/1322**. PR checks + CodeRabbit + Vercel preview green. Current post-merge `main` **`ad9b6f3`** has green
+> `ci`, `db-tests`, `release`, Supabase Preview, Vercel production, and gitleaks statuses.
+>
+> **2026-07-04 — SPEC-0024 S-7b offshoot bank UI/reporting LIVE; no migration.**
 > PR **#672** merged to `main` at **`5f87000`**. Scope: role-aware `/farm/offshoots` **بنك الفسائل** page over the
 > already-live S-7a backend, with physical movement KPIs, movement-type filters, owner/farm-manager movement entry,
 > owner/accountant display-only valuation entry, chart toggle for movement flow vs expansion by cost center,

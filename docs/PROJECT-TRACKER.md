@@ -1,6 +1,26 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-7b live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-8b live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 S-7b offshoot bank UI/reporting LIVE (`main` `5f87000`, PR #672; no migration).**
+> **2026-07-04 (latest) — SPEC-0024 S-8b operational dashboard/360 linkage LIVE (`main` `ad9b6f3`, PR #673; no migration).**
+> Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
+> **S-0 + S-8a + S-1 + S-2 + S-3 + S-4 + S-5 + S-7a + S-7b + S-8b**. S-8b directly addresses the Owner's
+> "everything linked and presented" complaint without changing money posting or operation execution: the shared
+> sector/hawsha/line/palm 360 work context now merges operation-parent plans into the plan tab, resolves operation
+> target labels/hrefs, resolves responsible-person names including legacy `responsible_person_id`, and makes linked
+> plans/tasks searchable, sortable, and CSV-exportable with plan, target, assignee, open-count, and due-count columns.
+> `/dashboard/manager` now shows the farm-manager/agri-engineer's own assigned open work, due assigned work, and
+> unassigned-operation pressure from both `plan_operations.responsible_person_id` and `plan_operation_assignees`.
+> `/finance/dashboard` now separates accountant-facing custody, open payment requests, ready-to-pay payment requests,
+> unpaid post-paid expenses, unclassified expenses, and recent accounting entries more clearly. The existing backend
+> test coverage already proves palm/line/hawsha/sector operation execution rolls up to the field/360 event locations
+> (`tests/113_execute_operation_target_rollup_test.sql`), so this slice deliberately leaves `fn_execute_operation`,
+> `fn_add_plan_operation_multi`, custody movement, journal posting, cash movement, RLS, and `public.authorize()` untouched.
+> Validation: local `git diff --check`, `tsc`, full eslint, focused linked/nav/help tests **20/20**, app Vitest
+> **464/464**, production build, Recharts guard, server/client-boundary guard, and full pgTAP **1322/1322**; PR #673
+> checks and post-merge `main` checks are green (`ci`, `db-tests`, `release`, Supabase Preview, Vercel production,
+> gitleaks, CodeRabbit). Next recommendation: **S-10 revenue/A-R + close** as the next accounting-money slice; S-6
+> historical workbook import remains Stage-M/real-data gated.
+
+> **2026-07-04 — SPEC-0024 S-7b offshoot bank UI/reporting LIVE (`main` `5f87000`, PR #672; no migration).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
 > **S-0 + S-8a + S-1 + S-2 + S-3 + S-4 + S-5 + S-7a + S-7b**. S-7b adds the live **بنك الفسائل**
 > surface at `/farm/offshoots` for owner/accountant/farm-manager: physical movement KPIs, movement-type filters,
