@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-03 (latest) — PUBLIC EXPORT WEBSITE LIVE + OS-EDITABLE; prod ledger head `20260701420000`.**
+> **2026-07-04 (latest) — public site EDITABLE PHOTO GALLERY + in-OS image upload.**
+> `/website` editor gained a gallery section (add/remove items, AR/EN captions) shipping with 4 dummy
+> placeholder SVGs so it moves before real photos exist (#645) — the gallery rides the existing
+> `site_content` JSON, **no migration**. Then in-OS **image upload** (#647): owner-gated server action
+> `uploadGalleryImage` → service-role admin client → the public **`site-media`** Storage bucket
+> (provisioned via Supabase MCP: `public=true`, 5 MB limit, image mimes — **NOT a repo migration**; the
+> local pgTAP harness runs on bare Postgres without the `storage` schema, so a storage.buckets insert
+> would break it). Owner uploads a photo → gets its public URL → stored as the gallery item's image.
+> E2E-verified on prod (Playwright: login → `/website` → upload → URL = `…/site-media/gallery/<uuid>.png`,
+> serves 200). One harmless ~5KB orphan test object remains in the bucket (direct SQL delete blocked by
+> `storage.protect_delete`; no service key locally). `site_content` still 0 rows (no test save). Known
+> follow-up: delete the old bucket object when a gallery item is replaced/removed (currently orphans it).
+>
+> **2026-07-03 — PUBLIC EXPORT WEBSITE LIVE + OS-EDITABLE; prod ledger head `20260701420000`.**
 > Built and shipped the public marketing site at `/` (ebeidfarm.business) for Ebeid Farm — bilingual AR/EN,
 > real GlobalGAP/GACC/QCAP/CAPQ proofs, logo + favicon + iOS/Android PWA icons, orchard hero, SEO/OG/JSON-LD/
 > sitemap (⚠️ `robots.ts` had been `Disallow: /`, blocking ALL indexing — now allows the public home, keeps the
