@@ -314,6 +314,9 @@ begin
   if to_regprocedure('public.fn_seed_default_accounts(uuid)') is not null then
     perform public.fn_seed_default_accounts('00000000-0000-0000-0000-000000000001'::uuid);
   end if;
+  if to_regprocedure('public.fn_seed_cost_center_defaults(uuid)') is not null then
+    perform public.fn_seed_cost_center_defaults('00000000-0000-0000-0000-000000000001'::uuid);
+  end if;
 end $$;
 
 -- End Ebeid seed.

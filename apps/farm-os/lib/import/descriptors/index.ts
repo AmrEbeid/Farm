@@ -9,7 +9,14 @@ import { sectorsDescriptor } from "./sectors";
 import { hawshatDescriptor } from "./hawshat";
 import { linesDescriptor } from "./lines";
 import { accountsDescriptor } from "./accounts";
+import { costCentersDescriptor } from "./cost-centers";
 
-export const ALL_DESCRIPTORS = [sectorsDescriptor, hawshatDescriptor, linesDescriptor, accountsDescriptor];
+export const ALL_DESCRIPTORS = [
+  sectorsDescriptor,
+  hawshatDescriptor,
+  linesDescriptor,
+  accountsDescriptor,
+  costCentersDescriptor,
+];
 
 for (const d of ALL_DESCRIPTORS) registerDescriptor(d);
