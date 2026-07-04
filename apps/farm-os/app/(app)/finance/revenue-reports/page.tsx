@@ -170,6 +170,7 @@ export default async function FinanceRevenueReportsPage({
   const buyerRows: SimpleRow[] = report.by_buyer.map((row) => ({
     id: row.buyer_id ?? row.buyer_name,
     buyer: row.buyer_name,
+    buyer_href: row.buyer_id ? `/finance/buyers/${row.buyer_id}` : "",
     type: row.buyer_type ? BUYER_TYPE_AR[row.buyer_type] ?? row.buyer_type : "—",
     sales: Number(row.sale_count ?? 0),
     pending: Number(row.pending_count ?? 0),
@@ -424,7 +425,7 @@ export default async function FinanceRevenueReportsPage({
 }
 
 const buyerColumns: SimpleColumn[] = [
-  { id: "buyer", header: "العميل" },
+  { id: "buyer", header: "العميل", kind: "link" },
   { id: "type", header: "النوع", kind: "status" },
   { id: "sales", header: "مبيعات", kind: "num", numeric: true },
   { id: "pending", header: "معلقة السعر", kind: "num", numeric: true },
