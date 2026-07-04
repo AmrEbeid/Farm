@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-7a offshoot bank backend LIVE; prod ledger head `20260701470000`.**
+> **2026-07-04 (latest) — SPEC-0024 S-7b offshoot bank UI/reporting LIVE; no migration.**
+> PR **#672** merged to `main` at **`5f87000`**. Scope: role-aware `/farm/offshoots` **بنك الفسائل** page over the
+> already-live S-7a backend, with physical movement KPIs, movement-type filters, owner/farm-manager movement entry,
+> owner/accountant display-only valuation entry, chart toggle for movement flow vs expansion by cost center,
+> searchable/sortable/exportable movement and destination tables, offshoot movement Excel import descriptor/template,
+> nav/page-help/user-manual coverage, and dashboard links/cards from farm, manager, owner, and finance surfaces.
+> **No Supabase migration / prod DB apply:** this consumes live migration `20260701470000_offshoot_bank`.
+> Boundaries held: no revenue, no A/R, no journal entry, no cash, no custody movement, and farm manager sees physical
+> quantities only. Validation before merge: `git diff --check`, `tsc`, full eslint, app Vitest **461/461**, production
+> build, Recharts bundle guard, server/client-boundary guard, and full pgTAP **1322/1322**. PR checks + CodeRabbit +
+> Vercel preview green. Current post-merge `main` **`5f87000`** has green `ci`, `db-tests`, `release`, Supabase
+> Preview, Vercel production, and gitleaks statuses.
+>
+> **2026-07-04 — SPEC-0024 S-7a offshoot bank backend LIVE; prod ledger head `20260701470000`.**
 > PR **#663** merged to `main` at **`0775a75`** after migrate-first production apply. Scope:
 > standalone **بنك الفسائل** backend with `offshoot_movements`, `offshoot_valuation`, audit triggers,
 > `fn_record_offshoot_movement`, and `fn_set_offshoot_valuation`. This is a physical quantity ledger for

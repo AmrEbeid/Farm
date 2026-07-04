@@ -1,6 +1,6 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-04 (SPEC-0024 S-7a offshoot bank backend live). Owner: Amr Ebeid.*
+*Updated: 2026-07-04 (SPEC-0024 S-7b offshoot bank UI/reporting live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
@@ -15,7 +15,7 @@
 | 4 Planning workspace | ✅ ~95% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC. |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
 | 6 Budget + approvals | 70% | PR workflow live; **budget gate is display-only** (#157) — approval never reads budget_lines. |
-| 7 Accounting | 77% | GL kernel + custody live (#568/#468); COA tree backend+UI + default farm COA live (#654/#661, prod `20260701440000`); cost centers + expense/journal dimension + rollup/reconciliation views live (#659, prod `20260701460000`); `/finance/reports` cost-center reports live (#667); `/finance/insights` + owner-dashboard finance insights live (#670); offshoot bank quantity ledger + display-only valuation backend live (#663, prod `20260701470000`). No revenue/A-R, no close, no Excel dual-run, no offshoot UI/reporting yet. Next SPEC-0024 slice: S-7b offshoot UI/reporting; S-6 historical import waits for Stage-M. |
+| 7 Accounting | 80% | GL kernel + custody live (#568/#468); COA tree backend+UI + default farm COA live (#654/#661, prod `20260701440000`); cost centers + expense/journal dimension + rollup/reconciliation views live (#659, prod `20260701460000`); `/finance/reports` cost-center reports live (#667); `/finance/insights` + owner-dashboard finance insights live (#670); offshoot bank quantity ledger + display-only valuation backend live (#663, prod `20260701470000`) + UI/reporting/import live at `/farm/offshoots` (#672). No revenue/A-R, no close, no Excel dual-run. Next accounting-money slice: S-10 revenue/A-R + close; S-6 historical import waits for Stage-M. |
 | 8 People/payroll | 50% | Onboarding/attendance/labor live; payroll gated on wage model #388. |
 | 9 Weather | 70% | Gates + thresholds live; forecast service NOT configured in prod. |
 | 10 Care Academy | 20% | #366 draft; gated on agronomist + pesticide-registration sign-off (no agronomist engaged). |
@@ -27,11 +27,11 @@
 
 ## Top next actions (in order)
 
-1. **Owner+accountant meeting**: ETA e-invoicing determination (obligation **plausible-not-proven** — the "EGP 250k threshold / deadline passed" claim is DISPUTED after cross-verification; see `MARKET-DELTA-2026-07-02.md` §1) + review/refine the live default chart of accounts, cost centers, reports, owner insights, and offshoot valuation rules (#654/#661/#659/#667/#670/#663) + ETA memo (#578).
+1. **Owner+accountant meeting**: ETA e-invoicing determination (obligation **plausible-not-proven** — the "EGP 250k threshold / deadline passed" claim is DISPUTED after cross-verification; see `MARKET-DELTA-2026-07-02.md` §1) + review/refine the live default chart of accounts, cost centers, reports, owner insights, and offshoot valuation rules (#654/#661/#659/#667/#670/#663/#672) + ETA memo (#578).
 2. **Owner: close Stage 0** (#362) — one afternoon; unlocks the real-data path.
 3. **Owner: 1-click** leaked-password Auth toggle (#229 iii).
 4. **Owner decisions (cheap)**: wage model #388 · #157 budget-cap (4 one-line answers) · #199/#526 reservation semantics (one line).
-5. **Build now:** SPEC-0024 S-7b offshoot UI/reporting (بنك الفسائل) over the live quantity ledger, cost centers, and display-only valuation; keep valuation labelled and source-backed. **After 2:** real palm-registry import via SPEC-0020 path → #157 real budget gate → revenue/A-R + close slices.
+5. **Build now:** S-8b operational dashboard/360 linkage — assigned tasks on role dashboards + operations/plans on sector/hawsha/line/palm pages, then S-10 revenue/A-R + close. **After 2:** real palm-registry import via SPEC-0020 path → #157 real budget gate → historical import/reconciliation.
 6. **Money-integrity PRs** (from review): custody↔GL movement-type vocabulary + journal completeness; custody balance floor; `fn_reverse_journal_entry`; `audit_read` completeness pin (tests/97-style).
 7. **Field-readiness PRs**: ExecuteForm offline outbox; OperationBuilder `Number('')→0` fix; 8 forms missing network catch; storekeeper `/m/receive`. Full list: `REVIEW-360-2026-07-01.md` §Frontend.
 

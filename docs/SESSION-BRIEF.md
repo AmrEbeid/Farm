@@ -1,7 +1,47 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-7a live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-7b live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-7a offshoot bank backend live
+## 2026-07-04 (latest) — SPEC-0024 S-7b offshoot bank UI/reporting live
+
+Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-7b is now merged and
+live via PR **#672** (`main` merge commit **`5f87000`**). **No Supabase migration** was needed; this slice uses the
+S-7a production backend from `20260701470000_offshoot_bank`.
+
+**Completed and live:**
+- Farm → **بنك الفسائل** at `/farm/offshoots` for owner/accountant/farm-manager:
+  - physical movement KPIs for produced/planted/sold/available;
+  - movement-type filters;
+  - owner/farm-manager movement entry through `fn_record_offshoot_movement`;
+  - owner/accountant display-only valuation entry through `fn_set_offshoot_valuation`;
+  - chart toggle for movement flow vs expansion by cost center;
+  - searchable/sortable/exportable movement and destination tables.
+- S-7 import/template coverage:
+  - `offshoot-movements` import descriptor;
+  - `fn_record_offshoot_movement` added to the import convention list;
+  - import route now fills the active org for `p_org` RPC descriptors before commit.
+- Discoverability:
+  - farm nav/page-help/user manual updated;
+  - `/farm/dashboard`, `/dashboard/manager`, `/dashboard/owner`, and `/finance/dashboard` now link/surface the
+    offshoot bank.
+- Safety/accuracy:
+  - no revenue booking;
+  - no accounts receivable;
+  - no journal entry;
+  - no cash or custody movement;
+  - farm manager sees physical quantities only;
+  - owner/accountant valuation is explicitly estimate-only.
+
+**Validation:** local `git diff --check`, `npx tsc --noEmit`, full eslint, app Vitest **461/461**, `npm run build`,
+Recharts code-split guard, server/client-boundary guard, and full pgTAP **1322/1322** all green. PR checks,
+CodeRabbit, Vercel preview, and post-merge `main` `ci`, `db-tests`, `release`, Supabase Preview, Vercel production,
+and gitleaks are green for `5f87000`.
+
+**Resume point:** recommended next slice is **S-8b operational dashboard/360 linkage**: show assigned tasks on each
+role dashboard and show related operations/plans on sector/hawsha/line/palm 360 pages. This directly addresses the
+Owner's "everything linked and presented" concern before adding the next accounting-money slice. Next accounting-money
+slice after that: **S-10 revenue/A/R + close**, while S-6 historical workbook import remains Stage-M/real-data gated.
+
+## 2026-07-04 — SPEC-0024 S-7a offshoot bank backend live
 
 Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-7a is now merged and
 live via PR **#663** (`main` merge commit **`0775a75`**) after migrate-first production apply of
@@ -38,11 +78,8 @@ CodeRabbit, Supabase Preview, Vercel, gitleaks, package/storybook, app CI, `ci`,
 confirmed ledger row = 1, RLS/FORCE = true/true on both tables, authenticated SELECT, no direct DML grants,
 auth RPC EXEC = 2, anon RPC EXEC = 0, valuation audit-read coverage, and both audit triggers.
 
-**Resume point:** start **S-7b offshoot UI/reporting** from fresh `origin/main`. Recommended surface: one
-role-aware **بنك الفسائل** page that lets farm manager record physical movements, lets owner/accountant set
-valuation, shows owner/accountant valuation panels as estimates only, links movements to cost centers, and adds
-dashboard/navigation/reporting visibility. Keep no-revenue/no-cash/no-custody boundaries intact. S-6 historical
-workbook import remains Stage-M/real-data gated.
+**Historical resume point:** S-7b offshoot UI/reporting is now live above. S-6 historical workbook import remains
+Stage-M/real-data gated.
 
 ## 2026-07-04 (latest) — SPEC-0024 S-5 owner finance insights + owner dashboard adoption live
 

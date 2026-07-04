@@ -1,6 +1,22 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-7a live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-7b live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 S-7a offshoot bank backend LIVE (`main` `0775a75`, PR #663; prod migration `20260701470000`).**
+> **2026-07-04 (latest) — SPEC-0024 S-7b offshoot bank UI/reporting LIVE (`main` `5f87000`, PR #672; no migration).**
+> Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
+> **S-0 + S-8a + S-1 + S-2 + S-3 + S-4 + S-5 + S-7a + S-7b**. S-7b adds the live **بنك الفسائل**
+> surface at `/farm/offshoots` for owner/accountant/farm-manager: physical movement KPIs, movement-type filters,
+> movement entry through `fn_record_offshoot_movement`, owner/accountant display-only valuation through
+> `fn_set_offshoot_valuation`, chart toggle for movement flow vs expansion by cost center, searchable/sortable/
+> exportable movement and destination tables, and the S-7 import descriptor/template for offshoot movements. Farm
+> manager sees physical quantities only; owner/accountant see valuation estimates. Farm, manager, owner, and finance
+> dashboards now link/surface the offshoot bank. This slice deliberately has **no Supabase migration**, no revenue,
+> no accounts receivable, no journal posting, no cash movement, and no custody movement. Validation: local
+> `git diff --check`, `tsc`, full eslint, app Vitest **461/461**, production build, Recharts guard, server/client
+> boundary guard, full pgTAP **1322/1322**; PR #672 checks and post-merge `main` checks are green (`ci`,
+> `db-tests`, `release`, Supabase Preview, Vercel production, gitleaks, CodeRabbit). Next recommendation: **S-8b
+> operational dashboard/360 linkage** for assigned tasks + operations/plans on sector/hawsha/line/palm pages, then the
+> next accounting-money slice (**S-10 revenue/A-R + close**) after the operational links are not blind.
+
+> **2026-07-04 — SPEC-0024 S-7a offshoot bank backend LIVE (`main` `0775a75`, PR #663; prod migration `20260701470000`).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
 > **S-0 + S-8a + S-1 + S-2 + S-3 + S-4 + S-5 + S-7a**. S-7a adds the standalone **بنك الفسائل**
 > backend: `offshoot_movements`, `offshoot_valuation`, audit triggers, `fn_record_offshoot_movement`, and
@@ -16,9 +32,8 @@
 > Production apply used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`; dry-run showed exactly one pending
 > migration, apply succeeded, post-apply dry-run was clean, and probes confirmed the ledger row, RLS/FORCE RLS,
 > authenticated SELECT, no direct DML grants, authenticated RPC execution only, anon RPC execution = 0, valuation
-> audit-read coverage, and both audit triggers. Next slice: **S-7b offshoot UI/reporting** for physical flows,
-> valuation panels, movement entry, and dashboard links; S-6 historical workbook import remains Stage-M/real-data
-> gated.
+> audit-read coverage, and both audit triggers. Historical next slice was S-7b, now live above; S-6 historical workbook
+> import remains Stage-M/real-data gated.
 
 > **2026-07-04 (latest) — SPEC-0024 S-5 owner finance insights + owner dashboard adoption LIVE (`main` `139d04a`, PR #670; no migration).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
@@ -1042,7 +1057,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot backend live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`). Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next SPEC-0024 build is S-7b offshoot UI/reporting, while S-6 waits for Stage-M. |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot bank live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`); PR #672 ships `/farm/offshoots` UI/reporting/import over it. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next money slice is S-10 revenue/A-R + close, while S-6 waits for Stage-M. |
 | 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
