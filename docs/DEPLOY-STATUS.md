@@ -2,7 +2,21 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0018-EXT Slices 3/4 custody report pack LIVE; prod ledger head `20260701490000`.**
+> **2026-07-04 (latest) — SPEC-0024 S-10 / SPEC-0018-EXT Slice 5 revenue/A-R backend LIVE; prod ledger head `20260701500000`.**
+> PR **#676** merged to `main` at **`3933d1f`** after migrate-first production apply. Scope:
+> `buyers`, `sales`, `sale_collections`, `fn_save_buyer`, `fn_save_sale`, `fn_finalize_sale_price`, and
+> `fn_record_sale_collection`. Pending-price deliveries keep `unit_price`/`total` NULL and post no journal.
+> Finalizing price posts Dr A/R / Cr sales revenue; collections post Dr sales cash / Cr A/R and reject
+> over-collection. Same-org guards cover buyer, cost center, farm, sector, and hawsha references; reads stay
+> `finance.read`; writes reuse owner/accountant `budget.write`; no `authorize()` permission widening. Backend only:
+> revenue report UI, A/R aging, close/period lock, trusted P&L, and Excel dual-run remain future slices.
+> Production apply used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`: dry-run showed exactly
+> `20260701500000_revenue_sales`, apply succeeded, and post-apply dry-run was clean. Validation: local
+> `git diff --check`, `tsc`, focused eslint, full eslint, app Vitest **464/464**, production build, Recharts
+> guard, server/client-boundary guard, full pgTAP **1390/1390**, PR checks + CodeRabbit + Vercel preview green.
+> Post-merge `main` `ci`, `db-tests`, `release`, and Vercel production are green for **`3933d1f`**.
+>
+> **2026-07-04 — SPEC-0018-EXT Slices 3/4 custody report pack LIVE; prod ledger head `20260701490000`.**
 > PR **#675** merged to `main` at **`2e11f6a`** after migrate-first production apply. Scope:
 > finance-read-only report RPCs (`fn_custody_ledger_report`, `fn_custody_cash_expense_report`,
 > `fn_unpaid_obligations_report`, `fn_owner_funding_report`) plus `/finance/custody-reports` for period custody

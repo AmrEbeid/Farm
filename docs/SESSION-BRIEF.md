@@ -1,7 +1,48 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0018-EXT custody reports live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-10 revenue/A-R backend live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0018-EXT Slices 3/4 custody report pack live
+## 2026-07-04 (latest) — SPEC-0024 S-10 / SPEC-0018-EXT Slice 5 revenue/A-R backend live
+
+Continuation under the Owner's autonomous "keep working until live" instruction. S-10 revenue/A-R backend is now
+merged and live via PR **#676** (`main` merge commit **`3933d1f`**) after migrate-first production apply of
+**`20260701500000_revenue_sales`** to Farm Supabase project `veezkmytervjnpxcrbkw`.
+
+**Completed and live:**
+- Backend:
+  - `buyers`;
+  - `sales`;
+  - `sale_collections`;
+  - `fn_save_buyer`;
+  - `fn_save_sale`;
+  - `fn_finalize_sale_price`;
+  - `fn_record_sale_collection`;
+  - new pgTAP `115_revenue_sales`.
+- Workflow:
+  - pending delivery/sale rows carry crop/qty/context while `unit_price` and `total` stay NULL;
+  - pending rows post no journal entry;
+  - finalizing price posts Dr A/R / Cr sales revenue;
+  - partial/final collections post Dr sales cash / Cr A/R and reject over-collection.
+
+**Safety/accuracy:**
+- no fabricated zero for unknown sale price;
+- same-org guards for buyer, cost center, farm, sector, and hawsha dimensions;
+- reads require `finance.read`;
+- writes reuse owner/accountant `budget.write`;
+- no `authorize()` permission widening and no farm-manager finance access;
+- backend only: no revenue report UI, A/R aging UI, close/period lock, or trusted P&L yet.
+
+**Production apply and validation:** Supabase CLI dry-run showed exactly one pending migration,
+`20260701500000_revenue_sales`; apply succeeded; post-apply dry-run reported the remote database up to date. Local
+validation: `git diff --check`, `npx tsc --noEmit`, focused eslint, full eslint, app Vitest **464/464**,
+`npm run build`, Recharts guard, server/client-boundary guard, and full pgTAP **1390/1390**. PR checks + CodeRabbit
++ Vercel preview were green. Post-merge `main` `ci`, `db-tests`, `release`, and Vercel production are green for
+`3933d1f`.
+
+**Resume point:** next accounting recommendation is **S-10b revenue reports + A/R aging**, then close/period lock
+and trusted P&L/balance-sheet work. Custody polish still remaining: PDF export, receipt/proof capture, and richer
+proof/completeness flags. S-6 historical workbook import remains Stage-M/real-data gated.
+
+## 2026-07-04 — SPEC-0018-EXT Slices 3/4 custody report pack live
 
 Continuation under the Owner's autonomous "keep working until live" instruction. The custody report pack is now
 merged and live via PR **#675** (`main` merge commit **`2e11f6a`**) after migrate-first production apply of
@@ -35,9 +76,9 @@ validation: `git diff --check`, `npx tsc --noEmit`, focused eslint, full eslint,
 app Vitest **464/464**, `npm run build`, Recharts guard, server/client-boundary guard, and full pgTAP **1366/1366**.
 PR checks + CodeRabbit + Vercel preview were green. Post-merge Vercel production is green for `2e11f6a`.
 
-**Resume point:** next accounting-money recommendation remains **S-10 revenue/A/R + close**. Remaining custody polish:
-PDF export, receipt/proof capture, and richer proof/completeness flags. S-6 historical workbook import remains
-Stage-M/real-data gated.
+**Resume point:** since #676 is now live, next accounting-money recommendation is **S-10b revenue reports + A/R
+aging**, then close/period lock. Remaining custody polish: PDF export, receipt/proof capture, and richer proof/
+completeness flags. S-6 historical workbook import remains Stage-M/real-data gated.
 
 ## 2026-07-04 — SPEC-0018-EXT S1 custody holder-transfer live
 
@@ -71,10 +112,9 @@ build`, Recharts guard, server/client-boundary guard, and full pgTAP **1338/1338
 preview were green. Post-merge `main` `ci`, `db-tests`, `release`, Supabase Preview, Vercel production, and gitleaks
 are green for `b072ed4`.
 
-**Resume point:** next accounting-money recommendation remains **S-10 revenue/A/R + close**. If prioritizing
-accountant daily workflow before S-10, the next low-risk custody polish is SPEC-0018-EXT Slices 3/4: custody ledger by
-holder, cash-expense report, unpaid obligations report, and owner funding/replenishment report. S-6 historical workbook
-import remains Stage-M/real-data gated.
+**Resume point:** since #675/#676 are now live, next accounting-money recommendation is **S-10b revenue reports + A/R
+aging**, then close/period lock. Remaining custody polish is PDF export, receipt/proof capture, and proof/completeness
+flags. S-6 historical workbook import remains Stage-M/real-data gated.
 
 ## 2026-07-04 — SPEC-0024 S-8b operational dashboard/360 linkage live
 
@@ -111,8 +151,9 @@ app Vitest **464/464**, `npm run build`, Recharts code-split guard, server/clien
 **1322/1322** all green. PR checks, CodeRabbit, Vercel preview, and post-merge `main` `ci`, `db-tests`, `release`,
 Supabase Preview, Vercel production, and gitleaks are green for `ad9b6f3`.
 
-**Resume point:** recommended next slice is **S-10 revenue/A/R + close** as the next accounting-money slice. S-6
-historical workbook import remains Stage-M/real-data gated; Stage 0 still gates real registry/accounting data import.
+**Resume point:** since #676 is now live, recommended next slice is **S-10b revenue reports + A/R aging**, then
+close/period lock. S-6 historical workbook import remains Stage-M/real-data gated; Stage 0 still gates real
+registry/accounting data import.
 The broader OPS lane can continue deeper 360 usability after S-10, but S-8b closes the immediate "assigned tasks and
 linked operations/plans are missing from dashboards/360" gap.
 
@@ -151,10 +192,8 @@ Recharts code-split guard, server/client-boundary guard, and full pgTAP **1322/1
 CodeRabbit, Vercel preview, and post-merge `main` `ci`, `db-tests`, `release`, Supabase Preview, Vercel production,
 and gitleaks are green for `5f87000`.
 
-**Resume point:** recommended next slice is **S-8b operational dashboard/360 linkage**: show assigned tasks on each
-role dashboard and show related operations/plans on sector/hawsha/line/palm 360 pages. This directly addresses the
-Owner's "everything linked and presented" concern before adding the next accounting-money slice. Next accounting-money
-slice after that: **S-10 revenue/A/R + close**, while S-6 historical workbook import remains Stage-M/real-data gated.
+**Resume point:** S-8b and S-10 backend are now live. Next accounting-money slice is **S-10b revenue reports + A/R
+aging**, then close, while S-6 historical workbook import remains Stage-M/real-data gated.
 
 ## 2026-07-04 — SPEC-0024 S-7a offshoot bank backend live
 

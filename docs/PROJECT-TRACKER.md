@@ -1,6 +1,22 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0018-EXT custody reports live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-10 revenue/A-R backend live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0018-EXT Slices 3/4 custody report pack LIVE (`main` `2e11f6a`, PR #675; prod migration `20260701490000`).**
+> **2026-07-04 (latest) — SPEC-0024 S-10 / SPEC-0018-EXT Slice 5 revenue/A-R backend LIVE (`main` `3933d1f`, PR #676; prod migration `20260701500000`).**
+> This ships the backend foundation for delivery-before-price sales and A/R: `buyers`, `sales`,
+> `sale_collections`, `fn_save_buyer`, `fn_save_sale`, `fn_finalize_sale_price`, and
+> `fn_record_sale_collection`. Pending deliveries keep `unit_price`/`total` NULL and post **no journal**. Price
+> finalization posts Dr `1200` A/R / Cr `4000` sales revenue through the existing accounting kernel. Collections
+> support partial/final receipts, reject over-collection, and post Dr `1100` sales cash / Cr `1200` A/R.
+> Cross-org guards cover buyer, cost center, farm, sector, and hawsha dimensions. Permission posture: reads require
+> `finance.read`; writes reuse owner/accountant `budget.write`; no new `sale.write`, no `authorize()` re-emit, no
+> farm-manager finance access. Production apply used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`:
+> dry-run showed exactly `20260701500000_revenue_sales`, apply succeeded, and post-apply dry-run reported the remote
+> DB up to date. Validation: local `git diff --check`, `tsc`, focused eslint, full eslint, app Vitest **464/464**,
+> production build, Recharts guard, server/client-boundary guard, and full pgTAP **1390/1390** including new
+> `115_revenue_sales`; PR #676 checks + CodeRabbit + Vercel preview green; post-merge `main` `ci`, `db-tests`,
+> `release`, and Vercel production green for `3933d1f`. Backend only: next lane is **S-10b revenue reports + A/R
+> aging**, then close/period lock and trusted P&L reconciliation.
+
+> **2026-07-04 — SPEC-0018-EXT Slices 3/4 custody report pack LIVE (`main` `2e11f6a`, PR #675; prod migration `20260701490000`).**
 > This ships the accountant-facing monthly report pack at `/finance/custody-reports`: holder opening/period/closing
 > custody ledger, custody-paid cash expenses by holder, unpaid/debt obligations with aging, and owner funding/
 > replenishment rows. Migration `20260701490000_custody_reports` adds four finance-read-only RPCs:
@@ -11,8 +27,9 @@
 > post-apply dry-run reported the remote DB up to date. Validation: local `git diff --check`, `tsc`, focused eslint,
 > full eslint, focused nav/help tests **17/17**, app Vitest **464/464**, production build, Recharts guard,
 > server/client-boundary guard, and full pgTAP **1366/1366** including new `120_custody_reports`; PR #675 checks +
-> CodeRabbit + Vercel preview green; post-merge Vercel production green for `2e11f6a`. Next accounting-money
-> recommendation remains **S-10 revenue/A-R + close**; PDF export/proof capture are remaining custody polish.
+> CodeRabbit + Vercel preview green; post-merge Vercel production green for `2e11f6a`. Since #676 is now live, the
+> next accounting-money lane is **S-10b revenue reports + A/R aging**, then close; PDF export/proof capture remain
+> custody polish.
 
 > **2026-07-04 — SPEC-0018-EXT S1 custody holder-transfer LIVE (`main` `b072ed4`, PR #674; prod migration `20260701480000`).**
 > This closes the Owner's exact custody handover gap: farm-manager custody cash can now be transferred to the
@@ -26,9 +43,9 @@
 > Validation: local `git diff --check`, `tsc`, focused eslint, full eslint, app Vitest **464/464**, production build,
 > Recharts guard, server/client-boundary guard, and full pgTAP **1338/1338** including new
 > `119_custody_transfer`; PR #674 checks + CodeRabbit + Vercel preview green; post-merge `main` checks green (`ci`,
-> `db-tests`, `release`, Supabase Preview, Vercel production, gitleaks). Next accounting recommendation remains
-> **S-10 revenue/A-R + close**; low-risk custody report slices (ledger by holder, cash expenses, unpaid obligations,
-> owner funding/replenishment) are the next custody polish if prioritized before S-10.
+> `db-tests`, `release`, Supabase Preview, Vercel production, gitleaks). Since #675/#676 are now live, the next
+> accounting lane is **S-10b revenue reports + A/R aging**, then close; remaining custody polish is PDF/proof
+> packaging.
 
 > **2026-07-04 — SPEC-0024 S-8b operational dashboard/360 linkage LIVE (`main` `ad9b6f3`, PR #673; no migration).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
@@ -47,8 +64,8 @@
 > Validation: local `git diff --check`, `tsc`, full eslint, focused linked/nav/help tests **20/20**, app Vitest
 > **464/464**, production build, Recharts guard, server/client-boundary guard, and full pgTAP **1322/1322**; PR #673
 > checks and post-merge `main` checks are green (`ci`, `db-tests`, `release`, Supabase Preview, Vercel production,
-> gitleaks, CodeRabbit). Next recommendation: **S-10 revenue/A-R + close** as the next accounting-money slice; S-6
-> historical workbook import remains Stage-M/real-data gated.
+> gitleaks, CodeRabbit). Since #676 is now live, the next recommendation is **S-10b revenue reports + A/R aging**,
+> then close; S-6 historical workbook import remains Stage-M/real-data gated.
 
 > **2026-07-04 — SPEC-0024 S-7b offshoot bank UI/reporting LIVE (`main` `5f87000`, PR #672; no migration).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
@@ -62,9 +79,8 @@
 > no accounts receivable, no journal posting, no cash movement, and no custody movement. Validation: local
 > `git diff --check`, `tsc`, full eslint, app Vitest **461/461**, production build, Recharts guard, server/client
 > boundary guard, full pgTAP **1322/1322**; PR #672 checks and post-merge `main` checks are green (`ci`,
-> `db-tests`, `release`, Supabase Preview, Vercel production, gitleaks, CodeRabbit). Next recommendation: **S-8b
-> operational dashboard/360 linkage** for assigned tasks + operations/plans on sector/hawsha/line/palm pages, then the
-> next accounting-money slice (**S-10 revenue/A-R + close**) after the operational links are not blind.
+> `db-tests`, `release`, Supabase Preview, Vercel production, gitleaks, CodeRabbit). S-8b and S-10 backend are now
+> live; next accounting-money lane is **S-10b revenue reports + A/R aging**, then close.
 
 > **2026-07-04 — SPEC-0024 S-7a offshoot bank backend LIVE (`main` `0775a75`, PR #663; prod migration `20260701470000`).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
@@ -1107,7 +1123,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot bank live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`); PR #672 ships `/farm/offshoots` UI/reporting/import over it. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next money slice is S-10 revenue/A-R + close, while S-6 waits for Stage-M. |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot bank + revenue/A-R backend live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`); PR #672 ships `/farm/offshoots` UI/reporting/import over it. PR #676 ships S-10 revenue/A-R backend (`20260701500000`): delivery-before-price sales, buyer master, partial/final collections, and A/R/cash journals. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next money slice is S-10b revenue reports + A/R aging, then close/period lock, while S-6 waits for Stage-M. |
 | 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
