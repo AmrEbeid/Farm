@@ -33,6 +33,23 @@ type PlanEmbed = {
   status?: string | null;
 };
 
+type OperationRow = Omit<LinkedOperation, "plan"> & {
+  plan?: PlanEmbed | PlanEmbed[] | null;
+  plans?: PlanEmbed | PlanEmbed[] | null;
+};
+
+export type LinkedPerson = {
+  id: string;
+  name: string | null;
+  position: string | null;
+};
+
+export type LinkedTargetLabel = {
+  label: string;
+  href?: string;
+  scope: string;
+};
+
 export type LinkedOperation = {
   id: string;
   plan_id: string;
@@ -151,6 +168,8 @@ export type LinkedWorkContext = {
   journalLines: LinkedJournalLine[];
   accounts: LinkedAccount[];
   assigneesByOperation: Map<string, LinkedAssignee[]>;
+  peopleById: Map<string, LinkedPerson>;
+  targetLabelsByKey: Map<string, LinkedTargetLabel>;
   openOperations: LinkedOperation[];
   unassignedOperations: LinkedOperation[];
   dueOperations: LinkedOperation[];
@@ -178,16 +197,28 @@ export async function getLinkedWorkContext(
   },
 ): Promise<LinkedWorkContext> {
   const ids = await resolveEntityIds(sb, orgId, entityType, entityId);
-  const plans = await fetchPlans(sb, orgId, ids);
-  const planIds = new Set(plans.map((plan) => plan.id));
+  const scopedPlans = await fetchPlans(sb, orgId, ids);
+  const planIds = new Set(scopedPlans.map((plan) => plan.id));
   const operations = await fetchOperations(sb, orgId, ids, planIds);
   operations.forEach((op) => planIds.add(op.plan_id));
+  const plans = mergeLinkedPlans(scopedPlans, operations);
 
-  const [assignees, events] = await Promise.all([
+  const [assigneeRows, events, targetLabelsByKey] = await Promise.all([
     fetchAssignees(sb, operations.map((op) => op.id)),
     fetchEvents(sb, orgId, ids),
+    fetchTargetLabels(sb, orgId, plans, operations),
   ]);
   const eventIds = new Set(events.map((event) => event.id));
+  const peopleById = await fetchPeopleMap(sb, [
+    ...operations.map((op) => op.responsible_person_id),
+    ...assigneeRows.map((assignee) => assignee.person_id),
+    ...events.map((event) => event.performed_by_person_id),
+    ...events.map((event) => event.assigned_to_person_id),
+  ]);
+  const assignees = assigneeRows.map((assignee) => ({
+    ...assignee,
+    person: peopleById.get(assignee.person_id) ?? null,
+  }));
   const assigneesByOperation = groupAssignees(assignees);
 
   const finance = canSeeFinance
@@ -219,11 +250,73 @@ export async function getLinkedWorkContext(
     events,
     ...finance,
     assigneesByOperation,
+    peopleById,
+    targetLabelsByKey,
     openOperations,
     unassignedOperations,
     dueOperations,
     financeTotals: buildFinanceTotals(finance),
   };
+}
+
+export function linkedTargetKey(
+  targetType: string | null | undefined,
+  targetId: string | null | undefined,
+): string | null {
+  if (!targetType) return null;
+  if (targetType === "farm" && !targetId) return "farm:*";
+  return targetId ? `${targetType}:${targetId}` : null;
+}
+
+export function labelForLinkedTarget(
+  labels: Map<string, LinkedTargetLabel>,
+  targetType: string | null | undefined,
+  targetId: string | null | undefined,
+): string {
+  const key = linkedTargetKey(targetType, targetId);
+  if (!key) return "—";
+  return labels.get(key)?.label ?? "—";
+}
+
+export function hrefForLinkedTarget(
+  labels: Map<string, LinkedTargetLabel>,
+  targetType: string | null | undefined,
+  targetId: string | null | undefined,
+): string | undefined {
+  const key = linkedTargetKey(targetType, targetId);
+  return key ? labels.get(key)?.href : undefined;
+}
+
+export function planFromOperation(op: LinkedOperation): PlanRow | null {
+  const plan = normalizePlanEmbed(op.plan);
+  if (!plan?.id) return null;
+  return {
+    id: plan.id,
+    type: plan.type ?? null,
+    period_start: plan.period_start ?? null,
+    period_end: plan.period_end ?? null,
+    scope_type: plan.scope_type ?? null,
+    scope_id: plan.scope_id ?? null,
+    status: plan.status ?? "draft",
+  };
+}
+
+export function mergeLinkedPlans(plans: PlanRow[], operations: LinkedOperation[]): PlanRow[] {
+  const byId = new Map(plans.map((plan) => [plan.id, plan]));
+  for (const op of operations) {
+    const plan = planFromOperation(op);
+    if (plan && !byId.has(plan.id)) byId.set(plan.id, plan);
+  }
+  return [...byId.values()].sort((a, b) => {
+    const left = b.period_start ?? "";
+    const right = a.period_start ?? "";
+    return left.localeCompare(right) || a.id.localeCompare(b.id);
+  });
+}
+
+function normalizePlanEmbed(plan: PlanEmbed | PlanEmbed[] | null | undefined): PlanEmbed | null {
+  if (Array.isArray(plan)) return plan[0] ?? null;
+  return plan ?? null;
 }
 
 async function resolveEntityIds(
@@ -431,16 +524,19 @@ async function fetchOperations(
   const { data, error } = await sb
     .from("plan_operations")
     .select(
-      "id, plan_id, subtype, target_type, target_id, planned_at, ends_on, est_cost, status, responsible_person_id, plans(id, type, period_start, period_end, scope_type, scope_id, status)",
+      "id, plan_id, subtype, target_type, target_id, planned_at, ends_on, est_cost, status, responsible_person_id, plan:plans(id, type, period_start, period_end, scope_type, scope_id, status)",
     )
     .eq("org_id", orgId)
     .order("planned_at", { ascending: true })
     .limit(200);
   if (error) throw error;
 
-  return ((data ?? []) as unknown as LinkedOperation[]).filter(
-    (op) => planIds.has(op.plan_id) || matchesScope(op.target_type, op.target_id, ids),
-  );
+  return ((data ?? []) as unknown as OperationRow[])
+    .filter((op) => planIds.has(op.plan_id) || matchesScope(op.target_type, op.target_id, ids))
+    .map((op) => ({
+      ...op,
+      plan: normalizePlanEmbed(op.plan ?? op.plans ?? null),
+    }));
 }
 
 async function fetchAssignees(
@@ -453,19 +549,12 @@ async function fetchAssignees(
     .select("id, plan_op_id, person_id, is_lead")
     .in("plan_op_id", operationIds);
   if (error) throw error;
-  const rows = data ?? [];
-  const personIds = unique(rows.map((row) => row.person_id));
-  const { data: people, error: peopleError } = personIds.length
-    ? await sb.from("people").select("id, name, position").in("id", personIds)
-    : { data: [], error: null };
-  if (peopleError) throw peopleError;
-  const peopleById = new Map((people ?? []).map((person) => [person.id, person]));
-  return rows.map((row) => ({
+  return (data ?? []).map((row) => ({
     id: row.id,
     plan_op_id: row.plan_op_id,
     person_id: row.person_id,
     is_lead: row.is_lead,
-    person: peopleById.get(row.person_id) ?? null,
+    person: null,
   }));
 }
 
@@ -520,6 +609,151 @@ async function addLocationEventIds(
     .in(column, values);
   if (error) throw error;
   for (const row of data ?? []) eventIds.add(row.event_id);
+}
+
+async function fetchPeopleMap(
+  sb: SupabaseServerClient,
+  rawIds: (string | null | undefined)[],
+): Promise<Map<string, LinkedPerson>> {
+  const ids = unique(rawIds);
+  if (ids.length === 0) return new Map();
+  const { data, error } = await sb
+    .from("people")
+    .select("id, name, position")
+    .in("id", ids);
+  if (error) throw error;
+  return new Map((data ?? []).map((person) => [person.id, person]));
+}
+
+async function fetchTargetLabels(
+  sb: SupabaseServerClient,
+  orgId: string,
+  plans: PlanRow[],
+  operations: LinkedOperation[],
+): Promise<Map<string, LinkedTargetLabel>> {
+  const targets: Record<LinkedEntityType, Set<string>> = {
+    farm: new Set(),
+    sector: new Set(),
+    hawsha: new Set(),
+    line: new Set(),
+    palm: new Set(),
+  };
+  let includeWholeFarm = false;
+
+  for (const plan of plans) {
+    if (plan.scope_type === "farm" && !plan.scope_id) includeWholeFarm = true;
+    addTargetId(targets, plan.scope_type, plan.scope_id);
+  }
+  for (const op of operations) {
+    if (op.target_type === "farm" && !op.target_id) includeWholeFarm = true;
+    addTargetId(targets, op.target_type, op.target_id);
+    const plan = normalizePlanEmbed(op.plan);
+    if (plan?.scope_type === "farm" && !plan.scope_id) includeWholeFarm = true;
+    addTargetId(targets, plan?.scope_type, plan?.scope_id);
+  }
+
+  const labels = new Map<string, LinkedTargetLabel>();
+  if (includeWholeFarm) {
+    labels.set("farm:*", { label: "المزرعة كلها", href: "/farm", scope: "المزرعة" });
+  }
+
+  const [farms, sectors, hawshat, lines, palms] = await Promise.all([
+    targets.farm.size
+      ? sb
+          .from("farms")
+          .select("id, name, code")
+          .eq("org_id", orgId)
+          .in("id", [...targets.farm])
+      : { data: [], error: null },
+    targets.sector.size
+      ? sb
+          .from("sectors")
+          .select("id, name, code")
+          .eq("org_id", orgId)
+          .in("id", [...targets.sector])
+      : { data: [], error: null },
+    targets.hawsha.size
+      ? sb
+          .from("hawshat")
+          .select("id, name, code")
+          .eq("org_id", orgId)
+          .in("id", [...targets.hawsha])
+      : { data: [], error: null },
+    targets.line.size
+      ? sb
+          .from("lines")
+          .select("id, line_no, line_code")
+          .eq("org_id", orgId)
+          .in("id", [...targets.line])
+      : { data: [], error: null },
+    targets.palm.size
+      ? sb
+          .from("assets")
+          .select("id, id_tag, name")
+          .eq("org_id", orgId)
+          .eq("type", "palm")
+          .in("id", [...targets.palm])
+      : { data: [], error: null },
+  ]);
+  for (const result of [farms, sectors, hawshat, lines, palms]) {
+    if (result.error) throw result.error;
+  }
+
+  for (const farm of farms.data ?? []) {
+    labels.set(linkedTargetKey("farm", farm.id)!, {
+      label: farm.name ?? farm.code ?? "المزرعة",
+      href: "/farm",
+      scope: "المزرعة",
+    });
+  }
+  for (const sector of sectors.data ?? []) {
+    labels.set(linkedTargetKey("sector", sector.id)!, {
+      label: sector.name ?? sector.code ?? "قطاع",
+      href: `/farm/sector/${sector.id}`,
+      scope: "قطاع",
+    });
+  }
+  for (const hawsha of hawshat.data ?? []) {
+    labels.set(linkedTargetKey("hawsha", hawsha.id)!, {
+      label: hawsha.name ?? hawsha.code ?? "حوشة",
+      href: `/farm/hawsha/${hawsha.id}`,
+      scope: "حوشة",
+    });
+  }
+  for (const line of lines.data ?? []) {
+    const label = line.line_code ? `خط ${line.line_no} · ${line.line_code}` : `خط ${line.line_no}`;
+    labels.set(linkedTargetKey("line", line.id)!, {
+      label,
+      href: `/farm/line/${line.id}`,
+      scope: "خط",
+    });
+  }
+  for (const palm of palms.data ?? []) {
+    labels.set(linkedTargetKey("palm", palm.id)!, {
+      label: palm.id_tag ?? palm.name ?? "نخلة",
+      href: `/farm/palm/${palm.id}`,
+      scope: "نخلة",
+    });
+  }
+
+  return labels;
+}
+
+function addTargetId(
+  targets: Record<LinkedEntityType, Set<string>>,
+  targetType: string | null | undefined,
+  targetId: string | null | undefined,
+) {
+  if (!targetId) return;
+  if (
+    targetType === "farm" ||
+    targetType === "sector" ||
+    targetType === "hawsha" ||
+    targetType === "line" ||
+    targetType === "palm"
+  ) {
+    targets[targetType].add(targetId);
+  }
 }
 
 async function fetchFinanceLinks(
