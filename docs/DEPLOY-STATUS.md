@@ -2,7 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-3 cost centers + accounting dimension LIVE; prod ledger head `20260701460000`.**
+> **2026-07-04 (latest) — SPEC-0024 S-4 cost-center reports / Owner Insights v1 LIVE; no migration.**
+> PR **#667** merged to `main` at **`b23024a`**. Scope: owner/accountant `/finance/reports` over the live S-3
+> cost-center views, with KPI-card filters, unallocated line count, reconciliation flags, cost/revenue/net/per-feddan
+> rollup, searchable/sortable/exportable tables, multi-insight charts, and the account × year × center matrix. Journal
+> rows are batched to avoid hidden PostgREST row caps; revenue is not fabricated before S-10. The finance dashboard
+> and accounting page now link to the report. **No Supabase migration / prod DB apply:** this uses live migration
+> `20260701460000_cost_centers`. Validation before merge: `tsc`, focused eslint, focused nav/help/table tests
+> **22/22**, app Vitest **454/454**, production build, Recharts bundle guard, server/client-boundary guard, full pgTAP
+> **1309/1309**, and `git diff --check`; PR checks + CodeRabbit + Vercel green. Post-merge `main` checks are green:
+> `ci`, `db-tests`, `release`, Supabase Preview, and Vercel production status for `b23024a`.
+>
+> **2026-07-04 — SPEC-0024 S-3 cost centers + accounting dimension LIVE; prod ledger head `20260701460000`.**
 > PR **#659** merged to `main` at **`ed827e1`** after migrate-first production apply. Scope:
 > `cost_centers` editable org-scoped tree with RLS + FORCE RLS + RPC-only writes; protected `CC-UNALLOC` system
 > center; the 18 real Ebeid accounting cost centers seeded from the Owner workbook when canonical physical sectors

@@ -1,7 +1,42 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-3 live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-4 live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-3 cost centers + accounting dimension live
+## 2026-07-04 (latest) — SPEC-0024 S-4 cost-center reports / Owner Insights v1 live
+
+Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-4 is now merged and
+live via PR **#667** (`main` merge commit **`b23024a`**). **No Supabase migration** was needed; this slice uses the
+S-3 production backend/views from `20260701460000_cost_centers`.
+
+**Completed and live:**
+- Finance → **تقارير التكلفة** at `/finance/reports` for owner/accountant:
+  - KPI-card filters for all centers, centers with posted lines, unallocated lines, and reconciliation flags;
+  - cost/revenue/net/per-feddan rollup from `v_cost_center_rollup`;
+  - explicit reconciliation flags from `v_cost_center_reconciliation_flags`;
+  - account × year × center matrix;
+  - searchable, sortable, exportable tables;
+  - multi-insight charts for center and year views.
+- Safety/accuracy:
+  - no fabricated revenue before S-10;
+  - journal/account rows are read in batches to avoid hidden PostgREST row caps;
+  - `CC-UNALLOC` / غير موزع remains visible instead of guessed away;
+  - farm-manager does not get the owner/accountant absolute-money report.
+- Discoverability:
+  - finance dashboard and accounting page link to `/finance/reports`;
+  - nav/page-help/user manual updated;
+  - `SimpleTable` now renders `kind: "num"` through Arabic-Indic formatting.
+
+**Validation:** local `npx tsc --noEmit`, focused eslint, focused nav/help/table tests **22/22**, app Vitest **454/454**,
+`npm run build`, Recharts code-split guard, server/client-boundary guard, full pgTAP **1309/1309**, and
+`git diff --check` all green. PR checks + CodeRabbit + Vercel preview green. Post-merge `main` `ci`, `db-tests`,
+`release`, Supabase Preview, and Vercel production status are green for `b23024a`.
+
+**Resume point:** start **S-5 Owner Insights + owner-dashboard adoption** from fresh `origin/main`. Keep it
+report-only/live-data-only: use posted years only, no modeled history, no AI calls, no wage/PII leakage, no new money
+movement RPCs, no `public.authorize()` re-emit, and no stock/reservation engine changes. Recommended first S-5 cut:
+add owner dashboard panels linking to `/finance/reports` plus rule-based insight cards over the live S-4 aggregates;
+defer revenue mix/crop margins until S-10 revenue exists.
+
+## 2026-07-04 — SPEC-0024 S-3 cost centers + accounting dimension live
 
 Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-3 is now merged and
 live via PR **#659** (`main` merge commit **`ed827e1`**) after migrate-first production apply of
@@ -36,7 +71,7 @@ confirmed ledger row = 1, RLS/FORCE = true/true, table/columns/views/RPCs presen
 and Ebeid real centers = 18. Post-merge `main` `ci`, `db-tests`, `release`, Supabase Preview, and Vercel production
 status all green for `ed827e1`.
 
-**Resume point:** start **S-4 reports / Owner Insights v1** from fresh `origin/main`, using `v_cost_center_rollup`
+**Historical resume point:** start **S-4 reports / Owner Insights v1** from fresh `origin/main`, using `v_cost_center_rollup`
 and `v_cost_center_reconciliation_flags`. Keep it report-first and real-data-only: no fabricated finance figures, no
 new money movement RPCs, no `public.authorize()` re-emit unless unavoidable and reviewed, and no stock/reservation
 engine changes. Recommended first S-4 surface: owner/accountant cost-center report with KPI cards, searchable/sortable
