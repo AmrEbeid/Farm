@@ -29,6 +29,13 @@ const ACTIONS: ActionCard[] = [
     roles: ["owner", "accountant"],
   },
   {
+    href: "/record/price",
+    icon: "🏷️",
+    title: "حدّدت سعر بيع",
+    hint: "سعّر التسليمات المعلّقة — القيد يدخل الدفاتر فورًا",
+    roles: ["owner", "accountant"],
+  },
+  {
     href: "/record/collect",
     icon: "💰",
     title: "حصّلت فلوسًا من عميل",

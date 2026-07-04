@@ -224,3 +224,17 @@ export async function quickAddBuyer(name: string): Promise<{ ok: boolean; id?: s
   if (error || !data) return { ok: false, error: toArabicError(error, {}, "تعذّر إضافة التاجر") };
   return { ok: true, id: (data as { id: string }).id };
 }
+
+// ── R-3 — «حدّدت سعرًا»: pricing a pending delivery posts Dr ذمم / Cr إيراد in the gated RPC ──────────
+export async function finalizeSalePrice(saleId: string, unitPrice: number): Promise<{ ok: boolean; error?: string; total?: number }> {
+  if (!saleId) return { ok: false, error: "اختر التسليم" };
+  if (!Number.isFinite(unitPrice) || unitPrice <= 0) return { ok: false, error: "السعر غير صالح" };
+  await requireRole(["owner", "accountant"]);
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_finalize_sale_price", { p_sale: saleId, p_unit_price: unitPrice });
+  if (error || !data) {
+    return { ok: false, error: toArabicError(error, { "22023": "تحقّق من حالة البيع — قد يكون مُسعّرًا بالفعل" }, "تعذّر تحديد السعر") };
+  }
+  for (const p of ["/transactions", "/finance/revenue-reports", "/record/price", "/record/collect"]) revalidatePath(p);
+  return { ok: true, total: Number((data as { total?: number }).total ?? 0) };
+}

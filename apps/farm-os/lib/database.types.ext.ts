@@ -589,6 +589,11 @@ type SalesTable = {
   Row: {
     id: string;
     org_id: string;
+    // SPEC-0027 H-A scale columns (migration 20260701530000)
+    crates: number | null;
+    gross_kg: number | null;
+    tare_kg: number | null;
+    delivery_note_no: number | null;
     sale_date: string | null;
     farm_id: string | null;
     sector_id: string | null;
