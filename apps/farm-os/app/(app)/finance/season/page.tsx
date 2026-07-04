@@ -39,15 +39,16 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
   const seasonStart = from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : `${year}-01-01`;
   const sb = await createClient();
 
-  const [salesRes, collectionsRes, buyersRes, centersRes] = await Promise.all([
+  const [salesRes, collectionsRes, buyersRes, centersRes, pickedRes] = await Promise.all([
     sb
       .from("sales")
-      .select("id, sale_date, crop, qty, unit, total, price_status, payment_status, buyer_id, cost_center_id, delivery_note_no")
+      .select("id, sale_date, crop, qty, unit, total, price_status, payment_status, buyer_id, cost_center_id, delivery_note_no, crates")
       .gte("sale_date", seasonStart)
       .order("sale_date", { ascending: false }),
     sb.from("sale_collections").select("sale_id, amount"),
     sb.from("buyers").select("id, name"),
     sb.from("cost_centers").select("id, name_ar, area_feddan"),
+    sb.from("harvest_days").select("crates_picked, day").gte("day", seasonStart),
   ]);
   const sales = salesRes.data ?? [];
   const buyerName = new Map((buyersRes.data ?? []).map((b) => [b.id, b.name]));
@@ -75,6 +76,10 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
   if (pendingSales.length > 0) notes.push(`${num(pendingSales.length)} تسليمًا ينتظر التسعير — كل يوم تأخير يؤخر القيد والتحصيل.`);
   if (outstanding > 0) notes.push(`ذمم على التجار: ${egp(outstanding)}.`);
   if (unnamed > 0) notes.push(`⚠ ${num(unnamed)} تسليمًا بلا اسم تاجر — قاعدة الموسم: كل حمولة باسم.`);
+  const pickedCrates = (pickedRes.data ?? []).reduce((t, h) => t + Number(h.crates_picked ?? 0), 0);
+  const deliveredCrates = sales.reduce((t, s2) => t + Number((s2 as { crates?: number | null }).crates ?? 0), 0);
+  if (pickedCrates > 0 && deliveredCrates > 0 && pickedCrates !== deliveredCrates)
+    notes.push(`🧺 مقطوف حقليًا ${num(pickedCrates)} عبوة مقابل ${num(deliveredCrates)} وصلت الميزان — فارق ${num(Math.abs(pickedCrates - deliveredCrates))} عبوة يستحق نظرة.`);
 
   const deliveryRows: SimpleRow[] = sales.map((s) => ({
     id: s.id,

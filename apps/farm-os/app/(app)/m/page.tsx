@@ -212,6 +212,13 @@ export default async function MobileHomePage({
     <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
       <header>
         <h1 className="text-xl font-bold">الميدان</h1>
+      <Link
+        href="/m/harvest"
+        className="inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold"
+        style={{ color: "var(--on-brand, #fff)", background: "var(--brand)" }}
+      >
+        🧺 يوم قطف — عدّاد العبوات
+      </Link>
         <p style={{ color: "var(--ink-muted)" }}>{m.name ?? "المشرف"}</p>
       </header>
 

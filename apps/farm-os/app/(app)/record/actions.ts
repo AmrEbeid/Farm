@@ -238,3 +238,22 @@ export async function finalizeSalePrice(saleId: string, unitPrice: number): Prom
   for (const p of ["/transactions", "/finance/revenue-reports", "/record/price", "/record/collect"]) revalidatePath(p);
   return { ok: true, total: Number((data as { total?: number }).total ?? 0) };
 }
+
+// ── SPEC-0027 H-B — يوم قطف (field crate counter; quantities only) ───────────────────────────────────
+export async function recordHarvestDay(input: { crates: number; costCenterId: string | null; crewCount: number | null; note: string | null }): Promise<{ ok: boolean; error?: string }> {
+  if (!Number.isFinite(input.crates) || input.crates <= 0) return { ok: false, error: "عدد العبوات غير صالح" };
+  const m = await requireRole(["owner", "farm_manager"]);
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_record_harvest_day", {
+    p_org: m.orgId,
+    p_crates: input.crates,
+    p_cost_center_id: input.costCenterId ?? null,
+    p_crop: "برحي",
+    p_day: new Date().toISOString().slice(0, 10),
+    p_crew_count: input.crewCount ?? null,
+    p_note: input.note ?? null,
+  });
+  if (error) return { ok: false, error: toArabicError(error, {}, "تعذّر تسجيل الدفعة") };
+  for (const p of ["/m/harvest", "/finance/season"]) revalidatePath(p);
+  return { ok: true };
+}
