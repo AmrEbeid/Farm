@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ImportPanel } from "@/components/import/ImportPanel";
 import { requireRole } from "@/lib/auth";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
@@ -162,6 +163,9 @@ export default async function ExpensesListPage({
         placeholder="ابحث في المصروفات…"
         exportFilename="expenses"
       />
+
+      {/* SPEC-0024 S-9 (D.1): template download + Excel/CSV import for this entry. Imported expenses arrive unrouted — cash never moves in bulk (#1). */}
+      <ImportPanel descriptorKey="expenses" titleAr="المصروفات" />
     </div>
   );
 }

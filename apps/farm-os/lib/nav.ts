@@ -280,6 +280,7 @@ export const APP_MODULES: AppModule[] = [
 export const APP_NAV: AppNavItem[] = APP_MODULES.flatMap((m) => m.pages);
 
 const ACTIVE_ROUTE_ALIASES: { pattern: RegExp; navId: string }[] = [
+  { pattern: /^\/finance\/cost-centers\/[^/]+(?:\/)?$/, navId: "finance-reports" },
   { pattern: /^\/finance\/buyers\/[^/]+(?:\/)?$/, navId: "revenue-reports" },
   { pattern: /^\/budget\/[^/]+\/check(?:\/)?$/, navId: "budgets" },
   { pattern: /^\/reports\/[^/]+\/pva(?:\/)?$/, navId: "plans" },

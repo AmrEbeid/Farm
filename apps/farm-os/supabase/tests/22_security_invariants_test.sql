@@ -99,7 +99,9 @@ select is(
         'fn_record_offshoot_movement', 'fn_set_offshoot_valuation', -- gated offshoot-bank RPCs (SPEC-0024 S-7, migration 20260701470000)
         'fn_save_buyer', 'fn_save_sale',           -- gated revenue RPCs (SPEC-0024 S-10 / SPEC-0018-EXT §4, migration 20260701500000)
         'fn_finalize_sale_price', 'fn_record_sale_collection', -- gated revenue price-finalize + collection RPCs (SPEC-0024 S-10)
-        'fn_revenue_sales_report'              -- read-only revenue/A-R report RPC (SPEC-0024 S-10b)
+        'fn_revenue_sales_report',             -- read-only revenue/A-R report RPC (SPEC-0024 S-10b)
+        'fn_save_supplier', 'fn_save_inventory_item', -- gated entry save-RPCs for import templates (SPEC-0024 S-9 final gap, migration 20260701520000)
+        'fn_save_expense'                          -- gated expense save-RPC (import; unrouted — never moves cash)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

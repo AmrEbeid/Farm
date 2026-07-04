@@ -142,6 +142,7 @@ export default async function FinanceReportsPage({
       id: row.cost_center_id,
       code: row.code,
       center: row.name_ar,
+      center_href: `/finance/cost-centers/${row.cost_center_id}`,
       parent: parent ? parent.name_ar : "جذر",
       enterprise: row.enterprise ?? "غير متوفر",
       area: row.area_feddan ?? undefined,
@@ -324,7 +325,7 @@ export default async function FinanceReportsPage({
 
 const rollupColumns: SimpleColumn[] = [
   { id: "code", header: "الكود", kind: "code" },
-  { id: "center", header: "المركز" },
+  { id: "center", header: "المركز", kind: "link" },
   { id: "parent", header: "الأصل" },
   { id: "enterprise", header: "النشاط" },
   { id: "area", header: "فدان", kind: "num", numeric: true },
