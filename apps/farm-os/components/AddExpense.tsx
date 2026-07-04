@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Input, Alert, useToast } from "@/components/ui";
 import { useSubmit } from "@/components/useSubmit";
 import { createExpense, type ExpenseKind } from "@/app/(app)/expenses/actions";
+import { AccountPicker, type PickableAccount } from "@/components/AccountPicker";
 
 // Owner drawings (مسحوبات) must be separable from operating expenses (non-negotiable #6). Classifying at
 // entry is the write side of that split — the finance dashboard reads expenses.kind.
@@ -17,8 +18,10 @@ const KIND_OPTIONS: { value: ExpenseKind; label: string }[] = [
 /** Record-expense form, shown only to budget.write roles (the page gates it). */
 export function AddExpense({
   suppliers,
+  accounts,
 }: {
   suppliers: { id: string; name: string }[];
+  accounts: PickableAccount[];
 }) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
@@ -26,12 +29,18 @@ export function AddExpense({
   const [description, setDescription] = useState("");
   const [total, setTotal] = useState("");
   const [kind, setKind] = useState<ExpenseKind>("operating");
+  const [accountId, setAccountId] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [payment, setPayment] = useState("");
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
   const { pending, submit } = useSubmit();
   const router = useRouter();
   const toast = useToast();
+  const matchingAccounts = useMemo(
+    () => accounts.filter((account) => account.kind === kind),
+    [accounts, kind],
+  );
+  const accountValue = matchingAccounts.some((account) => account.id === accountId) ? accountId : "";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +52,7 @@ export function AddExpense({
         description: description || null,
         total: Number(total),
         kind,
+        accountId: accountValue || null,
         supplierId: supplierId || null,
         paymentMethod: payment || null,
       }),
@@ -54,6 +64,7 @@ export function AddExpense({
       setDescription("");
       setTotal("");
       setKind("operating");
+      setAccountId("");
       setSupplierId("");
       setPayment("");
       toast.ok("تمت إضافة المصروف بنجاح");
@@ -101,7 +112,10 @@ export function AddExpense({
           className={selectClass}
           style={selectStyle}
           value={kind}
-          onChange={(e) => setKind(e.target.value as ExpenseKind)}
+          onChange={(e) => {
+            setKind(e.target.value as ExpenseKind);
+            setAccountId("");
+          }}
         >
           {KIND_OPTIONS.map((k) => (
             <option key={k.value} value={k.value}>
@@ -110,6 +124,22 @@ export function AddExpense({
           ))}
         </select>
       </Field>
+      <Field label="الحساب المحاسبي" id="e-account">
+        <AccountPicker
+          id="e-account"
+          value={accountValue}
+          onChange={setAccountId}
+          accounts={matchingAccounts}
+          required={matchingAccounts.length > 0}
+          disabled={matchingAccounts.length === 0}
+        />
+      </Field>
+      {matchingAccounts.length === 0 && (
+        <Alert
+          tone="warning"
+          title="لا يوجد حساب فرعي نشط مناسب لهذا النوع. أضف الحساب من شجرة الحسابات قبل إدخال مصروف جديد."
+        />
+      )}
       <Field label="المورّد" id="e-sup">
         <select
           id="e-sup"
@@ -130,7 +160,7 @@ export function AddExpense({
         <Input id="e-pay" value={payment} onChange={(e) => setPayment(e.target.value)} maxLength={40} />
       </Field>
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || matchingAccounts.length === 0}>
           {pending ? "جارٍ الحفظ…" : "حفظ المصروف"}
         </Button>
         <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

@@ -18,6 +18,7 @@ import {
 } from "@/components/CustodyForms";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
+import { accountOptionLabel, leafPostingAccounts } from "@/components/AccountPicker";
 
 // SPEC-0018 slice 5 — the printable monthly «إذن صرف» + lifecycle, rebuilt as an Entity-360 page.
 // Renders live from the RLS-scoped request/lines/expenses + fn_payment_request_totals.
@@ -128,29 +129,34 @@ export default async function PaymentRequestPage({
   );
 
   const ids = (linesRes.data ?? []).map((l) => l.expense_id);
-  const [expensesRes, acctRes, availableExpensesRes, actorsRes] = await Promise.all([
+  const [expensesRes, acctRes, availableExpensesRes, actorsRes, coaAccountsRes] = await Promise.all([
     ids.length
-      ? sb.from("expenses").select("id, date, description, category, total, payment_status, kind").in("id", ids)
-      : Promise.resolve({ data: [] as { id: string; date: string | null; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null }[], error: null }),
+      ? sb.from("expenses").select("id, date, description, category, total, payment_status, kind, account_id").in("id", ids)
+      : Promise.resolve({ data: [] as { id: string; date: string | null; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null; account_id: string | null }[], error: null }),
     req.custody_account_id
       ? sb.from("custody_accounts").select("holder_label").eq("id", req.custody_account_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     req.status === "draft"
       ? sb
           .from("expenses")
-          .select("id, description, category, total, payment_status, kind")
+          .select("id, description, category, total, payment_status, kind, account_id")
           .in("payment_status", ["post_paid_unpaid", "paid_from_custody"])
           .order("date", { ascending: false })
           .limit(150)
-      : Promise.resolve({ data: [] as { id: string; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null }[], error: null }),
+      : Promise.resolve({ data: [] as { id: string; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null; account_id: string | null }[], error: null }),
     actorIds.length
       ? sb.from("people").select("user_id, name").in("user_id", actorIds)
       : Promise.resolve({ data: [] as { user_id: string | null; name: string | null }[], error: null }),
+    sb
+      .from("accounts")
+      .select("id, code, name_ar, account_type, kind, parent_id, active")
+      .order("code", { ascending: true }),
   ]);
   if (expensesRes.error) throw expensesRes.error;
   if (acctRes.error) throw acctRes.error;
   if (availableExpensesRes.error) throw availableExpensesRes.error;
   if (actorsRes.error) throw actorsRes.error;
+  if (coaAccountsRes.error) throw coaAccountsRes.error;
 
   const t: Totals = (totalsRes.data as Totals) ?? {};
   const requestLines = linesRes.data ?? [];
@@ -158,13 +164,19 @@ export default async function PaymentRequestPage({
   const accounts = accountsRes.data ?? [];
   const accountOptions = accounts.map((a) => ({ id: a.id, holder_label: a.holder_label }));
   const accountLabelById = new Map(accounts.map((a) => [a.id, a.holder_label]));
+  const postingAccounts = leafPostingAccounts(coaAccountsRes.data ?? []);
+  const postingAccountLabelById = new Map(
+    postingAccounts.map((account) => [account.id, accountOptionLabel(account)]),
+  );
   const lineByExpenseId = new Map(requestLines.map((line) => [line.expense_id, line]));
   const linkedExpenseIds = new Set(ids);
-  const availableExpenseOptions = (availableExpensesRes.data ?? [])
-    .filter((e) => !linkedExpenseIds.has(e.id))
+  const availableExpenses = (availableExpensesRes.data ?? []).filter((e) => !linkedExpenseIds.has(e.id));
+  const unclassifiedAvailableCount = availableExpenses.filter((e) => e.account_id == null).length;
+  const availableExpenseOptions = availableExpenses
+    .filter((e) => e.account_id != null)
     .map((e) => ({
       id: e.id,
-      label: `${e.description ?? e.category ?? "مصروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${PAYMENT_STATUS_AR[e.payment_status ?? ""] ?? "غير محدد"} — ${egp(Number(e.total ?? 0))}`,
+      label: `${e.description ?? e.category ?? "مصروف"} — ${postingAccountLabelById.get(e.account_id ?? "") ?? "حساب غير معروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${PAYMENT_STATUS_AR[e.payment_status ?? ""] ?? "غير محدد"} — ${egp(Number(e.total ?? 0))}`,
     }));
 
   const cats = new Map<string, { operating: number; capex: number; drawing: number; paid: number }>();
@@ -203,6 +215,7 @@ export default async function PaymentRequestPage({
   const lineCols: SimpleColumn[] = [
     { id: "desc", header: "البيان" },
     { id: "kind", header: "النوع" },
+    { id: "account", header: "الحساب" },
     { id: "cat", header: "الفئة" },
     { id: "status", header: "حالة السداد" },
     { id: "paid_from", header: "مصدر العهدة" },
@@ -213,6 +226,7 @@ export default async function PaymentRequestPage({
     id: e.id,
     desc: e.description ?? "—",
     kind: EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف",
+    account: e.account_id ? postingAccountLabelById.get(e.account_id) ?? "—" : "بدون حساب",
     cat: e.category ?? "—",
     status: lineByExpenseId.get(e.id)?.paid_at
       ? "تم السداد من العهدة"
@@ -226,7 +240,7 @@ export default async function PaymentRequestPage({
     .filter((e) => e.payment_status === "post_paid_unpaid" && !lineByExpenseId.get(e.id)?.paid_at)
     .map((e) => ({
       id: e.id,
-      label: `${e.description ?? e.category ?? "مصروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${egp(Number(e.total ?? 0))}`,
+      label: `${e.description ?? e.category ?? "مصروف"} — ${postingAccountLabelById.get(e.account_id ?? "") ?? "حساب غير معروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${egp(Number(e.total ?? 0))}`,
     }));
 
   const fundingCols: SimpleColumn[] = [
@@ -438,7 +452,20 @@ export default async function PaymentRequestPage({
       )}
 
       {tab === "add" && (
-        <div role="tabpanel" id={tabPanelId("add")} aria-labelledby={tabId("add")} tabIndex={0}>
+        <div
+          role="tabpanel"
+          id={tabPanelId("add")}
+          aria-labelledby={tabId("add")}
+          tabIndex={0}
+          className="flex flex-col gap-4"
+        >
+          {req.status === "draft" && unclassifiedAvailableCount > 0 && (
+            <Alert
+              tone="warning"
+              title={`${num(unclassifiedAvailableCount)} مصروف مؤجل أو مدفوع من العهدة بدون حساب محاسبي`}
+              description="لن يظهر المصروف هنا قبل اختيار حسابه من شاشة المصروفات، حتى لا يدخل إذن الصرف بدون تصنيف محاسبي."
+            />
+          )}
           {req.status === "draft" ? (
             <Card title="إضافة مصروف للطلب">
               <AddExpenseToPaymentRequest requestId={req.id} expenses={availableExpenseOptions} />

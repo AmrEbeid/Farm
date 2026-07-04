@@ -7,6 +7,7 @@ import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { AddExpense } from "@/components/AddExpense";
+import { accountOptionLabel, leafPostingAccounts } from "@/components/AccountPicker";
 
 // Roles that pass authorize('budget.write') — the gate the expenses RLS WITH CHECK enforces.
 const WRITE_ROLES = ["owner", "accountant"];
@@ -19,10 +20,16 @@ const KIND_LABELS: Record<string, string> = {
   capex: "رأسمالي",
 };
 
-type ExpenseFilter = "all" | "month" | "operating" | "drawing" | "unrouted";
+type ExpenseFilter = "all" | "month" | "operating" | "drawing" | "unrouted" | "unclassified";
 
 function parseExpenseFilter(raw: string | undefined): ExpenseFilter {
-  return raw === "month" || raw === "operating" || raw === "drawing" || raw === "unrouted" ? raw : "all";
+  return raw === "month" ||
+    raw === "operating" ||
+    raw === "drawing" ||
+    raw === "unrouted" ||
+    raw === "unclassified"
+    ? raw
+    : "all";
 }
 
 export default async function ExpensesListPage({
@@ -34,12 +41,16 @@ export default async function ExpensesListPage({
   const sb = await createClient();
   const filter = parseExpenseFilter((await searchParams).filter);
 
-  const [{ data: expenses, error }, { data: suppliers }] = await Promise.all([
+  const [{ data: expenses, error }, { data: suppliers }, { data: accounts }] = await Promise.all([
     sb
       .from("expenses")
-      .select("id, date, category, description, total, kind, supplier_id, payment_status")
+      .select("id, date, category, description, total, kind, supplier_id, payment_status, account_id")
       .order("date", { ascending: false }),
     sb.from("suppliers").select("id, name").order("name"),
+    sb
+      .from("accounts")
+      .select("id, code, name_ar, account_type, kind, parent_id, active")
+      .order("code", { ascending: true }),
   ]);
   if (error) throw error;
 
@@ -52,6 +63,7 @@ export default async function ExpensesListPage({
   // payment pipeline (FINANCE-ACCOUNTANT-360 gap #1: the routing control has no UI yet). Surfacing
   // the backlog honestly instead of letting it hide.
   const isUnrouted = (e: (typeof all)[number]) => e.payment_status == null;
+  const isUnclassified = (e: (typeof all)[number]) => e.account_id == null;
 
   const chips: { key: ExpenseFilter; label: string; value: number; danger?: boolean }[] = [
     { key: "all", label: "كل المصروفات", value: all.length },
@@ -59,6 +71,7 @@ export default async function ExpensesListPage({
     { key: "operating", label: "تشغيلي", value: all.filter((e) => (e.kind ?? "operating") === "operating").length },
     { key: "drawing", label: "مسحوبات", value: all.filter((e) => e.kind === "drawing").length },
     { key: "unrouted", label: "غير موجّهة للسداد", value: all.filter(isUnrouted).length, danger: true },
+    { key: "unclassified", label: "بدون حساب", value: all.filter(isUnclassified).length, danger: true },
   ];
   // Real SUMs over the full ledger (not a row-capped sample): this month, split per non-negotiable #6.
   const monthOperating = all
@@ -69,11 +82,14 @@ export default async function ExpensesListPage({
     .reduce((s, e) => s + Number(e.total ?? 0), 0);
 
   const supMap = new Map((suppliers ?? []).map((s) => [s.id, s.name]));
+  const postingAccounts = leafPostingAccounts(accounts ?? []);
+  const accountMap = new Map(postingAccounts.map((account) => [account.id, accountOptionLabel(account)]));
 
   const columns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
     { id: "category", header: "الفئة" },
     { id: "kind", header: "النوع" },
+    { id: "account", header: "الحساب" },
     { id: "description", header: "البيان" },
     { id: "supplier", header: "المورّد" },
     { id: "total", header: "المبلغ", numeric: true, kind: "money" },
@@ -89,6 +105,8 @@ export default async function ExpensesListPage({
             ? e.kind === "drawing"
             : filter === "unrouted"
               ? isUnrouted(e)
+              : filter === "unclassified"
+                ? isUnclassified(e)
               : true,
     )
     .map((e) => ({
@@ -97,6 +115,7 @@ export default async function ExpensesListPage({
       date: e.date ? fmtDate(e.date) : "—",
       category: e.category ?? "—",
       kind: KIND_LABELS[e.kind ?? "operating"] ?? "—",
+      account: e.account_id ? accountMap.get(e.account_id) ?? "—" : "بدون حساب",
       description: e.description ?? "—",
       supplier: e.supplier_id ? supMap.get(e.supplier_id) ?? "—" : "—",
       total: e.total != null ? Number(e.total) : undefined,
@@ -129,14 +148,17 @@ export default async function ExpensesListPage({
       </div>
 
       {WRITE_ROLES.includes(m.role) && (
-        <AddExpense suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))} />
+        <AddExpense
+          suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))}
+          accounts={postingAccounts}
+        />
       )}
       <FilterableTable
         ariaLabel="المصروفات"
         columns={columns}
         rows={rows}
         empty={filter === "all" ? "لا توجد مصروفات مسجّلة" : "لا مصروفات مطابقة لهذا الفلتر"}
-        searchColumns={["category", "kind", "description", "supplier"]}
+        searchColumns={["category", "kind", "account", "description", "supplier"]}
         placeholder="ابحث في المصروفات…"
         exportFilename="expenses"
       />
