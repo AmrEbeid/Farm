@@ -501,9 +501,19 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "لا تقرأها كتوقع أو ميزانية؛ هي قراءة من القيود الحالية فقط. تفاصيل الإيراد والتحصيلات تظهر في تقرير الإيرادات.",
     related: ["finance-dashboard", "finance-reports", "revenue-reports", "accounts", "accounting"],
   },
+  record: {
+    title: "سجّل عملية",
+    what: "نقطة البداية لتسجيل أي حدث حقيقي: مصروف، بيع، تحصيل، استلام بضاعة، عهدة، حضور عمالة.",
+    why: "بدل التنقل بين وحدات متعددة، احكِ ما حدث والنظام يتولى التصنيف والقيود والتوجيه.",
+    when: "كلما حدث شيء تريد إثباته — هذه أسرع طريق.",
+    how: "اختر البطاقة المطابقة لما حدث واتبع الخطوات؛ مصروف = 3 خطوات: ماذا وكم، على أي نشاط، من دفع.",
+    avoid: "لا تسجّل الحدث نفسه مرتين من هنا ومن صفحة الوحدة — المسجَّل هنا يظهر هناك فورًا.",
+    related: ["expenses", "custody", "finance-dashboard"],
+  },
 };
 
 const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
+  { pattern: /^\/record\/expense(?:\/)?$/, helpId: "record" },
   { pattern: /^\/farm\/sector\/[^/]+(?:\/)?$/, helpId: "sector-360" },
   { pattern: /^\/farm\/hawsha\/[^/]+(?:\/)?$/, helpId: "hawsha-360" },
   { pattern: /^\/farm\/line\/[^/]+(?:\/)?$/, helpId: "line-360" },

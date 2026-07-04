@@ -40,6 +40,14 @@ export const APP_MODULES: AppModule[] = [
     pages: [{ id: "dashboard", label: "لوحة المعلومات", icon: "🏠", href: "/dashboard" }],
   },
   {
+    // SPEC-0025 U-1: the task-first launcher — one place to record what happened.
+    id: "record-module",
+    label: "سجّل",
+    icon: "➕",
+    dashboardHref: "/record",
+    pages: [{ id: "record", label: "سجّل عملية", icon: "➕", href: "/record" }],
+  },
+  {
     id: "farm-module",
     label: "المزرعة",
     icon: "🌴",
