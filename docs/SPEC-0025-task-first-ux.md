@@ -81,6 +81,27 @@ The Owner refined the ask after using the first wizard:
 5. **"Do that for all inputs":** every data-entry surface migrates to the guided multi-line pattern over
    time — the wizards above first (highest frequency), then receipts, attendance/labor, offshoots, جرد.
 
+### 2c. Owner follow-up 2 (2026-07-04): wayfinding + data storytelling
+
+1. **The dashboard is the hub.** الرئيسية opens with a row of big quick-nav buttons (سجّل + · المعاملات ·
+   التقارير · العهدة · خطة الأسبوع · المخزون), each carrying a live badge (٣ أسعار معلّقة، عهدة منخفضة…),
+   followed by the «يحتاج انتباهك» attention inbox, then the role's story sections.
+2. **Breadcrumbs everywhere; no dead ends.** Every page shows where it lives and ends with «التالي المقترح».
+   Mobile gets a fixed bottom tab bar (الرئيسية · سجّل · المعاملات · التقارير · القائمة).
+3. **Everything is a link.** Buyer names → buyer page + balance; cost centers → their economics; report
+   amounts → the transactions behind them. The drill-down chain never breaks:
+   sentence → chart → table → transaction → document.
+4. **Lead with the sentence, not the grid (data storytelling).** Every dashboard section/report opens with
+   one templated rule-based Arabic sentence over live data («أنفقت المزرعة هذا الشهر ٤٥٬٠٠٠ ج — ٦٠٪ منها
+   أسمدة على نخيل الحصوة، أعلى من الشهر الماضي بـ١٢٪»), then the chart (with a takeaway caption), then the
+   table (sorted by what matters, top-٥ + «الباقي», totals row, exceptions highlighted). A number alone is
+   never shown without a comparison. Every KPI card has a «لماذا؟» drill. Rule-based templates only — no AI
+   (Stage-11 gate intact); honest nulls (#1) throughout.
+
+New slices: **U-10** dashboard-hub rebuild (top buttons + badges + inbox + story sections) · **U-11**
+everything-is-a-link pass · **U-12** story headers + takeaway captions on the report pages · **U-13**
+breadcrumbs + «التالي المقترح» footer pattern · **U-14** mobile bottom tab bar.
+
 ## 3. Part B — «المعاملات» one unified ledger
 
 One page listing **every money event** (expenses, sales, collections, custody movements, request payouts,
