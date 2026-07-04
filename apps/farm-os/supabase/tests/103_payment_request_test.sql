@@ -21,12 +21,15 @@ select plan(39);
 \set audit_generic 'spec0018 audit generic'
 
 insert into public.custody_accounts (id, org_id, holder_label, target_float) values (:'acct', :'org', 'مدير المزرعة', 30000);
-insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
-  values (:'eA', :'org', current_date, 'تسميد', 'بند آجل', 5000, 'approved', 'post_paid_unpaid', 'operating');
-insert into public.expenses (id, org_id, date, category, description, total, status, kind)
-  values (:'eB', :'org', current_date, 'صيانة وقطع غيار', 'بند نقدي', 2000, 'approved', 'operating');
-insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
-  values (:'eD', :'org', current_date, 'مسحوبات المالك', 'مسحوبات اختبار', 9000, 'approved', 'post_paid_unpaid', 'drawing');
+insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind, account_id)
+  values (:'eA', :'org', current_date, 'تسميد', 'بند آجل', 5000, 'approved', 'post_paid_unpaid', 'operating',
+          (select id from public.accounts where org_id = :'org' and code = '5110'));
+insert into public.expenses (id, org_id, date, category, description, total, status, kind, account_id)
+  values (:'eB', :'org', current_date, 'صيانة وقطع غيار', 'بند نقدي', 2000, 'approved', 'operating',
+          (select id from public.accounts where org_id = :'org' and code = '5440'));
+insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind, account_id)
+  values (:'eD', :'org', current_date, 'مسحوبات المالك', 'مسحوبات اختبار', 9000, 'approved', 'post_paid_unpaid', 'drawing',
+          (select id from public.accounts where org_id = :'org' and code = '3100'));
 insert into public.audit_log(org_id, action, entity_type, entity_id, after)
 values
   (:'org', 'INSERT', 'sale', :'audit_sale', '{}'::jsonb),

@@ -15,11 +15,14 @@ insert into public.custody_accounts (id, org_id, holder_label, target_float)
   values
     (:'acct', :'org', 'مدير المزرعة', 30000),
     (:'zeroAcct', :'org', 'حساب تسوية بلا تغذية', 0);
-insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
+insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind, account_id)
   values
-    (:'expA', :'org', current_date, 'تسميد', 'مصروف آجل أ', 5000, 'approved', 'post_paid_unpaid', 'operating'),
-    (:'expB', :'org', current_date, 'صيانة', 'مصروف آجل ب', 2000, 'approved', 'post_paid_unpaid', 'operating'),
-    (:'zeroExp', :'org', current_date, 'صيانة', 'مصروف مدفوع بلا تغذية', 100, 'approved', 'post_paid_unpaid', 'operating');
+    (:'expA', :'org', current_date, 'تسميد', 'مصروف آجل أ', 5000, 'approved', 'post_paid_unpaid', 'operating',
+      (select id from public.accounts where org_id = :'org' and code = '5110')),
+    (:'expB', :'org', current_date, 'صيانة', 'مصروف آجل ب', 2000, 'approved', 'post_paid_unpaid', 'operating',
+      (select id from public.accounts where org_id = :'org' and code = '5440')),
+    (:'zeroExp', :'org', current_date, 'صيانة', 'مصروف مدفوع بلا تغذية', 100, 'approved', 'post_paid_unpaid', 'operating',
+      (select id from public.accounts where org_id = :'org' and code = '5440'));
 
 select set_config('test.org', :'org', false);
 select set_config('test.acct', :'acct', false);

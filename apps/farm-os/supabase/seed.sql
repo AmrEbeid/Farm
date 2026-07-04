@@ -309,4 +309,11 @@ update auth.users set
 
 reset session_replication_role;
 
+do $$
+begin
+  if to_regprocedure('public.fn_seed_default_accounts(uuid)') is not null then
+    perform public.fn_seed_default_accounts('00000000-0000-0000-0000-000000000001'::uuid);
+  end if;
+end $$;
+
 -- End Ebeid seed.
