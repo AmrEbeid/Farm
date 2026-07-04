@@ -1,12 +1,65 @@
 "use client";
 
+import { useMemo, useState, type ReactNode } from "react";
 // Client-only chart wrappers. @amrebeid/ui's BarChart/LineChart are Recharts
 // based; Recharts is server-stubbed (see next.config.ts / recharts-stub.ts), so
 // charts MUST render inside a "use client" boundary to use the real library.
 // Import from the dedicated recharts-only subpath so recharts enters only the
 // bundles of routes that actually render a chart, never the global chunk.
 import { LineChart, BarChart, DoughnutChart } from "@amrebeid/ui/charts";
+import { Button } from "@/components/ui";
 import { num } from "@/lib/money";
+
+export interface ChartInsightOption {
+  id: string;
+  label: string;
+  render: () => ReactNode;
+}
+
+/**
+ * Shared C.2 wrapper for report charts that need a dimension/series toggle
+ * without each page reinventing state and accessible controls.
+ */
+export function MultiInsightChart({
+  options,
+  defaultOptionId,
+  ariaLabel,
+}: {
+  options: ChartInsightOption[];
+  defaultOptionId?: string;
+  ariaLabel: string;
+}) {
+  const initial = defaultOptionId ?? options[0]?.id ?? "";
+  const [selectedId, setSelectedId] = useState(initial);
+  const selected = useMemo(
+    () => options.find((option) => option.id === selectedId) ?? options[0],
+    [options, selectedId],
+  );
+
+  if (!selected) return null;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const active = option.id === selected.id;
+          return (
+            <Button
+              key={option.id}
+              type="button"
+              variant={active ? "primary" : "ghost"}
+              aria-pressed={active}
+              onClick={() => setSelectedId(option.id)}
+            >
+              {option.label}
+            </Button>
+          );
+        })}
+      </div>
+      {selected.render()}
+    </div>
+  );
+}
 
 /**
  * Projected Available Balance over the planning horizon. The first period that
@@ -175,6 +228,7 @@ export function TrendLineChart({
   data,
   categoryKey,
   series,
+  overlaySeries = [],
   ariaLabel,
   caption,
   columnHeader,
@@ -182,19 +236,22 @@ export function TrendLineChart({
   data: Array<Record<string, string | number>>;
   categoryKey: string;
   series: Array<{ dataKey: string; name: string }>;
+  /** Extra series plotted over the base trend, e.g. cumulative or Owner-entered scenario lines. */
+  overlaySeries?: Array<{ dataKey: string; name: string }>;
   ariaLabel: string;
   caption: string;
   columnHeader: string;
 }) {
+  const allSeries = [...series, ...overlaySeries];
   return (
     <LineChart
       data={data}
       categoryKey={categoryKey}
-      series={series}
+      series={allSeries}
       ariaLabel={ariaLabel}
       curve="monotone"
       showDots
-      showLegend={series.length > 1}
+      showLegend={allSeries.length > 1}
       height={260}
       tableFallback={{ caption, columnHeader }}
     />

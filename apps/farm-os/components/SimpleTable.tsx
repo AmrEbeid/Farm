@@ -1,10 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
 import { Code } from "@/components/Code";
 import { egp } from "@/lib/money";
+import { sortRows, type TableSortState } from "@/lib/table-sort";
 
 // "money": the row carries the RAW number and this formats it (egp) for display, so the SAME table is
 // extractable — ExportButton/exportToCsv then serialize the raw number (Excel SUM works) instead of a
@@ -18,6 +19,8 @@ export interface SimpleColumn {
   header: string;
   kind?: CellKind;
   numeric?: boolean;
+  /** Defaults to true for plain cells and false for render-backed action/composite cells. */
+  sortable?: boolean;
   /**
    * Escape hatch for interactive/composite cells (badges + inline actions) that the plain
    * kind-based text formatting below can't express — e.g. assignee badges with a per-item
@@ -45,6 +48,8 @@ export function SimpleTable({
   caption,
   ariaLabel,
   empty,
+  sort,
+  onSortChange,
 }: {
   columns: SimpleColumn[];
   rows: SimpleRow[];
@@ -56,7 +61,30 @@ export function SimpleTable({
    */
   ariaLabel?: string;
   empty?: string;
+  /** Controlled sort state. Omit for SimpleTable's own client-side sort state. */
+  sort?: TableSortState | null;
+  onSortChange?: (next: TableSortState) => void;
 }) {
+  const [internalSort, setInternalSort] = useState<TableSortState | null>(null);
+  const activeSort = sort === undefined ? internalSort : sort;
+  const sortableColumns = useMemo(
+    () =>
+      columns.filter((c) => c.sortable ?? !c.render).map((c) => ({
+        id: c.id,
+        numeric: c.numeric,
+      })),
+    [columns],
+  );
+  const sortedRows = useMemo(
+    () => sortRows(rows, sortableColumns, activeSort),
+    [rows, sortableColumns, activeSort],
+  );
+
+  function handleSortChange(next: TableSortState) {
+    if (sort === undefined) setInternalSort(next);
+    onSortChange?.(next);
+  }
+
   return (
     <DataTable<SimpleRow>
       caption={caption}
@@ -65,6 +93,7 @@ export function SimpleTable({
         id: c.id,
         header: c.header,
         numeric: c.numeric,
+        sortable: c.sortable ?? !c.render,
         // Make the first cell a real <Link> when the row has an href. Restores
         // row→detail navigation and is keyboard/AT-accessible (a real anchor) —
         // the previous table-level onClick looked for a `tr[data-href]` that
@@ -84,8 +113,10 @@ export function SimpleTable({
             renderCell(c, row)
           ),
       }))}
-      rows={rows}
+      rows={sortedRows}
       getRowId={(r) => r.id}
+      sort={activeSort}
+      onSortChange={handleSortChange}
       empty={empty ?? "لا توجد بيانات"}
     />
   );

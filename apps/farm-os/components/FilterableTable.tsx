@@ -5,6 +5,7 @@ import { SimpleTable, type SimpleColumn, type SimpleRow } from "@/components/Sim
 import { ExportButton } from "@/components/ExportButton";
 import { filterRows } from "@/lib/filter";
 import { num } from "@/lib/money";
+import { sortRows, type TableSortState } from "@/lib/table-sort";
 
 /**
  * Client wrapper that adds an Arabic search box + live result count over
@@ -40,6 +41,7 @@ export function FilterableTable({
   exportFilename?: string;
 }) {
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<TableSortState | null>(null);
   const baseId = useId();
   const inputId = `${baseId}-q`;
   const resultsId = `${baseId}-results`;
@@ -49,15 +51,36 @@ export function FilterableTable({
     [searchColumns, columns],
   );
   const filtered = useMemo(() => filterRows(rows, cols, query), [rows, cols, query]);
+  const sortableColumns = useMemo(
+    () =>
+      columns.filter((c) => c.sortable ?? !c.render).map((c) => ({
+        id: c.id,
+        numeric: c.numeric,
+      })),
+    [columns],
+  );
 
   // Search box appears once a list is long enough; export can appear for any length.
   const showSearch = rows.length >= minRowsForSearch;
-  const visible = showSearch ? filtered : rows;
+  const visible = useMemo(
+    () => sortRows(showSearch ? filtered : rows, sortableColumns, sort),
+    [showSearch, filtered, rows, sortableColumns, sort],
+  );
   const searching = showSearch && query.trim().length > 0;
 
   // Nothing extra to show → plain table (unchanged behavior for short, non-exportable lists).
   if (!showSearch && !exportFilename) {
-    return <SimpleTable columns={columns} rows={rows} caption={caption} ariaLabel={ariaLabel} empty={empty} />;
+    return (
+      <SimpleTable
+        columns={columns}
+        rows={rows}
+        caption={caption}
+        ariaLabel={ariaLabel}
+        empty={empty}
+        sort={sort}
+        onSortChange={setSort}
+      />
+    );
   }
 
   return (
@@ -102,6 +125,8 @@ export function FilterableTable({
           caption={caption}
           ariaLabel={ariaLabel}
           empty={searching ? "لا نتائج مطابقة للبحث" : empty}
+          sort={sort}
+          onSortChange={setSort}
         />
       </div>
     </div>
