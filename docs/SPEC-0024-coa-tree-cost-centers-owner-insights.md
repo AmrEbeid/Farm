@@ -226,6 +226,24 @@ filters/export. The standard closes those gaps once, in the shared components (S
   rotates it); salary rows go to the payroll domain (SPEC-0006), not to expenses import; money data is non-authoritative until the
   oracle passes (matches the import framework's existing money-gate posture).
 
+### D.1 Universal import templates — every data-entry surface (Owner directive, 2026-07-04)
+**Rule: every data-entry entity ships an Excel/CSV template and accepts bulk import.** Ground truth on `main`: the
+SPEC-0020 framework already does exactly this — **prefilled Excel workbook templates** (`GET /api/import`), staged
+match→insert/update/archive **reconcile-upsert**, commits only through the gated `fn_*` RPCs, with the
+`rpcsWithoutDescriptor` convention test — **but coverage is only 3 RPCs** (sectors/hawshat/lines). This section makes
+coverage universal:
+1. **Every entity in this spec ships its `ImportDescriptor` + template in its own slice:** accounts tree (slice 1),
+   cost centers (slice 3), the offshoot ledger (slice 7) — template columns mirror the entity form, prefilled with
+   existing rows per SPEC-0020, so bulk edit = download → adjust → re-upload.
+2. **Retrofit the coverage gap (new slice 9):** descriptors + templates for the existing entry surfaces that lack them —
+   expenses (incl. `account_id`/`cost_center_id` columns validated against the trees), custody movements, suppliers,
+   inventory items, people (non-PII columns only), and revenue/sales when SPEC-0018-EXT slice 5 builds it.
+3. **Visible affordance:** every entry page (form or MasterTable) carries «تحميل القالب / استيراد من Excel أو CSV»
+   wired to its descriptor (`ImportPanel` per SPEC-0020 §6) — both **.xlsx and .csv** accepted.
+4. **Gates unchanged and inherited:** imports go through the user-session gated RPCs (never service-role); the same
+   `authorize()` checks apply per row; PII columns are excluded from templates (SPEC-0006); **money imports stay
+   non-authoritative until their oracle passes** (Part D above); rejects are listed row-by-row, never silently dropped (#1).
+
 ---
 
 ## 5. Owner decisions needed (exact)
@@ -247,15 +265,16 @@ filters/export. The standard closes those gaps once, in the shared components (S
 ## 6. Slices (each an independently gated PR; define-the-check-first)
 | # | Slice | Contents | Depends on |
 |---|---|---|---|
-| 1 | COA tree schema + RPCs + seed (draft) | A.1–A.3 + **A.5 `expenses.account_id` + kind-consistency guard + required-at-request rule** + pgTAP (cycle, archive-vs-delete, merge, rollup view, #6 drawings-never-in-opex rollup, A.5 gate) | decision 1,3,6 |
+| 1 | COA tree schema + RPCs + seed (draft) | A.1–A.3 + **A.5 `expenses.account_id` + kind-consistency guard + required-at-request rule** + `ImportDescriptor`+template (D.1) + pgTAP (cycle, archive-vs-delete, merge, rollup view, #6 drawings-never-in-opex rollup, A.5 gate) | decision 1,3,6 |
 | 2 | Tree editor UI + entry pickers | A.4 + **account picker in `/expenses` AND the custody-module expense form (A.5)** + page-help + drift-guards | 1 |
-| 3 | Cost centers schema + seed + dimension columns | B.1–B.3 + pgTAP (org-consistency center↔sector, per-feddan math, «غير موزَّع») | decision 2,3 |
+| 3 | Cost centers schema + seed + dimension columns | B.1–B.3 + `ImportDescriptor`+template (D.1) + pgTAP (org-consistency center↔sector, per-feddan math, «غير موزَّع») | decision 2,3 |
 | 4 | Reports v1 | center economics + rollup P&L (التقارير matrix live) + league table + crop-economics margins (C.1 #2/#8) | 1,3 |
 | 5 | Owner Insights pages + owner-dashboard adoption | Part C charts + scorecard w/ rule-based commentary + insight cards + scenario fan (C.1 #3/#4/#6/#7) + the C.3 owner-dashboard panels; all per the C.2 contract; labeled-or-omitted pre-import history | 4, 8a |
 | 6 | Historical import + oracle | Part D descriptors + mapping tables + the التقارير reconciliation test | 1,3 + Stage-M gate |
 | 7 | **Offshoot bank (بنك الفسائل)** | C.1 #1 ledger (produce/plant/sell/replant per destination center) + valuation + the Sankey/expansion pages; yield-curve forecast gated on SPEC-0008 sign-off (#4) | 3 + decision 7 |
 | 8a | **Interactive-standard components** | C.2 gaps in the shared components: sortable headers on `SimpleTable`/`FilterableTable` (numeric + Arabic collation; export follows sort+filter), chart dimension-toggle/overlay wrappers — SPEC-0017 additions, every page inherits | — (independent, low-risk, can go first) |
 | 8b | **Farm-Manager dashboard rebuild** | C.3 FM cockpit to the C.2 contract (operational panels; money per decision 8) | 8a + decision 8 (+7 for the pipeline panel) |
+| 9 | **Universal import coverage** | D.1: descriptors + prefilled Excel/CSV templates + the «استيراد» affordance for expenses/custody/suppliers/inventory/people(non-PII) (+revenue with 0018-EXT s5); slices 1/3/7 ship their own descriptors inline | SPEC-0020 framework (live) |
 
 ## 7. Non-negotiables carried
 #1 never fabricate — «غير موزَّع»/«غير متوفر» over guessing; modeled series never shown as fact. #6 drawings ≠ opex, now

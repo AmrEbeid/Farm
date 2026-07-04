@@ -26,8 +26,11 @@
 > sortable [new gap]** + exportable; charts always multi-insight via dimension toggles/overlays/click-through) and
 > **§C.3 owner + farm-manager dashboards** adopting the Lovable panels heavily — with the ⚠ flag that `finance.read`
 > is owner/accountant-only, so FM money visibility = **decision 8** (proposed default: quantities + budget-% only).
-> Now 8 Owner decisions in §5; slices 1–8b in §6 (8a = sortable/toggle shared components, can go first).
-> **Docs only — stopped at the gate per instruction.**
+> Third follow-up → **§D.1 universal import templates**: every data-entry entity ships a prefilled Excel/CSV template +
+> «استيراد» affordance via the LIVE SPEC-0020 framework (today only 3 RPCs covered — structure); slices 1/3/7 ship their
+> descriptors inline + new slice 9 retrofits expenses/custody/suppliers/inventory/people(non-PII); PII excluded from
+> templates, money imports non-authoritative until the oracle. Now 8 Owner decisions in §5; slices 1–9 in §6
+> (8a = sortable/toggle shared components, can go first). **Docs only — stopped at the gate per instruction.**
 
 > **2026-07-02 — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
 > Owner mandate "keep working until this task and all other open PRs are finished" executed: gated batch
