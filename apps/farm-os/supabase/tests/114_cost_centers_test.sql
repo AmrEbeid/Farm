@@ -1,4 +1,4 @@
--- 114 — SPEC-0024 S-3: مراكز التكلفة (cost centers). Verifies migration 20260701450000: the budget.write
+-- 114 — SPEC-0024 S-3: مراكز التكلفة (cost centers). Verifies migration 20260701460000: the budget.write
 -- gate, cycle + depth guards, sector org-consistency, the per-org system «غير موزَّع» center (rename-only),
 -- archive-vs-delete (subtree soft-delete), merge repointing (expenses + journal_lines), the expense
 -- cost_center leaf/org guard, and anon lockdown. budget.write = owner/accountant (migration 0001).

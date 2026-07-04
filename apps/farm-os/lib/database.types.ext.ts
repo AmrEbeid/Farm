@@ -1054,6 +1054,9 @@ type SiteEnquiriesTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
+type SiteEnquiriesFunctions = {
+  fn_set_enquiry_status: { Args: { p_id: string; p_status: string }; Returns: undefined };
+};
 
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
@@ -1101,7 +1104,7 @@ export type Database = Omit<Generated, "public"> & {
       site_content: SiteContentTable;
       site_enquiries: SiteEnquiriesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions;
   };
 };
 
