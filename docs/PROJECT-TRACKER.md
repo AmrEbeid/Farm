@@ -1,6 +1,22 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-8b live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0018-EXT custody transfer live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 S-8b operational dashboard/360 linkage LIVE (`main` `ad9b6f3`, PR #673; no migration).**
+> **2026-07-04 (latest) — SPEC-0018-EXT S1 custody holder-transfer LIVE (`main` `b072ed4`, PR #674; prod migration `20260701480000`).**
+> This closes the Owner's exact custody handover gap: farm-manager custody cash can now be transferred to the
+> accountant as **one atomic internal transfer**, not two unrelated manual movements. Migration
+> `20260701480000_custody_transfer` adds `custody_movements.transfer_group_id` and `fn_transfer_custody`.
+> `/custody` now has **تحويل عهدة** for owner/accountant users. The transfer writes one linked source out-row and one
+> linked destination in-row, rejects cross-org/self/zero/over-balance transfers, requires active accounts, keeps
+> farm-manager direct finance access closed, and creates **no journal entry / no P&L effect** because this is only a
+> cash-holder location change. Production apply used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`: dry-run
+> showed exactly one pending migration, apply succeeded, and post-apply dry-run reported the remote DB up to date.
+> Validation: local `git diff --check`, `tsc`, focused eslint, full eslint, app Vitest **464/464**, production build,
+> Recharts guard, server/client-boundary guard, and full pgTAP **1338/1338** including new
+> `119_custody_transfer`; PR #674 checks + CodeRabbit + Vercel preview green; post-merge `main` checks green (`ci`,
+> `db-tests`, `release`, Supabase Preview, Vercel production, gitleaks). Next accounting recommendation remains
+> **S-10 revenue/A-R + close**; low-risk custody report slices (ledger by holder, cash expenses, unpaid obligations,
+> owner funding/replenishment) are the next custody polish if prioritized before S-10.
+
+> **2026-07-04 — SPEC-0024 S-8b operational dashboard/360 linkage LIVE (`main` `ad9b6f3`, PR #673; no migration).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
 > **S-0 + S-8a + S-1 + S-2 + S-3 + S-4 + S-5 + S-7a + S-7b + S-8b**. S-8b directly addresses the Owner's
 > "everything linked and presented" complaint without changing money posting or operation execution: the shared

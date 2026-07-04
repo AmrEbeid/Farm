@@ -1,7 +1,44 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-8b live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0018-EXT custody transfer live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-8b operational dashboard/360 linkage live
+## 2026-07-04 (latest) — SPEC-0018-EXT S1 custody holder-transfer live
+
+Continuation under the Owner's autonomous "keep working until live" instruction. The custody holder-transfer slice is
+now merged and live via PR **#674** (`main` merge commit **`b072ed4`**) after migrate-first production apply of
+**`20260701480000_custody_transfer`** to Farm Supabase project `veezkmytervjnpxcrbkw`.
+
+**Completed and live:**
+- Backend:
+  - `custody_movements.transfer_group_id`;
+  - `fn_transfer_custody(p_from_account, p_to_account, p_amount, p_occurred_at, p_note)`;
+  - new pgTAP `119_custody_transfer`.
+- UI:
+  - `/custody` now has **تحويل عهدة** for owner/accountant users.
+- Workflow:
+  - farm-manager/accountant handover records one source `amount_out` and one destination `amount_in`;
+  - linked pair shares `transfer_group_id`;
+  - rejects over-balance, self-transfer, cross-org transfer, zero amount, and inactive accounts.
+
+**Safety/accuracy:**
+- no permission widening;
+- farm-manager direct finance access remains closed;
+- no journal entry and no P&L effect;
+- no payment-request lifecycle rewrite;
+- no revenue/A-R or close logic added.
+
+**Production apply and validation:** Supabase CLI dry-run showed exactly one pending migration,
+`20260701480000_custody_transfer`; apply succeeded; post-apply dry-run reported the remote database up to date. Local
+validation: `git diff --check`, `npx tsc --noEmit`, focused eslint, full eslint, app Vitest **464/464**, `npm run
+build`, Recharts guard, server/client-boundary guard, and full pgTAP **1338/1338**. PR checks + CodeRabbit + Vercel
+preview were green. Post-merge `main` `ci`, `db-tests`, `release`, Supabase Preview, Vercel production, and gitleaks
+are green for `b072ed4`.
+
+**Resume point:** next accounting-money recommendation remains **S-10 revenue/A/R + close**. If prioritizing
+accountant daily workflow before S-10, the next low-risk custody polish is SPEC-0018-EXT Slices 3/4: custody ledger by
+holder, cash-expense report, unpaid obligations report, and owner funding/replenishment report. S-6 historical workbook
+import remains Stage-M/real-data gated.
+
+## 2026-07-04 — SPEC-0024 S-8b operational dashboard/360 linkage live
 
 Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-8b is now merged and
 live via PR **#673** (`main` merge commit **`ad9b6f3`**). **No Supabase migration** was needed; this slice improves

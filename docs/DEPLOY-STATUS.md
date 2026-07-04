@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-8b operational dashboard/360 linkage LIVE; no migration.**
+> **2026-07-04 (latest) — SPEC-0018-EXT S1 custody holder-transfer LIVE; prod ledger head `20260701480000`.**
+> PR **#674** merged to `main` at **`b072ed4`** after migrate-first production apply. Scope:
+> `custody_movements.transfer_group_id`, `fn_transfer_custody`, and `/custody` **تحويل عهدة**. The flow records a
+> farm-manager/accountant custody handover as one linked out/in movement pair; it rejects over-balance, cross-org,
+> self, zero, and inactive-account transfers; it does **not** create a journal entry and does **not** affect P&L.
+> No permission widening: owner/accountant still record custody movements; farm-manager direct finance access remains
+> closed. Production apply used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`: dry-run showed exactly one
+> pending migration, `20260701480000_custody_transfer`, apply succeeded, and post-apply dry-run was clean. Validation:
+> local `git diff --check`, `tsc`, focused eslint, full eslint, app Vitest **464/464**, production build, Recharts
+> guard, server/client-boundary guard, full pgTAP **1338/1338**, PR checks + CodeRabbit + Vercel preview green.
+> Current post-merge `main` **`b072ed4`** has green `ci`, `db-tests`, `release`, Supabase Preview, Vercel production,
+> and gitleaks statuses.
+>
+> **2026-07-04 — SPEC-0024 S-8b operational dashboard/360 linkage LIVE; no migration.**
 > PR **#673** merged to `main` at **`ad9b6f3`**. Scope: shared sector/hawsha/line/palm 360 linked-work context
 > now resolves operation parent plans, operation target labels/hrefs, assignee names, and legacy responsible-person
 > names; linked plan/task sections now show plan, target, assignees, open/due counts, search, sort, and export.
