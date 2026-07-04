@@ -8,6 +8,7 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { CategoryBarChart, MultiInsightChart, TrendLineChart } from "@/components/charts";
 import { egp, num } from "@/lib/money";
+import { StoryLine } from "@/components/StoryLine";
 
 type CostCenterRollupRow = {
   org_id: string;
@@ -156,6 +157,15 @@ export default async function FinanceReportsPage({
   const centerCharts = buildCenterChartData(rollup);
   const trendChart = buildYearTrend(financeLines, entryById, accountById);
 
+  // U-12 (§2c): the period's story in one sentence — derived from the same journal lines below (#1).
+  const costLead =
+    expenseTotal > 0 || revenueTotal > 0
+      ? `أنفقت المزرعة ${egp(expenseTotal)} مقابل ${egp(revenueTotal)} إيرادًا — ${profit >= 0 ? "فائض" : "عجز"} ${egp(Math.abs(profit))} في هذه الفترة.`
+      : "لا قيود مصروفات أو إيرادات في هذه الفترة بعد.";
+  const costNotes: string[] = [];
+  if (unallocatedLines > 0)
+    costNotes.push(`⚠ ${num(unallocatedLines)} قيد غير موزَّع على مركز تكلفة — وزّعها لتكتمل صورة «أين تذهب الفلوس».`);
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
@@ -171,6 +181,9 @@ export default async function FinanceReportsPage({
           <HeaderLink href="/accounting">المحاسبة</HeaderLink>
         </div>
       </header>
+
+      <StoryLine lead={costLead} notes={costNotes} />
+
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <DashboardKpiLink href="/finance/reports" active={!center && focus === "all"}>
