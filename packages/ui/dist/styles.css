@@ -337,7 +337,10 @@
 .fos-table__td--center { text-align:center; }
 .fos-table__td--end { text-align:end; }
 .fos-table__td--num { font-variant-numeric:tabular-nums; }
+.fos-table__row { transition:background var(--dur-fast) var(--ease); }
+.fos-table__row:nth-child(even) { background:color-mix(in srgb, var(--surface-sunken) 45%, var(--surface)); }
 .fos-table__row:hover { background:color-mix(in srgb, var(--brand) 6%, var(--surface)); }
+.fos-table__row:nth-child(even):hover { background:color-mix(in srgb, var(--brand) 6%, var(--surface)); }
 .fos-table__empty { padding:var(--space-8) var(--space-4); text-align:center; color:var(--ink-muted); font-size:var(--text-sm); }
 
 /* Mobile reflow: below ~48rem an opted-in (.fos-table-wrap--reflow) table becomes
