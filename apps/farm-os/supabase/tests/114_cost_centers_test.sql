@@ -7,7 +7,7 @@
 -- (tests 44/82/85). Fixtures that must bypass the RPC gate are inserted directly as superuser.
 
 begin;
-select plan(20);
+select plan(29);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set orgB '00000000-0000-0000-0000-0000000000cc'
@@ -36,16 +36,33 @@ select is(
   (select count(*)::int from public.cost_centers where org_id = :'org' and code = 'CC-UNALLOC' and is_system),
   1, 'the per-org system «غير موزَّع» center is seeded (idempotently) and is_system');
 select set_config('test.sys', (select id::text from public.cost_centers where org_id = :'org' and code = 'CC-UNALLOC'), false);
+select is(
+  (select count(*)::int from public.cost_centers where org_id = :'org' and code <> 'CC-UNALLOC'),
+  18, 'the canonical Ebeid org receives the 18 real workbook cost centers');
+select is(
+  (select sector_id from public.cost_centers where org_id = :'org' and code = 'CC-HSW'),
+  (select id from public.sectors where org_id = :'org' and code = 'HSW'),
+  'seeded land center links to the matching physical sector when it exists');
+select is(
+  (select area_feddan from public.cost_centers where org_id = :'org' and code = 'CC-S22-PALM'),
+  14::numeric, 'seeded enterprise center preserves the workbook area');
+select ok(
+  exists (
+    select 1 from public.v_cost_center_reconciliation_flags
+     where org_id = :'org'
+       and code = 'CC-KMT'
+       and flag_code = 'missing_sector_link'),
+  'accounting-only centers are flagged instead of silently linked to a physical sector');
 
 -- 2) create + gate
 select pg_temp.as_user(current_setting('test.owner'));
 select lives_ok(
   format($$ select set_config('test.land',
-    (public.fn_save_cost_center(null, %L, null, 'CC-HSW', 'الحصوه', null, 'عام', 30, 1, true))->>'id', false) $$, :'org'),
+    (public.fn_save_cost_center(null, %L, null, 'CC-TLAND', 'أرض اختبار', null, 'عام', 30, 1, true))->>'id', false) $$, :'org'),
   'owner creates a land (top-level) cost center');
 select lives_ok(
   $$ select set_config('test.ent',
-    (public.fn_save_cost_center(null, null, current_setting('test.land')::uuid, 'CC-HSW-NAK', 'نخيل الحصوه', null, 'نخيل', 14, 1, true))->>'id', false) $$,
+    (public.fn_save_cost_center(null, null, current_setting('test.land')::uuid, 'CC-TENT', 'نشاط اختبار', null, 'نخيل', 14, 1, true))->>'id', false) $$,
   'owner creates an enterprise sub-center under the land');
 reset role;
 
@@ -67,7 +84,7 @@ select throws_ok(
 
 -- 4) cycle + depth cap
 select throws_ok(
-  $$ select public.fn_save_cost_center(current_setting('test.land')::uuid, null, current_setting('test.ent')::uuid, 'CC-HSW', 'الحصوه', null, null, null, null, true) $$,
+  $$ select public.fn_save_cost_center(current_setting('test.land')::uuid, null, current_setting('test.ent')::uuid, 'CC-TLAND', 'أرض اختبار', null, null, null, null, true) $$,
   '22023', null, 're-parenting a land under its own descendant is rejected (cycle)');
 select set_config('test.d2', (public.fn_save_cost_center(null, null, current_setting('test.ent')::uuid, 'CC-D2', 'د2', null, null, null, null, true))->>'id', false);
 select set_config('test.d3', (public.fn_save_cost_center(null, null, current_setting('test.d2')::uuid, 'CC-D3', 'د3', null, null, null, null, true))->>'id', false);
@@ -141,7 +158,50 @@ select lives_ok(
   format($$ update public.expenses set cost_center_id = %L where id = %L $$, current_setting('test.ent'), current_setting('test.gexp')),
   'an expense CAN point at an active leaf cost center');
 
--- 9) anon lockdown
+-- 9) posting pass-through + rollup math. The debit expense line carries the center; the cash line does not.
+insert into public.expenses(org_id, category, total, kind, cost_center_id)
+  values (:'org', 'اختبار ترحيل', 140, 'operating', current_setting('test.ent')::uuid)
+  returning set_config('test.pexp', id::text, false);
+select lives_ok(
+  format($$ select set_config('test.pje', public.fn_post_two_line_journal(
+      %L::uuid,
+      current_date,
+      'test_cc_post',
+      current_setting('test.pexp')::uuid,
+      'اختبار مركز تكلفة',
+      current_setting('test.acct')::uuid,
+      public.fn_ensure_account(%L::uuid, '1000-test-cc', 'عهدة اختبار', 'asset', 'debit'),
+      140,
+      'مصروف اختبار',
+      'نقدية اختبار',
+      null,
+      null,
+      current_setting('test.pexp')::uuid,
+      null)::text, false) $$, :'org', :'org'),
+  'posting an expense writes a two-line journal');
+select is(
+  (select count(*)::int from public.journal_lines
+    where journal_entry_id = current_setting('test.pje')::uuid
+      and debit > 0
+      and cost_center_id = current_setting('test.ent')::uuid),
+  1, 'expense-side journal line carries the expense cost_center_id');
+select ok(
+  (select cost_center_id is null from public.journal_lines
+    where journal_entry_id = current_setting('test.pje')::uuid and credit > 0),
+  'cash-side journal line stays unallocated');
+select is(
+  (select net_per_feddan from public.v_cost_center_rollup where cost_center_id = current_setting('test.ent')::uuid),
+  10::numeric, 'cost-center rollup computes net per feddan from expense/revenue lines');
+insert into public.journal_entries(org_id, entry_date, source_type, source_id, description)
+  values (:'org', current_date, 'test_cc_unalloc', gen_random_uuid(), 'اختبار غير موزع')
+  returning set_config('test.uje', id::text, false);
+insert into public.journal_lines(org_id, journal_entry_id, account_id, debit, credit, cost_center_id)
+  values (:'org', current_setting('test.uje')::uuid, current_setting('test.acct')::uuid, 77, 0, null);
+select is(
+  (select net from public.v_cost_center_rollup where org_id = :'org' and code = 'CC-UNALLOC'),
+  77::numeric, 'NULL expense/revenue center lines roll into «غير موزَّع»');
+
+-- 10) anon lockdown
 select ok(
   not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace

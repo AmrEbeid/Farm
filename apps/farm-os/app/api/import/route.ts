@@ -55,7 +55,13 @@ async function fetchExistingRows(
   // table name — loosely typed via the shared helper (same cast the ref lookups below use).
   const fromLoose = looseFrom(sb);
 
-  const { data, error } = await fromLoose(descriptor.table).select("*").eq("org_id", orgId).eq("archived", false);
+  let query = fromLoose(descriptor.table).select("*").eq("org_id", orgId);
+  if (descriptor.archiveType) {
+    query = query.eq("archived", false);
+  } else if (descriptor.columns.some((c) => c.key === "active")) {
+    query = query.eq("active", true);
+  }
+  const { data, error } = await query;
   if (error) throw error;
 
   const mapped = (data ?? []).map((r) => ({ id: String(r.id), row: fromRow(r) }));

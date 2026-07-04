@@ -433,7 +433,7 @@ type StructFunctions = {
 type ExpensePaymentStatus = "paid_from_custody" | "post_paid_unpaid" | "paid_by_owner" | "cancelled";
 type ExpenseKind = "operating" | "drawing" | "capex";
 type PaymentRoutingColumn = "payment_status" | "paid_by" | "kind";
-type ExpenseAccountColumn = "account_id";
+type ExpenseDimensionColumn = "account_id" | "cost_center_id";
 
 type CustodyAccountsTable = {
   Row: { id: string; org_id: string; holder_label: string; holder_user_id: string | null; target_float: number; active: boolean; created_at: string; created_by: string | null };
@@ -479,6 +479,26 @@ type AccountsTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
+type CostCentersTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    parent_id: string | null;
+    code: string;
+    name_ar: string;
+    sector_id: string | null;
+    enterprise: string | null;
+    area_feddan: number | null;
+    is_system: boolean;
+    sort_order: number | null;
+    active: boolean;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
 type AccountRollupView = {
   Row: {
     org_id: string;
@@ -498,6 +518,37 @@ type AccountRollupView = {
   };
   Relationships: [];
 };
+type CostCenterRollupView = {
+  Row: {
+    org_id: string;
+    cost_center_id: string;
+    parent_id: string | null;
+    code: string;
+    name_ar: string;
+    sector_id: string | null;
+    enterprise: string | null;
+    area_feddan: number | null;
+    active: boolean;
+    is_system: boolean;
+    sort_order: number | null;
+    debit: number;
+    credit: number;
+    net: number;
+    net_per_feddan: number | null;
+  };
+  Relationships: [];
+};
+type CostCenterReconciliationFlagsView = {
+  Row: {
+    org_id: string;
+    cost_center_id: string;
+    code: string;
+    name_ar: string;
+    flag_code: string;
+    message_ar: string;
+  };
+  Relationships: [];
+};
 type JournalEntriesTable = {
   Row: { id: string; org_id: string; entry_date: string; source_type: string; source_id: string; description: string | null; status: string; posted_at: string; posted_by: string | null; reversal_of: string | null; created_at: string };
   Insert: Record<string, never>;
@@ -505,7 +556,7 @@ type JournalEntriesTable = {
   Relationships: [];
 };
 type JournalLinesTable = {
-  Row: { id: string; org_id: string; journal_entry_id: string; account_id: string; debit: number; credit: number; description: string | null; custody_account_id: string | null; custody_movement_id: string | null; expense_id: string | null; payment_request_id: string | null; created_at: string };
+  Row: { id: string; org_id: string; journal_entry_id: string; account_id: string; debit: number; credit: number; description: string | null; custody_account_id: string | null; custody_movement_id: string | null; expense_id: string | null; payment_request_id: string | null; cost_center_id: string | null; created_at: string };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -518,14 +569,15 @@ type PaymentRequestFundingsTable = {
 };
 /** Add the SPEC-0018 payment-routing columns to the generated expenses table. */
 type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
-  Row: Omit<T["Row"], PaymentRoutingColumn | ExpenseAccountColumn> & {
+  Row: Omit<T["Row"], PaymentRoutingColumn | ExpenseDimensionColumn> & {
     payment_status: ExpensePaymentStatus | null;
     paid_by: string | null;
     kind: ExpenseKind;
     account_id: string | null;
+    cost_center_id: string | null;
   };
-  Insert: Omit<T["Insert"], PaymentRoutingColumn | ExpenseAccountColumn> & { account_id?: string | null };
-  Update: Omit<T["Update"], PaymentRoutingColumn | ExpenseAccountColumn> & { account_id?: string | null };
+  Insert: Omit<T["Insert"], PaymentRoutingColumn | ExpenseDimensionColumn> & { account_id?: string | null; cost_center_id?: string | null };
+  Update: Omit<T["Update"], PaymentRoutingColumn | ExpenseDimensionColumn> & { account_id?: string | null; cost_center_id?: string | null };
   Relationships: T["Relationships"];
 };
 // ── SPEC-0019 P1-3 "جداول العمليات" — operation templates (instantiate-only slice). ──
@@ -585,6 +637,23 @@ type CustodyFunctions = {
   };
   fn_archive_account: { Args: { p_id: string }; Returns: Json };
   fn_merge_accounts: { Args: { p_source: string; p_target: string }; Returns: Json };
+  fn_save_cost_center: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_parent_id: string | null;
+      p_code: string;
+      p_name_ar: string;
+      p_sector_id?: string | null;
+      p_enterprise?: string | null;
+      p_area_feddan?: number | null;
+      p_sort_order?: number | null;
+      p_active?: boolean;
+    };
+    Returns: Json;
+  };
+  fn_archive_cost_center: { Args: { p_id: string }; Returns: Json };
+  fn_merge_cost_centers: { Args: { p_source: string; p_target: string }; Returns: Json };
   fn_save_custody_account: {
     Args: {
       p_id: string | null;
@@ -990,6 +1059,8 @@ export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
     Views: Public["Views"] & {
       v_account_rollup: AccountRollupView;
+      v_cost_center_rollup: CostCenterRollupView;
+      v_cost_center_reconciliation_flags: CostCenterReconciliationFlagsView;
     };
     Tables: Omit<
       Tables,
@@ -1012,6 +1083,7 @@ export type Database = Omit<Generated, "public"> & {
       attachments: AttachmentsTable;
       academy_content: AcademyContentTable;
       accounts: AccountsTable;
+      cost_centers: CostCentersTable;
       journal_entries: JournalEntriesTable;
       journal_lines: JournalLinesTable;
       custody_accounts: CustodyAccountsTable;
