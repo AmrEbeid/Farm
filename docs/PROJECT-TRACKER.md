@@ -1,6 +1,17 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0025 task-first UX, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0026 ops lifecycle design, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — Owner UX verdict → [`SPEC-0025`](SPEC-0025-task-first-ux.md) task-first UX; U-1/U-3/U-4 built (PR #683) + RTL nav fix (PR #680).**
+> **2026-07-04 (latest) — Operations lifecycle revamp DESIGNED → [`SPEC-0026`](SPEC-0026-operations-lifecycle-ux.md) (docs only; Owner gate).**
+> Owner directive: make the operations module totally user-friendly — easy to record/edit the plan, review
+> it, and for employees to use and record executions against it. SPEC-0026 composes the LIVE machinery
+> (fn_create_plan/fn_add_plan_operation_multi/templates/runPlanChecks/sign-off gate/fn_execute_operation/
+> offline outbox/PvA) into five plain-Arabic stages: **خطّط** (plan workbench = LineItemsEditor lines with
+> per-line readiness chips) ← **تحقّق** (checks as a story header with one-tap fixes) ← **اعتمد** (engineer
+> sign-off QUEUE + 1-step activation summary) ← **نفّذ** («يومي» day cards + guided execution wizard with
+> honest actuals + «لم أستطع» reasons) ← **تابع** (progress stories + attention items). 7 slices P-1..P-7,
+> zero-schema except one tiny gated migration (blocked_reason). 5 Owner decisions in §4; success metric =
+> FM builds/edits a week plan ≤5 min, worker records an execution ≤60 sec, zero help.
+
+> **2026-07-04 — Owner UX verdict → [`SPEC-0025`](SPEC-0025-task-first-ux.md) task-first UX; U-1/U-3/U-4 built (PR #683) + RTL nav fix (PR #680).**
 > Owner found the app "very hard to use — each trx in a different module". SPEC-0025 = task-first IA:
 > «+ سجّل» launcher + guided wizards over the existing RPCs, one «المعاملات» ledger, one «التقارير» hub,
 > 5-item nav (pilot-gated), help drawer (live via SPEC-0014). **Follow-up scope (§2b):** money wizards by
