@@ -58,6 +58,10 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-046** | `fn_custody_cash_expense_report(…)` | org,period_start?,period_end? | jsonb | Read-only custody-paid expense report split by holder, kind, and linked request/movement | BR-066/122 | (reads) | FEAT-028 |
 | **RPC-047** | `fn_unpaid_obligations_report(…)` | org,as_of? | jsonb | Read-only post-paid unpaid obligations report with aging buckets and request status | BR-066/122 | (reads) | FEAT-028 |
 | **RPC-048** | `fn_owner_funding_report(…)` | org,period_start?,period_end? | jsonb | Read-only owner funding/replenishment report over funds received into custody | BR-066/122 | (reads) | FEAT-028/030 |
+| **RPC-049** | `fn_save_buyer(…)` | id?,org,name,type?,phone?,active? | jsonb{id} | Create/update a buyer/customer for revenue and A/R rollups | BR-063/066/123/126 | `buyers` | FEAT-023 |
+| **RPC-050** | `fn_save_sale(…)` | id?,org,date,crop,buyer?,cost_center?,farm/sector/hawsha?,season?,qty?,unit?,delivery?,notes? | jsonb{id,price_status} | Record or edit a pending-price delivery; crop is mandatory; no journal is posted | BR-063/066/123/124/126 | `sales` | FEAT-023 |
+| **RPC-051** | `fn_finalize_sale_price(p_sale,p_unit_price)` | sale,unit_price | jsonb | Set final price/total for a pending sale and post Dr A/R / Cr sales revenue once | BR-116/117/123/125 | `sales`,`journal_entries`,`journal_lines`,`accounts` | FEAT-023/030 |
+| **RPC-052** | `fn_record_sale_collection(…)` | sale,amount,occurred_at?,collected_by?,note? | jsonb | Record a partial/final customer collection and post Dr cash / Cr A/R; rejects over-collection | BR-116/117/123/125 | `sale_collections`,`sales`,`journal_entries`,`journal_lines`,`accounts` | FEAT-023/030 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |
@@ -81,5 +85,6 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 only as a side effect of the gated finance RPCs. RPC-030/031/035/038/039 were **re-emitted** in `20260701220000`
 to post the matching journal entry / carry settlement fields (FEAT-030). Idempotency = claim-first (RPC-009,
 RPC-017) + unique `(org, source_type, source_id)` on journal postings (RPC-041/042, BR-117). Atomicity = single
-transaction (RPC-009, RPC-014, RPC-017, RPC-018, RPC-026, RPC-031, RPC-034..RPC-038, RPC-041..RPC-043). Maintenance:
+transaction (RPC-009, RPC-014, RPC-017, RPC-018, RPC-026, RPC-031, RPC-034..RPC-038, RPC-041..RPC-043,
+RPC-049..RPC-052). Maintenance:
 a new RPC → next free `RPC-NNN` + add its `BR`/`FEAT`.

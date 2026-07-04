@@ -18,9 +18,9 @@ payment-request report/PDF and other statement exports, (3) revenue/sales with a
 > same revenue model as a first-class sale type.
 
 *Author: autonomous docs/planning session, Owner: Amr Ebeid. Slice 1 is implemented in
-`20260701480000_custody_transfer`. Slices 3/4 are implemented in branch migration
-`20260701490000_custody_reports` and `/finance/custody-reports`; prod apply/merge remains gated by the normal
-migrate-first flow. PDF export and revenue/A-R remain future slices.*
+`20260701480000_custody_transfer`. Slices 3/4 are implemented by
+`20260701490000_custody_reports` and `/finance/custody-reports`. Slice 5 revenue/A-R backend is implemented by
+`20260701500000_revenue_sales`. PDF export and revenue reports remain future slices.*
 
 ---
 
@@ -191,11 +191,12 @@ and the Owner listed several reports that don't exist as dedicated views yet.
 
 ## 4. Gap 3 — Revenue / sales with delivery-before-price (the real new design)
 
-This is genuinely new: no `sales` table, no buyer/customer entity, no price-pending concept exists today. This
-section extends SPEC-0004's already-planned `sales` table (§2, "Missing (this stage builds)") with the specific
-mechanic the Owner described: **delivery can happen before the price is finalized.**
+This was genuinely new before S-10: no `sales` table, no buyer/customer entity, and no price-pending concept
+existed. The S-10 backend migration `20260701500000` implements that first revenue/A-R foundation. It extends
+SPEC-0004's planned `sales` table with the specific mechanic the Owner described: **delivery can happen before the
+price is finalized.**
 
-### 4.1 Proposed schema (draft — for Owner/accountant ratification, mirrors the expenses/custody pattern)
+### 4.1 Implemented schema (S-10 backend — mirrors the expenses/custody pattern)
 
 - `buyers` (org-scoped): `id, org_id, name, buyer_type ∈ {cash_customer, trader, company}, contact info,
   active`. Cash customers may not need a persistent row (a "walk-up" pseudo-buyer is acceptable), but traders and
@@ -211,18 +212,17 @@ mechanic the Owner described: **delivery can happen before the price is finalize
     `apps/farm-os/lib/money` honest-null handling, SESSION-BRIEF 2026-06-30 "#484... unknown/null/invalid
     values preserved").
   - `fn_finalize_sale_price(p_sale, p_unit_price)` — the only path to set `unit_price`/`total` and flip
-    `price_status` to `finalized`; posts the revenue journal (`Dr A-R/Cash · Cr revenue-account-for-crop`) only
+    `price_status` to `finalized`; posts the revenue journal (`Dr 1200 A/R · Cr 4000 sales revenue`) only
     at this point, via the existing `fn_post_two_line_journal`, keyed `source_type = 'sale'`. **A pending-price
     sale never touches the ledger** — mirrors the cash-method discipline already applied to unpaid expenses
     (Owner's non-negotiable #7, extended symmetrically to revenue).
 - `sale_collections` (org-scoped): `id, org_id, sale_id, amount, occurred_at, collected_by, note` — supports
   **partial collections** for trader/company receivables (a sale can be finalized in price but collected over
-  multiple payments). `Σ(collections) <= sale.total` is a DB check; `payment_status` derives from the sum
-  (`unpaid` / `partially_collected` / `collected`), the same "always derive, never store a running balance"
-  discipline as `fn_custody_balance`.
-- All writes RPC-only, RLS `finance.read`/a new `sale.write` (owner/accountant, mirroring `budget.write`'s role
-  set — a genuine owner decision, see §6), audited via `fn_audit`, `org_id` FK + FORCE RLS, following the exact
-  pattern of `custody_movements`/`payment_request_lines`.
+  multiple payments). The RPC rejects any `Σ(collections) > sale.total`; `payment_status` is refreshed from the
+  collection sum (`unpaid` / `partially_collected` / `collected`) while no running balance is stored.
+- All writes are RPC-only. The backend deliberately reuses existing `budget.write` (owner/accountant) instead of
+  adding a new `sale.write` permission, avoiding an `authorize()` re-emit. Reads are `finance.read`; tables have
+  FORCE RLS, direct DML revoked, and audit triggers.
 
 ### 4.2 Reports enabled
 - Revenue by buyer/crop/season (group `sales` by `buyer_id`/`crop`/`season`, excluding `price_status='pending'`
@@ -249,17 +249,16 @@ merge/apply, per `docs/CLAUDE.md`. None of these are authorized to build by this
 |---|---|---|---|---|
 | 1 | **Custody holder-transfer RPC** (Gap 1) | **Implemented:** `fn_transfer_custody` + pgTAP proving no-journal-effect + amount-can't-exceed-balance + atomic pair | none — additive | Low-med (money, but small + isolated) |
 | 2 | **Payment-request PDF export** (Gap 2a) | Server-side PDF generation from existing request-360 data; no new query logic | Owner approval of a PDF library (new dependency = hard stop) | Low (presentation only) |
-| 3 | **Custody ledger + cash-expense + unpaid-obligations reports** (Gap 2b, items 1-3) | **Implemented in branch:** 3 read-only RPCs + one dense `/finance/custody-reports` page using `FilterableTable` + CSV export | none — reads existing tables | Low (read-only) |
-| 4 | **Owner funding/replenishment report** (Gap 2b, item 4) | **Implemented in branch:** 1 read-only RPC + `/finance/custody-reports` section over `payment_request_fundings` | none | Low (read-only) |
-| 5 | **Revenue/sales schema + finalize-price + collections** (Gap 3, §4.1) | `buyers`, `sales`, `sale_collections` tables + RPCs; **no chart-of-accounts dependency for the pending-price case** (a pending sale posts nothing) | Chart of accounts must have at least one revenue account (`4000`-class) ratified before `fn_finalize_sale_price` can post — this is the one hard dependency on the existing Slice A chart-of-accounts gate | High (new money-adjacent schema; independent review required) |
+| 3 | **Custody ledger + cash-expense + unpaid-obligations reports** (Gap 2b, items 1-3) | **Implemented:** 3 read-only RPCs + one dense `/finance/custody-reports` page using `FilterableTable` + CSV export | none — reads existing tables | Low (read-only) |
+| 4 | **Owner funding/replenishment report** (Gap 2b, item 4) | **Implemented:** 1 read-only RPC + `/finance/custody-reports` section over `payment_request_fundings` | none | Low (read-only) |
+| 5 | **Revenue/sales schema + finalize-price + collections** (Gap 3, §4.1) | **Implemented:** `buyers`, `sales`, `sale_collections` tables + RPCs; **no chart-of-accounts dependency for the pending-price case** (a pending sale posts nothing). Finalization uses default `1200`/`4000` accounts through `fn_ensure_account`; trusted P&L still needs the real chart mapping later. | Existing accounting kernel (`fn_post_two_line_journal`) | High (new money-adjacent schema; independent review required) |
 | 6 | **Revenue reports** (Gap 3, §4.2) | Revenue-by-buyer/crop/season + A/R report | Slice 5 | Low (read-only, once 5 exists) |
 | 7 | **Role-based dashboards + filter/sort/export/import parity** (Gap 4) | Extend existing per-module dashboards (already largely live per SESSION-BRIEF) to explicitly cover finance/custody/revenue tables with the same filter/sort/export pattern; author `ImportDescriptor`s for `buyers`/`sales` once Slice 5 lands, per `docs/CLAUDE.md` "bulk-import descriptors" rule | Slice 5 for revenue; custody/expense import descriptors could start now | Low-med (many small touches) |
 | — | **Accounting-kernel integration** | Not a new slice — this plan explicitly defers to the existing roadmap's Slice A (P&L/balance-sheet/period-close) and Slice B (cost dimensions). Slices 5/6 above are designed to plug into that same kernel (`fn_post_two_line_journal`, `journal_lines` dimension FKs) rather than inventing a parallel ledger. | Roadmap Slice A | — |
 
 Recommended order after slice 1: **3 → 4 → 2 → 5 → 6 → 7**, i.e. do the cheap read-only reports next,
-hold the PDF export until a library is approved, and treat revenue
-(Slice 5) as the one that needs the most review time — schedule it only after the chart of accounts (existing
-Slice A gate) is ratified, since `fn_finalize_sale_price` needs a real revenue account to post to.
+hold the PDF export until a library is approved, and treat revenue reports (Slice 6) as the next review-heavy
+step after the S-10 backend is live.
 
 ---
 
@@ -286,9 +285,8 @@ Slice A gate) is ratified, since `fn_finalize_sale_price` needs a real revenue a
 4. **Buyer identity for cash customers** — do walk-up cash buyers need a persistent `buyers` row (for repeat-
    customer history) or is an unlinked "نقدي" sale sufficient? Affects whether `buyers.buyer_type='cash_customer'`
    rows are ever created, or `sales.buyer_id` is nullable for cash sales.
-5. **Sale write permission** — should `sale.write` mirror `budget.write`'s role set (owner/accountant), or does
-   revenue recording ever need a third role (e.g. a sales/trading contact)? Default proposed: owner/accountant
-   only, matching every other finance table in the app today.
+5. **Sale write permission** — resolved for S-10 backend: reuse `budget.write` (owner/accountant) and do not add a
+   separate `sale.write` permission until a real third revenue-entry role exists.
 6. **PDF library selection** — adding any dependency is a hard stop per `docs/CLAUDE.md` ("Adding dependencies,
    tools, or integrations" requires explicit approval). No library is chosen in this plan; the Owner (or whoever
    implements Slice 2) must approve one before that slice starts.
@@ -395,17 +393,23 @@ actual next-available test number is chosen at implementation time against curre
 movements, conserves total custody cash, rejects over-transfer/self-transfer/cross-org transfer, keeps
 farm-manager direct finance access closed, and creates no journal entry.
 
-**Slices 3/4 implemented in branch:** `20260701490000_custody_reports` adds
+**Slices 3/4 implemented:** `20260701490000_custody_reports` adds
 `fn_custody_ledger_report`, `fn_custody_cash_expense_report`, `fn_unpaid_obligations_report`, and
 `fn_owner_funding_report`. `/finance/custody-reports` gives the accountant period filters, KPI totals,
 search/sort/export tables, and links back to the related expense or payment request. The test
 `120_custody_reports` proves finance-read gating, holder opening/closing balances, cash-expense holder split,
 unpaid aging, owner-funding remaining amount, and non-finance denial.
 
+**Slice 5 implemented:** `20260701500000_revenue_sales` adds `buyers`, `sales`, `sale_collections`,
+and the RPCs `fn_save_buyer`, `fn_save_sale`, `fn_finalize_sale_price`, and `fn_record_sale_collection`.
+The test `115_revenue_sales` proves owner/accountant write gating, pending-price sales with NULL totals and no
+journal, finalization posting Dr A/R / Cr revenue, partial/final collections posting Dr cash / Cr A/R,
+over-collection rejection, org-bound farm dimensions, revenue RLS, and anon EXECUTE lockdown.
+
 ---
 
 ## 10. Next step
 
-After Slices 3/4, the next custody polish is **Slice 2 PDF/export packaging** once a PDF approach/dependency is
-approved. Slice 5 (revenue) should wait until the existing roadmap's chart-of-accounts gate clears, since
-`fn_finalize_sale_price` needs at least one ratified revenue account to post to.
+After Slice 5 is live, the next practical accounting lane is **Slice 6 revenue reports**: revenue by buyer/crop/
+season, pending-price deliveries listed separately, and A/R aging. Custody polish still has **Slice 2 PDF/export
+packaging** waiting on an approved PDF approach/dependency.

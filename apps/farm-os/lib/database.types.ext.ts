@@ -567,6 +567,69 @@ type PaymentRequestFundingsTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
+type BuyerType = "cash_customer" | "trader" | "company";
+type SalePriceStatus = "pending" | "finalized";
+type SalePaymentStatus = "unpaid" | "partially_collected" | "collected";
+type BuyersTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    name: string;
+    buyer_type: BuyerType;
+    phone: string | null;
+    active: boolean;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type SalesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    sale_date: string | null;
+    farm_id: string | null;
+    sector_id: string | null;
+    hawsha_id: string | null;
+    crop: string;
+    season: string | null;
+    buyer_id: string | null;
+    cost_center_id: string | null;
+    qty: number | null;
+    unit: string | null;
+    unit_price: number | null;
+    total: number | null;
+    price_status: SalePriceStatus;
+    delivery_date: string | null;
+    price_finalized_at: string | null;
+    payment_status: SalePaymentStatus;
+    notes: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type SaleCollectionsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    sale_id: string;
+    amount: number;
+    occurred_at: string;
+    collected_by: string | null;
+    note: string | null;
+    journal_entry_id: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
 /** Add the SPEC-0018 payment-routing columns to the generated expenses table. */
 type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
   Row: Omit<T["Row"], PaymentRoutingColumn | ExpenseDimensionColumn> & {
@@ -1115,6 +1178,39 @@ type OffshootFunctions = {
     Returns: Json;
   };
 };
+type RevenueFunctions = {
+  fn_save_buyer: {
+    Args: { p_id: string | null; p_org: string | null; p_name: string; p_buyer_type?: BuyerType | null; p_phone?: string | null; p_active?: boolean | null };
+    Returns: Json;
+  };
+  fn_save_sale: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_sale_date: string | null;
+      p_crop: string;
+      p_buyer_id?: string | null;
+      p_cost_center_id?: string | null;
+      p_farm_id?: string | null;
+      p_sector_id?: string | null;
+      p_hawsha_id?: string | null;
+      p_season?: string | null;
+      p_qty?: number | null;
+      p_unit?: string | null;
+      p_delivery_date?: string | null;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_finalize_sale_price: {
+    Args: { p_sale: string; p_unit_price: number };
+    Returns: Json;
+  };
+  fn_record_sale_collection: {
+    Args: { p_sale: string; p_amount: number; p_occurred_at?: string | null; p_collected_by?: string | null; p_note?: string | null };
+    Returns: Json;
+  };
+};
 
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
@@ -1152,6 +1248,9 @@ export type Database = Omit<Generated, "public"> & {
       payment_requests: PaymentRequestsTable;
       payment_request_lines: PaymentRequestLinesTable;
       payment_request_fundings: PaymentRequestFundingsTable;
+      buyers: BuyersTable;
+      sales: SalesTable;
+      sale_collections: SaleCollectionsTable;
       plan_operation_assignees: PlanOperationAssigneesTable;
       plan_operation_templates: PlanOperationTemplatesTable;
       pest_traps: PestTrapsTable;
@@ -1164,7 +1263,7 @@ export type Database = Omit<Generated, "public"> & {
       offshoot_movements: OffshootMovementsTable;
       offshoot_valuation: OffshootValuationTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions;
   };
 };
 

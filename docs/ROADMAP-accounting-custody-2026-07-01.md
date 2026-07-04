@@ -79,7 +79,7 @@ what makes the near-term slices cheap.
 | Chart of accounts + balanced journals + trial balance | ✅ all | ✅ **shipped** (#568) | — | Done |
 | Imprest custody float + approval workflow | Zoho/Pluto/Alaan | ✅ **shipped**, textbook-correct | — | Done — ahead of tier |
 | Expense classification (opex/drawings/capex) | partial | ✅ shipped, structurally enforced | — | Done — ahead of tier |
-| **Revenue / sales / A-R** | ✅ statutory tier | ❌ none | Low–med (new table, post via existing kernel) | **Build — Slice A** |
+| **Revenue / sales / A-R** | ✅ statutory tier | 🟡 backend implemented in `20260701500000`; reports/UI pending | Low (reports on new backend + existing kernel) | **Continue — Slice A** |
 | **P&L + balance sheet + period close** | ✅ Wafeq (40+ reports) | ❌ trial-balance only | Low–med (reports over existing `journal_lines`/`accounts` + a period-lock table) | **Build — Slice A** |
 | **ETA e-invoice + VAT (Egypt mandate)** | ✅ Daftra, Wafeq | ❌ none | High (external integration, e-signature, legal) | **Build/partner — Slice C, gated (§5)** |
 | **Per-crop / feddan / tree cost accounting** | Qoyod (cost centers); Traction/Conservis (best) | ❌ none | Med (add a dimension to `journal_lines`, which already carries expense/custody/payment dimension FKs) | **Build — Slice B (the wedge)** |
@@ -111,8 +111,8 @@ carries financial-integrity risk → each needs its own SPEC/plan + independent 
 merge, and real-data reconciliation is Stage-M gated.
 
 ### Slice A — Statutory reporting completion *(cheap on the existing kernel; highest near-term value)*
-- **Scope:** (1) Revenue/sales + A-R — a `sales` table + `fn_save_sale` posting `Dr A-R/Cash · Cr Revenue` through
-  the existing `fn_post_two_line_journal`; (2) P&L + balance sheet report RPCs grouped by `account_type` over the
+- **Scope:** (1) Revenue/sales + A-R — backend tables/RPCs are implemented in `20260701500000`; next is revenue
+  by buyer/crop/season, pending-price delivery listing, and A/R aging; (2) P&L + balance sheet report RPCs grouped by `account_type` over the
   existing `journal_lines`/`accounts` (same shape as `fn_accounting_trial_balance`); (3) a period close/lock
   (`accounting_periods` + a lock check in the posting RPCs); (4) fold in **budget-vs-actual** by rolling the real
   ledger up by category, closing Decision-0157's "frozen seed numbers" gap.
