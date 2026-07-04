@@ -1,6 +1,23 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-02 by Claude (review/strategy session, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (planning session, for Owner: Amr Ebeid)
 
-> **2026-07-02 (latest) — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
+> **2026-07-04 (latest) — COA tree + cost centers + Owner Insights DESIGNED → [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) (docs only; Owner gate).**
+> Owner directive: build an **editable شجرة الحسابات**, the **cost-center concept**, and (yes to) the Owner-Insights
+> reporting layer — grounded in two Owner-provided sources reviewed this session: **(a) the farm's REAL accounting
+> workbook** `شيت محاسبي للمزارع0 (1).xlsx` (الدليل = 18 real cost centers *with areas* + 19 expense types + 35 labor
+> task types; **~10.2k real expense rows 2019→2026** with a 2-level قطاع→مزرعة center scheme + العام-الحقلي season;
+> 166 real sales incl. non-date crops; **التقارير** = the category×year×center matrix → adopted as the **import
+> reconciliation oracle**; ⚠ contains the known legacy **embedded Gmail+password** (#6 — redact, Owner to rotate) +
+> salary PII), and **(b) `EBD Farm Insights.zip`** (Lovable app, real-2025 + modeled-history economics; J-curve,
+> revenue mix برحي 62.6%/بنجر 30%, per-feddan sector economics, offshoot valuation → the UI blueprint + 2025
+> validation oracle; modeled years NEVER imported as fact, #1). **SPEC-0024** extends the live accounting kernel's
+> flat `accounts` (PR #568) into an editable tree (parent_id + cycle-guard + archive/merge, `budget.write`-gated RPCs
+> — no new perm, avoids the authorize() re-emit), adds `cost_centers` (land×enterprise — the accounting answer to
+> intercropping #595; area → per-feddan economics #219), maps the season dim to SPEC-0021, and stages the Stage-M
+> historical import via the live SPEC-0020 framework. **Directly fills SPEC-0004 decision #1 (§7.1 COA ratification)
+> and unblocks SPEC-0018-EXT slice 5 (revenue needs a ratified revenue account).** 5 Owner decisions listed in §5;
+> 6 gated slices in §6. **Docs only — no schema/code/import; stopped at the gate per the Owner's instruction.**
+
+> **2026-07-02 — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
 > Owner mandate "keep working until this task and all other open PRs are finished" executed: gated batch
 > #590/#591/#592/#593/#594/#596 merged (session rows; ops wave; hardening/onboarding/support/usability wrapper;
 > wave-3 research incl. SPEC-0023 جرد + legal/PDPL ~1-Nov-2026 flag; the `/purchase-requests` open-orders console
