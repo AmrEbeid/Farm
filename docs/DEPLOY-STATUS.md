@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-4 cost-center reports / Owner Insights v1 LIVE; no migration.**
+> **2026-07-04 (latest) — enquiry inbox management + OS design-system revamp (4 passes) LIVE.**
+> Enquiry inbox: owner marks read/archived at `/enquiries` via `fn_set_enquiry_status` (owner-gated
+> RPC, migration `20260701450000` applied; tests/22 + tests/118; pgTAP 1280/0) — #664. **OS design
+> revamp** (Stitch-directed, `@amrebeid/ui` token refresh, propagates to every screen, NO page
+> rewrites): #665 tokens (softer radii, refined layered shadows, cleaner surface), #666 button depth +
+> modern soft focus ring, #668 table zebra striping, #669 KPI value+delta-chip polish. All
+> token-purity-clean (color-mix over role tokens, no raw colors) + CI-green (tokens+storybook);
+> tracked `dist/` rebuilt (tsup) + app CSS synced each PR. Verified via the login page + a throwaway
+> local DS component preview (internal screens are auth-gated; Supabase auth was rate-limited from
+> repeated test logins). The public-website + OS-design work is comprehensive; deeper design passes
+> (app shell, per-screen) await Owner direction on the live look.
+>
+> **2026-07-04 — SPEC-0024 S-4 cost-center reports / Owner Insights v1 LIVE; no migration.**
 > PR **#667** merged to `main` at **`b23024a`**. Scope: owner/accountant `/finance/reports` over the live S-3
 > cost-center views, with KPI-card filters, unallocated line count, reconciliation flags, cost/revenue/net/per-feddan
 > rollup, searchable/sortable/exportable tables, multi-insight charts, and the account × year × center matrix. Journal
