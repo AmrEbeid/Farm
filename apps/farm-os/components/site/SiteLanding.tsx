@@ -25,6 +25,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
   const nav = [
     { href: "#about", label: { ar: "من نحن", en: "About" } },
     { href: "#certifications", label: { ar: "الشهادات", en: "Certifications" } },
+    ...(c.gallery.items.length > 0 ? [{ href: "#gallery", label: { ar: "المعرض", en: "Gallery" } }] : []),
     { href: "#supply", label: { ar: "التوريد", en: "Supply" } },
     { href: "#contact", label: { ar: "تواصل", en: "Contact" } },
   ];
@@ -195,6 +196,22 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
             ))}
           </ul>
         </section>
+
+        {/* ---- Gallery (hidden until it has items; owner-editable, dummy placeholders for now) ---- */}
+        {c.gallery.items.length > 0 && (
+          <section id="gallery" className="site__section site__band">
+            <div className="site__section-head"><h2>{t(c.gallery.heading)}</h2></div>
+            <div className="site__gallery">
+              {c.gallery.items.map((g, i) => (
+                <figure key={i} className="site__gallery-item">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- owner-managed gallery image (URL/path), not a signed URL */}
+                  <img src={g.image} alt={t(g.caption)} loading="lazy" />
+                  <figcaption>{t(g.caption)}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ---- Supply specs + Commercial enquiries (2-column, Stitch layout) ---- */}
         <section id="supply" className="site__section">

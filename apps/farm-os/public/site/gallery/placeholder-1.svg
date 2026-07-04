@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="صورة تجريبية 1">
+  <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#2e6b3e"/><stop offset="0.6" stop-color="#1f3d28"/><stop offset="1" stop-color="#163021"/>
+  </linearGradient></defs>
+  <rect width="800" height="600" fill="url(#g1)"/>
+  <g fill="none" stroke="#c79a3a" stroke-width="6" stroke-linecap="round" opacity="0.9" transform="translate(400,250)">
+    <path d="M0,60 L0,-60"/><path d="M0,-40 C40,-60 80,-55 110,-30"/><path d="M0,-40 C-40,-60 -80,-55 -110,-30"/>
+    <path d="M0,-10 C45,-28 90,-22 120,4"/><path d="M0,-10 C-45,-28 -90,-22 -120,4"/>
+    <path d="M0,20 C48,4 95,10 125,38"/><path d="M0,20 C-48,4 -95,10 -125,38"/>
+  </g>
+  <text x="400" y="400" text-anchor="middle" fill="#e8d29a" font-family="sans-serif" font-size="34" font-weight="700">صورة تجريبية · Placeholder 1</text>
+  <text x="400" y="445" text-anchor="middle" fill="#cfe0d1" font-family="sans-serif" font-size="22">استبدلها بصورة حقيقية من الإعدادات</text>
+</svg>

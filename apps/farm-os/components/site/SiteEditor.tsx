@@ -150,6 +150,62 @@ export function SiteEditor({ orgId, initial }: { orgId: string; initial: SiteCon
         ))}
       </section>
 
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-bold text-muted-foreground">معرض الصور</h2>
+        <p className="text-xs text-muted-foreground">
+          صور تجريبية مؤقتة — استبدل رابط كل صورة برابط صورة حقيقية وعدّل التعليق. يظهر المعرض على
+          الموقع عند وجود صورة واحدة على الأقل، ويختفي إذا حذفت كل الصور.
+        </p>
+        {content.gallery.items.map((g, i) => (
+          <div key={i} className="flex flex-col gap-2 rounded-lg border p-3">
+            <Field id={`gal-img-${i}`} label={`رابط الصورة ${i + 1}`}>
+              <Input
+                id={`gal-img-${i}`}
+                dir="ltr"
+                placeholder="/site/gallery/… أو https://…"
+                value={g.image}
+                onChange={(e) => set((d) => { d.gallery.items[i].image = e.target.value; })}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field id={`gal-cap-ar-${i}`} label="التعليق — عربي">
+                <Input
+                  id={`gal-cap-ar-${i}`}
+                  value={g.caption.ar}
+                  onChange={(e) => set((d) => { d.gallery.items[i].caption.ar = e.target.value; })}
+                />
+              </Field>
+              <Field id={`gal-cap-en-${i}`} label="Caption — English">
+                <Input
+                  id={`gal-cap-en-${i}`}
+                  dir="ltr"
+                  value={g.caption.en}
+                  onChange={(e) => set((d) => { d.gallery.items[i].caption.en = e.target.value; })}
+                />
+              </Field>
+            </div>
+            <div>
+              <Button
+                variant="ghost"
+                onClick={() => set((d) => { d.gallery.items.splice(i, 1); })}
+              >
+                حذف الصورة
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div>
+          <Button
+            variant="ghost"
+            onClick={() =>
+              set((d) => { d.gallery.items.push({ image: "", caption: { ar: "", en: "" } }); })
+            }
+          >
+            + إضافة صورة
+          </Button>
+        </div>
+      </section>
+
       <div>
         <Button variant="primary" onClick={onSave} disabled={pending}>
           {pending ? "جارٍ الحفظ…" : "حفظ التغييرات"}
