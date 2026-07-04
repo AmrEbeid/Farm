@@ -1,6 +1,23 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0026 ops lifecycle design, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-05 by Claude (harvest wave + Stage-M live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — Operations lifecycle revamp DESIGNED → [`SPEC-0026`](SPEC-0026-operations-lifecycle-ux.md) (docs only; Owner gate).**
+> **2026-07-05 (latest) — HARVEST WAVE: Stage-M real data LIVE in prod + شاشة الميزان + pricing wizard (PR #692).**
+> Owner authorized the real-data load: **full history imported + oracle-verified to the pound** (10,207
+> expenses = 20,527,757ج 2019–2026 + 166 sales, `payment_method='stage-m-import'`, year totals match the
+> workbook exactly) + **إذن صرف ٦ recorded (29 rows = 289,000 exact)** + new centers «الاستزراع السمكي» و
+> «عوامة الحصوه» with their June rows re-homed. Registry ground truth from official croquis: العزبة 750
+> برحي + 20 ذكور (6 حواش، ترقيع 28 مطلوب) + البابور 624/12فدان → import-prep file in Owner's Downloads.
+> **SPEC-0026 P-wave merged (#690)** (plan story header, wizard-on-existing-plan, انسخ الأسبوع, اعتمادات
+> queue, /m day-cards ماذا/أين/بماذا/مع من). **SPEC-0027 H-A + R-3 (PR #692, MIGRATE-FIRST DONE:
+> `20260701530000` applied+stamped+probed):** `/record/scale` شاشة الميزان (crate counter → net = gross −
+> crates×tare in-DB → PENDING sale + per-org serialized بون under advisory lock + WhatsApp share; NAMED
+> trader mandatory + inline add) و`/record/price` «حدّدت سعرًا» (fn_finalize_sale_price finally has UI —
+> live total → Dr ذمم/Cr إيراد; season anchor ≥52ج). pgTAP **1451/0** (new 123). Analytics delivered to
+> Owner (كتاب الموسم v2): 2025=+3.24M oracle-matched; قشطة decision memo (−450k/2yrs); برحي pricing
+> (46.4→target 52+, each +1ج≈+105k, «نقدي» 8.7M unattributed); بنجر June sales calibrated ≈3M MISSING
+> (bonds = recovery #1); 2026 books stopped at Feb (recovery worksheet issued); maturity potential
+> ~12–15M/yr on ~2,700 palms. Remaining recovery: أذون 1–5، مرتبات مارس–يونيو، بونات البنجر، كروكي الـ22.
+
+> **2026-07-04  — Operations lifecycle revamp DESIGNED → [`SPEC-0026`](SPEC-0026-operations-lifecycle-ux.md) (docs only; Owner gate).**
 > Owner directive: make the operations module totally user-friendly — easy to record/edit the plan, review
 > it, and for employees to use and record executions against it. SPEC-0026 composes the LIVE machinery
 > (fn_create_plan/fn_add_plan_operation_multi/templates/runPlanChecks/sign-off gate/fn_execute_operation/
