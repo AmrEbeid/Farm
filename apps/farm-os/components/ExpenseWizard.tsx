@@ -114,7 +114,21 @@ export function ExpenseWizard({
                 : "سُجّل المصروف. يمكنك توجيه دفعه لاحقًا من صفحة العهدة."}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => window.location.reload()}>+ مصروف آخر</Button>
+            <Button
+              onClick={() => {
+                // U-9 quick-repeat: keep the where/who-paid defaults, clear only the what/how-much.
+                setDate("");
+                setCategory("");
+                setTotal("");
+                setDescription("");
+                setSupplierId("");
+                setMsg(null);
+                setStep(1);
+                setDone(null);
+              }}
+            >
+              + مصروف آخر (بنفس النشاط وطريقة الدفع)
+            </Button>
             {!done.paid && payment === "later" && (
               <Link href="/custody" className="inline-block">
                 <Button variant="ghost">فتح طلبات الصرف</Button>

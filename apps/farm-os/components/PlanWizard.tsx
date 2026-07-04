@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { useSubmit } from "@/components/useSubmit";
+import { LineItemsEditor, type LineState } from "@/components/LineItemsEditor";
 import { SUBTYPE_AR } from "@/lib/labels";
 import { createPlan } from "@/app/(app)/plans/plans-actions";
 import { addPlanOperationMulti } from "@/app/(app)/plans/[planId]/actions";
@@ -13,7 +14,7 @@ import { addPlanOperationMulti } from "@/app/(app)/plans/[planId]/actions";
 // details in the row, added/removed freely, then saved line-by-line through the LIVE atomic RPCs
 // (fn_create_plan + fn_add_plan_operation_multi). Pure UI — no new backend.
 
-interface OpLine {
+interface OpLine extends LineState {
   subtype: string;
   from: string;
   to: string;
@@ -22,8 +23,6 @@ interface OpLine {
   laborType: string;
   workers: string;
   days: string;
-  saved?: boolean;
-  error?: string | null;
 }
 
 const emptyLine = (): OpLine => ({
@@ -170,9 +169,15 @@ export function PlanWizard({
           الخطوة 2 من 2 — أضِف سطرًا لكل عملية (تسميد، ري، رش…) بتفاصيله، بعدد ما تريد. حُفظ {savedCount} من {lines.length}.
         </p>
       </header>
-      {lines.map((l, i) => (
-        <Card key={i}>
-          <div className="flex flex-col gap-2 p-1" style={{ opacity: l.saved ? 0.6 : 1 }}>
+      <LineItemsEditor<OpLine>
+        lines={lines}
+        pending={pending}
+        onAdd={() => setLines((ls) => [...ls, emptyLine()])}
+        onRemove={(i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+        onSaveLine={saveLine}
+        addLabel="+ سطر عملية آخر"
+        renderLine={(l, i) => (
+          <>
             <div className="grid gap-2 sm:grid-cols-3">
               <Field label="العملية" id={`l-${i}-sub`}>
                 <select id={`l-${i}-sub`} className={sel} style={selStyle} value={l.subtype} disabled={l.saved}
@@ -214,22 +219,10 @@ export function PlanWizard({
                 </Field>
               </div>
             </div>
-            {l.error && <Alert tone="danger" title={l.error} />}
-            <div className="flex gap-2">
-              {!l.saved ? (
-                <Button onClick={() => saveLine(i)} disabled={pending}>حفظ السطر ✓</Button>
-              ) : (
-                <span className="text-sm font-bold" style={{ color: "var(--ok, #1e6b3a)" }}>✓ حُفظ</span>
-              )}
-              {!l.saved && lines.length > 1 && (
-                <Button variant="ghost" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>حذف</Button>
-              )}
-            </div>
-          </div>
-        </Card>
-      ))}
+          </>
+        )}
+      />
       <div className="flex flex-wrap gap-2">
-        <Button variant="ghost" onClick={() => setLines((ls) => [...ls, emptyLine()])}>+ سطر عملية آخر</Button>
         {planId && (
           <Link href={`/plans/${planId}`} className="inline-block">
             <Button>إنهاء وفتح الخطة ←</Button>
