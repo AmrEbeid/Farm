@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
 import { PrintButton } from "@/components/print-button";
-import type { LinkedOperation, LinkedWorkContext } from "@/lib/linked-work-context";
+import {
+  hrefForLinkedTarget,
+  labelForLinkedTarget,
+  planFromOperation,
+  type LinkedOperation,
+  type LinkedWorkContext,
+} from "@/lib/linked-work-context";
 import { fmtDate } from "@/lib/dates";
-import { egp, egpValue, num } from "@/lib/money";
+import { egp, moneyNumber, num } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, EXPENSE_KIND_AR, PAYMENT_STATUS_AR, REQUEST_STATUS_AR } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
@@ -48,24 +55,42 @@ export function LinkedPlansCard({ context }: { context: LinkedWorkContext }) {
   const columns: SimpleColumn[] = [
     { id: "type", header: "نوع الخطة" },
     { id: "period", header: "الفترة" },
-    { id: "scope", header: "النطاق" },
+    { id: "scope", header: "النطاق", kind: "link" },
+    { id: "openOps", header: "عمليات مفتوحة", numeric: true, kind: "num" },
+    { id: "dueOps", header: "مستحقة", numeric: true, kind: "num" },
     { id: "status", header: "الحالة", kind: "status" },
   ];
-  const rows = context.plans.map((plan) => ({
-    id: plan.id,
-    href: `/plans/${plan.id}`,
-    type: PLAN_TYPE_AR[plan.type ?? ""] ?? "خطة",
-    period: `${fmtDate(plan.period_start)} → ${fmtDate(plan.period_end)}`,
-    scope: SCOPE_AR[plan.scope_type ?? ""] ?? "غير معروف",
-    status: PLAN_STATUS_AR[plan.status ?? ""] ?? plan.status ?? "—",
-  }));
+  const openByPlan = countByPlan(context.openOperations);
+  const dueByPlan = countByPlan(context.dueOperations);
+  const rows = context.plans.map((plan) => {
+    const linkedScope = labelForLinkedTarget(context.targetLabelsByKey, plan.scope_type, plan.scope_id);
+    return {
+      id: plan.id,
+      href: `/plans/${plan.id}`,
+      type: PLAN_TYPE_AR[plan.type ?? ""] ?? "خطة",
+      period: `${fmtDate(plan.period_start)} → ${fmtDate(plan.period_end)}`,
+      scope: linkedScope === "—" ? SCOPE_AR[plan.scope_type ?? ""] ?? "غير معروف" : linkedScope,
+      scope_href: hrefForLinkedTarget(context.targetLabelsByKey, plan.scope_type, plan.scope_id),
+      openOps: openByPlan.get(plan.id) ?? 0,
+      dueOps: dueByPlan.get(plan.id) ?? 0,
+      status: PLAN_STATUS_AR[plan.status ?? ""] ?? plan.status ?? "—",
+    };
+  });
 
   return (
     <Card title="الخطط المرتبطة">
       {rows.length === 0 ? (
         <EmptyState title="لا توجد خطط مرتبطة بهذا النطاق بعد" />
       ) : (
-        <SimpleTable columns={columns} rows={rows} ariaLabel="الخطط المرتبطة" empty="—" />
+        <FilterableTable
+          columns={columns}
+          rows={rows}
+          ariaLabel="الخطط المرتبطة"
+          empty="—"
+          searchColumns={["type", "period", "scope", "status"]}
+          minRowsForSearch={2}
+          exportFilename="linked plans"
+        />
       )}
     </Card>
   );
@@ -74,18 +99,23 @@ export function LinkedPlansCard({ context }: { context: LinkedWorkContext }) {
 export function LinkedTasksCard({ context }: { context: LinkedWorkContext }) {
   const columns: SimpleColumn[] = [
     { id: "operation", header: "العملية" },
+    { id: "target", header: "الموقع", kind: "link" },
+    { id: "plan", header: "الخطة" },
     { id: "date", header: "الميعاد" },
     { id: "assignees", header: "المكلّفون" },
-    { id: "cost", header: "التكلفة", numeric: true },
+    { id: "cost", header: "التكلفة", numeric: true, kind: "money" },
     { id: "status", header: "الحالة", kind: "status" },
   ];
   const rows = context.operations.slice(0, 30).map((op) => ({
     id: op.id,
     href: `/plans/${op.plan_id}`,
     operation: SUBTYPE_AR[op.subtype ?? ""] ?? "عملية",
+    target: operationTargetLabel(context, op),
+    target_href: operationTargetHref(context, op),
+    plan: operationPlanLabel(op),
     date: op.ends_on ? `${fmtDate(op.planned_at)} → ${fmtDate(op.ends_on)}` : fmtDate(op.planned_at),
     assignees: assigneeLabel(context, op),
-    cost: egpValue(op.est_cost),
+    cost: moneyNumber(op.est_cost) ?? undefined,
     status: OP_STATUS_AR[op.status ?? "planned"] ?? "غير معروف",
   }));
 
@@ -94,7 +124,15 @@ export function LinkedTasksCard({ context }: { context: LinkedWorkContext }) {
       {rows.length === 0 ? (
         <EmptyState title="لا توجد عمليات مرتبطة بهذا النطاق بعد" />
       ) : (
-        <SimpleTable columns={columns} rows={rows} ariaLabel="العمليات والمهام" empty="—" />
+        <FilterableTable
+          columns={columns}
+          rows={rows}
+          ariaLabel="العمليات والمهام"
+          empty="—"
+          searchColumns={["operation", "target", "plan", "date", "assignees", "status"]}
+          minRowsForSearch={2}
+          exportFilename="linked operations"
+        />
       )}
       {context.unassignedOperations.length > 0 && (
         <p className="mt-3 text-sm" style={{ color: "var(--danger,#b91c1c)" }}>
@@ -112,7 +150,7 @@ export function LinkedFinanceCard({ context }: { context: LinkedWorkContext }) {
     { id: "category", header: "الفئة" },
     { id: "description", header: "البيان" },
     { id: "payment", header: "الدفع", kind: "status" },
-    { id: "total", header: "المبلغ", numeric: true },
+    { id: "total", header: "المبلغ", numeric: true, kind: "money" },
   ];
   const expenseRows = context.expenses.slice(0, 12).map((expense) => ({
     id: expense.id,
@@ -122,14 +160,14 @@ export function LinkedFinanceCard({ context }: { context: LinkedWorkContext }) {
     category: expense.category ?? "—",
     description: expense.description ?? "—",
     payment: PAYMENT_STATUS_AR[expense.payment_status ?? ""] ?? expense.payment_status ?? "—",
-    total: egpValue(expense.total),
+    total: moneyNumber(expense.total) ?? undefined,
   }));
 
   const requestColumns: SimpleColumn[] = [
     { id: "no", header: "طلب الصرف", numeric: true },
     { id: "period", header: "الفترة" },
     { id: "status", header: "الحالة", kind: "status" },
-    { id: "amount", header: "المعتمد", numeric: true },
+    { id: "amount", header: "المعتمد", numeric: true, kind: "money" },
   ];
   const requestRows = context.paymentRequests.slice(0, 8).map((request) => ({
     id: request.id,
@@ -137,7 +175,7 @@ export function LinkedFinanceCard({ context }: { context: LinkedWorkContext }) {
     no: num(request.request_no),
     period: `${fmtDate(request.period_start)} → ${fmtDate(request.period_end)}`,
     status: REQUEST_STATUS_AR[request.status] ?? request.status,
-    amount: egpValue(request.approved_net_request),
+    amount: moneyNumber(request.approved_net_request) ?? undefined,
   }));
 
   return (
@@ -268,5 +306,38 @@ function assigneeLabel(context: LinkedWorkContext, op: LinkedOperation) {
       })
       .join("، ");
   }
-  return op.responsible_person_id ? "مسؤول قديم" : "غير مسند";
+  if (op.responsible_person_id) {
+    const person = context.peopleById.get(op.responsible_person_id);
+    return person?.name ?? "مسؤول مسجل";
+  }
+  return "غير مسند";
+}
+
+function countByPlan(operations: LinkedOperation[]) {
+  const counts = new Map<string, number>();
+  for (const op of operations) counts.set(op.plan_id, (counts.get(op.plan_id) ?? 0) + 1);
+  return counts;
+}
+
+function operationTargetLabel(context: LinkedWorkContext, op: LinkedOperation) {
+  const direct = labelForLinkedTarget(context.targetLabelsByKey, op.target_type, op.target_id);
+  if (direct !== "—") return direct;
+  const plan = planFromOperation(op);
+  const scoped = labelForLinkedTarget(context.targetLabelsByKey, plan?.scope_type, plan?.scope_id);
+  if (scoped !== "—") return scoped;
+  return SCOPE_AR[op.target_type ?? plan?.scope_type ?? ""] ?? "—";
+}
+
+function operationTargetHref(context: LinkedWorkContext, op: LinkedOperation) {
+  return (
+    hrefForLinkedTarget(context.targetLabelsByKey, op.target_type, op.target_id) ??
+    hrefForLinkedTarget(context.targetLabelsByKey, op.plan?.scope_type, op.plan?.scope_id)
+  );
+}
+
+function operationPlanLabel(op: LinkedOperation) {
+  const plan = planFromOperation(op);
+  if (!plan) return "—";
+  const type = PLAN_TYPE_AR[plan.type ?? ""] ?? "خطة";
+  return plan.period_start ? `${type} · ${fmtDate(plan.period_start)}` : type;
 }

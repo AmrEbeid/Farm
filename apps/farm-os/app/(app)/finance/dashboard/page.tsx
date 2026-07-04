@@ -299,7 +299,11 @@ export default async function FinanceDashboardPage({
     { id: "status", header: "الحالة", kind: "status" },
     { id: "amount", header: "المعتمد", numeric: true },
   ];
-  const paymentRows = (paymentRequestsRes.data ?? []).map((request) => ({
+  const openPaymentRequests = (paymentRequestsRes.data ?? []).filter((request) =>
+    ["submitted", "approved_operational", "approved_final"].includes(request.status),
+  );
+  const readyForPayment = openPaymentRequests.filter((request) => request.status === "approved_final");
+  const paymentRows = openPaymentRequests.map((request) => ({
     id: request.id,
     href: `/custody/request/${request.id}`,
     no: num(request.request_no),
@@ -324,6 +328,17 @@ export default async function FinanceDashboardPage({
     description: expense.description ?? "—",
     total: expense.total != null ? egp(Number(expense.total)) : "—",
   }));
+  const unpaidTotal = (unpaidExpensesRes.data ?? []).reduce((sum, expense) => sum + Number(expense.total ?? 0), 0);
+  const accountantCustodyRows = accountantCustody.map((account) => {
+    const target = Number(account.target_float ?? 0);
+    return {
+      id: account.id,
+      holder: account.holder_label,
+      balance: egp(account.balance),
+      target: egp(target),
+      topup: egp(Math.max(0, target - account.balance)),
+    };
+  });
 
   const journalColumns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
@@ -389,10 +404,10 @@ export default async function FinanceDashboardPage({
       </section>
 
       {canSeeAccounting && (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
           <DashboardKpiLink href="/finance/dashboard?filter=custody" active={filter === "custody"}>
             <KpiCard
-              label="عهدة المحاسب"
+              label={m.role === "accountant" ? "عهدتي" : "عهدة المحاسب"}
               value={egp(accountantCustody.reduce((sum, account) => sum + account.balance, 0))}
             />
           </DashboardKpiLink>
@@ -403,7 +418,21 @@ export default async function FinanceDashboardPage({
             />
           </DashboardKpiLink>
           <DashboardKpiLink href="/finance/dashboard?filter=payments" active={filter === "payments"}>
-            <KpiCard label="طلبات صرف للمتابعة" value={num(paymentRows.length)} />
+            <KpiCard label="طلبات صرف مفتوحة" value={num(openPaymentRequests.length)} />
+          </DashboardKpiLink>
+          <DashboardKpiLink href="/finance/dashboard?filter=payments" active={filter === "payments"}>
+            <KpiCard
+              label="جاهزة للدفع"
+              value={num(readyForPayment.length)}
+              deltaDirection={readyForPayment.length ? "down" : "none"}
+            />
+          </DashboardKpiLink>
+          <DashboardKpiLink href="/finance/dashboard?filter=payments" active={filter === "payments"}>
+            <KpiCard
+              label="آجل غير مدفوع"
+              value={egp(unpaidTotal)}
+              deltaDirection={unpaidTotal > 0 ? "down" : "none"}
+            />
           </DashboardKpiLink>
           <DashboardKpiLink href="/finance/dashboard?filter=accounting" active={filter === "accounting"}>
             <KpiCard label="قيود حديثة" value={num(journalRows.length)} />
@@ -483,11 +512,26 @@ export default async function FinanceDashboardPage({
         <section className="grid gap-4 xl:grid-cols-2">
           {(filter === "all" || filter === "custody") && (
             <Card title="العهدة حسب الشخص">
-              {custodyRows.length === 0 ? (
-                <EmptyState title="لا توجد عهد مسجلة" />
-              ) : (
-                <SimpleTable columns={custodyColumns} rows={custodyRows} ariaLabel="العهدة حسب الشخص" empty="—" />
-              )}
+              <div className="flex flex-col gap-4">
+                {m.role === "accountant" && (
+                  <div>
+                    <h3 className="mb-2 text-base font-semibold">عهدتي</h3>
+                    {accountantCustodyRows.length === 0 ? (
+                      <EmptyState title="لا توجد عهدة مربوطة بهذا الحساب" />
+                    ) : (
+                      <SimpleTable columns={custodyColumns} rows={accountantCustodyRows} ariaLabel="عهدتي" empty="—" />
+                    )}
+                  </div>
+                )}
+                <div>
+                  <h3 className="mb-2 text-base font-semibold">كل العهد</h3>
+                  {custodyRows.length === 0 ? (
+                    <EmptyState title="لا توجد عهد مسجلة" />
+                  ) : (
+                    <SimpleTable columns={custodyColumns} rows={custodyRows} ariaLabel="العهدة حسب الشخص" empty="—" />
+                  )}
+                </div>
+              </div>
             </Card>
           )}
           {(filter === "all" || filter === "payments") && (
