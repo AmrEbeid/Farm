@@ -1,7 +1,22 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-2 live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Claude (SPEC-0024 backend wave, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + pickers live
+## 2026-07-04 (latest) — SPEC-0024 backend wave (Claude, parallel to Codex)
+
+Claude ran the SPEC-0024 execution brief in parallel with Codex. **Codex's S-1 + S-2 landed on `main`**; Claude's parallel attempts at those (S-1 #655, S-2 #657) were closed as superseded. Claude authored the remaining backend slices, each with full local pgTAP + an independent review, reusing budget.write/plan.write with **no `authorize()` change**, all migrate-first gated:
+
+- **S-3 cost centers — PR #659** (base main, review **SOUND**, rebased for an honest diff): `cost_centers` tree + `expenses/journal_lines.cost_center_id` + system «غير موزَّع» + audit_read gate. pgTAP 1294/0.
+- **S-10 revenue — PR #662** (stacked on S-3, review **SOUND**): buyers/sales/sale_collections, delivery-before-price (pending posts nothing, total NULL not 0), finalize→Dr ذمم/Cr إيراد, collections clear A-R + derive payment_status. pgTAP 1316/0.
+- **S-7 offshoot bank بنك الفسائل — PR #663** (stacked on S-3, review in flight): quantity ledger (plan.write, org-readable) + Owner valuation estimate (budget.write, never booked). pgTAP 1306/0.
+- **Docs — this branch.**
+
+**Migration ladder:** 440000 (S-1, on main) → 450000 (S-3) → 460000 (S-10) → 470000 (S-7). Merge S-3 first; S-10/S-7 retarget to main after.
+
+**Remaining, gated on the owner merging the above:** S-9 (import descriptors — needs new tables on main), S-4/S-5 (reports + Owner Insights dashboards — UI), S-8b (FM dashboard — UI). These need the merged schema to build/verify against a running app.
+
+**Gates Claude held:** build+validate+review+PR autonomously; prod-apply + merge of the money/access-control slices left to the Owner; no real-data (Stage-M) load; no `authorize()`/engine edits.
+
+## 2026-07-04 — SPEC-0024 S-2 account tree UI + pickers live
 
 Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-2 is now merged and
 live via PR **#661** (`main` merge commit **`f113169`**). **No migration** was needed; this slice uses the S-1

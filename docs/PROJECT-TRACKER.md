@@ -1,6 +1,29 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-2 live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0024 S-3/S-10/S-7 backend PRs, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + expense account pickers LIVE (`main` `f113169`, PR #661; no migration).**
+> **2026-07-04 (latest) — SPEC-0024 backend wave S-3 + S-10 + S-7 authored & reviewed (Claude, parallel to Codex).**
+> Codex and Claude executed the same brief concurrently; **Codex's S-1 and S-2 landed on `main`** and Claude's
+> parallel attempts at those two were closed as superseded (S-1 #655; S-2 #657 — Codex's #661 shipped the tree
+> editor UI). Claude then took the **remaining backend slices**, all built with full local pgTAP + an independent
+> farm-os-pr-reviewer pass, all **budget.write/plan.write reuse with NO `authorize()` change**, all gated
+> migrate-first (apply to prod `veezkmytervjnpxcrbkw` then Owner-merge; non-authoritative until applied):
+> - **S-3 — cost centers (PR #659, base `main`, review SOUND):** `cost_centers` 2-level land×enterprise tree,
+>   `expenses/journal_lines.cost_center_id` dimensions + leaf/org guard, system «غير موزَّع», `audit_read`
+>   re-emit for `cost_center`. Migration `20260701450000`. pgTAP 1294/0 (rebased onto main — honest diff).
+> - **S-10 — revenue (PR #662, stacked on S-3, review SOUND):** `buyers`/`sales`/`sale_collections` with the
+>   delivery-before-price mechanic (pending sale posts nothing, total NULL not 0 — #1), `fn_finalize_sale_price`
+>   (Dr ذمم مدينة/Cr إيرادات), `fn_record_sale_collection` (clears A-R, derives payment_status, Σ≤total).
+>   Migration `20260701460000`. pgTAP 1316/0. Reuses budget.write (spec's `sale.write` role set).
+> - **S-7 — offshoot bank بنك الفسائل (PR #663, stacked on S-3, review in flight):** `offshoot_movements`
+>   quantity ledger (produce/plant/sell/replant; org-readable, plan.write) + Owner `offshoot_valuation`
+>   estimate (budget.write, finance.read, never booked as revenue). Migration `20260701470000`. pgTAP 1306/0.
+> - **Docs:** this branch (tracker + session brief).
+> **Migration ladder:** `440000` S-1 (on main), `450000` S-3, `460000` S-10, `470000` S-7. S-10 & S-7 stack on
+> S-3 → merge S-3 first, then retarget them to `main`.
+> **Remaining (gated on the above merging first):** S-9 (universal import descriptors/templates — needs the new
+> tables on `main`), S-4/S-5 (reports + Owner Insights dashboards — UI on the merged schema), S-8b (FM dashboard,
+> no absolute money — UI). No prod DB change from this docs entry.
+
+> **2026-07-04 — SPEC-0024 S-2 account tree UI + expense account pickers LIVE (`main` `f113169`, PR #661; no migration).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
 > **S-0 + S-8a + S-1 + S-2**. S-2 adds the owner/accountant Finance → **شجرة الحسابات** page at `/finance/accounts`,
 > backed by the already-live S-1 RPCs and `v_account_rollup`: indented COA tree, rollup debit/credit/balance,
