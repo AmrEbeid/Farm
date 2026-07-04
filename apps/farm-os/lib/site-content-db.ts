@@ -11,9 +11,8 @@ import { SITE_CONTENT_DEFAULTS, type SiteContent } from "@/lib/site-content";
 //   * table not yet created (pre-apply)   → defaults (migrate-first: this code ships safe)
 //   * empty table (owner hasn't saved)    → defaults
 //
-// TYPES: site_content is added by migration 20260701420000; database.types.ext.ts regenerates only
-// AFTER the Owner applies it (A1). Until then the table/rpc names are cast. Remove the casts once
-// types are regenerated.
+// TYPES: site_content is declared in the database.types.ext.ts augmentation (STRUCT-1), so this
+// query is fully typed.
 
 export async function loadSiteContent(): Promise<SiteContent> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -21,8 +20,8 @@ export async function loadSiteContent(): Promise<SiteContent> {
   }
   try {
     const sb = createAdminClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- site_content untyped until post-apply regen (A1)
-    const { data, error } = await (sb.from("site_content" as any) as any)
+    const { data, error } = await sb
+      .from("site_content")
       .select("content")
       .limit(1)
       .maybeSingle();

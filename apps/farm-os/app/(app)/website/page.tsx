@@ -9,8 +9,8 @@ import { SiteEditor } from "@/components/site/SiteEditor";
  * object via fn_save_site_content (owner-gated in the DB). Reads are RLS-scoped to org members; the
  * write gate is site.write = owner.
  *
- * TYPES: site_content regenerates into database.types.ext.ts after the Owner applies migration
- * 20260701420000 (A1); the select is cast until then, and falls back to defaults on any error.
+ * TYPES: site_content is declared in the database.types.ext.ts augmentation (STRUCT-1); the select
+ * is fully typed and falls back to defaults on any error.
  */
 export default async function WebsiteEditorPage() {
   const m = await requireMembership();
@@ -29,8 +29,8 @@ export default async function WebsiteEditorPage() {
   let content: SiteContent = SITE_CONTENT_DEFAULTS;
   try {
     const sb = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- site_content untyped until post-apply regen (A1)
-    const { data } = await (sb.from("site_content" as any) as any)
+    const { data } = await sb
+      .from("site_content")
       .select("content")
       .limit(1)
       .maybeSingle();
