@@ -1,6 +1,38 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-02 by Claude (review/strategy session, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (planning session, for Owner: Amr Ebeid)
 
-> **2026-07-02 (latest) — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
+> **2026-07-04 (latest) — COA tree + cost centers + Owner Insights DESIGNED → [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) (docs only; Owner gate).**
+> Owner directive: build an **editable شجرة الحسابات**, the **cost-center concept**, and (yes to) the Owner-Insights
+> reporting layer — grounded in two Owner-provided sources reviewed this session: **(a) the farm's REAL accounting
+> workbook** `شيت محاسبي للمزارع0 (1).xlsx` (الدليل = 18 real cost centers *with areas* + 19 expense types + 35 labor
+> task types; **~10.2k real expense rows 2019→2026** with a 2-level قطاع→مزرعة center scheme + العام-الحقلي season;
+> 166 real sales incl. non-date crops; **التقارير** = the category×year×center matrix → adopted as the **import
+> reconciliation oracle**; ⚠ contains the known legacy **embedded Gmail+password** (#6 — redact, Owner to rotate) +
+> salary PII), and **(b) `EBD Farm Insights.zip`** (Lovable app, real-2025 + modeled-history economics; J-curve,
+> revenue mix برحي 62.6%/بنجر 30%, per-feddan sector economics, offshoot valuation → the UI blueprint + 2025
+> validation oracle; modeled years NEVER imported as fact, #1). **SPEC-0024** extends the live accounting kernel's
+> flat `accounts` (PR #568) into an editable tree (parent_id + cycle-guard + archive/merge, `budget.write`-gated RPCs
+> — no new perm, avoids the authorize() re-emit), adds `cost_centers` (land×enterprise — the accounting answer to
+> intercropping #595; area → per-feddan economics #219), maps the season dim to SPEC-0021, and stages the Stage-M
+> historical import via the live SPEC-0020 framework. **Directly fills SPEC-0004 decision #1 (§7.1 COA ratification)
+> and unblocks SPEC-0018-EXT slice 5 (revenue needs a ratified revenue account).** Owner follow-up same day → two
+> amendments: **§A.5** every expense — incl. custody-module submission — links to a leaf `account_id` (required to
+> enter a payment request; the journal posts to the specific leaf account instead of the kind bucket; kind-consistency
+> guard keeps #6 structural) and **§C.1** the full Lovable adopt-catalog from a deep review: **بنك الفسائل offshoot
+> biological-asset ledger** (5,382 produced / 1,158 remaining, per-center flows, 300–600ج valuation → new slice 7),
+> crop-margin economics (بنجر 80% vs برحي 20%), rule-based scorecard commentary + insight cards (no-AI → NOT
+> Stage-11-gated), palm yield-curve (agronomy template → SPEC-0008 #4 sign-off), scenario fan («سيناريو تقديري»,
+> #1-safe). Second follow-up (same day) → **§C.2 interactive-reporting standard** (every report = KPI cards + charts +
+> tables; card-as-filter where applicable [DashboardKpiLink pattern generalized]; tables always searchable + **column-
+> sortable [new gap]** + exportable; charts always multi-insight via dimension toggles/overlays/click-through) and
+> **§C.3 owner + farm-manager dashboards** adopting the Lovable panels heavily — with the ⚠ flag that `finance.read`
+> is owner/accountant-only, so FM money visibility = **decision 8** (proposed default: quantities + budget-% only).
+> Third follow-up → **§D.1 universal import templates**: every data-entry entity ships a prefilled Excel/CSV template +
+> «استيراد» affordance via the LIVE SPEC-0020 framework (today only 3 RPCs covered — structure); slices 1/3/7 ship their
+> descriptors inline + new slice 9 retrofits expenses/custody/suppliers/inventory/people(non-PII); PII excluded from
+> templates, money imports non-authoritative until the oracle. Now 8 Owner decisions in §5; slices 1–9 in §6
+> (8a = sortable/toggle shared components, can go first). **Docs only — stopped at the gate per instruction.**
+
+> **2026-07-02 — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
 > Owner mandate "keep working until this task and all other open PRs are finished" executed: gated batch
 > #590/#591/#592/#593/#594/#596 merged (session rows; ops wave; hardening/onboarding/support/usability wrapper;
 > wave-3 research incl. SPEC-0023 جرد + legal/PDPL ~1-Nov-2026 flag; the `/purchase-requests` open-orders console
