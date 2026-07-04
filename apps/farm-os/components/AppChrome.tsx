@@ -1,15 +1,33 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppShell, Tag, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/auth";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
-import { HelpDrawer } from "@/components/HelpDrawer";
 import { ModuleSidebar } from "@/components/ModuleSidebar";
-import { CommandPalette } from "@/components/CommandPalette";
 import { findActiveNavItem, visibleModulesForRole } from "@/lib/nav";
+
+const HelpDrawer = dynamic(() => import("@/components/HelpDrawer").then((mod) => mod.HelpDrawer), {
+  ssr: false,
+  loading: () => (
+    <Button variant="ghost" size="sm" disabled aria-label="تحميل مساعدة هذه الصفحة">
+      ؟
+    </Button>
+  ),
+});
+
+const CommandPalette = dynamic(() => import("@/components/CommandPalette").then((mod) => mod.CommandPalette), {
+  ssr: false,
+  loading: () => (
+    <Button variant="ghost" size="sm" disabled aria-label="تحميل البحث" className="flex items-center gap-2">
+      <span aria-hidden="true">🔍</span>
+      <span className="hidden sm:inline">بحث</span>
+    </Button>
+  ),
+});
 
 export function AppChrome({
   children,
