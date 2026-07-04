@@ -110,6 +110,8 @@ declare
   v_has_journal_line boolean := false;
   v_money_changed boolean;
   v_account_changed boolean;
+  v_merge_source uuid;
+  v_merge_target uuid;
 begin
   v_money_changed := old.total is distinct from new.total or old.kind is distinct from new.kind;
   v_account_changed := old.account_id is distinct from new.account_id;
@@ -142,6 +144,17 @@ begin
   end if;
 
   if v_account_changed and (v_has_cash_movement or v_has_request_line or v_has_journal_line) then
+    begin
+      v_merge_source := nullif(current_setting('app.account_merge_source', true), '')::uuid;
+      v_merge_target := nullif(current_setting('app.account_merge_target', true), '')::uuid;
+    exception when invalid_text_representation then
+      v_merge_source := null;
+      v_merge_target := null;
+    end;
+    if v_merge_source is not distinct from old.account_id
+       and v_merge_target is not distinct from new.account_id then
+      return new;
+    end if;
     raise exception 'routed expense account is immutable after request/cash/accounting posting'
       using errcode = '22023';
   end if;
@@ -315,6 +328,7 @@ declare
   v_parent record;
   v_depth int;
   v_cycle boolean;
+  v_subtree_height int;
   v_effective_kind text;
   v_id uuid;
   v_conflict uuid;
@@ -402,7 +416,25 @@ begin
     if coalesce(v_cycle, false) then
       raise exception 'account tree cycle detected' using errcode = '22023';
     end if;
-    if coalesce(v_depth, 0) >= 4 then
+    if p_id is null then
+      v_subtree_height := 1;
+    else
+      with recursive subtree as (
+        select id, 1 as depth
+          from public.accounts
+         where id = p_id and org_id = v_org
+        union all
+        select child.id, subtree.depth + 1
+          from public.accounts child
+          join subtree on child.parent_id = subtree.id
+         where child.org_id = v_org
+           and subtree.depth < 16
+      )
+      select coalesce(max(depth), 1)
+        into v_subtree_height
+        from subtree;
+    end if;
+    if coalesce(v_depth, 0) + coalesce(v_subtree_height, 1) > 4 then
       raise exception 'account tree depth cannot exceed 4 levels' using errcode = '22023';
     end if;
   else
@@ -562,15 +594,19 @@ begin
     raise exception 'target account must be a leaf to merge' using errcode = '22023';
   end if;
 
-  update public.expenses
-     set account_id = p_target
-   where account_id = p_source;
-  get diagnostics v_refs_expenses = row_count;
-
+  perform set_config('app.account_merge_source', p_source::text, true);
+  perform set_config('app.account_merge_target', p_target::text, true);
   update public.journal_lines
      set account_id = p_target
    where account_id = p_source;
   get diagnostics v_refs_lines = row_count;
+
+  update public.expenses
+     set account_id = p_target
+   where account_id = p_source;
+  get diagnostics v_refs_expenses = row_count;
+  perform set_config('app.account_merge_source', '', true);
+  perform set_config('app.account_merge_target', '', true);
 
   update public.accounts
      set active = false

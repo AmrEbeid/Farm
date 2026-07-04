@@ -2,18 +2,22 @@
 -- Verifies the budget.write-gated account tree RPCs, protected system accounts, leaf/kind
 -- expense guards, request-time account_id enforcement, and selected-account cash posting.
 begin;
-select plan(42);
+select plan(46);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set acct 'd1130000-0000-0000-0000-0000000000c0'
+\set mergeAcct 'd1130000-0000-0000-0000-0000000000c1'
 \set expNoAccount 'd1130000-0000-0000-0000-0000000000e1'
 \set expMerge 'd1130000-0000-0000-0000-0000000000e2'
 
 insert into public.custody_accounts (id, org_id, holder_label, target_float)
-  values (:'acct', :'org', 'عهدة اختبار الحسابات', 0);
+  values
+    (:'acct', :'org', 'عهدة اختبار الحسابات', 0),
+    (:'mergeAcct', :'org', 'عهدة اختبار دمج الحسابات', 0);
 
 select set_config('test.org', :'org', false);
 select set_config('test.acct', :'acct', false);
+select set_config('test.merge_acct', :'mergeAcct', false);
 select set_config('test.exp_no_account', :'expNoAccount', false);
 select set_config('test.exp_merge', :'expMerge', false);
 select set_config('test.opex_root', (select id::text from public.accounts where org_id = :'org' and code = '5000'), false);
@@ -97,6 +101,14 @@ select throws_ok(
   format($$ select public.fn_save_account(null, %L, %L, '5199-3', 'اختبار شجرة د', 'expense', 'debit') $$,
     current_setting('test.org'), current_setting('test.custom_c')),
   '22023', null, 'depth guard rejects a fifth-level account');
+select lives_ok(
+  format($$ select set_config('test.custom_d', (public.fn_save_account(null, %L, %L, '5198', 'اختبار شجرة د', 'expense', 'debit')->>'id'), false) $$,
+    current_setting('test.org'), current_setting('test.supplies_parent')),
+  'accountant creates a second third-level branch');
+select throws_ok(
+  format($$ select public.fn_save_account(%L, null, %L, '5199-1', 'اختبار شجرة ب', 'expense', 'debit') $$,
+    current_setting('test.custom_b'), current_setting('test.custom_d')),
+  '22023', null, 'depth guard counts the moved subtree height');
 select throws_ok(
   format($$ select public.fn_archive_account(%L) $$, current_setting('test.opex_root')),
   '22023', null, 'system account cannot be archived');
@@ -124,10 +136,23 @@ select lives_ok(
     current_setting('test.exp_merge'), current_setting('test.org'), current_setting('test.merge_source')),
   'expense can reference the merge-source leaf');
 select lives_ok(
+  format($$ select public.fn_set_expense_payment_status(%L, 'paid_from_custody', %L, 'اختبار الدمج') $$,
+    current_setting('test.exp_merge'), current_setting('test.merge_acct')),
+  'merge-source expense can be posted before merge');
+select lives_ok(
   format($$ select public.fn_merge_accounts(%L, %L) $$, current_setting('test.merge_source'), current_setting('test.merge_target')),
   'merge repoints account references and archives the source');
 select is((select account_id from public.expenses where id = current_setting('test.exp_merge')::uuid), current_setting('test.merge_target')::uuid,
   'merge repointed the expense account_id');
+select is(
+  (select jl.account_id
+     from public.journal_lines jl
+     join public.journal_entries je on je.id = jl.journal_entry_id
+    where je.source_type = 'expense_payment'
+      and je.source_id = current_setting('test.exp_merge')::uuid
+      and jl.debit > 0),
+  current_setting('test.merge_target')::uuid,
+  'merge repointed the posted journal debit account_id');
 select is((select active from public.accounts where id = current_setting('test.merge_source')::uuid), false,
   'merge archived the source account');
 
@@ -200,8 +225,10 @@ select is(
   'expense-payment debit posts to the selected leaf account');
 select is(
   (select balance from public.v_account_rollup where account_id = current_setting('test.opex_root')::uuid),
-  123::numeric,
-  'operating root rollup includes the selected leaf posting');
+  (select sum(total) from public.expenses where id in (
+    current_setting('test.exp_merge')::uuid,
+    current_setting('test.exp_no_account')::uuid)),
+  'operating root rollup includes the selected leaf postings');
 reset role;
 
 select * from finish();
