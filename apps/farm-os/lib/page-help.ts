@@ -546,6 +546,8 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/record\/plan(?:\/)?$/, helpId: "record" },
   { pattern: /^\/record\/custody-in(?:\/)?$/, helpId: "record" },
   { pattern: /^\/record\/collect(?:\/)?$/, helpId: "record" },
+  { pattern: /^\/record\/scale(?:\/)?$/, helpId: "record" },
+  { pattern: /^\/record\/price(?:\/)?$/, helpId: "record" },
   { pattern: /^\/farm\/sector\/[^/]+(?:\/)?$/, helpId: "sector-360" },
   { pattern: /^\/farm\/hawsha\/[^/]+(?:\/)?$/, helpId: "hawsha-360" },
   { pattern: /^\/farm\/line\/[^/]+(?:\/)?$/, helpId: "line-360" },

@@ -22,10 +22,17 @@ const ACTIONS: ActionCard[] = [
     roles: ["owner", "accountant"],
   },
   {
-    href: "/finance/revenue-reports",
-    icon: "🌴",
-    title: "سلّمت محصولًا / بعت",
-    hint: "سجّل التسليم الآن وحدّد السعر لاحقًا — النظام يتابع الأسعار المعلّقة",
+    href: "/record/scale",
+    icon: "⚖️",
+    title: "سلّمت حمولة (الميزان)",
+    hint: "عبوات ← وزن ← بون مرقّم — والسعر يُحدد لاحقًا",
+    roles: ["owner", "accountant"],
+  },
+  {
+    href: "/record/price",
+    icon: "🏷️",
+    title: "حدّدت سعر بيع",
+    hint: "سعّر التسليمات المعلّقة — القيد يدخل الدفاتر فورًا",
     roles: ["owner", "accountant"],
   },
   {
