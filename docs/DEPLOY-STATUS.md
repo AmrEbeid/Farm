@@ -24,6 +24,18 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > `storage.protect_delete`; no service key locally). `site_content` still 0 rows (no test save). Known
 > follow-up: delete the old bucket object when a gallery item is replaced/removed (currently orphans it).
 >
+> **2026-07-04 (later) — gallery review pass + fixes (#650).** farm-os-pr-reviewer: upload security
+> SOLID (owner-gated, no path traversal, service-role server-only, no XSS/SSRF). Fixed its findings —
+> **HIGH:** the public site was auto-showing the 4 dummy placeholder tiles to buyers (defaults ship
+> them + prod `site_content`=0 rows → fallback rendered them). SiteLanding now filters placeholder-path
+> images out of the PUBLIC render + nav → gallery hidden until a card has a REAL image (owner still edits
+> all in the OS); verified gone on prod. **LOW:** upload validates by MAGIC BYTES + derives content-type/
+> ext server-side (client file.type/name untrusted); dropped `image/svg+xml` from the `site-media` bucket
+> mimes (MCP); confirmed NO client write policy on `storage.objects` for site-media (only pre-existing
+> `farm-media` has org-scoped policies) → service-role-only writes. Plus the orphan-cleanup-on-save
+> follow-up above is now DONE (deletes site-media objects a gallery edit drops; best-effort; leaves
+> placeholders + external URLs). CI green incl. pgTAP.
+>
 > **2026-07-03 — PUBLIC EXPORT WEBSITE LIVE + OS-EDITABLE; prod ledger head `20260701420000`.**
 > Built and shipped the public marketing site at `/` (ebeidfarm.business) for Ebeid Farm — bilingual AR/EN,
 > real GlobalGAP/GACC/QCAP/CAPQ proofs, logo + favicon + iOS/Android PWA icons, orchard hero, SEO/OG/JSON-LD/
