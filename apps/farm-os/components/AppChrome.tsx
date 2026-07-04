@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/auth";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { ModuleSidebar } from "@/components/ModuleSidebar";
+import { MobileTabBar } from "@/components/MobileTabBar";
 import { findActiveNavItem, visibleModulesForRole } from "@/lib/nav";
 
 const HelpDrawer = dynamic(() => import("@/components/HelpDrawer").then((mod) => mod.HelpDrawer), {
@@ -100,6 +101,7 @@ export function AppChrome({
         {children}
       </div>
     </AppShell>
+      <MobileTabBar role={role} pathname={pathname} />
     </>
   );
 }
