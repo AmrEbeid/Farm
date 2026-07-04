@@ -29,11 +29,18 @@ const ACTIONS: ActionCard[] = [
     roles: ["owner", "accountant"],
   },
   {
-    href: "/finance/revenue-reports",
+    href: "/record/collect",
     icon: "💰",
     title: "حصّلت فلوسًا من عميل",
-    hint: "سجّل تحصيلًا كاملًا أو جزئيًا على بيع سابق",
+    hint: "اختر البيع وسجّل تحصيلًا كاملًا أو جزئيًا — القيد تلقائي",
     roles: ["owner", "accountant"],
+  },
+  {
+    href: "/m",
+    icon: "✅",
+    title: "نفّذت عملية",
+    hint: "سجّل تنفيذ عملية مخططة من واجهة الميدان",
+    roles: ["owner", "farm_manager", "agri_engineer", "supervisor"],
   },
   {
     href: "/m/receive",
@@ -43,11 +50,18 @@ const ACTIONS: ActionCard[] = [
     roles: ["owner", "farm_manager", "storekeeper"],
   },
   {
-    href: "/custody",
+    href: "/record/custody-in",
     icon: "🤝",
     title: "استلمت عهدة من المالك",
     hint: "سجّل نقدية دخلت العهدة",
     roles: ["owner", "accountant"],
+  },
+  {
+    href: "/record/plan",
+    icon: "🗓️",
+    title: "أخطّط الأسبوع/الشهر",
+    hint: "أنشئ خطة للمزرعة كلها أو لجزء منها — سطرًا لكل عملية بتفاصيلها",
+    roles: ["owner", "farm_manager"],
   },
   {
     href: "/people/attendance",

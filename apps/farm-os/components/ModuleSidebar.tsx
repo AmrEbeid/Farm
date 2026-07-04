@@ -31,11 +31,23 @@ export function ModuleSidebar({
   return (
     <nav className="fos-sidebarnav farm-module-nav" aria-label="التنقل الرئيسي">
       <ul className="fos-sidebarnav__list">
-        {modules.map((module) => {
+        {modules.map((module, idx) => {
           const moduleOpen = open.has(module.id) || module.pages.some((p) => p.id === activeNavId);
           const pagesId = `module-nav-${module.id}`;
+          // SPEC-0025 U-5: one «الإدارة» section header before the first admin-group module.
+          const firstAdmin =
+            (module.group ?? "admin") === "admin" &&
+            (idx === 0 || (modules[idx - 1].group ?? "admin") === "tasks");
           return (
             <li key={module.id} className="farm-module-nav__module">
+              {firstAdmin && (
+                <div
+                  className="px-3 pb-1 pt-3 text-xs font-bold"
+                  style={{ color: "var(--ink-muted)", borderTop: "1px solid var(--line)", marginTop: "8px" }}
+                >
+                  الإدارة
+                </div>
+              )}
               <button
                 type="button"
                 className="farm-module-nav__toggle"

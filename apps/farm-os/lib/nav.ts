@@ -15,6 +15,9 @@ export interface AppModule {
   dashboardHref: string;
   roles?: Role[];
   pages: AppNavItem[];
+  /** SPEC-0025 U-5: "tasks" = the always-visible task entries (الرئيسية/سجّل/المعاملات/التقارير);
+   *  "admin" = domain administration, rendered under an «الإدارة» section header. Default: admin. */
+  group?: "tasks" | "admin";
 }
 
 const ALL_ROLES: Role[] = [
@@ -34,6 +37,7 @@ function visibleToRole(item: { roles?: Role[] }, role: Role): boolean {
 export const APP_MODULES: AppModule[] = [
   {
     id: "home",
+    group: "tasks",
     label: "لوحة المعلومات",
     icon: "🏠",
     dashboardHref: "/dashboard",
@@ -42,6 +46,7 @@ export const APP_MODULES: AppModule[] = [
   {
     // SPEC-0025 U-1: the task-first launcher — one place to record what happened.
     id: "record-module",
+    group: "tasks",
     label: "سجّل",
     icon: "➕",
     dashboardHref: "/record",
@@ -50,6 +55,7 @@ export const APP_MODULES: AppModule[] = [
   {
     // SPEC-0025 U-3: the unified money ledger — every transaction in one place.
     id: "transactions-module",
+    group: "tasks",
     label: "المعاملات",
     icon: "📜",
     dashboardHref: "/transactions",
@@ -59,6 +65,7 @@ export const APP_MODULES: AppModule[] = [
   {
     // SPEC-0025 U-4: the reports hub — every report, grouped by the question it answers.
     id: "reports-module",
+    group: "tasks",
     label: "التقارير",
     icon: "📈",
     dashboardHref: "/reports",

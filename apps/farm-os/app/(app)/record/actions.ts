@@ -130,3 +130,38 @@ export async function recordGuidedExpense(input: GuidedExpenseInput): Promise<Gu
   for (const p of ["/expenses", "/custody", "/accounting", "/finance/accounts", "/record"]) revalidatePath(p);
   return { ok: true, expenseId, paid: input.payment === "custody" };
 }
+
+// ── SPEC-0025 U-2 part 2 — «حصّلت من عميل» ────────────────────────────────────────────────────────────
+export interface CollectInput {
+  saleId: string;
+  amount: number;
+  note: string | null;
+}
+
+/** Record a (possibly partial) collection against a finalized sale. The gated RPC clears the
+ *  receivable, posts the journal, and derives payment_status — the Σ ≤ total guard lives in the DB. */
+export async function recordGuidedCollection(input: CollectInput): Promise<{ ok: boolean; error?: string }> {
+  if (!input.saleId) return { ok: false, error: "اختر البيع" };
+  if (!Number.isFinite(input.amount) || input.amount <= 0) return { ok: false, error: "المبلغ غير صالح" };
+  await requireRole(["owner", "accountant"]);
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_record_sale_collection", {
+    p_sale: input.saleId,
+    p_amount: input.amount,
+    p_occurred_at: new Date().toISOString().slice(0, 10),
+    p_collected_by: null,
+    p_note: input.note ?? null,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "22023": "المبلغ أكبر من المتبقي على هذا البيع — راجع الرصيد" },
+        "تعذّر تسجيل التحصيل",
+      ),
+    };
+  }
+  for (const p of ["/transactions", "/finance/revenue-reports", "/record/collect"]) revalidatePath(p);
+  return { ok: true };
+}
