@@ -27,6 +27,11 @@ insert into public.expenses (id, org_id, date, category, description, total, sta
   values (:'eB', :'org', current_date, 'صيانة وقطع غيار', 'بند نقدي', 2000, 'approved', 'operating');
 insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
   values (:'eD', :'org', current_date, 'مسحوبات المالك', 'مسحوبات اختبار', 9000, 'approved', 'post_paid_unpaid', 'drawing');
+-- SPEC-0024 A.5: classify the fixture expenses to an account (required before payment routing).
+insert into public.accounts (org_id, code, name_ar, account_type, normal_balance)
+  values (:'org', '5-test', 'مصروف اختبار', 'expense', 'debit') on conflict (org_id, code) do nothing;
+update public.expenses set account_id = (select id from public.accounts where org_id = :'org' and code = '5-test')
+  where org_id = :'org' and account_id is null;
 insert into public.audit_log(org_id, action, entity_type, entity_id, after)
 values
   (:'org', 'INSERT', 'sale', :'audit_sale', '{}'::jsonb),

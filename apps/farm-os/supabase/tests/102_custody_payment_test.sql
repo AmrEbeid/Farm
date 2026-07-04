@@ -22,6 +22,12 @@ insert into public.expenses (id, org_id, date, category, description, total, sta
   values (:'exp', :'org', current_date, 'تسميد', 'بند اختبار', 5000, 'approved');
 insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
   values (:'expMismatch', :'org', current_date, 'تسميد', 'بند اختبار مبلغ مختلف', 700, 'approved', 'paid_from_custody', 'operating');
+-- SPEC-0024 A.5: an expense must be classified to an account before payment routing. Seed one and
+-- classify the fixtures (direct SQL, RLS-bypassed — same posture as the inserts above).
+insert into public.accounts (org_id, code, name_ar, account_type, normal_balance)
+  values (:'org', '5-test', 'مصروف اختبار', 'expense', 'debit') on conflict (org_id, code) do nothing;
+update public.expenses set account_id = (select id from public.accounts where org_id = :'org' and code = '5-test')
+  where org_id = :'org' and account_id is null;
 insert into public.organization (id, name) values (:'orgB', 'مزرعة اختبار العهدة');
 select set_config('test.cross_holder', gen_random_uuid()::text, false);
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at)
