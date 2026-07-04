@@ -22,7 +22,7 @@
 | 11 AI عبدالجليل | 5% | Policy lib only. Correctly last. |
 | M Real-data migration | **0% — THE PRIORITY** | Blocked by: Stage 0 (#362) → privacy review → chart-of-accounts seed → registry import → Excel reconciliation. |
 | P Production deploy controls | ⚠️ Bypassed | Prod deploys continuously without Stage-P controls (no staging, no monitoring, no rollback drill) — see review R-items. |
-| W Public website (`/`) | ✅ **LIVE + OS-editable** | ebeidfarm.business — bilingual AR/EN Ebeid Farm export site (hero, KPIs, blocks, **real** GlobalGAP/GACC/QCAP/CAPQ proofs, specs, contact) + logo/favicon/PWA icons + SEO/OG + JSON-LD. Content editable in-OS at **`/website`** (`site.write`=owner); migration `20260701420000` applied to prod. PRs #636/#638–#642 + #637. Real scenery photos still pending (gallery omitted, not faked). |
+| W Public website (`/`) | ✅ **LIVE + OS-editable + gallery upload** | ebeidfarm.business — bilingual AR/EN export site (hero, KPIs, blocks, **real** GlobalGAP/GACC/QCAP/CAPQ proofs, specs, contact, **editable photo gallery**) + logo/favicon/PWA icons + SEO/OG + JSON-LD. All content editable in-OS at **`/website`** (`site.write`=owner); migration `20260701420000` applied. Gallery ships with dummy placeholders; owner **uploads real photos** in-OS → public `site-media` bucket (#645/#647). PRs #636/#638–#642 + #637 + #645 + #647. |
 
 ## Top next actions (in order)
 
