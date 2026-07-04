@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { EXPENSE_KIND_AR, PAYMENT_STATUS_AR } from "@/lib/labels";
 import type { ApprovalStep, PillStatus, TabItem } from "@amrebeid/ui";
 import { Alert, ApprovalChain, Breadcrumbs, Card, EmptyState } from "@/components/ui";
+import { StoryLine } from "@/components/StoryLine";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -273,6 +274,31 @@ export default async function PaymentRequestPage({
   const remainingToFund = Number(t.remaining_to_fund ?? t.net_request ?? 0);
   const pendingLineCount = payableExpenseOptions.length;
 
+  // R-2 (SPEC-0025): the request's story in ONE sentence + who acts NEXT — the rail's head.
+  // Every wait-state names its actor; the cycle is never a maze again.
+  const unclassifiedCount = exp.filter(
+    (e) => e.payment_status === "post_paid_unpaid" && !e.account_id && !lineByExpenseId.get(e.id)?.paid_at,
+  ).length;
+  const gross = Number(t.gross_request ?? 0);
+  const railLead =
+    req.status === "draft"
+      ? `مسودة بها ${num(lineRows.length)} مصروفًا${gross > 0 ? ` بإجمالي ${egp(gross)}` : ""} — التالي: المحاسب يكمل البنود ويرسل للاعتماد.`
+      : req.status === "submitted"
+        ? `أُرسل الطلب (${egp(gross)}) — التالي: الاعتماد التشغيلي (مدير المزرعة).`
+        : req.status === "approved_operational"
+          ? `اعتمده المدير — التالي: اعتماد المالك (${egp(gross)}).`
+          : req.status === "approved_final"
+            ? `اعتمده المالك — التالي: تسجيل التمويل (المتبقي ${egp(remainingToFund)}).`
+            : req.status === "paid" && pendingLineCount > 0
+              ? `التمويل مكتمل — التالي: تأكيد سداد ${num(pendingLineCount)} بند من العهدة.`
+              : req.status === "paid"
+                ? "اكتملت الدورة ✓ — كل البنود مموّلة ومسدَّدة ومقيَّدة."
+                : `الحالة: ${REQ_STATUS_AR[req.status ?? ""] ?? req.status ?? "غير معروفة"}.`;
+  const railNotes: string[] = [];
+  if (unclassifiedCount > 0)
+    railNotes.push(`⚠ ${num(unclassifiedCount)} مصروف آجل بلا حساب محاسبي — لن يُقبل في الطلب حتى يُصنَّف (من صفحة المصروفات أو معالج «سجّل»).`);
+
+
   // Approval trail: each stage renders ONLY when its actor+timestamp columns are actually
   // populated (real data or absent — never fabricated). Stages not yet reached show as
   // "requested" (not started); the paper إذن صرف carries three signatures — محاسب
@@ -359,6 +385,8 @@ export default async function PaymentRequestPage({
           description={`تم تسجيل تمويل المالك، ويتبقى تأكيد سداد ${num(pendingLineCount)} بند من العهدة.`}
         />
       )}
+
+      <StoryLine lead={railLead} notes={railNotes} />
 
       <EntityTabs items={tabItems} value={tab} ariaLabel="أقسام طلب الصرف" />
 
