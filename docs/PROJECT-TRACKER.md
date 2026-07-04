@@ -1,6 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0024 S-8a live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0024 S-1 PR-ready, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 execution started: S-0 + S-8a LIVE (`main` `6d936b4`, PR #649).**
+> **2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend PR-READY (PR #655, branch `feat/spec-0024-s1-coa-tree`).**
+> Migration `20260701430000` extends the LIVE `accounts` kernel into an editable tree: `parent_id`
+> (cycle-guarded, depth ≤4), `kind` (expense-branch only), `is_system`, `sort_order`; gated RPCs
+> `fn_save_account`/`fn_archive_account`/`fn_merge_accounts` (budget.write, SECURITY DEFINER, EXECUTE-locked,
+> audited); `v_account_rollup` recursive subtree-balance view (security_invoker). **A.5**: `expenses.account_id`
+> + `fn_set_expense_account` (kind-consistency guard, #6), classification REQUIRED to route an expense to
+> payment, and the two journal posting sites now DEBIT the specific leaf (kind-bucket fallback for legacy NULLs).
+> Reuses `budget.write` — **no `authorize()` change**. **Validation:** full local pgTAP green **1250 ok / 0 not_ok**
+> (new `85_coa_tree_test.sql` = 28 assertions; tests/22 INV-2 allowlist + accounting tests 102/103/112 updated
+> for A.5). **Gated:** independent review (farm-os-pr-reviewer) dispatched; **migrate-first** (`veezkmytervjnpxcrbkw`)
+> then Owner-merge — non-authoritative until applied. Accounts ImportDescriptor deferred to S-9. Next: S-2 tree
+> editor UI + pickers (stacked on this branch).
+
+> **2026-07-04 — SPEC-0024 execution started: S-0 + S-8a LIVE (`main` `6d936b4`, PR #649).**
 > Owner ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) through the Codex execution brief
 > (`~/Downloads/codex-prompt-SPEC-0024-execution.md`): seed COA mapping, real 18 cost centers, `budget.write`
 > reuse, depth/merge/system-account rules, A.5 account strictness, offshoot bank, and Farm-Manager no-absolute-money
