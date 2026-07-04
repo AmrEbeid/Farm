@@ -1,31 +1,24 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (UI speed/readability pass live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0025 task-first UX, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — UI speed/readability pass LIVE (`main` `815a4c8`, PRs #679/#681/#682; no migration).**
-> Owner-dashboard visual readability (#679), first page-load speed pass (#681), and inventory per-row coverage bars
-> (#682) are merged and live. The speed pass lazy-loads the authenticated shell help drawer and command palette, so
-> those tools no longer sit in the initial app layout chunk; local production build evidence showed the authenticated
-> layout chunk drop from about **59 KB** to about **14 KB**, with help/search moved to a separate async chunk. Finance
-> dashboard also stopped calling `fn_custody_balance` once per custody account and now uses the existing custody
-> ledger report once, then maps closing balances locally. No Supabase migration; post-merge dry-run says remote DB is
-> up to date. Latest head `815a4c8` has green Vercel production, app CI, pgTAP/db, release, gitleaks, and Supabase
-> Preview. If pages still feel slow, next perf lane is dashboard read-RPC consolidation and route-specific skeletons;
-> accounting build resumes at close/period lock.
+> **2026-07-04 (latest) — Owner UX verdict → [`SPEC-0025`](SPEC-0025-task-first-ux.md) task-first UX; U-1/U-3/U-4 built (PR #683) + RTL nav fix (PR #680).**
+> Owner found the app "very hard to use — each trx in a different module". SPEC-0025 = task-first IA:
+> «+ سجّل» launcher + guided wizards over the existing RPCs, one «المعاملات» ledger, one «التقارير» hub,
+> 5-item nav (pilot-gated), help drawer (live via SPEC-0014). **Follow-up scope (§2b):** money wizards by
+> direction (داخلة/آجل/خارجة), **multi-LINE entry in every wizard** (shared LineItemsEditor), U-7 plan wizard
+> (manager builds weekly/monthly plan for whole farm or parts; lines = operations with details — over
+> fn_create_plan/fn_add_plan_operation_multi), U-8 execution wizard, U-9 rollout to all inputs. PR #683 ships
+> U-1 (launcher + 3-step expense wizard), U-3 (unified transactions ledger), U-4 (reports hub); PR #680 puts
+> the nav on the RIGHT (RTL logical-property fix). Docs PR #678 = the spec.
 
-> **2026-07-04 — SPEC-0024 S-10b / SPEC-0018-EXT Slice 6 revenue reports + A/R aging LIVE (`main` `b57b95c`, PR #677; prod migration `20260701510000`).**
-> This ships the owner/accountant revenue report surface at `/finance/revenue-reports` plus the read-only
-> `fn_revenue_sales_report` RPC. The report shows finalized revenue, period collections, pending-price deliveries,
-> outstanding A/R, 30+ A/R, buyer/crop-season rollups, searchable/sortable/exportable sales rows, A/R aging rows,
-> and collection rows. Pending-price deliveries stay visible but are excluded from finalized revenue and A/R totals;
-> outstanding A/R is derived as `total - Σ(collections)` as of the report date. Scope is read-only: no posting, no
-> cash/custody movement, no data mutation, no permission widening, and no `authorize()` re-emit. Production apply
-> used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`: dry-run showed exactly
-> `20260701510000_revenue_reports`, apply succeeded after transient login-role retries, and post-apply dry-run
-> reported the remote DB up to date. Validation: local `git diff --check`, focused eslint, `tsc`, focused nav/help
-> tests **17/17**, full app Vitest **464/464**, production build, Recharts guard, server/client-boundary guard, and
-> full pgTAP **1417/1417** including new `121_revenue_reports`; PR #677 checks + CodeRabbit + Vercel preview green;
-> post-merge `main` `ci`, `db-tests`, `release`, gitleaks, and Vercel production green for `b57b95c`. Next
-> accounting-money lane is **close/period lock**, then trusted P&L/balance sheet and Excel dual-run; custody PDF/
-> proof polish remains separate.
+> **2026-07-04 — Owner UX verdict → [`SPEC-0025`](SPEC-0025-task-first-ux.md) task-first UX (docs only).**
+> After using the app the Owner found it **"not user friendly… each trx done in a different module… very hard
+> to use."** Diagnosis: module-first IA mirrors the schema (8 modules / 26+ nav pages / reports in 6+ places;
+> one custody expense = 4 screens + 4 internal concepts). SPEC-0025 = the frontend-only fix: a global **«+ سجّل»
+> launcher** with 6 guided wizards composing the existing RPCs (expense→account→center→custody routing in ONE
+> flow; delivery-before-price as the default sale), one **«المعاملات»** unified money ledger, one **«التقارير»**
+> hub, a 5-item task-oriented nav, and the buried page-help surfaced as a ? drawer + first-run tour. Success
+> metric: the accountant records a real custody expense + pulls a report with zero help. 6 slices U-1..U-6;
+> 4 Owner decisions in §8. Backend unchanged. **Docs only — Owner gate.**
 
 > **2026-07-04 — SPEC-0024 S-10 / SPEC-0018-EXT Slice 5 revenue/A-R backend LIVE (`main` `3933d1f`, PR #676; prod migration `20260701500000`).**
 > This ships the backend foundation for delivery-before-price sales and A/R: `buyers`, `sales`,
@@ -40,8 +33,8 @@
 > DB up to date. Validation: local `git diff --check`, `tsc`, focused eslint, full eslint, app Vitest **464/464**,
 > production build, Recharts guard, server/client-boundary guard, and full pgTAP **1390/1390** including new
 > `115_revenue_sales`; PR #676 checks + CodeRabbit + Vercel preview green; post-merge `main` `ci`, `db-tests`,
-> `release`, and Vercel production green for `3933d1f`. This was backend-only at #676 time; revenue reports/A-R
-> aging are now live in #677 above, and the next lane is close/period lock plus trusted P&L reconciliation.
+> `release`, and Vercel production green for `3933d1f`. Backend only: next lane is **S-10b revenue reports + A/R
+> aging**, then close/period lock and trusted P&L reconciliation.
 
 > **2026-07-04 — SPEC-0018-EXT Slices 3/4 custody report pack LIVE (`main` `2e11f6a`, PR #675; prod migration `20260701490000`).**
 > This ships the accountant-facing monthly report pack at `/finance/custody-reports`: holder opening/period/closing
@@ -1150,7 +1143,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot bank + revenue/A-R reports live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`); PR #672 ships `/farm/offshoots` UI/reporting/import over it. PR #676 ships S-10 revenue/A-R backend (`20260701500000`): delivery-before-price sales, buyer master, partial/final collections, and A/R/cash journals. PR #677 ships S-10b revenue reports/A-R aging (`20260701510000`) at `/finance/revenue-reports`: finalized revenue, pending-price deliveries, collections, and A/R aging. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next money slice is close/period lock, then trusted P&L/balance sheet, while S-6 waits for Stage-M. |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot bank + revenue/A-R backend live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`); PR #672 ships `/farm/offshoots` UI/reporting/import over it. PR #676 ships S-10 revenue/A-R backend (`20260701500000`): delivery-before-price sales, buyer master, partial/final collections, and A/R/cash journals. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next money slice is S-10b revenue reports + A/R aging, then close/period lock, while S-6 waits for Stage-M. |
 | 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
