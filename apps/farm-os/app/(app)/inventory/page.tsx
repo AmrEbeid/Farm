@@ -49,7 +49,12 @@ export default async function InventoryListPage({
     // Honest valuation (#89-B posture): only costed items contribute; a NULL unit_cost contributes
     // NOTHING (never a fake 0 that silently understates) — the «بلا تكلفة» chip carries the gap instead.
     const value = uncosted ? null : onHand * Number(it.unit_cost);
-    return { it, onHand, reserved, available, needsReorder, uncosted, value };
+    // Point-in-time coverage bar (Stitch): available as a % of the reorder threshold,
+    // capped at 100. Honest framing matches `needsReorder` above — NOT the forward-looking
+    // engine verdict (the per-item coverage link stays for that). No threshold ⇒ full/ok.
+    const covPct = threshold > 0 ? Math.max(0, Math.min(100, Math.round((available / threshold) * 100))) : 100;
+    const covTone = threshold <= 0 ? "ok" : available < threshold ? "danger" : available < threshold * 1.5 ? "warn" : "ok";
+    return { it, onHand, reserved, available, needsReorder, uncosted, value, covPct, covTone };
   });
 
   const kpiValue = enriched.reduce((sum, e) => sum + (e.value ?? 0), 0);
@@ -70,6 +75,7 @@ export default async function InventoryListPage({
     { id: "on_hand", header: "الموجود", numeric: true },
     { id: "reserved", header: "المحجوز", numeric: true },
     { id: "available", header: "المتاح", numeric: true },
+    { id: "coverage_bar", header: "التغطية", kind: "bar" },
     { id: "value", header: "القيمة (تقديرية)", numeric: true },
     { id: "flag", header: "حد إعادة الطلب", kind: "status" },
     { id: "coverage", header: "تغطية المخزون", kind: "link" },
@@ -77,7 +83,7 @@ export default async function InventoryListPage({
 
   const rows = enriched
     .filter((e) => (filter === "reorder" ? e.needsReorder : filter === "uncosted" ? e.uncosted : true))
-    .map(({ it, onHand, reserved, available, needsReorder, value }) => ({
+    .map(({ it, onHand, reserved, available, needsReorder, value, covPct, covTone }) => ({
       id: it.id,
       href: `/inventory/${it.id}`,
       name: it.name,
@@ -85,6 +91,8 @@ export default async function InventoryListPage({
       on_hand: `${num(onHand)} ${it.unit ?? ""}`,
       reserved: `${num(reserved)} ${it.unit ?? ""}`,
       available: `${num(available)} ${it.unit ?? ""}`,
+      coverage_bar: covPct,
+      coverage_bar_tone: covTone,
       value: value == null ? "—" : egp(value),
       flag: needsReorder ? "تحت حد إعادة الطلب" : "فوق حد إعادة الطلب",
       coverage: "عرض تغطية المخزون",

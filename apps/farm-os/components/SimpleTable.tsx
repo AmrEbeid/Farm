@@ -12,7 +12,7 @@ import { sortRows, type TableSortState } from "@/lib/table-sort";
 // formatted "١٬٢٣٤ ج.م" string. (SPEC-0017 export contract; see lib/export-csv.ts.)
 // "code": an LTR technical string (PR code, phone, ref) bidi-isolated for the RTL layout (F4). The
 // raw string is still what exportToCsv serializes — the wrapper is display-only.
-type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn" | "link" | "code";
+type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn" | "link" | "code" | "bar";
 
 export interface SimpleColumn {
   id: string;
@@ -140,6 +140,30 @@ function renderCell(c: SimpleColumn, row: SimpleRow): React.ReactNode {
       return <Tag tone="warning">{String(v)}</Tag>;
     case "code":
       return <Code>{String(v)}</Code>;
+    case "bar": {
+      // Coverage bar (Stitch inventory): row[c.id] = fill percent 0–100 (number);
+      // row[`${c.id}_tone`] = "ok" | "warn" | "danger" (defaults to ok).
+      const fill = Math.max(0, Math.min(100, Number(v)));
+      const tone = String(row[`${c.id}_tone`] ?? "ok");
+      const color = tone === "danger" ? "var(--danger-fg)" : tone === "warn" ? "var(--warning-fg)" : "var(--success-fg)";
+      return (
+        <div className="flex items-center gap-2" style={{ minWidth: 96 }}>
+          <div
+            className="flex-1"
+            style={{ height: 6, borderRadius: 999, background: "var(--surface-sunken)", overflow: "hidden" }}
+            role="progressbar"
+            aria-valuenow={Math.round(fill)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div style={{ width: `${fill}%`, height: "100%", background: color, borderRadius: 999 }} />
+          </div>
+          <span className="text-xs tabular-nums" style={{ color: "var(--ink-muted)" }}>
+            {num(Math.round(fill))}٪
+          </span>
+        </div>
+      );
+    }
     case "link": {
       // Convention: the row carries the link target in `${c.id}_href` and the visible
       // label in `row[c.id]` (v). Falls back to plain text if no href was supplied.
