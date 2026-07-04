@@ -89,7 +89,8 @@ select is(
         'fn_log_trap_catch', 'fn_report_pest_incident', -- gated pest-scouting catch/incident RPCs (RPW-1)
         'fn_sign_off_plan_operation',                -- agronomy.signoff-gated sign-off RPC (agronomist-signoff-gate)
         'fn_get_or_create_individual_treatment_plan', -- implicit-plan resolver for palm-scoped rescue treatments (migration 20260701340000)
-        'fn_save_site_content'                     -- gated public-site content RPC (SPEC public-website, migration 20260701420000)
+        'fn_save_site_content',                    -- gated public-site content RPC (SPEC public-website, migration 20260701420000)
+        'fn_set_enquiry_status'                    -- gated enquiry inbox status RPC (SPEC public-website, migration 20260701450000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

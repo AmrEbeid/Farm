@@ -1,15 +1,19 @@
+import Link from "next/link";
 import { requireMembership } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { fmtDate } from "@/lib/dates";
+import { EnquiriesList } from "@/components/EnquiriesList";
 
 /**
- * Buyer enquiries submitted from the public website's contact form (SPEC public-website,
- * migration 20260701430000). OWNER-ONLY — reads are RLS-gated to `site.write` = owner; there is no
- * client write path (the public form inserts via a server action + service-role client). Read-only
- * list in this MVP (status management deferred). site_enquiries is declared in the STRUCT-1
- * augmentation, so the query is fully typed.
+ * Buyer enquiries submitted from the public website's contact form (SPEC public-website). OWNER-ONLY
+ * — reads are RLS-gated to `site.write` = owner. The public form inserts via a server action +
+ * service-role client (no client write path); the owner marks read/archived via fn_set_enquiry_status
+ * (owner-gated). Default view shows active (new + read); an "archived" tab shows the rest.
  */
-export default async function EnquiriesPage() {
+export default async function EnquiriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const m = await requireMembership();
 
   if (m.role !== "owner") {
@@ -21,43 +25,40 @@ export default async function EnquiriesPage() {
     );
   }
 
+  const archived = (await searchParams).view === "archived";
   const sb = await createClient();
-  const { data, error } = await sb
+  const base = sb
     .from("site_enquiries")
     .select("id, name, company, country, volume, message, status, created_at")
     .order("created_at", { ascending: false });
+  const { data, error } = archived
+    ? await base.eq("status", "archived")
+    : await base.neq("status", "archived");
   if (error) {
     throw new Error("site_enquiries query failed");
   }
-  const items = data ?? [];
+
+  const tab = (href: string, label: string, active: boolean) => (
+    <Link
+      href={href}
+      className={`rounded-full border px-3 py-1 text-sm ${active ? "bg-muted font-bold" : "text-muted-foreground"}`}
+    >
+      {label}
+    </Link>
+  );
 
   return (
     <div className="mx-auto max-w-3xl p-4">
       <h1 className="mb-1 text-xl font-bold">طلبات العملاء</h1>
       <p className="mb-4 text-sm text-muted-foreground">
-        الطلبات الواردة من نموذج التواصل في الموقع العام. تابع كل طلب مع العميل عبر واتساب أو البريد.
+        الطلبات الواردة من نموذج التواصل في الموقع العام. تابع كل طلب مع العميل عبر واتساب أو البريد،
+        وحدّده كمقروء أو أرشفه.
       </p>
-
-      {items.length === 0 ? (
-        <p className="rounded-lg border p-4 text-sm text-muted-foreground">لا توجد طلبات بعد.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {items.map((e) => (
-            <li key={e.id} className="rounded-lg border p-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-bold">{e.name}</span>
-                <span className="text-xs text-muted-foreground">{fmtDate(e.created_at)}</span>
-              </div>
-              {(e.company || e.country || e.volume) && (
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {[e.company, e.country, e.volume].filter(Boolean).join(" · ")}
-                </p>
-              )}
-              <p className="mt-2 whitespace-pre-wrap text-sm">{e.message}</p>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="mb-4 flex gap-2">
+        {tab("/enquiries", "الواردة", !archived)}
+        {tab("/enquiries?view=archived", "المؤرشفة", archived)}
+      </div>
+      <EnquiriesList items={data ?? []} />
     </div>
   );
 }
