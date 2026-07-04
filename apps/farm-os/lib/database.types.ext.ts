@@ -691,6 +691,10 @@ type CustodyFunctions = {
   fn_approve_request_final: { Args: { p_request: string }; Returns: undefined };
   fn_payment_request_totals: { Args: { p_request: string }; Returns: Json };
   fn_accounting_trial_balance: { Args: { p_org: string }; Returns: Json };
+  fn_custody_ledger_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
+  fn_custody_cash_expense_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
+  fn_unpaid_obligations_report: { Args: { p_org: string; p_as_of?: string | null }; Returns: Json };
+  fn_owner_funding_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
   fn_record_payment_request_funding: {
     Args: { p_request: string; p_custody_account: string; p_amount: number; p_occurred_at?: string; p_note?: string | null };
     Returns: string;

@@ -283,7 +283,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     when: "يوميًا عند صرف مصروف أو استلام/تسليم عهدة، وشهريًا عند تجهيز إذن الصرف.",
     how: "تابع الرصيد، حوّل العهدة بين مدير المزرعة والمحاسب عند التسليم، جهّز الطلب، أضف المصروفات المؤهلة، وبعد اعتماد المالك سجّل التمويل ثم أكّد السداد من العهدة.",
     avoid: "لا تسجل تسليم العهدة كحركتين منفصلتين؛ استخدم تحويل العهدة حتى لا يظهر كتمويل أو مصروف.",
-    related: ["finance-dashboard", "expenses", "accounting"],
+    related: ["finance-dashboard", "custody-reports", "expenses", "accounting"],
   },
   "payment-request-360": {
     title: "إذن الصرف 360",
@@ -292,7 +292,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     when: "عند إرسال طلب صرف أو مراجعته أو طباعته للاعتماد.",
     how: "راجع الملخص والبنود، اعتمد حسب الدور، ثم سجّل تمويل المالك كعهدة وأكّد سداد البنود من مصدر العهدة.",
     avoid: "لا تقفل الطلب قبل تأكيد سداد كل البنود؛ ولا تسجل تمويلًا قبل الاعتماد النهائي من المالك.",
-    related: ["custody", "finance-dashboard", "expenses", "accounting"],
+    related: ["custody", "custody-reports", "finance-dashboard", "expenses", "accounting"],
   },
   "expense-360": {
     title: "ملف المصروف 360",
@@ -310,7 +310,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     when: "عند مراجعة المالك أو المحاسب، وقبل اعتماد طلبات شراء أو مصروفات كبيرة.",
     how: "راجع بطاقات المؤشرات، ثم افتح الموازنات أو المصروفات أو طلبات الشراء من الروابط والجداول.",
     avoid: "لا تعتبرها دفتر الأستاذ؛ القيود النقدية وترحيل السداد تظهر في صفحة المحاسبة.",
-    related: ["budgets", "expenses", "purchase", "accounting", "custody"],
+    related: ["budgets", "expenses", "purchase", "accounting", "custody", "custody-reports"],
   },
   budgets: {
     title: "الموازنات",
@@ -463,7 +463,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     when: "بعد تسجيل تمويل المالك أو تأكيد سداد بند من طلب صرف، أو عند مراجعة ميزان المراجعة النقدي.",
     how: "راجع بطاقات الحسابات، ميزان المراجعة، وآخر القيود؛ أصل القيد يبقى في طلب الصرف أو المصروف المرتبط.",
     avoid: "لا تتوقع ظهور المصروف الآجل قبل السداد؛ النظام يعمل على أساس نقدي حتى مرحلة دفتر العهدة الحالية.",
-    related: ["finance-dashboard", "custody", "expenses", "budgets"],
+    related: ["finance-dashboard", "custody", "custody-reports", "expenses", "budgets"],
   },
   "finance-reports": {
     title: "تقارير مراكز التكلفة",
@@ -473,6 +473,15 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     how: "استخدم بطاقات الفلترة، راجع الرسوم، ابحث أو رتّب الجداول، ثم صدّر المصفوفة أو جدول المراكز عند الحاجة.",
     avoid: "لا تعتبر غير الموزّع خطأً مخفيًا؛ هو بند مراجعة صريح حتى يربطه المحاسب بمركز صحيح. الإيراد لا يظهر قبل بناء نموذج الإيرادات.",
     related: ["finance-dashboard", "accounts", "accounting", "expenses", "custody"],
+  },
+  "custody-reports": {
+    title: "تقارير العهدة والصرف",
+    what: "كشف owner/accountant للفترة: افتتاحي وختامي العهدة حسب الشخص، مصروفات العهدة، الالتزامات الآجلة، وتمويل المالك.",
+    why: "ليجهّز المحاسب طلب الصرف من بيانات مرتبطة بدل تجميع يدوي، وليظهر مصدر السداد والتمويل بدون خلطه مع الإيراد أو المصروف.",
+    when: "أسبوعيًا أو شهريًا قبل إرسال طلب الصرف للمالك، وعند مراجعة أرصدة عهدة مدير المزرعة والمحاسب.",
+    how: "اختر الفترة، راجع البطاقات والجداول، افتح المصروف أو طلب الصرف من الصف عند الحاجة، ثم صدّر CSV للمراجعة.",
+    avoid: "لا تعتبر الالتزام الآجل مصروفًا مرحّلًا قبل السداد؛ ولا تعتبر تحويل العهدة تمويلًا من المالك.",
+    related: ["custody", "finance-dashboard", "accounting", "finance-reports", "expenses"],
   },
   "finance-insights": {
     title: "رؤى المالك المالية",
