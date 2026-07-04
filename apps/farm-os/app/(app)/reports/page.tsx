@@ -35,6 +35,7 @@ const GROUPS: ReportGroup[] = [
     question: "من أين تأتي الفلوس؟",
     cards: [
       { href: "/finance/revenue-reports", icon: "💰", title: "تقارير الإيرادات", hint: "المبيعات حسب المحصول والمشتري + الأسعار المعلّقة + الذمم", roles: FIN },
+      { href: "/finance/season", icon: "🌾", title: "لوحة الموسم", hint: "الحصاد لحظة بلحظة: أطنان، بونات، معلّق، محصَّل، وإنتاج كل فدان", roles: FIN },
       { href: "/farm/offshoots", icon: "🌱", title: "بنك الفسائل", hint: "حركة الفسائل والتقدير", roles: OPS },
     ],
   },
