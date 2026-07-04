@@ -104,11 +104,16 @@ body {
 }
 
 /* App-side grouped module navigation. This keeps @amrebeid/ui unchanged while
-   replacing the empty default SidebarNav rendered by AppShell in this slice. */
-[dir="rtl"] .fos-appshell {
-  grid-template-columns: 1fr 240px;
-  grid-template-areas: "topbar topbar" "main sidebar";
-}
+   replacing the empty default SidebarNav rendered by AppShell in this slice.
+
+   RTL nav side (Owner feedback 2026-07-04, SPEC-0025): the navigation must sit on the
+   RIGHT in an Arabic app. The library default grid ("sidebar main", 240px 1fr) and the
+   base fixed-nav rule below (inset-inline-start: 0) are ALREADY correct in RTL — in a
+   right-to-left page, the first grid column and inline-start are the RIGHT edge. Two
+   earlier [dir="rtl"] overrides here flipped the nav to the physical LEFT by re-ordering
+   the grid to "main sidebar" and pinning the fixed nav to inset-inline-end (= left in
+   RTL). Those overrides are removed; do not re-add physical-side flips — the logical
+   properties handle direction on their own. */
 
 .fos-appshell__sidebar > .fos-sidebarnav {
   display: none;
@@ -119,20 +124,13 @@ body {
   position: fixed;
   inset-block-start: calc(var(--control-h, 40px) + (var(--space-2, 8px) * 2) + 1px);
   inset-block-end: 0;
-  inset-inline-start: 0;
+  inset-inline-start: 0; /* RTL: the right edge — where Arabic navigation belongs */
   inline-size: 240px;
   padding: var(--space-3);
   overflow: auto;
   background: var(--surface-raised);
-  border-inline-end: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line); /* the edge facing the content */
   z-index: calc(var(--z-sticky) + 1);
-}
-
-[dir="rtl"] .fos-appshell__main > .farm-module-nav {
-  inset-inline-start: auto;
-  inset-inline-end: 0;
-  border-inline-end: 0;
-  border-inline-start: 1px solid var(--line);
 }
 
 .farm-module-nav__module {
