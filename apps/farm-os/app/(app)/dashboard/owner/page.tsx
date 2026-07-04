@@ -219,21 +219,7 @@ export default async function OwnerDashboard() {
           own once the org has real data (no separate dismiss state to persist). */}
       {isNewOrg && <OnboardingChecklist />}
 
-      {/* Alert rail — most-severe first; only shows what actually needs attention */}
-      {alerts.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">أهم التنبيهات</h2>
-          <div className="grid gap-2 lg:grid-cols-2">
-            {alerts.map((a) => (
-              <Link key={a.key} href={a.href} className="block transition-opacity hover:opacity-90">
-                <Alert tone={a.tone} title={a.title} description={a.desc} />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Cross-module KPI strip — 6 query-derived metrics (responsive 2 → 3 → 6), each a deep link to its module */}
+      {/* Cross-module KPI hero — 6 query-derived metrics (responsive 2 → 3 → 6), each a deep link to its module */}
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <DashboardKpiLink href="/budgets" active={false}>
           <KpiCard
@@ -286,6 +272,10 @@ export default async function OwnerDashboard() {
           />
         </DashboardKpiLink>
       </section>
+
+      {/* Main grid — rich content (left 2/3) + alerts sidebar (right 1/3): Stitch owner-dashboard layout */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
 
       <section>
         <div className="mb-3 flex items-center justify-between">
@@ -449,6 +439,29 @@ export default async function OwnerDashboard() {
           empty="لا توجد طلبات شراء بعد."
         />
       </section>
+
+        </div>{/* /left column */}
+
+        {/* Right column — alerts sidebar (most-severe first; each deep-links to its module) */}
+        <aside className="flex flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
+          {alerts.length > 0 ? (
+            <>
+              <h2 className="text-lg font-semibold">أهم التنبيهات</h2>
+              {alerts.map((a) => (
+                <Link key={a.key} href={a.href} className="block transition-opacity hover:opacity-90">
+                  <Alert tone={a.tone} title={a.title} description={a.desc} />
+                </Link>
+              ))}
+            </>
+          ) : (
+            <Card>
+              <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+                لا توجد تنبيهات تحتاج انتباهك الآن.
+              </p>
+            </Card>
+          )}
+        </aside>
+      </div>{/* /main grid */}
     </div>
   );
 }
