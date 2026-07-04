@@ -310,7 +310,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     when: "عند مراجعة المالك أو المحاسب، وقبل اعتماد طلبات شراء أو مصروفات كبيرة.",
     how: "راجع بطاقات المؤشرات، ثم افتح الموازنات أو المصروفات أو طلبات الشراء من الروابط والجداول.",
     avoid: "لا تعتبرها دفتر الأستاذ؛ القيود النقدية وترحيل السداد تظهر في صفحة المحاسبة.",
-    related: ["budgets", "expenses", "purchase", "accounting", "custody", "custody-reports"],
+    related: ["budgets", "expenses", "purchase", "accounting", "custody", "custody-reports", "revenue-reports"],
   },
   budgets: {
     title: "الموازنات",
@@ -463,7 +463,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     when: "بعد تسجيل تمويل المالك أو تأكيد سداد بند من طلب صرف، أو عند مراجعة ميزان المراجعة النقدي.",
     how: "راجع بطاقات الحسابات، ميزان المراجعة، وآخر القيود؛ أصل القيد يبقى في طلب الصرف أو المصروف المرتبط.",
     avoid: "لا تتوقع ظهور المصروف الآجل قبل السداد؛ النظام يعمل على أساس نقدي حتى مرحلة دفتر العهدة الحالية.",
-    related: ["finance-dashboard", "custody", "custody-reports", "expenses", "budgets"],
+    related: ["finance-dashboard", "custody", "custody-reports", "revenue-reports", "expenses", "budgets"],
   },
   "finance-reports": {
     title: "تقارير مراكز التكلفة",
@@ -471,8 +471,17 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     why: "ليظهر أثر كل مصروف أو إيراد على الأرض أو النشاط الذي خدمه، مع إظهار غير الموزّع بدل إخفائه أو تخمينه.",
     when: "عند مراجعة اقتصاديات الحصوة/الخطارة/حوض البابور أو مقارنة النشاطات مثل نخيل وموالح وقشطة.",
     how: "استخدم بطاقات الفلترة، راجع الرسوم، ابحث أو رتّب الجداول، ثم صدّر المصفوفة أو جدول المراكز عند الحاجة.",
-    avoid: "لا تعتبر غير الموزّع خطأً مخفيًا؛ هو بند مراجعة صريح حتى يربطه المحاسب بمركز صحيح. الإيراد لا يظهر قبل بناء نموذج الإيرادات.",
-    related: ["finance-dashboard", "accounts", "accounting", "expenses", "custody"],
+    avoid: "لا تعتبر غير الموزّع خطأً مخفيًا؛ هو بند مراجعة صريح حتى يربطه المحاسب بمركز صحيح. تفاصيل المبيعات والتحصيلات تظهر في تقرير الإيرادات.",
+    related: ["finance-dashboard", "accounts", "accounting", "revenue-reports", "expenses", "custody"],
+  },
+  "revenue-reports": {
+    title: "تقارير الإيرادات والذمم",
+    what: "تقرير owner/accountant للفترة: الإيراد المسعّر، التسليمات التي لم يحدد سعرها، تحصيلات العملاء، والذمم القائمة بأعمارها.",
+    why: "ليعرف المحاسب والمالك ما تم تسعيره وتحصيله وما بقي ذمة على العملاء بدون خلط التسليمات غير المسعرة مع الإيراد.",
+    when: "أسبوعيًا أو شهريًا عند مراجعة المبيعات، متابعة التحصيل، أو قبل اجتماع المالك والمحاسب.",
+    how: "اختر الفترة وتاريخ أعمار الذمم، راجع البطاقات والرسم، ثم ابحث أو رتّب الجداول وصدّر CSV عند الحاجة.",
+    avoid: "لا تعتبر التسليم بسعر معلق إيرادًا أو ذمة حتى يحدد السعر؛ ولا تعتمد التقرير كإقفال فترة قبل بناء close/period lock.",
+    related: ["finance-dashboard", "finance-reports", "accounting", "accounts", "custody-reports"],
   },
   "custody-reports": {
     title: "تقارير العهدة والصرف",
@@ -481,7 +490,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     when: "أسبوعيًا أو شهريًا قبل إرسال طلب الصرف للمالك، وعند مراجعة أرصدة عهدة مدير المزرعة والمحاسب.",
     how: "اختر الفترة، راجع البطاقات والجداول، افتح المصروف أو طلب الصرف من الصف عند الحاجة، ثم صدّر CSV للمراجعة.",
     avoid: "لا تعتبر الالتزام الآجل مصروفًا مرحّلًا قبل السداد؛ ولا تعتبر تحويل العهدة تمويلًا من المالك.",
-    related: ["custody", "finance-dashboard", "accounting", "finance-reports", "expenses"],
+    related: ["custody", "finance-dashboard", "accounting", "finance-reports", "revenue-reports", "expenses"],
   },
   "finance-insights": {
     title: "رؤى المالك المالية",
@@ -489,8 +498,8 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     why: "لتعرف سريعًا أين توجد تكلفة مركزة، أين توجد بنود غير موزعة، وما الذي يحتاج مراجعة قبل الاعتماد على التقرير.",
     when: "في مراجعة المالك الأسبوعية أو قبل اجتماع المحاسب.",
     how: "ابدأ ببطاقة التقييم، افتح بطاقة الرؤية التي تحتاج متابعة، ثم راجع جدول المراكز أو التقرير التفصيلي.",
-    avoid: "لا تقرأها كتوقع أو ميزانية؛ هي قراءة من القيود الحالية فقط. مزيج الإيراد والهوامش ينتظر نموذج الإيرادات.",
-    related: ["finance-dashboard", "finance-reports", "accounts", "accounting"],
+    avoid: "لا تقرأها كتوقع أو ميزانية؛ هي قراءة من القيود الحالية فقط. تفاصيل الإيراد والتحصيلات تظهر في تقرير الإيرادات.",
+    related: ["finance-dashboard", "finance-reports", "revenue-reports", "accounts", "accounting"],
   },
 };
 

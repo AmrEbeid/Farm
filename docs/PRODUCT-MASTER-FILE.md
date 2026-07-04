@@ -20,7 +20,7 @@ Last updated: 2026-06-30. Maintainers: Product + Owner (Amr Ebeid).
 > **Reconcile note (reading this vs older docs):** four claims that float around older docs/PRs are corrected
 > here against `main`: (1) **planned-vs-actual is built** (`reports/[planId]/pva`); (2) the cash-method
 > `/accounting` page and sales/A-R backend are now built, but the full P&L engine/reporting work (`lib/pnl.ts`,
-> revenue reports, reconciliation) and Care Academy (`/academy`) are NOT complete on `main`; (3) **prod is now at
+> close/lock, P&L/balance sheet, reconciliation) and Care Academy (`/academy`) are NOT complete on `main`; (3) **prod is now at
 > migration `20260629150100` per DEPLOY-STATUS**, including the SPEC-0018 custody/payment backend from #468 and
 > the live custody frontend from #474; #441 is closed as superseded; (4) **SPEC-0016 export compliance slice 1 is
 > built** — migration `20260622000092` is applied and `lib/export-readiness.ts` is on `main`, but no real cert data,
@@ -201,14 +201,14 @@ Status legend: ✅ Built (on `main`) · 🟡 Partial · ⬜ Planned · 🧪 Draf
 - **Business rules:** operation tables gated to `op.execute` (`0025`); palm-event roll-up derived from the
   hawsha chain (defensive). **Gap:** explicit **labor attendance** event / `labor_logs` ⬜ (Stage 8).
 
-### Accounting and P&L — 🟡 Partial (cash ledger + sales/A-R backend ✅; P&L reports pending)
+### Accounting and P&L — 🟡 Partial (cash ledger + sales/A-R reports ✅; P&L reports pending)
 - **Built:** `expenses` (`0007`), `/expenses`, `expenses.kind` separation (owner-drawings vs opex —
   CLAUDE.md #6), cash-method accounting kernel (`accounts`, `journal_entries`, `journal_lines`,
   `payment_request_fundings`), `/accounting`, custody/payment settlement, and sales/A-R backend
   (`buyers`, `sales`, `sale_collections`, `fn_save_buyer`, `fn_save_sale`, `fn_finalize_sale_price`,
-  `fn_record_sale_collection`).
-- **Still pending:** revenue report UI, A/R aging report, full P&L/balance sheet, period close, and the 7-year
-  Excel reconciliation + privacy review (Stage M) before finance treats totals as decision-grade.
+  `fn_record_sale_collection`) plus `/finance/revenue-reports` and `fn_revenue_sales_report`.
+- **Still pending:** full P&L/balance sheet, period close, voucher documents, and the 7-year Excel reconciliation
+  + privacy review (Stage M) before finance treats totals as decision-grade.
 - **Cost by sector/crop/operation:** planned-vs-actual exists per plan (below); full cross-cutting cost
   allocation is in the draft P&L work.
 
@@ -381,7 +381,7 @@ actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified 
 - **Media:** `attachments` (+ `farm-media` storage bucket).
 - **Relationships:** everything carries `org_id`; structure is a strict parent chain (cross-org FK guards swept in
   `0061`–`0075`); events/inventory/PRs reference org-validated parents; audit mirrors writes immutably.
-- **Not on `main`:** full P&L/revenue report engine, academy content store (draft PR #366),
+- **Not on `main`:** full P&L/period-close engine, academy content store (draft PR #366),
   subscription/plan tables (SPEC-0013), `labor_logs` (Stage 8), invite table (SPEC-0012 S2).
 
 (Full SQL: `apps/farm-os/supabase/migrations/`; `STATUS.md` wins for the latest applied production migration.)
@@ -406,7 +406,7 @@ actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified 
 | `fn_add_attachment` / `fn_archive_attachment` | media | soft-delete; org-scoped | MediaGallery | ✅ |
 | `pr_guard_approval` / `fn_pr_bump_version` / `fn_pr_items_lock_when_decided` | PR integrity | SoD; line-freeze on decision | PR detail | ✅ |
 | `fn_audit` / `fn_audit_org_member` / `fn_audit_people` | audit | immutable mirror; PII redaction | — | ✅ |
-| `fn_save_buyer` / `fn_save_sale` / `fn_finalize_sale_price` / `fn_record_sale_collection` | sales + A/R collections | budget.write + finance.read | revenue backend | 🟡 backend built; report UI pending |
+| `fn_save_buyer` / `fn_save_sale` / `fn_finalize_sale_price` / `fn_record_sale_collection` / `fn_revenue_sales_report` | sales + A/R collections/reporting | budget.write + finance.read | `/finance/revenue-reports` | 🟡 backend + report built; close/P&L pending |
 | payroll-run RPC | payroll | — | — | ⬜ (engine `lib/payroll.ts` only) |
 | assistant chat/retrieval | AI | trifecta-safe | — | ⬜ Stage 11 |
 
@@ -482,7 +482,7 @@ actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified 
 | Capability | What exists | What's missing | Risk | Next action |
 |---|---|---|---|---|
 | Purchase workflow depth | PR + items + SoD + partial receipts | POs, quotation compare, invoice match, multi-level approvals | High | candidate spec |
-| Accounting / P&L | cash ledger + custody settlement + sales/A-R backend | revenue report UI, A/R aging, full P&L/balance sheet, Excel reconciliation | High | build reports after backend is live; reconcile after privacy review |
+| Accounting / P&L | cash ledger + custody settlement + sales/A-R backend + revenue/A-R report | full P&L/balance sheet, period close, voucher documents, Excel reconciliation | High | build close/P&L next; reconcile after privacy review |
 | Planned-vs-actual | per-plan variance report | cross-cutting cost allocation by sector/crop/period | Med | extend with P&L work |
 | AI assistant | policy boundary | chat route/model/retrieval | High | Stage 11, per-slice review |
 | Member invites / role UI | roles+RLS | `/members` UI + invite mechanism | High | SPEC-0012 S2 (`0090`) |

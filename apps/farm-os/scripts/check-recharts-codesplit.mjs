@@ -54,6 +54,8 @@ const ALLOWED_CHART_ROUTES = [
   "/finance/dashboard/page",
   // SPEC-0024 S-4 cost-center reports render multi-insight charts over live accounting views.
   "/finance/reports/page",
+  // SPEC-0024 S-10b revenue reports render buyer/crop revenue + A/R charts.
+  "/finance/revenue-reports/page",
   // SPEC-0024 S-5 owner insights reuses the report chart wrappers without loading them globally.
   "/finance/insights/page",
   // SPEC-0024 S-7b offshoot bank renders physical-flow and expansion charts.

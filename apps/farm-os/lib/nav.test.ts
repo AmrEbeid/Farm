@@ -82,6 +82,7 @@ describe("APP_MODULES", () => {
     expect(managerFinancePages).toContain("expenses");
     expect(managerFinancePages).not.toContain("accounts");
     expect(managerFinancePages).not.toContain("finance-reports");
+    expect(managerFinancePages).not.toContain("revenue-reports");
     expect(managerFinancePages).not.toContain("custody-reports");
     expect(managerFinancePages).not.toContain("finance-insights");
     expect(managerFinancePages).not.toContain("accounting");
@@ -132,6 +133,7 @@ describe("APP_MODULES", () => {
     expect(findActiveNavItem("/expenses/123")?.id).toBe("expenses");
     expect(findActiveNavItem("/finance/accounts")?.id).toBe("accounts");
     expect(findActiveNavItem("/finance/reports")?.id).toBe("finance-reports");
+    expect(findActiveNavItem("/finance/revenue-reports")?.id).toBe("revenue-reports");
     expect(findActiveNavItem("/finance/custody-reports")?.id).toBe("custody-reports");
     expect(findActiveNavItem("/finance/insights")?.id).toBe("finance-insights");
     expect(findActiveNavItem("/accounting")?.id).toBe("accounting");

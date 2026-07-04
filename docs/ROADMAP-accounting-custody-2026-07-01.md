@@ -111,8 +111,8 @@ carries financial-integrity risk → each needs its own SPEC/plan + independent 
 merge, and real-data reconciliation is Stage-M gated.
 
 ### Slice A — Statutory reporting completion *(cheap on the existing kernel; highest near-term value)*
-- **Scope:** (1) Revenue/sales + A-R — backend tables/RPCs are implemented in `20260701500000`; next is revenue
-  by buyer/crop/season, pending-price delivery listing, and A/R aging; (2) P&L + balance sheet report RPCs grouped by `account_type` over the
+- **Scope:** (1) Revenue/sales + A-R — backend tables/RPCs are implemented in `20260701500000`, and revenue
+  by buyer/crop/season, pending-price delivery listing, and A/R aging are implemented in `20260701510000`; next is close/period lock plus P&L/balance sheet report RPCs grouped by `account_type` over the
   existing `journal_lines`/`accounts` (same shape as `fn_accounting_trial_balance`); (3) a period close/lock
   (`accounting_periods` + a lock check in the posting RPCs); (4) fold in **budget-vs-actual** by rolling the real
   ledger up by category, closing Decision-0157's "frozen seed numbers" gap.
@@ -213,6 +213,6 @@ tested); (2) the payment-request PDF export + the custody-ledger/cash-expense/un
 report set (mostly read-only over data that already exists via `fn_payment_request_totals`); (3) the
 delivery-before-price mechanic for Slice A's planned `sales` table (a sale can be delivered with `price_status =
 'pending'` and posts no journal entry until `fn_finalize_sale_price` runs). It does not change this roadmap's
-Slice A→D sequencing — Slice 5 in the companion doc (revenue schema) is the same work as this roadmap's Slice A
-revenue line, just with the pending-price detail filled in, and still depends on this roadmap's chart-of-accounts
-gate (§7 decision 3).
+Slice A→D sequencing — Slices 5/6 in the companion doc (revenue schema + revenue reports) are the same work as
+this roadmap's Slice A revenue line, just with the pending-price and A/R-aging detail filled in. The next
+roadmap gap is still close/period lock plus trusted P&L/balance-sheet reporting and reconciliation.

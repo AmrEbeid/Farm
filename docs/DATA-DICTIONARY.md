@@ -4,7 +4,7 @@
 stable `TBL-NNN` id, purpose, key columns, foreign keys, RLS posture, and the feature it serves (→ `FEAT-NNN`).
 Reconciled to `main` 2026-07-01 (53 tables incl. `user_active_org`, SPEC-0018 custody/payment backend,
 SPEC-0016 export-compliance slice 1, and the cash-method accounting kernel GL tables from PR #568
-`20260701220000`, plus revenue/A-R backend `20260701500000`).
+`20260701220000`, plus revenue/A/R backend `20260701500000` and read-only report RPC `20260701510000`).
 Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**; only deviations are noted.*
 
 ## Tenancy & people
