@@ -18,6 +18,9 @@ insert into auth.users (id, instance_id, aud, role, phone, phone_confirmed_at, c
 
 -- Organization
 insert into public.organization (id, name, locale, currency, area_unit, fiscal_year_start) values ('00000000-0000-0000-0000-000000000001','مزارع عبيد','ar','EGP','feddan','2025-01-01');
+-- SPEC-0024 S-3: seed the system «غير موزَّع» cost center for the demo org (the org-insert trigger is
+-- skipped here because the bulk seed runs under session_replication_role=replica).
+select public.fn_seed_cost_center_defaults('00000000-0000-0000-0000-000000000001');
 
 -- People + organization_member (5 members + 1 storekeeper)
 insert into public.people (id, org_id, name, phone, position, employment_type, user_id, active) values ('f2efd2ea-d861-59bd-9cf3-a0f24ffcfd9c','00000000-0000-0000-0000-000000000001','عمرو عبيد','+201000000001','المالك','permanent','c6f9a7f6-3bbe-5d90-906f-d55d5ff42da2',true);
