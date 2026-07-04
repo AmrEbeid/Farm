@@ -1,6 +1,17 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-10b revenue reports/A-R aging live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (UI speed/readability pass live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 S-10b / SPEC-0018-EXT Slice 6 revenue reports + A/R aging LIVE (`main` `b57b95c`, PR #677; prod migration `20260701510000`).**
+> **2026-07-04 (latest) — UI speed/readability pass LIVE (`main` `815a4c8`, PRs #679/#681/#682; no migration).**
+> Owner-dashboard visual readability (#679), first page-load speed pass (#681), and inventory per-row coverage bars
+> (#682) are merged and live. The speed pass lazy-loads the authenticated shell help drawer and command palette, so
+> those tools no longer sit in the initial app layout chunk; local production build evidence showed the authenticated
+> layout chunk drop from about **59 KB** to about **14 KB**, with help/search moved to a separate async chunk. Finance
+> dashboard also stopped calling `fn_custody_balance` once per custody account and now uses the existing custody
+> ledger report once, then maps closing balances locally. No Supabase migration; post-merge dry-run says remote DB is
+> up to date. Latest head `815a4c8` has green Vercel production, app CI, pgTAP/db, release, gitleaks, and Supabase
+> Preview. If pages still feel slow, next perf lane is dashboard read-RPC consolidation and route-specific skeletons;
+> accounting build resumes at close/period lock.
+
+> **2026-07-04 — SPEC-0024 S-10b / SPEC-0018-EXT Slice 6 revenue reports + A/R aging LIVE (`main` `b57b95c`, PR #677; prod migration `20260701510000`).**
 > This ships the owner/accountant revenue report surface at `/finance/revenue-reports` plus the read-only
 > `fn_revenue_sales_report` RPC. The report shows finalized revenue, period collections, pending-price deliveries,
 > outstanding A/R, 30+ A/R, buyer/crop-season rollups, searchable/sortable/exportable sales rows, A/R aging rows,

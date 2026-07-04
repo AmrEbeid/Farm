@@ -1,6 +1,6 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-04 (SPEC-0024 S-10b revenue reports/A-R aging live). Owner: Amr Ebeid.*
+*Updated: 2026-07-04 (UI speed/readability pass live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
@@ -23,7 +23,7 @@
 | M Real-data migration | **0% — THE PRIORITY** | Blocked by: Stage 0 (#362) → privacy review → COA owner sign-off/refinement → registry import → Excel reconciliation. |
 | P Production deploy controls | ⚠️ Bypassed | Prod deploys continuously without Stage-P controls (no staging, no monitoring, no rollback drill) — see review R-items. |
 | W Public website (`/`) | ✅ **COMPLETE + LIVE** | ebeidfarm.business — bilingual AR/EN export site: hero, KPIs, blocks, **real** GlobalGAP/GACC/QCAP/CAPQ proofs, specs, contact, **editable photo gallery** (in-OS upload → `site-media` bucket), **buyer enquiry form → OS** (`/enquiries`, owner-only), logo/favicon/PWA icons, SEO/OG/JSON-LD/sitemap. All content editable in-OS at **`/website`** (`site.write`=owner). Migrations `20260701420000` (content) + `20260701430000` (enquiries) applied. **Buyer enquiry inbox** with owner read/archive management (`fn_set_enquiry_status`, migration `20260701450000`). Unit-tested + security-reviewed. PRs #636/#638–#642/#637/#645/#647/#650/#653/#656/#664. Follow-up: real farm photos. |
-| UX Design system (`@amrebeid/ui`) | ✅ **REVAMPED (4 passes, LIVE)** | Stitch-directed token refresh of the whole OS — softer radii + refined layered shadows + cleaner surface (#665), primary-button depth + modern soft focus ring (#666), table zebra striping (#668), KPI bigger value + delta pill chips (#669). Token-purity-clean; propagates to every screen via the two-tier tokens. Deeper passes (app shell, per-screen) pending Owner direction on the live look. |
+| UX Design system (`@amrebeid/ui`) | ✅ **REVAMPED + speed pass LIVE** | Stitch-directed token refresh of the whole OS — softer radii + refined layered shadows + cleaner surface (#665), primary-button depth + modern soft focus ring (#666), table zebra striping (#668), KPI bigger value + delta pill chips (#669). Owner dashboard redesign (#679), app-shell lazy-load speed pass (#681: authenticated layout chunk ~59 KB → ~14 KB), and inventory row coverage bar (#682) are live. Token-purity-clean; propagates to every screen via the two-tier tokens. |
 
 ## Top next actions (in order)
 
@@ -33,7 +33,8 @@
 4. **Owner decisions (cheap)**: wage model #388 · #157 budget-cap (4 one-line answers) · #199/#526 reservation semantics (one line).
 5. **Build now:** close/period lock, then trusted P&L/balance sheet. S-8b operational dashboard/360 linkage (#673), custody transfer (#674), custody reports (#675), S-10 revenue/A-R backend (#676), and S-10b revenue reports/A-R aging (#677) are live; PDF/proof polish can run as finance UX alongside close/P&L. **After 2:** real palm-registry import via SPEC-0020 path → #157 real budget gate → historical import/reconciliation.
 6. **Money-integrity PRs** (from review): custody↔GL movement-type vocabulary + journal completeness; general custody cash-out balance floor beyond transfers; `fn_reverse_journal_entry`; `audit_read` completeness pin (tests/97-style).
-7. **Field-readiness PRs**: ExecuteForm offline outbox; OperationBuilder `Number('')→0` fix; 8 forms missing network catch; storekeeper `/m/receive`. Full list: `REVIEW-360-2026-07-01.md` §Frontend.
+7. **Page-speed follow-up if still slow:** consolidate owner/dashboard multi-query loaders into read RPCs, keep heavy search/help/chart tools async, and add route-specific skeletons for the slowest finance/farm pages after live timing feedback.
+8. **Field-readiness PRs**: ExecuteForm offline outbox; OperationBuilder `Number('')→0` fix; 8 forms missing network catch; storekeeper `/m/receive`. Full list: `REVIEW-360-2026-07-01.md` §Frontend.
 
 ## Feature freeze
 

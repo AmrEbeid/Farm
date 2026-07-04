@@ -2,7 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-10b / SPEC-0018-EXT Slice 6 revenue reports + A/R aging LIVE; prod ledger head `20260701510000`.**
+> **2026-07-04 (latest) — UI speed/readability pass LIVE; prod ledger head remains `20260701510000`.**
+> Current `main` is **`815a4c8`** after PRs **#679/#681/#682**. No Supabase migration in these PRs; post-merge
+> `supabase db push --dry-run` reports the remote database is up to date. Scope: owner-dashboard readability
+> redesign, authenticated-shell lazy loading for help/search, finance-dashboard custody balance round-trip reduction,
+> and inventory per-row coverage bars. Performance evidence from local production build: authenticated app layout
+> chunk dropped from about **59 KB** to about **14 KB** after moving help/search into an async chunk. Current head
+> `815a4c8` has green Vercel production, app CI, pgTAP/db, release, gitleaks, and Supabase Preview.
+>
+> **2026-07-04 — SPEC-0024 S-10b / SPEC-0018-EXT Slice 6 revenue reports + A/R aging LIVE; prod ledger head `20260701510000`.**
 > PR **#677** merged to `main` at **`b57b95c`** after migrate-first production apply. Scope:
 > `fn_revenue_sales_report` plus `/finance/revenue-reports` for finalized revenue, collections, pending-price
 > deliveries, buyer/crop-season rollups, outstanding A/R, A/R aging, and collection rows. The report is

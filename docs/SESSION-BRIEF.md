@@ -1,7 +1,27 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-10b revenue reports/A-R aging live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (UI speed/readability pass live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-10b / SPEC-0018-EXT Slice 6 revenue reports + A/R aging live
+## 2026-07-04 (latest) — UI speed/readability pass live
+
+Owner raised that pages feel slow. A first low-risk speed/readability pass is now live on `main` **`815a4c8`**:
+PR **#679** owner-dashboard readability, PR **#681** app-shell speed pass, and PR **#682** inventory row coverage bars.
+No Supabase migration was involved; remote DB dry-run is up to date.
+
+**Completed and live:**
+- `AppChrome` lazy-loads help drawer and command palette instead of shipping them in the first authenticated layout
+  chunk.
+- Local production build evidence: authenticated app layout chunk dropped from about **59 KB** to about **14 KB**;
+  help/search now sit in a separate async chunk.
+- Finance dashboard replaced one custody-balance RPC per custody account with one existing custody ledger report RPC
+  plus a local closing-balance map.
+- Latest current head `815a4c8` has green Vercel production, app CI, pgTAP/db, release, gitleaks, and Supabase
+  Preview.
+
+**Resume point:** if pages still feel slow after this live pass, next performance slice should consolidate the
+owner/finance dashboard multi-query loaders into read RPCs and add route-specific skeletons for the slowest pages.
+Accounting work should resume at **close/period lock**, then trusted P&L/balance sheet.
+
+## 2026-07-04 — SPEC-0024 S-10b / SPEC-0018-EXT Slice 6 revenue reports + A/R aging live
 
 Continuation under the Owner's autonomous "keep working until live" instruction. S-10b revenue reports/A-R aging is
 now merged and live via PR **#677** (`main` merge commit **`b57b95c`**) after migrate-first production apply of
