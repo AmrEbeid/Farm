@@ -10,7 +10,15 @@ import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
-import { EXPENSE_STATUS_AR, OP_STATUS_AR, PAYMENT_METHOD_AR, PLAN_TYPE_AR, SUBTYPE_AR } from "@/lib/labels";
+import {
+  EXPENSE_KIND_AR,
+  EXPENSE_STATUS_AR,
+  OP_STATUS_AR,
+  PAYMENT_METHOD_AR,
+  PAYMENT_STATUS_AR,
+  PLAN_TYPE_AR,
+  SUBTYPE_AR,
+} from "@/lib/labels";
 
 type SupplierEmbed = { id?: string; name?: string | null };
 type PlanEmbed = { id?: string; type?: string | null; period_start?: string | null; period_end?: string | null };
@@ -52,7 +60,7 @@ export default async function Expense360Page({
   const { data: expense, error } = await sb
     .from("expenses")
     .select(
-      "id, date, category, description, total, qty, unit, unit_price, payment_method, status, supplier_id, plan_id, event_id, farm_id, sector_id, hawsha_id, suppliers(id, name), plans(id, type, period_start, period_end), farms(id, name), sectors(id, name), hawshat(id, name)",
+      "id, date, category, description, total, qty, unit, unit_price, payment_method, status, payment_status, kind, account_id, supplier_id, plan_id, event_id, farm_id, sector_id, hawsha_id, suppliers(id, name), plans(id, type, period_start, period_end), farms(id, name), sectors(id, name), hawshat(id, name)",
     )
     .eq("id", expenseId)
     .maybeSingle();
@@ -78,6 +86,11 @@ export default async function Expense360Page({
         .maybeSingle()
     : { data: null, error: null };
   if (eventError) throw eventError;
+
+  const { data: account, error: accountError } = expense.account_id
+    ? await sb.from("accounts").select("code, name_ar").eq("id", expense.account_id).maybeSingle()
+    : { data: null, error: null };
+  if (accountError) throw accountError;
 
   const linkedScopeCount = [expense.supplier_id, expense.plan_id, expense.event_id, expense.farm_id, expense.sector_id, expense.hawsha_id].filter(Boolean).length;
 
@@ -184,9 +197,24 @@ export default async function Expense360Page({
                 { id: "date", term: "التاريخ", description: expense.date ? fmtDate(expense.date) : "—" },
                 { id: "category", term: "الفئة", description: expense.category ?? "—" },
                 {
+                  id: "kind",
+                  term: "نوع المصروف",
+                  description: EXPENSE_KIND_AR[expense.kind ?? "operating"] ?? "—",
+                },
+                {
+                  id: "account",
+                  term: "الحساب المحاسبي",
+                  description: account ? `${account.code} — ${account.name_ar}` : "بدون حساب",
+                },
+                {
                   id: "payment",
                   term: "طريقة الدفع",
                   description: PAYMENT_METHOD_AR[expense.payment_method ?? ""] ?? "غير معروف",
+                },
+                {
+                  id: "payment-status",
+                  term: "حالة السداد",
+                  description: PAYMENT_STATUS_AR[expense.payment_status ?? ""] ?? "غير محدد",
                 },
                 { id: "status", term: "الحالة", description: statusLabel },
               ]}

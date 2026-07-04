@@ -1,5 +1,36 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-1 live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-2 live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + pickers live
+
+Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-2 is now merged and
+live via PR **#661** (`main` merge commit **`f113169`**). **No migration** was needed; this slice uses the S-1
+production backend at `20260701440000`.
+
+**Completed and live:**
+- Finance → **شجرة الحسابات** at `/finance/accounts` for owner/accountant:
+  - indented account tree from `v_account_rollup`;
+  - debit/credit/balance rollups;
+  - add root/child, move-to-parent picker, rename/edit, archive confirmation, and merge for leaf accounts;
+  - system accounts are rename-only.
+- Expense entry:
+  - account picker filters by chosen kind: operating, owner drawing, capex;
+  - posting accounts are active leaf accounts, not only `expense` type (capex = asset, drawing = equity);
+  - server pre-check rejects stale/wrong-kind/non-leaf accounts before inserting the expense row.
+- Linked surfaces:
+  - `/expenses`, expense 360, `/finance/dashboard`, and payment-request lines now show the accounting account;
+  - draft payment requests only list account-classified eligible expenses and warn when eligible cash/post-paid
+    expenses are still unclassified.
+- Docs/help/nav drift guards and user manual updated for the new flow.
+
+**Validation:** local target eslint, `npx tsc --noEmit`, app Vitest **447/447**, `npm run build`, `git diff --check`;
+PR checks + CodeRabbit + pgTAP + Vercel green. Post-merge `main` `ci`, `db-tests`, `release`, and Vercel production
+status all green for `f113169`.
+
+**Resume point:** start **S-3 cost centers schema + seed + dimension columns** from fresh `origin/main`. Keep the hard
+stops: no `public.authorize()` re-emit unless unavoidable and reviewed; do not touch stock-coverage engine,
+`fn_execute_operation`, or reservation logic. S-3 should define checks first: org-consistency center↔sector,
+per-feddan math, and the «غير موزَّع» fallback.
 
 ## 2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend live
 

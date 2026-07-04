@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-1 live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-2 live, for Owner: Amr Ebeid)
+
+> **2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + expense account pickers LIVE (`main` `f113169`, PR #661; no migration).**
+> Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
+> **S-0 + S-8a + S-1 + S-2**. S-2 adds the owner/accountant Finance → **شجرة الحسابات** page at `/finance/accounts`,
+> backed by the already-live S-1 RPCs and `v_account_rollup`: indented COA tree, rollup debit/credit/balance,
+> add-child/root, move-to-parent picker, rename/edit, archive confirmation, and leaf-account merge. System accounts
+> are protected as rename-only. Expense entry now requires a valid active leaf account for the chosen kind
+> (operating/drawing/capex) when matching accounts exist; server-side precheck rejects stale/wrong-kind/non-leaf
+> accounts before insert. `/expenses`, expense 360, `/finance/dashboard`, and printable payment requests now show the
+> accounting account. Draft payment requests hide unclassified expenses from the add-dropdown and warn how many
+> eligible cash/post-paid expenses still need an account, so custody/payment-request work cannot silently bypass the
+> COA. Docs/page-help/nav drift guards updated. Validation: local target eslint, `tsc`, app Vitest **447/447**,
+> production build, `git diff --check`; PR checks, CodeRabbit, pgTAP, Vercel, and post-merge `main`
+> `ci`/`db-tests`/`release`/Vercel all green. **No Supabase migration / prod DB apply** for S-2; it consumes
+> production migration `20260701440000` from S-1. Next slice: **S-3 cost centers schema + seed + dimension columns**.
 
 > **2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend LIVE (`main` `6209cb3`, PR #654; prod migration `20260701440000`).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through

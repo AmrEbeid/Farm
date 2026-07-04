@@ -2,6 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + account-classified expense/payment flow LIVE.**
+> PR **#661** merged to `main` at **`f113169`**. Scope: owner/accountant `/finance/accounts`
+> chart-of-accounts tree editor over the already-applied S-1 backend (`fn_save_account`, `fn_archive_account`,
+> `fn_merge_accounts`, `v_account_rollup`); expense account picker filtered by operating/drawing/capex leaf accounts;
+> server-side account precheck before expense insert; account labels on `/expenses`, expense 360, finance dashboard,
+> and payment-request line/report surfaces; draft payment requests now only list expenses already linked to an
+> accounting account and warn on unclassified eligible expenses. **No Supabase migration / prod DB apply:** this uses
+> live migration `20260701440000_coa_tree_accounts`. Validation before merge: target eslint, `tsc --noEmit`, app
+> Vitest **447/447**, `npm run build`, `git diff --check`; PR checks + CodeRabbit + Vercel green. Post-merge `main`
+> checks are green: `ci`, `db-tests`, `release`, and Vercel production status for `f113169`.
+>
 > **2026-07-04 (latest) — public website FEATURE-COMPLETE: buyer enquiry form → OS.**
 > Public "Request a Quote" form (name/company/country/volume/message) → server action inserts via the
 > service-role admin client into org-scoped `site_enquiries`; owner reads at `/enquiries` (nav

@@ -23,6 +23,7 @@ const FILTER_LABEL_AR: Record<string, string> = {
   custody: "العهدة",
   payments: "طلبات الصرف",
   accounting: "القيود المحاسبية",
+  unclassified: "مصروفات بدون حساب",
 };
 
 // Authoritative expense classification is the `expenses.kind` column (operating/drawing/capex), written
@@ -54,7 +55,7 @@ export default async function FinanceDashboardPage({
       .order("period", { ascending: false }),
     sb
       .from("expenses")
-      .select("id, date, category, description, total, kind, suppliers(name)")
+      .select("id, date, category, description, total, kind, account_id, suppliers(name)")
       .order("date", { ascending: false })
       .limit(12),
     sb
@@ -73,6 +74,7 @@ export default async function FinanceDashboardPage({
     paymentRequestsRes,
     unpaidExpensesRes,
     journalEntriesRes,
+    unclassifiedExpensesRes,
   ] = canSeeAccounting
     ? await Promise.all([
         sb.from("custody_accounts").select("id, holder_label, holder_user_id, target_float, active").order("holder_label"),
@@ -94,17 +96,20 @@ export default async function FinanceDashboardPage({
           .order("entry_date", { ascending: false })
           .order("posted_at", { ascending: false })
           .limit(8),
+        sb.from("expenses").select("id", { count: "exact", head: true }).is("account_id", null),
       ])
     : [
         { data: [], error: null },
         { data: [], error: null },
         { data: [], error: null },
         { data: [], error: null },
+        { data: [], error: null, count: 0 },
       ];
   if (custodyAccountsRes.error) throw custodyAccountsRes.error;
   if (paymentRequestsRes.error) throw paymentRequestsRes.error;
   if (unpaidExpensesRes.error) throw unpaidExpensesRes.error;
   if (journalEntriesRes.error) throw journalEntriesRes.error;
+  if (unclassifiedExpensesRes.error) throw unclassifiedExpensesRes.error;
 
   const custodyAccounts = custodyAccountsRes.data ?? [];
   const custodyBalances = canSeeAccounting
@@ -170,6 +175,7 @@ export default async function FinanceDashboardPage({
   const operatingTotal = expenseKindRows
     .filter((row) => row.kind === "operating")
     .reduce((sum, row) => sum + Number(row.expense.total ?? 0), 0);
+  const unclassifiedCount = unclassifiedExpensesRes.count ?? 0;
 
   const budgetColumns: SimpleColumn[] = [
     { id: "name", header: "الموازنة" },
@@ -224,7 +230,13 @@ export default async function FinanceDashboardPage({
   ];
   const expenseRows = expenseKindRows
     .filter((row) =>
-      filter === "drawings" ? row.kind === "drawing" : filter === "operating" ? row.kind === "operating" : true,
+      filter === "drawings"
+        ? row.kind === "drawing"
+        : filter === "operating"
+          ? row.kind === "operating"
+          : filter === "unclassified"
+            ? row.expense.account_id == null
+            : true,
     )
     .map(({ expense, kind }) => {
     const supplier = normalizeSupplier(expense.suppliers);
@@ -241,7 +253,13 @@ export default async function FinanceDashboardPage({
   });
 
   const expenseCardTitle =
-    filter === "drawings" ? "مسحوبات المالك" : filter === "operating" ? "مصروفات تشغيلية" : "آخر المصروفات";
+    filter === "drawings"
+      ? "مسحوبات المالك"
+      : filter === "operating"
+        ? "مصروفات تشغيلية"
+        : filter === "unclassified"
+          ? "مصروفات بدون حساب"
+          : "آخر المصروفات";
 
   const prColumns: SimpleColumn[] = [
     { id: "code", header: "طلب الشراء" },
@@ -334,6 +352,7 @@ export default async function FinanceDashboardPage({
           <HeaderLink href="/budgets">الموازنات</HeaderLink>
           <HeaderLink href="/expenses">المصروفات</HeaderLink>
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
+          {canSeeAccounting && <HeaderLink href="/finance/accounts">شجرة الحسابات</HeaderLink>}
           {canSeeAccounting && <HeaderLink href="/custody">العهدة</HeaderLink>}
           {canSeeAccounting && <HeaderLink href="/accounting">المحاسبة</HeaderLink>}
         </div>
@@ -387,6 +406,13 @@ export default async function FinanceDashboardPage({
           <DashboardKpiLink href="/finance/dashboard?filter=accounting" active={filter === "accounting"}>
             <KpiCard label="قيود حديثة" value={num(journalRows.length)} />
           </DashboardKpiLink>
+          <DashboardKpiLink href="/expenses?filter=unclassified" active={false}>
+            <KpiCard
+              label="مصروفات بدون حساب"
+              value={num(unclassifiedCount)}
+              deltaDirection={unclassifiedCount > 0 ? "down" : "none"}
+            />
+          </DashboardKpiLink>
         </section>
       )}
 
@@ -419,9 +445,18 @@ export default async function FinanceDashboardPage({
         </Card>
       )}
 
-      {(filter === "all" || filter === "expenses" || filter === "operating" || filter === "drawings" || filter === "prs") && (
+      {(filter === "all" ||
+        filter === "expenses" ||
+        filter === "operating" ||
+        filter === "drawings" ||
+        filter === "unclassified" ||
+        filter === "prs") && (
         <section className="grid gap-4 xl:grid-cols-2">
-          {(filter === "all" || filter === "expenses" || filter === "operating" || filter === "drawings") && (
+          {(filter === "all" ||
+            filter === "expenses" ||
+            filter === "operating" ||
+            filter === "drawings" ||
+            filter === "unclassified") && (
         <Card title={expenseCardTitle}>
           {expenseRows.length === 0 ? (
             <EmptyState title="لا توجد مصروفات مسجّلة" />
