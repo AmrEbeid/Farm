@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0018-EXT S1 custody holder-transfer LIVE; prod ledger head `20260701480000`.**
+> **2026-07-04 (latest) — SPEC-0018-EXT Slices 3/4 custody report pack LIVE; prod ledger head `20260701490000`.**
+> PR **#675** merged to `main` at **`2e11f6a`** after migrate-first production apply. Scope:
+> finance-read-only report RPCs (`fn_custody_ledger_report`, `fn_custody_cash_expense_report`,
+> `fn_unpaid_obligations_report`, `fn_owner_funding_report`) plus `/finance/custody-reports` for period custody
+> ledger, custody-paid expenses, unpaid obligations aging, and owner funding/replenishment. No posting, no request
+> lifecycle change, no journal/cash mutation, and no permission widening. Production apply used Supabase CLI against
+> Farm project `veezkmytervjnpxcrbkw`: dry-run showed exactly `20260701490000_custody_reports`, apply succeeded, and
+> post-apply dry-run was clean. Validation: local `git diff --check`, `tsc`, focused eslint, full eslint, focused
+> nav/help tests **17/17**, app Vitest **464/464**, production build, Recharts guard, server/client-boundary guard,
+> full pgTAP **1366/1366**, PR checks + CodeRabbit + Vercel preview green. Current post-merge `main` **`2e11f6a`**
+> has green Vercel production status.
+>
+> **2026-07-04 — SPEC-0018-EXT S1 custody holder-transfer LIVE; prod ledger head `20260701480000`.**
 > PR **#674** merged to `main` at **`b072ed4`** after migrate-first production apply. Scope:
 > `custody_movements.transfer_group_id`, `fn_transfer_custody`, and `/custody` **تحويل عهدة**. The flow records a
 > farm-manager/accountant custody handover as one linked out/in movement pair; it rejects over-balance, cross-org,

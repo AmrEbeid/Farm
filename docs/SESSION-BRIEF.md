@@ -1,7 +1,45 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0018-EXT custody transfer live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0018-EXT custody reports live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0018-EXT S1 custody holder-transfer live
+## 2026-07-04 (latest) — SPEC-0018-EXT Slices 3/4 custody report pack live
+
+Continuation under the Owner's autonomous "keep working until live" instruction. The custody report pack is now
+merged and live via PR **#675** (`main` merge commit **`2e11f6a`**) after migrate-first production apply of
+**`20260701490000_custody_reports`** to Farm Supabase project `veezkmytervjnpxcrbkw`.
+
+**Completed and live:**
+- Backend:
+  - `fn_custody_ledger_report`;
+  - `fn_custody_cash_expense_report`;
+  - `fn_unpaid_obligations_report`;
+  - `fn_owner_funding_report`;
+  - new pgTAP `120_custody_reports`.
+- UI:
+  - `/finance/custody-reports` for owner/accountant users.
+- Workflow/reporting:
+  - period holder ledger with opening, incoming, outgoing, and closing custody balance;
+  - custody-paid expenses split by holder and linked back to expense/request records;
+  - unpaid/debt obligations with aging buckets;
+  - owner funding/replenishment rows with remaining-to-fund context.
+
+**Safety/accuracy:**
+- read/report only;
+- no payment-request lifecycle rewrite;
+- no expense payment-routing rewrite;
+- no journal posting or P&L effect;
+- no permission widening and no farm-manager finance access.
+
+**Production apply and validation:** Supabase CLI dry-run showed exactly one pending migration,
+`20260701490000_custody_reports`; apply succeeded; post-apply dry-run reported the remote database up to date. Local
+validation: `git diff --check`, `npx tsc --noEmit`, focused eslint, full eslint, focused nav/help tests **17/17**,
+app Vitest **464/464**, `npm run build`, Recharts guard, server/client-boundary guard, and full pgTAP **1366/1366**.
+PR checks + CodeRabbit + Vercel preview were green. Post-merge Vercel production is green for `2e11f6a`.
+
+**Resume point:** next accounting-money recommendation remains **S-10 revenue/A/R + close**. Remaining custody polish:
+PDF export, receipt/proof capture, and richer proof/completeness flags. S-6 historical workbook import remains
+Stage-M/real-data gated.
+
+## 2026-07-04 — SPEC-0018-EXT S1 custody holder-transfer live
 
 Continuation under the Owner's autonomous "keep working until live" instruction. The custody holder-transfer slice is
 now merged and live via PR **#674** (`main` merge commit **`b072ed4`**) after migrate-first production apply of

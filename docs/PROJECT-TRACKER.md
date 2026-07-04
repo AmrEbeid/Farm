@@ -1,6 +1,20 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0018-EXT custody transfer live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0018-EXT custody reports live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0018-EXT S1 custody holder-transfer LIVE (`main` `b072ed4`, PR #674; prod migration `20260701480000`).**
+> **2026-07-04 (latest) — SPEC-0018-EXT Slices 3/4 custody report pack LIVE (`main` `2e11f6a`, PR #675; prod migration `20260701490000`).**
+> This ships the accountant-facing monthly report pack at `/finance/custody-reports`: holder opening/period/closing
+> custody ledger, custody-paid cash expenses by holder, unpaid/debt obligations with aging, and owner funding/
+> replenishment rows. Migration `20260701490000_custody_reports` adds four finance-read-only RPCs:
+> `fn_custody_ledger_report`, `fn_custody_cash_expense_report`, `fn_unpaid_obligations_report`, and
+> `fn_owner_funding_report`. Scope is read/report only: no request lifecycle change, no payment routing/posting
+> change, no journal posting, no permission widening, no farm-manager finance access. Production apply used Supabase
+> CLI against Farm project `veezkmytervjnpxcrbkw`: dry-run showed exactly one pending migration, apply succeeded, and
+> post-apply dry-run reported the remote DB up to date. Validation: local `git diff --check`, `tsc`, focused eslint,
+> full eslint, focused nav/help tests **17/17**, app Vitest **464/464**, production build, Recharts guard,
+> server/client-boundary guard, and full pgTAP **1366/1366** including new `120_custody_reports`; PR #675 checks +
+> CodeRabbit + Vercel preview green; post-merge Vercel production green for `2e11f6a`. Next accounting-money
+> recommendation remains **S-10 revenue/A-R + close**; PDF export/proof capture are remaining custody polish.
+
+> **2026-07-04 — SPEC-0018-EXT S1 custody holder-transfer LIVE (`main` `b072ed4`, PR #674; prod migration `20260701480000`).**
 > This closes the Owner's exact custody handover gap: farm-manager custody cash can now be transferred to the
 > accountant as **one atomic internal transfer**, not two unrelated manual movements. Migration
 > `20260701480000_custody_transfer` adds `custody_movements.transfer_group_id` and `fn_transfer_custody`.
