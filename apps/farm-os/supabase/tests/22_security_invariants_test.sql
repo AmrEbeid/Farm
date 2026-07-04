@@ -91,7 +91,9 @@ select is(
         'fn_get_or_create_individual_treatment_plan', -- implicit-plan resolver for palm-scoped rescue treatments (migration 20260701340000)
         'fn_save_site_content',                    -- gated public-site content RPC (SPEC public-website, migration 20260701420000)
         'fn_save_cost_center', 'fn_archive_cost_center', -- gated cost-center RPCs (SPEC-0024 S-3, migration 20260701450000)
-        'fn_merge_cost_centers'                    -- gated cost-center merge (SPEC-0024 S-3)
+        'fn_merge_cost_centers',                   -- gated cost-center merge (SPEC-0024 S-3)
+        'fn_save_buyer', 'fn_save_sale',           -- gated revenue RPCs (SPEC-0024 S-10 / SPEC-0018-EXT §4, migration 20260701460000)
+        'fn_finalize_sale_price', 'fn_record_sale_collection' -- gated revenue price-finalize + collection RPCs (SPEC-0024 S-10)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )
