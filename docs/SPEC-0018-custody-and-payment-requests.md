@@ -69,7 +69,7 @@ Implemented in `apps/farm-os/supabase/migrations/20260629150000_custody_and_expe
 | Table | Purpose | Notes |
 |---|---|---|
 | `custody_accounts` | Custody float account per holder | `holder_label`, optional `holder_user_id`, `target_float`, `active`; finance-read RLS; writes via `fn_save_custody_account`. |
-| `custody_movements` | Append-only custody cash ledger | exactly one of `amount_in`/`amount_out` must be positive; optional `expense_id`; draft extension adds optional `payment_request_id` + `journal_entry_id`; direct DML revoked. |
+| `custody_movements` | Append-only custody cash ledger | exactly one of `amount_in`/`amount_out` must be positive; optional `expense_id`; settlement adds optional `payment_request_id` + `journal_entry_id`; holder-transfer adds optional `transfer_group_id`; direct DML revoked. |
 | `payment_requests` | Monthly request header/lifecycle | per-org `request_no`, period, status, optional linked custody account, approver stamps; draft extension snapshots approved totals. |
 | `payment_request_lines` | Expenses included in a request | one request per expense; draft extension stores settlement fields (`paid_at`, `paid_by`, custody source, movement, journal). |
 | `expenses` extension | Payment routing | `payment_status`, `paid_by`, and `kind` are present in this apply path; routing fields are RPC-controlled. |
@@ -89,6 +89,7 @@ tables.
 |---|---|
 | `fn_save_custody_account` | Create/update a custody account. |
 | `fn_record_custody_movement` | Post a custody movement; validates same org, one-sided amount, and exact routed expense cash-outs. |
+| `fn_transfer_custody` | Transfer custody cash between two holders as one linked out/in pair; no journal/P&L effect. |
 | `fn_set_expense_payment_status` | Set payment routing; `paid_from_custody` posts the linked cash movement once. |
 | `fn_custody_balance` | Derived account balance, finance-read gated. |
 | `fn_create_payment_request` | Create a draft request with the next per-org request number. |
@@ -134,8 +135,8 @@ Implemented in #474:
   summary, totals, lifecycle buttons, and signature blocks.
 - Draft branch extension: request settlement tab records owner funding, confirms payout from selected custody
   source, lists funding rows, and closes the request when all lines are paid.
-- `CustodyForms.tsx`: create custody account, record movement, create request, add eligible expense lines to a
-  draft request, and on the draft branch perform funding/payment/close actions.
+- `CustodyForms.tsx`: create custody account, record movement, transfer custody between holders, create request,
+  add eligible expense lines to a draft request, and perform funding/payment/close actions.
 - `RequestLifecycle.tsx` + `lib/request-lifecycle.ts`: UI gating for submit, operational approve, and final approve.
 - Nav/help entries: owner/accountant see `العهدة وطلبات الصرف`; farm manager does not. Draft branch also adds
   `/accounting` to the Finance module for owner/accountant only.

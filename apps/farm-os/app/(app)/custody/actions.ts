@@ -112,6 +112,34 @@ export async function recordCustodyMovement(input: {
   return { ok: true };
 }
 
+/** Transfer custody cash between two holders without posting a journal/P&L entry. */
+export async function transferCustody(input: {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  occurredAt?: string | null;
+  note?: string | null;
+}): Promise<Result> {
+  if (!input.fromAccountId || !input.toAccountId) return { ok: false, error: "اختر مصدر ووجهة العهدة" };
+  if (input.fromAccountId === input.toAccountId) return { ok: false, error: "مصدر ووجهة العهدة يجب أن يكونا مختلفين" };
+  if (!isFinitePositive(input.amount)) return { ok: false, error: "المبلغ يجب أن يكون أكبر من صفر" };
+  const occurredAt = validateOptionalDate(input.occurredAt);
+  if (isResult(occurredAt)) return occurredAt;
+
+  await requireCustodyFinanceRole();
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_transfer_custody", {
+    p_from_account: input.fromAccountId,
+    p_to_account: input.toAccountId,
+    p_amount: input.amount,
+    p_occurred_at: occurredAt ?? undefined,
+    p_note: normalizeOptionalText(input.note),
+  });
+  if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تحويل العهدة") };
+  revalidateFinancePaths();
+  return { ok: true };
+}
+
 /** Route an expense's payment: paid_from_custody posts one custody out-movement; others just tag it. */
 export async function setExpensePaymentStatus(input: {
   expenseId: string;

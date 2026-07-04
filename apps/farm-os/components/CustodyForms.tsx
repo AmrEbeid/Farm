@@ -6,6 +6,7 @@ import { Button, Field, Input, Select, Alert } from "@/components/ui";
 import {
   createCustodyAccount,
   recordCustodyMovement,
+  transferCustody,
   createPaymentRequest,
   addExpenseToRequest,
   recordPaymentRequestFunding,
@@ -20,7 +21,6 @@ type PayableRequestExpense = { id: string; label: string };
 
 const MOVEMENT_TYPES = [
   "استلام عهدة من المالك",
-  "تسليم عهدة للمحاسب",
   "صرف نقدي",
   "رد/إيداع",
   "تسوية",
@@ -29,7 +29,7 @@ const MOVEMENT_TYPES = [
 /** SPEC-0018 slice 4 — write surface for the custody module (shown only to finance write-roles). */
 export function CustodyForms({ accounts }: { accounts: Acct[] }) {
   const router = useRouter();
-  const [open, setOpen] = useState<null | "acct" | "move" | "req">(null);
+  const [open, setOpen] = useState<null | "acct" | "move" | "transfer" | "req">(null);
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
 
@@ -42,6 +42,12 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
   const [dir, setDir] = useState<"in" | "out">("in");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  // transfer
+  const [transferFrom, setTransferFrom] = useState(accounts[0]?.id ?? "");
+  const [transferTo, setTransferTo] = useState(accounts[1]?.id ?? "");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferDate, setTransferDate] = useState("");
+  const [transferNote, setTransferNote] = useState("");
   // request
   const [reqAcct, setReqAcct] = useState(accounts[0]?.id ?? "");
   const [periodStart, setPeriodStart] = useState("");
@@ -70,6 +76,7 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
       <div className="flex flex-wrap gap-2">
         <Button variant="ghost" onClick={() => setOpen(open === "acct" ? null : "acct")}>+ حساب عهدة</Button>
         <Button variant="ghost" onClick={() => setOpen(open === "move" ? null : "move")}>+ حركة عهدة</Button>
+        <Button variant="ghost" onClick={() => setOpen(open === "transfer" ? null : "transfer")}>+ تحويل عهدة</Button>
         <Button variant="ghost" onClick={() => setOpen(open === "req" ? null : "req")}>+ طلب صرف</Button>
       </div>
       <div role="alert" aria-live="assertive" aria-atomic="true">
@@ -121,6 +128,69 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
               {pending ? "جارٍ الحفظ…" : "تسجيل الحركة"}
             </Button>
           </div>
+        </div>
+      )}
+
+      {open === "transfer" && (
+        <div className="flex flex-col gap-3">
+          {accounts.length < 2 ? (
+            <p style={{ color: "var(--ink-muted)" }}>أضف حسابي عهدة على الأقل قبل تسجيل تحويل بين الحاملين.</p>
+          ) : (
+            <>
+              <Field label="من عهدة" id="transfer-from">
+                <Select
+                  id="transfer-from"
+                  value={transferFrom}
+                  onChange={(e) => setTransferFrom(e.target.value)}
+                  options={accounts.map((a) => ({ value: a.id, label: a.holder_label }))}
+                />
+              </Field>
+              <Field label="إلى عهدة" id="transfer-to">
+                <Select
+                  id="transfer-to"
+                  value={transferTo}
+                  onChange={(e) => setTransferTo(e.target.value)}
+                  options={accounts.map((a) => ({ value: a.id, label: a.holder_label }))}
+                />
+              </Field>
+              <Field label="المبلغ المحوّل (ج.م)" id="transfer-amount">
+                <Input
+                  id="transfer-amount"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                />
+              </Field>
+              <Field label="تاريخ التحويل" id="transfer-date">
+                <Input id="transfer-date" type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
+              </Field>
+              <Field label="ملاحظات" id="transfer-note">
+                <Input id="transfer-note" value={transferNote} onChange={(e) => setTransferNote(e.target.value)} maxLength={200} />
+              </Field>
+              <div>
+                <Button
+                  disabled={pending || !transferFrom || !transferTo || transferFrom === transferTo || Number(transferAmount) <= 0}
+                  onClick={() =>
+                    run(
+                      () =>
+                        transferCustody({
+                          fromAccountId: transferFrom,
+                          toAccountId: transferTo,
+                          amount: Number(transferAmount),
+                          occurredAt: transferDate || null,
+                          note: transferNote || null,
+                        }),
+                      "تم تحويل العهدة",
+                    )
+                  }
+                >
+                  {pending ? "جارٍ التحويل…" : "تحويل العهدة"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

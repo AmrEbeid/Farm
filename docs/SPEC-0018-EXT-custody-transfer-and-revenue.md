@@ -17,8 +17,8 @@ payment-request report/PDF and other statement exports, (3) revenue/sales with a
 > «sold on the tree» (بيع على النخيل) outcome from `RESEARCH-ops-workflow-egypt-2026-07-02.md` §(a)3 belongs in the
 > same revenue model as a first-class sale type.
 
-*Author: autonomous docs/planning session, Owner: Amr Ebeid. No code has been written under this plan except the
-one slice explicitly marked "IMPLEMENTED" in §9, if any — everything else is design only.*
+*Author: autonomous docs/planning session, Owner: Amr Ebeid. Slice 1 is implemented in
+`20260701480000_custody_transfer`; everything else remains design only until its own build slice.*
 
 ---
 
@@ -70,8 +70,8 @@ This section is the ground truth this plan was built against, so the reader does
 **What is empty/absent (confirmed by grep, not assumed):**
 - No `sales` table exists anywhere in the migrations. Revenue/A-R is genuinely greenfield (matches the roadmap's
   Slice A finding).
-- No holder-to-holder custody transfer RPC exists; a handover today would require two manual
-  `fn_record_custody_movement` calls with no atomicity or amount-match guarantee (Gap 1).
+- Holder-to-holder custody transfer is implemented by `fn_transfer_custody` (`20260701480000_custody_transfer`):
+  one linked out/in pair through `custody_movements.transfer_group_id`, no journal/P&L effect, balance floor.
 - No PDF export exists for `/custody/request/[requestId]`; it is a printable HTML 360 page only (Gap 2).
 - `accounts` has zero rows in prod (confirmed by the roadmap's live-data audit) — Slice A is blocked on the
   Owner/accountant ratifying the chart before any real posting.
@@ -128,7 +128,7 @@ delivery-before-price, receivables) is genuinely new and is the largest real des
 
 ## 2. Gap 1 — Custody holder-transfer flow (small, real gap)
 
-**Problem:** "farm manager hands cash to the accountant" today requires two independent
+**Problem solved by slice 1:** "farm manager hands cash to the accountant" used to require two independent
 `fn_record_custody_movement` calls (`amount_out` from the farm-manager account, `amount_in` to the accountant
 account) with no guarantee the amounts match, no atomicity, and no `source_type` link between them for the
 journal (a transfer between two custody accounts should **not** hit the P&L at all — it's an internal
@@ -136,14 +136,14 @@ reclassification of cash location, not income/expense — and today nothing prev
 through `fn_ensure_account`/`fn_post_two_line_journal` as if it were owner funding, which would double-count
 against `3000`).
 
-**Proposed design (for the Owner's decision on scope, not yet built):**
+**Implemented design (`20260701480000_custody_transfer`):**
 - New RPC `fn_transfer_custody(p_from_account, p_to_account, p_amount, p_occurred_at, p_note)`:
   - both accounts same org, both active, `p_from_account <> p_to_account`.
   - gated `custody.write` (same as `fn_record_custody_movement`).
   - `amount <= fn_custody_balance(p_from_account)` (cannot hand over cash that isn't there — a hard error, not a
     warning, mirroring the engine's "never mask a shortage" discipline applied to cash).
   - inserts **two** `custody_movements` rows in one transaction: `amount_out` from source, `amount_in` to
-    destination, both `movement_type = 'تسليم عهدة'`, and a new `transfer_group_id` (or reuse `note` with a
+    destination, both `movement_type = 'تحويل عهدة'`, and a new `transfer_group_id`
     shared reference) linking the pair so a report can show it as one handover, not two unrelated movements.
   - **No journal entry.** A custody-to-custody transfer moves cash between two internal float holders; it is
     not owner funding and not an expense, so it must not touch `accounts`/`journal_entries` at all — this is the
@@ -245,7 +245,7 @@ merge/apply, per `docs/CLAUDE.md`. None of these are authorized to build by this
 
 | # | Slice | Scope | Depends on | Risk |
 |---|---|---|---|---|
-| 1 | **Custody holder-transfer RPC** (Gap 1) | `fn_transfer_custody` + pgTAP proving no-journal-effect + amount-can't-exceed-balance + atomic pair | none — additive | Low-med (money, but small + isolated) |
+| 1 | **Custody holder-transfer RPC** (Gap 1) | **Implemented:** `fn_transfer_custody` + pgTAP proving no-journal-effect + amount-can't-exceed-balance + atomic pair | none — additive | Low-med (money, but small + isolated) |
 | 2 | **Payment-request PDF export** (Gap 2a) | Server-side PDF generation from existing request-360 data; no new query logic | Owner approval of a PDF library (new dependency = hard stop) | Low (presentation only) |
 | 3 | **Custody ledger + cash-expense + unpaid-obligations reports** (Gap 2b, items 1-3) | 3 read-only RPCs + 3 pages using `MasterTable`/`FilterableTable` + CSV export | none — reads existing tables | Low (read-only) |
 | 4 | **Owner funding/replenishment report** (Gap 2b, item 4) | 1 read-only RPC + 1 page over `payment_request_fundings` | none | Low (read-only) |
@@ -254,8 +254,8 @@ merge/apply, per `docs/CLAUDE.md`. None of these are authorized to build by this
 | 7 | **Role-based dashboards + filter/sort/export/import parity** (Gap 4) | Extend existing per-module dashboards (already largely live per SESSION-BRIEF) to explicitly cover finance/custody/revenue tables with the same filter/sort/export pattern; author `ImportDescriptor`s for `buyers`/`sales` once Slice 5 lands, per `docs/CLAUDE.md` "bulk-import descriptors" rule | Slice 5 for revenue; custody/expense import descriptors could start now | Low-med (many small touches) |
 | — | **Accounting-kernel integration** | Not a new slice — this plan explicitly defers to the existing roadmap's Slice A (P&L/balance-sheet/period-close) and Slice B (cost dimensions). Slices 5/6 above are designed to plug into that same kernel (`fn_post_two_line_journal`, `journal_lines` dimension FKs) rather than inventing a parallel ledger. | Roadmap Slice A | — |
 
-Recommended order: **1 → 3 → 4 → 2 → 5 → 6 → 7**, i.e. do the cheap read-only reports and the small transfer RPC
-first (low risk, immediate Owner value), hold the PDF export until a library is approved, and treat revenue
+Recommended order after slice 1: **3 → 4 → 2 → 5 → 6 → 7**, i.e. do the cheap read-only reports next,
+hold the PDF export until a library is approved, and treat revenue
 (Slice 5) as the one that needs the most review time — schedule it only after the chart of accounts (existing
 Slice A gate) is ratified, since `fn_finalize_sale_price` needs a real revenue account to post to.
 
@@ -271,12 +271,12 @@ Slice A gate) is ratified, since `fn_finalize_sale_price` needs a real revenue a
    (a) the farm manager gets `custody.write`/`budget.write` in the app directly, or
    (b) the farm manager pays cash in the field and *tells* the accountant, who is the only one who ever touches
    the app for money?
-   This changes the RLS/`authorize()` role grants materially and must be decided before Slice 1 (custody
-   transfer) or Slice 3 (reports) touch the permission model.
+   This changes the RLS/`authorize()` role grants materially. Slice 1 deliberately did **not** broaden access:
+   owner/accountant records the handover for the physical farm-manager holder.
 2. **Custody handover semantics** — when the farm manager "hands custody cash to the accountant," is that always
    a full handover of the float, or partial? Does the farm manager's custody account's `target_float` reset to 0
    after a full handover, or stay as a standing entitlement the owner re-funds independently? Affects whether
-   `fn_transfer_custody` needs a "full vs partial" mode.
+   Slice 1 implements a partial-or-full amount transfer and leaves `target_float` unchanged.
 3. **Rejection/return states** — the Owner's step 5 says "owner reviews and approves/rejects." Today's lifecycle
    only has forward transitions (draft → ... → approved_final); there's no `rejected` state or "send back to
    accountant with a note" flow. Does the Owner want an explicit reject-with-reason state, or is "don't approve,
@@ -387,22 +387,17 @@ actual next-available test number is chosen at implementation time against curre
 
 ## 9. Implementation performed under this task
 
-**None.** After reading the full existing state (SPEC-0018 built and live, SPEC-0004's cash-method slice live,
-the roadmap already sequencing Slices A-D, the chart of accounts drafted but unratified, and confirming by grep
-that `sales`/`buyers`/a holder-transfer RPC do not exist), no slice here is "obviously clear-cut small and safe"
-enough to implement without a scope decision from the Owner first — even Slice 1 (the smallest, custody
-transfer) touches money-movement RPC logic that this task's own rules mark as requiring independent review
-before merge, and Owner decision #2 (full-vs-partial handover semantics) directly shapes its signature. Per the
-task's explicit lean ("lean toward NOT implementing anything if the smallest safe slice isn't obviously
-clear-cut"), this document stops at the plan.
+**Slice 1 implemented:** `20260701480000_custody_transfer` adds `custody_movements.transfer_group_id` and
+`fn_transfer_custody(p_from_account, p_to_account, p_amount, p_occurred_at, p_note)`. The UI adds
+**تحويل عهدة** on `/custody`. The test `119_custody_transfer` proves the transfer writes exactly two linked
+movements, conserves total custody cash, rejects over-transfer/self-transfer/cross-org transfer, keeps
+farm-manager direct finance access closed, and creates no journal entry.
 
 ---
 
 ## 10. Next step
 
-On Owner review of §6's decisions (especially farm-manager finance-access scope and handover semantics), the
-recommended first build is **Slice 1 (custody holder-transfer RPC)** — it is additive, has no chart-of-accounts
-dependency, and directly closes the one concrete flow gap in the Owner's restated model. Slices 3/4 (read-only
-reports) can proceed in parallel with no ordering dependency. Slice 5 (revenue) should wait until the existing
+After Slice 1, the recommended next custody build is **Slices 3/4 read-only reports** (custody ledger by holder,
+cash-expenses, unpaid obligations, owner funding/replenishment). Slice 5 (revenue) should wait until the existing
 roadmap's chart-of-accounts gate clears, since `fn_finalize_sale_price` needs at least one ratified revenue
 account to post to.
