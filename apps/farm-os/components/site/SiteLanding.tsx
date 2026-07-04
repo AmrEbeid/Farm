@@ -5,11 +5,12 @@
 // toggle, which also flips text direction. Content comes in as a prop (Phase 1: the typed
 // defaults; Phase 2: the DB via fn_get_site_content) so this component never fabricates data.
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import type { Bi, Lang, SiteContent } from "@/lib/site-content";
 import { fmtDigits, fmtNum } from "@/components/site/format";
+import { submitEnquiry } from "@/app/enquiry-actions";
 
 function waLink(phone: string): string {
   return `https://wa.me/${phone.replace(/[^0-9]/g, "")}`;
@@ -25,6 +26,20 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
   // hidden on the live site so buyers never see "replace-me" tiles; the owner still sees/edits them
   // in the OS editor. An item goes public once its image is a real upload/URL (not a placeholder).
   const galleryItems = c.gallery.items.filter((g) => g.image && !g.image.includes("/placeholder-"));
+
+  const [enquirySent, setEnquirySent] = useState(false);
+  const [enquiryErr, setEnquiryErr] = useState("");
+  const [sending, startSend] = useTransition();
+  function onEnquiry(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setEnquiryErr("");
+    startSend(async () => {
+      const res = await submitEnquiry(fd);
+      if (res.ok) setEnquirySent(true);
+      else setEnquiryErr(res.error);
+    });
+  }
 
   const nav = [
     { href: "#about", label: { ar: "من نحن", en: "About" } },
@@ -253,6 +268,47 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                   </a>
                 ))}
               </div>
+
+              {enquirySent ? (
+                <p className="site__enquiry-done">
+                  {lang === "ar"
+                    ? "تم إرسال طلبك — سنتواصل معك قريبًا."
+                    : "Thank you — we'll be in touch shortly."}
+                </p>
+              ) : (
+                <form className="site__enquiry" onSubmit={onEnquiry}>
+                  <p className="site__enquiry-title">
+                    {lang === "ar" ? "اطلب عرض سعر" : "Request a Quote"}
+                  </p>
+                  {/* honeypot — hidden from humans; bots that fill it are dropped server-side */}
+                  <input
+                    type="text"
+                    name="company_website"
+                    className="site__hp"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                  />
+                  <input name="name" required maxLength={200}
+                    placeholder={lang === "ar" ? "الاسم *" : "Name *"} />
+                  <input name="company" maxLength={200}
+                    placeholder={lang === "ar" ? "الشركة" : "Company"} />
+                  <div className="site__enquiry-row">
+                    <input name="country" maxLength={120}
+                      placeholder={lang === "ar" ? "الدولة" : "Country"} />
+                    <input name="volume" maxLength={120}
+                      placeholder={lang === "ar" ? "الكمية المطلوبة" : "Volume needed"} />
+                  </div>
+                  <textarea name="message" required rows={3} maxLength={5000}
+                    placeholder={lang === "ar" ? "رسالتك *" : "Your message *"} />
+                  {enquiryErr && <p className="site__enquiry-err">{enquiryErr}</p>}
+                  <button type="submit" className="site__contact-btn" disabled={sending}>
+                    {sending
+                      ? lang === "ar" ? "جارٍ الإرسال…" : "Sending…"
+                      : lang === "ar" ? "إرسال الطلب" : "Send Enquiry"}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </section>
