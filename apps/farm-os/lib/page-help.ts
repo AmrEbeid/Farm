@@ -533,6 +533,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
 const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/finance\/buyers\/[^/]+(?:\/)?$/, helpId: "revenue-reports" },
   { pattern: /^\/record\/expense(?:\/)?$/, helpId: "record" },
+  { pattern: /^\/record\/plan(?:\/)?$/, helpId: "record" },
   { pattern: /^\/farm\/sector\/[^/]+(?:\/)?$/, helpId: "sector-360" },
   { pattern: /^\/farm\/hawsha\/[^/]+(?:\/)?$/, helpId: "hawsha-360" },
   { pattern: /^\/farm\/line\/[^/]+(?:\/)?$/, helpId: "line-360" },

@@ -50,6 +50,13 @@ const ACTIONS: ActionCard[] = [
     roles: ["owner", "accountant"],
   },
   {
+    href: "/record/plan",
+    icon: "🗓️",
+    title: "أخطّط الأسبوع/الشهر",
+    hint: "أنشئ خطة للمزرعة كلها أو لجزء منها — سطرًا لكل عملية بتفاصيلها",
+    roles: ["owner", "farm_manager"],
+  },
+  {
     href: "/people/attendance",
     icon: "🧾",
     title: "سجّلت حضور عمالة",
