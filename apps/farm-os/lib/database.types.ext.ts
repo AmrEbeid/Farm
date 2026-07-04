@@ -893,6 +893,20 @@ type LaborLogsTable = {
   ];
 };
 
+// ── Public website content (SPEC public-website), migration 20260701420000. ──
+// Org-scoped marketing content for the site at `/`. Reads = RLS-scoped authenticated SELECT (+ the
+// service-role admin client for the public page); writes are RPC-only (client INSERT/UPDATE/DELETE
+// revoked), so Insert/Update are `never`. fn_save_site_content is owner-gated (authorize('site.write')).
+type SiteContentTable = {
+  Row: { id: string; org_id: string; content: Json; updated_by: string | null; updated_at: string };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type SiteContentFunctions = {
+  fn_save_site_content: { Args: { p_org: string; p_content: Json }; Returns: Json };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<
@@ -930,8 +944,9 @@ export type Database = Omit<Generated, "public"> & {
       pest_incidents: PestIncidentsTable;
       labor_logs: LaborLogsTable;
       plan_labor_requirements: WithLaborPersonId<Tables["plan_labor_requirements"]>;
+      site_content: SiteContentTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions;
   };
 };
 
