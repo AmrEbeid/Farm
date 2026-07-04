@@ -7,7 +7,7 @@
   /* gold */
   --gold-50:#f9f0db; --gold-100:#f4e6c8; --gold-500:#c8922a; --gold-700:#a9761d; --gold-900:#7a5413;
   /* neutral */
-  --gray-0:#ffffff; --gray-50:#f3f6f3; --gray-100:#e3e9e4; --gray-200:#ccd6cd;
+  --gray-0:#ffffff; --gray-50:#f6f8f6; --gray-100:#e6ebe7; --gray-200:#ccd6cd;
   --gray-400:#9aa8a0; --gray-600:#6b7d72; --gray-800:#2b3a31; --gray-900:#18241d;
   /* status hues */
   --red-100:#fbe5e2; --red-500:#c0392b; --red-700:#9a2c20;
@@ -18,14 +18,14 @@
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px;
   --space-6:24px; --space-8:32px; --space-10:40px;
   /* radius primitives (the scale knob remaps these in theme.css) */
-  --radius-0:0px; --radius-1:8px; --radius-2:11px; --radius-3:14px; --radius-pill:9999px;
+  --radius-0:0px; --radius-1:10px; --radius-2:13px; --radius-3:16px; --radius-pill:9999px;
   /* type */
   --text-xs:11px; --text-sm:12.5px; --text-base:14px; --text-md:16px;
   --text-lg:18px; --text-xl:22px; --text-2xl:26px; --text-3xl:34px;
   --weight-regular:400; --weight-semibold:600; --weight-bold:700; --weight-extrabold:800;
   --leading:1.6;
   /* elevation / z / motion */
-  --shadow-1:0 1px 3px rgba(20,54,31,.07); --shadow-2:0 1px 3px rgba(20,54,31,.07),0 4px 18px rgba(20,54,31,.06); --shadow-3:0 24px 70px rgba(0,0,0,.35);
+  --shadow-1:0 1px 2px rgba(20,54,31,.06); --shadow-2:0 1px 2px rgba(20,54,31,.05),0 10px 26px -8px rgba(20,54,31,.12); --shadow-3:0 28px 80px -12px rgba(0,0,0,.4);
   --z-base:0; --z-sticky:30; --z-drawer:120; --z-modal:100; --z-toast:300;
   --dur-fast:.12s; --dur:.2s; --dur-slow:.25s; --ease:cubic-bezier(.2,.7,.3,1);
   /* font */
