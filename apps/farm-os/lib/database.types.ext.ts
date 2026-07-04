@@ -1184,6 +1184,37 @@ type OffshootFunctions = {
   };
 };
 // SPEC-0027 H-A — شاشة الميزان: one call = crates→net→pending sale + serialized بون.
+type HarvestDaysTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    day: string;
+    cost_center_id: string | null;
+    crop: string;
+    crates_picked: number;
+    crew_count: number | null;
+    note: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: never;
+  Update: never;
+  Relationships: [];
+};
+type HarvestFunctions = {
+  fn_record_harvest_day: {
+    Args: {
+      p_org: string;
+      p_crates: number;
+      p_cost_center_id?: string | null;
+      p_crop?: string | null;
+      p_day?: string | null;
+      p_crew_count?: number | null;
+      p_note?: string | null;
+    };
+    Returns: Json;
+  };
+};
 type ScaleFunctions = {
   fn_record_scale_delivery: {
     Args: {
@@ -1276,6 +1307,7 @@ export type Database = Omit<Generated, "public"> & {
       payment_request_fundings: PaymentRequestFundingsTable;
       buyers: BuyersTable;
       sales: SalesTable;
+      harvest_days: HarvestDaysTable;
       sale_collections: SaleCollectionsTable;
       plan_operation_assignees: PlanOperationAssigneesTable;
       plan_operation_templates: PlanOperationTemplatesTable;
@@ -1289,7 +1321,7 @@ export type Database = Omit<Generated, "public"> & {
       offshoot_movements: OffshootMovementsTable;
       offshoot_valuation: OffshootValuationTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions & ScaleFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions;
   };
 };
 

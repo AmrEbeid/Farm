@@ -102,7 +102,8 @@ select is(
         'fn_revenue_sales_report',             -- read-only revenue/A-R report RPC (SPEC-0024 S-10b)
         'fn_save_supplier', 'fn_save_inventory_item', -- gated entry save-RPCs for import templates (SPEC-0024 S-9 final gap, migration 20260701520000)
         'fn_save_expense', -- gated expense save-RPC (import; unrouted — never moves cash)
-        'fn_record_scale_delivery'                 -- scale-house delivery → pending sale + بون serial (SPEC-0027 H-A, migration 20260701530000)
+        'fn_record_scale_delivery', -- scale-house delivery → pending sale + بون serial (SPEC-0027 H-A, migration 20260701530000)
+        'fn_record_harvest_day'                    -- field picking counter (SPEC-0027 H-B, migration 20260701540000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )
