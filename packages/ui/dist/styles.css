@@ -114,10 +114,10 @@
   box-shadow:var(--shadow-card); padding:var(--space-4); }
 .fos-kpi__label { color:var(--ink-muted); font-size:var(--text-xs); font-weight:var(--weight-semibold); display:flex; align-items:center; gap:var(--space-2); }
 .fos-kpi__icon { width:31px; height:31px; border-radius:var(--radius-1); background:color-mix(in srgb, var(--brand) 14%, var(--surface)); display:grid; place-items:center; font-size:15px; }
-.fos-kpi__value { font-size:var(--text-xl); font-weight:var(--weight-extrabold); margin-top:5px; font-variant-numeric:tabular-nums; }
+.fos-kpi__value { font-size:var(--text-2xl); font-weight:var(--weight-extrabold); margin-top:6px; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
 .fos-kpi__value small { font-size:var(--text-sm); color:var(--ink-muted); font-weight:var(--weight-semibold); }
-.fos-kpi__delta { font-size:var(--text-xs); font-weight:var(--weight-bold); margin-top:4px; }
-.fos-kpi__delta--up { color:var(--success-fg); } .fos-kpi__delta--down { color:var(--danger-fg); }
+.fos-kpi__delta { font-size:var(--text-xs); font-weight:var(--weight-bold); margin-top:8px; display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:var(--radius-pill); }
+.fos-kpi__delta--up { color:var(--success-fg); background:var(--success-bg); } .fos-kpi__delta--down { color:var(--danger-fg); background:var(--danger-bg); }
 
 /* ---- Alert ---- */
 .fos-alert { display:flex; gap:var(--space-3); padding:10px 12px; border-radius:var(--radius-2); border:1px solid var(--line); align-items:flex-start; }
