@@ -48,6 +48,15 @@ export const APP_MODULES: AppModule[] = [
     pages: [{ id: "record", label: "سجّل عملية", icon: "➕", href: "/record" }],
   },
   {
+    // SPEC-0025 U-3: the unified money ledger — every transaction in one place.
+    id: "transactions-module",
+    label: "المعاملات",
+    icon: "📜",
+    dashboardHref: "/transactions",
+    roles: ["owner", "accountant"],
+    pages: [{ id: "transactions", label: "كل المعاملات", icon: "📜", href: "/transactions", roles: ["owner", "accountant"] }],
+  },
+  {
     // SPEC-0025 U-4: the reports hub — every report, grouped by the question it answers.
     id: "reports-module",
     label: "التقارير",
