@@ -1,5 +1,20 @@
 # @amrebeid/ui
 
+## 1.3.0
+
+### Minor Changes
+
+- 3fb1a84: Field: add a `required` prop. It renders a decorative (aria-hidden) `*` marker on the label —
+  styled to match FormRow's marker — and injects the native `required` attribute onto the control
+  (custom child or the default input). Lets consumers stop hand-typing `*` into the label string
+  (which some screen readers announce as "star"). Backwards-compatible: fields that pass neither
+  `error` nor `required` are untouched.
+- 51e7639: KpiCard: add a non-colour VALENCE mark to the delta for WCAG 1.4.1 (use of colour) — `⚠` for
+  `deltaDirection="down"` (attention) and `✓` for `"up"` (positive), aria-hidden (the delta text
+  carries the meaning for assistive tech). Uses a valence mark rather than a ▲/▼ direction arrow so it
+  never falsely claims "increased/decreased" (e.g. a positive over-budget variance is coloured "down"
+  for attention). Colours are unchanged; the mark is additive.
+
 ## 1.2.0
 
 ### Minor Changes
