@@ -99,6 +99,7 @@ On save/edit, `runPlanChecks` renders as a **story header** on the plan (§2c co
 | P-4 | **«اعتمادات مطلوبة» engineer queue** | cross-plan sign-off inbox + one-tap approve/return-with-note | Low — reads plan_operations awaiting sign-off |
 | P-5 | **Approval summary** | activate-plan 1-step review (story + lines + owner-only costs) + changed-since-approval chip | Low |
 | P-6 | **«يومي» day view + execution wizard** | /m day cards (ماذا/أين/بماذا/مع من) + guided fn_execute_operation with honest actuals + «لم أستطع» reason | Med — the crew-facing heart; offline path reused |
+| P-8 | **Calendar view (Owner follow-up)** | RTL week-grid (السبت-first) of the plan period; each op a colored chip on every day it spans (done/planned/due tones, «اليوم» highlight, +N overflow); reusable `OpsCalendar` → also the plans dashboard month view + an /m week strip | Low — pure render |
 | P-7 | **Track & history** | plan 360 progress story, dashboard attention items (late ops, blocked reasons), finished-plan story | Low |
 
 **Backend deltas (owner-gated, tiny):** P-6's «لم أستطع التنفيذ» reason needs a nullable
