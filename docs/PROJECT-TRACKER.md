@@ -21,7 +21,13 @@
 > biological-asset ledger** (5,382 produced / 1,158 remaining, per-center flows, 300–600ج valuation → new slice 7),
 > crop-margin economics (بنجر 80% vs برحي 20%), rule-based scorecard commentary + insight cards (no-AI → NOT
 > Stage-11-gated), palm yield-curve (agronomy template → SPEC-0008 #4 sign-off), scenario fan («سيناريو تقديري»,
-> #1-safe). 7 Owner decisions in §5; 7 gated slices in §6. **Docs only — stopped at the gate per instruction.**
+> #1-safe). Second follow-up (same day) → **§C.2 interactive-reporting standard** (every report = KPI cards + charts +
+> tables; card-as-filter where applicable [DashboardKpiLink pattern generalized]; tables always searchable + **column-
+> sortable [new gap]** + exportable; charts always multi-insight via dimension toggles/overlays/click-through) and
+> **§C.3 owner + farm-manager dashboards** adopting the Lovable panels heavily — with the ⚠ flag that `finance.read`
+> is owner/accountant-only, so FM money visibility = **decision 8** (proposed default: quantities + budget-% only).
+> Now 8 Owner decisions in §5; slices 1–8b in §6 (8a = sortable/toggle shared components, can go first).
+> **Docs only — stopped at the gate per instruction.**
 
 > **2026-07-02 — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
 > Owner mandate "keep working until this task and all other open PRs are finished" executed: gated batch

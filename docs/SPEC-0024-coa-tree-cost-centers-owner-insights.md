@@ -179,6 +179,39 @@ Reviewed every page + data module. Adoption map, ranked:
 **Explicitly NOT imported:** the zip's modeled 2018–24 financial series (only 2025 is actual — #1); its hardcoded staff
 salary table (PII → SPEC-0006). The zip's real-2025 aggregates serve as the **validation oracle** for Part D (§0.2).
 
+### C.2 Interactive-reporting standard (Owner directive, 2026-07-04 — applies to ALL reports/dashboards)
+Every report/dashboard page in the product follows one interaction contract. **Ground truth on `main`:** the pieces
+mostly exist but unevenly — `DashboardKpiLink` (card-as-filter) + `FilterableTable` (search + CSV-export-of-filtered-view)
+are live on the owner/module dashboards; **no table has column sorting**; the manager dashboard has neither charts nor
+filters/export. The standard closes those gaps once, in the shared components (SPEC-0017), so every page inherits it:
+1. **Shape:** every report = **KPI cards ↑ + charts + table(s) ↓** (the owner-dashboard cockpit shape, generalized).
+2. **Card-as-filter:** every KPI card whose value corresponds to a filterable subset IS a filter (`DashboardKpiLink`
+   pattern — click toggles the query-derived filter, active state visible, «كل …» card resets). Cards that are pure
+   aggregates (e.g. a balance) stay non-clickable — "if applicable" per the directive.
+3. **Tables:** always **searchable + column-sortable + exportable**. Gap to build: add client-side **sortable headers**
+   to `SimpleTable`/`FilterableTable` (respect `numeric` for numeric sort; Arabic collation for text; sorted+filtered
+   view is what exports). Export stays `exportFilename` (CSV, SPEC-0017 slice 1).
+4. **Charts — multi-insight:** no single-series-only charts on report pages. Each chart offers ≥2 insights via
+   (a) a **dimension/series toggle** (e.g. cost trend: by-category stacked ↔ by-center; revenue mix: by-crop ↔ by-center),
+   (b) **overlay lines** (trend + cumulative; actual + «سيناريو تقديري» fan), or (c) **click-through** (chart segment →
+   filtered table below). Respect the recharts **code-split guard**; Arabic-Indic digits via `lib/money`; tooltips localized.
+5. **Honesty rules carried:** empty/NULL renders «غير متوفر»/«غير مصنف»/«غير موزَّع» — a filter or chart never hides the
+   unclassified bucket (#1); wage/PII values never appear outside their permission gate.
+
+### C.3 Owner & Farm-Manager role dashboards (heavy Lovable adoption)
+- **Owner dashboard (`/dashboard/owner`)** — already the cockpit (KPI-filters + 3 charts + alerts + table). Adopt from
+  the catalog (C.1): **J-curve P&L trajectory**, **revenue mix (crop ↔ center toggle)**, **cost waterfall (account
+  rollup)**, **center-economics league/scatter (per-feddan)**, **crop-margin panel**, **rule-based insight cards** (cost
+  spike, cash-cow center, margin compression), **scorecard link with auto-commentary**, and the **offshoot-bank summary**
+  (slice 7). All computed live per C.2; history appears per Part D rules.
+- **Farm-Manager dashboard (`/dashboard/manager`)** — today KPI cards + plain tables only; bring it to the C.2 standard.
+  Adopt the **operational** side of the catalog: labor/workforce deployment (headcount by center × task — the workbook's
+  own scheme), operations progress + season timeline, **offshoot pipeline physical flows** (produce/plant/replant per
+  center — quantities, not valuations), inventory/coverage alerts, and (once SPEC-0008-signed) the yield-curve production
+  outlook. **⚠ Financial visibility is gated:** `finance.read` = owner/accountant **only** on `main` — the FM dashboard
+  may NOT show revenue/cost/profit unless the Owner grants it (decision 8). Design default: **operational quantities +
+  budget-consumption % only** (no absolute money), pending that decision.
+
 ---
 
 ## 4. Part D — Historical import + the reconciliation oracle (Stage-M gated)
@@ -206,6 +239,10 @@ salary table (PII → SPEC-0006). The zip's real-2025 aggregates serve as the **
 6. **A.5 enforcement strictness**: proposed = `account_id` nullable at draft but **required to enter a payment request /
    approval** (server-side). Alternative: required at entry. Confirm which.
 7. **Offshoot bank module** (C.1 #1): confirm building the فسائل ledger as slice 7 of this spec (vs deferring to its own spec).
+8. **Farm-Manager financial visibility** (C.3): `finance.read` is owner/accountant-only today. For the FM dashboard choose:
+   (a) operational quantities + budget-consumption % only, **no absolute money** (proposed default — no permission change);
+   (b) grant farm_manager `finance.read` (needs the authorize() union re-emit + tests 22/97-class updates); or
+   (c) a narrower cost-only view (new perm, same re-emit cost).
 
 ## 6. Slices (each an independently gated PR; define-the-check-first)
 | # | Slice | Contents | Depends on |
@@ -214,9 +251,11 @@ salary table (PII → SPEC-0006). The zip's real-2025 aggregates serve as the **
 | 2 | Tree editor UI + entry pickers | A.4 + **account picker in `/expenses` AND the custody-module expense form (A.5)** + page-help + drift-guards | 1 |
 | 3 | Cost centers schema + seed + dimension columns | B.1–B.3 + pgTAP (org-consistency center↔sector, per-feddan math, «غير موزَّع») | decision 2,3 |
 | 4 | Reports v1 | center economics + rollup P&L (التقارير matrix live) + league table + crop-economics margins (C.1 #2/#8) | 1,3 |
-| 5 | Owner Insights pages | Part C charts + scorecard w/ rule-based commentary + insight cards + scenario fan (C.1 #3/#4/#6/#7; labeled-or-omitted pre-import history) | 4 |
+| 5 | Owner Insights pages + owner-dashboard adoption | Part C charts + scorecard w/ rule-based commentary + insight cards + scenario fan (C.1 #3/#4/#6/#7) + the C.3 owner-dashboard panels; all per the C.2 contract; labeled-or-omitted pre-import history | 4, 8a |
 | 6 | Historical import + oracle | Part D descriptors + mapping tables + the التقارير reconciliation test | 1,3 + Stage-M gate |
 | 7 | **Offshoot bank (بنك الفسائل)** | C.1 #1 ledger (produce/plant/sell/replant per destination center) + valuation + the Sankey/expansion pages; yield-curve forecast gated on SPEC-0008 sign-off (#4) | 3 + decision 7 |
+| 8a | **Interactive-standard components** | C.2 gaps in the shared components: sortable headers on `SimpleTable`/`FilterableTable` (numeric + Arabic collation; export follows sort+filter), chart dimension-toggle/overlay wrappers — SPEC-0017 additions, every page inherits | — (independent, low-risk, can go first) |
+| 8b | **Farm-Manager dashboard rebuild** | C.3 FM cockpit to the C.2 contract (operational panels; money per decision 8) | 8a + decision 8 (+7 for the pipeline panel) |
 
 ## 7. Non-negotiables carried
 #1 never fabricate — «غير موزَّع»/«غير متوفر» over guessing; modeled series never shown as fact. #6 drawings ≠ opex, now
