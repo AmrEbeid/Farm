@@ -1,7 +1,49 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-4 live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-5 live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-4 cost-center reports / Owner Insights v1 live
+## 2026-07-04 (latest) — SPEC-0024 S-5 owner finance insights + owner dashboard adoption live
+
+Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-5 is now merged and
+live via PR **#670** (`main` merge commit **`139d04a`**). **No Supabase migration** was needed; this slice uses the
+S-3/S-4 production backend/views from `20260701460000_cost_centers`. The current production `main` is **`663ff79`**
+after the follow-up #671 docs/design deploy, and its `ci`, `db-tests`, `release`, Supabase Preview, and Vercel
+production statuses are green.
+
+**Completed and live:**
+- Finance → **رؤى المالك المالية** at `/finance/insights` for owner/accountant:
+  - rule-based scorecard from posted cost-center data;
+  - posted-center count, unallocated-net review, reconciliation flags, and operating net;
+  - insight cards that link back to `/finance/reports`;
+  - top-cost-center chart;
+  - searchable, sortable, exportable center table.
+- Owner dashboard adoption:
+  - adds a **رؤى مالية** section with finance KPI cards;
+  - embeds the top 3 insight cards;
+  - adds the top-cost-center chart;
+  - points the finance module summary to `/finance/insights`.
+- Safety/accuracy:
+  - no AI calls and no modeled-history import;
+  - no fabricated revenue before S-10;
+  - parent rollups are excluded from totals so tree parents are not double-counted;
+  - `CC-UNALLOC` remains visible as a review item instead of guessed away;
+  - reads are explicitly scoped to the active org.
+- Discoverability:
+  - nav/page-help/user manual updated;
+  - Recharts allowlist updated for `/finance/insights`.
+
+**Validation:** local `npx tsc --noEmit`, touched-file eslint, focused insight/nav/help tests **19/19**, app Vitest
+**456/456**, `npm run build`, Recharts code-split guard, server/client-boundary guard, full pgTAP **1309/1309**,
+and `git diff --check` all green. PR checks + CodeRabbit + Vercel preview green. Current post-merge `main`
+`ci`, `db-tests`, `release`, Supabase Preview, and Vercel production status are green for `663ff79`.
+
+**Resume point:** start **S-7 offshoot bank (بنك الفسائل)** from fresh `origin/main`. S-6 historical workbook import
+remains Stage-M/real-data gated. Keep S-7 real-data-only: source the offshoot flows from the verified offshoot-jard
+source/workbook evidence, tie destinations to cost centers, label valuation ranges clearly, no fabricated quantities,
+no new owner/accountant cash movement, no `public.authorize()` re-emit unless unavoidable and reviewed, and no stock/
+reservation engine changes. Also inspect existing stacked PRs **#663/#662** before rebuilding/rebasing, because they
+were opened before S-4/S-5 and may carry stale base commits.
+
+## 2026-07-04 — SPEC-0024 S-4 cost-center reports / Owner Insights v1 live
 
 Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-4 is now merged and
 live via PR **#667** (`main` merge commit **`b23024a`**). **No Supabase migration** was needed; this slice uses the
@@ -30,11 +72,7 @@ S-3 production backend/views from `20260701460000_cost_centers`.
 `git diff --check` all green. PR checks + CodeRabbit + Vercel preview green. Post-merge `main` `ci`, `db-tests`,
 `release`, Supabase Preview, and Vercel production status are green for `b23024a`.
 
-**Resume point:** start **S-5 Owner Insights + owner-dashboard adoption** from fresh `origin/main`. Keep it
-report-only/live-data-only: use posted years only, no modeled history, no AI calls, no wage/PII leakage, no new money
-movement RPCs, no `public.authorize()` re-emit, and no stock/reservation engine changes. Recommended first S-5 cut:
-add owner dashboard panels linking to `/finance/reports` plus rule-based insight cards over the live S-4 aggregates;
-defer revenue mix/crop margins until S-10 revenue exists.
+**Historical resume point:** S-5 Owner Insights + owner-dashboard adoption is now live above.
 
 ## 2026-07-04 — SPEC-0024 S-3 cost centers + accounting dimension live
 

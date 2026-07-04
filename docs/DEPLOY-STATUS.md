@@ -14,6 +14,18 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > repeated test logins). The public-website + OS-design work is comprehensive; deeper design passes
 > (app shell, per-screen) await Owner direction on the live look.
 >
+> **2026-07-04 — SPEC-0024 S-5 owner finance insights + owner dashboard adoption LIVE; no migration.**
+> PR **#670** merged to `main` at **`139d04a`**. Scope: owner/accountant `/finance/insights` over the live S-3/S-4
+> cost-center views, with rule-based scorecard, insight cards, posted-center count, unallocated-net review, reconciliation
+> flags, operating net, top-cost-center chart, and searchable/sortable/exportable center table. The owner dashboard now
+> embeds the same finance-insight summary and links its finance module card to `/finance/insights`. Parent rollups are
+> excluded from totals to avoid double-counting the COA/center tree; `CC-UNALLOC` remains visible as a review bucket.
+> **No Supabase migration / prod DB apply:** this uses live migration `20260701460000_cost_centers`. Validation before
+> merge: `tsc`, touched-file eslint, focused insight/nav/help tests **19/19**, app Vitest **456/456**, production build,
+> Recharts bundle guard, server/client-boundary guard, full pgTAP **1309/1309**, and `git diff --check`; PR checks +
+> CodeRabbit + Vercel green. Current post-merge `main` **`663ff79`** (includes #670 + #671) has green `ci`, `db-tests`,
+> `release`, Supabase Preview, and Vercel production status.
+>
 > **2026-07-04 — SPEC-0024 S-4 cost-center reports / Owner Insights v1 LIVE; no migration.**
 > PR **#667** merged to `main` at **`b23024a`**. Scope: owner/accountant `/finance/reports` over the live S-3
 > cost-center views, with KPI-card filters, unallocated line count, reconciliation flags, cost/revenue/net/per-feddan
