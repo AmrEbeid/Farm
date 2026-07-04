@@ -1,5 +1,48 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-5 live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-7a live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-04 (latest) — SPEC-0024 S-7a offshoot bank backend live
+
+Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-7a is now merged and
+live via PR **#663** (`main` merge commit **`0775a75`**) after migrate-first production apply of
+**`20260701470000_offshoot_bank`** to Farm Supabase project `veezkmytervjnpxcrbkw`.
+
+**Completed and live:**
+- Standalone **بنك الفسائل** backend:
+  - `offshoot_movements` physical quantity ledger;
+  - `offshoot_valuation` display-only valuation settings;
+  - `fn_record_offshoot_movement`;
+  - `fn_set_offshoot_valuation`;
+  - audit triggers on both tables.
+- Role boundaries:
+  - farm manager records produced/planted/replanted/sold quantities through `plan.write`;
+  - owner/accountant set valuation through `budget.write`;
+  - valuation reads stay behind `finance.read`.
+- Accounting safety:
+  - no revenue booking;
+  - no accounts receivable;
+  - no custody/cash movement;
+  - no S-10 sales accounting;
+  - valuation is an estimate layer only.
+- Cost-center linkage:
+  - plant/replant destinations must be active, non-system leaf cost centers;
+  - `CC-UNALLOC` is rejected as a planting destination;
+  - produce/sell movements reject destination centers.
+
+**Validation:** local `git diff --check`, full pgTAP **1322/1322**, `npm ci`, `npx tsc --noEmit`, app Vitest
+**456/456**, `npm run build`, Recharts code-split guard, and server/client-boundary guard all green. PR checks,
+CodeRabbit, Supabase Preview, Vercel, gitleaks, package/storybook, app CI, `ci`, `db-tests`, and `release` green.
+
+**Production apply/probes:** Supabase CLI dry-run showed exactly one pending migration,
+`20260701470000_offshoot_bank`; apply succeeded; post-apply dry-run reported the remote DB was up to date. Probes
+confirmed ledger row = 1, RLS/FORCE = true/true on both tables, authenticated SELECT, no direct DML grants,
+auth RPC EXEC = 2, anon RPC EXEC = 0, valuation audit-read coverage, and both audit triggers.
+
+**Resume point:** start **S-7b offshoot UI/reporting** from fresh `origin/main`. Recommended surface: one
+role-aware **بنك الفسائل** page that lets farm manager record physical movements, lets owner/accountant set
+valuation, shows owner/accountant valuation panels as estimates only, links movements to cost centers, and adds
+dashboard/navigation/reporting visibility. Keep no-revenue/no-cash/no-custody boundaries intact. S-6 historical
+workbook import remains Stage-M/real-data gated.
 
 ## 2026-07-04 (latest) — SPEC-0024 S-5 owner finance insights + owner dashboard adoption live
 
@@ -36,12 +79,10 @@ production statuses are green.
 and `git diff --check` all green. PR checks + CodeRabbit + Vercel preview green. Current post-merge `main`
 `ci`, `db-tests`, `release`, Supabase Preview, and Vercel production status are green for `663ff79`.
 
-**Resume point:** start **S-7 offshoot bank (بنك الفسائل)** from fresh `origin/main`. S-6 historical workbook import
-remains Stage-M/real-data gated. Keep S-7 real-data-only: source the offshoot flows from the verified offshoot-jard
-source/workbook evidence, tie destinations to cost centers, label valuation ranges clearly, no fabricated quantities,
-no new owner/accountant cash movement, no `public.authorize()` re-emit unless unavoidable and reviewed, and no stock/
-reservation engine changes. Also inspect existing stacked PRs **#663/#662** before rebuilding/rebasing, because they
-were opened before S-4/S-5 and may carry stale base commits.
+**Historical resume point:** S-7a offshoot backend is now live above. The remaining S-7 work is UI/reporting over the
+live quantity ledger: tie destinations to cost centers, label valuation ranges clearly, no fabricated quantities, no
+new owner/accountant cash movement, no `public.authorize()` re-emit unless unavoidable and reviewed, and no stock/
+reservation engine changes.
 
 ## 2026-07-04 — SPEC-0024 S-4 cost-center reports / Owner Insights v1 live
 

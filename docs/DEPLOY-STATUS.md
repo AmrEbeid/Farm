@@ -2,7 +2,24 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — enquiry inbox management + OS design-system revamp (4 passes) LIVE.**
+> **2026-07-04 (latest) — SPEC-0024 S-7a offshoot bank backend LIVE; prod ledger head `20260701470000`.**
+> PR **#663** merged to `main` at **`0775a75`** after migrate-first production apply. Scope:
+> standalone **بنك الفسائل** backend with `offshoot_movements`, `offshoot_valuation`, audit triggers,
+> `fn_record_offshoot_movement`, and `fn_set_offshoot_valuation`. This is a physical quantity ledger for
+> produced/planted/replanted/sold offshoots plus display-only valuation estimates; it does **not** book revenue,
+> receivables, custody/cash movement, or S-10 sales accounting. Farm manager records quantities through `plan.write`;
+> owner/accountant set valuation through `budget.write`, with valuation reads behind `finance.read`. Plant/replant
+> destinations are restricted to active, non-system leaf cost centers; `CC-UNALLOC` is rejected as a planting
+> destination. Production apply used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`: dry-run showed exactly
+> one pending migration, `20260701470000_offshoot_bank`, apply succeeded, and post-apply dry-run was clean. Probes
+> confirmed ledger row = 1, RLS/FORCE = true/true on both tables, authenticated SELECT, no direct DML grants, auth
+> RPC EXEC = 2, anon RPC EXEC = 0, valuation audit policy coverage, and both audit triggers. Validation before merge:
+> full local pgTAP **1322/1322**, app Vitest **456/456**, `tsc`, production build, Recharts guard,
+> server/client-boundary guard, and `git diff --check`; PR checks + CodeRabbit + Supabase Preview + Vercel green.
+> Current post-merge `main` **`0775a75`** has green `ci`, `db-tests`, `release`, Supabase Preview, Vercel production,
+> gitleaks, package/storybook, and app CI statuses.
+>
+> **2026-07-04 — enquiry inbox management + OS design-system revamp (4 passes) LIVE.**
 > Enquiry inbox: owner marks read/archived at `/enquiries` via `fn_set_enquiry_status` (owner-gated
 > RPC, migration `20260701450000` applied; tests/22 + tests/118; pgTAP 1280/0) — #664. **OS design
 > revamp** (Stitch-directed, `@amrebeid/ui` token refresh, propagates to every screen, NO page
