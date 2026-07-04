@@ -7,6 +7,7 @@ import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { AddExpense } from "@/components/AddExpense";
+import { leafExpenseAccounts } from "@/components/AccountPicker";
 
 // Roles that pass authorize('budget.write') — the gate the expenses RLS WITH CHECK enforces.
 const WRITE_ROLES = ["owner", "accountant"];
@@ -34,14 +35,17 @@ export default async function ExpensesListPage({
   const sb = await createClient();
   const filter = parseExpenseFilter((await searchParams).filter);
 
-  const [{ data: expenses, error }, { data: suppliers }] = await Promise.all([
+  const [{ data: expenses, error }, { data: suppliers }, { data: accountRows }] = await Promise.all([
     sb
       .from("expenses")
       .select("id, date, category, description, total, kind, supplier_id, payment_status")
       .order("date", { ascending: false }),
     sb.from("suppliers").select("id, name").order("name"),
+    // SPEC-0024 A.5: active leaf expense accounts feed the classification picker (tolerate pre-migration absence).
+    sb.from("accounts").select("id, code, name_ar, account_type, kind, parent_id, active").order("code"),
   ]);
   if (error) throw error;
+  const leafAccounts = leafExpenseAccounts(accountRows ?? []);
 
   const all = expenses ?? [];
   const monthStart = new Date();
@@ -129,7 +133,7 @@ export default async function ExpensesListPage({
       </div>
 
       {WRITE_ROLES.includes(m.role) && (
-        <AddExpense suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))} />
+        <AddExpense suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))} accounts={leafAccounts} />
       )}
       <FilterableTable
         ariaLabel="المصروفات"

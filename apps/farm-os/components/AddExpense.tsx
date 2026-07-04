@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Field, Input, Alert, useToast } from "@/components/ui";
 import { useSubmit } from "@/components/useSubmit";
 import { createExpense, type ExpenseKind } from "@/app/(app)/expenses/actions";
+import { AccountPicker, type PickableAccount } from "@/components/AccountPicker";
 
 // Owner drawings (مسحوبات) must be separable from operating expenses (non-negotiable #6). Classifying at
 // entry is the write side of that split — the finance dashboard reads expenses.kind.
@@ -17,8 +18,10 @@ const KIND_OPTIONS: { value: ExpenseKind; label: string }[] = [
 /** Record-expense form, shown only to budget.write roles (the page gates it). */
 export function AddExpense({
   suppliers,
+  accounts = [],
 }: {
   suppliers: { id: string; name: string }[];
+  accounts?: PickableAccount[];
 }) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
@@ -26,6 +29,7 @@ export function AddExpense({
   const [description, setDescription] = useState("");
   const [total, setTotal] = useState("");
   const [kind, setKind] = useState<ExpenseKind>("operating");
+  const [accountId, setAccountId] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [payment, setPayment] = useState("");
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
@@ -43,6 +47,7 @@ export function AddExpense({
         description: description || null,
         total: Number(total),
         kind,
+        accountId: accountId || null,
         supplierId: supplierId || null,
         paymentMethod: payment || null,
       }),
@@ -54,6 +59,7 @@ export function AddExpense({
       setDescription("");
       setTotal("");
       setKind("operating");
+      setAccountId("");
       setSupplierId("");
       setPayment("");
       toast.ok("تمت إضافة المصروف بنجاح");
@@ -110,6 +116,11 @@ export function AddExpense({
           ))}
         </select>
       </Field>
+      {accounts.length > 0 && (
+        <Field label="الحساب (شجرة الحسابات)" id="e-account">
+          <AccountPicker id="e-account" value={accountId} onChange={setAccountId} accounts={accounts} />
+        </Field>
+      )}
       <Field label="المورّد" id="e-sup">
         <select
           id="e-sup"

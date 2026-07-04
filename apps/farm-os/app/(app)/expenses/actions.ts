@@ -17,6 +17,8 @@ export interface ExpenseInput {
   supplierId: string | null;
   paymentMethod: string | null;
   kind?: ExpenseKind;
+  /** SPEC-0024 A.5: classify the expense to a specific leaf account (validated by expense_account_guard). */
+  accountId?: string | null;
 }
 
 /**
@@ -60,6 +62,17 @@ export async function createExpense(
     const { error: kindError } = await sb.rpc("fn_set_expense_kind", { p_id: data.id, p_kind: kind });
     if (kindError) {
       return { ok: false, error: "سُجّل المصروف كـ«تشغيلي»، لكن تعذّر تصنيفه — غيّر النوع لاحقًا" };
+    }
+  }
+  // SPEC-0024 A.5: link the expense to its account AFTER kind is set (expense_account_guard checks that the
+  // account's kind matches the expense kind — a drawings expense may not post to an operating account, #6).
+  if (input.accountId) {
+    const { error: acctError } = await sb
+      .from("expenses")
+      .update({ account_id: input.accountId })
+      .eq("id", data.id);
+    if (acctError) {
+      return { ok: false, error: "سُجّل المصروف، لكن تعذّر ربطه بالحساب — تأكد أن الحساب يطابق نوع المصروف" };
     }
   }
   revalidatePath("/expenses");
