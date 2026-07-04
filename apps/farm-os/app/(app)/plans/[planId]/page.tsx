@@ -1,4 +1,7 @@
+import { StoryLine } from "@/components/StoryLine";
+import { OpsCalendar, type CalendarItem } from "@/components/OpsCalendar";
 import Link from "next/link";
+import { ClonePlanButton } from "@/components/ClonePlanButton";
 import type { ReactNode } from "react";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +18,7 @@ import { OperationSignOff } from "@/components/OperationSignOff";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { POTASSIUM_ID } from "@/lib/nav";
-import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
+import { egpSummary, egpValue, num, pct, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import {
   OP_STATUS_AR,
@@ -281,6 +284,39 @@ export default async function MonthlyPlanPage({
     { id: "checks", label: `الفحوص (${num((checks ?? []).length)})` },
   ];
 
+  // SPEC-0026 P-1 (Stage 2 render): the plan's readiness as ONE sentence + actionable notes.
+  const allOps = ops ?? [];
+  const doneOps = allOps.filter((o) => o.status === "done").length;
+  const unsignedDose = signoffOps.filter((o) => !o.signed_off_at).length;
+  const readiness = allOps.length > 0 ? Math.round((doneOps / allOps.length) * 100) : 0;
+  const planLead =
+    allOps.length === 0
+      ? "الخطة فارغة — أضِف أول عملية بالمعالج."
+      : `نُفّذ ${num(doneOps)} من ${num(allOps.length)} عملية (${pct(readiness)})` +
+        (blockedChecks > 0 ? ` — ${num(blockedChecks)} فحص محظور يمنع التفعيل` : checksRun ? " — الفحوصات سليمة" : " — لم تُشغَّل الفحوصات بعد") +
+        ".";
+  const planNotes: string[] = [];
+  if (unsignedDose > 0) planNotes.push(`${num(unsignedDose)} عملية رش/جرعة تنتظر اعتماد المهندس.`);
+  if (dueOps.length > 0) planNotes.push(`${num(dueOps.length)} عملية مستحقة خلال الأيام القادمة.`);
+
+  // SPEC-0026 P-8: the plan as a CALENDAR — ops laid on the week grid of the plan period.
+  const { data: endsRows } = allOps.length
+    ? await sb.from("plan_operations").select("id, ends_on").eq("plan_id", planId)
+    : { data: [] };
+  const endsById = new Map(
+    ((endsRows ?? []) as unknown as { id: string; ends_on: string | null }[]).map((r) => [r.id, r.ends_on]),
+  );
+  const calendarItems: CalendarItem[] = allOps.map((o) => ({
+    id: o.id,
+    date: o.planned_at ? String(o.planned_at).slice(0, 10) : null,
+    endDate: endsById.get(o.id) ? String(endsById.get(o.id)).slice(0, 10) : null,
+    label: SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype ?? "عملية",
+    href: `/plans/${planId}?tab=operations`,
+    tone: o.status === "done" ? "ok" : dueOps.some((d) => d.id === o.id) ? "warn" : "active",
+  }));
+  const calStart = plan.period_start ? String(plan.period_start).slice(0, 10) : null;
+  const calEnd = plan.period_end ? String(plan.period_end).slice(0, 10) : null;
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <Breadcrumbs
@@ -293,6 +329,16 @@ export default async function MonthlyPlanPage({
           },
         ]}
       />
+
+      <StoryLine lead={planLead} notes={planNotes} />
+      {canEditPlan && (
+        <div className="flex flex-wrap gap-2 text-sm font-bold">
+          <Link href={`/record/plan?planId=${planId}`} className="underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            + أضِف عمليات بالمعالج (أسطر متعددة)
+          </Link>
+          <ClonePlanButton planId={planId} />
+        </div>
+      )}
 
       <Entity360Header
         title={`الخطة ${PLAN_TYPE_AR[plan.type ?? ""] ?? ""}`}
@@ -407,6 +453,11 @@ export default async function MonthlyPlanPage({
           tabIndex={0}
           className="flex flex-col gap-4"
         >
+          {calStart && calEnd && calendarItems.length > 0 && (
+            <Card title="تقويم الخطة">
+              <OpsCalendar start={calStart} end={calEnd} items={calendarItems} todayIso={todayStr} />
+            </Card>
+          )}
           {signoffOps.length > 0 && (
             // agronomist-signoff-gate (non-negotiable #4): a dose-bearing op (fertilization/spraying)
             // is a TEMPLATE, not a prescription, until a named agronomist signs off. This is the

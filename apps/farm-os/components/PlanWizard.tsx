@@ -43,18 +43,21 @@ export function PlanWizard({
   sectors,
   hawshat,
   items,
+  initialPlanId = null,
 }: {
   sectors: { id: string; name: string }[];
   hawshat: { id: string; name: string; sectorId: string }[];
   items: { id: string; name: string; unit: string }[];
+  /** SPEC-0026 P-1: open directly on step 2 to add operation LINES to an EXISTING plan. */
+  initialPlanId?: string | null;
 }) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(initialPlanId ? 2 : 1);
   const [type, setType] = useState<"weekly" | "monthly">("weekly");
   const [scopeType, setScopeType] = useState<"farm" | "sector" | "hawsha">("farm");
   const [scopeId, setScopeId] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
-  const [planId, setPlanId] = useState<string | null>(null);
+  const [planId, setPlanId] = useState<string | null>(initialPlanId);
   const [lines, setLines] = useState<OpLine[]>([emptyLine()]);
   const [msg, setMsg] = useState<string | null>(null);
   const { pending, submit } = useSubmit();

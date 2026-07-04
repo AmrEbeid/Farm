@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, StatusPill, Alert, EmptyState } from "@/components/ui";
-import { egpValue, num } from "@/lib/money";
+import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus, NON_EXECUTABLE_OP_STATUSES } from "@/lib/labels";
 import { PendingExecutions } from "@/components/PendingExecutions";
@@ -20,17 +20,40 @@ type Op = {
   est_cost: number | string | null;
   status: string | null;
   responsible_person_id: string | null;
+  plan_id: string | null;
 };
 
-function OpCard({ op }: { op: Op }) {
+/** SPEC-0026 P-6: the four field questions a crew card must answer — أين؟ بماذا؟ مع من؟ (ماذا = subtype). */
+interface FieldContext {
+  where?: string;
+  materials: string[];
+  crew: string[];
+}
+
+function OpCard({ op, ctx }: { op: Op; ctx?: FieldContext }) {
   return (
     <Card key={op.id}>
       <div className="flex items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="font-medium">{SUBTYPE_AR[op.subtype ?? ""] ?? "عملية"}</div>
           <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
-            {fmtDate(op.planned_at)} · {egpValue(op.est_cost)}
+            {fmtDate(op.planned_at)}
+            {ctx?.where ? ` · 📍 ${ctx.where}` : ""}
           </div>
+          {/* SPEC-0026 P-6: بماذا / مع من — the crew card answers the field questions, and carries
+              NO money (decision 8: field roles see quantities, never amounts). */}
+          {ctx && ctx.materials.length > 0 && (
+            <div className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
+              🧰 {ctx.materials.slice(0, 2).join("، ")}
+              {ctx.materials.length > 2 ? ` +${num(ctx.materials.length - 2)}` : ""}
+            </div>
+          )}
+          {ctx && ctx.crew.length > 0 && (
+            <div className="mt-0.5 text-sm" style={{ color: "var(--ink-muted)" }}>
+              👥 {ctx.crew.slice(0, 2).join("، ")}
+              {ctx.crew.length > 2 ? ` +${num(ctx.crew.length - 2)}` : ""}
+            </div>
+          )}
         </div>
         <StatusPill status={pill(op.status ?? "planned")}>
           {OP_STATUS_AR[op.status ?? "planned"] ?? "غير معروف"}
@@ -57,7 +80,7 @@ function OpCard({ op }: { op: Op }) {
   );
 }
 
-function Section({ title, ops }: { title: string; ops: Op[] }) {
+function Section({ title, ops, ctxById }: { title: string; ops: Op[]; ctxById?: Map<string, FieldContext> }) {
   if (ops.length === 0) return null;
   return (
     <section className="flex flex-col gap-3">
@@ -66,7 +89,7 @@ function Section({ title, ops }: { title: string; ops: Op[] }) {
       </h2>
       <div className="flex flex-col gap-3">
         {ops.map((o) => (
-          <OpCard key={o.id} op={o} />
+          <OpCard key={o.id} op={o} ctx={ctxById?.get(o.id)} />
         ))}
       </div>
     </section>
@@ -87,7 +110,7 @@ export default async function MobileHomePage({
 
   const { data: ops, error } = await sb
     .from("plan_operations")
-    .select("id, subtype, planned_at, est_cost, status, responsible_person_id")
+    .select("id, subtype, planned_at, est_cost, status, responsible_person_id, plan_id")
     // F5: bound the field feed. It was fetching EVERY plan_operation ever (mostly the
     // season-over-season backlog of terminal `done` rows) and discarding them client-side.
     // Drop terminal statuses at the source using the same set the execute-gate uses — they are
@@ -126,6 +149,52 @@ export default async function MobileHomePage({
   // if their planned date has passed — they're no longer actionable — so they simply
   // fall out of all three buckets once their date isn't today or in the future, same
   // as the "due/overdue" convention in plans/[planId]/page.tsx.
+  // SPEC-0026 P-6: the field context per op — بماذا (materials) / مع من (crew) / أين (plan scope).
+  const visibleIds = visibleOps.map((o) => o.id);
+  const planIds = [...new Set(visibleOps.map((o) => o.plan_id).filter(Boolean))] as string[];
+  const [matsRes, assignRes2, plansRes] = await Promise.all([
+    visibleIds.length
+      ? sb.from("plan_material_requirements").select("plan_op_id, qty, unit, item_id").in("plan_op_id", visibleIds)
+      : Promise.resolve({ data: [], error: null } as const),
+    visibleIds.length
+      ? sb.from("plan_operation_assignees").select("plan_op_id, person_id").in("plan_op_id", visibleIds)
+      : Promise.resolve({ data: [], error: null } as const),
+    planIds.length
+      ? sb.from("plans").select("id, scope_type, scope_id").in("id", planIds)
+      : Promise.resolve({ data: [], error: null } as const),
+  ]);
+  const itemIds = [...new Set((matsRes.data ?? []).map((r) => r.item_id).filter(Boolean))] as string[];
+  const personIds2 = [...new Set((assignRes2.data ?? []).map((r) => r.person_id).filter(Boolean))] as string[];
+  const scopeSectorIds = (plansRes.data ?? []).filter((p) => p.scope_type === "sector" && p.scope_id).map((p) => p.scope_id as string);
+  const scopeHawshaIds = (plansRes.data ?? []).filter((p) => p.scope_type === "hawsha" && p.scope_id).map((p) => p.scope_id as string);
+  const [itemsRes2, peopleRes2, sectorsRes2, hawshatRes2] = await Promise.all([
+    itemIds.length ? sb.from("inventory_items").select("id, name").in("id", itemIds) : Promise.resolve({ data: [], error: null } as const),
+    personIds2.length ? sb.from("people").select("id, name").in("id", personIds2) : Promise.resolve({ data: [], error: null } as const),
+    scopeSectorIds.length ? sb.from("sectors").select("id, name").in("id", scopeSectorIds) : Promise.resolve({ data: [], error: null } as const),
+    scopeHawshaIds.length ? sb.from("hawshat").select("id, name").in("id", scopeHawshaIds) : Promise.resolve({ data: [], error: null } as const),
+  ]);
+  const itemName = new Map((itemsRes2.data ?? []).map((i) => [i.id, i.name]));
+  const personName2 = new Map((peopleRes2.data ?? []).map((p) => [p.id, p.name]));
+  const scopeName = new Map<string, string>();
+  for (const p of plansRes.data ?? []) {
+    if (p.scope_type === "farm") scopeName.set(p.id, "المزرعة كلها");
+    else if (p.scope_type === "sector") scopeName.set(p.id, (sectorsRes2.data ?? []).find((x) => x.id === p.scope_id)?.name ?? "قطاع");
+    else if (p.scope_type === "hawsha") scopeName.set(p.id, (hawshatRes2.data ?? []).find((x) => x.id === p.scope_id)?.name ?? "حوش");
+  }
+  const ctxById = new Map<string, FieldContext>();
+  for (const o of visibleOps) {
+    ctxById.set(o.id, {
+      where: o.plan_id ? scopeName.get(o.plan_id) : undefined,
+      materials: (matsRes.data ?? [])
+        .filter((r) => r.plan_op_id === o.id)
+        .map((r) => `${r.qty ? num(Number(r.qty)) + " " : ""}${r.unit ?? ""} ${itemName.get(r.item_id) ?? ""}`.trim()),
+      crew: (assignRes2.data ?? [])
+        .filter((r) => r.plan_op_id === o.id)
+        .map((r) => personName2.get(r.person_id) ?? "")
+        .filter(Boolean),
+    });
+  }
+
   const todayStr = new Date().toISOString().slice(0, 10);
   const dateStr = (o: Op) => (o.planned_at != null ? String(o.planned_at).slice(0, 10) : null);
 
