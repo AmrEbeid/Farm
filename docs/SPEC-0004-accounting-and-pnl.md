@@ -31,7 +31,8 @@ Define that check first; never weaken it.
 
 **Missing (this stage builds):**
 - **Revenue reports/P&L over `sales`** — the backend `sales`/A-R tables are implemented in `20260701500000`,
-  but the read-only revenue reports, full P&L, balance sheet, and reconciliation oracle are still pending.
+  and the read-only revenue/A-R report is implemented in `20260701510000`; full P&L, balance sheet, close/lock,
+  and reconciliation oracle are still pending.
 - **`vouchers`** (the payment/receipt voucher document tying an expense/sale to a payment).
 - A **drawings (مسحوبات) classification** — owner withdrawals MUST be separable from operating
   expenses (non-negotiable #6). Recommend an explicit `expense.kind ∈ {operating, drawing, capex}`
@@ -77,7 +78,7 @@ This is **not** yet the full statutory accounting stage: no bank reconciliation,
 depreciation, sales ledger, balance sheet close, real Excel dual-run, or real-data import has been done.
 It is the operational cash ledger needed to stop custody/payment-request money from living only in reports.
 
-### 3.2 Revenue/A-R backend slice (S-10, 2026-07-04)
+### 3.2 Revenue/A-R backend and report slices (S-10/S-10b, 2026-07-04)
 
 The S-10 backend adds the revenue side without pretending the full P&L is complete:
 
@@ -88,10 +89,13 @@ The S-10 backend adds the revenue side without pretending the full P&L is comple
 - `fn_record_sale_collection` supports partial receipts, rejects over-collection, and posts Dr `1100` sales cash /
   Cr `1200` A/R.
 - Writes are RPC-only through the existing owner/accountant `budget.write` gate; reads require `finance.read`.
+- `fn_revenue_sales_report` and `/finance/revenue-reports` provide read-only period KPIs, buyer/crop rollups,
+  pending-price delivery rows, collections, and A/R aging; pending rows are listed but excluded from finalized
+  revenue/A-R totals.
 
 This is still **not** the trusted management P&L. The default accounts make the backend operational, but the real
-chart mapping, period reports, and Excel dual-run reconciliation remain the gate before finance treats the totals
-as decision-grade.
+chart mapping, close/period lock, P&L/balance-sheet reports, and Excel dual-run reconciliation remain the gate
+before finance treats the totals as decision-grade.
 
 ## 4. Acceptance (the oracle)
 
@@ -136,7 +140,8 @@ as decision-grade.
   (financial logic). **Owner gate**, separate approver for any real-data dual-run.
 - **Slices (small, independently gateable):**
   1. `sales` + A/R backend schema/RPCs + RLS + the existing owner/accountant write gate. **Backend implemented in
-     `20260701500000`; voucher documents and revenue report UI remain pending.**
+     `20260701500000`; read-only revenue report UI/RPC implemented in `20260701510000`; voucher documents remain
+     pending.**
   2. Transactional posting RPC (expense/sale → allocation + budget actual/committed), idempotent.
   3. P&L report (sector/crop/season, drawings excluded) — read-only.
   4. Reconciliation harness + the closed-season dual-run (gated to Stage M for real figures).

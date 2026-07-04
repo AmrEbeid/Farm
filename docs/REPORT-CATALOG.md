@@ -14,12 +14,14 @@ Feature: FEAT-018 (+ FEAT-007 coverage, FEAT-014 planned-vs-actual).*
 | **RPT-04** | `/inventory/[itemId]/coverage` | **Stock coverage (the wedge)** | available, coverage days, reorder point, recommended qty, verdict banner; conditional Create-PR | **PabChart** (projected available balance over 8 weeks; marks first shortage) | RPC-007 `fn_stock_coverage` | any member (reserve = owner/farm_manager/storekeeper) |
 | **RPT-05** | `/budget/[planId]/check` | Budget gate for a plan | approved, actual, committed, available, utilization %, verdict (block/approval-needed/ok) | — (Progress) | `budget_lines`, `plan_operations` | any member |
 | **RPT-06** | `/reports/[planId]/pva` | **Planned-vs-actual** (FEAT-014) | total planned, total actual, variance + trend; per-op breakdown table | **VarianceChart** (planned vs actual cost per operation) | `plan_operations` + done `farm_event` actuals + `plans` | any member |
+| **RPT-07** | `/finance/revenue-reports` | **Revenue + A/R aging** (FEAT-023) | finalized revenue, period collections, pending-price deliveries, outstanding A/R, 30+ A/R; buyer/crop rollups; sales/collections tables | **CategoryBarChart** in `MultiInsightChart` (buyer vs crop) | RPC-053 `fn_revenue_sales_report` | owner, accountant |
 
 ## Charts (`components/charts.tsx`, code-split via `@amrebeid/ui/charts`)
 | Chart | Type | Plots | Used by |
 |---|---|---|---|
 | `PabChart` | LineChart | Projected available balance across the planning horizon; highlights first shortage period | RPT-04 |
 | `VarianceChart` | BarChart | Planned vs actual cost, two bars per operation subtype | RPT-06 |
+| `CategoryBarChart` + `MultiInsightChart` | BarChart + toggle | Revenue and outstanding A/R by buyer or by crop/season | RPT-07 |
 
 ## List filtering (`FilterableTable.tsx` + `lib/filter.ts`)
 - Client-side live search; **Arabic-aware normalization** (strips tashkeel/tatweel, folds alef/ya/ta-marbuta variants)
@@ -31,8 +33,8 @@ Feature: FEAT-018 (+ FEAT-007 coverage, FEAT-014 planned-vs-actual).*
 ## Known limitations (reconcile honesty)
 - **Single-plan mode:** RPT-03 (manager) and RPT-05 (budget check) reference a hardcoded `SEED_PLAN_ID`, and RPT-05
   is hardcoded to the `أسمدة` (fertilization) category — these are MVP shortcuts, not general multi-plan views.
-- **No export:** no Excel/PDF export on any report yet (a market table-stakes gap; future).
-- **Two charts only:** PAB + variance; no broader analytics suite yet.
+- **No PDF export:** reports now use CSV export where wired; PDF/export packaging is still a market table-stakes gap.
+- **Chart suite is expanding:** PAB, variance, and finance report category charts are live; broader analytics remain incremental.
 - **Cross-cutting cost analytics** (P&L by sector/crop) depend on the draft accounting work (FEAT-023, PR #368) —
   not on `main`.
 

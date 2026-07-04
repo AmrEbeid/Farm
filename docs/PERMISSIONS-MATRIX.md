@@ -22,7 +22,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `payroll.read` | owner, accountant | Read `people_compensation` (wages) | BR-071 |
 | `structure.write` | owner, farm_manager | Create/edit/archive farm structure | BR-064 |
 | `responsibility.write` | owner, farm_manager | Write responsibility assignments | BR-073 |
-| `finance.read` | owner, accountant | Read finance-confidential custody/payment-request rows and derived balances | BR-066 |
+| `finance.read` | owner, accountant | Read finance-confidential custody/payment-request rows, revenue/A-R rows, reports, and derived balances | BR-066 |
 | `custody.write` | owner, accountant | Create custody accounts and post custody movements through RPCs | BR-067 |
 | `request.prepare` | owner, accountant | Create/submit payment requests and add eligible post-paid lines | BR-068 |
 | `request.approve.op` | owner, accountant | Operationally approve payment requests | BR-069 |
@@ -59,6 +59,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `/dashboard/manager` | `requireRole(["farm_manager","agri_engineer"])` | farm_manager, agri_engineer |
 | `/settings` | nav `roles:["owner"]` | owner |
 | `/expenses`, `/budgets` | nav `roles:["owner","accountant","farm_manager"]` | those roles |
+| `/finance/accounts`, `/finance/reports`, `/finance/revenue-reports`, `/finance/custody-reports`, `/finance/insights`, `/accounting`, `/custody` | nav/page guards owner/accountant; `finance.read` for confidential reads | owner, accountant |
 | `/people` | nav `roles:["owner","farm_manager","agri_engineer","accountant"]` | those roles |
 | `/m` (field) | nav `roles:["supervisor","agri_engineer","owner","farm_manager"]` | those roles |
 | `/farm*`, `/plans*`, `/inventory*`, `/purchase-requests*`, `/suppliers`, `/weather`, `/budget/[planId]/check`, `/reports/[planId]/pva`, `/profile` | `requireMembership()` | any member (writes still gated server-side) |

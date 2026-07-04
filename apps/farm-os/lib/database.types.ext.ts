@@ -1210,6 +1210,10 @@ type RevenueFunctions = {
     Args: { p_sale: string; p_amount: number; p_occurred_at?: string | null; p_collected_by?: string | null; p_note?: string | null };
     Returns: Json;
   };
+  fn_revenue_sales_report: {
+    Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null; p_as_of?: string | null };
+    Returns: Json;
+  };
 };
 
 export type Database = Omit<Generated, "public"> & {

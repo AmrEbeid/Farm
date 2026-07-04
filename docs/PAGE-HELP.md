@@ -65,6 +65,11 @@ real event + consumes stock + computes actual cost. *How:* enter actual qty/labo
 ## Reports & account (FEAT-013/014/018/019/001)
 **`/reports/[planId]/pva` — Planned vs actual.** *What:* planned vs actual qty/cost per operation. *Why:* see
 variance + control. *When:* after executing. *How:* read the variance chart + table. Refs: RPT-06.
+**`/finance/revenue-reports` — Revenue and A/R reports.** *What:* finalized revenue, pending-price deliveries,
+collections, and A/R aging. *Why:* separates priced revenue from deliveries whose price is still unknown. *When:*
+weekly/monthly revenue and collection review. *How:* choose period/as-of date, review KPIs/charts/tables, export
+CSV when needed. *Avoid:* treating pending-price deliveries as revenue or A/R before final price. Refs: RPT-07,
+RPC-053, BR-127.
 **`/expenses` — Expenses.** *What:* record costs; separate owner drawings from opex. *Who:* owner/accountant/
 farm_manager. *Avoid:* mixing drawings into opex (BR-111). **`/people` — Team.** *What:* staff directory
 (PII-locked). *Avoid:* expecting to see phone/email/wages (BR-070/071). **`/weather` — Weather.** *What:* forecast +

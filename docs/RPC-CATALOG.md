@@ -62,6 +62,7 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-050** | `fn_save_sale(…)` | id?,org,date,crop,buyer?,cost_center?,farm/sector/hawsha?,season?,qty?,unit?,delivery?,notes? | jsonb{id,price_status} | Record or edit a pending-price delivery; crop is mandatory; no journal is posted | BR-063/066/123/124/126 | `sales` | FEAT-023 |
 | **RPC-051** | `fn_finalize_sale_price(p_sale,p_unit_price)` | sale,unit_price | jsonb | Set final price/total for a pending sale and post Dr A/R / Cr sales revenue once | BR-116/117/123/125 | `sales`,`journal_entries`,`journal_lines`,`accounts` | FEAT-023/030 |
 | **RPC-052** | `fn_record_sale_collection(…)` | sale,amount,occurred_at?,collected_by?,note? | jsonb | Record a partial/final customer collection and post Dr cash / Cr A/R; rejects over-collection | BR-116/117/123/125 | `sale_collections`,`sales`,`journal_entries`,`journal_lines`,`accounts` | FEAT-023/030 |
+| **RPC-053** | `fn_revenue_sales_report(…)` | org,period_start?,period_end?,as_of? | jsonb | Read-only revenue report: finalized sales, pending-price deliveries, collections, and A/R aging | BR-066/127 | (reads) | FEAT-023 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |

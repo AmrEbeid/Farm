@@ -20,7 +20,8 @@ payment-request report/PDF and other statement exports, (3) revenue/sales with a
 *Author: autonomous docs/planning session, Owner: Amr Ebeid. Slice 1 is implemented in
 `20260701480000_custody_transfer`. Slices 3/4 are implemented by
 `20260701490000_custody_reports` and `/finance/custody-reports`. Slice 5 revenue/A-R backend is implemented by
-`20260701500000_revenue_sales`. PDF export and revenue reports remain future slices.*
+`20260701500000_revenue_sales`. Slice 6 revenue reports/A-R aging is implemented by
+`20260701510000_revenue_reports` and `/finance/revenue-reports`. PDF export remains a future slice.*
 
 ---
 
@@ -178,7 +179,8 @@ and the Owner listed several reports that don't exist as dedicated views yet.
   4. *Owner funding + custody replenishment report* — `payment_request_fundings` joined to `payment_requests`,
      showing requested vs received vs remaining (`fn_payment_request_totals` already computes remaining —
      this report is mostly a filtered/exported view over data that already exists).
-  5. *Revenue by buyer/crop/season* and *A/R by buyer* — depend on Gap 3 (revenue does not exist yet).
+  5. *Revenue by buyer/crop/season* and *A/R by buyer* — implemented by `fn_revenue_sales_report`
+     (`20260701510000`) and `/finance/revenue-reports`.
   6. *P&L excluding owner drawings* — depends on Slice A of the existing roadmap (chart of accounts + P&L RPC);
      already designed there, not re-designed here.
   7. *Budget vs actual* — depends on Decision-0157 (owed by the Owner) + Slice A's "roll the ledger up by
@@ -228,6 +230,8 @@ price is finalized.**
 - Revenue by buyer/crop/season (group `sales` by `buyer_id`/`crop`/`season`, excluding `price_status='pending'`
   rows from revenue totals but still listing them as "pending price" line items — never silently dropped).
 - A/R report for trader/company sales: `total − Σ(collections)` per buyer, aged by `delivery_date`.
+- Implemented in Slice 6 as `fn_revenue_sales_report` plus `/finance/revenue-reports`: period KPIs, buyer/crop
+  charts, searchable/sortable/exportable sales rows, A/R aging, and collection rows.
 - Profitability by crop/season needs Slice B's cost-dimension work (already scoped in the roadmap) joined to
   this revenue table — not re-designed here, just noted as the dependency the roadmap already tracks.
 
@@ -252,13 +256,13 @@ merge/apply, per `docs/CLAUDE.md`. None of these are authorized to build by this
 | 3 | **Custody ledger + cash-expense + unpaid-obligations reports** (Gap 2b, items 1-3) | **Implemented:** 3 read-only RPCs + one dense `/finance/custody-reports` page using `FilterableTable` + CSV export | none — reads existing tables | Low (read-only) |
 | 4 | **Owner funding/replenishment report** (Gap 2b, item 4) | **Implemented:** 1 read-only RPC + `/finance/custody-reports` section over `payment_request_fundings` | none | Low (read-only) |
 | 5 | **Revenue/sales schema + finalize-price + collections** (Gap 3, §4.1) | **Implemented:** `buyers`, `sales`, `sale_collections` tables + RPCs; **no chart-of-accounts dependency for the pending-price case** (a pending sale posts nothing). Finalization uses default `1200`/`4000` accounts through `fn_ensure_account`; trusted P&L still needs the real chart mapping later. | Existing accounting kernel (`fn_post_two_line_journal`) | High (new money-adjacent schema; independent review required) |
-| 6 | **Revenue reports** (Gap 3, §4.2) | Revenue-by-buyer/crop/season + A/R report | Slice 5 | Low (read-only, once 5 exists) |
+| 6 | **Revenue reports** (Gap 3, §4.2) | **Implemented:** `fn_revenue_sales_report` + `/finance/revenue-reports` for revenue-by-buyer/crop/season, pending-price deliveries, collections, and A/R aging | Slice 5 | Low (read-only) |
 | 7 | **Role-based dashboards + filter/sort/export/import parity** (Gap 4) | Extend existing per-module dashboards (already largely live per SESSION-BRIEF) to explicitly cover finance/custody/revenue tables with the same filter/sort/export pattern; author `ImportDescriptor`s for `buyers`/`sales` once Slice 5 lands, per `docs/CLAUDE.md` "bulk-import descriptors" rule | Slice 5 for revenue; custody/expense import descriptors could start now | Low-med (many small touches) |
 | — | **Accounting-kernel integration** | Not a new slice — this plan explicitly defers to the existing roadmap's Slice A (P&L/balance-sheet/period-close) and Slice B (cost dimensions). Slices 5/6 above are designed to plug into that same kernel (`fn_post_two_line_journal`, `journal_lines` dimension FKs) rather than inventing a parallel ledger. | Roadmap Slice A | — |
 
-Recommended order after slice 1: **3 → 4 → 2 → 5 → 6 → 7**, i.e. do the cheap read-only reports next,
-hold the PDF export until a library is approved, and treat revenue reports (Slice 6) as the next review-heavy
-step after the S-10 backend is live.
+Recommended order after slice 6: hold the PDF export until a library is approved, then continue to close/period
+lock and trusted P&L/balance-sheet reconciliation from the accounting roadmap. Slice 7 import parity can run as a
+separate small lane after the report page settles.
 
 ---
 
@@ -406,10 +410,16 @@ The test `115_revenue_sales` proves owner/accountant write gating, pending-price
 journal, finalization posting Dr A/R / Cr revenue, partial/final collections posting Dr cash / Cr A/R,
 over-collection rejection, org-bound farm dimensions, revenue RLS, and anon EXECUTE lockdown.
 
+**Slice 6 implemented:** `20260701510000_revenue_reports` adds `fn_revenue_sales_report`, and
+`/finance/revenue-reports` gives owner/accountant users period filters, KPI totals, buyer/crop charts,
+search/sort/export tables, pending-price delivery rows, A/R aging, and collection rows. The test
+`121_revenue_reports` proves finance-read gating, period finalized revenue, collections, pending-price totals
+listed without revenue fabrication, outstanding receivables, 30+/60+ aging, and non-finance denial.
+
 ---
 
 ## 10. Next step
 
-After Slice 5 is live, the next practical accounting lane is **Slice 6 revenue reports**: revenue by buyer/crop/
-season, pending-price deliveries listed separately, and A/R aging. Custody polish still has **Slice 2 PDF/export
-packaging** waiting on an approved PDF approach/dependency.
+After Slice 6 is live, the next practical accounting lane is **close/period lock + trusted P&L/balance-sheet
+reporting**. Custody polish still has **Slice 2 PDF/export packaging** waiting on an approved PDF approach/
+dependency.
