@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ImportPanel } from "@/components/import/ImportPanel";
 import { requireMembership } from "@/lib/auth";
 import { num } from "@/lib/money";
 import { KpiCard } from "@/components/ui";
@@ -101,6 +102,9 @@ export default async function SuppliersListPage({
         exportFilename="suppliers"
         empty={filter === "open" ? "لا موردين لديهم أوامر جارية" : "لا يوجد موردون بعد"}
       />
+
+      {/* SPEC-0024 S-9 (D.1): template download + Excel/CSV import for this entry.  */}
+      <ImportPanel descriptorKey="suppliers" titleAr="الموردون" />
     </div>
   );
 }

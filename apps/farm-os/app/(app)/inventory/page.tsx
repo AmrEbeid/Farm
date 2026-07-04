@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { ImportPanel } from "@/components/import/ImportPanel";
 import { requireMembership } from "@/lib/auth";
 import { num, egp } from "@/lib/money";
 import { EmptyState, KpiCard } from "@/components/ui";
@@ -157,6 +158,9 @@ export default async function InventoryListPage({
           exportFilename="inventory"
         />
       )}
+
+      {/* SPEC-0024 S-9 (D.1): template download + Excel/CSV import for this entry.  */}
+      <ImportPanel descriptorKey="inventory-items" titleAr="أصناف المخزون" />
     </div>
   );
 }
