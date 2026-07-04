@@ -2,7 +2,22 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend LIVE; prod ledger head `20260701440000`.**
+> **2026-07-04 (latest) — public website FEATURE-COMPLETE: buyer enquiry form → OS.**
+> Public "Request a Quote" form (name/company/country/volume/message) → server action inserts via the
+> service-role admin client into org-scoped `site_enquiries`; owner reads at `/enquiries` (nav
+> «طلبات العملاء», owner-only). **No anon DB surface** (no anon grant/RPC — "anon writes nothing" holds);
+> spam = honeypot + length caps + required fields + a high global flood cap. Table deliberately
+> **UNAUDITED** (owner-restricted PII + org-scoped audit_read = leak, tests/56 class). Migration
+> `20260701430000_site_enquiries` applied via execute_sql + ledger row; pre/post verified (FORCE RLS,
+> single owner_read policy = site.write, 0 client write grants). Local pgTAP **1228/0** incl. new
+> tests/117; independent security review PASS. E2E: public submit created a real prod row (verified +
+> cleaned); owner-read proven by pgTAP 117 (live render blocked by transient Supabase auth rate-limit).
+> Also: gallery review fixes (#650) + site-media unit tests (#653). **Public-website project is
+> feature-complete** (site + editable content + gallery+upload + SEO + enquiry capture/view). PRs
+> #656/#650/#653. Follow-ups: enquiry status-management (mark read/archive) + real farm photos.
+> (NB: the ledger also advanced to `20260701440000` via a parallel session's SPEC-0024 COA work.)
+>
+> **2026-07-04 — SPEC-0024 S-1 COA tree backend LIVE; prod ledger head `20260701440000`.**
 > PR **#654** squash-merged to `main` at **`6209cb3`** after migrate-first production apply. Scope:
 > editable chart-of-accounts backend over the live cash-method accounting kernel: `accounts.parent_id`, `kind`,
 > `is_system`, `sort_order`; `expenses.account_id`; leaf/kind + routed-money immutability guards; `v_account_rollup`;
