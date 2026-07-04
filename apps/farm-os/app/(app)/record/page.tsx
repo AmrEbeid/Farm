@@ -43,7 +43,7 @@ const ACTIONS: ActionCard[] = [
     roles: ["owner", "farm_manager", "storekeeper"],
   },
   {
-    href: "/custody",
+    href: "/record/custody-in",
     icon: "🤝",
     title: "استلمت عهدة من المالك",
     hint: "سجّل نقدية دخلت العهدة",
