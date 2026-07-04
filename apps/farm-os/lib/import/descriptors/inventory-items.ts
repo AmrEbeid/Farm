@@ -1,4 +1,4 @@
-/** SPEC-0024 S-9 — inventory items import (fn_save_inventory_item, inventory.write). Matched by NAME.
+/** SPEC-0024 S-9 — inventory items import (fn_save_inventory_item, inventory.write). Matched by NAME (LIMITATION: names are not DB-unique per org — if two rows share a name, a re-upload updates an arbitrary one of them; keep names unique).
  *  Preferred supplier by NAME (resolved to id — users never paste UUIDs). */
 import type { ImportDescriptor } from "../types";
 

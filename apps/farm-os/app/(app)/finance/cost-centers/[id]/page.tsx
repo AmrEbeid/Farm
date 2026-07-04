@@ -28,12 +28,12 @@ const SALE_COLUMNS: SimpleColumn[] = [
 ];
 
 export default async function CostCenterPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireRole(["owner", "accountant"]);
+  const m = await requireRole(["owner", "accountant"]);
   const { id } = await params;
   const sb = await createClient();
 
   const [rollupRes, expensesRes, salesRes] = await Promise.all([
-    sb.from("v_cost_center_rollup").select("*").eq("cost_center_id", id).maybeSingle(),
+    sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).eq("cost_center_id", id).maybeSingle(),
     sb
       .from("expenses")
       .select("id, date, category, description, total")

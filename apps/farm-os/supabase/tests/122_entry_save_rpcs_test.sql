@@ -1,11 +1,11 @@
--- 117 — SPEC-0024 S-9 final gap: gated save-RPCs for suppliers / inventory items / expenses (migration
+-- 122 — SPEC-0024 S-9 final gap: gated save-RPCs for suppliers / inventory items / expenses (migration
 -- 20260701520000). Verifies the inventory.write gate on fn_save_supplier/fn_save_inventory_item, the
 -- budget.write gate on fn_save_expense, cross-org guards (supplier link, preferred supplier), kind
 -- validation, that an imported expense arrives UNROUTED (payment_status null — a bulk import never moves
 -- cash), and anon lockdown. Impersonation via request.jwt.claims (tests 44/82/114/115/116).
 
 begin;
-select plan(15);
+select plan(17);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.owner', (select user_id::text from public.organization_member where org_id = :'org' and role = 'owner' limit 1), false);
@@ -83,6 +83,16 @@ select is(
 select is(
   (select count(*)::int from public.journal_entries where source_type = 'expense_payment' and source_id = current_setting('test.exp')::uuid),
   0, 'no journal was posted by the save');
+
+-- 4b) NIT closure: the RPC update path cannot alter a ROUTED expense's money (immutability trigger).
+select pg_temp.as_user(current_setting('test.owner'));
+select lives_ok(
+  $$ select public.fn_set_expense_payment_status(current_setting('test.exp')::uuid, 'post_paid_unpaid') $$,
+  'route the RPC-saved expense (post_paid_unpaid) to arm the immutability guard');
+select throws_ok(
+  format($$ select public.fn_save_expense(current_setting('test.exp')::uuid, %L, current_date, 'أسمدة', 9999) $$, :'org'),
+  '22023', null, 'fn_save_expense cannot change a routed expense''s money (guard trigger fires through the RPC)');
+reset role;
 
 -- 5) anon lockdown
 select ok(
