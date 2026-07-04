@@ -14,8 +14,14 @@
 > — no new perm, avoids the authorize() re-emit), adds `cost_centers` (land×enterprise — the accounting answer to
 > intercropping #595; area → per-feddan economics #219), maps the season dim to SPEC-0021, and stages the Stage-M
 > historical import via the live SPEC-0020 framework. **Directly fills SPEC-0004 decision #1 (§7.1 COA ratification)
-> and unblocks SPEC-0018-EXT slice 5 (revenue needs a ratified revenue account).** 5 Owner decisions listed in §5;
-> 6 gated slices in §6. **Docs only — no schema/code/import; stopped at the gate per the Owner's instruction.**
+> and unblocks SPEC-0018-EXT slice 5 (revenue needs a ratified revenue account).** Owner follow-up same day → two
+> amendments: **§A.5** every expense — incl. custody-module submission — links to a leaf `account_id` (required to
+> enter a payment request; the journal posts to the specific leaf account instead of the kind bucket; kind-consistency
+> guard keeps #6 structural) and **§C.1** the full Lovable adopt-catalog from a deep review: **بنك الفسائل offshoot
+> biological-asset ledger** (5,382 produced / 1,158 remaining, per-center flows, 300–600ج valuation → new slice 7),
+> crop-margin economics (بنجر 80% vs برحي 20%), rule-based scorecard commentary + insight cards (no-AI → NOT
+> Stage-11-gated), palm yield-curve (agronomy template → SPEC-0008 #4 sign-off), scenario fan («سيناريو تقديري»,
+> #1-safe). 7 Owner decisions in §5; 7 gated slices in §6. **Docs only — stopped at the gate per instruction.**
 
 > **2026-07-02 — PR QUEUE CLEARED TO ZERO: Stage-10 Academy LIVE (prod `20260701400000`), #580 plan merged, open-orders console shipped.**
 > Owner mandate "keep working until this task and all other open PRs are finished" executed: gated batch

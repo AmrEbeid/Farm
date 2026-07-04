@@ -103,6 +103,22 @@ A **tree editor page** under the Finance module (`/finance/accounts`): indented 
 add/rename/archive/merge actions, Arabic-first, `MasterTable`/Drawer patterns per SPEC-0017. Every expense/revenue entry
 picker shows **active leaf accounts only**, grouped by branch.
 
+### A.5 Account linkage in the expense & custody flow (Owner directive, 2026-07-04)
+**Every expense submitted — including through the custody/payment-request module (SPEC-0018) — links to a leaf account:**
+- `expenses.account_id uuid null references public.accounts(id)` (leaf, expense-side branch, active only). The expense entry
+  form **and** the custody-module expense submission both get the account picker (grouped by branch, Arabic-first), next to
+  the cost-center picker (B.2).
+- **Enforcement point (proposed):** nullable while `draft`, but an expense **cannot be added to a payment request / approved**
+  without an `account_id` — validated in `fn_add_expense_to_request` + the approval RPC (server-side, not UI-only). Legacy
+  rows stay NULL and report as «غير مصنف» (#1 — never guessed).
+- **Posting precision:** the kernel currently resolves the journal account from `expenses.kind` via
+  `fn_account_for_expense_kind` (kind-level, e.g. one `5000` bucket). With `account_id`, the journal line posts to the
+  **specific leaf account**, falling back to the kind-level account only for legacy NULL rows — so the payment-request →
+  settlement → journal chain (SPEC-0018/§0.3 kernel) becomes account-accurate end-to-end, and every custody-paid or
+  owner-paid expense lands in the tree exactly once.
+- Consistency guard: `account_id`'s `kind` (A.1) must agree with `expenses.kind` (reject a drawing-branch account on an
+  operating expense — keeps #6 structural at both levels).
+
 ---
 
 ## 2. Part B — مراكز التكلفة: the cost-center dimension
@@ -144,6 +160,25 @@ A `/finance/insights` (or `/insights`) module computing the zip's pages **live**
 7. "Ask Omar" → **SPEC-0005 عبدالجليل**, Stage-11 gated; reference only, not in scope here.
 UI: recharts patterns portable from the zip (respect the repo's recharts **code-split guard**); Arabic-Indic digits via `lib/money`.
 
+### C.1 Full adopt-catalog from the Lovable app (deep review, 2026-07-04 — Owner: "it has a lot of good usable stuff")
+Reviewed every page + data module. Adoption map, ranked:
+
+| # | Lovable feature (verified in the code) | Adopt as | Where it lands |
+|---|---|---|---|
+| 1 | **بنك الفسائل — the offshoot biological-asset ledger**: 5,382 produced from the 22-feddan mother block; per-year produced/planted/sold/replanted flows to 7 named sectors (عوامة 668 '22، حوض البابور 1,058 '23+'25، كمثري 421، الشفعة 273، الخطارة 52، الحصوة 498…); 1,158 remaining; **5.79 avg offshoots/palm**; valuation 300–600 ج.م each | **The standout — a real missing module.** Offshoot inventory + movement ledger (produce/plant/sell/replant per destination center) + valuation range. Reuses the movement-ledger pattern; sales side = SPEC-0018-EXT revenue with crop=فسائل; destinations = cost centers (Part B) | New slice 7 (this spec) — the Sankey/ExpansionMap/ValuationPanel pages read it live |
+| 2 | **Crop economics panel** — margin+ROI per enterprise (real 2025: بنجر 80% margin/396% ROI vs برحي 20%/25%) | Direct report over revenue−cost per **cost center/enterprise** (B.3) — the single most decision-relevant view the Owner lacks | Part C.2 / slice 4 |
+| 3 | **Scorecard with rule-based auto-commentary** — `getVerdict` (good/mixed/bad per metric direction) + `generateCommentary` (templated Arabic/English narrative: growth %, margin direction, best/worst center, cost-discipline warning) | **Rule-based narrative — no AI, so NOT Stage-11-gated**; mirrors the page-help "Why?" precedent. Year-vs-year scorecard with verdicts + generated commentary | Part C.6 / slice 5 |
+| 4 | **Efficiency ratio** (cost-to-revenue per year) + **workforce panel** (payroll % of revenue / % of costs, role table) | Two small KPI panels over the kernel + (workforce) SPEC-0006 payroll data — **wage detail stays payroll.read-gated** | Part C / slice 5 |
+| 5 | **Palm yield curve by age** (age 1–15 → % of full yield; Barhi fruiting years 5–7) + the "Awama wave" projection (668 palms '20 → producing '26-27) | **Agronomy content → SPEC-0008 rules apply (#4): editable template requiring agronomist sign-off**, never a prescription. Once signed, powers a real production-forecast: palms×age×curve per center | SPEC-0008 template + a forecast panel here (gated on sign-off) |
+| 6 | **Scenario fan chart** (conservative/base/optimistic 2026-28) | Adopt with #1 discipline: scenarios are **inputs the Owner sets**, rendered clearly as «سيناريو تقديري» — never presented as data | Part C / slice 5 |
+| 7 | **Insight cards** (rule-triggered highlights: cash-cow center, cost-spike +86% watch, diversification margin) | Rule-based insight engine (thresholds over live data: revenue/feddan outlier, YoY cost spike >X%, margin compression) — same no-AI posture as #3 | Part C / slice 5 |
+| 8 | **Growth timeline** (farm area 54.5→115 فدان 2019→25) + league table (revenue/فدان by center) | League table = B.3 report; area-by-year history = a small `area_feddan` history on cost centers (or season snapshot) | slice 4 |
+| 9 | **Bilingual AR/EN toggle** (full i18n layer) | Farm OS is Arabic-first (#2); an EN layer is a later, low-priority enhancement — note only | backlog |
+| 10 | Benchmark page (peer gap analysis, maturity Gantt) · login gate · avatar | Research-grade / N/A (Farm OS has real auth) | not adopted |
+
+**Explicitly NOT imported:** the zip's modeled 2018–24 financial series (only 2025 is actual — #1); its hardcoded staff
+salary table (PII → SPEC-0006). The zip's real-2025 aggregates serve as the **validation oracle** for Part D (§0.2).
+
 ---
 
 ## 4. Part D — Historical import + the reconciliation oracle (Stage-M gated)
@@ -168,16 +203,20 @@ UI: recharts patterns portable from the zip (respect the repo's recharts **code-
    `finance.admin` perm (needs the union re-emit + tests 22/97-class updates).
 4. Edit-rule confirmations: depth cap 4; merge allowed for both trees; `is_system` protection list.
 5. Part D timing (Stage-M) + confirmation that the Gmail password in the workbook gets rotated.
+6. **A.5 enforcement strictness**: proposed = `account_id` nullable at draft but **required to enter a payment request /
+   approval** (server-side). Alternative: required at entry. Confirm which.
+7. **Offshoot bank module** (C.1 #1): confirm building the فسائل ledger as slice 7 of this spec (vs deferring to its own spec).
 
 ## 6. Slices (each an independently gated PR; define-the-check-first)
 | # | Slice | Contents | Depends on |
 |---|---|---|---|
-| 1 | COA tree schema + RPCs + seed (draft) | A.1–A.3 + pgTAP (cycle, archive-vs-delete, merge, rollup view, #6 drawings-never-in-opex rollup) | decision 1,3 |
-| 2 | Tree editor UI | A.4 + page-help + drift-guards | 1 |
+| 1 | COA tree schema + RPCs + seed (draft) | A.1–A.3 + **A.5 `expenses.account_id` + kind-consistency guard + required-at-request rule** + pgTAP (cycle, archive-vs-delete, merge, rollup view, #6 drawings-never-in-opex rollup, A.5 gate) | decision 1,3,6 |
+| 2 | Tree editor UI + entry pickers | A.4 + **account picker in `/expenses` AND the custody-module expense form (A.5)** + page-help + drift-guards | 1 |
 | 3 | Cost centers schema + seed + dimension columns | B.1–B.3 + pgTAP (org-consistency center↔sector, per-feddan math, «غير موزَّع») | decision 2,3 |
-| 4 | Reports v1 | center economics + rollup P&L (التقارير matrix live) | 1,3 |
-| 5 | Owner Insights pages | Part C (charts; labeled-or-omitted pre-import history) | 4 |
+| 4 | Reports v1 | center economics + rollup P&L (التقارير matrix live) + league table + crop-economics margins (C.1 #2/#8) | 1,3 |
+| 5 | Owner Insights pages | Part C charts + scorecard w/ rule-based commentary + insight cards + scenario fan (C.1 #3/#4/#6/#7; labeled-or-omitted pre-import history) | 4 |
 | 6 | Historical import + oracle | Part D descriptors + mapping tables + the التقارير reconciliation test | 1,3 + Stage-M gate |
+| 7 | **Offshoot bank (بنك الفسائل)** | C.1 #1 ledger (produce/plant/sell/replant per destination center) + valuation + the Sankey/expansion pages; yield-curve forecast gated on SPEC-0008 sign-off (#4) | 3 + decision 7 |
 
 ## 7. Non-negotiables carried
 #1 never fabricate — «غير موزَّع»/«غير متوفر» over guessing; modeled series never shown as fact. #6 drawings ≠ opex, now
