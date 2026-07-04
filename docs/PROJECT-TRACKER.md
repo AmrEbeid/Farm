@@ -1,6 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (planning session, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0024 S-8a live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — COA tree + cost centers + Owner Insights DESIGNED → [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) (docs only; Owner gate).**
+> **2026-07-04 (latest) — SPEC-0024 execution started: S-0 + S-8a LIVE (`main` `6d936b4`, PR #649).**
+> Owner ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) through the Codex execution brief
+> (`~/Downloads/codex-prompt-SPEC-0024-execution.md`): seed COA mapping, real 18 cost centers, `budget.write`
+> reuse, depth/merge/system-account rules, A.5 account strictness, offshoot bank, and Farm-Manager no-absolute-money
+> visibility are now accepted defaults; Stage-M real workbook load remains excluded. **S-0 complete:** docs-only
+> PR #646 merged. **S-8a complete/live:** PR #649 adds the shared interactive-reporting primitives: sortable
+> `SimpleTable`/`FilterableTable` headers, numeric-aware Arabic collation, sorted+filtered CSV export, reusable
+> `MultiInsightChart`, and trend overlay-series support; report/dashboard user manual updated. No schema or prod DB
+> migration. Validation: PR checks green; post-merge `main` `ci`, `db-tests`, and `release` all green. Next slice:
+> **S-1 COA tree backend** (money/access-control) — requires collision check, pgTAP, and independent review before
+> merge/migration; do not touch `public.authorize()` or stock-coverage engine.
+
+> **2026-07-04 — COA tree + cost centers + Owner Insights DESIGNED → [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) (docs only; Owner gate now ratified).**
 > Owner directive: build an **editable شجرة الحسابات**, the **cost-center concept**, and (yes to) the Owner-Insights
 > reporting layer — grounded in two Owner-provided sources reviewed this session: **(a) the farm's REAL accounting
 > workbook** `شيت محاسبي للمزارع0 (1).xlsx` (الدليل = 18 real cost centers *with areas* + 19 expense types + 35 labor
