@@ -52,6 +52,8 @@ const ALLOWED_CHART_ROUTES = [
   // The finance dashboard renders budget-utilisation + variance charts; same code-split
   // guarantee — recharts lives in this route's own client chunk, never the global bundle.
   "/finance/dashboard/page",
+  // SPEC-0024 S-4 cost-center reports render multi-insight charts over live accounting views.
+  "/finance/reports/page",
   // Module dashboards each render their own charts (status/type doughnuts, grouped
   // bars, the weather temperature trend). Same guarantee — recharts stays confined to
   // each route's own client chunk, never the global/shared bundle.

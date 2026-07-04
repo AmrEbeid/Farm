@@ -146,6 +146,7 @@ export default async function AccountingPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>
           <HeaderLink href="/custody">العهدة وطلبات الصرف</HeaderLink>
           <HeaderLink href="/expenses">المصروفات</HeaderLink>
         </div>
