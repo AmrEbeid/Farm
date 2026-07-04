@@ -1,6 +1,25 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-2 live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-3 live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + expense account pickers LIVE (`main` `f113169`, PR #661; no migration).**
+> **2026-07-04 (latest) — SPEC-0024 S-3 cost centers + accounting dimension LIVE (`main` `ed827e1`, PR #659; prod migration `20260701460000`).**
+> Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
+> **S-0 + S-8a + S-1 + S-2 + S-3**. S-3 adds the standalone farm-costing dimension that answers "which land/business
+> did this money serve?": `cost_centers` is an org-scoped editable tree with optional physical-sector links,
+> enterprise labels, area-feddan values for per-feddan economics, protected system center **`CC-UNALLOC` / غير موزَّع**,
+> RLS + FORCE RLS, audit, and RPC-only writes. The live Ebeid org now has the 18 real accounting centers from the
+> Owner workbook when the canonical physical sectors are present. `expenses.cost_center_id` and
+> `journal_lines.cost_center_id` are live; expenses can only point to same-org active leaf centers, routed money keeps
+> the cost-center assignment immutable except through the controlled merge path, and journals carry the expense-side
+> cost center into cash-method accounting. S-3 also ships `v_cost_center_rollup`,
+> `v_cost_center_reconciliation_flags`, `fn_save_cost_center`, `fn_archive_cost_center`,
+> `fn_merge_cost_centers`, the cost-center import descriptor/template support, and the seed hook for new orgs.
+> Validation: local import suite **90/90**, app Vitest **454/454**, full pgTAP **1309/1309**, touched-file eslint,
+> `tsc`, production build, and `git diff --check` all green; PR checks, CodeRabbit, Vercel, and post-merge `main`
+> `ci`/`db-tests`/`release`/Supabase Preview/Vercel are green. Production apply was migrate-first via Supabase CLI:
+> dry run showed exactly one pending migration, `20260701460000_cost_centers`; post-apply probes confirmed ledger row,
+> table/RLS/FORCE, columns, views, RPC signatures, anon EXEC = 0, `CC-UNALLOC` = 1, and Ebeid real centers = 18.
+> Next slice: **S-4 cost-center reports / Owner Insights v1** on top of the live rollup + reconciliation views.
+
+> **2026-07-04 — SPEC-0024 S-2 account tree UI + expense account pickers LIVE (`main` `f113169`, PR #661; no migration).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
 > **S-0 + S-8a + S-1 + S-2**. S-2 adds the owner/accountant Finance → **شجرة الحسابات** page at `/finance/accounts`,
 > backed by the already-live S-1 RPCs and `v_account_rollup`: indented COA tree, rollup debit/credit/balance,
@@ -13,9 +32,9 @@
 > COA. Docs/page-help/nav drift guards updated. Validation: local target eslint, `tsc`, app Vitest **447/447**,
 > production build, `git diff --check`; PR checks, CodeRabbit, pgTAP, Vercel, and post-merge `main`
 > `ci`/`db-tests`/`release`/Vercel all green. **No Supabase migration / prod DB apply** for S-2; it consumes
-> production migration `20260701440000` from S-1. Next slice: **S-3 cost centers schema + seed + dimension columns**.
+> production migration `20260701440000` from S-1. Historical next slice was S-3, now live above.
 
-> **2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend LIVE (`main` `6209cb3`, PR #654; prod migration `20260701440000`).**
+> **2026-07-04 — SPEC-0024 S-1 COA tree backend LIVE (`main` `6209cb3`, PR #654; prod migration `20260701440000`).**
 > Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
 > **S-0 + S-8a + S-1**. S-0 docs baseline merged in #646. S-8a reporting primitives merged in #649
 > (`SimpleTable`/`FilterableTable` sortable headers, CSV export from the sorted/filtered view, `MultiInsightChart`,
@@ -974,7 +993,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 S-1 COA tree backend live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654 now ships the editable COA-tree backend migrate-first as `20260701440000 coa_tree_accounts`: account hierarchy, default farm COA seed, account rollup, expense `account_id`, posting to selected leaf accounts, account import descriptor, and `budget.write`-gated account save/archive/merge RPCs. Post-apply probes and `main` checks green. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; SPEC-0024 S-2 UI/pickers are the next accounting slice. |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. Post-apply probes and `main` checks green. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; SPEC-0024 S-4 reports/Owner Insights is the next accounting slice. |
 | 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |

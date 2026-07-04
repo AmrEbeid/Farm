@@ -1,7 +1,48 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-2 live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-3 live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + pickers live
+## 2026-07-04 (latest) — SPEC-0024 S-3 cost centers + accounting dimension live
+
+Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-3 is now merged and
+live via PR **#659** (`main` merge commit **`ed827e1`**) after migrate-first production apply of
+**`20260701460000_cost_centers`** to Farm Supabase project `veezkmytervjnpxcrbkw`.
+
+**Completed and live:**
+- `cost_centers`:
+  - org-scoped editable tree with parent/leaf semantics;
+  - optional physical `sector_id` link;
+  - `enterprise`, `area_feddan`, `sort_order`, `active`, `is_system`;
+  - RLS + FORCE RLS + audit + RPC-only writes;
+  - protected **`CC-UNALLOC` / غير موزَّع** system center.
+- Ebeid seed:
+  - `CC-UNALLOC` exists for the org;
+  - the 18 real Ebeid accounting centers from the Owner workbook are seeded when canonical physical sector codes exist.
+- Accounting linkage:
+  - `expenses.cost_center_id` and `journal_lines.cost_center_id` are live;
+  - expenses can only point to a same-org active leaf cost center;
+  - routed expenses keep cost-center assignment immutable except through the controlled merge path;
+  - `fn_post_two_line_journal` passes the expense-side cost center into cash-method journal lines.
+- RPC/reporting/import foundation:
+  - `fn_save_cost_center`, `fn_archive_cost_center`, `fn_merge_cost_centers`;
+  - `v_cost_center_rollup`;
+  - `v_cost_center_reconciliation_flags`;
+  - cost-center import descriptor/template support;
+  - import-template prefill now supports `active=true` descriptor tables, not only `archived=false` tables.
+
+**Validation:** local import suite **90/90**, app Vitest **454/454**, full pgTAP **1309/1309**, touched-file eslint,
+`npx tsc --noEmit`, `npm run build`, and `git diff --check` all green. PR checks + CodeRabbit + Vercel green.
+Production dry-run showed exactly one pending migration, `20260701460000`; apply succeeded. Post-apply probes
+confirmed ledger row = 1, RLS/FORCE = true/true, table/columns/views/RPCs present, anon EXEC = 0, `CC-UNALLOC` = 1,
+and Ebeid real centers = 18. Post-merge `main` `ci`, `db-tests`, `release`, Supabase Preview, and Vercel production
+status all green for `ed827e1`.
+
+**Resume point:** start **S-4 reports / Owner Insights v1** from fresh `origin/main`, using `v_cost_center_rollup`
+and `v_cost_center_reconciliation_flags`. Keep it report-first and real-data-only: no fabricated finance figures, no
+new money movement RPCs, no `public.authorize()` re-emit unless unavoidable and reviewed, and no stock/reservation
+engine changes. Recommended first S-4 surface: owner/accountant cost-center report with KPI cards, searchable/sortable
+exportable table, center filter/click-through, missing-allocation count, and reconciliation flags before adding charts.
+
+## 2026-07-04 — SPEC-0024 S-2 account tree UI + pickers live
 
 Continuation of the Owner-ratified `~/Downloads/codex-prompt-SPEC-0024-execution.md` lane. S-2 is now merged and
 live via PR **#661** (`main` merge commit **`f113169`**). **No migration** was needed; this slice uses the S-1
@@ -27,12 +68,12 @@ production backend at `20260701440000`.
 PR checks + CodeRabbit + pgTAP + Vercel green. Post-merge `main` `ci`, `db-tests`, `release`, and Vercel production
 status all green for `f113169`.
 
-**Resume point:** start **S-3 cost centers schema + seed + dimension columns** from fresh `origin/main`. Keep the hard
+**Historical resume point:** start **S-3 cost centers schema + seed + dimension columns** from fresh `origin/main`. Keep the hard
 stops: no `public.authorize()` re-emit unless unavoidable and reviewed; do not touch stock-coverage engine,
 `fn_execute_operation`, or reservation logic. S-3 should define checks first: org-consistency center↔sector,
 per-feddan math, and the «غير موزَّع» fallback.
 
-## 2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend live
+## 2026-07-04 — SPEC-0024 S-1 COA tree backend live
 
 Owner supplied/ratified the Codex execution brief at `~/Downloads/codex-prompt-SPEC-0024-execution.md`.
 It matches the pasted brief: implement SPEC-0024 end-to-end except Stage-M real workbook load; decisions are fixed

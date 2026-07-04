@@ -2,7 +2,22 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-2 account tree UI + account-classified expense/payment flow LIVE.**
+> **2026-07-04 (latest) — SPEC-0024 S-3 cost centers + accounting dimension LIVE; prod ledger head `20260701460000`.**
+> PR **#659** merged to `main` at **`ed827e1`** after migrate-first production apply. Scope:
+> `cost_centers` editable org-scoped tree with RLS + FORCE RLS + RPC-only writes; protected `CC-UNALLOC` system
+> center; the 18 real Ebeid accounting cost centers seeded from the Owner workbook when canonical physical sectors
+> exist; `expenses.cost_center_id` + `journal_lines.cost_center_id`; leaf/same-org/active guards; routed-money
+> immutability extended to cost-center assignment; journal pass-through on expense-side lines; cost-center save,
+> archive, and merge RPCs; `v_cost_center_rollup`; `v_cost_center_reconciliation_flags`; and the bulk-import
+> descriptor/template path. Production apply used Supabase CLI against Farm project `veezkmytervjnpxcrbkw`:
+> dry-run showed exactly one pending migration, `20260701460000_cost_centers`, then `supabase db push --yes`
+> applied it. Post-apply probes confirmed ledger row = 1, RLS/FORCE = true/true, table/columns/views/RPCs present,
+> anon EXEC on new RPC family = 0, system unallocated center = 1, and Ebeid real centers = 18. Local validation:
+> full pgTAP **1309/1309**, app Vitest **454/454**, import suite **90/90**, touched-file eslint, `tsc`, production
+> build, and `git diff --check`. PR checks + CodeRabbit + Vercel green; post-merge `main` checks are green:
+> `ci`, `db-tests`, `release`, Supabase Preview, and Vercel production status for `ed827e1`.
+>
+> **2026-07-04 — SPEC-0024 S-2 account tree UI + account-classified expense/payment flow LIVE.**
 > PR **#661** merged to `main` at **`f113169`**. Scope: owner/accountant `/finance/accounts`
 > chart-of-accounts tree editor over the already-applied S-1 backend (`fn_save_account`, `fn_archive_account`,
 > `fn_merge_accounts`, `v_account_rollup`); expense account picker filtered by operating/drawing/capex leaf accounts;
