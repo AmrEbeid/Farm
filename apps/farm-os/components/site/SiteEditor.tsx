@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button, Field, Input, Textarea, useToast } from "@/components/ui";
 import type { SiteContent } from "@/lib/site-content";
-import { saveSiteContent } from "@/app/(app)/website/actions";
+import { saveSiteContent, uploadGalleryImage } from "@/app/(app)/website/actions";
 
 // Owner editor for the commonly-changed public-site fields (tagline, hero, headline KPIs, contact).
 // It edits a working copy of the FULL SiteContent and persists the whole object, so the less-often-
@@ -13,6 +13,7 @@ import { saveSiteContent } from "@/app/(app)/website/actions";
 export function SiteEditor({ orgId, initial }: { orgId: string; initial: SiteContent }) {
   const [content, setContent] = useState<SiteContent>(() => structuredClone(initial));
   const [pending, startTransition] = useTransition();
+  const [uploading, setUploading] = useState<number | null>(null);
   const toast = useToast();
 
   // Immutable nested update via a small draft-mutating setter.
@@ -30,6 +31,23 @@ export function SiteEditor({ orgId, initial }: { orgId: string; initial: SiteCon
       if (res.ok) toast.ok("تم حفظ محتوى الموقع");
       else toast.danger(res.error);
     });
+  }
+
+  async function onUpload(i: number, file: File) {
+    setUploading(i);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await uploadGalleryImage(fd);
+      if (res.ok) {
+        set((d) => { d.gallery.items[i].image = res.url; });
+        toast.ok("تم رفع الصورة — لا تنسَ الحفظ");
+      } else {
+        toast.danger(res.error);
+      }
+    } finally {
+      setUploading(null);
+    }
   }
 
   return (
@@ -153,11 +171,33 @@ export function SiteEditor({ orgId, initial }: { orgId: string; initial: SiteCon
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-bold text-muted-foreground">معرض الصور</h2>
         <p className="text-xs text-muted-foreground">
-          صور تجريبية مؤقتة — استبدل رابط كل صورة برابط صورة حقيقية وعدّل التعليق. يظهر المعرض على
-          الموقع عند وجود صورة واحدة على الأقل، ويختفي إذا حذفت كل الصور.
+          ارفع صورة حقيقية لكل بطاقة (أو الصق رابطًا) وعدّل التعليق، ثم احفظ. يظهر المعرض على الموقع
+          عند وجود صورة واحدة على الأقل، ويختفي إذا حذفت كل الصور.
         </p>
         {content.gallery.items.map((g, i) => (
           <div key={i} className="flex flex-col gap-2 rounded-lg border p-3">
+            <div className="flex items-center gap-3">
+              {g.image && (
+                // eslint-disable-next-line @next/next/no-img-element -- small editor preview thumbnail
+                <img src={g.image} alt="" className="h-14 w-20 rounded border object-cover" />
+              )}
+              <label>
+                <span className="inline-block cursor-pointer rounded border px-3 py-1.5 text-sm hover:bg-muted">
+                  {uploading === i ? "جارٍ الرفع…" : "رفع صورة"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  className="hidden"
+                  disabled={uploading !== null}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onUpload(i, f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
             <Field id={`gal-img-${i}`} label={`رابط الصورة ${i + 1}`}>
               <Input
                 id={`gal-img-${i}`}
