@@ -54,6 +54,8 @@ const ALLOWED_CHART_ROUTES = [
   "/finance/dashboard/page",
   // SPEC-0024 S-4 cost-center reports render multi-insight charts over live accounting views.
   "/finance/reports/page",
+  // SPEC-0024 S-5 owner insights reuses the report chart wrappers without loading them globally.
+  "/finance/insights/page",
   // Module dashboards each render their own charts (status/type doughnuts, grouped
   // bars, the weather temperature trend). Same guarantee — recharts stays confined to
   // each route's own client chunk, never the global/shared bundle.

@@ -6,8 +6,9 @@ import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
-import { BudgetDoughnut, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
+import { BudgetDoughnut, CategoryBarChart, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { buildFinanceInsightSummary, type CostCenterInsightFlag, type CostCenterInsightRollup } from "@/lib/finance-insights";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -22,7 +23,7 @@ const PALM_ATTENTION = new Set(["watch", "sick", "dead"]);
 export default async function OwnerDashboard() {
   // Role-gate: owner/accountant land here via the dashboard router; a wrong role
   // typing the URL is bounced back to the router (which routes to its own home).
-  await requireRole(["owner", "accountant"]);
+  const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
   // Strategic aggregator: independent org-scoped reads (RLS narrows to the active
@@ -38,6 +39,8 @@ export default async function OwnerDashboard() {
     { data: assets, error: assetsError },
     { data: people, error: peopleError },
     { data: hawshat, error: hawshatError },
+    { data: costRollup, error: costRollupError },
+    { data: costFlags, error: costFlagsError },
   ] = await Promise.all([
     sb.from("purchase_requests").select("id, code, status, reason, needed_by").order("code", { ascending: false }),
     sb.from("budget_lines").select("category, approved, committed, actual"),
@@ -48,8 +51,10 @@ export default async function OwnerDashboard() {
     sb.from("assets").select("status"),
     sb.from("people").select("active"),
     sb.from("hawshat").select("palm_count_barhi"),
+    sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
+    sb.from("v_cost_center_reconciliation_flags").select("*").eq("org_id", m.orgId).order("code", { ascending: true }),
   ]);
-  for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError]) {
+  for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError, costRollupError, costFlagsError]) {
     if (e) throw e;
   }
 
@@ -126,6 +131,15 @@ export default async function OwnerDashboard() {
   const totalUsed = budgetLines.reduce((s, b) => s + Number(b.committed ?? 0) + Number(b.actual ?? 0), 0);
   const available = totalApproved - totalUsed;
   const usedPct = totalApproved > 0 ? Math.round((totalUsed / totalApproved) * 100) : 0;
+  const financeInsights = buildFinanceInsightSummary({
+    rollup: (costRollup ?? []) as CostCenterInsightRollup[],
+    flags: (costFlags ?? []) as CostCenterInsightFlag[],
+  });
+  const topCostCenterChart = financeInsights.topExpenseCenters.map((row) => ({
+    center: row.name,
+    "مصروفات": row.expense,
+    "إيرادات": row.revenue,
+  }));
 
   // ── Chart data (all query-derived) ────────────────────────────────────────
   const varianceData = budgetLines.map((b) => ({
@@ -179,6 +193,7 @@ export default async function OwnerDashboard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/budgets"><Button variant="ghost" size="sm">الموازنات</Button></Link>
+          <Link href="/finance/insights"><Button variant="ghost" size="sm">رؤى المالك</Button></Link>
           <Link href="/finance/pnl"><Button variant="ghost" size="sm">قائمة الدخل</Button></Link>
           <Link href="/purchase-requests"><Button variant="primary" size="sm">طلبات الشراء</Button></Link>
         </div>
@@ -257,6 +272,37 @@ export default async function OwnerDashboard() {
         </DashboardKpiLink>
       </section>
 
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">رؤى مالية</h2>
+          <Link href="/finance/insights"><Button variant="ghost" size="sm">فتح الرؤى</Button></Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <DashboardKpiLink href="/finance/reports?focus=posted" active={false}>
+            <KpiCard label="مراكز لها قيود" value={num(financeInsights.postedCenterCount)} />
+          </DashboardKpiLink>
+          <DashboardKpiLink href="/finance/reports?center=CC-UNALLOC" active={false}>
+            <KpiCard label="صافي غير موزع" value={egp(financeInsights.unallocatedNet)} deltaDirection={Math.abs(financeInsights.unallocatedNet) > 0 ? "down" : "none"} />
+          </DashboardKpiLink>
+          <DashboardKpiLink href="/finance/reports?focus=flags" active={false}>
+            <KpiCard label="بنود مراجعة" value={num(financeInsights.flagCount)} deltaDirection={financeInsights.flagCount > 0 ? "down" : "none"} />
+          </DashboardKpiLink>
+          <KpiCard label="تقييم التوزيع" value={financeInsights.score.label} />
+        </div>
+        {financeInsights.cards.length > 0 && (
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            {financeInsights.cards.slice(0, 3).map((card) => (
+              <Link key={card.id} href={card.href} className="block transition-opacity hover:opacity-90">
+                <Card title={card.title}>
+                  <p className="text-lg font-semibold">{card.value}</p>
+                  <p className="mt-2 text-sm" style={{ color: "var(--ink-muted)" }}>{card.description}</p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Charts — query-derived snapshots */}
       <section>
         <h2 className="mb-3 text-lg font-semibold">رسوم بيانية</h2>
@@ -276,6 +322,21 @@ export default async function OwnerDashboard() {
               <PalmStatusDoughnut data={palmStatusData} />
             </Card>
           )}
+          {topCostCenterChart.length > 0 && (
+            <Card title="أعلى مراكز التكلفة">
+              <CategoryBarChart
+                data={topCostCenterChart}
+                categoryKey="center"
+                series={[
+                  { dataKey: "مصروفات", name: "مصروفات" },
+                  { dataKey: "إيرادات", name: "إيرادات" },
+                ]}
+                ariaLabel="أعلى مراكز التكلفة حسب المصروفات"
+                caption="أعلى مراكز التكلفة"
+                columnHeader="المركز"
+              />
+            </Card>
+          )}
         </div>
       </section>
 
@@ -287,7 +348,7 @@ export default async function OwnerDashboard() {
             { icon: TreePalm, name: "المزرعة", line: `${num(totalBarhi)} برحي · ${num(palmAttention.length)} تحتاج عناية`, href: "/farm/dashboard" },
             { icon: CalendarDays, name: "التخطيط والعمليات", line: `جاهزية ${pct(readiness)} · ${num(blockedChecks.length)} فحص محظور`, href: "/plans/dashboard" },
             { icon: Package, name: "المخزون والمشتريات", line: `${num(reorderItems.length)} تحت حد الطلب · ${num(pending.length)} بانتظار الاعتماد`, href: "/inventory/dashboard" },
-            { icon: BarChart3, name: "المالية", line: `المتاح ${egp(available)} · ${num(overLines.length)} بند متجاوز`, href: "/finance/dashboard" },
+            { icon: BarChart3, name: "المالية", line: `التوزيع ${financeInsights.score.label} · ${num(financeInsights.postedCenterCount)} مركز له قيود`, href: "/finance/insights" },
             { icon: Users, name: "الفريق", line: `${num(activePeople)} نشط · ${num(unassignedOps.length)} عملية بلا مسؤول`, href: "/people/dashboard" },
             { icon: CloudSun, name: "الطقس والمخاطر", line: "تنبيهات الطقس وبوابات العمليات", href: "/weather/dashboard" },
           ].map((mod) => (
