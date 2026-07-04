@@ -71,6 +71,27 @@ export async function saveSiteContent(input: {
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+const EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/avif": "avif",
+};
+
+// Determine the real image type from magic bytes — do NOT trust the client-declared file.type.
+// Returns null for anything that isn't one of the allowed image formats.
+function sniffImage(b: Uint8Array): string | null {
+  if (b.length < 12) return null;
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    const brand = String.fromCharCode(b[8], b[9], b[10], b[11]);
+    if (brand === "avif" || brand === "avis") return "image/avif";
+  }
+  return null;
+}
 
 // Upload a gallery image to the public `site-media` bucket and return its public URL. Owner-gated
 // (like the content save). Runs server-side via the service-role admin client, so no client write
@@ -88,14 +109,20 @@ export async function uploadGalleryImage(
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "لم يتم اختيار ملف" };
   if (file.size > MAX_BYTES) return { ok: false, error: "الحد الأقصى لحجم الصورة 5 ميجابايت" };
-  if (!ALLOWED.has(file.type)) return { ok: false, error: "الصيغة غير مدعومة (JPG / PNG / WebP / AVIF)" };
 
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-  const path = `gallery/${crypto.randomUUID()}.${ext}`;
+  // Trust the file's CONTENT, not its declared type or name: sniff the magic bytes and derive both
+  // the stored content-type and the extension server-side (no path/type comes from the client).
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const type = sniffImage(bytes);
+  if (!type || !ALLOWED.has(type)) {
+    return { ok: false, error: "الملف ليس صورة صالحة (JPG / PNG / WebP / AVIF)" };
+  }
+
+  const path = `gallery/${crypto.randomUUID()}.${EXT[type]}`;
   const sb = createAdminClient();
   const { error } = await sb.storage
     .from("site-media")
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, bytes, { contentType: type, upsert: false });
   if (error) return { ok: false, error: "تعذّر رفع الصورة، حاول مجددًا" };
 
   const { data } = sb.storage.from("site-media").getPublicUrl(path);

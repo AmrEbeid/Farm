@@ -21,11 +21,15 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
   const t = (b: Bi) => b[lang];
   const other = lang === "ar" ? "English" : "عربي";
   const primaryPhone = c.contact.phones[0] ?? "";
+  // Public gallery shows only REAL photos — the shipped dummy placeholders (and empty slots) are
+  // hidden on the live site so buyers never see "replace-me" tiles; the owner still sees/edits them
+  // in the OS editor. An item goes public once its image is a real upload/URL (not a placeholder).
+  const galleryItems = c.gallery.items.filter((g) => g.image && !g.image.includes("/placeholder-"));
 
   const nav = [
     { href: "#about", label: { ar: "من نحن", en: "About" } },
     { href: "#certifications", label: { ar: "الشهادات", en: "Certifications" } },
-    ...(c.gallery.items.length > 0 ? [{ href: "#gallery", label: { ar: "المعرض", en: "Gallery" } }] : []),
+    ...(galleryItems.length > 0 ? [{ href: "#gallery", label: { ar: "المعرض", en: "Gallery" } }] : []),
     { href: "#supply", label: { ar: "التوريد", en: "Supply" } },
     { href: "#contact", label: { ar: "تواصل", en: "Contact" } },
   ];
@@ -197,12 +201,12 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
           </ul>
         </section>
 
-        {/* ---- Gallery (hidden until it has items; owner-editable, dummy placeholders for now) ---- */}
-        {c.gallery.items.length > 0 && (
+        {/* ---- Gallery (only REAL photos; dummy placeholders are hidden here, editable in the OS) ---- */}
+        {galleryItems.length > 0 && (
           <section id="gallery" className="site__section site__band">
             <div className="site__section-head"><h2>{t(c.gallery.heading)}</h2></div>
             <div className="site__gallery">
-              {c.gallery.items.map((g, i) => (
+              {galleryItems.map((g, i) => (
                 <figure key={i} className="site__gallery-item">
                   {/* eslint-disable-next-line @next/next/no-img-element -- owner-managed gallery image (URL/path), not a signed URL */}
                   <img src={g.image} alt={t(g.caption)} loading="lazy" />
