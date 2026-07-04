@@ -2,9 +2,9 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Every table with a
 stable `TBL-NNN` id, purpose, key columns, foreign keys, RLS posture, and the feature it serves (→ `FEAT-NNN`).
-Reconciled to `main` 2026-07-01 (50 tables incl. `user_active_org`, SPEC-0018 custody/payment backend,
+Reconciled to `main` 2026-07-01 (53 tables incl. `user_active_org`, SPEC-0018 custody/payment backend,
 SPEC-0016 export-compliance slice 1, and the cash-method accounting kernel GL tables from PR #568
-`20260701220000`).
+`20260701220000`, plus revenue/A-R backend `20260701500000`).
 Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**; only deviations are noted.*
 
 ## Tenancy & people
@@ -77,6 +77,9 @@ Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**
 | **TBL-048** | `journal_entries` | Double-entry journal header | id, org_id, entry_date, source_type, source_id, status∈{posted,reversed}, reversal_of? | organization, journal_entries(self) | UNIQUE(org_id,source_type,source_id) → idempotent posting (BR-117); reads `finance.read`; RPC-only; audited | FEAT-030 |
 | **TBL-049** | `journal_lines` | Double-entry journal lines | id, org_id, journal_entry_id, account_id, debit, credit, description, custody_account_id?, custody_movement_id?, expense_id?, payment_request_id? | organization, journal_entries, accounts, custody_accounts/movements, expenses, payment_requests | CHECK one-sided ((debit>0)⊻(credit>0)); Σdebit=Σcredit per entry via deferred trigger (BR-116); reads `finance.read`; RPC-only; audited | FEAT-030 |
 | **TBL-050** | `payment_request_fundings` | Owner funds received into custody for a request | id, org_id, payment_request_id, custody_account_id, amount, occurred_at, custody_movement_id?, journal_entry_id? | organization, payment_requests, custody_accounts, custody_movements, journal_entries | reads `finance.read`; writes via `fn_record_payment_request_funding`; read report via `fn_owner_funding_report`; audited | FEAT-028/030 |
+| **TBL-051** | `buyers` | Buyer/customer master for sales and A/R | id, org_id, name, buyer_type∈{cash_customer,trader,company}, phone?, active | organization | reads `finance.read`; writes via `fn_save_buyer`; audited | FEAT-023 |
+| **TBL-052** | `sales` | Revenue delivery/sale ledger with delivery-before-price support | id, org_id, sale_date, farm/sector/hawsha?, crop, season?, buyer_id?, cost_center_id?, qty, unit, unit_price?, total?, price_status, payment_status | organization, farms/sectors/hawshat, buyers, cost_centers | reads `finance.read`; writes via `fn_save_sale` / `fn_finalize_sale_price`; pending sale keeps `unit_price`/`total` NULL and posts no journal; finalized sale posts revenue journal | FEAT-023/030 |
+| **TBL-053** | `sale_collections` | Customer collection ledger for partial/final A/R receipts | id, org_id, sale_id, amount, occurred_at, collected_by?, journal_entry_id? | organization, sales, journal_entries | reads `finance.read`; writes via `fn_record_sale_collection`; over-collection rejected; collection posts cash/A-R journal | FEAT-023/030 |
 
 ## Export compliance
 | TBL | Table | Purpose | Key columns | FKs | Notes | FEAT |
@@ -88,9 +91,9 @@ Maturity **L3**. **Every tenant table is `org_id`-scoped + RLS deny-by-default**
 
 **Hierarchies:** location `farms→sectors→hawshat→lines→assets`; planning `plans→plan_operations→{material,labor}_requirements`;
 budget `budgets→budget_lines`; custody/payment `custody_accounts→custody_movements` and `payment_requests→payment_request_lines`;
-export compliance `residue_tests→residue_test_results`; general ledger `journal_entries→journal_lines→accounts`
-(with `payment_request_fundings` linking a request to its custody-in movement + journal entry); events denormalize
+revenue `buyers→sales→sale_collections`; export compliance `residue_tests→residue_test_results`;
+general ledger `journal_entries→journal_lines→accounts`
+(with `payment_request_fundings` linking a request to its custody-in movement + journal entry, and `sales` /
+`sale_collections` linking revenue and A/R receipts to journals); events denormalize
 the ancestor chain in `event_locations` for roll-up.
-**Note (`sales` table):** referenced by draft PR #368 (FEAT-023) — **still not on `main`** (revenue/A-R is Slice A
-of [`ROADMAP-accounting-custody-2026-07-01.md`](ROADMAP-accounting-custody-2026-07-01.md)). Maintenance: new table →
-next free `TBL-051` + its `FEAT`/RLS note.
+Maintenance: new table → next free `TBL-054` + its `FEAT`/RLS note.

@@ -30,7 +30,8 @@ Define that check first; never weaken it.
 - The Stage 6 spine: purchase requests → receipts (`fn_post_receipt`) → could post the matching expense.
 
 **Missing (this stage builds):**
-- **`sales`** (revenue: crop, qty, unit price, buyer, date, sector/season allocation).
+- **Revenue reports/P&L over `sales`** — the backend `sales`/A-R tables are implemented in `20260701500000`,
+  but the read-only revenue reports, full P&L, balance sheet, and reconciliation oracle are still pending.
 - **`vouchers`** (the payment/receipt voucher document tying an expense/sale to a payment).
 - A **drawings (مسحوبات) classification** — owner withdrawals MUST be separable from operating
   expenses (non-negotiable #6). Recommend an explicit `expense.kind ∈ {operating, drawing, capex}`
@@ -76,6 +77,22 @@ This is **not** yet the full statutory accounting stage: no bank reconciliation,
 depreciation, sales ledger, balance sheet close, real Excel dual-run, or real-data import has been done.
 It is the operational cash ledger needed to stop custody/payment-request money from living only in reports.
 
+### 3.2 Revenue/A-R backend slice (S-10, 2026-07-04)
+
+The S-10 backend adds the revenue side without pretending the full P&L is complete:
+
+- `buyers`, `sales`, and `sale_collections` support delivery-before-price sales.
+- A pending sale keeps `unit_price` and `total` as NULL and posts no journal entry.
+- `fn_finalize_sale_price` sets the final total and posts Dr `1200` A/R / Cr `4000` sales revenue through the
+  existing double-entry helper.
+- `fn_record_sale_collection` supports partial receipts, rejects over-collection, and posts Dr `1100` sales cash /
+  Cr `1200` A/R.
+- Writes are RPC-only through the existing owner/accountant `budget.write` gate; reads require `finance.read`.
+
+This is still **not** the trusted management P&L. The default accounts make the backend operational, but the real
+chart mapping, period reports, and Excel dual-run reconciliation remain the gate before finance treats the totals
+as decision-grade.
+
 ## 4. Acceptance (the oracle)
 
 1. **Reconciliation (the gate):** for one closed season, `system Σ(operating expenses by category)` and
@@ -118,7 +135,8 @@ It is the operational cash ledger needed to stop custody/payment-request money f
   allocation-integrity test, idempotency test. **Independent review REQUIRED** on every slice
   (financial logic). **Owner gate**, separate approver for any real-data dual-run.
 - **Slices (small, independently gateable):**
-  1. `sales` + `vouchers` + `expense.kind` (drawings) schema + RLS + the `authorize()` write gate.
+  1. `sales` + A/R backend schema/RPCs + RLS + the existing owner/accountant write gate. **Backend implemented in
+     `20260701500000`; voucher documents and revenue report UI remain pending.**
   2. Transactional posting RPC (expense/sale → allocation + budget actual/committed), idempotent.
   3. P&L report (sector/crop/season, drawings excluded) — read-only.
   4. Reconciliation harness + the closed-season dual-run (gated to Stage M for real figures).

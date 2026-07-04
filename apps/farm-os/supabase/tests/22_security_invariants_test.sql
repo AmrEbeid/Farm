@@ -96,7 +96,9 @@ select is(
         'fn_set_enquiry_status',                   -- gated enquiry inbox status RPC (SPEC public-website, migration 20260701450000)
         'fn_save_cost_center', 'fn_archive_cost_center', -- gated cost-center RPCs (SPEC-0024 S-3, migration 20260701460000)
         'fn_merge_cost_centers',                   -- gated cost-center merge (SPEC-0024 S-3)
-        'fn_record_offshoot_movement', 'fn_set_offshoot_valuation' -- gated offshoot-bank RPCs (SPEC-0024 S-7, migration 20260701470000)
+        'fn_record_offshoot_movement', 'fn_set_offshoot_valuation', -- gated offshoot-bank RPCs (SPEC-0024 S-7, migration 20260701470000)
+        'fn_save_buyer', 'fn_save_sale',           -- gated revenue RPCs (SPEC-0024 S-10 / SPEC-0018-EXT §4, migration 20260701500000)
+        'fn_finalize_sale_price', 'fn_record_sale_collection' -- gated revenue price-finalize + collection RPCs (SPEC-0024 S-10)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

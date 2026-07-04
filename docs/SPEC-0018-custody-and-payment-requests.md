@@ -173,7 +173,7 @@ SPEC-0004.*
 - Bank reconciliation / proof matching.
 - Real Google Sheet/Excel import path and dry-run tooling.
 - Farm-manager finance participation, if the owner explicitly ratifies it.
-- Dedicated custody/payment reports are implemented in branch `20260701490000_custody_reports`; remaining polish is
+- Dedicated custody/payment reports are implemented by `20260701490000_custody_reports`; remaining polish is
   PDF export, richer charts, and missing-proof/duplicate-proof flags.
 - Full accounting/P&L integration remains with draft #368 and Stage-M privacy/reconciliation gates.
 
