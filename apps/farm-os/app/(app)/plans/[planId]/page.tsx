@@ -1,4 +1,5 @@
 import { StoryLine } from "@/components/StoryLine";
+import { OpsCalendar, type CalendarItem } from "@/components/OpsCalendar";
 import Link from "next/link";
 import { ClonePlanButton } from "@/components/ClonePlanButton";
 import type { ReactNode } from "react";
@@ -298,6 +299,24 @@ export default async function MonthlyPlanPage({
   if (unsignedDose > 0) planNotes.push(`${num(unsignedDose)} عملية رش/جرعة تنتظر اعتماد المهندس.`);
   if (dueOps.length > 0) planNotes.push(`${num(dueOps.length)} عملية مستحقة خلال الأيام القادمة.`);
 
+  // SPEC-0026 P-8: the plan as a CALENDAR — ops laid on the week grid of the plan period.
+  const { data: endsRows } = allOps.length
+    ? await sb.from("plan_operations").select("id, ends_on").eq("plan_id", planId)
+    : { data: [] };
+  const endsById = new Map(
+    ((endsRows ?? []) as unknown as { id: string; ends_on: string | null }[]).map((r) => [r.id, r.ends_on]),
+  );
+  const calendarItems: CalendarItem[] = allOps.map((o) => ({
+    id: o.id,
+    date: o.planned_at ? String(o.planned_at).slice(0, 10) : null,
+    endDate: endsById.get(o.id) ? String(endsById.get(o.id)).slice(0, 10) : null,
+    label: SUBTYPE_AR[o.subtype ?? ""] ?? o.subtype ?? "عملية",
+    href: `/plans/${planId}?tab=operations`,
+    tone: o.status === "done" ? "ok" : dueOps.some((d) => d.id === o.id) ? "warn" : "active",
+  }));
+  const calStart = plan.period_start ? String(plan.period_start).slice(0, 10) : null;
+  const calEnd = plan.period_end ? String(plan.period_end).slice(0, 10) : null;
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <Breadcrumbs
@@ -434,6 +453,11 @@ export default async function MonthlyPlanPage({
           tabIndex={0}
           className="flex flex-col gap-4"
         >
+          {calStart && calEnd && calendarItems.length > 0 && (
+            <Card title="تقويم الخطة">
+              <OpsCalendar start={calStart} end={calEnd} items={calendarItems} todayIso={todayStr} />
+            </Card>
+          )}
           {signoffOps.length > 0 && (
             // agronomist-signoff-gate (non-negotiable #4): a dose-bearing op (fertilization/spraying)
             // is a TEMPLATE, not a prescription, until a named agronomist signs off. This is the
