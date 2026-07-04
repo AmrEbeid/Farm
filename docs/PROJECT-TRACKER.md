@@ -1,16 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-04 by Claude (SPEC-0024 S-8a live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-04 by Codex (SPEC-0024 S-1 live, for Owner: Amr Ebeid)
 
-> **2026-07-04 (latest) — SPEC-0024 execution started: S-0 + S-8a LIVE (`main` `6d936b4`, PR #649).**
-> Owner ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) through the Codex execution brief
-> (`~/Downloads/codex-prompt-SPEC-0024-execution.md`): seed COA mapping, real 18 cost centers, `budget.write`
-> reuse, depth/merge/system-account rules, A.5 account strictness, offshoot bank, and Farm-Manager no-absolute-money
-> visibility are now accepted defaults; Stage-M real workbook load remains excluded. **S-0 complete:** docs-only
-> PR #646 merged. **S-8a complete/live:** PR #649 adds the shared interactive-reporting primitives: sortable
-> `SimpleTable`/`FilterableTable` headers, numeric-aware Arabic collation, sorted+filtered CSV export, reusable
-> `MultiInsightChart`, and trend overlay-series support; report/dashboard user manual updated. No schema or prod DB
-> migration. Validation: PR checks green; post-merge `main` `ci`, `db-tests`, and `release` all green. Next slice:
-> **S-1 COA tree backend** (money/access-control) — requires collision check, pgTAP, and independent review before
-> merge/migration; do not touch `public.authorize()` or stock-coverage engine.
+> **2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend LIVE (`main` `6209cb3`, PR #654; prod migration `20260701440000`).**
+> Owner-ratified [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) execution is now through
+> **S-0 + S-8a + S-1**. S-0 docs baseline merged in #646. S-8a reporting primitives merged in #649
+> (`SimpleTable`/`FilterableTable` sortable headers, CSV export from the sorted/filtered view, `MultiInsightChart`,
+> trend overlays; no DB migration). **S-1** extends the live cash-method accounting kernel from flat accounts into
+> an editable account tree: `accounts.parent_id/kind/is_system/sort_order`, `expenses.account_id`, leaf/kind guards,
+> `v_account_rollup`, default farm COA seed/reconcile, `budget.write`-gated `fn_save_account`/`fn_archive_account`/
+> `fn_merge_accounts`, account import descriptor, and custody/payment-request posting to selected leaf accounts.
+> Validation: local pgTAP **1268/1268**, app Vitest **435/435**, typecheck/lint/build/Recharts guard green; PR checks,
+> CodeRabbit, Vercel, `main` `ci`/`db-tests`/`release` all green. Production apply was migrate-first via Supabase CLI:
+> live ledger had `20260701430000 site_enquiries`, so S-1 was renumbered to **`20260701440000_coa_tree_accounts`**;
+> post-apply probes confirm ledger, tree columns, `expenses.account_id`, rollup view, seed nodes, grants, and triggers.
+> Next slice: **S-2 tree editor UI + account pickers**, building on this backend; keep `public.authorize()` and the
+> stock/reservation engine untouched unless a later spec explicitly reopens them.
 
 > **2026-07-04 — COA tree + cost centers + Owner Insights DESIGNED → [`SPEC-0024`](SPEC-0024-coa-tree-cost-centers-owner-insights.md) (docs only; Owner gate now ratified).**
 > Owner directive: build an **editable شجرة الحسابات**, the **cost-center concept**, and (yes to) the Owner-Insights
@@ -956,7 +959,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 4 | Planning workspace | Execution | Low/Med | **Done (merged #344 + live)** | Plan create/assign/labor + `/plans` (SPEC-0011); migration `0084`. |
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
-| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger live (PR #568); full P&L still gated** | Branch `feat/accounting-custody-standalone` added source-linked cash ledger + request settlement for custody/payment requests. Validation green (local pgTAP 904/904, app 251/251, lint/build, PR checks + CodeRabbit). Prod migration `20260701220000 accounting_cash_custody_settlement` is applied/probed migrate-first; PR #568 merged at `8ffc4ae`; post-merge `ci`/`db-tests`/`release` green; live `/accounting` and `/custody` protected-route probes pass. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review. |
+| 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 S-1 COA tree backend live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654 now ships the editable COA-tree backend migrate-first as `20260701440000 coa_tree_accounts`: account hierarchy, default farm COA seed, account rollup, expense `account_id`, posting to selected leaf accounts, account import descriptor, and `budget.write`-gated account save/archive/merge RPCs. Post-apply probes and `main` checks green. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; SPEC-0024 S-2 UI/pickers are the next accounting slice. |
 | 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |

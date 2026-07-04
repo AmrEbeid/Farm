@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-0/S-8a live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-1 live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — SPEC-0024 execution started: S-0 + S-8a live
+## 2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend live
 
 Owner supplied/ratified the Codex execution brief at `~/Downloads/codex-prompt-SPEC-0024-execution.md`.
 It matches the pasted brief: implement SPEC-0024 end-to-end except Stage-M real workbook load; decisions are fixed
@@ -20,12 +20,24 @@ absolute money).
   full app Vitest 46 files / 429 tests; `npm run build`; `node scripts/check-recharts-codesplit.mjs`;
   local pgTAP 1222/1222; `git diff --check`.
 - Post-merge `main` checks for `6d936b4`: `ci`, `db-tests`, and `release` all green.
+- **S-1:** PR #654 merged at `6209cb3` after migrate-first production apply. Migration
+  `20260701440000_coa_tree_accounts.sql` extends the live cash-method accounting kernel into an editable COA tree:
+  account hierarchy fields, `expenses.account_id`, leaf/kind/routed-money guards, `v_account_rollup`, default farm
+  COA seed, account save/archive/merge RPCs, account import descriptor, and custody/payment-request settlement posting
+  to the selected leaf account.
+- **S-1 validation:** local pgTAP 1268/1268, app Vitest 435/435, typecheck, touched-file eslint, production build,
+  Recharts code-split guard, and `git diff --check` all green. PR checks + CodeRabbit + Vercel green.
+- **S-1 production apply:** pre-probe found live ledger `20260701430000 site_enquiries`, so the COA migration was
+  renumbered away from the collision to `20260701440000`. `supabase db push --dry-run` showed exactly one pending
+  migration; `supabase db push --yes` applied it. Post-probes confirmed ledger, tree columns, `expenses.account_id`,
+  `v_account_rollup`, seed nodes, account grants, and triggers. Post-merge `main` `ci`, `db-tests`, `release`, and
+  Vercel are green.
 
-**Resume point:** start **S-1 COA tree backend** from fresh `origin/main`. Read
-`apps/farm-os/supabase/migrations/20260701220000_accounting_cash_custody_settlement.sql` before writing the
-migration. Collision-check open PR branches for migration numbers. Hard stops: do **not** touch `public.authorize()`;
-do **not** touch stock-coverage engine / `fn_execute_operation` / reservation logic. S-1 is money/access-control work:
-needs pgTAP plus independent review before merge/migration.
+**Resume point:** start **S-2 tree editor UI + account pickers** from fresh `origin/main`. Backend is live, so build
+against `fn_save_account`, `fn_archive_account`, `fn_merge_accounts`, `v_account_rollup`, and `expenses.account_id`.
+Keep the hard stops: do **not** touch `public.authorize()`; do **not** touch stock-coverage engine /
+`fn_execute_operation` / reservation logic. Next UI work should keep accountant/owner dashboards tied to real
+payment requests, custody balances, due/near-due obligations, and journals.
 
 ## 2026-07-03 — PUBLIC EXPORT WEBSITE built, shipped, and made OS-EDITABLE (8 PRs; prod migration applied)
 

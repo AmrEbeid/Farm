@@ -1,8 +1,23 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-02)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-04)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — SPEC-0024 S-8a interactive-reporting primitives LIVE; no migration.**
+> **2026-07-04 (latest) — SPEC-0024 S-1 COA tree backend LIVE; prod ledger head `20260701440000`.**
+> PR **#654** squash-merged to `main` at **`6209cb3`** after migrate-first production apply. Scope:
+> editable chart-of-accounts backend over the live cash-method accounting kernel: `accounts.parent_id`, `kind`,
+> `is_system`, `sort_order`; `expenses.account_id`; leaf/kind + routed-money immutability guards; `v_account_rollup`;
+> default farm COA seed/reconcile; account save/archive/merge RPCs gated by `budget.write`; account import descriptor;
+> and custody/payment-request settlement posting to the selected expense leaf. **Production note:** pre-apply probe
+> found live ledger version `20260701430000` already used by `site_enquiries`, so the COA migration was correctly
+> renumbered to **`20260701440000_coa_tree_accounts`** before merge/apply. Applied with `supabase db push --yes`
+> after a dry run showed exactly one pending migration. Post-apply probes confirmed ledger entries
+> `20260701430000 site_enquiries` + `20260701440000 coa_tree_accounts`, new columns, `v_account_rollup`, 5 system
+> kernel nodes, 24 child nodes, 12 operating leaves, account direct writes still revoked, `expenses.account_id`
+> column update grant present, and the expense/account/org-seed triggers installed. Validation: local pgTAP
+> **1268/1268**, app Vitest **435/435**, typecheck/lint/build/Recharts guard green; PR checks, CodeRabbit, Vercel,
+> and post-merge `main` `ci`/`db-tests`/`release` all green.
+>
+> **2026-07-04 — SPEC-0024 S-8a interactive-reporting primitives LIVE; no migration.**
 > Owner-ratified SPEC-0024 baseline is on `main` via #646, and the first implementation slice **S-8a** is live via
 > PR **#649** (`6d936b4`). Scope: shared sortable `SimpleTable`/`FilterableTable`, sorted+filtered CSV export,
 > reusable multi-insight chart toggle wrapper, trend overlay support, and the reports/dashboard user-manual update.
