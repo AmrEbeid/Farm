@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
 import { Code } from "@/components/Code";
-import { egp } from "@/lib/money";
+import { egp, num } from "@/lib/money";
 import { sortRows, type TableSortState } from "@/lib/table-sort";
 
 // "money": the row carries the RAW number and this formats it (egp) for display, so the SAME table is
@@ -126,6 +126,8 @@ function renderCell(c: SimpleColumn, row: SimpleRow): React.ReactNode {
   const v = row[c.id];
   if (v == null || v === "") return "—";
   switch (c.kind) {
+    case "num":
+      return num(Number(v));
     case "money":
       return egp(Number(v));
     case "status":
