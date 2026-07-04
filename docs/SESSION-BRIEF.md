@@ -1,7 +1,33 @@
-# Session Brief — Farm OS      Updated: 2026-07-03 by Claude (public website build + made OS-editable, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (SPEC-0024 S-0/S-8a live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-03 (latest) — PUBLIC EXPORT WEBSITE built, shipped, and made OS-EDITABLE (8 PRs; prod migration applied)
+## 2026-07-04 (latest) — SPEC-0024 execution started: S-0 + S-8a live
+
+Owner supplied/ratified the Codex execution brief at `~/Downloads/codex-prompt-SPEC-0024-execution.md`.
+It matches the pasted brief: implement SPEC-0024 end-to-end except Stage-M real workbook load; decisions are fixed
+(COA mapping, 18 real centers, `budget.write`, depth/merge/system rules, A.5 strictness, offshoot bank, FM no
+absolute money).
+
+**Completed and live:**
+- **S-0:** PR #646 merged, putting `SPEC-0024` and tracker baseline on `main`.
+- **S-8a:** PR #649 merged at `6d936b4`. Shared reporting primitives now live:
+  - `SimpleTable` / `FilterableTable` sortable headers, numeric-aware Arabic collation, stable sorting, blanks last.
+  - CSV export follows the current sorted + filtered view.
+  - `MultiInsightChart` wrapper and `TrendLineChart.overlaySeries` support for later C.2 report pages.
+  - `docs/user-manual/05-reports-and-dashboards.md` documents sorting/export/multi-insight charts.
+- No Supabase migration or prod DB apply for S-8a.
+- Validation before merge: `npx tsc --noEmit`; touched-file eslint; `npx vitest run lib/table-sort.test.ts` 5/5;
+  full app Vitest 46 files / 429 tests; `npm run build`; `node scripts/check-recharts-codesplit.mjs`;
+  local pgTAP 1222/1222; `git diff --check`.
+- Post-merge `main` checks for `6d936b4`: `ci`, `db-tests`, and `release` all green.
+
+**Resume point:** start **S-1 COA tree backend** from fresh `origin/main`. Read
+`apps/farm-os/supabase/migrations/20260701220000_accounting_cash_custody_settlement.sql` before writing the
+migration. Collision-check open PR branches for migration numbers. Hard stops: do **not** touch `public.authorize()`;
+do **not** touch stock-coverage engine / `fn_execute_operation` / reservation logic. S-1 is money/access-control work:
+needs pgTAP plus independent review before merge/migration.
+
+## 2026-07-03 — PUBLIC EXPORT WEBSITE built, shipped, and made OS-EDITABLE (8 PRs; prod migration applied)
 
 Autonomous session under the Owner's standing `/goal` mandate (*"go with your recommendation, use advisor, don't wait for my inputs, don't stop until I stop you"* — the Stop hook clarified: act **through** gates, don't park). Brainstormed → built the public marketing site at `/` (ebeidfarm.business) for **مزرعة عُبيد للتمور / Ebeid Farm**, then made its content editable from inside the OS.
 

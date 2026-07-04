@@ -2,7 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — public site EDITABLE PHOTO GALLERY + in-OS image upload.**
+> **2026-07-04 (latest) — SPEC-0024 S-8a interactive-reporting primitives LIVE; no migration.**
+> Owner-ratified SPEC-0024 baseline is on `main` via #646, and the first implementation slice **S-8a** is live via
+> PR **#649** (`6d936b4`). Scope: shared sortable `SimpleTable`/`FilterableTable`, sorted+filtered CSV export,
+> reusable multi-insight chart toggle wrapper, trend overlay support, and the reports/dashboard user-manual update.
+> **No Supabase migration / prod DB apply:** this is a frontend-only shared-component slice. Validation before merge:
+> `tsc`, touched-file eslint, focused sorter test 5/5, full Vitest 429/429, `npm run build`, explicit Recharts
+> code-split guard, full local pgTAP **1222/1222**, and `git diff --check`. After merge, `main` `ci`, `db-tests`,
+> and `release` are green for `6d936b4`.
+>
+> **2026-07-04 — public site EDITABLE PHOTO GALLERY + in-OS image upload.**
 > `/website` editor gained a gallery section (add/remove items, AR/EN captions) shipping with 4 dummy
 > placeholder SVGs so it moves before real photos exist (#645) — the gallery rides the existing
 > `site_content` JSON, **no migration**. Then in-OS **image upload** (#647): owner-gated server action
