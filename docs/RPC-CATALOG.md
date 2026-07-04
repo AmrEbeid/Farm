@@ -53,6 +53,7 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-041** | `fn_record_payment_request_funding(…)` | request,custody_account,amount,date?,note? | jsonb | Record owner funds into custody (amount_in) **before** payout; posts Dr custody / Cr owner-funding | BR-067/119 | `payment_request_fundings`,`custody_movements`,`journal_entries`,`journal_lines` | FEAT-028/030 |
 | **RPC-042** | `fn_confirm_request_expense_paid(…)` | request,expense,custody_account,date?,paid_by?,note? | jsonb | Confirm a request line paid from a chosen custody source; posts cash-out + Dr expense-kind account / Cr custody | BR-047/119 | `payment_request_lines`,`custody_movements`,`journal_entries`,`journal_lines` | FEAT-028/030 |
 | **RPC-043** | `fn_close_payment_request(p_request)` | request | jsonb | Close a request only once every line has `paid_at` | BR-069/120 | `payment_requests` | FEAT-028/030 |
+| **RPC-044** | `fn_transfer_custody(…)` | from_account,to_account,amount,date?,note? | uuid | Transfer custody cash between two holders as one linked out/in pair; no journal/P&L effect | BR-121 | `custody_movements` | FEAT-028 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |

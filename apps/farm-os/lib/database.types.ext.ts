@@ -442,7 +442,7 @@ type CustodyAccountsTable = {
   Relationships: [];
 };
 type CustodyMovementsTable = {
-  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; note: string | null; created_at: string; created_by: string | null };
+  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; transfer_group_id: string | null; note: string | null; created_at: string; created_by: string | null };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -667,6 +667,10 @@ type CustodyFunctions = {
   };
   fn_record_custody_movement: {
     Args: { p_account: string; p_movement_type: string; p_amount_in: number; p_amount_out: number; p_occurred_at?: string; p_expense_id?: string | null; p_note?: string | null };
+    Returns: string;
+  };
+  fn_transfer_custody: {
+    Args: { p_from_account: string; p_to_account: string; p_amount: number; p_occurred_at?: string; p_note?: string | null };
     Returns: string;
   };
   fn_set_expense_payment_status: {

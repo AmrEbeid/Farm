@@ -73,6 +73,7 @@ select is(
         'fn_save_academy_content', 'fn_signoff_academy_content', -- gated Care Academy RPCs (STAGE 10 / SPEC-0008, migration 20260701400000)
         'fn_archive_academy_content',              -- gated Care Academy RPC (STAGE 10 / SPEC-0008, migration 20260701400000)
         'fn_save_custody_account', 'fn_record_custody_movement', 'fn_set_expense_payment_status', -- gated custody/expense RPCs (SPEC-0018)
+        'fn_transfer_custody',                    -- atomic custody holder-to-holder transfer (SPEC-0018-EXT)
         'fn_custody_balance', 'fn_set_expense_kind', -- derived custody read + #6 drawings split helpers (SPEC-0018)
         'fn_create_payment_request', 'fn_add_expense_to_request', -- payment-request RPCs (SPEC-0018)
         'fn_submit_payment_request', 'fn_approve_request_operational', 'fn_approve_request_final', -- lifecycle through final approval
