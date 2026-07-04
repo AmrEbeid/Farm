@@ -6,6 +6,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { CategoryBarChart, MultiInsightChart } from "@/components/charts";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
+import { ImportPanel } from "@/components/import/ImportPanel";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
 import { StoryLine } from "@/components/StoryLine";
@@ -420,6 +421,17 @@ export default async function FinanceRevenueReportsPage({
           <EmptyState title="لا توجد تحصيلات في الفترة" />
         )}
       </Card>
+
+      {/* SPEC-0024 S-9 (D.1): every entry has its template + Excel/CSV import. Deliveries import as
+          PENDING (no price) — bulk import can never fabricate revenue (#1). */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card title="استيراد المشترين (قالب Excel/CSV)">
+          <ImportPanel descriptorKey="buyers" titleAr="المشترون" />
+        </Card>
+        <Card title="استيراد التسليمات — بسعر لاحق (قالب Excel/CSV)">
+          <ImportPanel descriptorKey="sales" titleAr="المبيعات" />
+        </Card>
+      </div>
     </div>
   );
 }

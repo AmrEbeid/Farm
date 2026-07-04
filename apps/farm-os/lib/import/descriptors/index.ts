@@ -11,6 +11,8 @@ import { linesDescriptor } from "./lines";
 import { accountsDescriptor } from "./accounts";
 import { costCentersDescriptor } from "./cost-centers";
 import { offshootMovementsDescriptor } from "./offshoot-movements";
+import { buyersDescriptor } from "./buyers";
+import { salesDescriptor } from "./sales";
 
 export const ALL_DESCRIPTORS = [
   sectorsDescriptor,
@@ -19,6 +21,8 @@ export const ALL_DESCRIPTORS = [
   accountsDescriptor,
   costCentersDescriptor,
   offshootMovementsDescriptor,
+  buyersDescriptor,
+  salesDescriptor,
 ];
 
 for (const d of ALL_DESCRIPTORS) registerDescriptor(d);
