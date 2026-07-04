@@ -41,6 +41,8 @@ export default async function OwnerDashboard() {
     { data: hawshat, error: hawshatError },
     { data: costRollup, error: costRollupError },
     { data: costFlags, error: costFlagsError },
+    { data: offshootMovements, error: offshootError },
+    { data: offshootValuation, error: offshootValuationError },
   ] = await Promise.all([
     sb.from("purchase_requests").select("id, code, status, reason, needed_by").order("code", { ascending: false }),
     sb.from("budget_lines").select("category, approved, committed, actual"),
@@ -53,8 +55,10 @@ export default async function OwnerDashboard() {
     sb.from("hawshat").select("palm_count_barhi"),
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
     sb.from("v_cost_center_reconciliation_flags").select("*").eq("org_id", m.orgId).order("code", { ascending: true }),
+    sb.from("offshoot_movements").select("movement_type, qty").eq("org_id", m.orgId),
+    sb.from("offshoot_valuation").select("low_per_unit, high_per_unit").eq("org_id", m.orgId).maybeSingle(),
   ]);
-  for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError, costRollupError, costFlagsError]) {
+  for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError, costRollupError, costFlagsError, offshootError, offshootValuationError]) {
     if (e) throw e;
   }
 
@@ -140,6 +144,16 @@ export default async function OwnerDashboard() {
     "مصروفات": row.expense,
     "إيرادات": row.revenue,
   }));
+  const offshootProduced = (offshootMovements ?? [])
+    .filter((movement) => movement.movement_type === "produce")
+    .reduce((sum, movement) => sum + Number(movement.qty ?? 0), 0);
+  const offshootUsed = (offshootMovements ?? [])
+    .filter((movement) => movement.movement_type === "plant" || movement.movement_type === "replant" || movement.movement_type === "sell")
+    .reduce((sum, movement) => sum + Number(movement.qty ?? 0), 0);
+  const offshootAvailable = offshootProduced - offshootUsed;
+  const offshootHighEstimate = offshootValuation?.high_per_unit == null
+    ? null
+    : Math.max(0, offshootAvailable) * Number(offshootValuation.high_per_unit);
 
   // ── Chart data (all query-derived) ────────────────────────────────────────
   const varianceData = budgetLines.map((b) => ({
@@ -194,6 +208,7 @@ export default async function OwnerDashboard() {
         <div className="flex flex-wrap gap-2">
           <Link href="/budgets"><Button variant="ghost" size="sm">الموازنات</Button></Link>
           <Link href="/finance/insights"><Button variant="ghost" size="sm">رؤى المالك</Button></Link>
+          <Link href="/farm/offshoots"><Button variant="ghost" size="sm">بنك الفسائل</Button></Link>
           <Link href="/finance/pnl"><Button variant="ghost" size="sm">قائمة الدخل</Button></Link>
           <Link href="/purchase-requests"><Button variant="primary" size="sm">طلبات الشراء</Button></Link>
         </div>
@@ -277,7 +292,7 @@ export default async function OwnerDashboard() {
           <h2 className="text-lg font-semibold">رؤى مالية</h2>
           <Link href="/finance/insights"><Button variant="ghost" size="sm">فتح الرؤى</Button></Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
           <DashboardKpiLink href="/finance/reports?focus=posted" active={false}>
             <KpiCard label="مراكز لها قيود" value={num(financeInsights.postedCenterCount)} />
           </DashboardKpiLink>
@@ -288,6 +303,17 @@ export default async function OwnerDashboard() {
             <KpiCard label="بنود مراجعة" value={num(financeInsights.flagCount)} deltaDirection={financeInsights.flagCount > 0 ? "down" : "none"} />
           </DashboardKpiLink>
           <KpiCard label="تقييم التوزيع" value={financeInsights.score.label} />
+          <DashboardKpiLink href="/farm/offshoots" active={false}>
+            <KpiCard
+              label="فسائل متاحة"
+              value={num(offshootAvailable)}
+              delta={`${num(offshootProduced)} منتج`}
+              deltaDirection={offshootAvailable < 0 ? "down" : "none"}
+            />
+          </DashboardKpiLink>
+          <DashboardKpiLink href="/farm/offshoots" active={false}>
+            <KpiCard label="تقدير الفسائل" value={offshootHighEstimate == null ? "—" : egp(offshootHighEstimate)} />
+          </DashboardKpiLink>
         </div>
         {financeInsights.cards.length > 0 && (
           <div className="mt-4 grid gap-3 lg:grid-cols-3">

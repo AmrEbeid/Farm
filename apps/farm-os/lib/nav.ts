@@ -47,6 +47,13 @@ export const APP_MODULES: AppModule[] = [
     pages: [
       { id: "farm-dashboard", label: "لوحة المزرعة", icon: "🌴", href: "/farm/dashboard" },
       { id: "farm", label: "هيكل المزرعة", icon: "🌴", href: "/farm" },
+      {
+        id: "offshoots",
+        label: "بنك الفسائل",
+        icon: "🌱",
+        href: "/farm/offshoots",
+        roles: ["owner", "accountant", "farm_manager"],
+      },
       { id: "farm-croquis", label: "الكروكي", icon: "🗺️", href: "/farm/croquis" },
       { id: "academy", label: "أكاديمية الرعاية", icon: "📚", href: "/academy" },
       { id: "pest-scouting", label: "مكافحة سوسة النخيل الحمراء", icon: "🐛", href: "/farm/pest-scouting" },

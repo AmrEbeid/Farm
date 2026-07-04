@@ -354,6 +354,7 @@ export default async function FinanceDashboardPage({
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
           {canSeeAccounting && <HeaderLink href="/finance/accounts">شجرة الحسابات</HeaderLink>}
           {canSeeAccounting && <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>}
+          {canSeeAccounting && <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>}
           {canSeeAccounting && <HeaderLink href="/custody">العهدة</HeaderLink>}
           {canSeeAccounting && <HeaderLink href="/accounting">المحاسبة</HeaderLink>}
         </div>
