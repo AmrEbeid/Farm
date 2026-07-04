@@ -67,6 +67,13 @@ export interface SiteBullet {
   text: Bi;
 }
 
+/** A photo-gallery item. `image` is a URL or a path under /public (dummy placeholders for now;
+ *  the owner edits it in the OS — paste a real image URL — until in-OS upload lands). */
+export interface GalleryItem {
+  image: string;
+  caption: Bi;
+}
+
 export interface SiteContent {
   brand: {
     name: Bi;
@@ -96,6 +103,7 @@ export interface SiteContent {
   };
   certifications: { heading: Bi; intro: Bi; items: SiteCert[] };
   specs: { heading: Bi; rows: SiteSpec[] };
+  gallery: { heading: Bi; items: GalleryItem[] };
   whyPartner: { heading: Bi; bullets: SiteBullet[] };
   contact: {
     heading: Bi;
@@ -288,6 +296,17 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
           en: "China · UAE · Saudi Arabia · Kuwait · EU",
         },
       },
+    ],
+  },
+  gallery: {
+    heading: { ar: "من المزرعة", en: "From the Farm" },
+    // Dummy placeholders — the owner replaces each image (paste a real URL) + caption from
+    // the OS editor («الموقع» → معرض الصور). The gallery is hidden on the site when it has no items.
+    items: [
+      { image: "/site/gallery/placeholder-1.svg", caption: { ar: "بستان البرحي", en: "Barhi orchard" } },
+      { image: "/site/gallery/placeholder-2.svg", caption: { ar: "عناقيد في مرحلة الخلال", en: "Clusters at Khalal stage" } },
+      { image: "/site/gallery/placeholder-3.svg", caption: { ar: "الحصاد والفرز", en: "Harvest & sorting" } },
+      { image: "/site/gallery/placeholder-4.svg", caption: { ar: "التعبئة للتصدير", en: "Export packing" } },
     ],
   },
   whyPartner: {
