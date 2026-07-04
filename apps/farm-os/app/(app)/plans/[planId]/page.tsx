@@ -1,4 +1,6 @@
+import { StoryLine } from "@/components/StoryLine";
 import Link from "next/link";
+import { ClonePlanButton } from "@/components/ClonePlanButton";
 import type { ReactNode } from "react";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +17,7 @@ import { OperationSignOff } from "@/components/OperationSignOff";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { POTASSIUM_ID } from "@/lib/nav";
-import { egpSummary, egpValue, num, sumMoney } from "@/lib/money";
+import { egpSummary, egpValue, num, pct, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import {
   OP_STATUS_AR,
@@ -281,6 +283,21 @@ export default async function MonthlyPlanPage({
     { id: "checks", label: `الفحوص (${num((checks ?? []).length)})` },
   ];
 
+  // SPEC-0026 P-1 (Stage 2 render): the plan's readiness as ONE sentence + actionable notes.
+  const allOps = ops ?? [];
+  const doneOps = allOps.filter((o) => o.status === "done").length;
+  const unsignedDose = signoffOps.filter((o) => !o.signed_off_at).length;
+  const readiness = allOps.length > 0 ? Math.round((doneOps / allOps.length) * 100) : 0;
+  const planLead =
+    allOps.length === 0
+      ? "الخطة فارغة — أضِف أول عملية بالمعالج."
+      : `نُفّذ ${num(doneOps)} من ${num(allOps.length)} عملية (${pct(readiness)})` +
+        (blockedChecks > 0 ? ` — ${num(blockedChecks)} فحص محظور يمنع التفعيل` : checksRun ? " — الفحوصات سليمة" : " — لم تُشغَّل الفحوصات بعد") +
+        ".";
+  const planNotes: string[] = [];
+  if (unsignedDose > 0) planNotes.push(`${num(unsignedDose)} عملية رش/جرعة تنتظر اعتماد المهندس.`);
+  if (dueOps.length > 0) planNotes.push(`${num(dueOps.length)} عملية مستحقة خلال الأيام القادمة.`);
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <Breadcrumbs
@@ -293,6 +310,16 @@ export default async function MonthlyPlanPage({
           },
         ]}
       />
+
+      <StoryLine lead={planLead} notes={planNotes} />
+      {canEditPlan && (
+        <div className="flex flex-wrap gap-2 text-sm font-bold">
+          <Link href={`/record/plan?planId=${planId}`} className="underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            + أضِف عمليات بالمعالج (أسطر متعددة)
+          </Link>
+          <ClonePlanButton planId={planId} />
+        </div>
+      )}
 
       <Entity360Header
         title={`الخطة ${PLAN_TYPE_AR[plan.type ?? ""] ?? ""}`}

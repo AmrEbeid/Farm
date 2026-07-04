@@ -100,6 +100,13 @@ export const APP_MODULES: AppModule[] = [
       { id: "plans-dashboard", label: "لوحة التخطيط", icon: "🗓️", href: "/plans/dashboard" },
       { id: "plans", label: "كل الخطط", icon: "🗓️", href: "/plans" },
       {
+        id: "plan-approvals",
+        label: "اعتمادات مطلوبة",
+        icon: "🖊",
+        href: "/plans/approvals",
+        roles: ["owner", "agri_engineer"],
+      },
+      {
         id: "mobile",
         label: "الميدان",
         icon: "📱",

@@ -7,7 +7,12 @@ import { PlanWizard } from "@/components/PlanWizard";
 
 export const dynamic = "force-dynamic";
 
-export default async function RecordPlanPage() {
+export default async function RecordPlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ planId?: string }>;
+}) {
+  const { planId } = await searchParams;
   await requireRole(["owner", "farm_manager"]);
   const sb = await createClient();
   const [sectorsRes, hawshatRes, itemsRes] = await Promise.all([
@@ -18,6 +23,7 @@ export default async function RecordPlanPage() {
   return (
     <div className="p-6">
       <PlanWizard
+        initialPlanId={planId ?? null}
         sectors={(sectorsRes.data ?? []).filter((s) => !s.archived).map((s) => ({ id: s.id, name: s.name }))}
         hawshat={(hawshatRes.data ?? [])
           .filter((h) => !h.archived)
