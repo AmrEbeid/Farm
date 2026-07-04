@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { BudgetDoughnut, CategoryBarChart, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
@@ -61,6 +62,12 @@ export default async function OwnerDashboard() {
   for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError, costRollupError, costFlagsError, offshootError, offshootValuationError]) {
     if (e) throw e;
   }
+
+  // U-10 attention signals (counts only — cheap head queries).
+  const [{ count: pendingPriceCount }, { count: unpaidExpenseCount }] = await Promise.all([
+    sb.from("sales").select("id", { count: "exact", head: true }).eq("price_status", "pending"),
+    sb.from("expenses").select("id", { count: "exact", head: true }).eq("payment_status", "post_paid_unpaid"),
+  ]);
 
   const opIds = (ops ?? []).map((op) => op.id);
   const { data: assignees, error: assigneesError } = opIds.length
@@ -195,6 +202,30 @@ export default async function OwnerDashboard() {
     status: PR_STATUS_AR[p.status] ?? "غير معروف",
   }));
 
+  // ── U-10 (§2c): the hub — quick-nav buttons with live badges + the attention inbox ──
+  const attention: AttentionItem[] = [];
+  if ((pendingPriceCount ?? 0) > 0)
+    attention.push({ href: "/record/collect", tone: "act", text: `${num(pendingPriceCount ?? 0)} بيع بسعر معلّق — حدّد السعر ليدخل الدفاتر` });
+  if ((unpaidExpenseCount ?? 0) > 0)
+    attention.push({ href: "/custody", tone: "watch", text: `${num(unpaidExpenseCount ?? 0)} مصروف آجل لم يُسدَّد — راجع طلبات الصرف` });
+  if (pending.length > 0)
+    attention.push({ href: "/purchase-requests", tone: "watch", text: `${num(pending.length)} طلب شراء ينتظر الاعتماد` });
+  if (overduePOs.length > 0)
+    attention.push({ href: "/purchase-requests", tone: "act", text: `${num(overduePOs.length)} طلب معتمد تجاوز موعد التوريد` });
+  if (overLines.length > 0)
+    attention.push({ href: "/budgets", tone: "act", text: `${num(overLines.length)} بند موازنة متجاوز` });
+  if (reorderItems.length > 0)
+    attention.push({ href: "/inventory/dashboard?filter=reorder", tone: "watch", text: `${num(reorderItems.length)} صنف تحت حد إعادة الطلب` });
+
+  const quickNav = [
+    { href: "/record", icon: "➕", label: "سجّل" },
+    { href: "/transactions", icon: "📜", label: "المعاملات" },
+    { href: "/reports", icon: "📈", label: "التقارير" },
+    { href: "/custody", icon: "💰", label: "العهدة", badge: unpaidExpenseCount ?? 0 },
+    { href: "/plans", icon: "🗓️", label: "الخطط" },
+    { href: "/inventory/dashboard", icon: "📦", label: "المخزون", badge: reorderItems.length },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Page header: title + context + quick actions */}
@@ -213,6 +244,10 @@ export default async function OwnerDashboard() {
           <Link href="/purchase-requests"><Button variant="primary" size="sm">طلبات الشراء</Button></Link>
         </div>
       </header>
+
+      <QuickNav items={quickNav} />
+      <AttentionInbox items={attention} />
+
 
       {/* First-run guidance: only for a genuinely empty org (zero palms, zero
           plans) — gated on data already fetched above, so it disappears on its

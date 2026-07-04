@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/auth";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { ModuleSidebar } from "@/components/ModuleSidebar";
+import { MobileTabBar } from "@/components/MobileTabBar";
+import { AutoBreadcrumbs } from "@/components/AutoBreadcrumbs";
 import { findActiveNavItem, visibleModulesForRole } from "@/lib/nav";
 
 const HelpDrawer = dynamic(() => import("@/components/HelpDrawer").then((mod) => mod.HelpDrawer), {
@@ -97,9 +99,11 @@ export function AppChrome({
        * carries the id + tabIndex={-1} so keyboard focus lands on the content.
        */}
       <div id="main" tabIndex={-1}>
+        <AutoBreadcrumbs pathname={pathname} />
         {children}
       </div>
     </AppShell>
+      <MobileTabBar role={role} pathname={pathname} />
     </>
   );
 }

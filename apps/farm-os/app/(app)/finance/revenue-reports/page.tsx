@@ -7,7 +7,8 @@ import { CategoryBarChart, MultiInsightChart } from "@/components/charts";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { egp, num, pct } from "@/lib/money";
+import { StoryLine } from "@/components/StoryLine";
 
 type RevenueSaleRow = {
   sale_id: string;
@@ -169,6 +170,7 @@ export default async function FinanceRevenueReportsPage({
   const buyerRows: SimpleRow[] = report.by_buyer.map((row) => ({
     id: row.buyer_id ?? row.buyer_name,
     buyer: row.buyer_name,
+    buyer_href: row.buyer_id ? `/finance/buyers/${row.buyer_id}` : "",
     type: row.buyer_type ? BUYER_TYPE_AR[row.buyer_type] ?? row.buyer_type : "—",
     sales: Number(row.sale_count ?? 0),
     pending: Number(row.pending_count ?? 0),
@@ -225,6 +227,25 @@ export default async function FinanceRevenueReportsPage({
   }));
   const showCharts = buyerChart.length > 0 || cropChart.length > 0;
 
+  // U-12 (§2c): the period's story in one sentence — same live data as the tables below (#1).
+  const topCrop = [...report.by_crop_season].sort((a, b) => Number(b.finalized_revenue ?? 0) - Number(a.finalized_revenue ?? 0))[0];
+  const storyLead =
+    report.finalized_revenue > 0
+      ? `حقّقت المزرعة في هذه الفترة ${egp(report.finalized_revenue)} إيرادًا مؤكدًا` +
+        (topCrop && Number(topCrop.finalized_revenue ?? 0) > 0
+          ? ` — ${pct(Math.round((Number(topCrop.finalized_revenue) / report.finalized_revenue) * 100))} منها من «${topCrop.crop}»`
+          : "") +
+        `، وحُصِّل منها ${egp(report.period_collections)}.`
+      : "لا إيرادات مؤكدة في هذه الفترة بعد.";
+  const storyNotes: string[] = [];
+  if (report.pending_count > 0)
+    storyNotes.push(`${num(report.pending_count)} بيع بسعر معلّق لا يظهر في الإيراد حتى يُحدَّد سعره.`);
+  if (report.outstanding_total > 0)
+    storyNotes.push(
+      `المستحق لدى العملاء ${egp(report.outstanding_total)}` +
+        (report.over_30_count > 0 ? ` — منها ${num(report.over_30_count)} بيع تجاوز ٣٠ يومًا (${egp(report.over_30_amount)}).` : "."),
+    );
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
@@ -240,6 +261,9 @@ export default async function FinanceRevenueReportsPage({
           <HeaderLink href="/accounting">المحاسبة</HeaderLink>
         </div>
       </header>
+
+      <StoryLine lead={storyLead} notes={storyNotes} />
+
 
       <Card title="الفترة">
         <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
@@ -401,7 +425,7 @@ export default async function FinanceRevenueReportsPage({
 }
 
 const buyerColumns: SimpleColumn[] = [
-  { id: "buyer", header: "العميل" },
+  { id: "buyer", header: "العميل", kind: "link" },
   { id: "type", header: "النوع", kind: "status" },
   { id: "sales", header: "مبيعات", kind: "num", numeric: true },
   { id: "pending", header: "معلقة السعر", kind: "num", numeric: true },

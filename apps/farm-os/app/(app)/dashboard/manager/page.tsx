@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
 import { KpiCard, Card, Progress, EmptyState } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -155,9 +156,30 @@ export default async function ManagerDashboard() {
     status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
   }));
 
+  // ── U-10 (§2c): the FM hub — operational quick-nav + attention inbox (NO absolute money, decision 8) ──
+  const fmAttention: AttentionItem[] = [];
+  if (blocked > 0)
+    fmAttention.push({ href: "/plans", tone: "act", text: `${num(blocked)} فحص محظور يوقف التنفيذ` });
+  if (myDueOps.length > 0)
+    fmAttention.push({ href: "/m", tone: "act", text: `${num(myDueOps.length)} مهمة مستحقة عليك اليوم` });
+  if (total > 0 && readiness < 50)
+    fmAttention.push({ href: "/plans", tone: "watch", text: `جاهزية الخطط ${pct(readiness)} — راجع العمليات المتأخرة` });
+
+  const fmQuickNav = [
+    { href: "/record", icon: "➕", label: "سجّل" },
+    { href: "/record/plan", icon: "🗓️", label: "خطة جديدة" },
+    { href: "/m", icon: "📱", label: "الميدان", badge: myDueOps.length },
+    { href: "/inventory/dashboard", icon: "📦", label: "المخزون" },
+    { href: "/farm/offshoots", icon: "🌱", label: "الفسائل" },
+    { href: "/reports", icon: "📈", label: "التقارير" },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
+
+      <QuickNav items={fmQuickNav} />
+      <AttentionInbox items={fmAttention} />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <KpiCard label="عمليات الخطط النشطة" value={num(total)} />

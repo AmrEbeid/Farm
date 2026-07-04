@@ -26,7 +26,7 @@ const COLUMNS: SimpleColumn[] = [
   { id: "date", header: "التاريخ" },
   { id: "type", header: "النوع", kind: "tag-warn" },
   { id: "label", header: "البيان" },
-  { id: "party", header: "الطرف" },
+  { id: "party", header: "الطرف", kind: "link" },
   { id: "amount", header: "المبلغ (ج.م)", kind: "money", numeric: true },
   { id: "direction", header: "الاتجاه" },
 ];
@@ -104,6 +104,7 @@ export default async function TransactionsPage({
       type: TYPE_AR.sale,
       label: `${s.crop}${s.qty ? ` — ${num(Number(s.qty))} ${s.unit ?? ""}` : ""}${pending ? " (السعر معلّق)" : ""}`,
       party: (s.buyer_id && buyerName.get(s.buyer_id)) || "—",
+      party_href: s.buyer_id ? `/finance/buyers/${s.buyer_id}` : "",
       amount: pending ? undefined : (s.total ?? undefined),
       direction: "داخل",
       _t: "sale",
