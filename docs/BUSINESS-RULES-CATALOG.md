@@ -70,6 +70,7 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-119** | Owner funds are recorded into custody (`amount_in`) **before** any payout — posting Dr custody / Cr owner-funding; each confirmed payout posts Dr expense-kind account / Cr custody (cash-method). | `fn_record_payment_request_funding` / `fn_confirm_request_expense_paid` (`20260701220000`) | `112_accounting_cash_custody_settlement` | FEAT-028/030 |
 | **BR-120** | A payment request closes only when every line has been paid (`paid_at` set). | `fn_close_payment_request` (`20260701220000`) | `112_accounting_cash_custody_settlement` | FEAT-028/030 |
 | **BR-121** | A custody handover between holders is one atomic linked out/in pair, cannot exceed the source holder balance, and creates no journal entry. | `fn_transfer_custody` + `custody_movements.transfer_group_id` (`20260701480000`) | `119_custody_transfer` | FEAT-028 |
+| **BR-122** | Custody/payment reports are finance-read-only derived views: they show holder opening/closing balances, custody-paid cash expenses, unpaid obligations, and owner funding without posting journals or changing request/payment state. | `fn_custody_ledger_report`, `fn_custody_cash_expense_report`, `fn_unpaid_obligations_report`, `fn_owner_funding_report` (`20260701490000`) | `120_custody_reports` | FEAT-028/030 |
 
 ## Tenant isolation & access control
 | BR | Rule | Enforced by | Test | FEAT |

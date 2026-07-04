@@ -83,6 +83,8 @@ select is(
         'fn_record_payment_request_funding',       -- owner funds received as custody after final approval
         'fn_confirm_request_expense_paid',         -- cash-method request-line payment confirmation
         'fn_close_payment_request',                -- close funded request after every line is confirmed paid
+        'fn_custody_ledger_report', 'fn_custody_cash_expense_report', -- read-only custody reporting RPCs (SPEC-0018-EXT)
+        'fn_unpaid_obligations_report', 'fn_owner_funding_report', -- read-only payment-request reporting RPCs (SPEC-0018-EXT)
         'fn_instantiate_operation_template',       -- gated template-instantiate RPC (SPEC-0019 P1-3, migration 20260701260000)
         'fn_owner_pnl_summary',                    -- gated owner P&L period-summary read RPC (migration 20260701270000)
         'fn_update_weather_thresholds',             -- gated weather-thresholds settings RPC (SPEC-0007 §3, migration 20260701370000)

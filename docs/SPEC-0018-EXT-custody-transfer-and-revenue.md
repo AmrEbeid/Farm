@@ -18,7 +18,9 @@ payment-request report/PDF and other statement exports, (3) revenue/sales with a
 > same revenue model as a first-class sale type.
 
 *Author: autonomous docs/planning session, Owner: Amr Ebeid. Slice 1 is implemented in
-`20260701480000_custody_transfer`; everything else remains design only until its own build slice.*
+`20260701480000_custody_transfer`. Slices 3/4 are implemented in branch migration
+`20260701490000_custody_reports` and `/finance/custody-reports`; prod apply/merge remains gated by the normal
+migrate-first flow. PDF export and revenue/A-R remain future slices.*
 
 ---
 
@@ -247,8 +249,8 @@ merge/apply, per `docs/CLAUDE.md`. None of these are authorized to build by this
 |---|---|---|---|---|
 | 1 | **Custody holder-transfer RPC** (Gap 1) | **Implemented:** `fn_transfer_custody` + pgTAP proving no-journal-effect + amount-can't-exceed-balance + atomic pair | none — additive | Low-med (money, but small + isolated) |
 | 2 | **Payment-request PDF export** (Gap 2a) | Server-side PDF generation from existing request-360 data; no new query logic | Owner approval of a PDF library (new dependency = hard stop) | Low (presentation only) |
-| 3 | **Custody ledger + cash-expense + unpaid-obligations reports** (Gap 2b, items 1-3) | 3 read-only RPCs + 3 pages using `MasterTable`/`FilterableTable` + CSV export | none — reads existing tables | Low (read-only) |
-| 4 | **Owner funding/replenishment report** (Gap 2b, item 4) | 1 read-only RPC + 1 page over `payment_request_fundings` | none | Low (read-only) |
+| 3 | **Custody ledger + cash-expense + unpaid-obligations reports** (Gap 2b, items 1-3) | **Implemented in branch:** 3 read-only RPCs + one dense `/finance/custody-reports` page using `FilterableTable` + CSV export | none — reads existing tables | Low (read-only) |
+| 4 | **Owner funding/replenishment report** (Gap 2b, item 4) | **Implemented in branch:** 1 read-only RPC + `/finance/custody-reports` section over `payment_request_fundings` | none | Low (read-only) |
 | 5 | **Revenue/sales schema + finalize-price + collections** (Gap 3, §4.1) | `buyers`, `sales`, `sale_collections` tables + RPCs; **no chart-of-accounts dependency for the pending-price case** (a pending sale posts nothing) | Chart of accounts must have at least one revenue account (`4000`-class) ratified before `fn_finalize_sale_price` can post — this is the one hard dependency on the existing Slice A chart-of-accounts gate | High (new money-adjacent schema; independent review required) |
 | 6 | **Revenue reports** (Gap 3, §4.2) | Revenue-by-buyer/crop/season + A/R report | Slice 5 | Low (read-only, once 5 exists) |
 | 7 | **Role-based dashboards + filter/sort/export/import parity** (Gap 4) | Extend existing per-module dashboards (already largely live per SESSION-BRIEF) to explicitly cover finance/custody/revenue tables with the same filter/sort/export pattern; author `ImportDescriptor`s for `buyers`/`sales` once Slice 5 lands, per `docs/CLAUDE.md` "bulk-import descriptors" rule | Slice 5 for revenue; custody/expense import descriptors could start now | Low-med (many small touches) |
@@ -393,11 +395,17 @@ actual next-available test number is chosen at implementation time against curre
 movements, conserves total custody cash, rejects over-transfer/self-transfer/cross-org transfer, keeps
 farm-manager direct finance access closed, and creates no journal entry.
 
+**Slices 3/4 implemented in branch:** `20260701490000_custody_reports` adds
+`fn_custody_ledger_report`, `fn_custody_cash_expense_report`, `fn_unpaid_obligations_report`, and
+`fn_owner_funding_report`. `/finance/custody-reports` gives the accountant period filters, KPI totals,
+search/sort/export tables, and links back to the related expense or payment request. The test
+`120_custody_reports` proves finance-read gating, holder opening/closing balances, cash-expense holder split,
+unpaid aging, owner-funding remaining amount, and non-finance denial.
+
 ---
 
 ## 10. Next step
 
-After Slice 1, the recommended next custody build is **Slices 3/4 read-only reports** (custody ledger by holder,
-cash-expenses, unpaid obligations, owner funding/replenishment). Slice 5 (revenue) should wait until the existing
-roadmap's chart-of-accounts gate clears, since `fn_finalize_sale_price` needs at least one ratified revenue
-account to post to.
+After Slices 3/4, the next custody polish is **Slice 2 PDF/export packaging** once a PDF approach/dependency is
+approved. Slice 5 (revenue) should wait until the existing roadmap's chart-of-accounts gate clears, since
+`fn_finalize_sale_price` needs at least one ratified revenue account to post to.

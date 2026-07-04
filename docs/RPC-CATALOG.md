@@ -54,6 +54,10 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-042** | `fn_confirm_request_expense_paid(…)` | request,expense,custody_account,date?,paid_by?,note? | jsonb | Confirm a request line paid from a chosen custody source; posts cash-out + Dr expense-kind account / Cr custody | BR-047/119 | `payment_request_lines`,`custody_movements`,`journal_entries`,`journal_lines` | FEAT-028/030 |
 | **RPC-043** | `fn_close_payment_request(p_request)` | request | jsonb | Close a request only once every line has `paid_at` | BR-069/120 | `payment_requests` | FEAT-028/030 |
 | **RPC-044** | `fn_transfer_custody(…)` | from_account,to_account,amount,date?,note? | uuid | Transfer custody cash between two holders as one linked out/in pair; no journal/P&L effect | BR-121 | `custody_movements` | FEAT-028 |
+| **RPC-045** | `fn_custody_ledger_report(…)` | org,period_start?,period_end? | jsonb | Read-only period custody ledger: opening/period/closing by holder + movement rows | BR-066/122 | (reads) | FEAT-028 |
+| **RPC-046** | `fn_custody_cash_expense_report(…)` | org,period_start?,period_end? | jsonb | Read-only custody-paid expense report split by holder, kind, and linked request/movement | BR-066/122 | (reads) | FEAT-028 |
+| **RPC-047** | `fn_unpaid_obligations_report(…)` | org,as_of? | jsonb | Read-only post-paid unpaid obligations report with aging buckets and request status | BR-066/122 | (reads) | FEAT-028 |
+| **RPC-048** | `fn_owner_funding_report(…)` | org,period_start?,period_end? | jsonb | Read-only owner funding/replenishment report over funds received into custody | BR-066/122 | (reads) | FEAT-028/030 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |
