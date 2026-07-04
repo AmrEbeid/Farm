@@ -1178,6 +1178,23 @@ type OffshootFunctions = {
     Returns: Json;
   };
 };
+// SPEC-0027 H-A — شاشة الميزان: one call = crates→net→pending sale + serialized بون.
+type ScaleFunctions = {
+  fn_record_scale_delivery: {
+    Args: {
+      p_org: string;
+      p_crop: string;
+      p_crates: number;
+      p_gross_kg: number;
+      p_tare_per_crate: number;
+      p_buyer_id?: string | null;
+      p_cost_center_id?: string | null;
+      p_sale_date?: string | null;
+      p_notes?: string | null;
+    };
+    Returns: Json;
+  };
+};
 type RevenueFunctions = {
   fn_save_buyer: {
     Args: { p_id: string | null; p_org: string | null; p_name: string; p_buyer_type?: BuyerType | null; p_phone?: string | null; p_active?: boolean | null };
@@ -1267,7 +1284,7 @@ export type Database = Omit<Generated, "public"> & {
       offshoot_movements: OffshootMovementsTable;
       offshoot_valuation: OffshootValuationTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions & ScaleFunctions;
   };
 };
 

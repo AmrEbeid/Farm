@@ -165,3 +165,62 @@ export async function recordGuidedCollection(input: CollectInput): Promise<{ ok:
   for (const p of ["/transactions", "/finance/revenue-reports", "/record/collect"]) revalidatePath(p);
   return { ok: true };
 }
+
+// ── SPEC-0027 H-A — شاشة الميزان ──────────────────────────────────────────────────────────────────────
+export interface ScaleInput {
+  crop: string;
+  crates: number;
+  grossKg: number;
+  tarePerCrate: number;
+  buyerId: string | null;
+  costCenterId: string | null;
+  notes: string | null;
+}
+export interface ScaleResult {
+  ok: boolean;
+  error?: string;
+  noteNo?: number;
+  netKg?: number;
+  tareKg?: number;
+}
+
+/** One call = the whole scale event: net computed in the DB, بون serial minted under a per-org lock,
+ *  and the delivery lands as a PENDING-price sale (posts nothing until priced — #1). */
+export async function recordScaleDelivery(input: ScaleInput): Promise<ScaleResult> {
+  if (!input.crop?.trim()) return { ok: false, error: "اختر المحصول" };
+  const m = await requireRole(["owner", "accountant"]);
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_record_scale_delivery", {
+    p_org: m.orgId,
+    p_crop: input.crop.trim(),
+    p_crates: input.crates,
+    p_gross_kg: input.grossKg,
+    p_tare_per_crate: input.tarePerCrate,
+    p_buyer_id: input.buyerId ?? null,
+    p_cost_center_id: input.costCenterId ?? null,
+    p_sale_date: new Date().toISOString().slice(0, 10),
+    p_notes: input.notes ?? null,
+  });
+  if (error || !data) {
+    return {
+      ok: false,
+      error: toArabicError(error, { "22023": "تحقق من الأرقام — الصافي يجب أن يكون موجبًا" }, "تعذّر تسجيل التسليم"),
+    };
+  }
+  const d = data as { delivery_note_no: number; net_kg: number; tare_kg: number };
+  for (const p of ["/transactions", "/finance/revenue-reports", "/record/scale"]) revalidatePath(p);
+  return { ok: true, noteNo: d.delivery_note_no, netKg: Number(d.net_kg), tareKg: Number(d.tare_kg) };
+}
+
+/** Inline «مشترٍ جديد» from the scale screen — the season rule: every delivery carries a NAMED trader. */
+export async function quickAddBuyer(name: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const n = name?.trim();
+  if (!n) return { ok: false, error: "اكتب اسم التاجر" };
+  const m = await requireRole(["owner", "accountant"]);
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_save_buyer", {
+    p_id: null, p_org: m.orgId, p_name: n, p_buyer_type: "trader", p_phone: null, p_active: true,
+  });
+  if (error || !data) return { ok: false, error: toArabicError(error, {}, "تعذّر إضافة التاجر") };
+  return { ok: true, id: (data as { id: string }).id };
+}
