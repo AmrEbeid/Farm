@@ -78,6 +78,7 @@ select is(
         'fn_submit_payment_request', 'fn_approve_request_operational', 'fn_approve_request_final', -- lifecycle through final approval
         'fn_payment_request_totals',               -- derived request totals read RPC (SPEC-0018)
         'fn_accounting_trial_balance',             -- standalone accounting read RPC (cash-method custody slice)
+        'fn_save_account', 'fn_archive_account', 'fn_merge_accounts', -- gated COA tree editing RPCs (SPEC-0024)
         'fn_record_payment_request_funding',       -- owner funds received as custody after final approval
         'fn_confirm_request_expense_paid',         -- cash-method request-line payment confirmation
         'fn_close_payment_request',                -- close funded request after every line is confirmed paid

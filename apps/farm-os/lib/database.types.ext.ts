@@ -433,6 +433,7 @@ type StructFunctions = {
 type ExpensePaymentStatus = "paid_from_custody" | "post_paid_unpaid" | "paid_by_owner" | "cancelled";
 type ExpenseKind = "operating" | "drawing" | "capex";
 type PaymentRoutingColumn = "payment_status" | "paid_by" | "kind";
+type ExpenseAccountColumn = "account_id";
 
 type CustodyAccountsTable = {
   Row: { id: string; org_id: string; holder_label: string; holder_user_id: string | null; target_float: number; active: boolean; created_at: string; created_by: string | null };
@@ -459,7 +460,21 @@ type PaymentRequestLinesTable = {
   Relationships: [];
 };
 type AccountsTable = {
-  Row: { id: string; org_id: string; code: string; name_ar: string; account_type: string; normal_balance: string; active: boolean; created_at: string; created_by: string | null };
+  Row: {
+    id: string;
+    org_id: string;
+    parent_id: string | null;
+    code: string;
+    name_ar: string;
+    account_type: string;
+    normal_balance: string;
+    kind: ExpenseKind | null;
+    is_system: boolean;
+    sort_order: number | null;
+    active: boolean;
+    created_at: string;
+    created_by: string | null;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -484,13 +499,14 @@ type PaymentRequestFundingsTable = {
 };
 /** Add the SPEC-0018 payment-routing columns to the generated expenses table. */
 type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
-  Row: Omit<T["Row"], PaymentRoutingColumn> & {
+  Row: Omit<T["Row"], PaymentRoutingColumn | ExpenseAccountColumn> & {
     payment_status: ExpensePaymentStatus | null;
     paid_by: string | null;
     kind: ExpenseKind;
+    account_id: string | null;
   };
-  Insert: Omit<T["Insert"], PaymentRoutingColumn>;
-  Update: Omit<T["Update"], PaymentRoutingColumn>;
+  Insert: Omit<T["Insert"], PaymentRoutingColumn | ExpenseAccountColumn> & { account_id?: string | null };
+  Update: Omit<T["Update"], PaymentRoutingColumn | ExpenseAccountColumn> & { account_id?: string | null };
   Relationships: T["Relationships"];
 };
 // ── SPEC-0019 P1-3 "جداول العمليات" — operation templates (instantiate-only slice). ──
@@ -533,6 +549,23 @@ type OperationTemplateFunctions = {
 };
 
 type CustodyFunctions = {
+  fn_save_account: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_parent_id: string | null;
+      p_code: string;
+      p_name_ar: string;
+      p_account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
+      p_normal_balance: "debit" | "credit";
+      p_kind?: ExpenseKind | null;
+      p_sort_order?: number | null;
+      p_active?: boolean;
+    };
+    Returns: Json;
+  };
+  fn_archive_account: { Args: { p_id: string }; Returns: Json };
+  fn_merge_accounts: { Args: { p_source: string; p_target: string }; Returns: Json };
   fn_save_custody_account: {
     Args: {
       p_id: string | null;
