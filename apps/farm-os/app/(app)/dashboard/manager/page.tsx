@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
+import { FirstRunTour } from "@/components/FirstRunTour";
 import { KpiCard, Card, Progress, EmptyState } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -178,6 +179,7 @@ export default async function ManagerDashboard() {
     <div className="flex flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
 
+      <FirstRunTour role={m.role} />
       <QuickNav items={fmQuickNav} />
       <AttentionInbox items={fmAttention} />
 

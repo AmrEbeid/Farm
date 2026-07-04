@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
+import { FirstRunTour } from "@/components/FirstRunTour";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { BudgetDoughnut, CategoryBarChart, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
@@ -245,6 +246,7 @@ export default async function OwnerDashboard() {
         </div>
       </header>
 
+      <FirstRunTour role={m.role} />
       <QuickNav items={quickNav} />
       <AttentionInbox items={attention} />
 

@@ -140,6 +140,7 @@ export default async function TransactionsPage({
     });
   }
 
+  const pendingPriceCount = (salesRes.data ?? []).filter((s) => s.price_status === "pending").length;
   rows.sort((a, b) => String(b.sortDate).localeCompare(String(a.sortDate)));
   const visible = active ? rows.filter((r) => r._t === active) : rows;
   const countOf = (t: TxType) => rows.filter((r) => r._t === t).length;
@@ -188,6 +189,16 @@ export default async function TransactionsPage({
         exportFilename="transactions"
         empty="لا معاملات مطابقة"
       />
+
+      {/* SPEC-0025 U-13: «التالي المقترح» — no dead ends; suggestions are data-driven, never fabricated. */}
+      {pendingPriceCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm" style={{ background: "var(--surface-raised, #fff)", border: "1px solid var(--line)" }}>
+          <span className="font-bold" style={{ color: "var(--ink)" }}>التالي المقترح:</span>
+          <Link href="/finance/revenue-reports" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            حدّد أسعار {num(pendingPriceCount)} بيع معلّق ليدخل الدفاتر ←
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
