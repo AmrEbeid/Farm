@@ -32,14 +32,16 @@ export default async function FarmDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter = "all" } = await searchParams;
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
+  const canSeeOffshoots = m.role === "owner" || m.role === "accountant" || m.role === "farm_manager";
 
   const [
     { data: sectors, error: sectorsError },
     { data: hawshat, error: hawshatError },
     { data: atRisk, error: atRiskError, count: atRiskCount },
     { data: events, error: eventsError },
+    { data: offshootMovements, error: offshootError },
   ] = await Promise.all([
     sb
       .from("sectors")
@@ -65,11 +67,13 @@ export default async function FarmDashboardPage({
       .select("id, subtype, status, occurred_at, notes")
       .order("occurred_at", { ascending: false })
       .limit(8),
+    sb.from("offshoot_movements").select("movement_type, qty").eq("org_id", m.orgId),
   ]);
   if (sectorsError) throw sectorsError;
   if (hawshatError) throw hawshatError;
   if (atRiskError) throw atRiskError;
   if (eventsError) throw eventsError;
+  if (offshootError) throw offshootError;
 
   const tallied = (sectors ?? []).map((s) => {
     const liveHawshat = (
@@ -104,6 +108,13 @@ export default async function FarmDashboardPage({
     { name: "برحي", value: totalBarhi },
     { name: "ذكور", value: totalMale },
   ].filter((d) => d.value > 0);
+  const offshootProduced = (offshootMovements ?? [])
+    .filter((movement) => movement.movement_type === "produce")
+    .reduce((sum, movement) => sum + Number(movement.qty ?? 0), 0);
+  const offshootUsed = (offshootMovements ?? [])
+    .filter((movement) => movement.movement_type === "plant" || movement.movement_type === "replant" || movement.movement_type === "sell")
+    .reduce((sum, movement) => sum + Number(movement.qty ?? 0), 0);
+  const offshootAvailable = offshootProduced - offshootUsed;
 
   const attentionColumns: SimpleColumn[] = [
     { id: "tag", header: "النخلة" },
@@ -185,6 +196,7 @@ export default async function FarmDashboardPage({
         </div>
         <div className="flex flex-wrap gap-2">
           <HeaderLink href="/farm">هيكل المزرعة</HeaderLink>
+          {canSeeOffshoots && <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>}
           <HeaderLink href="/farm/croquis">الكروكي</HeaderLink>
         </div>
       </header>
@@ -193,7 +205,7 @@ export default async function FarmDashboardPage({
           (totalBarhi, already computed above) — disappears once real data exists. */}
       {totalBarhi === 0 && <OnboardingChecklist />}
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <DashboardKpiLink href="/farm/dashboard?filter=sectors" active={filter === "sectors"}>
           <KpiCard label="القطاعات" value={num((sectors ?? []).length)} />
         </DashboardKpiLink>
@@ -211,6 +223,16 @@ export default async function FarmDashboardPage({
             deltaDirection={totalAttention ? "down" : "none"}
           />
         </DashboardKpiLink>
+        {canSeeOffshoots && (
+          <DashboardKpiLink href="/farm/offshoots" active={false}>
+            <KpiCard
+              label="فسائل متاحة"
+              value={num(offshootAvailable)}
+              delta={`${num(offshootProduced)} منتج`}
+              deltaDirection={offshootAvailable < 0 ? "down" : "none"}
+            />
+          </DashboardKpiLink>
+        )}
       </section>
 
       {(filter === "all" || filter === "sectors") && sectorPalmsData.length > 0 && (

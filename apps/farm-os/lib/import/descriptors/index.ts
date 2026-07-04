@@ -10,6 +10,7 @@ import { hawshatDescriptor } from "./hawshat";
 import { linesDescriptor } from "./lines";
 import { accountsDescriptor } from "./accounts";
 import { costCentersDescriptor } from "./cost-centers";
+import { offshootMovementsDescriptor } from "./offshoot-movements";
 
 export const ALL_DESCRIPTORS = [
   sectorsDescriptor,
@@ -17,6 +18,7 @@ export const ALL_DESCRIPTORS = [
   linesDescriptor,
   accountsDescriptor,
   costCentersDescriptor,
+  offshootMovementsDescriptor,
 ];
 
 for (const d of ALL_DESCRIPTORS) registerDescriptor(d);

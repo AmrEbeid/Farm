@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Card, Progress, EmptyState } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { egpValue, num, pct } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -16,26 +17,50 @@ function planLabel(plan: { type?: string | null; period_start?: string | null } 
 export default async function ManagerDashboard() {
   // Role-gate: farm_manager/agri_engineer land here via the dashboard router; a
   // wrong role typing the URL is bounced back to the router.
-  await requireRole(["farm_manager", "agri_engineer"]);
+  const m = await requireRole(["farm_manager", "agri_engineer"]);
   const sb = await createClient();
+  const canSeeOffshoots = m.role === "farm_manager";
 
   // The manager's *active* plans for their org (RLS narrows to the active org)
   // — never a single hard-coded demo plan. Operations/checks below are
   // aggregated across every active plan.
-  const { data: plans, error: plansError } = await sb
-    .from("plans")
-    .select("id, type, period_start")
-    .eq("status", "active")
-    .order("period_start", { ascending: false });
+  const [{ data: plans, error: plansError }, { data: offshootMovements, error: offshootError }] = await Promise.all([
+    sb
+      .from("plans")
+      .select("id, type, period_start")
+      .eq("status", "active")
+      .order("period_start", { ascending: false }),
+    sb.from("offshoot_movements").select("movement_type, qty").eq("org_id", m.orgId),
+  ]);
   if (plansError) throw plansError;
+  if (offshootError) throw offshootError;
 
   const activePlans = plans ?? [];
   const activePlanIds = activePlans.map((p) => p.id);
+  const offshootProduced = (offshootMovements ?? [])
+    .filter((movement) => movement.movement_type === "produce")
+    .reduce((sum, movement) => sum + Number(movement.qty ?? 0), 0);
+  const offshootUsed = (offshootMovements ?? [])
+    .filter((movement) => movement.movement_type === "plant" || movement.movement_type === "replant" || movement.movement_type === "sell")
+    .reduce((sum, movement) => sum + Number(movement.qty ?? 0), 0);
+  const offshootAvailable = offshootProduced - offshootUsed;
 
   if (activePlanIds.length === 0) {
     return (
       <div className="flex flex-col gap-6 p-6">
         <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
+        {canSeeOffshoots && (
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <DashboardKpiLink href="/farm/offshoots" active={false}>
+              <KpiCard
+                label="فسائل متاحة"
+                value={num(offshootAvailable)}
+                delta={`${num(offshootProduced)} منتج`}
+                deltaDirection={offshootAvailable < 0 ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+          </section>
+        )}
         <Card>
           <EmptyState
             title="لا توجد خطط نشطة"
@@ -91,11 +116,21 @@ export default async function ManagerDashboard() {
     <div className="flex flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <KpiCard label="عمليات الخطط النشطة" value={num(total)} />
         <KpiCard label="منفّذة" value={num(done)} />
         <KpiCard label="فحوصات محظورة" value={num(blocked)} deltaDirection={blocked ? "down" : "none"} />
         <KpiCard label="جاهزية الخطط" value={pct(readiness)} />
+        {canSeeOffshoots && (
+          <DashboardKpiLink href="/farm/offshoots" active={false}>
+            <KpiCard
+              label="فسائل متاحة"
+              value={num(offshootAvailable)}
+              delta={`${num(offshootProduced)} منتج`}
+              deltaDirection={offshootAvailable < 0 ? "down" : "none"}
+            />
+          </DashboardKpiLink>
+        )}
       </section>
 
       <Card title="جاهزية تنفيذ الخطط النشطة">

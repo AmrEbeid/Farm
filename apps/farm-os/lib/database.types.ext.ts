@@ -1058,6 +1058,56 @@ type SiteEnquiriesFunctions = {
   fn_set_enquiry_status: { Args: { p_id: string; p_status: string }; Returns: undefined };
 };
 
+// SPEC-0024 S-7 — بنك الفسائل. Physical movement ledger; valuation is display-only and finance-read.
+type OffshootMovementsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    movement_date: string;
+    movement_type: "produce" | "plant" | "sell" | "replant";
+    qty: number;
+    source_cost_center_id: string | null;
+    dest_cost_center_id: string | null;
+    note: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type OffshootValuationTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    low_per_unit: number | null;
+    high_per_unit: number | null;
+    updated_at: string;
+    updated_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type OffshootFunctions = {
+  fn_record_offshoot_movement: {
+    Args: {
+      p_org: string;
+      p_movement_type: "produce" | "plant" | "sell" | "replant";
+      p_qty: number;
+      p_movement_date?: string | null;
+      p_source_cost_center_id?: string | null;
+      p_dest_cost_center_id?: string | null;
+      p_note?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_set_offshoot_valuation: {
+    Args: { p_org: string; p_low: number | null; p_high: number | null };
+    Returns: Json;
+  };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
     Views: Public["Views"] & {
@@ -1103,8 +1153,10 @@ export type Database = Omit<Generated, "public"> & {
       plan_labor_requirements: WithLaborPersonId<Tables["plan_labor_requirements"]>;
       site_content: SiteContentTable;
       site_enquiries: SiteEnquiriesTable;
+      offshoot_movements: OffshootMovementsTable;
+      offshoot_valuation: OffshootValuationTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions;
   };
 };
 

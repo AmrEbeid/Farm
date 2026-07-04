@@ -56,6 +56,8 @@ const ALLOWED_CHART_ROUTES = [
   "/finance/reports/page",
   // SPEC-0024 S-5 owner insights reuses the report chart wrappers without loading them globally.
   "/finance/insights/page",
+  // SPEC-0024 S-7b offshoot bank renders physical-flow and expansion charts.
+  "/farm/offshoots/page",
   // Module dashboards each render their own charts (status/type doughnuts, grouped
   // bars, the weather temperature trend). Same guarantee — recharts stays confined to
   // each route's own client chunk, never the global/shared bundle.

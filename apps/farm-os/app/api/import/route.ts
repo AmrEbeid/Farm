@@ -258,7 +258,9 @@ export async function POST(req: Request): Promise<Response> {
     // A THROW (network drop / abort / 5xx) must not lose the partial-write report: catch per row so the
     // response always tells the user which rows landed (else they can't tell what to retry → duplicates).
     try {
-      const { error } = await rpc(call.rpc, call.args);
+      const args = { ...call.args };
+      if ("p_org" in args && args.p_org == null) args.p_org = member.orgId;
+      const { error } = await rpc(call.rpc, args);
       if (error) failures.push({ row: call.sourceRow, error: toArabicError(error) });
       else written += 1;
     } catch {
