@@ -19,12 +19,44 @@ const NO_PERM = "ليس لديك صلاحية لتعديل محتوى الموق
 
 type Result = { ok: true } | { ok: false; error: string };
 
+const BUCKET_PREFIX = "/site-media/";
+
+// Object paths of gallery images that live in the `site-media` bucket (placeholders under
+// /site/gallery and external URLs are ignored — we only ever delete objects we uploaded).
+function galleryMediaPaths(content: SiteContent | null | undefined): string[] {
+  const paths: string[] = [];
+  for (const it of content?.gallery?.items ?? []) {
+    const url = it?.image ?? "";
+    const idx = url.indexOf(BUCKET_PREFIX);
+    if (idx >= 0) paths.push(url.slice(idx + BUCKET_PREFIX.length));
+  }
+  return paths;
+}
+
 export async function saveSiteContent(input: {
   orgId: string;
   content: SiteContent;
 }): Promise<Result> {
   await requireMembership();
   const sb = await createClient();
+
+  // Best-effort storage cleanup: delete site-media gallery objects this save removes/replaces so the
+  // bucket doesn't accumulate orphans as the owner iterates on photos. Never blocks the save.
+  try {
+    const admin = createAdminClient();
+    const { data: oldRow } = await admin
+      .from("site_content")
+      .select("content")
+      .eq("org_id", input.orgId)
+      .maybeSingle();
+    const oldPaths = galleryMediaPaths(oldRow?.content as SiteContent | undefined);
+    const newPaths = new Set(galleryMediaPaths(input.content));
+    const removed = oldPaths.filter((p) => !newPaths.has(p));
+    if (removed.length) await admin.storage.from("site-media").remove(removed);
+  } catch {
+    // storage hiccup must not fail the content save
+  }
+
   const { error } = await sb.rpc("fn_save_site_content", {
     p_org: input.orgId,
     // SiteContent is a structural object; Supabase's Json type lacks its index signature, so a
