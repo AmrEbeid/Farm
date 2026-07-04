@@ -378,6 +378,35 @@
 .site__contact-btn--wa { background: #25d366; color: #06340f; }
 .site__contact-btn--ghost { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); }
 
+/* ---- Enquiry form (inside the dark contact card) ---- */
+.site__enquiry { display: flex; flex-direction: column; gap: 0.6rem; margin-block-start: 1.5rem; }
+.site__enquiry-title { color: var(--g-gold-soft); font-weight: 700; margin: 0; }
+.site__enquiry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.site__enquiry input,
+.site__enquiry textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--g-line);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  font: inherit;
+  color: var(--g-ink);
+}
+.site__enquiry textarea { resize: vertical; }
+.site__enquiry .site__contact-btn { border: none; cursor: pointer; text-align: center; }
+.site__enquiry .site__contact-btn:disabled { opacity: 0.7; cursor: default; }
+.site__enquiry-err { color: #ffd7cf; font-size: 0.9rem; margin: 0; }
+.site__enquiry-done {
+  margin-block-start: 1.5rem;
+  background: rgba(37, 211, 102, 0.15);
+  border: 1px solid rgba(37, 211, 102, 0.5);
+  color: #eafff0;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+/* honeypot — visually removed but still in the DOM for bots to fill */
+.site__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
 /* ---- Footer ---- */
 .site__footer {
   background: var(--g-green-deep);

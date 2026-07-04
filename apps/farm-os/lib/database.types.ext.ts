@@ -907,6 +907,33 @@ type SiteContentFunctions = {
   fn_save_site_content: { Args: { p_org: string; p_content: Json }; Returns: Json };
 };
 
+// Public-site buyer enquiries (migration 20260701430000). Owner-only READ (RLS); writes are
+// server-action-only via the service-role admin client (Insert type used there), never client DML.
+type SiteEnquiriesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    name: string;
+    company: string | null;
+    country: string | null;
+    volume: string | null;
+    message: string;
+    status: string;
+    created_at: string;
+  };
+  Insert: {
+    org_id: string;
+    name: string;
+    message: string;
+    company?: string | null;
+    country?: string | null;
+    volume?: string | null;
+    status?: string;
+  };
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions"> & {
     Tables: Omit<
@@ -945,6 +972,7 @@ export type Database = Omit<Generated, "public"> & {
       labor_logs: LaborLogsTable;
       plan_labor_requirements: WithLaborPersonId<Tables["plan_labor_requirements"]>;
       site_content: SiteContentTable;
+      site_enquiries: SiteEnquiriesTable;
     };
     Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions;
   };
