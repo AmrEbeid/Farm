@@ -479,6 +479,25 @@ type AccountsTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
+type AccountRollupView = {
+  Row: {
+    org_id: string;
+    account_id: string;
+    parent_id: string | null;
+    code: string;
+    name_ar: string;
+    account_type: string;
+    normal_balance: string;
+    kind: ExpenseKind | null;
+    active: boolean;
+    is_system: boolean;
+    sort_order: number | null;
+    debit: number;
+    credit: number;
+    balance: number;
+  };
+  Relationships: [];
+};
 type JournalEntriesTable = {
   Row: { id: string; org_id: string; entry_date: string; source_type: string; source_id: string; description: string | null; status: string; posted_at: string; posted_by: string | null; reversal_of: string | null; created_at: string };
   Insert: Record<string, never>;
@@ -968,7 +987,10 @@ type SiteEnquiriesTable = {
 };
 
 export type Database = Omit<Generated, "public"> & {
-  public: Omit<Public, "Tables" | "Functions"> & {
+  public: Omit<Public, "Tables" | "Functions" | "Views"> & {
+    Views: Public["Views"] & {
+      v_account_rollup: AccountRollupView;
+    };
     Tables: Omit<
       Tables,
       | "farms"

@@ -184,7 +184,11 @@ export function AddExpenseToPaymentRequest({
   }
 
   if (expenses.length === 0) {
-    return <p style={{ color: "var(--ink-muted)" }}>لا توجد مصروفات مؤهلة متاحة للإضافة.</p>;
+    return (
+      <p style={{ color: "var(--ink-muted)" }}>
+        لا توجد مصروفات مؤهلة ومربوطة بحساب محاسبي متاحة للإضافة.
+      </p>
+    );
   }
 
   return (

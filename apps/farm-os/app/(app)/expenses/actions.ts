@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
+import { toArabicError } from "@/lib/errors";
 
 // Expense classification (matches the expenses.kind CHECK). Owner drawings (مسحوبات) MUST be separable from
 // operating expenses in any P&L (non-negotiable #6); the finance dashboard classifies by this column.
@@ -17,6 +18,7 @@ export interface ExpenseInput {
   supplierId: string | null;
   paymentMethod: string | null;
   kind?: ExpenseKind;
+  accountId?: string | null;
 }
 
 /**
@@ -34,9 +36,33 @@ export async function createExpense(
   }
   const kind: ExpenseKind = input.kind ?? "operating";
   if (!EXPENSE_KINDS.includes(kind)) return { ok: false, error: "نوع المصروف غير صالح" };
+  const accountId = input.accountId?.trim() || null;
 
   const m = await requireMembership();
   const sb = await createClient();
+  if (accountId) {
+    const { data: account, error: accountReadError } = await sb
+      .from("accounts")
+      .select("id, org_id, kind, active")
+      .eq("id", accountId)
+      .maybeSingle();
+    if (accountReadError || !account) {
+      return { ok: false, error: "الحساب المحاسبي المختار غير موجود" };
+    }
+    if (account.org_id !== m.orgId || !account.active || account.kind !== kind) {
+      return { ok: false, error: "الحساب المحاسبي المختار لا يطابق نوع المصروف" };
+    }
+    const { data: children, error: childError } = await sb
+      .from("accounts")
+      .select("id")
+      .eq("parent_id", accountId)
+      .eq("active", true)
+      .limit(1);
+    if (childError) return { ok: false, error: "تعذّر التحقق من الحساب المحاسبي" };
+    if ((children ?? []).length > 0) {
+      return { ok: false, error: "اختر حسابًا فرعيًا لا يحتوي على فروع نشطة" };
+    }
+  }
   const { data, error } = await sb
     .from("expenses")
     .insert({
@@ -62,6 +88,25 @@ export async function createExpense(
       return { ok: false, error: "سُجّل المصروف كـ«تشغيلي»، لكن تعذّر تصنيفه — غيّر النوع لاحقًا" };
     }
   }
+  if (accountId) {
+    const { error: accountError } = await sb.from("expenses").update({ account_id: accountId }).eq("id", data.id);
+    if (accountError) {
+      return {
+        ok: false,
+        error: toArabicError(
+          accountError,
+          {
+            "22023": "سُجّل المصروف، لكن الحساب المختار لا يطابق نوع المصروف أو ليس حسابًا فرعيًا نشطًا",
+            "42501": "سُجّل المصروف، لكن ليست لديك صلاحية ربطه بالحساب",
+          },
+          "سُجّل المصروف، لكن تعذّر ربطه بالحساب المحاسبي",
+        ),
+      };
+    }
+  }
   revalidatePath("/expenses");
+  revalidatePath("/finance/accounts");
+  revalidatePath("/accounting");
+  revalidatePath("/custody");
   return { ok: true };
 }
