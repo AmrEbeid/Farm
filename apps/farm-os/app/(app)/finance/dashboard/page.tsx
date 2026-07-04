@@ -12,6 +12,10 @@ import { egp, num } from "@/lib/money";
 import { PR_STATUS_AR, EXPENSE_KIND_AR, REQUEST_STATUS_AR } from "@/lib/labels";
 
 type SupplierEmbed = { name?: string | null };
+type CustodyLedgerHolder = {
+  custody_account_id: string;
+  closing_balance: number;
+};
 
 const FILTER_LABEL_AR: Record<string, string> = {
   all: "كل الجداول",
@@ -71,6 +75,7 @@ export default async function FinanceDashboardPage({
 
   const [
     custodyAccountsRes,
+    custodyLedgerRes,
     paymentRequestsRes,
     unpaidExpensesRes,
     journalEntriesRes,
@@ -78,6 +83,7 @@ export default async function FinanceDashboardPage({
   ] = canSeeAccounting
     ? await Promise.all([
         sb.from("custody_accounts").select("id, holder_label, holder_user_id, target_float, active").order("holder_label"),
+        sb.rpc("fn_custody_ledger_report", { p_org: m.orgId, p_period_start: null, p_period_end: null }),
         sb
           .from("payment_requests")
           .select("id, request_no, status, period_start, period_end, approved_net_request, created_at")
@@ -103,27 +109,24 @@ export default async function FinanceDashboardPage({
         { data: [], error: null },
         { data: [], error: null },
         { data: [], error: null },
+        { data: [], error: null },
         { data: [], error: null, count: 0 },
       ];
   if (custodyAccountsRes.error) throw custodyAccountsRes.error;
+  if (custodyLedgerRes.error) throw custodyLedgerRes.error;
   if (paymentRequestsRes.error) throw paymentRequestsRes.error;
   if (unpaidExpensesRes.error) throw unpaidExpensesRes.error;
   if (journalEntriesRes.error) throw journalEntriesRes.error;
   if (unclassifiedExpensesRes.error) throw unclassifiedExpensesRes.error;
 
   const custodyAccounts = custodyAccountsRes.data ?? [];
-  const custodyBalances = canSeeAccounting
-    ? await Promise.all(
-        custodyAccounts.map(async (account) => {
-          const { data, error } = await sb.rpc("fn_custody_balance", { p_account: account.id });
-          if (error) throw error;
-          return Number(data ?? 0);
-        }),
-      )
-    : [];
-  const custodyWithBalance = custodyAccounts.map((account, index) => ({
+  const custodyBalanceByAccount = parseCustodyLedgerHolders(custodyLedgerRes.data).reduce((map, holder) => {
+    map.set(holder.custody_account_id, holder.closing_balance);
+    return map;
+  }, new Map<string, number>());
+  const custodyWithBalance = custodyAccounts.map((account) => ({
     ...account,
-    balance: custodyBalances[index] ?? 0,
+    balance: custodyBalanceByAccount.get(account.id) ?? 0,
   }));
   const accountantCustody = custodyWithBalance.filter(
     (account) =>
@@ -571,6 +574,21 @@ export default async function FinanceDashboardPage({
 function normalizeSupplier(supplier: SupplierEmbed | SupplierEmbed[] | null): SupplierEmbed | null {
   if (Array.isArray(supplier)) return supplier[0] ?? null;
   return supplier;
+}
+
+function parseCustodyLedgerHolders(value: unknown): CustodyLedgerHolder[] {
+  if (!value || typeof value !== "object") return [];
+  const holders = (value as { holders?: unknown }).holders;
+  if (!Array.isArray(holders)) return [];
+  return holders.flatMap((holder) => {
+    if (!holder || typeof holder !== "object") return [];
+    const row = holder as Record<string, unknown>;
+    if (typeof row.custody_account_id !== "string") return [];
+    return [{
+      custody_account_id: row.custody_account_id,
+      closing_balance: Number(row.closing_balance ?? 0),
+    }];
+  });
 }
 
 function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
