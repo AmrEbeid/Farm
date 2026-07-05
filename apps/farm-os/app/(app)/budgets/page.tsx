@@ -5,10 +5,11 @@ import { Alert, KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { egp, num } from "@/lib/money";
+import { parseBudgetVsActual } from "@/lib/budget-vs-actual";
 
 // Read-only budgets overview: planned vs approved/committed/actual, with derived available.
 export default async function BudgetsPage() {
-  await requireRole(["owner", "accountant", "farm_manager"]);
+  const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
 
   const { data: budgets, error } = await sb
@@ -49,6 +50,23 @@ export default async function BudgetsPage() {
   const totalPlanned = rows.reduce((s, r) => s + r.planned, 0);
   const totalApproved = rows.reduce((s, r) => s + r.approved, 0);
 
+  // Live over-budget signal (year-to-date), computed from the posted GL — the seed columns below are frozen
+  // (#157). Only owner/accountant hold finance.read (the fn_budget_vs_actual gate); skip for farm_manager.
+  const now = new Date();
+  const overBudget: { category: string; over: number; planned: number; actual: number }[] = [];
+  if (m.role === "owner" || m.role === "accountant") {
+    const bva = await sb.rpc("fn_budget_vs_actual", {
+      p_org: m.orgId,
+      p_from: `${now.getFullYear()}-01-01`,
+      p_to: now.toISOString().slice(0, 10),
+    });
+    if (!bva.error) {
+      for (const l of parseBudgetVsActual(bva.data).lines) {
+        if (l.overBudget) overBudget.push({ category: l.category, over: l.actual - l.planned, planned: l.planned, actual: l.actual });
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
@@ -63,6 +81,21 @@ export default async function BudgetsPage() {
         <KpiCard label="إجمالي المخطط" value={egp(totalPlanned)} />
         <KpiCard label="إجمالي المعتمد" value={egp(totalApproved)} />
       </div>
+
+      {overBudget.length > 0 && (
+        <Alert tone="warning" title={`تنبيه مباشر: ${num(overBudget.length)} فئة تجاوزت الموازنة (للسنة الحالية حتى اليوم)`}>
+          <div className="flex flex-col gap-1 text-sm">
+            {overBudget.map((o) => (
+              <div key={o.category}>
+                <span className="font-bold">{o.category}</span>: الفعلي {egp(o.actual)} مقابل مخطط {egp(o.planned)} — تجاوز {egp(o.over)}
+              </div>
+            ))}
+            <Link href="/finance/budget-vs-actual" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+              التقرير الكامل ←
+            </Link>
+          </div>
+        </Alert>
+      )}
 
       {/* Honesty note (#157): committed/actual are foundation-era figures no code updates yet —
           approval doesn't read budget_lines and expenses don't roll up here. Say so instead of
