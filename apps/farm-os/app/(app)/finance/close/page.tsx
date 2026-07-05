@@ -32,28 +32,37 @@ export default async function MonthClosePage() {
 
   const [pendingSalesRes, unroutedRes, unclassifiedRes, unallocatedRes, agingRes, collectionsRes] =
     await Promise.all([
-      sb.from("sales").select("id, total, qty").eq("price_status", "pending").gte("sale_date", CUTOVER),
+      // sale_date is NULLABLE (delivery-before-price flow); a pending sale has no sale_date, and even a
+      // finalized sale isn't forced to carry one. Filtering on sale_date silently drops those rows → a false
+      // "clean" close. Filter on created_at (NOT NULL) and derive the business date in JS via report_date =
+      // coalesce(sale_date, delivery_date, created_at) — matching the revenue report — so nothing is hidden.
+      sb.from("sales").select("id, total, qty").eq("price_status", "pending").gte("created_at", CUTOVER),
       sb.from("expenses").select("id, total").is("payment_status", null).gte("date", CUTOVER),
       sb.from("expenses").select("id, total").is("account_id", null).gte("date", CUTOVER),
       sb.from("expenses").select("id, total").is("cost_center_id", null).gte("date", CUTOVER),
       sb
         .from("sales")
-        .select("id, total")
+        .select("id, total, sale_date, delivery_date, created_at")
         .eq("price_status", "finalized")
         .neq("payment_status", "collected")
-        .lte("sale_date", thirtyAgo)
-        .gte("sale_date", CUTOVER),
+        .gte("created_at", CUTOVER),
       sb.from("sale_collections").select("sale_id, amount"),
     ]);
 
   const collectedBySale = new Map<string, number>();
   for (const c of collectionsRes.data ?? [])
     collectedBySale.set(c.sale_id, (collectedBySale.get(c.sale_id) ?? 0) + Number(c.amount ?? 0));
-  const agingOutstanding = (agingRes.data ?? []).reduce(
+  // aged >30 days by report_date = coalesce(sale_date, delivery_date, created_at) so a finalized receivable
+  // with a null sale_date is still counted (raw .lte("sale_date", …) would have excluded it → understated).
+  const agedRows = (agingRes.data ?? []).filter((s) => {
+    const reportDate = (s.sale_date ?? s.delivery_date ?? String(s.created_at).slice(0, 10)) as string;
+    return reportDate <= thirtyAgo;
+  });
+  const agingOutstanding = agedRows.reduce(
     (t, s) => t + Math.max(0, Number(s.total ?? 0) - (collectedBySale.get(s.id) ?? 0)),
     0,
   );
-  const agingCount = (agingRes.data ?? []).filter(
+  const agingCount = agedRows.filter(
     (s) => Number(s.total ?? 0) - (collectedBySale.get(s.id) ?? 0) > 0,
   ).length;
 
