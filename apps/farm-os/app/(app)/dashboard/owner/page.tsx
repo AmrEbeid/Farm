@@ -52,9 +52,14 @@ export default async function OwnerDashboard() {
     sb.from("plans").select("id, status"),
     sb.from("plan_operations").select("id, status, planned_at, responsible_person_id, plan_id"),
     sb.from("plan_checks").select("result, plan_id"),
-    sb.from("assets").select("status"),
+    // "نخيل يحتاج عناية" counts PALMS — filter to type='palm' and non-archived, matching the farm dashboard
+    // (the status check-constraint applies to ALL asset types, so without this equipment/other + archived/dead
+    // palms inflate the palm-health KPI, and the two owner-facing surfaces disagree). #4/#6.
+    sb.from("assets").select("status").eq("type", "palm").eq("archived", false),
     sb.from("people").select("active"),
-    sb.from("hawshat").select("palm_count_barhi"),
+    // canonical barhi tally (registry #5) — exclude archived hawshat (their palms are not in the live count),
+    // matching the farm dashboard, so this can't over-report the canonical 4,380.
+    sb.from("hawshat").select("palm_count_barhi").eq("archived", false),
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
     sb.from("v_cost_center_reconciliation_flags").select("*").eq("org_id", m.orgId).order("code", { ascending: true }),
     sb.from("offshoot_movements").select("movement_type, qty").eq("org_id", m.orgId),
@@ -96,9 +101,12 @@ export default async function OwnerDashboard() {
   const overduePOs = purchaseRequests.filter(
     (p) => p.status === "approved" && p.needed_by != null && p.needed_by < isoToday,
   );
-  const overLines = budgetLines.filter(
-    (b) => Number(b.committed) + Number(b.actual) > Number(b.approved),
-  );
+  // NOTE: budget_lines.committed/actual are foundation-era seed figures that NO code updates yet (the real
+  // budget gate — wiring approval + expenses to the budget — is the owner-gated #157 decision). So an
+  // "over budget" signal derived from them is a FALSE alarm; the /budgets page renders them only WITH an
+  // explicit "not a live control" caveat. This dashboard therefore does NOT raise a danger/act alert from
+  // them (it would demand action on static data); the passive budget KPI links to the caveated /budgets. The
+  // alarm returns once #157 makes actuals live.
 
   // inventory_bin is a one-to-many embed (an array of bins per item); mirror the
   // inventory dashboard EXACTLY so this count matches /inventory/dashboard?filter=reorder:
@@ -177,7 +185,7 @@ export default async function OwnerDashboard() {
   // ── Alert rail: only non-empty alerts, most-severe first, each deep-links ──
   type Att = { key: string; tone: "danger" | "warning"; prio: number; title: string; desc: string; href: string };
   const alerts: Att[] = [
-    overLines.length && { key: "budget", tone: "danger", prio: 0, title: `${num(overLines.length)} بند موازنة متجاوز`, desc: "الملتزم + الفعلي تجاوز المعتمد.", href: "/budgets" },
+    // #157: no "budget over" danger from frozen seed committed/actual — it would be a false alarm on static data.
     overduePOs.length && { key: "overdue", tone: "danger", prio: 1, title: `${num(overduePOs.length)} طلب شراء متأخر`, desc: "معتمد ولم يُستلم بحلول تاريخ الحاجة.", href: "/purchase-requests" },
     reorderItems.length && { key: "reorder", tone: "warning", prio: 2, title: `${num(reorderItems.length)} صنف تحت حد إعادة الطلب`, desc: "المخزون عند أو دون نقطة إعادة الطلب.", href: "/inventory/dashboard?filter=reorder" },
     pending.length && { key: "pending", tone: "warning", prio: 3, title: `${num(pending.length)} طلب شراء بانتظار اعتمادك`, desc: "فصل الواجبات: لا يعتمد مقدّم الطلب طلبه.", href: "/purchase-requests" },
@@ -213,8 +221,7 @@ export default async function OwnerDashboard() {
     attention.push({ href: "/purchase-requests", tone: "watch", text: `${num(pending.length)} طلب شراء ينتظر الاعتماد` });
   if (overduePOs.length > 0)
     attention.push({ href: "/purchase-requests", tone: "act", text: `${num(overduePOs.length)} طلب معتمد تجاوز موعد التوريد` });
-  if (overLines.length > 0)
-    attention.push({ href: "/budgets", tone: "act", text: `${num(overLines.length)} بند موازنة متجاوز` });
+  // #157: no "budget over" act item from frozen seed committed/actual (false alarm on static data).
   if (reorderItems.length > 0)
     attention.push({ href: "/inventory/dashboard?filter=reorder", tone: "watch", text: `${num(reorderItems.length)} صنف تحت حد إعادة الطلب` });
 
@@ -234,7 +241,8 @@ export default async function OwnerDashboard() {
         <div>
           <h1 className="text-2xl font-bold">لوحة معلومات المالك</h1>
           <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
-            نظرة استراتيجية على المزرعة — التنبيهات والموازنة والمخزون والخطط، محدّثة من السجلات الفعلية.
+            نظرة استراتيجية على المزرعة — التنبيهات والمخزون والخطط من السجلات الفعلية. أرقام الموازنة
+            («الملتزم» و«الفعلي») تأسيسية وغير محدّثة تلقائيًا بعد (#157).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
