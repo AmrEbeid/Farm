@@ -10,6 +10,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { parseBalanceSheet, type BalanceSheetLine } from "@/lib/balance-sheet";
+import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -135,6 +136,8 @@ export default async function FinanceBalanceSheetPage({
           <p style={mutedStyle}>لا توجد قيود مُرحّلة حتى هذا التاريخ — لا شيء لعرضه بعد.</p>
         )}
       </Card>
+
+      <FinanceStatementsNav current="balance-sheet" />
     </div>
   );
 }

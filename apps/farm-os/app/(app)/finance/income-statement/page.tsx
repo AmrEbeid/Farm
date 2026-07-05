@@ -10,6 +10,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { parseIncomeStatement, type IncomeStatementLine } from "@/lib/income-statement";
+import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -110,6 +111,8 @@ export default async function FinanceIncomeStatementPage({
           {egp(is.netIncome)}. يطابق صافي الربح في قائمة المركز المالي لنفس التاريخ.
         </p>
       </Card>
+
+      <FinanceStatementsNav current="income-statement" />
     </div>
   );
 }
