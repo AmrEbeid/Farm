@@ -26,10 +26,16 @@ const ACCOUNT_TYPE_AR: Record<string, string> = {
   expense: "مصروف",
 };
 
+// journal_entries.source_type is caller-defined free text (no DB CHECK) — every value any
+// fn_post_two_line_journal caller passes MUST have a label here, else the GL leaks the raw English key
+// (rendered below via SOURCE_TYPE_AR[...] ?? entry.source_type). 'sale'/'sale_collection' come from the
+// revenue-sales RPCs (migration 20260701500000); add a label here whenever a new posting source ships.
 const SOURCE_TYPE_AR: Record<string, string> = {
   custody_owner_funding: "استلام عهدة من المالك",
   expense_payment: "سداد مصروف",
   payment_request_funding: "تمويل طلب صرف",
+  sale: "إثبات إيراد بيع",
+  sale_collection: "تحصيل من عميل",
 };
 
 export default async function AccountingPage() {
