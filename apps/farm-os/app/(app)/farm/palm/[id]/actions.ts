@@ -117,7 +117,7 @@ export async function logPalmTreatment(assetId: string, input: NewPalmTreatmentI
     ? [{ item_id: input.item_id, qty: input.qty, unit: input.unit || undefined }]
     : [];
 
-  const { error } = await sb.rpc("fn_add_plan_operation_multi", {
+  const { data, error } = await sb.rpc("fn_add_plan_operation_multi", {
     p_plan_id: planId as string,
     p_subtype: input.subtype,
     p_planned_at: input.planned_at,
@@ -137,6 +137,16 @@ export async function logPalmTreatment(assetId: string, input: NewPalmTreatmentI
       error: toArabicError(error, {
         "42501": "ليس لديك صلاحية لتسجيل معالجة فردية",
       }),
+    };
+  }
+  // The multi-op dedup natural key is (plan, subtype, planned_at, target) — it does NOT include the note or
+  // material. So a SECOND treatment of the same subtype on the same palm+date is silently deduped (nothing
+  // created), and this note is lost. Surface that honestly instead of a false "saved" (non-negotiable #1 — never
+  // fabricate success). The user can change the date/subtype to record an additional treatment.
+  if (data && typeof data === "object" && (data as { deduped?: boolean }).deduped) {
+    return {
+      ok: false as const,
+      error: "توجد بالفعل معالجة بنفس النوع والتاريخ على هذه النخلة — لم تُسجَّل معالجة جديدة. غيّر التاريخ أو النوع.",
     };
   }
 
