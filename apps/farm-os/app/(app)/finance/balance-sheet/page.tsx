@@ -11,6 +11,7 @@ import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { parseBalanceSheet, type BalanceSheetLine } from "@/lib/balance-sheet";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
+import { PeriodPresets } from "@/components/PeriodPresets";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -74,6 +75,9 @@ export default async function FinanceBalanceSheetPage({
             </button>
           </div>
         </form>
+        <div className="mt-3">
+          <PeriodPresets basePath="/finance/balance-sheet" mode="asOf" />
+        </div>
       </Card>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
