@@ -70,6 +70,7 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-057** | `fn_close_accounting_period(p_org,p_start,p_end,p_note?)` | org,start,end,note? | uuid | Close (lock) an accounting period; owner/accountant; rejects overlap; blocks any NEW journal posting dated inside it | BR-066 | `accounting_periods` | FEAT-030 |
 | **RPC-058** | `fn_reopen_accounting_period(p_org,p_period_id)` | org,period_id | void | Reopen (unlock) a locked period; **owner-only** | BR-066 | `accounting_periods` | FEAT-030 |
 | **RPC-059** | `fn_period_locked(p_org,p_date)` | org,date | boolean | **Internal** period-lock state check consulted by `fn_post_two_line_journal`; no client EXECUTE | BR-053 | (reads) | FEAT-030 |
+| **RPC-060** | `fn_budget_vs_actual(p_org,p_from,p_to)` | org,from,to | jsonb | Read-only budget-vs-actual: `SUM(budget_lines.planned)` per category vs LIVE posted-GL actuals rolled up by expense category; variance + over_budget/unbudgeted flags. Report only — no cap enforcement (Decision-0157) | BR-066/131 | (reads) | FEAT-030 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |
