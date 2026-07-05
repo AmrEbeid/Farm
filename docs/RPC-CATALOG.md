@@ -4,7 +4,8 @@
 function with a stable `RPC-NNN` id: purpose, args, return, the rule it enforces (→ `BR-NNN`), side effects, and
 the feature it serves (→ `FEAT-NNN`). Reconciled to `main` 2026-07-01 (through the cash-method accounting kernel
 `20260701220000`, PR #568 — GL + custody settlement; prior SPEC-0018 custody/payment backend
-`20260629150000`/`20260629150100`). Maturity **L3**.
+`20260629150000`/`20260629150100`). **Refreshed 2026-07-05** through the trusted-statements trio: balance sheet
+(`20260705110000`), income statement (`20260705120000`), and period lock (`20260701550000`) — RPC-054..059. Maturity **L3**.
 All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (BR-053).*
 
 ## Callable RPCs (client entry points)
@@ -63,6 +64,12 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-051** | `fn_finalize_sale_price(p_sale,p_unit_price)` | sale,unit_price | jsonb | Set final price/total for a pending sale and post Dr A/R / Cr sales revenue once | BR-116/117/123/125 | `sales`,`journal_entries`,`journal_lines`,`accounts` | FEAT-023/030 |
 | **RPC-052** | `fn_record_sale_collection(…)` | sale,amount,occurred_at?,collected_by?,note? | jsonb | Record a partial/final customer collection and post Dr cash / Cr A/R; rejects over-collection | BR-116/117/123/125 | `sale_collections`,`sales`,`journal_entries`,`journal_lines`,`accounts` | FEAT-023/030 |
 | **RPC-053** | `fn_revenue_sales_report(…)` | org,period_start?,period_end?,as_of? | jsonb | Read-only revenue report: finalized sales, pending-price deliveries, collections, and A/R aging | BR-066/127 | (reads) | FEAT-023 |
+| **RPC-054** | `fn_owner_pnl_summary(p_org,p_from,p_to)` | org,from,to | jsonb | Read-only owner P&L summary from the `expenses` table (operating/drawings/capex; excludes cancelled) | BR-066 | (reads) | FEAT-030 |
+| **RPC-055** | `fn_accounting_balance_sheet(p_org,p_as_of)` | org,as_of | jsonb | Read-only **balance sheet**: posted-only, as-of, grouped by `account_type`; net income folded into equity; drawings a contra-equity line (#6); self-checking `balanced` flag | BR-066 | (reads) | FEAT-030 |
+| **RPC-056** | `fn_accounting_income_statement(p_org,p_from,p_to)` | org,from,to | jsonb | Read-only **income statement (P&L)** over the GL: posted-only, period-scoped revenue−expense by account; `net_income` ties to the balance sheet; drawings excluded by construction (#6) | BR-066 | (reads) | FEAT-030 |
+| **RPC-057** | `fn_close_accounting_period(p_org,p_start,p_end,p_note?)` | org,start,end,note? | uuid | Close (lock) an accounting period; owner/accountant; rejects overlap; blocks any NEW journal posting dated inside it | BR-066 | `accounting_periods` | FEAT-030 |
+| **RPC-058** | `fn_reopen_accounting_period(p_org,p_period_id)` | org,period_id | void | Reopen (unlock) a locked period; **owner-only** | BR-066 | `accounting_periods` | FEAT-030 |
+| **RPC-059** | `fn_period_locked(p_org,p_date)` | org,date | boolean | **Internal** period-lock state check consulted by `fn_post_two_line_journal`; no client EXECUTE | BR-053 | (reads) | FEAT-030 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |
