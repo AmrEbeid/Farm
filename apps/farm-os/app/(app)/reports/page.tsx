@@ -32,6 +32,7 @@ const GROUPS: ReportGroup[] = [
       { href: "/finance/balance-sheet", icon: "📋", title: "قائمة المركز المالي", hint: "الموارد والالتزامات وحقوق المالك حتى تاريخ — قائمة متوازنة", roles: FIN },
       { href: "/finance/income-statement", icon: "📈", title: "قائمة الدخل (P&L من القيود)", hint: "الإيرادات ناقص المصروفات وصافي الربح للفترة — يطابق المركز المالي", roles: FIN },
       { href: "/finance/budget-vs-actual", icon: "📊", title: "الموازنة مقابل الفعلي", hint: "المخطط مقابل الفعلي الحيّ من القيود لكل فئة", roles: FIN },
+      { href: "/finance/pnl-trend", icon: "📈", title: "اتجاه الأرباح", hint: "اتجاه الربح والخسارة عبر الفترات — رسم بياني من القيود", roles: FIN },
     ],
   },
   {
