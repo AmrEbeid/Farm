@@ -16,6 +16,15 @@ function waLink(phone: string): string {
   return `https://wa.me/${phone.replace(/[^0-9]/g, "")}`;
 }
 
+// Owner-authored content URLs (e.g. certification verifyUrl) are rendered into <a href> on the PUBLIC
+// site. React does not block a `javascript:` (or `data:`) URL on an anchor, so a stored malicious/typo'd
+// link would execute in a visitor's browser. Allow only safe schemes; anything else falls back to "#".
+function safeHref(url: string | undefined | null): string {
+  const u = (url ?? "").trim();
+  if (/^(https?:|mailto:|tel:)/i.test(u) || u.startsWith("#") || u.startsWith("/")) return u;
+  return "#";
+}
+
 export function SiteLanding({ content: c }: { content: SiteContent }) {
   const [lang, setLang] = useState<Lang>("ar");
   const dir = lang === "ar" ? "rtl" : "ltr";
@@ -179,7 +188,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
               <article key={i} className="site__cert">
                 <a
                   className="site__cert-thumb"
-                  href={cert.verifyUrl}
+                  href={safeHref(cert.verifyUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -191,7 +200,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                   <p>{t(cert.detail)}</p>
                   <a
                     className="site__cert-verify"
-                    href={cert.verifyUrl}
+                    href={safeHref(cert.verifyUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
