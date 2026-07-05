@@ -23,9 +23,9 @@ import {
   concentrationThesis,
   profitPerFeddan,
   sectorStatus,
-  type CenterPerf,
   type SectorStatus,
 } from "@/lib/pnl-insights";
+import { computeSectorPnl } from "@/lib/entity-pnl";
 import type { CostCenterInsightRollup } from "@/lib/finance-insights";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
@@ -57,39 +57,9 @@ export default async function SectorScorecardPage() {
   const rollup = (rollupRes.data ?? []) as CostCenterInsightRollup[];
   const sales = (salesRes.data ?? []) as SaleRow[];
 
-  // Finalized revenue grouped by (leaf) cost center; and the unallocated (no-center) revenue.
-  const revenueByCenter = new Map<string, number>();
-  // Sector = active, non-system, has area, and is a LEAF (so its rollup net = its OWN expenses and its
-  // leaf-tagged sales revenue line up). profit = revenue − expenses(net).
-  const parentIds = new Set(rollup.map((r) => r.parent_id).filter(Boolean) as string[]);
-  const sectorRows = rollup.filter(
-    (r) => r.active && !r.is_system && (r.area_feddan ?? 0) > 0 && !parentIds.has(r.cost_center_id),
-  );
-  const sectorIds = new Set(sectorRows.map((r) => r.cost_center_id));
-
-  // Attribute finalized revenue to sectors; anything not on a sector (null center OR a non-sector center) is
-  // «غير موزّع» — so no sale's revenue silently vanishes from the picture.
-  let unallocRevenue = 0;
-  for (const s of sales) {
-    const v = Number(s.total ?? 0);
-    if (s.cost_center_id && sectorIds.has(s.cost_center_id)) {
-      revenueByCenter.set(s.cost_center_id, (revenueByCenter.get(s.cost_center_id) ?? 0) + v);
-    } else {
-      unallocRevenue += v;
-    }
-  }
-
-  const sectors: CenterPerf[] = sectorRows.map((r) => ({
-    id: r.cost_center_id,
-    name: r.name_ar,
-    net: (revenueByCenter.get(r.cost_center_id) ?? 0) - Number(r.net ?? 0),
-    areaFeddan: Number(r.area_feddan),
-  }));
-
-  // Untagged EXPENSES = the CC-UNALLOC row's DEBIT (its expense-account debits with no center). NOT its `net`:
-  // net = debit − credit, and EVERY sales revenue credit is null-center → lands in CC-UNALLOC's credit, so net
-  // is contaminated by all farm revenue (would show a large negative). debit is the honest untagged-cost figure.
-  const unallocExpense = Number(rollup.find((r) => r.code === "CC-UNALLOC")?.debit ?? 0);
+  // Per-sector profit = leaf-tagged sales revenue − the leaf sector's own expenses; untagged → «غير موزّع».
+  // The subtle attribution lives (and is unit-tested) in lib/entity-pnl, not duplicated here.
+  const { sectors, unallocRevenue, unallocExpense } = computeSectorPnl(rollup, sales);
   const benchmark = bestUnitBenchmark(sectors);
   const concentration = concentrationThesis(sectors);
   const upsideById = new Map((benchmark?.rows ?? []).map((r) => [r.id, r.upside]));

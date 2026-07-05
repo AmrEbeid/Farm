@@ -18,7 +18,8 @@ import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
 import { egp, num, pct } from "@/lib/money";
-import { cropRoi, cropRoiThesis, type EnterprisePerf } from "@/lib/pnl-insights";
+import { cropRoi, cropRoiThesis } from "@/lib/pnl-insights";
+import { computeEnterprisePnl } from "@/lib/entity-pnl";
 import type { CostCenterInsightRollup } from "@/lib/finance-insights";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
@@ -36,40 +37,9 @@ export default async function EnterpriseScorecardPage() {
   const rollup = (rollupRes.data ?? []) as CostCenterInsightRollup[];
   const sales = (salesRes.data ?? []) as SaleRow[];
 
-  // Leaf, non-system centers → their enterprise label (only those with one).
-  const parentIds = new Set(rollup.map((r) => r.parent_id).filter(Boolean) as string[]);
-  const isLeaf = (r: CostCenterInsightRollup) => r.active && !r.is_system && !parentIds.has(r.cost_center_id);
-  const centerEnterprise = new Map<string, string>();
-  for (const r of rollup) {
-    if (isLeaf(r) && r.enterprise) centerEnterprise.set(r.cost_center_id, r.enterprise);
-  }
-
-  // Expenses per enterprise (leaf own net); untagged expenses = CC-UNALLOC.debit + leaf centers with no enterprise.
-  const expByEnt = new Map<string, number>();
-  let unallocExpense = Number(rollup.find((r) => r.code === "CC-UNALLOC")?.debit ?? 0);
-  for (const r of rollup) {
-    if (!isLeaf(r)) continue;
-    const ent = r.enterprise;
-    if (ent) expByEnt.set(ent, (expByEnt.get(ent) ?? 0) + Number(r.net ?? 0));
-    else unallocExpense += Number(r.net ?? 0);
-  }
-
-  // Revenue per enterprise (via the sale's leaf center → enterprise); anything else is unallocated.
-  const revByEnt = new Map<string, number>();
-  let unallocRevenue = 0;
-  for (const s of sales) {
-    const v = Number(s.total ?? 0);
-    const ent = s.cost_center_id ? centerEnterprise.get(s.cost_center_id) : undefined;
-    if (ent) revByEnt.set(ent, (revByEnt.get(ent) ?? 0) + v);
-    else unallocRevenue += v;
-  }
-
-  const keys = [...new Set([...expByEnt.keys(), ...revByEnt.keys()])];
-  const enterprises: EnterprisePerf[] = keys.map((key) => ({
-    key,
-    revenue: revByEnt.get(key) ?? 0,
-    expenses: expByEnt.get(key) ?? 0,
-  }));
+  // Per-enterprise (crop) revenue/expenses via the cost-center `enterprise` label; untagged → «غير موزّع».
+  // The subtle attribution lives (and is unit-tested) in lib/entity-pnl, not duplicated here.
+  const { enterprises, unallocRevenue, unallocExpense } = computeEnterprisePnl(rollup, sales);
   const rows = cropRoi(enterprises).sort((a, b) => (b.roi ?? -Infinity) - (a.roi ?? -Infinity));
   const thesis = cropRoiThesis(rows);
   const hasData = rows.some((r) => r.revenue !== 0 || r.expenses !== 0);
