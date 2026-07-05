@@ -1,7 +1,31 @@
-# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (balance-sheet report live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (finance UI pages live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-05 (latest) — trusted balance-sheet report RPC LIVE (SPEC-0004 Slice A)
+## 2026-07-05 (latest) — finance UI pages LIVE: balance sheet + period close/reopen (no migration)
+
+Under the Owner's autonomous review→merge→migrate directive, shipped the two UI pages that make the accounting
+backends usable. **App-only (no prod migration; prod ledger head stays `20260705110000`).**
+- **`/finance/balance-sheet`** (#710, `main` 9060485) — read-only owner/accountant statement over
+  `fn_accounting_balance_sheet`: as-of picker, KPI cards, asset/liability/equity section tables, the `balanced`
+  check line, drawings on the equity card (#6). Independent review: APPROVE.
+- **`/finance/periods`** (#713, `main` 11ec4fa) — close/reopen the period lock: lists `accounting_periods`
+  (RLS-read), a close form (owner/accountant), owner-only reopen per locked period, Arabic error mapping via
+  `toArabicError`. This **completes the period-lock feature end-to-end** (backend #700 had no UI). Review: APPROVE.
+- Both: server components, `requireRole(owner/accountant)`, nav + page-help (drift guard green), RPC/table types
+  augmented in `database.types.ext.ts` (generated file untouched). tsc 0 / ESLint 0 / build 0 each; CI all green.
+  Interactive logged-in verification still pending (shell is auth-gated) — build + pgTAP-verified RPCs are the evidence.
+
+**Session arc (2026-07-05):** period-lock backend (#700, prod 550000) → balance-sheet RPC (#705, prod 20260705110000,
+review caught+fixed an archived-account balance-drop) → these two UI pages. Accounting now has: period lock (with UI),
+trusted balance sheet (RPC+UI), on top of the existing P&L (fn_owner_pnl_summary, owned by #703) and revenue reports.
+
+**Resume point (next accounting slices, unowned — reconcile open PRs first):** (a) a GL-based income-statement RPC
+(revenue − expense by account over `journal_lines`, posted-only, period-scoped) whose net income ties to the balance
+sheet — distinct from the expenses-table `fn_owner_pnl_summary`; (b) budget-vs-actual by rolling the GL up by
+category (ROADMAP Slice A / Decision-0157 — the policy hard-block-vs-warn is an Owner decision); (c) cross-links
+between `/finance/balance-sheet`, `/finance/periods`, and `/finance/close`.
+
+## 2026-07-05 — trusted balance-sheet report RPC LIVE (SPEC-0004 Slice A)
 
 Second accounting slice this session under the Owner's autonomous review→merge→migrate directive. Picked
 **balance sheet** after reconciling `origin/main` + open PRs: P&L is already built and actively owned (**#703**),
