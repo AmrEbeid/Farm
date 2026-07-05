@@ -24,8 +24,14 @@ enforcement** (hard-block vs warn — Decision-0157); the canonical category→a
 chart-of-accounts seeding (needs the 7-yr Ebeid Excel); Stage-M real-data reconciliation + privacy review; Slice D
 (A/P, bank rec, IAS-16/41 — needs an accountant). Slice C (ETA/VAT) removed per Owner (#721).
 
-**Session arc (2026-07-05, ~19 merges, all CI-green, migrate-first, 0 stray rows):** statements trio (RPC+UI) →
-budget-vs-actual (RPC+UI) → Slice C removal → catalog + master-file reconciles → statement cross-links.
+**Session arc (2026-07-05, ~23 merges, all CI-green, migrate-first, 0 stray rows):** statements trio (RPC+UI) →
+budget-vs-actual (RPC+UI) → Slice C removal → catalog + master-file reconciles → statement cross-links → then, with
+accounting complete, non-accounting polish (reconcile-first, avoiding the SPEC-0029 insights lane): `/budgets` links
+to the live budget-vs-actual (#732); the month-close checklist links to the period-lock action (#733); mobile
+back-to-field links on `/m/execute` and `/m/receive` (#734, an audit-surfaced UX gap); and the reports hub now lists
+the three new statements (#735). Next non-gated candidates if resumed: a fresh read-only audit of another area
+(inventory/structure/people) for the next low-risk slice — accounting build work is exhausted (all remaining is
+Owner/expert-gated), so do NOT re-open it; and do NOT touch the active insights lane (SPEC-0029, #729).
 
 ## 2026-07-05 — trusted income statement (P&L) LIVE — statements trio complete (SPEC-0004 Slice A)
 
