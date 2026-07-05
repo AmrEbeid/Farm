@@ -2,7 +2,22 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-04 (latest) — UI speed/readability pass LIVE; prod ledger head remains `20260701510000`.**
+> **2026-07-05 (latest) — SPEC-0004 §7.3 accounting period close/lock LIVE; prod ledger head `20260701550000`.**
+> PR **#700** merged to `main` at **`62dee45`** after migrate-first production apply. Scope: `accounting_periods`
+> (per-org closed date ranges; `finance.read`-gated, audited), `fn_close_accounting_period` (owner/accountant),
+> `fn_reopen_accounting_period` (owner-only), internal `fn_period_locked`, and a lock guard added to the single
+> journal-posting choke point `fn_post_two_line_journal` (re-emitted from its current `20260701460000` body —
+> `cost_center_id` preserved). A NEW posting into a locked period is rejected (`55000`, Arabic message); idempotent
+> re-posts are unaffected; behavior-neutral on apply (no periods locked yet). No `authorize()` permission added
+> (direct owner/accountant role checks). Independent money-path review: **APPROVE** (byte-for-byte re-emit fidelity;
+> `fn_post_two_line_journal` confirmed the only journal writer → no bypass). Production apply via Supabase MCP
+> against Farm project `veezkmytervjnpxcrbkw` under exact repo version `20260701550000` (stray apply-time version
+> reconciled → **0 stray rows**); verified table + 3 RPCs present, `fn_period_locked` internal, advisors show only
+> the pre-existing cost-center-view ERRORs + the intentional SECURITY-DEFINER WARNs (2 new expected). Validation:
+> local pgTAP harness **1477/1477** (new test 125 = 18 assns); PR CI (app build, pgTAP, storybook, gitleaks,
+> CodeRabbit, Vercel) all green. UI wiring of `/finance/close` to these RPCs is a follow-up slice.
+>
+> **2026-07-04 — UI speed/readability pass LIVE; prod ledger head remains `20260701510000`.**
 > Current `main` is **`815a4c8`** after PRs **#679/#681/#682**. No Supabase migration in these PRs; post-merge
 > `supabase db push --dry-run` reports the remote database is up to date. Scope: owner-dashboard readability
 > redesign, authenticated-shell lazy loading for help/search, finance-dashboard custody balance round-trip reduction,

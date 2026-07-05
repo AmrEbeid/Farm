@@ -1,7 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-07-04 by Codex (UI speed/readability pass live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (accounting period close/lock live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-04 (latest) — UI speed/readability pass live
+## 2026-07-05 (latest) — accounting period close/lock LIVE (SPEC-0004 §7.3)
+
+Owner directive: review → merge → migrate autonomously. Built the lightweight period lock (ROADMAP Slice A item 3),
+independently reviewed it, applied to prod, and merged — one flow, in an isolated worktree (never the shared main tree).
+
+**Live on `main` `62dee45` (#700); prod ledger head `20260701550000`.**
+- `accounting_periods` (per-org closed date ranges; `finance.read`-gated + audited), `fn_close_accounting_period`
+  (owner/accountant), `fn_reopen_accounting_period` (owner-only), internal `fn_period_locked`, and a lock guard in the
+  single posting choke point `fn_post_two_line_journal` (re-emitted from the current `20260701460000` body —
+  `cost_center_id` preserved). New postings into a locked period are rejected (`55000`, Arabic); idempotent re-posts
+  unaffected; **behavior-neutral on apply** (no periods locked yet). No `authorize()` re-emit (direct role checks).
+- Independent money-path review: **APPROVE** (byte-for-byte re-emit fidelity; `fn_post_two_line_journal` is the only
+  journal writer → no bypass path). Local pgTAP **1477/1477** (new test 125). Prod applied under exact repo version,
+  **0 stray rows**; advisors clean (the 2 ERRORs are pre-existing cost-center SECURITY-DEFINER views; 2 expected new WARNs).
+- The re-emit footgun bit once and was caught by the harness (first pass copied the stale `0220` body, dropping
+  `cost_center_id` → tests 114/56 failed); re-emitted from the current body and re-verified.
+
+**Resume point (next accounting slice, in progress):** trusted **P&L + balance-sheet report RPCs** grouped by
+`account_type` over `journal_lines`/`accounts` (mirror `fn_accounting_trial_balance`), excluding owner drawings from
+opex (non-negotiable #6), with period/date-range scoping (SPEC-0004 §7.4). Build as a **NEW** `/finance/*` page + RPC —
+do NOT touch `accounting/page.tsx` or `finance/close/page.tsx` (**PR #699 owns those**). Then wire `/finance/close` to
+the new close/reopen RPCs.
+
+## 2026-07-04 — UI speed/readability pass live
 
 Owner raised that pages feel slow. A first low-risk speed/readability pass is now live on `main` **`815a4c8`**:
 PR **#679** owner-dashboard readability, PR **#681** app-shell speed pass, and PR **#682** inventory row coverage bars.
