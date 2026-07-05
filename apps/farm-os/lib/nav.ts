@@ -220,6 +220,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "insights-summary",
+        label: "ملخّص الرؤى",
+        icon: "💡",
+        href: "/finance/insights-summary",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "pnl-trend",
         label: "اتجاه الأرباح",
         icon: "📊",
