@@ -81,7 +81,7 @@ what makes the near-term slices cheap.
 | Expense classification (opex/drawings/capex) | partial | ✅ shipped, structurally enforced | — | Done — ahead of tier |
 | **Revenue / sales / A-R** | ✅ statutory tier | 🟡 backend implemented in `20260701500000`; reports/UI pending | Low (reports on new backend + existing kernel) | **Continue — Slice A** |
 | **P&L + balance sheet + period close** | ✅ Wafeq (40+ reports) | ❌ trial-balance only | Low–med (reports over existing `journal_lines`/`accounts` + a period-lock table) | **Build — Slice A** |
-| **ETA e-invoice + VAT (Egypt mandate)** | ✅ Daftra, Wafeq | ❌ none | High (external integration, e-signature, legal) | **Build/partner — Slice C, gated (§5)** |
+| **ETA e-invoice + VAT (Egypt mandate)** | ✅ Daftra, Wafeq | ❌ none | High (external integration, e-signature, legal) | ~~Slice C~~ **REMOVED from the plan (Owner, 2026-07-05)** — out of scope unless a VAT obligation arises |
 | **Per-crop / feddan / tree cost accounting** | Qoyod (cost centers); Traction/Conservis (best) | ❌ none | Med (add a dimension to `journal_lines`, which already carries expense/custody/payment dimension FKs) | **Build — Slice B (the wedge)** |
 | Budget-vs-actual tied to the real ledger | ✅ Conservis actuals-vs-plan | ❌ actuals are frozen seed numbers | Low (roll the ledger up by category — Decision-0157) | **Build — folds into Slice A/B** |
 | Receipt / proof capture (+ OCR later) | ✅ Alaan/Pemo/Pluto | ❌ no attachment linkage | Low (link `attachments` to custody/expense rows) | **Build — folds into Slice A/B** |
@@ -90,19 +90,12 @@ what makes the near-term slices cheap.
 | **IAS 16/41 bearer-plant depreciation** (depreciating palm vs fair-valued growing dates) | ❌ **nobody** (not even Qoyod) | ❌ none | High, specialized | **Slice D — defer, needs accountant** |
 | Prepaid/corporate card issuance; commodity-price real-time P&L | Alaan/Pemo; Harvest Profit | ❌ | — | **Skip — bloat** |
 
-## 5. ⚠️ The blocker to resolve before scoping ETA (Slice C)
+## 5. ~~The blocker to resolve before scoping ETA (Slice C)~~ — REMOVED from the plan (Owner, 2026-07-05)
 
-The research **refuted** the claim that agriculture / small firms are automatically exempt from Egypt's e-invoicing
-mandate — so **do not assume Farm OS is exempt.** But it equally did **not** confirm the mandate binds a date-palm
-farm entity today. Whether the entity is actually obligated (and at what VAT-registration threshold) is a
-determination for **the Owner's accountant / a local ETA ruling**, not a market source. That answer decides whether
-ETA e-invoicing is urgent (pull Slice C forward) or deferrable (leave it after Slices A/B). This is the single
-highest-leverage open question and aligns with the existing expert-sign-off gates (#366/#368) and Stage M.
-
-Egyptian ETA e-invoicing is a real legal framework (Decree 188/2020 + 554/2021): VAT-registered businesses must
-pre-register before issuing invoices, apply an e-signature stamp per invoice, and calculate VAT; penalties up to
-EGP 50,000. It is solved today by Arabic-native SME tools **Daftra** and **Wafeq** — which raises the
-build-vs-partner question in §7.
+**ETA e-invoicing + VAT (former Slice C) is out of scope per the Owner (2026-07-05).** Revisit only if the farm
+becomes VAT-registered / obligated — an accountant / local ETA determination, not a build decision. The market
+context that informed the original slice (Daftra/Wafeq solve ETA; Decree 188/2020 + 554/2021) is retained in §4
+for reference only; it no longer gates any planned work.
 
 ## 6. Prioritized roadmap (sequenced slices)
 
@@ -134,14 +127,9 @@ merge, and real-data reconciliation is Stage-M gated.
 - **Gates:** depends on Slice A's revenue side (no per-unit *profit* without revenue); Stage M for real allocation.
 - **Acceptance oracle:** per-sector/per-hawsha cost + margin roll up correctly and reconcile to the whole-farm P&L.
 
-### Slice C — ETA e-invoicing + VAT *(gated on §5)*
-- **Scope:** VAT on sales/expenses; Egyptian ETA e-invoice submission (pre-registration, e-signature stamp).
-- **Build-vs-partner:** Daftra/Wafeq already implement ETA submission; evaluate integrating/partnering for the
-  submission layer vs building native (open question — see §7).
-- **Gates:** the ETA-obligation legal determination (§5) decides urgency and scope; external integration + real
-  taxpayer credentials are Owner-only.
-- **Acceptance oracle:** a test invoice is accepted by (or correctly formatted for) the ETA system; VAT return
-  reconciles.
+### ~~Slice C — ETA e-invoicing + VAT~~ — REMOVED from the plan (Owner, 2026-07-05)
+Out of scope. Revisit only if the farm becomes VAT-registered / ETA-obligated — an accountant / ETA determination,
+not a build decision. Market context retained in §4/§5 for reference only.
 
 ### Slice D — Deferred / later differentiators
 - **IAS 16/41 bearer-plant accounting:** capitalize + depreciate the palm as PP&E (IAS 16) while measuring the
@@ -161,15 +149,12 @@ merge, and real-data reconciliation is Stage-M gated.
 
 ## 7. Open decisions for the Owner
 
-1. **ETA legal determination (§5)** — is a date-palm farm entity obligated to ETA e-invoicing, at what VAT
-   threshold? Decides Slice C urgency. *(Owner's accountant.)*
-2. **Slice C build-vs-partner** — build ETA submission native, or integrate Daftra/Wafeq's existing ETA layer?
-   Needs their API/embeddability + pricing (not covered by surviving research claims — §8).
-3. **Chart of accounts** — the real date-palm chart to seed (`accounts` is empty); must reconcile to the 7-year
+1. **Chart of accounts** — the real date-palm chart to seed (`accounts` is empty); must reconcile to the 7-year
    Excel. *(Owner/accountant.)*
-4. **Decision-0157 policy** — budget cap = hard-block vs warn-with-override; category→budget-line mapping; actuals
-   basis (goods-at-est-cost vs invoice-at-real-cost). Still owed; folds into Slice A.
-5. **Sequencing confirmation** — proceed A → B → (C gated) → D as proposed, or reprioritize?
+2. **Decision-0157 policy** — budget cap = hard-block vs warn-with-override; category→budget-line mapping; actuals
+   basis (goods-at-est-cost vs invoice-at-real-cost). Still owed; folds into Slice A. **This is the gate on the
+   budget-vs-actual slice** — the GL-actuals rollup can't map to budget categories until it's decided.
+3. **Sequencing confirmation** — proceed A → B → D as proposed (Slice C removed), or reprioritize?
 
 ## 8. Safe to skip (enterprise bloat)
 
