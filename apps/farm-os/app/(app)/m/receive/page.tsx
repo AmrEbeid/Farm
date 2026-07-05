@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState } from "@/components/ui";
@@ -104,6 +105,10 @@ export default async function MobileReceivePage() {
           </Card>
         ))
       )}
+
+      <Link href="/m" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+        → رجوع إلى الميدان
+      </Link>
     </div>
   );
 }

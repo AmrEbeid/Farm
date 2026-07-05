@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, EmptyState } from "@/components/ui";
 import type { PillStatus } from "@amrebeid/ui";
+import Link from "next/link";
 import { Entity360Header } from "@/components/Entity360Header";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
@@ -146,6 +147,10 @@ export default async function ExecutePage({
           </p>
         </Card>
       )}
+
+      <Link href="/m" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+        → رجوع إلى الميدان
+      </Link>
     </div>
   );
 }
