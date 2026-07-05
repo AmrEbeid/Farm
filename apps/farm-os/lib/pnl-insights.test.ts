@@ -5,6 +5,7 @@ import {
   verdictForChange,
   narratePeriods,
   costDisciplineThesis,
+  parsePnlTimeseries,
   type PnlPeriod,
   type PnlTimeseries,
 } from "./pnl-insights";
@@ -118,5 +119,32 @@ describe("costDisciplineThesis", () => {
   });
   it("returns null with fewer than 2 periods (no baseline)", () => {
     expect(costDisciplineThesis(series([period({ period: "2025" })]))).toBeNull();
+  });
+});
+
+describe("parsePnlTimeseries", () => {
+  it("coerces string/number JSON into typed periods", () => {
+    const parsed = parsePnlTimeseries({
+      grain: "year",
+      period_start: "2024-01-01",
+      period_end: "2025-12-31",
+      periods: [
+        { period: "2024", revenue: "4689211", expenses: 2388331, operating_expenses: "2000000", net_income: "2300880", cumulative_net_income: "2300880" },
+        { period: "2025", revenue: 7684947, expenses: "4442133", operating_expenses: 3500000, net_income: 3242814, cumulative_net_income: 5543694 },
+      ],
+    });
+    expect(parsed.grain).toBe("year");
+    expect(parsed.periods).toHaveLength(2);
+    expect(parsed.periods[0].revenue).toBe(4689211);
+    expect(parsed.periods[1].net_income).toBe(3242814);
+  });
+  it("is defensive: malformed/empty payload → empty periods, never throws", () => {
+    expect(parsePnlTimeseries(null).periods).toEqual([]);
+    expect(parsePnlTimeseries({}).periods).toEqual([]);
+    expect(parsePnlTimeseries({ periods: "nope" }).periods).toEqual([]);
+    expect(parsePnlTimeseries({ periods: [{ revenue: 5 }] }).periods).toEqual([]); // no period label → dropped
+  });
+  it("defaults grain to month for an unknown grain", () => {
+    expect(parsePnlTimeseries({ grain: "week", periods: [] }).grain).toBe("month");
   });
 });
