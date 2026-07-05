@@ -70,7 +70,7 @@ export function ScaleWizard({
   if (done) {
     const buyerName = buyerList.find((b) => b.id === buyerId)?.name ?? "";
     const share = encodeURIComponent(
-      `بون تسليم مزارع عبيد رقم ${done.noteNo}\n${crop} — صافي ${done.netKg} كجم (${crates} عبوة)\nالتاجر: ${buyerName}\nالسعر: يُحدد لاحقًا`,
+      `بون تسليم مزارع عبيد رقم ${num(done.noteNo)}\n${crop} — صافي ${num(done.netKg)} كجم (${num(crates)} عبوة)\nالتاجر: ${buyerName}\nالسعر: يُحدد لاحقًا`,
     );
     return (
       <Card>
