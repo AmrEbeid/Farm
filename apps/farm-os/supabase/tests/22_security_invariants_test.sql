@@ -105,7 +105,8 @@ select is(
         'fn_record_scale_delivery', -- scale-house delivery → pending sale + بون serial (SPEC-0027 H-A, migration 20260701530000)
         'fn_record_harvest_day',                   -- field picking counter (SPEC-0027 H-B, migration 20260701540000)
         'fn_close_accounting_period', 'fn_reopen_accounting_period', -- period close/lock RPCs (SPEC-0004 §7.3, migration 20260701550000)
-        'fn_accounting_balance_sheet' -- read-only balance-sheet report RPC (SPEC-0004 Slice A, migration 20260705110000)
+        'fn_accounting_balance_sheet', -- read-only balance-sheet report RPC (SPEC-0004 Slice A, migration 20260705110000)
+        'fn_accounting_income_statement' -- read-only income-statement/P&L report RPC (SPEC-0004 Slice A, migration 20260705120000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )
