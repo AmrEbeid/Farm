@@ -43,6 +43,11 @@ export default async function FinanceBalanceSheetPage({
   if (res.error) throw res.error;
   const bs = parseBalanceSheet(res.data);
 
+  // Honest-null (#1): an org with no posted entries makes every total 0, so `balanced` is trivially true
+  // (0 = 0). Showing "0 ج.م" KPIs and a green "متوازنة ✓" would read as a real, reconciled statement. When
+  // there is no data, render "—" and say so plainly instead of a fabricated balanced-at-zero statement.
+  const hasData = bs.assets.length > 0 || bs.liabilities.length > 0 || bs.equity.length > 0;
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -71,14 +76,14 @@ export default async function FinanceBalanceSheetPage({
       </Card>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="إجمالي الموارد" value={egp(bs.assetsTotal)} icon="🏦" />
-        <KpiCard label="إجمالي الالتزامات" value={egp(bs.liabilitiesTotal)} icon="📉" />
-        <KpiCard label="حقوق المالك (متضمّنة الربح)" value={egp(bs.totalEquityInclIncome)} icon="👤" />
+        <KpiCard label="إجمالي الموارد" value={egp(hasData ? bs.assetsTotal : null)} icon="🏦" />
+        <KpiCard label="إجمالي الالتزامات" value={egp(hasData ? bs.liabilitiesTotal : null)} icon="📉" />
+        <KpiCard label="حقوق المالك (متضمّنة الربح)" value={egp(hasData ? bs.totalEquityInclIncome : null)} icon="👤" />
         <KpiCard
-          label="صافي الربح للفترة"
-          value={egp(bs.netIncome)}
+          label="صافي الربح المُجمّع حتى التاريخ"
+          value={egp(hasData ? bs.netIncome : null)}
           icon="📈"
-          deltaDirection={bs.netIncome >= 0 ? "up" : "down"}
+          deltaDirection={hasData && bs.netIncome >= 0 ? "up" : "down"}
         />
       </section>
 
@@ -113,16 +118,22 @@ export default async function FinanceBalanceSheetPage({
         ) : (
           <EmptyState title="لا حقوق مالك حتى هذا التاريخ" />
         )}
-        <p className="mt-3 text-sm" style={mutedStyle}>
-          حقوق المالك {egp(bs.equityTotal)} + صافي الربح للفترة {egp(bs.netIncome)} = {egp(bs.totalEquityInclIncome)}
-        </p>
+        {hasData && (
+          <p className="mt-3 text-sm" style={mutedStyle}>
+            حقوق المالك {egp(bs.equityTotal)} + صافي الربح المُجمّع {egp(bs.netIncome)} = {egp(bs.totalEquityInclIncome)}
+          </p>
+        )}
       </Card>
 
       <Card title="التحقق المحاسبي">
-        <p style={mutedStyle}>
-          الموارد {egp(bs.assetsTotal)} = الالتزامات + حقوق المالك + صافي الربح {egp(bs.liabilitiesPlusEquity)} —{" "}
-          {bs.balanced ? "القائمة متوازنة ✓" : "غير متوازنة ✗"}
-        </p>
+        {hasData ? (
+          <p style={mutedStyle}>
+            الموارد {egp(bs.assetsTotal)} = الالتزامات + حقوق المالك + صافي الربح {egp(bs.liabilitiesPlusEquity)} —{" "}
+            {bs.balanced ? "القائمة متوازنة ✓" : "غير متوازنة ✗"}
+          </p>
+        ) : (
+          <p style={mutedStyle}>لا توجد قيود مُرحّلة حتى هذا التاريخ — لا شيء لعرضه بعد.</p>
+        )}
       </Card>
     </div>
   );
