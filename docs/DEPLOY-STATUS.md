@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-05 (latest) — SPEC-0004 Slice A trusted balance-sheet report RPC LIVE; prod ledger head `20260705110000`.**
+> **2026-07-05 (latest) — SPEC-0004 Slice A trusted income statement (P&L) from the GL LIVE; prod ledger head `20260705120000`.**
+> PR **#715** merged to `main` at **`c8a23a3`** after migrate-first production apply; UI page **#716** (`/finance/income-statement`,
+> `main` `4856f8c`, app-only). Scope: read-only `fn_accounting_income_statement(p_org, p_from, p_to)` — posted-only,
+> period-scoped P&L over `journal_lines` grouped by revenue/expense accounts; **net income ties to the balance
+> sheet** for the same window; owner drawings excluded **by construction** (equity ≠ expense, #6); `operating_expenses`
+> surfaced for budget-vs-actual. Distinct from the expenses-table `fn_owner_pnl_summary` (this reads the GL).
+> Independent money-logic review: **APPROVE** (no active-filter divergence from the balance sheet — the archived-account
+> lesson carried over). Production apply via Supabase MCP under exact repo version `20260705120000` (**0 stray rows**);
+> verified fn present, authenticated-executable, anon denied. Validation: local pgTAP **1524/1524** (new test 127 = 15
+> assns incl. the balance-sheet tie, drawings-excluded, period scoping, posted-only); page: tsc 0 / ESLint 0 / Vitest
+> 11/11 / build 0. **The trusted-statements trio is now complete: balance sheet + income statement + period lock (each RPC+UI).**
+>
+> **2026-07-05 — SPEC-0004 Slice A trusted balance-sheet report RPC LIVE; prod ledger head `20260705110000`.**
 > PR **#705** merged to `main` at **`42773e2`** after migrate-first production apply. Scope: read-only
 > `fn_accounting_balance_sheet(p_org, p_as_of)` — posted-only, as-of-scoped balance sheet grouped by `account_type`
 > (asset/liability/equity), owner drawings as a positive contra-equity line netted into equity (#6), net income =

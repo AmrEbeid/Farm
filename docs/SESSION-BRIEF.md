@@ -1,7 +1,34 @@
-# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (finance UI pages live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (trusted-statements trio complete, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-05 (latest) — finance UI pages LIVE: balance sheet + period close/reopen (no migration)
+## 2026-07-05 (latest) — trusted income statement (P&L) LIVE — statements trio complete (SPEC-0004 Slice A)
+
+Shipped the GL income statement (RPC + UI), completing the trusted-statements trio.
+- **`fn_accounting_income_statement`** (#715, `main` c8a23a3, **prod `20260705120000`**) — posted-only, period-scoped
+  P&L over the GL; net income **ties to the balance sheet**; drawings excluded by construction (#6); `operating_expenses`
+  surfaced. Independent review APPROVE (no active-filter divergence — the archived-account lesson carried over).
+  pgTAP 1524/1524 (test 127 incl. the tie). Migrate-first, 0 stray rows.
+- **`/finance/income-statement`** (#716, `main` 4856f8c, app-only) — period picker, KPIs, revenue/expense tables.
+  Review APPROVE. tsc/ESLint/build 0, Vitest 11/11.
+
+**The trusted-statements trio is complete (each RPC + UI, reviewed, deployed):**
+- Balance sheet — `fn_accounting_balance_sheet` (#705) + `/finance/balance-sheet` (#710)
+- Income statement — `fn_accounting_income_statement` (#715) + `/finance/income-statement` (#716)
+- Period lock — `accounting_periods`/close/reopen (#700) + `/finance/periods` (#713)
+All tie together: the balance sheet's `net_income` == the income statement's `net_income`; posting into a locked period
+is rejected. Prod ledger head **`20260705120000`**.
+
+**Full session arc (2026-07-05, autonomous review→merge→migrate):** #700 period-lock backend → #705 balance-sheet RPC
+(review caught+fixed an archived-account balance-drop) → #710 balance-sheet page → #713 periods page → #715 income
+statement RPC → #716 income-statement page, plus docs (#702/#708/#714). 8 feature/doc merges, all CI-green,
+migrate-first where a migration was involved, 0 stray version rows throughout.
+
+**Resume point (next accounting slices — reconcile open PRs first; #717 is another lane fixing trial-balance archived
+accounts):** (a) **budget-vs-actual** by rolling the GL up by category (ROADMAP Slice A / Decision-0157 — the
+hard-block-vs-warn policy is an Owner decision, but the read-side rollup is buildable); (b) cross-links between the
+finance statement pages + `/finance/close`; (c) a combined "financial statements" landing that shows all three.
+
+## 2026-07-05 — finance UI pages LIVE: balance sheet + period close/reopen (no migration)
 
 Under the Owner's autonomous review→merge→migrate directive, shipped the two UI pages that make the accounting
 backends usable. **App-only (no prod migration; prod ledger head stays `20260705110000`).**
