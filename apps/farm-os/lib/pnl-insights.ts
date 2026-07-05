@@ -156,3 +156,108 @@ export function parsePnlTimeseries(raw: unknown): PnlTimeseries {
     periods,
   };
 }
+
+// ── Per-center (per-sector) performance: the best-unit benchmark + concentration theses (SPEC-0029) ──
+// The `net` these consume MUST be the center's real PROFIT (revenue − expenses). ⚠️ Do NOT pass
+// `v_cost_center_rollup.net` directly: that column is `sum(debit) − sum(credit)` over the expense/revenue
+// lines *tagged to the center*, and revenue is NOT posted to cost-center journal lines (it's a reporting
+// dimension on `sales`; the GL posts revenue to summary accounts) — so the rollup net is EXPENSES-only and
+// positive. A caller must build profit itself (sales revenue grouped by cost_center_id − tagged expenses) at
+// a consistent granularity, and surface unallocated costs/revenue honestly (#1). Feeding cost as profit would
+// invert the ranking and fabricate a per-sector figure — the exact sin these theses exist to avoid.
+
+export interface CenterPerf {
+  id: string;
+  name: string;
+  net: number; // the center's PROFIT (revenue − expenses) — see the ⚠️ above; NOT v_cost_center_rollup.net
+  areaFeddan: number; // > 0 for a real sector; 0/unknown → excluded from per-feddan math
+}
+
+/** Profit per feddan, or null when there is no area to normalize by (honest-null — never net/0). */
+export function profitPerFeddan(c: CenterPerf): number | null {
+  return c.areaFeddan > 0 ? c.net / c.areaFeddan : null;
+}
+
+export type SectorStatus = "crown" | "strong" | "recovering" | "attention";
+
+/** Auto status badge for a sector, relative to the best-unit benchmark (the prototype's Crown Jewel /
+ *  Recovering / Needs Attention ladder). Null when it can't be graded (no per-feddan or no positive benchmark). */
+export function sectorStatus(perFeddan: number | null, benchmarkPerFeddan: number): SectorStatus | null {
+  if (perFeddan == null || !Number.isFinite(perFeddan) || !(benchmarkPerFeddan > 0)) return null;
+  const ratio = perFeddan / benchmarkPerFeddan;
+  if (ratio >= 0.9) return "crown";
+  if (ratio >= 0.4) return "strong";
+  if (perFeddan > 0) return "recovering";
+  return "attention";
+}
+
+export interface BenchmarkRow {
+  id: string;
+  name: string;
+  perFeddan: number;
+  gap: number; // benchmark − this center's perFeddan
+  upside: number; // max(0, gap × area) — the EGP this center would add at benchmark productivity
+}
+
+export interface BenchmarkResult {
+  benchmarkName: string;
+  benchmarkPerFeddan: number;
+  totalArea: number;
+  currentTotalNet: number;
+  fullPotential: number; // totalArea × benchmarkPerFeddan
+  impliedUpside: number; // max(0, fullPotential − currentTotalNet)
+  rows: BenchmarkRow[];
+}
+
+/** Internal "best-unit" benchmark (the prototype's crown-jewel thesis): take the top profit/feddan among
+ *  centers WITH area, and compute each center's gap-to-best and implied upside (gap × area). Returns null when
+ *  there are <2 comparable units or the best unit isn't profitable (no honest upside story to tell). */
+export function bestUnitBenchmark(centers: CenterPerf[]): BenchmarkResult | null {
+  const withArea = centers.filter((c) => c.areaFeddan > 0 && Number.isFinite(c.net));
+  if (withArea.length < 2) return null;
+  const perF = withArea.map((c) => ({ c, pf: c.net / c.areaFeddan }));
+  const best = perF.reduce((a, b) => (b.pf > a.pf ? b : a));
+  if (!(best.pf > 0)) return null;
+  const totalArea = withArea.reduce((s, c) => s + c.areaFeddan, 0);
+  const currentTotalNet = withArea.reduce((s, c) => s + c.net, 0);
+  const fullPotential = totalArea * best.pf;
+  return {
+    benchmarkName: best.c.name,
+    benchmarkPerFeddan: best.pf,
+    totalArea,
+    currentTotalNet,
+    fullPotential,
+    impliedUpside: Math.max(0, fullPotential - currentTotalNet),
+    rows: perF.map(({ c, pf }) => ({
+      id: c.id,
+      name: c.name,
+      perFeddan: pf,
+      gap: best.pf - pf,
+      upside: Math.max(0, (best.pf - pf) * c.areaFeddan),
+    })),
+  };
+}
+
+/** Concentration / crown-jewel thesis: fires when one center contributes a dominant share (≥40%) of total
+ *  POSITIVE net — the "the model works, others are maturing" framing. Returns null when nothing is
+ *  concentrated (or no positive net at all — honest, no fabricated leader). */
+export function concentrationThesis(centers: CenterPerf[]): Thesis | null {
+  const positive = centers.filter((c) => c.net > 0);
+  if (positive.length < 2) return null;
+  const totalNet = positive.reduce((s, c) => s + c.net, 0);
+  if (totalNet <= 0) return null;
+  const top = positive.reduce((a, b) => (b.net > a.net ? b : a));
+  const share = top.net / totalNet;
+  if (share < 0.4) return null;
+  const totalArea = centers.reduce((s, c) => s + (c.areaFeddan > 0 ? c.areaFeddan : 0), 0);
+  const areaShare = totalArea > 0 && top.areaFeddan > 0 ? top.areaFeddan / totalArea : null;
+  const onArea = areaShare != null ? ` على ${pctAr(areaShare * 100)} فقط من المساحة` : "";
+  return {
+    key: "concentration",
+    severity: "info",
+    title: "قطاع الصدارة",
+    body:
+      `${top.name} يحقق ${pctAr(share * 100)} من صافي الربح${onArea} — النموذج الأنضج والأعلى إنتاجية. ` +
+      `مع نضج باقي القطاعات يمكن أن تقترب من نفس الإنتاجية.`,
+  };
+}
