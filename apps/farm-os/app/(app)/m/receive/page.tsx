@@ -106,8 +106,14 @@ export default async function MobileReceivePage() {
         ))
       )}
 
-      <Link href="/m" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
-        → رجوع إلى الميدان
+      {/* Role-aware back-link: /m rejects storekeeper (field-role only) and would bounce them to /dashboard,
+          so send storekeepers to their own home (/inventory/dashboard) instead of the field feed. */}
+      <Link
+        href={m.role === "storekeeper" ? "/inventory/dashboard" : "/m"}
+        className="font-bold underline underline-offset-4"
+        style={{ color: "var(--brand)" }}
+      >
+        → رجوع {m.role === "storekeeper" ? "إلى المخزون" : "إلى الميدان"}
       </Link>
     </div>
   );
