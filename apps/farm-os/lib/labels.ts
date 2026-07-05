@@ -216,3 +216,17 @@ export const PR_STATUS_AR: Record<string, string> = {
   received: "مُستلم",
   partially_received: "مُستلم جزئيًا",
 };
+
+/**
+ * Palm/tree asset status (`assets.status`) → Arabic. Hoisted here from three byte-identical inline
+ * copies (farm/palm/[id], farm/line/[id], palm-search-actions) that would otherwise drift. Must match
+ * assets_status_check so a persisted status never leaks its raw English key into the RTL UI.
+ */
+export const ASSET_STATUS_AR: Record<string, string> = {
+  active: "سليمة",
+  watch: "تحت المراقبة",
+  sick: "مريضة",
+  dead: "ميتة",
+  removed: "مُزالة",
+  replaced: "مُستبدلة",
+};

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  ASSET_STATUS_AR,
   EXPENSE_KIND_AR,
   HARVEST_STAGE_AR,
   INCIDENT_SEVERITY_AR,
@@ -140,5 +141,14 @@ describe("INCIDENT_SEVERITY_AR — completeness vs the pest_incidents.severity C
   // (?? i.severity), so a missing label would leak a raw English severity into the RTL UI.
   it.each(["watch", "suspected", "confirmed"])("has a non-empty Arabic label for severity %s", (s) =>
     expect(INCIDENT_SEVERITY_AR[s]).toBeTruthy(),
+  );
+});
+
+describe("ASSET_STATUS_AR — completeness vs the assets.status CHECK", () => {
+  // Single shared map (hoisted from 3 inline copies); the palm/line detail pages and palm search fall
+  // back to the raw key (?? asset.status), so it must cover assets_status_check or leak raw English.
+  it.each(["active", "watch", "sick", "dead", "removed", "replaced"])(
+    "has a non-empty Arabic label for asset status %s",
+    (s) => expect(ASSET_STATUS_AR[s]).toBeTruthy(),
   );
 });

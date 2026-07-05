@@ -16,18 +16,9 @@ import {
   LinkedTasksCard,
   LinkedWorkKpis,
 } from "@/components/linked-work-sections";
-import { SUBTYPE_AR } from "@/lib/labels";
+import { ASSET_STATUS_AR as STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 // assets.status — the closed set from migration 0003.
-const STATUS_AR: Record<string, string> = {
-  active: "سليمة",
-  watch: "تحت المراقبة",
-  sick: "مريضة",
-  dead: "ميتة",
-  removed: "مُزالة",
-  replaced: "مُستبدلة",
-};
-
 // health_status — legacy coded values from the seed (good / leaf_spot_watch / rpw_suspected); newer
 // entries are free-text Arabic from the form. Map the known codes to Arabic and fall back to the raw
 // value (the free-text case) so a field user never sees raw English (non-negotiable #2).

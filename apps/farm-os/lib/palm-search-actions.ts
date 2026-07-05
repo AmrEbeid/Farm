@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { ASSET_STATUS_AR as STATUS_AR } from "./labels";
 
 export interface PalmSearchResult {
   id: string;
@@ -15,18 +16,6 @@ export interface PalmSearchResult {
 
 const MIN_QUERY_LENGTH = 2;
 const MAX_RESULTS = 20;
-
-// assets.status — the closed set from migration 0003 (mirrors the map on
-// app/(app)/farm/palm/[id]/page.tsx; kept local rather than shared since neither
-// page currently imports a common label module for this set).
-const STATUS_AR: Record<string, string> = {
-  active: "سليمة",
-  watch: "تحت المراقبة",
-  sick: "مريضة",
-  dead: "ميتة",
-  removed: "مُزالة",
-  replaced: "مُستبدلة",
-};
 
 /** Escape PostgREST `ilike` pattern metacharacters so a literal `%`/`_` in the
  *  user's query isn't treated as a wildcard (same guard as the command-palette
