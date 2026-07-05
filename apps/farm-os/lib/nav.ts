@@ -213,6 +213,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "budget-vs-actual",
+        label: "الموازنة مقابل الفعلي",
+        icon: "📊",
+        href: "/finance/budget-vs-actual",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "periods",
         label: "الفترات المحاسبية",
         icon: "🔒",
