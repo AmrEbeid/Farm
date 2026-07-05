@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   EXPENSE_KIND_AR,
   HARVEST_STAGE_AR,
+  INCIDENT_SEVERITY_AR,
   OP_STATUS_AR,
   PAYMENT_STATUS_AR,
   REQUEST_STATUS_AR,
   SUBTYPE_AR,
+  TRAP_STATUS_AR,
   isExecutableOpStatus,
 } from "./labels";
 
@@ -122,5 +124,21 @@ describe("REQUEST_STATUS_AR — completeness vs the payment_requests.status CHEC
   it.each(["draft", "submitted", "approved_operational", "approved_final", "paid", "closed"])(
     "has a non-empty Arabic label for request status %s",
     (s) => expect(REQUEST_STATUS_AR[s]).toBeTruthy(),
+  );
+});
+
+describe("TRAP_STATUS_AR — completeness vs the pest_traps.status CHECK", () => {
+  // Must match pest_traps_status_check; the pest-scouting screen falls back to the raw key (?? t.status),
+  // so a missing label would leak a Western/English trap status into the RTL UI.
+  it.each(["active", "removed"])("has a non-empty Arabic label for trap status %s", (s) =>
+    expect(TRAP_STATUS_AR[s]).toBeTruthy(),
+  );
+});
+
+describe("INCIDENT_SEVERITY_AR — completeness vs the pest_incidents.severity CHECK", () => {
+  // Must match pest_incidents_severity_check; the pest-scouting screen falls back to the raw key
+  // (?? i.severity), so a missing label would leak a raw English severity into the RTL UI.
+  it.each(["watch", "suspected", "confirmed"])("has a non-empty Arabic label for severity %s", (s) =>
+    expect(INCIDENT_SEVERITY_AR[s]).toBeTruthy(),
   );
 });
