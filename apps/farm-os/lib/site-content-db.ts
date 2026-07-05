@@ -20,9 +20,14 @@ export async function loadSiteContent(): Promise<SiteContent> {
   }
   try {
     const sb = createAdminClient();
+    // The read is service-role → RLS is BYPASSED, so pin the site org explicitly (mirrors
+    // enquiry-actions.ts). Without it, a multi-org DB would render whichever org's row Postgres returns
+    // first onto the PUBLIC page — a cross-tenant content leak. Same default as the enquiry write path.
+    const siteOrgId = process.env.SITE_ORG_ID || "00000000-0000-0000-0000-000000000001";
     const { data, error } = await sb
       .from("site_content")
       .select("content")
+      .eq("org_id", siteOrgId)
       .limit(1)
       .maybeSingle();
     if (error || !data?.content || typeof data.content !== "object") {
