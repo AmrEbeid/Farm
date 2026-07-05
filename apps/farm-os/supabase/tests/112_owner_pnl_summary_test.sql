@@ -5,7 +5,7 @@
 -- figure, matching the intent of the closed-but-unmerged #540 privacy fix. Impersonation via
 -- request.jwt.claims (the harness used by tests 36/82/102). Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(13);
+select plan(14);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set orgB 'c1020000-0000-0000-0000-00000000000c'
@@ -19,6 +19,9 @@ insert into public.expenses (id, org_id, date, category, description, total, sta
   values ('a0e00000-0000-0000-0000-0000000000f3', :'org', '2026-05-01', 'معدات', 'رأسمالي داخل الفترة', 20000, 'approved', 'capex');
 insert into public.expenses (id, org_id, date, category, description, total, status, kind)
   values ('a0e00000-0000-0000-0000-0000000000f4', :'org', '2020-01-01', 'تسميد', 'تشغيلي خارج الفترة', 999999, 'approved', 'operating');
+-- a CANCELLED (void) operating expense INSIDE the period — must be excluded from the P&L (correctness fix).
+insert into public.expenses (id, org_id, date, category, description, total, status, kind, payment_status)
+  values ('a0e00000-0000-0000-0000-0000000000f5', :'org', '2026-03-15', 'تسميد', 'تشغيلي ملغى داخل الفترة', 7000, 'approved', 'operating', 'cancelled');
 
 insert into public.organization (id, name) values (:'orgB', 'مزرعة اختبار P&L');
 
@@ -52,6 +55,10 @@ select is(
 select is(
   (public.fn_owner_pnl_summary(:'org', '2026-01-01', '2026-12-31')->>'capex')::numeric,
   20000::numeric, 'owner: capex total = 20,000');
+-- correctness: the 7,000 CANCELLED operating expense in the period is EXCLUDED (operating stays 1,000, not 8,000)
+select is(
+  (public.fn_owner_pnl_summary(:'org', '2026-01-01', '2026-12-31')->>'operating_expenses')::numeric,
+  1000::numeric, 'owner: a cancelled expense is excluded from operating_expenses (1,000, not 8,000)');
 reset role;
 
 -- 3) accountant: same figures (finance.read carries both roles)
