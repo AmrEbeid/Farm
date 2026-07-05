@@ -199,6 +199,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "balance-sheet",
+        label: "قائمة المركز المالي",
+        icon: "📋",
+        href: "/finance/balance-sheet",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "season-dashboard",
         label: "لوحة الموسم",
         icon: "🌾",
