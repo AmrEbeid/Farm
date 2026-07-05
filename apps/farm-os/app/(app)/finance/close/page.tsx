@@ -147,6 +147,26 @@ export default async function MonthClosePage() {
           ))}
         </div>
       )}
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2 p-1">
+          <div>
+            <span className="font-bold" style={{ color: "var(--ink)" }}>قفل الفترة المحاسبية</span>
+            <span className="text-sm" style={{ color: "var(--ink-muted)" }}>
+              {" "}— {open.length === 0
+                ? "القائمة فارغة — أقفل الفترة لمنع ترحيل أي قيد جديد بتاريخها."
+                : "بعد إفراغ القائمة أعلاه، أقفل الفترة من صفحة الفترات المحاسبية."}
+            </span>
+          </div>
+          <Link
+            href="/finance/periods"
+            className="text-sm font-bold underline underline-offset-4"
+            style={{ color: open.length === 0 ? "var(--brand)" : "var(--ink-muted)" }}
+          >
+            الفترات المحاسبية (الإقفال) ←
+          </Link>
+        </div>
+      </Card>
     </div>
   );
 }
