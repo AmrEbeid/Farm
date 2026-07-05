@@ -8,6 +8,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { closePeriod, reopenPeriod } from "./actions";
+import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
 const mutedStyle = { color: "var(--ink-muted)" } as const;
@@ -137,6 +138,8 @@ export default async function FinancePeriodsPage({
           <EmptyState title="لا فترات مقفلة بعد" description="أقفل فترة من النموذج بالأعلى بعد اعتماد أرقامها." />
         )}
       </Card>
+
+      <FinanceStatementsNav current="periods" />
     </div>
   );
 }
