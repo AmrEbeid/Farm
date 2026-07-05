@@ -227,6 +227,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "sector-scorecard",
+        label: "أداء القطاعات",
+        icon: "🏆",
+        href: "/finance/sector-scorecard",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "periods",
         label: "الفترات المحاسبية",
         icon: "🔒",
