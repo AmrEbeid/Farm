@@ -4,7 +4,7 @@
 -- entry drops out of totals). Org 000…001 starts with ZERO journal activity (the seed posts none), so absolute
 -- figures are deterministic.
 begin;
-select plan(24);
+select plan(31);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set otherOrg '00000000-0000-0000-0000-0000000000ff'
@@ -14,6 +14,7 @@ select set_config('test.asset',   (select id::text from public.accounts where or
 select set_config('test.equity',  (select id::text from public.accounts where org_id=:'org' and code='3000'), false); -- تمويل المالك (equity)
 select set_config('test.expense', (select id::text from public.accounts where org_id=:'org' and code='5000'), false); -- مصروفات تشغيلية (expense)
 select set_config('test.revenue', (select id::text from public.accounts where org_id=:'org' and code='4000'), false); -- إيرادات (revenue)
+select set_config('test.drawing', (select id::text from public.accounts where org_id=:'org' and code='3100'), false); -- مسحوبات المالك (equity, kind=drawing)
 select set_config('test.owner',      (select user_id::text from public.organization_member where org_id=:'org' and role='owner'      limit 1), false);
 select set_config('test.accountant', (select user_id::text from public.organization_member where org_id=:'org' and role='accountant' limit 1), false);
 select set_config('test.supervisor', (select user_id::text from public.organization_member where org_id=:'org' and role='supervisor' limit 1), false);
@@ -87,6 +88,29 @@ reset role;
 select is((current_setting('test.bsR')::jsonb ->> 'assets_total')::numeric, 2000::numeric, 'reversed funding excluded: assets_total = -3000 + 5000 = 2000');
 select is((current_setting('test.bsR')::jsonb ->> 'equity_total')::numeric, 0::numeric, 'reversed funding excluded: equity_total = 0');
 select is((current_setting('test.bsR')::jsonb ->> 'balanced')::boolean, true, 'still balanced after excluding the reversed entry');
+
+-- ── owner drawings (#6): a drawing posts as a positive drawings_total, netted into equity_total ───────────────
+-- State here: e1 reversed → assets 2000, equity 0, revenue 5000, expense 3000, net_income 2000.
+select lives_ok(format($$ select public.fn_post_two_line_journal(%L,'2026-03-20'::date,'bs_draw',gen_random_uuid(),'مسحوبات',%L,%L,2000) $$,
+    current_setting('test.org'), current_setting('test.drawing'), current_setting('test.asset')),
+  'post owner drawing: Dr drawings / Cr cash 2,000 @2026-03-20');
+select pg_temp.as_user(current_setting('test.accountant'));
+select set_config('test.bsD', public.fn_accounting_balance_sheet(current_setting('test.org')::uuid, '2026-03-31'::date)::text, false);
+reset role;
+select is((current_setting('test.bsD')::jsonb ->> 'drawings_total')::numeric, 2000::numeric, 'drawings_total is a POSITIVE magnitude (#6)');
+select is((current_setting('test.bsD')::jsonb ->> 'equity_total')::numeric, (-2000)::numeric, 'equity_total nets the drawing negatively (0 funding - 2000 drawn)');
+select is((current_setting('test.bsD')::jsonb ->> 'assets_total')::numeric, 0::numeric, 'assets_total = 2000 - 2000 (cash out for the drawing) = 0');
+select is((current_setting('test.bsD')::jsonb ->> 'balanced')::boolean, true, 'still balanced after the drawing');
+
+-- ── regression: an ARCHIVED (active=false) account must still count toward totals (historical statement) ───────
+update public.accounts set active = false where org_id = current_setting('test.org')::uuid and code = '4000';
+select pg_temp.as_user(current_setting('test.accountant'));
+select set_config('test.bsA', public.fn_accounting_balance_sheet(current_setting('test.org')::uuid, '2026-03-31'::date)::text, false);
+reset role;
+select is((current_setting('test.bsA')::jsonb ->> 'revenue_total')::numeric, 5000::numeric,
+  'revenue on an ARCHIVED account still counts (no active-filter balance drop)');
+select is((current_setting('test.bsA')::jsonb ->> 'balanced')::boolean, true,
+  'balanced identity holds even with an archived account carrying historical activity');
 
 select finish();
 rollback;

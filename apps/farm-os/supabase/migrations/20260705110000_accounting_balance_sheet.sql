@@ -57,14 +57,20 @@ begin
            (coalesce(p.debit, 0) <> 0 or coalesce(p.credit, 0) <> 0) as has_activity
       from public.accounts a
       left join posted p on p.account_id = a.id
-     where a.org_id = p_org and a.active
+     -- NB: do NOT filter on a.active — an archived account that carried activity within the as-of window must still
+     -- count toward the totals, or a historical balance sheet silently drops balances and the `balanced` identity
+     -- goes stale. `has_activity` (below) already keeps zero-balance accounts out of the listed line items.
+     where a.org_id = p_org
   ),
   totals as (
     select
       coalesce(sum(balance) filter (where account_type = 'asset'), 0)      as assets_total,
       coalesce(sum(balance) filter (where account_type = 'liability'), 0)  as liabilities_total,
       coalesce(sum(balance) filter (where account_type = 'equity'), 0)     as equity_total,
-      coalesce(sum(balance) filter (where account_type = 'equity' and kind = 'drawing'), 0) as drawings_total,
+      -- positive magnitude of owner drawings (#6). Already NETTED into equity_total above (a drawing account is
+      -- equity + debit-normal, so its credit-debit balance is negative and reduces equity_total) — surfaced here
+      -- as a positive line for display; consumers must NOT subtract it from equity_total again.
+      - coalesce(sum(balance) filter (where account_type = 'equity' and kind = 'drawing'), 0) as drawings_total,
       coalesce(sum(balance) filter (where account_type = 'revenue'), 0)    as revenue_total,
       coalesce(sum(balance) filter (where account_type = 'expense'), 0)    as expense_total
       from signed
