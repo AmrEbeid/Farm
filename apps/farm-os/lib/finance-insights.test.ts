@@ -47,5 +47,14 @@ describe("buildFinanceInsightSummary", () => {
     expect(summary.score.tone).toBe("warning");
     expect(summary.cards.map((card) => card.id)).toContain("unallocated");
     expect(summary.cards.map((card) => card.id)).toContain("flags");
+
+    // Card values must be Arabic-Indic formatted, never raw Western digits (non-negotiable #2).
+    const flagsCard = summary.cards.find((card) => card.id === "flags");
+    const unallocatedCard = summary.cards.find((card) => card.id === "unallocated");
+    expect(flagsCard?.value).toBe("١"); // num(1)
+    expect(unallocatedCard?.value).toBe("٧٥ ج.م"); // egp(75)
+    for (const value of [flagsCard?.value, unallocatedCard?.value]) {
+      expect(value).not.toMatch(/[0-9]/);
+    }
   });
 });
