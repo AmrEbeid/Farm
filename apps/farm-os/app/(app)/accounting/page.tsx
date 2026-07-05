@@ -6,6 +6,7 @@ import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
+import { sumAccountSubtreeNet } from "@/lib/accounting-page-metrics";
 
 type TrialBalanceRow = {
   account_id: string;
@@ -49,7 +50,7 @@ export default async function AccountingPage() {
       .select("id, journal_entry_id, account_id, debit, credit, description, payment_request_id, expense_id")
       .order("created_at", { ascending: false })
       .limit(80),
-    sb.from("accounts").select("id, code, name_ar, account_type, normal_balance, parent_id").order("code"),
+    sb.from("accounts").select("id, org_id, code, name_ar, account_type, normal_balance, parent_id").eq("org_id", m.orgId).order("code"),
   ]);
   if (trialRes.error) throw trialRes.error;
   if (entriesRes.error) throw entriesRes.error;
@@ -67,35 +68,7 @@ export default async function AccountingPage() {
     linesByEntry.set(line.journal_entry_id, current);
   }
 
-  // fn_accounting_trial_balance groups journal_lines by account_id with NO subtree rollup, but real expenses
-  // post to LEAF accounts (5110/5210/…) and capex to 1510/1520 — reading a PARENT code (5000/1500) alone shows
-  // only its ≈0 directly-posted remainder, understating the KPI. Sum each code's SUBTREE (self + descendants)
-  // so the cards reflect the true rolled-up total (matching v_account_rollup and /finance/pnl). Preserves the
-  // trial-balance's raw net = debit − credit sign convention. Childless codes (1000/3000/3100) are unaffected.
-  const childrenByParent = new Map<string, string[]>();
-  for (const account of accounts) {
-    if (account.parent_id) {
-      const siblings = childrenByParent.get(account.parent_id) ?? [];
-      siblings.push(account.id);
-      childrenByParent.set(account.parent_id, siblings);
-    }
-  }
-  const netByAccountId = new Map(trialBalance.map((row) => [row.account_id, Number(row.net ?? 0)]));
-  const netByCode = (code: string) => {
-    const root = accounts.find((account) => account.code === code);
-    if (!root) return 0;
-    let sum = 0;
-    const stack = [root.id];
-    const seen = new Set<string>(); // defense-in-depth: the COA is a strict tree, but never loop on a bad parent_id
-    while (stack.length > 0) {
-      const id = stack.pop() as string;
-      if (seen.has(id)) continue;
-      seen.add(id);
-      sum += netByAccountId.get(id) ?? 0;
-      for (const child of childrenByParent.get(id) ?? []) stack.push(child);
-    }
-    return sum;
-  };
+  const netByCode = (code: string) => sumAccountSubtreeNet(accounts, trialBalance, code, m.orgId);
   const custodyCash = netByCode("1000");
   const ownerFunding = Math.abs(netByCode("3000"));
   const drawings = netByCode("3100");
