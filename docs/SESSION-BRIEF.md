@@ -1,7 +1,33 @@
-# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (trusted-statements trio complete, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (Slice A COMPLETE — budget-vs-actual live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-05 (latest) — trusted income statement (P&L) LIVE — statements trio complete (SPEC-0004 Slice A)
+## 2026-07-05 (latest) — budget-vs-actual LIVE (RPC+UI) → SPEC-0004 Slice A COMPLETE
+
+Built the last Slice A item — budget-vs-actual — under the Owner's explicit standing directive ("go with your
+recommendation, don't wait my input"), which delegates the read-side mapping call to me. Kept it **strictly
+read-only** (no cap enforcement — that stays the Owner's Decision-0157).
+- **`fn_budget_vs_actual`** (#728, **prod `20260705150000`**) — makes budget actuals LIVE from the posted GL (rolled
+  by expense category, `debit − credit`) vs `SUM(budget_lines.planned)`; variance + over_budget/unbudgeted flags;
+  unbudgeted spend surfaced. Independent review APPROVE. pgTAP 1556/1556 (test 128). A concurrent dup-version
+  collision (…130000 trial-balance / …140000 pnl-timeseries) was caught by CI, renumbered …150000, rebased clean.
+- **`/finance/budget-vs-actual`** (#730, app-only) — period picker, KPIs, per-category planned/actual/variance +
+  status flags. Review via CI/CodeRabbit. tsc/ESLint/build 0, Vitest 11/11.
+- Catalogs updated: RPC-060, BR-131; DEPLOY-STATUS + this brief.
+
+**SPEC-0004 Slice A (statutory reporting) is COMPLETE** — each item RPC + UI, reviewed, deployed:
+balance sheet (#705/#710) · income statement (#715/#716) · period lock (#700/#713) · budget-vs-actual (#728/#730) ·
+plus revenue reports (#677) and per-cost-center P&L (`v_cost_center_rollup`). The statements tie together
+(balance-sheet net income == income-statement net income; a locked period rejects new postings).
+
+**What's left in accounting is ALL Owner/expert-gated (nothing more I can build autonomously):** budget **cap
+enforcement** (hard-block vs warn — Decision-0157); the canonical category→account mapping (Decision-0157); real
+chart-of-accounts seeding (needs the 7-yr Ebeid Excel); Stage-M real-data reconciliation + privacy review; Slice D
+(A/P, bank rec, IAS-16/41 — needs an accountant). Slice C (ETA/VAT) removed per Owner (#721).
+
+**Session arc (2026-07-05, ~19 merges, all CI-green, migrate-first, 0 stray rows):** statements trio (RPC+UI) →
+budget-vs-actual (RPC+UI) → Slice C removal → catalog + master-file reconciles → statement cross-links.
+
+## 2026-07-05 — trusted income statement (P&L) LIVE — statements trio complete (SPEC-0004 Slice A)
 
 Shipped the GL income statement (RPC + UI), completing the trusted-statements trio.
 - **`fn_accounting_income_statement`** (#715, `main` c8a23a3, **prod `20260705120000`**) — posted-only, period-scoped

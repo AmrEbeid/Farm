@@ -2,7 +2,21 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-05 (latest) — SPEC-0004 Slice A trusted income statement (P&L) from the GL LIVE; prod ledger head `20260705120000`.**
+> **2026-07-05 (latest) — SPEC-0004 Slice A budget-vs-actual (read-only) LIVE — Slice A now complete; prod ledger head `20260705150000`.**
+> PR **#728** merged to `main` (RPC) after migrate-first apply; UI page **#730** (`/finance/budget-vs-actual`, app-only).
+> Scope: read-only `fn_budget_vs_actual(p_org, p_from, p_to)` — makes budget **actuals live** from the posted GL
+> (rolled up by expense category, `debit − credit`) vs `SUM(budget_lines.planned)`; variance + over_budget/unbudgeted
+> flags; unbudgeted spend surfaced, not hidden. **Deliberately report-only** — no category-mapping table decided and
+> **no cap enforcement** (both remain the Owner's Decision-0157); the Owner delegated the read-side mapping call to
+> the agent via the standing directive. Independent review: **APPROVE** (rollup/join/scoping/security sound, no
+> double-count). A dup-version collision (concurrent `…130000` trial-balance / `…140000` pnl-timeseries merges) was
+> caught by CI, renumbered `…130000`→`…150000`, and rebased clean. Production apply via Supabase MCP under exact
+> version `20260705150000` (**0 stray rows**); verified fn present, authenticated-executable, anon denied. Validation:
+> local pgTAP **1556/1556** (new test 128 = 16 assns incl. under/over-budget, unbudgeted, period scoping, posted-only);
+> page tsc 0 / ESLint 0 / Vitest 11/11 / build 0. **Slice A (statutory reporting) is now COMPLETE: statements trio +
+> budget-vs-actual, each RPC + UI.**
+>
+> **2026-07-05 — SPEC-0004 Slice A trusted income statement (P&L) from the GL LIVE; prod ledger head `20260705120000`.**
 > PR **#715** merged to `main` at **`c8a23a3`** after migrate-first production apply; UI page **#716** (`/finance/income-statement`,
 > `main` `4856f8c`, app-only). Scope: read-only `fn_accounting_income_statement(p_org, p_from, p_to)` — posted-only,
 > period-scoped P&L over `journal_lines` grouped by revenue/expense accounts; **net income ties to the balance
