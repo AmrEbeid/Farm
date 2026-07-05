@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
 
-// Cross-links between the three tied-together financial statements (balance sheet / income statement / period
-// lock). Presentational; no data access. Dropped at the foot of each statement page.
+// Cross-links between the tied-together financial pages (balance sheet / income statement / budget-vs-actual /
+// period lock). Presentational; no data access. Dropped at the foot of each page.
 
 const STATEMENTS = [
   { id: "balance-sheet", label: "قائمة المركز المالي", href: "/finance/balance-sheet", icon: "📋" },
   { id: "income-statement", label: "قائمة الدخل", href: "/finance/income-statement", icon: "📈" },
+  { id: "budget-vs-actual", label: "الموازنة مقابل الفعلي", href: "/finance/budget-vs-actual", icon: "📊" },
   { id: "periods", label: "الفترات المحاسبية (الإقفال)", href: "/finance/periods", icon: "🔒" },
 ] as const;
 

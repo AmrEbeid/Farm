@@ -10,6 +10,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { parseBudgetVsActual } from "@/lib/budget-vs-actual";
+import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -102,6 +103,8 @@ export default async function FinanceBudgetVsActualPage({
           فعلي بلا بند موازنة مطابق — راجِع تسمية الفئات أو أضِف بندًا. حدّ الموازنة (منع الاعتماد) قرار مالك منفصل.
         </p>
       </Card>
+
+      <FinanceStatementsNav current="budget-vs-actual" />
     </div>
   );
 }
