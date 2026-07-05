@@ -8,6 +8,11 @@
 // `eval`s, never returns provider strings — so an injected instruction in the payload is inert data.
 // It has no I/O (no fetch, no DB, no send) — the no-trifecta rule holds by construction.
 
+// num(): Arabic-Indic digit formatter (pure, framework-free — Intl only). The advisory reason strings are
+// rendered on Arabic-RTL pages, so their embedded numerics must be Arabic-Indic like the surrounding UI (#2),
+// not Western digits.
+import { num } from "@/lib/money";
+
 export interface Forecast {
   date: string; // YYYY-MM-DD (validated, bounded length)
   tempC: number;
@@ -150,24 +155,24 @@ export function computeGates(
   const reasons: OperationGates["reasons"] = {};
 
   const sprayWindy = f.windKph > thresholds.sprayMaxWindKph;
-  if (sprayWindy) reasons.spray = `الرياح ${Math.round(f.windKph)} كم/س تتجاوز حد الرش`;
+  if (sprayWindy) reasons.spray = `الرياح ${num(Math.round(f.windKph))} كم/س تتجاوز حد الرش`;
 
   const pollinateBad = f.rainMm > thresholds.pollinateMaxRainMm || f.windKph > thresholds.pollinateMaxWindKph;
   if (pollinateBad)
     reasons.pollinate =
-      f.rainMm > thresholds.pollinateMaxRainMm ? `أمطار ${f.rainMm} مم تعيق التلقيح` : `رياح قوية تعيق التلقيح`;
+      f.rainMm > thresholds.pollinateMaxRainMm ? `أمطار ${num(f.rainMm)} مم تعيق التلقيح` : `رياح قوية تعيق التلقيح`;
 
   const harvestWet = f.rainMm > thresholds.harvestMaxRainMm;
-  if (harvestWet) reasons.harvest = `أمطار ${f.rainMm} مم — يُفضّل تأجيل الحصاد`;
+  if (harvestWet) reasons.harvest = `أمطار ${num(f.rainMm)} مم — يُفضّل تأجيل الحصاد`;
 
   const heat = f.tempC >= thresholds.heatStressC;
-  if (heat) reasons.heat = `حرارة ${Math.round(f.tempC)}°م — إجهاد حراري محتمل`;
+  if (heat) reasons.heat = `حرارة ${num(Math.round(f.tempC))}°م — إجهاد حراري محتمل`;
 
   // Frost gate (canonical orchard risk — date-palm bloom/fruit-set is cold-sensitive). Single-reading
   // check, deliberately NOT a sustained-cold/duration model (keep consistent with the other gates,
   // which are also single-day threshold checks — see module header).
   const frost = f.tempC < thresholds.frostBelowC;
-  if (frost) reasons.frost = `⚠️ خطر صقيع — درجة الحرارة المتوقعة ${Math.round(f.tempC)}°م`;
+  if (frost) reasons.frost = `⚠️ خطر صقيع — درجة الحرارة المتوقعة ${num(Math.round(f.tempC))}°م`;
 
   return {
     spray: sprayWindy ? "advise" : "ok",
