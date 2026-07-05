@@ -261,3 +261,59 @@ export function concentrationThesis(centers: CenterPerf[]): Thesis | null {
       `مع نضج باقي القطاعات يمكن أن تقترب من نفس الإنتاجية.`,
   };
 }
+
+// ── Crop / enterprise ROI (SPEC-0029 detector #3) ──────────────────────────────────────────────────
+// Same honesty contract as CenterPerf: `revenue`/`expenses` MUST be the real per-enterprise figures the caller
+// attributes (revenue from sales via the sale's cost center's `enterprise`; expenses from cost-center rollup
+// grouped by `enterprise`). margin = profit/revenue, roi = profit/expenses — both null with no base (#1).
+
+export interface EnterprisePerf {
+  key: string; // enterprise / crop label (نخيل / بنجر / موالح …)
+  revenue: number;
+  expenses: number;
+}
+
+export interface CropRoiRow {
+  key: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
+  margin: number | null; // profit / revenue
+  roi: number | null; // profit / expenses
+}
+
+/** Per-enterprise profit, margin and ROI. Deterministic; honest-null where there is no base to divide by. */
+export function cropRoi(enterprises: EnterprisePerf[]): CropRoiRow[] {
+  return enterprises.map((e) => {
+    const profit = e.revenue - e.expenses;
+    return {
+      key: e.key,
+      revenue: e.revenue,
+      expenses: e.expenses,
+      profit,
+      margin: e.revenue > 0 ? profit / e.revenue : null,
+      roi: e.expenses > 0 ? profit / e.expenses : null,
+    };
+  });
+}
+
+/** Crop-mix ROI-imbalance thesis: fires when the highest-REVENUE crop earns a much lower ROI than the
+ *  best-ROI crop (the prototype's "dates are prestige, the rotation crop is the profit engine" finding).
+ *  Returns null when there's no imbalance, <2 comparable crops, or the leader is also the best ROI. */
+export function cropRoiThesis(rows: CropRoiRow[]): Thesis | null {
+  const withRoi = rows.filter((r) => r.roi != null && r.revenue > 0);
+  if (withRoi.length < 2) return null;
+  const byRevenue = withRoi.reduce((a, b) => (b.revenue > a.revenue ? b : a));
+  const byRoi = withRoi.reduce((a, b) => ((b.roi ?? -Infinity) > (a.roi ?? -Infinity) ? b : a));
+  if (byRevenue.key === byRoi.key) return null;
+  // require a meaningful gap: the best ROI is at least ~2× the leader's, and the leader's ROI is positive-ish.
+  if ((byRoi.roi ?? 0) < (byRevenue.roi ?? 0) * 2) return null;
+  return {
+    key: "crop_roi",
+    severity: "info",
+    title: "توازن المحاصيل",
+    body:
+      `«${byRevenue.key}» هو المحصول الأكبر إيرادًا لكن عائده على التكلفة ${pctAr((byRevenue.roi ?? 0) * 100)} فقط، ` +
+      `بينما «${byRoi.key}» يحقق ${pctAr((byRoi.roi ?? 0) * 100)} — فكّر في التوسّع في المحاصيل الأعلى عائدًا حيث تسمح المساحات.`,
+  };
+}
