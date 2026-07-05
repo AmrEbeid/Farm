@@ -206,6 +206,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "income-statement",
+        label: "قائمة الدخل",
+        icon: "📈",
+        href: "/finance/income-statement",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "periods",
         label: "الفترات المحاسبية",
         icon: "🔒",
