@@ -126,3 +126,33 @@ export function costDisciplineThesis(series: PnlTimeseries): Thesis | null {
       `نسبة التكلفة إلى الإيراد ترتفع. هل هذا استثمار للنمو أم تراجع في الكفاءة؟ راقب النسبة عن قرب.`,
   };
 }
+
+const numberOf = (v: unknown): number => {
+  const n = typeof v === "string" ? Number(v) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : 0;
+};
+
+/** Safely parse the fn_pnl_timeseries jsonb payload into a typed PnlTimeseries. Defensive (the RPC returns
+ *  numeric JSON as strings/numbers); a malformed/empty payload yields an empty periods array, never a throw. */
+export function parsePnlTimeseries(raw: unknown): PnlTimeseries {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const grain = o.grain === "year" ? "year" : "month";
+  const rawPeriods = Array.isArray(o.periods) ? o.periods : [];
+  const periods: PnlPeriod[] = rawPeriods
+    .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
+    .map((p) => ({
+      period: typeof p.period === "string" ? p.period : "",
+      revenue: numberOf(p.revenue),
+      expenses: numberOf(p.expenses),
+      operating_expenses: numberOf(p.operating_expenses),
+      net_income: numberOf(p.net_income),
+      cumulative_net_income: numberOf(p.cumulative_net_income),
+    }))
+    .filter((p) => p.period !== "");
+  return {
+    grain,
+    period_start: typeof o.period_start === "string" ? o.period_start : "",
+    period_end: typeof o.period_end === "string" ? o.period_end : "",
+    periods,
+  };
+}

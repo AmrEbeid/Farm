@@ -220,6 +220,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "pnl-trend",
+        label: "اتجاه الأرباح",
+        icon: "📊",
+        href: "/finance/pnl-trend",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "periods",
         label: "الفترات المحاسبية",
         icon: "🔒",
