@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { HARVEST_STAGE_AR, OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "./labels";
+import {
+  EXPENSE_KIND_AR,
+  HARVEST_STAGE_AR,
+  OP_STATUS_AR,
+  PAYMENT_STATUS_AR,
+  REQUEST_STATUS_AR,
+  SUBTYPE_AR,
+  isExecutableOpStatus,
+} from "./labels";
 
 // lib/labels was untested. isExecutableOpStatus backs the fn_execute_operation guard (migration 0057)
 // and its UI affordances (/m, /m/execute), so a regression here is a security-relevant bug — a status
@@ -86,5 +94,33 @@ describe("SUBTYPE_AR — completeness (locks in the pollination fix #289 + the o
 describe("HARVEST_STAGE_AR — completeness (ripening stage, migration 20260701230000)", () => {
   it.each(["khalal", "rutab", "tamar"])("has a non-empty Arabic label for harvest stage %s", (s) =>
     expect(HARVEST_STAGE_AR[s]).toBeTruthy(),
+  );
+});
+
+describe("EXPENSE_KIND_AR — completeness vs the expenses.kind CHECK", () => {
+  // Must match expenses_kind_check / accounts_kind_check (operating|drawing|capex) so every persisted
+  // kind renders — and the owner-drawings/opex split (#6) never leaks a raw English key to the UI.
+  it.each(["operating", "drawing", "capex"])("has a non-empty Arabic label for kind %s", (k) =>
+    expect(EXPENSE_KIND_AR[k]).toBeTruthy(),
+  );
+});
+
+describe("PAYMENT_STATUS_AR — completeness vs the expenses.payment_status CHECK", () => {
+  // Must match expenses_payment_status_check so every persisted status renders instead of leaking a key.
+  it.each(["post_paid_unpaid", "paid_from_custody", "paid_by_owner", "cancelled"])(
+    "has a non-empty Arabic label for payment status %s",
+    (s) => expect(PAYMENT_STATUS_AR[s]).toBeTruthy(),
+  );
+
+  it("normalizes cancelled to «ملغى» (pins the ملغي/ملغى drift the map's comment documents)", () => {
+    expect(PAYMENT_STATUS_AR.cancelled).toBe("ملغى");
+  });
+});
+
+describe("REQUEST_STATUS_AR — completeness vs the payment_requests.status CHECK", () => {
+  // Must match payment_requests_status_check so every persisted request-lifecycle status renders.
+  it.each(["draft", "submitted", "approved_operational", "approved_final", "paid", "closed"])(
+    "has a non-empty Arabic label for request status %s",
+    (s) => expect(REQUEST_STATUS_AR[s]).toBeTruthy(),
   );
 });
