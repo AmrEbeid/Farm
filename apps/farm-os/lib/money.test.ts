@@ -75,5 +75,12 @@ describe("money formatters", () => {
     it("never returns the NaN string", () => {
       expect(coverageDays("∞")).not.toMatch(/ليس رقم/);
     });
+    it("treats a non-finite NUMBER (NaN/Infinity) as ∞, not the NaN string", () => {
+      // Guards the Number.isFinite-false branch for numeric input (a bad RPC value), distinct from the
+      // string "∞" sentinel: e.g. a divide-by-zero coverage that arrives as a real NaN must not leak.
+      expect(coverageDays(NaN)).toBe("∞");
+      expect(coverageDays(Infinity)).toBe("∞");
+      expect(coverageDays(-Infinity)).toBe("∞");
+    });
   });
 });
