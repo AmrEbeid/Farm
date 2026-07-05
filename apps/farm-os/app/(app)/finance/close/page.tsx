@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { StoryLine } from "@/components/StoryLine";
 import { egp, num } from "@/lib/money";
+import { isSaleOnOrAfterReportDate, summarizeAgedReceivables } from "@/lib/month-close";
 
 // R-7 — «إقفال الشهر»: the accountant's generated to-do. The month is "closed" when this page says
 // so — no memorized checklist. Every item is a LIVE count with one tap to its fixing surface, scoped
@@ -36,7 +37,11 @@ export default async function MonthClosePage() {
       // finalized sale isn't forced to carry one. Filtering on sale_date silently drops those rows → a false
       // "clean" close. Filter on created_at (NOT NULL) and derive the business date in JS via report_date =
       // coalesce(sale_date, delivery_date, created_at) — matching the revenue report — so nothing is hidden.
-      sb.from("sales").select("id, total, qty").eq("price_status", "pending").gte("created_at", CUTOVER),
+      sb
+        .from("sales")
+        .select("id, total, qty, sale_date, delivery_date, created_at")
+        .eq("price_status", "pending")
+        .gte("created_at", CUTOVER),
       sb.from("expenses").select("id, total").is("payment_status", null).gte("date", CUTOVER),
       sb.from("expenses").select("id, total").is("account_id", null).gte("date", CUTOVER),
       sb.from("expenses").select("id, total").is("cost_center_id", null).gte("date", CUTOVER),
@@ -49,28 +54,14 @@ export default async function MonthClosePage() {
       sb.from("sale_collections").select("sale_id, amount"),
     ]);
 
-  const collectedBySale = new Map<string, number>();
-  for (const c of collectionsRes.data ?? [])
-    collectedBySale.set(c.sale_id, (collectedBySale.get(c.sale_id) ?? 0) + Number(c.amount ?? 0));
-  // aged >30 days by report_date = coalesce(sale_date, delivery_date, created_at) so a finalized receivable
-  // with a null sale_date is still counted (raw .lte("sale_date", …) would have excluded it → understated).
-  const agedRows = (agingRes.data ?? []).filter((s) => {
-    const reportDate = (s.sale_date ?? s.delivery_date ?? String(s.created_at).slice(0, 10)) as string;
-    return reportDate <= thirtyAgo;
-  });
-  const agingOutstanding = agedRows.reduce(
-    (t, s) => t + Math.max(0, Number(s.total ?? 0) - (collectedBySale.get(s.id) ?? 0)),
-    0,
-  );
-  const agingCount = agedRows.filter(
-    (s) => Number(s.total ?? 0) - (collectedBySale.get(s.id) ?? 0) > 0,
-  ).length;
+  const pendingSales = (pendingSalesRes.data ?? []).filter((sale) => isSaleOnOrAfterReportDate(sale, CUTOVER));
+  const agedReceivables = summarizeAgedReceivables(agingRes.data ?? [], collectionsRes.data ?? [], thirtyAgo, CUTOVER);
 
   const sum = (rows: { total: unknown }[] | null) => (rows ?? []).reduce((t, r) => t + Number(r.total ?? 0), 0);
   const items: CloseItem[] = [
     {
       label: "تسليمات بلا سعر",
-      count: (pendingSalesRes.data ?? []).length,
+      count: pendingSales.length,
       href: "/record/price",
       cta: "سعّرها",
       tone: "act",
@@ -101,8 +92,8 @@ export default async function MonthClosePage() {
     },
     {
       label: "ذمم تجاوزت ٣٠ يومًا",
-      count: agingCount,
-      amount: agingOutstanding,
+      count: agedReceivables.count,
+      amount: agedReceivables.amount,
       href: "/record/collect",
       cta: "حصّلها",
       tone: "act",
