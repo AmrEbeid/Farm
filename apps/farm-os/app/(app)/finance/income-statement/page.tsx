@@ -11,6 +11,7 @@ import { egp } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { parseIncomeStatement, type IncomeStatementLine } from "@/lib/income-statement";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
+import { PeriodPresets } from "@/components/PeriodPresets";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -75,6 +76,9 @@ export default async function FinanceIncomeStatementPage({
             </button>
           </div>
         </form>
+        <div className="mt-3">
+          <PeriodPresets basePath="/finance/income-statement" />
+        </div>
       </Card>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
