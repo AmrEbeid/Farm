@@ -23,16 +23,7 @@ import {
 } from "@/components/linked-work-sections";
 import { num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
-import { SUBTYPE_AR } from "@/lib/labels";
-
-const STATUS_AR: Record<string, string> = {
-  active: "سليمة",
-  watch: "تحت المراقبة",
-  sick: "مريضة",
-  dead: "ميتة",
-  removed: "مُزالة",
-  replaced: "مُستبدلة",
-};
+import { ASSET_STATUS_AR as STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 
 const TAB_IDS = ["overview", "palms", "plans", "tasks", "activity", "finance", "report"] as const;
 type LineTab = (typeof TAB_IDS)[number];
