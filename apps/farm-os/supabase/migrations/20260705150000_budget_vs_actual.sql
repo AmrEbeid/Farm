@@ -1,5 +1,6 @@
--- 20260705130000 — Budget vs actual, read-only (SPEC-0004 / ROADMAP Slice A; closes Decision-0157's
--- "actuals are frozen seed numbers" gap on the READ side only).
+-- 20260705150000 — Budget vs actual, read-only (SPEC-0004 / ROADMAP Slice A; closes Decision-0157's
+-- "actuals are frozen seed numbers" gap on the READ side only). (Renumbered from …130000 to clear a
+-- collision with the concurrently-merged trial-balance / pnl-timeseries migrations.)
 --
 -- Problem: `budget_lines.planned` is real but `.actual` is a frozen seed value written by no code. Managers can't
 -- see live spend against plan.
@@ -46,8 +47,9 @@ begin
      group by bl.category
   ),
   actual as (
-    -- posted-only, in-period, expense-account debit rolled up by the expense's category
-    select e.category, sum(jl.debit) as actual
+    -- posted-only, in-period expense-account amount (debit − credit, so a future contra/credit-memo nets
+    -- correctly — matching fn_accounting_income_statement's expense convention) rolled up by the expense's category
+    select e.category, sum(jl.debit - jl.credit) as actual
       from public.journal_lines jl
       join public.journal_entries je on je.id = jl.journal_entry_id
       join public.expenses e on e.id = jl.expense_id

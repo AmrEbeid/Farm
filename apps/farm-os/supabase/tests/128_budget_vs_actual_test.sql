@@ -1,4 +1,4 @@
--- 128 — budget vs actual, read-only (SPEC-0004 Slice A, migration 20260705130000).
+-- 128 — budget vs actual, read-only (SPEC-0004 Slice A, migration 20260705150000).
 -- Proves: finance.read gating + cross-org denial; live actuals rolled from the posted GL by expense category vs
 -- SUM(budget_lines.planned); under/over-budget variance + flags; unbudgeted spend surfaced (not hidden); period
 -- scoping (out-of-window expense excluded); posted-only (reversed entry drops out). Unique BVA-* categories avoid
