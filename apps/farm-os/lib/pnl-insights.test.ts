@@ -10,9 +10,12 @@ import {
   sectorStatus,
   bestUnitBenchmark,
   concentrationThesis,
+  cropRoi,
+  cropRoiThesis,
   type PnlPeriod,
   type PnlTimeseries,
   type CenterPerf,
+  type EnterprisePerf,
 } from "./pnl-insights";
 
 const period = (over: Partial<PnlPeriod>): PnlPeriod => ({
@@ -234,5 +237,50 @@ describe("concentrationThesis", () => {
         { id: "b", name: "b", net: -2, areaFeddan: 10 },
       ]),
     ).toBeNull();
+  });
+});
+
+// The prototype's real 2025 crop economics: beet is the profit engine, dates are prestige/low-ROI.
+const crops: EnterprisePerf[] = [
+  { key: "برحي", revenue: 4_807_166, expenses: 3_837_258 }, // ROI ~25%, margin ~20%
+  { key: "بنجر", revenue: 2_308_067, expenses: 464_925 }, // ROI ~396%, margin ~80%
+  { key: "ذرة", revenue: 441_805, expenses: 139_950 }, // ROI ~216%
+];
+
+describe("cropRoi", () => {
+  it("computes profit, margin, roi per enterprise (honest-null with no base)", () => {
+    const rows = cropRoi(crops);
+    const beet = rows.find((r) => r.key === "بنجر")!;
+    expect(beet.profit).toBe(2_308_067 - 464_925);
+    expect(beet.roi!).toBeCloseTo((2_308_067 - 464_925) / 464_925, 2); // ~3.96
+    expect(beet.margin!).toBeCloseTo((2_308_067 - 464_925) / 2_308_067, 2); // ~0.8
+  });
+  it("is honest-null when a base is missing", () => {
+    const [r] = cropRoi([{ key: "x", revenue: 0, expenses: 0 }]);
+    expect(r.margin).toBeNull();
+    expect(r.roi).toBeNull();
+  });
+});
+
+describe("cropRoiThesis", () => {
+  it("fires when the biggest-revenue crop has far lower ROI than the best (dates vs beet)", () => {
+    const t = cropRoiThesis(cropRoi(crops))!;
+    expect(t).not.toBeNull();
+    expect(t.key).toBe("crop_roi");
+    expect(t.body).toContain("برحي"); // the revenue leader
+    expect(t.body).toContain("بنجر"); // the ROI champion
+  });
+  it("stays silent when the revenue leader is also the ROI champion", () => {
+    expect(
+      cropRoiThesis(
+        cropRoi([
+          { key: "a", revenue: 1000, expenses: 100 }, // biggest revenue AND best ROI
+          { key: "b", revenue: 500, expenses: 200 },
+        ]),
+      ),
+    ).toBeNull();
+  });
+  it("stays silent with fewer than 2 comparable crops", () => {
+    expect(cropRoiThesis(cropRoi([{ key: "a", revenue: 1000, expenses: 100 }]))).toBeNull();
   });
 });
