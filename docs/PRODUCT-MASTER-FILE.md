@@ -19,9 +19,11 @@ Last updated: 2026-06-30. Maintainers: Product + Owner (Amr Ebeid).
 
 > **Reconcile note (reading this vs older docs):** four claims that float around older docs/PRs are corrected
 > here against `main`: (1) **planned-vs-actual is built** (`reports/[planId]/pva`); (2) the cash-method
-> `/accounting` page and sales/A-R backend are now built, but the full P&L engine/reporting work (`lib/pnl.ts`,
-> close/lock, P&L/balance sheet, reconciliation) and Care Academy (`/academy`) are NOT complete on `main`; (3) **prod is now at
-> migration `20260629150100` per DEPLOY-STATUS**, including the SPEC-0018 custody/payment backend from #468 and
+> `/accounting` page and sales/A-R backend are built, and (2026-07-05) the **trusted-statements trio is now built +
+> deployed** — balance sheet (`20260705110000`), income statement/P&L (`20260705120000`), and period close/lock
+> (`20260701550000`), each RPC + UI; the remaining accounting gaps are the 7-yr Excel reconciliation (Stage M) and
+> budget-vs-actual (gated on Decision-0157). Care Academy (`/academy`) is still draft (#366); (3) **prod ledger head
+> is `20260705120000` per DEPLOY-STATUS**, including the SPEC-0018 custody/payment backend from #468 and
 > the live custody frontend from #474; #441 is closed as superseded; (4) **SPEC-0016 export compliance slice 1 is
 > built** — migration `20260622000092` is applied and `lib/export-readiness.ts` is on `main`, but no real cert data,
 > PII import, or readiness UI panel exists yet.
@@ -201,16 +203,23 @@ Status legend: ✅ Built (on `main`) · 🟡 Partial · ⬜ Planned · 🧪 Draf
 - **Business rules:** operation tables gated to `op.execute` (`0025`); palm-event roll-up derived from the
   hawsha chain (defensive). **Gap:** explicit **labor attendance** event / `labor_logs` ⬜ (Stage 8).
 
-### Accounting and P&L — 🟡 Partial (cash ledger + sales/A-R reports ✅; P&L reports pending)
+### Accounting and P&L — ✅ Built (cash ledger + trusted-statements trio; real-data reconcile pending Stage M)
 - **Built:** `expenses` (`0007`), `/expenses`, `expenses.kind` separation (owner-drawings vs opex —
   CLAUDE.md #6), cash-method accounting kernel (`accounts`, `journal_entries`, `journal_lines`,
   `payment_request_fundings`), `/accounting`, custody/payment settlement, and sales/A-R backend
   (`buyers`, `sales`, `sale_collections`, `fn_save_buyer`, `fn_save_sale`, `fn_finalize_sale_price`,
   `fn_record_sale_collection`) plus `/finance/revenue-reports` and `fn_revenue_sales_report`.
-- **Still pending:** full P&L/balance sheet, period close, voucher documents, and the 7-year Excel reconciliation
-  + privacy review (Stage M) before finance treats totals as decision-grade.
-- **Cost by sector/crop/operation:** planned-vs-actual exists per plan (below); full cross-cutting cost
-  allocation is in the draft P&L work.
+- **Trusted-statements trio (2026-07-05, each RPC + UI, independently reviewed + deployed):**
+  **balance sheet** (`fn_accounting_balance_sheet`, `/finance/balance-sheet`, `20260705110000`),
+  **income statement / P&L** (`fn_accounting_income_statement`, `/finance/income-statement`, `20260705120000`;
+  net income ties to the balance sheet), and **period close/lock** (`accounting_periods`,
+  `fn_close_accounting_period`/`fn_reopen_accounting_period`, `/finance/periods`, `20260701550000`;
+  a locked period rejects new postings). Per-cost-center P&L + net-per-feddan via `v_cost_center_rollup`.
+- **Still pending:** the 7-year Excel reconciliation + privacy review (Stage M) before finance treats totals as
+  decision-grade; **budget-vs-actual** (live GL actuals vs budget) is gated on Decision-0157 (the category→GL
+  mapping is an Owner decision); voucher documents.
+- **Cost by sector/crop/operation:** planned-vs-actual exists per plan (below); per-cost-center financials +
+  net-per-feddan are live via `v_cost_center_rollup` / `/finance/cost-centers`.
 
 ### Reports — ✅ Built (operational + planned-vs-actual); 🟡 export
 - **Pages:** `/dashboard`, `/dashboard/owner`, `/dashboard/manager`, `/reports/[planId]/pva` (**planned-vs-actual**,
@@ -381,7 +390,7 @@ actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified 
 - **Media:** `attachments` (+ `farm-media` storage bucket).
 - **Relationships:** everything carries `org_id`; structure is a strict parent chain (cross-org FK guards swept in
   `0061`–`0075`); events/inventory/PRs reference org-validated parents; audit mirrors writes immutably.
-- **Not on `main`:** full P&L/period-close engine, academy content store (draft PR #366),
+- **Not on `main`:** academy content store (draft PR #366),
   subscription/plan tables (SPEC-0013), `labor_logs` (Stage 8), invite table (SPEC-0012 S2).
 
 (Full SQL: `apps/farm-os/supabase/migrations/`; `STATUS.md` wins for the latest applied production migration.)
@@ -406,7 +415,7 @@ actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified 
 | `fn_add_attachment` / `fn_archive_attachment` | media | soft-delete; org-scoped | MediaGallery | ✅ |
 | `pr_guard_approval` / `fn_pr_bump_version` / `fn_pr_items_lock_when_decided` | PR integrity | SoD; line-freeze on decision | PR detail | ✅ |
 | `fn_audit` / `fn_audit_org_member` / `fn_audit_people` | audit | immutable mirror; PII redaction | — | ✅ |
-| `fn_save_buyer` / `fn_save_sale` / `fn_finalize_sale_price` / `fn_record_sale_collection` / `fn_revenue_sales_report` | sales + A/R collections/reporting | budget.write + finance.read | `/finance/revenue-reports` | 🟡 backend + report built; close/P&L pending |
+| `fn_save_buyer` / `fn_save_sale` / `fn_finalize_sale_price` / `fn_record_sale_collection` / `fn_revenue_sales_report` | sales + A/R collections/reporting | budget.write + finance.read | `/finance/revenue-reports` | ✅ built; balance sheet / income statement / period-lock shipped 2026-07-05 |
 | payroll-run RPC | payroll | — | — | ⬜ (engine `lib/payroll.ts` only) |
 | assistant chat/retrieval | AI | trifecta-safe | — | ⬜ Stage 11 |
 
@@ -465,7 +474,7 @@ actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified 
 | Planning workspace | ✅ | High | `0006`/`0084` | templates ⬜ |
 | Budget gate + PR + SoD + partial receipts | ✅ | High | `0007`/`0017`/`0045` | depth 🟡 |
 | Operation execution (idempotent) | ✅ | High | `0020`; `/m/execute` | — |
-| Expenses capture (opex vs drawings) | ✅ | High | `0007`/`0044`; `/expenses` | P&L 🧪 draft |
+| Expenses capture (opex vs drawings) | ✅ | High | `0007`/`0044`; `/expenses` | P&L ✅ built (GL income statement) |
 | **Planned-vs-actual report** | ✅ | High | `reports/[planId]/pva` (`VarianceChart`) | **corrected from earlier "missing"** |
 | Attachments / media + storage RLS | ✅ | High | `0082`; `farm-media` | OCR ⬜ |
 | Weather + advisory gates | ✅ | High | `lib/weather*`; `/weather` | needs API key |
@@ -482,7 +491,7 @@ actions via `authorize(perm, org)` (`0035` + re-emits through `0092`). Verified 
 | Capability | What exists | What's missing | Risk | Next action |
 |---|---|---|---|---|
 | Purchase workflow depth | PR + items + SoD + partial receipts | POs, quotation compare, invoice match, multi-level approvals | High | candidate spec |
-| Accounting / P&L | cash ledger + custody settlement + sales/A-R backend + revenue/A-R report | full P&L/balance sheet, period close, voucher documents, Excel reconciliation | High | build close/P&L next; reconcile after privacy review |
+| Accounting / P&L | cash ledger + custody settlement + sales/A-R + revenue report + **trusted-statements trio (balance sheet, income statement, period lock)** + per-cost-center P&L | voucher documents, 7-yr Excel reconciliation; **budget-vs-actual (gated on Decision-0157)** | High | reconcile to real Excel (Stage M); Owner to decide Decision-0157 for budget-vs-actual |
 | Planned-vs-actual | per-plan variance report | cross-cutting cost allocation by sector/crop/period | Med | extend with P&L work |
 | AI assistant | policy boundary | chat route/model/retrieval | High | Stage 11, per-slice review |
 | Member invites / role UI | roles+RLS | `/members` UI + invite mechanism | High | SPEC-0012 S2 (`0090`) |
@@ -526,8 +535,9 @@ lives in the market-research docs; this file stays product-focused.)*
 ## 17. Future Roadmap
 
 - **Near term:** commercial readiness (SPEC-0013: billing/onboarding/import/admin), member invites (SPEC-0012 S2),
-  help/manual (SPEC-0014 Tier A), offline hardening (SPEC-0012 S4), merge the accounting P&L draft (#368) behind
-  its gates. Supabase DB password + service-role key rotation is complete per Owner 2026-06-29.
+  help/manual (SPEC-0014 Tier A), offline hardening (SPEC-0012 S4). The accounting P&L / balance sheet / period
+  lock are now built + deployed (2026-07-05); budget-vs-actual remains gated on Decision-0157 (Owner mapping call).
+  Supabase DB password + service-role key rotation is complete per Owner 2026-06-29.
 - **Mid term:** cross-cutting planned-vs-actual analytics, procurement depth (PO/quote/invoice), the AI assistant
   (Stage 11, reviewed per slice), labor/payroll build (Stage 8), advanced/exportable reports.
 - **Long term:** per-palm digital twin, benchmarking across tenants, marketplace/integrations, enterprise
