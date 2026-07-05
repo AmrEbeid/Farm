@@ -1,3 +1,5 @@
+import { egp, num } from "./money";
+
 export type CostCenterInsightRollup = {
   cost_center_id: string;
   parent_id: string | null;
@@ -144,7 +146,7 @@ function buildCards({
     cards.push({
       id: "flags",
       title: "مراجعة الربط",
-      value: String(flagCount),
+      value: num(flagCount),
       description: "توجد مراكز تكلفة تحتاج ربط قطاع أو مراجعة مساحة قبل الاعتماد الكامل للتقارير.",
       tone: "warning",
       href: "/finance/reports?focus=flags",
@@ -154,7 +156,7 @@ function buildCards({
     cards.push({
       id: "unallocated",
       title: "غير موزع",
-      value: String(Math.round(unallocatedNet)),
+      value: egp(unallocatedNet),
       description: "يوجد أثر مالي على مركز غير موزع؛ يحتاج المحاسب لتحديد مركز التكلفة الصحيح.",
       tone: "warning",
       href: "/finance/reports?center=CC-UNALLOC",
