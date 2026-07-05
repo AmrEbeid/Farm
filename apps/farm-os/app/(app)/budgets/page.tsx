@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Alert, KpiCard } from "@/components/ui";
@@ -67,8 +68,14 @@ export default async function BudgetsPage() {
           approval doesn't read budget_lines and expenses don't roll up here. Say so instead of
           letting «المتاح» read as a live control. The real budget gate is an owner-gated decision. */}
       <Alert tone="warning" title="أرقام تأسيسية — ليست رقابة حية">
-        «الملتزم» و«الفعلي» أرقام تأسيسية غير محدّثة تلقائيًا بعد — بوابة الموازنة الفعلية (ربط الاعتماد
-        والمصروفات بالموازنة) قرار قيد الدراسة (#157). لا تعتمد على «المتاح» كرقابة حية حتى إشعار آخر.
+        «الملتزم» و«الفعلي» في هذا الجدول أرقام تأسيسية غير محدّثة تلقائيًا بعد — بوابة الموازنة الفعلية (ربط
+        الاعتماد والمصروفات بالموازنة كرقابة صارمة) قرار قيد الدراسة (#157). لا تعتمد على «المتاح» كرقابة حية حتى
+        إشعار آخر.{" "}
+        للإنفاق الفعلي الحيّ محسوبًا من القيود المُرحّلة، راجع{" "}
+        <Link href="/finance/budget-vs-actual" style={{ textDecoration: "underline", fontWeight: 600 }}>
+          تقرير «الموازنة مقابل الفعلي»
+        </Link>
+        .
       </Alert>
 
       <FilterableTable
