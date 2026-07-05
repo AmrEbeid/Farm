@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-05 (latest) — SPEC-0004 §7.3 accounting period close/lock LIVE; prod ledger head `20260701550000`.**
+> **2026-07-05 (latest) — SPEC-0004 Slice A trusted balance-sheet report RPC LIVE; prod ledger head `20260705110000`.**
+> PR **#705** merged to `main` at **`42773e2`** after migrate-first production apply. Scope: read-only
+> `fn_accounting_balance_sheet(p_org, p_as_of)` — posted-only, as-of-scoped balance sheet grouped by `account_type`
+> (asset/liability/equity), owner drawings as a positive contra-equity line netted into equity (#6), net income =
+> revenue − expense folded into equity, and a self-checking `balanced` flag (Assets = Liabilities + Equity +
+> NetIncome, which holds by double-entry). Fixes the two `fn_accounting_trial_balance` gaps (it counted reversed
+> entries and had no as-of); archived accounts still count toward historical totals. No schema change, no posting,
+> no permission change. Independent money-logic review: **APPROVE-WITH-NITS** — the archived-account balance-drop
+> and drawings sign were fixed in-PR before merge. Production apply via Supabase MCP under exact repo version
+> `20260705110000` (**0 stray rows**); verified fn present, authenticated-executable, anon denied. Validation: local
+> pgTAP **1509/1509** (new test 126 = 31 assns incl. the balanced identity, as-of scoping, posted-only, drawings
+> sign, and an archived-account regression); PR CI all green. UI page (`/finance/balance-sheet`) is a follow-up slice.
+>
+> **2026-07-05 — SPEC-0004 §7.3 accounting period close/lock LIVE; prod ledger head `20260701550000`.**
 > PR **#700** merged to `main` at **`62dee45`** after migrate-first production apply. Scope: `accounting_periods`
 > (per-org closed date ranges; `finance.read`-gated, audited), `fn_close_accounting_period` (owner/accountant),
 > `fn_reopen_accounting_period` (owner-only), internal `fn_period_locked`, and a lock guard added to the single

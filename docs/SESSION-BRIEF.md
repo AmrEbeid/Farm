@@ -1,7 +1,29 @@
-# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (accounting period close/lock live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (balance-sheet report live, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-05 (latest) — accounting period close/lock LIVE (SPEC-0004 §7.3)
+## 2026-07-05 (latest) — trusted balance-sheet report RPC LIVE (SPEC-0004 Slice A)
+
+Second accounting slice this session under the Owner's autonomous review→merge→migrate directive. Picked
+**balance sheet** after reconciling `origin/main` + open PRs: P&L is already built and actively owned (**#703**),
+`/finance/close` is owned by **#699** — balance sheet was the clean, unowned gap.
+
+**Live on `main` `42773e2` (#705); prod ledger head `20260705110000`.**
+- `fn_accounting_balance_sheet(p_org, p_as_of)` — read-only, `finance.read`-gated. Posted-only + as-of-scoped;
+  groups accounts by `account_type` (asset/liability/equity); owner drawings a positive contra-equity line netted
+  into equity (#6); net income = revenue − expense folded into equity; self-checking `balanced` flag (Assets =
+  Liabilities + Equity + NetIncome, holds by double-entry). Fixes the two `fn_accounting_trial_balance` gaps
+  (counted reversed entries; no as-of); archived accounts still count toward historical totals.
+- Independent money-logic review: **APPROVE-WITH-NITS** — the archived-account balance-drop (a real correctness
+  bug inherited from the trial-balance template) and the drawings sign were **fixed in-PR before merge**, with new
+  regression coverage. Local pgTAP **1509/1509** (test 126 = 31 assns). Prod applied under exact version, 0 stray rows.
+
+**Resume point (next accounting slices, unowned):** (a) UI pages for the two new backends — `/finance/balance-sheet`
+and `/finance/periods` (close/reopen over `fn_close_accounting_period`/`fn_reopen_accounting_period`) — NEW pages,
+must not touch `accounting/page.tsx` or `finance/close/page.tsx` (#699 owns those); (b) a P&L *income-statement*
+report RPC that reads the GL (revenue − expense by account) rather than the expenses-table `fn_owner_pnl_summary`,
+if not taken. Reconcile open PRs first (multi-agent lanes move fast).
+
+## 2026-07-05 — accounting period close/lock LIVE (SPEC-0004 §7.3)
 
 Owner directive: review → merge → migrate autonomously. Built the lightweight period lock (ROADMAP Slice A item 3),
 independently reviewed it, applied to prod, and merged — one flow, in an isolated worktree (never the shared main tree).
