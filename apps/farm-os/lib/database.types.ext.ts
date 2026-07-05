@@ -561,6 +561,12 @@ type JournalLinesTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
+type AccountingPeriodsTable = {
+  Row: { id: string; org_id: string; period_start: string; period_end: string; status: string; note: string | null; locked_by: string | null; locked_at: string; reopened_by: string | null; reopened_at: string | null; created_at: string };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
 type PaymentRequestFundingsTable = {
   Row: { id: string; org_id: string; payment_request_id: string; custody_account_id: string; custody_movement_id: string | null; journal_entry_id: string | null; occurred_at: string; amount: number; note: string | null; created_at: string; created_by: string | null };
   Insert: Record<string, never>;
@@ -760,6 +766,8 @@ type CustodyFunctions = {
   fn_payment_request_totals: { Args: { p_request: string }; Returns: Json };
   fn_accounting_trial_balance: { Args: { p_org: string }; Returns: Json };
   fn_accounting_balance_sheet: { Args: { p_org: string; p_as_of?: string | null }; Returns: Json };
+  fn_close_accounting_period: { Args: { p_org: string; p_period_start: string; p_period_end: string; p_note?: string | null }; Returns: string };
+  fn_reopen_accounting_period: { Args: { p_org: string; p_period_id: string }; Returns: undefined };
   fn_custody_ledger_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
   fn_custody_cash_expense_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
   fn_unpaid_obligations_report: { Args: { p_org: string; p_as_of?: string | null }; Returns: Json };
@@ -1301,6 +1309,7 @@ export type Database = Omit<Generated, "public"> & {
       cost_centers: CostCentersTable;
       journal_entries: JournalEntriesTable;
       journal_lines: JournalLinesTable;
+      accounting_periods: AccountingPeriodsTable;
       custody_accounts: CustodyAccountsTable;
       custody_movements: CustodyMovementsTable;
       payment_requests: PaymentRequestsTable;
