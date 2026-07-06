@@ -38,7 +38,7 @@
   },
   "comment-optionalDependencies": "Pin Tailwind v4's Linux native binaries so Vercel's Linux build installs them. The macOS-generated lockfile listed but didn't install these (npm/cli#4828), so the build crashed processing globals.css with 'Cannot find native binding' (@tailwindcss/oxide). As os/cpu-gated optionals they're skipped on other platforms. Keep versions in sync with @tailwindcss/oxide + lightningcss.",
   "optionalDependencies": {
-    "@tailwindcss/oxide-linux-x64-gnu": "4.3.1",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.2",
     "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }
