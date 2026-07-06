@@ -17,7 +17,7 @@ the build/deploy pipeline — with file citations so it stays honest.
 ## 1. Monorepo layout
 
 npm workspaces (`package.json` → `workspaces: ["packages/*", "apps/*"]`), React pinned once at the
-root (`react`/`react-dom` `19.2.4` via `overrides`) so the whole tree dedupes to a single copy.
+root (`react`/`react-dom` `19.2.7` via `overrides`) so the whole tree dedupes to a single copy.
 
 ```
 farm/
@@ -26,7 +26,7 @@ farm/
 └── docs/               product evidence base, CONTEXT.md, ADRs, specs, runbooks
 ```
 
-- **`packages/ui`** (`@amrebeid/ui`, v1.1.1, `package.json`) — the component library, built with
+- **`packages/ui`** (`@amrebeid/ui`, v1.3.0, `package.json`) — the component library, built with
   `tsup` to ESM + CJS + `.d.ts` and a bundled `dist/styles.css`. It exposes two entry points
   (`exports` map): the main barrel `.` and a **`./charts` subpath** (`src/charts.ts`) that isolates
   the Recharts-based components. Published to GitHub Packages (`publishConfig.registry`), versioned
@@ -59,9 +59,9 @@ Three Supabase clients, each with a deliberate privilege scope:
   **RLS-scoped to the signed-in user**. The comment is explicit: *never use the service-role key here.*
 - **`lib/supabase/browser.ts`** — the client-side browser client (anon key) for `"use client"` islands.
 - **`lib/supabase/admin.ts`** — the **service-role** client, isolated to privileged server-only
-  paths (e.g. the dev seed-auth route `app/api/dev/seed-auth/route.ts`, excluded from middleware).
+  paths (e.g. the dev seed-auth route `app/api/dev/seed-auth/route.ts`, excluded from the proxy matcher).
 
-**`middleware.ts`** refreshes the auth session on every request (Server Components cannot set
+**`proxy.ts`** refreshes the auth session on every request (Server Components cannot set
 cookies) and writes refreshed cookies onto the response. It is *resilience-first*: if the Supabase
 env is missing or `getUser()` throws, it falls through and serves the request — auth is still
 enforced per-route by `requireMembership`, so a refresh hiccup never 500s the whole site.

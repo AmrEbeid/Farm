@@ -5,11 +5,14 @@ full‑product security, UX/IA coherence, architecture/code‑health, and market
 schema, migration, or production data was touched. Companion to [`SPEC-0019`](SPEC-0019-operations.md) (the
 operations development plan that came out of this review).*
 
+> 2026-07-06 status note: the `middleware.ts` → `proxy.ts` hygiene item called out below was
+> completed and deployed in PR #773. The rest of this document remains a 2026-07-01 snapshot.
+
 ## Verdict at a glance
 
 | Dimension | Grade | One line |
 |---|---|---|
-| Build health | ✅ Clean | `tsc` 0 errors; `next build` succeeds; only a `middleware→proxy` deprecation warning |
+| Build health | ✅ Clean | `tsc` 0 errors; `next build` succeeded; the `middleware→proxy` warning was a review-time finding and is now resolved |
 | Security backbone | **A** | RLS + FORCE‑RLS + locked SECURITY DEFINER RPCs; `authorize()` union verified (15/15 perms, no drop); no Critical/High |
 | Architecture / code‑health | **A−** | Zero `as any`/`@ts-ignore` in app source; engine pinned by dense pgTAP oracle; clean RSC/action split |
 | Product UX maturity | **B / B+** | Strong DS + Arabic‑RTL discipline; held back by *systemic* consistency gaps, not defects |
@@ -70,7 +73,7 @@ rule (non‑neg #1) is respected throughout (empty states, not placeholders). `a
 Zero `as any` / `@ts-ignore` in app source; two principled write paths (RPC for engine‑critical, RLS‑guarded direct
 for simple); service‑role confined to 2 files; engine pinned by ~27 pgTAP oracle tests. Gaps: **Playwright e2e never
 runs in CI**; **no lint gate on `packages/ui`**; `authorize()` re‑emitted in 55/115 migrations (structural debt);
-`middleware.ts`→`proxy.ts` migration due; recharts held at v2 behind a server stub. Build verified: `tsc` clean,
+`middleware.ts`→`proxy.ts` was due at review time and is now resolved; recharts held at v2 behind a server stub. Build verified: `tsc` clean,
 `next build` succeeds.
 
 ## Market position & feature gaps
@@ -93,7 +96,7 @@ P&L); one‑click professional PDF reports. **P1:** WhatsApp channel (highest‑
 - **P1 — product depth:** owner P&L (drawings below the line); yield/harvest; frost gate + editable thresholds;
   crew/labor module (onboarding + attendance + day/piece‑rate cost, reviving `lib/payroll.ts`); one‑click PDF reports.
 - **P2 — differentiation:** WhatsApp alerts; satellite/NDVI layer; pest alerts; export/traceability compliance.
-- **Engineering hygiene:** run the Playwright e2e in CI; lint gate on `packages/ui`; `middleware`→`proxy`; plan recharts 2→3.
+- **Engineering hygiene:** run the Playwright e2e in CI; lint gate on `packages/ui`; plan recharts 2→3. (`middleware`→`proxy` resolved 2026-07-06.)
 
 **Operations** — the deepest workstream — is specced separately in [`SPEC-0019`](SPEC-0019-operations.md)
 (Work‑Order maturity, real date‑palm operation vocabulary, lifecycle activation, field‑grade `/m`, offline,

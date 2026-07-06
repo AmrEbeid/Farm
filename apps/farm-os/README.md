@@ -34,10 +34,11 @@ roles are created/linked by `lib/seed-auth.ts`. (An earlier phone-OTP path was r
 
 ## Fonts & styling
 
-No web fonts and **no `next/font`** — the app uses a system-font stack defined in
-[`app/globals.css`](app/globals.css) (`system-ui, -apple-system, "Segoe UI", Tahoma,
-Arial, sans-serif`). Component styles come from `@amrebeid/ui`'s bundled `styles.css`
-(copied locally as `app/farm-os-ui.css`; see the note in `app/layout.tsx`).
+The app self-hosts the Arabic/Latin font pair through `next/font/google` in
+[`app/layout.tsx`](app/layout.tsx), exposing `--font-readex` and `--font-tajawal` CSS vars
+without runtime Google font requests. [`app/globals.css`](app/globals.css) maps the design-system
+font tokens to those vars with a system fallback. Component styles come from `@amrebeid/ui`'s
+bundled `styles.css` (copied locally as `app/farm-os-ui.css`; see the note in `app/layout.tsx`).
 
 ## Charts (recharts code-split)
 

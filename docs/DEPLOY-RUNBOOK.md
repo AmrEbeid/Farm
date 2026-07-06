@@ -1,10 +1,9 @@
 # Deploy Runbook — Farm OS MVP-0 (pilot)
 
-Turnkey steps to deploy the MVP-0 app to a **dedicated, non-Zeal** Supabase project + Vercel.
-Pre-written so deploy is one pass once the Owner makes the decisions in
-`OWNER-DECISIONS-2026-06-24.md` (§1 infra owner; §2 phone-OTP — resolved: dropped, email/password
-only). **Owner-gated:** provisioning and deploy are hard stops — do not run these without explicit
-Owner go-ahead. Nothing here has been executed.
+Turnkey steps to deploy or maintain the MVP-0 app on a **dedicated, non-Zeal** Supabase project +
+Vercel. The original first deploy has been executed; historical first-deploy notes are kept below
+for audit context. **Owner-gated:** provisioning, production DB pushes, and production deploys are
+hard stops — do not run them without explicit Owner go-ahead.
 
 ## 0. Prerequisites (Owner decisions)
 - A **non-Zeal** billing account for Supabase + Vercel (the connected Supabase account holds only
@@ -21,9 +20,8 @@ supabase db push                 # applies the migration set in supabase/migrati
 > `supabase db push` is **incremental and idempotent** — it consults
 > `supabase_migrations.schema_migrations` on the remote and applies only versions not yet recorded.
 > A first run on a fresh project applies the whole set; a re-run after the initial deploy applies only
-> the newer ones (see §1a). The remote was first provisioned at migration `0013`; the security fixes
-> `0015`–`0018` are the not-yet-applied delta. *(There is no `0014` — the numbering skips it; pgTAP
-> test `14` is the ENGINE-DC regression, unrelated to a migration file.)*
+> the newer ones (see §1a). For the current production head, use the latest ledger entry at the top
+> of `docs/DEPLOY-STATUS.md`; do not infer current state from the historical `0029` milestone below.
 Seed (pilot demo data — synthetic, not real Ebeid data):
 ```bash
 # Run the seed against the remote DB (SQL editor, or psql with the project's connection string):
@@ -31,9 +29,9 @@ psql "<SUPABASE_DB_URL>" -f supabase/seed.sql
 ```
 > For **real** Ebeid data, do NOT use seed.sql — migrate after a privacy review (Stage M).
 
-## 1a. Incremental migration push — post-deploy security fixes (0015→0018) — **Owner-gated**
+## 1a. Historical record — post-deploy security fixes (0015→0029) — **DONE**
 
-> **STATUS (2026-06-25): DONE.** The remote pilot DB (`veezkmytervjnpxcrbkw`) is now at migration
+> **STATUS (2026-06-25): DONE.** The remote pilot DB (`veezkmytervjnpxcrbkw`) was then at migration
 > **`0029`** (`0001`–`0013` + `0015`–`0029`), fully seeded. After the 8-agent adversarial prod-push
 > assurance returned **GO-WITH-CAVEATS**, `0015`→`0024` were applied in order (`0018` engine change
 > Owner-ratified); the subsequent access-control / engine-integrity hardening `0025`→`0029` (see the
@@ -66,7 +64,7 @@ on the Owner's go-ahead:
 
 ```bash
 # Re-running is safe (idempotent). To apply any FUTURE migration with the project linked (§1):
-supabase migration list           # confirm remote is at 0029 and only newer versions are pending
+supabase migration list           # confirm remote matches DEPLOY-STATUS and only expected new versions are pending
 supabase db push                  # applies pending versions in order
 ```
 
@@ -76,17 +74,18 @@ supabase db push                  # applies pending versions in order
 > with a PR-scoped guard fix (`0029`), no longer convention-only. *(AP-5 insert-side SoD — issue #76
 > item 2 — was already closed by `0023`.)* No queued security caveats remain from the assurance.
 
-**Before the push:**
-- **Independent review + Owner ratification is required for `0018`** — it changes the stock-coverage
+**Historical preconditions for that push:**
+- **Independent review + Owner ratification was required for `0018`** — it changes the stock-coverage
   engine (the product's core IP, a review-required area per PROJECT RULES). `0015`–`0017` are
   access-control/ledger hardening (also review-required, already diff-reviewed on their PRs).
-- The app **runs correctly without these** — writes already route through the `bypassrls` RPCs;
+- The app **ran correctly without these** — writes already routed through the `bypassrls` RPCs;
   `0015`/`0016` tighten *direct* REST access, `0017` hardens the approval policy, and `0018` only
   changes the coverage projection's receipt source. So there is no app-vs-DB lockstep requirement;
   the push can happen on its own change window.
 
-**After the push — verify in prod (read-only checks, or the SQL editor):**
-- `supabase migration list` shows `0029` as the latest applied version.
+**After any future push — verify in prod (read-only checks, or the SQL editor):**
+- `supabase migration list` matches the head recorded at the top of `docs/DEPLOY-STATUS.md`, with no
+  unexpected pending or stray versions.
 - **B2.1 (append-only):** a direct `delete from inventory_movements …` as an authenticated tenant is
   rejected (pgTAP `11` invariant).
 - **AP-5 (SoD):** an owner-author cannot self-approve a PR by rewriting `requested_by` in the approving
