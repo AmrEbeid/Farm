@@ -32,6 +32,7 @@ const DEFAULT_AR: Record<string, string> = {
   "23505": "تعذّر تنفيذ العملية: تم تنفيذها بالفعل أو الحالة غير متوقعة.", // unique_violation (claim-first abort)
   "23503": "بيانات مرتبطة غير موجودة", // foreign_key_violation
   "23502": "بيانات ناقصة مطلوبة", // not_null_violation
+  "55000": "الفترة المحاسبية مقفلة؛ افتحها أو اختر تاريخًا خارج الفترة المقفلة.", // object_not_in_prerequisite_state
   P0002: "العنصر المطلوب غير موجود.", // no_data_found (raise)
   "40001": "تعارض مؤقت، يُرجى المحاولة مرة أخرى.", // serialization_failure
   "40P01": "تعارض مؤقت، يُرجى المحاولة مرة أخرى.", // deadlock_detected
