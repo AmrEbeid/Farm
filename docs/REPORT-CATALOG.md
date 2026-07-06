@@ -25,7 +25,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-13** | `/finance/income-statement` | Trusted income statement / P&L | revenue, expenses, operating expenses, net income/loss | - | Revenue/expense CSV with period filename; print-ready | RPC-056 `fn_accounting_income_statement` | owner, accountant |
 | **RPT-14** | `/finance/budget-vs-actual` | Budget-vs-actual from posted GL | planned, actual, variance, variance %, status | - | Comparison CSV with period filename; print-ready | RPC-060 `fn_budget_vs_actual` | owner, accountant |
 | **RPT-15** | `/finance/close` | Month-close checklist and statement handoff | pending-price deliveries, unrouted/unclassified/unallocated expenses, aged receivables | - | Links to statement review; no CSV | `sales`, `sale_collections`, `expenses`, accounting period actions | owner, accountant |
-| **RPT-16** | `/finance/periods` | Accounting period lock register | total periods, locked periods, reopened/open periods | - | - | `accounting_periods`, `fn_close_accounting_period`, `fn_reopen_accounting_period` | owner, accountant |
+| **RPT-16** | `/finance/periods` | Accounting period lock register | total periods, locked periods, reopened/open periods | - | Accounting-period CSV; print-ready | `accounting_periods`, `fn_close_accounting_period`, `fn_reopen_accounting_period` | owner, accountant |
 | **RPT-17** | `/finance/pnl-trend` | GL-backed P&L time series | latest revenue, expenses, net income, cumulative net income | `TrendLineChart` | - | `fn_pnl_timeseries` | owner, accountant |
 | **RPT-18** | `/finance/season` | Harvest/revenue season view | delivered tons, receipts, pending-price tons, booked revenue, collected, trader A/R | - | Deliveries and center summary CSV; print-ready | `sales`, `sale_collections`, cost centers | owner, accountant |
 | **RPT-19** | `/finance/cost-centers/[id]` | Cost-center 360 | direct expenses, finalized sales, tree net, net per feddan | - | Expense and sales CSV; print-ready | selected cost center, `expenses`, `sales`, rollup views | owner, accountant |
@@ -65,8 +65,8 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 - `ExportButton` appends `.csv` only when the supplied filename does not already include it.
 - The deployed print-ready surfaces are:
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
-  `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/budgets`,
-  `/finance/season`, `/finance/cost-centers/[id]`, `/budgets/[budgetId]`,
+  `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/finance/periods`,
+  `/budgets`, `/finance/season`, `/finance/cost-centers/[id]`, `/budgets/[budgetId]`,
   `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
   `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,
   `/plans`, `/plans/[planId]`, `/plans/dashboard`, `/reports/[planId]/pva`,

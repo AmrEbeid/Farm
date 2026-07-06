@@ -4,14 +4,25 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { Card, KpiCard } from "@/components/ui";
+import { ExportButton } from "@/components/ExportButton";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
+import { PrintButton } from "@/components/print-button";
+import { SimpleTable, type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { closePeriod, reopenPeriod } from "./actions";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
 const mutedStyle = { color: "var(--ink-muted)" } as const;
+
+const PERIOD_COLUMNS: SimpleColumn[] = [
+  { id: "period", header: "الفترة" },
+  { id: "status", header: "الحالة", kind: "status" },
+  { id: "note", header: "ملاحظة" },
+  { id: "lockedAt", header: "تاريخ الإقفال" },
+  { id: "reopenedAt", header: "تاريخ إعادة الفتح" },
+];
 
 export default async function FinancePeriodsPage({
   searchParams,
@@ -31,25 +42,40 @@ export default async function FinancePeriodsPage({
 
   const periods = data ?? [];
   const lockedCount = periods.filter((p) => p.status === "locked").length;
+  const lockedPeriods = periods.filter((p) => p.status === "locked");
   const isOwner = m.role === "owner";
+  const periodRows: SimpleRow[] = periods.map((p) => ({
+    id: p.id,
+    period: `${fmtDate(p.period_start)} — ${fmtDate(p.period_end)}`,
+    status: p.status === "locked" ? "مقفلة" : "مفتوحة",
+    note: p.note || "—",
+    lockedAt: p.locked_at ? fmtDate(p.locked_at) : "—",
+    reopenedAt: p.reopened_at ? fmtDate(p.reopened_at) : "—",
+  }));
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold">الفترات المحاسبية (الإقفال)</h1>
-        <p style={mutedStyle}>
-          إقفال فترة يمنع ترحيل أي قيد جديد بتاريخ داخلها — لحماية أرقام فترة مُعتمدة (كشهر أو موسم). إعادة الفتح
-          للمالك فقط.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-bold">الفترات المحاسبية (الإقفال)</h1>
+          <p style={mutedStyle}>
+            إقفال فترة يمنع ترحيل أي قيد جديد بتاريخ داخلها — لحماية أرقام فترة مُعتمدة (كشهر أو موسم). إعادة الفتح
+            للمالك فقط.
+          </p>
+        </div>
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة الفترات" />
+          <ExportButton rows={periodRows} columns={PERIOD_COLUMNS} filename="accounting-periods" />
+        </div>
       </header>
 
       {params.ok ? (
-        <Card title="تم">
+        <Card title="تم" className="no-print">
           <p className="font-semibold">{params.ok}</p>
         </Card>
       ) : null}
       {params.error ? (
-        <Card title="تعذّر التنفيذ">
+        <Card title="تعذّر التنفيذ" className="no-print">
           <p className="font-semibold">{params.error}</p>
         </Card>
       ) : null}
@@ -60,7 +86,7 @@ export default async function FinancePeriodsPage({
         <KpiCard label="فترات مفتوحة (أُعيد فتحها)" value={num(periods.length - lockedCount)} icon="🔓" />
       </section>
 
-      <Card title="إقفال فترة جديدة" subtitle="متاح للمالك والمحاسب">
+      <Card title="إقفال فترة جديدة" subtitle="متاح للمالك والمحاسب" className="no-print">
         <form action={closePeriod} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1 text-sm font-semibold">
             من تاريخ
@@ -87,60 +113,44 @@ export default async function FinancePeriodsPage({
       </Card>
 
       <Card title={`الفترات (${num(periods.length)})`}>
-        {periods.length ? (
-          <ul className="flex flex-col gap-2">
-            {periods.map((p) => {
-              const locked = p.status === "locked";
-              return (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-md p-3"
-                  style={{ border: "1px solid var(--line)" }}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-semibold">
-                      {fmtDate(p.period_start)} — {fmtDate(p.period_end)}
-                    </span>
-                    {p.note ? (
-                      <span className="text-sm" style={mutedStyle}>
-                        {p.note}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="rounded-full px-3 py-1 text-sm font-semibold"
-                      style={
-                        locked
-                          ? { background: "var(--danger-bg)", color: "var(--danger-fg)" }
-                          : { background: "var(--info-bg)", color: "var(--info-fg)" }
-                      }
-                    >
-                      {locked ? "مقفلة 🔒" : "مفتوحة"}
-                    </span>
-                    {locked && isOwner ? (
-                      <form action={reopenPeriod}>
-                        <input type="hidden" name="period_id" value={p.id} />
-                        <button
-                          type="submit"
-                          className="rounded-md px-3 py-1 text-sm font-semibold"
-                          style={{ border: "1px solid var(--line)", background: "var(--surface)" }}
-                        >
-                          إعادة الفتح
-                        </button>
-                      </form>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <EmptyState title="لا فترات مقفلة بعد" description="أقفل فترة من النموذج بالأعلى بعد اعتماد أرقامها." />
-        )}
+        <SimpleTable
+          columns={PERIOD_COLUMNS}
+          rows={periodRows}
+          ariaLabel="الفترات المحاسبية"
+          empty="لا فترات مقفلة بعد"
+        />
       </Card>
 
-      <FinanceStatementsNav current="periods" />
+      {isOwner && lockedPeriods.length > 0 ? (
+        <Card title="إعادة فتح فترة" subtitle="للمالك فقط" className="no-print">
+          <div className="flex flex-col gap-2">
+            {lockedPeriods.map((p) => (
+              <form
+                key={p.id}
+                action={reopenPeriod}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-md p-3"
+                style={{ border: "1px solid var(--line)" }}
+              >
+                <input type="hidden" name="period_id" value={p.id} />
+                <span className="font-semibold">
+                  {fmtDate(p.period_start)} — {fmtDate(p.period_end)}
+                </span>
+                <button
+                  type="submit"
+                  className="rounded-md px-3 py-1 text-sm font-semibold"
+                  style={{ border: "1px solid var(--line)", background: "var(--surface)" }}
+                >
+                  إعادة الفتح
+                </button>
+              </form>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
+      <div className="no-print">
+        <FinanceStatementsNav current="periods" />
+      </div>
     </div>
   );
 }
