@@ -15,6 +15,7 @@ type EntityType = "farm" | "sector" | "hawsha" | "line" | "palm";
 const BUCKET = "farm-media";
 const MAX_DIM = 1600; // longest edge after client-side compression
 const MAX_BYTES = 26214400; // 25 MB — matches fn_add_attachment's ceiling
+const THUMBNAIL_BOX = "aspect-[4/3] w-full rounded-md";
 
 /** Downscale an image file to <=MAX_DIM on its longest edge and re-encode as JPEG (~0.8). Non-images
  * (PDF) pass through untouched. Keeps field uploads small without a server round-trip. */
@@ -177,14 +178,22 @@ export function MediaGallery({
               <li key={a.id} className="flex flex-col gap-1 rounded-lg border border-[var(--color-border,#e5e7eb)] p-2">
                 {a.kind === "photo" && a.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={a.url} alt={a.caption ?? "صورة"} className="h-28 w-full rounded-md object-cover" />
+                  <img
+                    src={a.url}
+                    alt={a.caption ?? "صورة"}
+                    width={320}
+                    height={240}
+                    loading="lazy"
+                    decoding="async"
+                    className={`${THUMBNAIL_BOX} object-cover`}
+                  />
                 ) : a.url ? (
                   <a href={a.url} target="_blank" rel="noopener noreferrer"
-                    className="flex h-28 items-center justify-center rounded-md bg-black/5 text-sm underline">
+                    className={`${THUMBNAIL_BOX} flex items-center justify-center bg-black/5 text-sm underline`}>
                     📄 فتح المستند
                   </a>
                 ) : (
-                  <div className="flex h-28 items-center justify-center rounded-md bg-black/5 text-xs opacity-60">
+                  <div className={`${THUMBNAIL_BOX} flex items-center justify-center bg-black/5 text-xs opacity-60`}>
                     المرفق غير متاح
                   </div>
                 )}
