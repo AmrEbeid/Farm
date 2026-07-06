@@ -8,6 +8,7 @@ import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/Dashb
 import { FirstRunTour } from "@/components/FirstRunTour";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
+import { PrintButton } from "@/components/print-button";
 import { BudgetDoughnut, CategoryBarChart, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { buildFinanceInsightSummary, type CostCenterInsightFlag, type CostCenterInsightRollup } from "@/lib/finance-insights";
@@ -247,7 +248,8 @@ export default async function OwnerDashboard() {
             («الملتزم» و«الفعلي») تأسيسية وغير محدّثة تلقائيًا بعد (#157).
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة لوحة المالك" />
           <Link href="/budgets"><Button variant="ghost" size="sm">الموازنات</Button></Link>
           <Link href="/finance/insights"><Button variant="ghost" size="sm">رؤى المالك</Button></Link>
           <Link href="/farm/offshoots"><Button variant="ghost" size="sm">بنك الفسائل</Button></Link>
@@ -258,15 +260,21 @@ export default async function OwnerDashboard() {
         </div>
       </header>
 
-      <FirstRunTour role={m.role} />
-      <QuickNav items={quickNav} />
-      <AttentionInbox items={attention} />
+      <div className="no-print contents">
+        <FirstRunTour role={m.role} />
+        <QuickNav items={quickNav} />
+        <AttentionInbox items={attention} />
+      </div>
 
 
       {/* First-run guidance: only for a genuinely empty org (zero palms, zero
           plans) — gated on data already fetched above, so it disappears on its
           own once the org has real data (no separate dismiss state to persist). */}
-      {isNewOrg && <OnboardingChecklist role={m.role} />}
+      {isNewOrg && (
+        <div className="no-print">
+          <OnboardingChecklist role={m.role} />
+        </div>
+      )}
 
       {/* Cross-module KPI hero — 6 query-derived metrics (responsive 2 → 3 → 6), each a deep link to its module */}
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -329,7 +337,7 @@ export default async function OwnerDashboard() {
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">رؤى مالية</h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="no-print flex flex-wrap gap-2">
             <Link href="/finance/income-statement"><Button variant="ghost" size="sm">قائمة الدخل</Button></Link>
             <Link href="/finance/balance-sheet"><Button variant="ghost" size="sm">المركز المالي</Button></Link>
             <Link href="/finance/insights"><Button variant="ghost" size="sm">فتح الرؤى</Button></Link>
@@ -447,7 +455,7 @@ export default async function OwnerDashboard() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">حالة بنود الموازنة</h2>
-          <Link href="/budgets"><Button variant="ghost" size="sm">كل الموازنات</Button></Link>
+          <Link href="/budgets" className="no-print"><Button variant="ghost" size="sm">كل الموازنات</Button></Link>
         </div>
         {budgetLines.length === 0 ? (
           <Card><p style={{ color: "var(--ink-muted)" }}>لا توجد بنود موازنة بعد.</p></Card>
@@ -479,7 +487,7 @@ export default async function OwnerDashboard() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">طلبات الشراء</h2>
-          <Link href="/purchase-requests"><Button variant="ghost" size="sm">عرض الكل</Button></Link>
+          <Link href="/purchase-requests" className="no-print"><Button variant="ghost" size="sm">عرض الكل</Button></Link>
         </div>
         <FilterableTable
           columns={columns}

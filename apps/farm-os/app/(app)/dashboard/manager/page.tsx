@@ -4,7 +4,9 @@ import { requireRole } from "@/lib/auth";
 import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
 import { FirstRunTour } from "@/components/FirstRunTour";
 import { KpiCard, Card, Progress, EmptyState } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { PrintButton } from "@/components/print-button";
+import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { moneyNumber, num, pct } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
@@ -50,7 +52,10 @@ export default async function ManagerDashboard() {
   if (activePlanIds.length === 0) {
     return (
       <div className="flex flex-col gap-6 p-6">
-        <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-4" style={{ borderColor: "var(--line)" }}>
+          <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
+          <PrintButton label="طباعة لوحة المدير" />
+        </header>
         {canSeeOffshoots && (
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <DashboardKpiLink href="/farm/offshoots" active={false}>
@@ -147,7 +152,7 @@ export default async function ManagerDashboard() {
     status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
   }));
 
-  const myRows = myOpenOps.slice(0, 12).map((o) => ({
+  const myRows = myOpenOps.map((o) => ({
     id: o.id,
     href: `/plans/${o.plan_id}`,
     subtype: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
@@ -182,11 +187,16 @@ export default async function ManagerDashboard() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-4" style={{ borderColor: "var(--line)" }}>
+        <h1 className="text-2xl font-bold">لوحة معلومات المدير</h1>
+        <PrintButton label="طباعة لوحة المدير" />
+      </header>
 
-      <FirstRunTour role={m.role} />
-      <QuickNav items={fmQuickNav} />
-      <AttentionInbox items={fmAttention} />
+      <div className="no-print contents">
+        <FirstRunTour role={m.role} />
+        <QuickNav items={fmQuickNav} />
+        <AttentionInbox items={fmAttention} />
+      </div>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <KpiCard label="عمليات الخطط النشطة" value={num(total)} />
@@ -230,7 +240,14 @@ export default async function ManagerDashboard() {
         ) : myRows.length === 0 ? (
           <EmptyState title="لا توجد مهام مفتوحة مسندة لك" />
         ) : (
-          <SimpleTable columns={columns} rows={myRows} ariaLabel="مهامي المسندة" empty="—" />
+          <FilterableTable
+            columns={columns}
+            rows={myRows}
+            ariaLabel="مهامي المسندة"
+            exportFilename="manager-assigned-tasks"
+            minRowsForSearch={20}
+            empty="—"
+          />
         )}
       </Card>
 
@@ -239,7 +256,7 @@ export default async function ManagerDashboard() {
           <h2 className="text-lg font-semibold">عمليات الخطط النشطة</h2>
           <Link
             href={activePlans.length === 1 ? `/plans/${activePlans[0].id}` : "/plans"}
-            className="inline-flex min-h-8 items-center justify-center rounded-md px-3 text-sm font-semibold"
+            className="no-print inline-flex min-h-8 items-center justify-center rounded-md px-3 text-sm font-semibold"
             style={{
               color: "var(--brand)",
               background: "transparent",
@@ -249,7 +266,16 @@ export default async function ManagerDashboard() {
             {activePlans.length === 1 ? "فتح الخطة" : "كل الخطط النشطة"}
           </Link>
         </div>
-        <SimpleTable columns={columns} rows={rows} ariaLabel="عمليات الخطط النشطة" empty="لا توجد عمليات مجدولة." />
+        <FilterableTable
+          columns={columns}
+          rows={rows}
+          ariaLabel="عمليات الخطط النشطة"
+          searchColumns={["subtype", "plan", "planned_at", "status"]}
+          placeholder="ابحث في عمليات الخطط…"
+          exportFilename="manager-active-plan-operations"
+          minRowsForSearch={8}
+          empty="لا توجد عمليات مجدولة."
+        />
       </section>
     </div>
   );
