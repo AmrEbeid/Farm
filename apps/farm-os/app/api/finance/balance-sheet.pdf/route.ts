@@ -20,11 +20,15 @@ function parseDateParam(value: string | null, fallback: string): string {
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
 }
 
+function jsonError(error: string, status: number): Response {
+  return NextResponse.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
+}
+
 export async function GET(req: Request): Promise<Response> {
   const member = await getActiveMembership();
-  if (!member) return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
+  if (!member) return jsonError("غير مصرّح", 401);
   if (member.role !== "owner" && member.role !== "accountant") {
-    return NextResponse.json({ error: "ليست لديك صلاحية تنزيل هذه القائمة" }, { status: 403 });
+    return jsonError("ليست لديك صلاحية تنزيل هذه القائمة", 403);
   }
 
   const url = new URL(req.url);
