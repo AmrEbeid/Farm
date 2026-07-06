@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #821. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #823. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -30,7 +30,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-18** | `/finance/season` | Harvest/revenue season view | delivered tons, receipts, pending-price tons, booked revenue, collected, trader A/R | - | Deliveries and center summary CSV; print-ready | `sales`, `sale_collections`, cost centers | owner, accountant |
 | **RPT-19** | `/finance/cost-centers/[id]` | Cost-center 360 | direct expenses, finalized sales, tree net, net per feddan | - | Expense and sales CSV; print-ready | selected cost center, `expenses`, `sales`, rollup views | owner, accountant |
 | **RPT-20** | `/farm/offshoots` | Offshoot bank reporting | produced/planted/replanted/sold quantities, valuation estimate | `MultiInsightChart` with `CategoryBarChart` | Movement and expansion CSV; print-ready | offshoot ledger and valuation tables | owner, accountant, farm_manager |
-| **RPT-21** | `/weather/dashboard` | Weather risk dashboard | weather readings and threshold risk signals | `TrendLineChart` | - | weather readings/thresholds | any member |
+| **RPT-21** | `/weather/dashboard` | Weather risk dashboard | weather readings and threshold risk signals | `TrendLineChart` | Risk-window and advisory CSV; print-ready | weather readings/thresholds | any member |
 | **RPT-22** | `/budgets` | Budget overview | budget count, planned total, approved total, available by budget | - | Budget CSV; print-ready | `budgets`, RPC-060 for owner/accountant over-budget signal | owner, accountant, farm_manager |
 | **RPT-23** | `/budgets/[budgetId]` | Budget 360 detail | planned, approved, committed + actual, available, lines, linked PRs, category expenses | - | Lines, linked PRs, and finance-expense CSV; print-ready | `budgets`, `budget_lines`, `purchase_requests`, gated `expenses` | owner, accountant, farm_manager; expense tab owner/accountant only |
 | **RPT-24** | `/purchase-requests` | Purchase request console | open/submitted/open-order/overdue/stale request counts, remaining qty, needed-by alerts | - | Purchase-request CSV; print-ready | `purchase_requests`, `purchase_request_items`, `inventory_items`, `lib/pr-console.ts` | any member |
@@ -69,6 +69,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
   `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/finance/periods`,
   `/finance/insights`, `/finance/pnl-trend`, `/finance/enterprise-scorecard`, `/finance/sector-scorecard`,
+  `/weather/dashboard`,
   `/budgets`, `/finance/season`, `/finance/cost-centers/[id]`, `/budgets/[budgetId]`,
   `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
   `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,
