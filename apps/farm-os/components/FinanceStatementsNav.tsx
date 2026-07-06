@@ -18,7 +18,7 @@ export type StatementId = (typeof STATEMENTS)[number]["id"];
 export function FinanceStatementsNav({ current }: { current: StatementId }) {
   const others = STATEMENTS.filter((s) => s.id !== current);
   return (
-    <Card title="قوائم مالية ذات صلة">
+    <Card title="قوائم مالية ذات صلة" className="no-print">
       <div className="flex flex-wrap gap-3">
         {others.map((s) => (
           <Link

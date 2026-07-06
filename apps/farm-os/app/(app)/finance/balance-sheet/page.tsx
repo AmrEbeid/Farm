@@ -13,6 +13,7 @@ import { parseBalanceSheet, type BalanceSheetLine } from "@/lib/balance-sheet";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
 import { PrintButton } from "@/components/print-button";
+import { FinanceStatementPrintPacket, type FinanceStatementPrintItem } from "@/components/FinanceStatementPrintPacket";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -41,10 +42,18 @@ export default async function FinanceBalanceSheetPage({
   const sb = await createClient();
   const params = await searchParams;
   const asOf = parseDateParam(params.asOf, isoDate(new Date()));
+  const generatedOn = isoDate(new Date());
 
   const res = await sb.rpc("fn_accounting_balance_sheet", { p_org: m.orgId, p_as_of: asOf });
   if (res.error) throw res.error;
   const bs = parseBalanceSheet(res.data);
+  const statementAsOf = bs.asOf ?? asOf;
+  const printItems: FinanceStatementPrintItem[] = [
+    { id: "statement", label: "نوع القائمة", value: "قائمة المركز المالي" },
+    { id: "as-of", label: "تاريخ القائمة", value: fmtDate(statementAsOf) },
+    { id: "issued", label: "تاريخ الإصدار", value: fmtDate(generatedOn) },
+    { id: "source", label: "المصدر", value: "القيود المُرحّلة فقط" },
+  ];
 
   // Honest-null (#1): an org with no posted entries makes every total 0, so `balanced` is trivially true
   // (0 = 0). Showing "0 ج.م" KPIs and a green "متوازنة ✓" would read as a real, reconciled statement. When
@@ -63,7 +72,9 @@ export default async function FinanceBalanceSheetPage({
         <PrintButton label="طباعة القائمة" />
       </header>
 
-      <Card title="التاريخ">
+      <FinanceStatementPrintPacket title="هوية واعتماد قائمة المركز المالي" items={printItems} />
+
+      <Card title="التاريخ" className="no-print">
         <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
           <label className="flex flex-col gap-1 text-sm font-semibold">
             تاريخ القائمة
