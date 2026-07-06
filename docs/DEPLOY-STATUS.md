@@ -12,7 +12,7 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > Vercel production READY for `dpl_HJrGPiyFEuPZCoKXj73odmbhzNot`, error-only build logs clean, no production runtime
 > error/fatal logs, and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
 >
-> **2026-07-05 (latest) — SPEC-0004 Slice A budget-vs-actual (read-only) LIVE — Slice A now complete; prod ledger head `20260705150000`.**
+> **2026-07-05 — SPEC-0004 Slice A budget-vs-actual (read-only) LIVE — Slice A now complete; prod ledger head `20260705150000`.**
 > PR **#728** merged to `main` (RPC) after migrate-first apply; UI page **#730** (`/finance/budget-vs-actual`, app-only).
 > Scope: read-only `fn_budget_vs_actual(p_org, p_from, p_to)` — makes budget **actuals live** from the posted GL
 > (rolled up by expense category, `debit − credit`) vs `SUM(budget_lines.planned)`; variance + over_budget/unbudgeted
@@ -49,7 +49,7 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > and drawings sign were fixed in-PR before merge. Production apply via Supabase MCP under exact repo version
 > `20260705110000` (**0 stray rows**); verified fn present, authenticated-executable, anon denied. Validation: local
 > pgTAP **1509/1509** (new test 126 = 31 assns incl. the balanced identity, as-of scoping, posted-only, drawings
-> sign, and an archived-account regression); PR CI all green. UI page (`/finance/balance-sheet`) is a follow-up slice.
+> sign, and an archived-account regression); PR CI all green. UI page `/finance/balance-sheet` is now live.
 >
 > **2026-07-05 — SPEC-0004 §7.3 accounting period close/lock LIVE; prod ledger head `20260701550000`.**
 > PR **#700** merged to `main` at **`62dee45`** after migrate-first production apply. Scope: `accounting_periods`
@@ -64,7 +64,7 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > reconciled → **0 stray rows**); verified table + 3 RPCs present, `fn_period_locked` internal, advisors show only
 > the pre-existing cost-center-view ERRORs + the intentional SECURITY-DEFINER WARNs (2 new expected). Validation:
 > local pgTAP harness **1477/1477** (new test 125 = 18 assns); PR CI (app build, pgTAP, storybook, gitleaks,
-> CodeRabbit, Vercel) all green. UI wiring of `/finance/close` to these RPCs is a follow-up slice.
+> CodeRabbit, Vercel) all green. `/finance/close` now wires the lock action and clean-state statement handoff.
 >
 > **2026-07-04 — UI speed/readability pass LIVE; prod ledger head remains `20260701510000`.**
 > Current `main` is **`815a4c8`** after PRs **#679/#681/#682**. No Supabase migration in these PRs; post-merge
@@ -231,7 +231,7 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > Vitest **447/447**, `npm run build`, `git diff --check`; PR checks + CodeRabbit + Vercel green. Post-merge `main`
 > checks are green: `ci`, `db-tests`, `release`, and Vercel production status for `f113169`.
 >
-> **2026-07-04 (latest) — public website FEATURE-COMPLETE: buyer enquiry form → OS.**
+> **2026-07-04 — public website FEATURE-COMPLETE: buyer enquiry form → OS.**
 > Public "Request a Quote" form (name/company/country/volume/message) → server action inserts via the
 > service-role admin client into org-scoped `site_enquiries`; owner reads at `/enquiries` (nav
 > «طلبات العملاء», owner-only). **No anon DB surface** (no anon grant/RPC — "anon writes nothing" holds);
@@ -334,7 +334,7 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > batch **#590/#591/#592/#593/#594/#596** merged (incl. the `/purchase-requests` open-orders console — app-only,
 > no migration). Live smoke recorded in SESSION-BRIEF.
 
-> **2026-07-01 (latest) — FULL LIVE DEPLOY: 32 PRs merged, 14 migrations applied, prod ledger reconciled
+> **2026-07-01 — FULL LIVE DEPLOY: 32 PRs merged, 14 migrations applied, prod ledger reconciled
 > 134/134, Vercel confirmed READY.** Executed the Owner's twice-confirmed "proceed to full live deploy now"
 > mandate: 18 no-schema PRs, then 7 independent schema PRs, then the `authorize()` chain (#557→#558, final
 > 18-perm union), then the 5-layer `fn_add_plan_operation_multi` reconciliation (#543→#549→#562→#560→#563,
@@ -590,12 +590,13 @@ as an open gate again unless the Owner reopens it.
 ## ✅ Current Vercel state (2026-07-06)
 - `farm-ui` deploys the Next app from `apps/farm-os`, not the monorepo root, and production aliases
   are attached to `ebeidfarm.business` + `farm-ui-one.vercel.app`.
-- Production deployment `dpl_39Yw6KaFeNc1zDqf7FPbKgzVg9X5` was verified `READY` after PR #780;
-  Vercel's route list shows `Proxy (Middleware)`, so the Next 16 `middleware.ts` → `proxy.ts`
-  migration is live.
-- The July 6 deployment hygiene fixes are live: proxy convention (#773), role-safe dashboard links
-  (#777), and Tailwind/Linux optional lockfile alignment (#780). Post-deploy runtime sweep found no
-  error clusters and no production `error`/`fatal` logs for the PR #780 deployment.
+- Production deployment `dpl_HJrGPiyFEuPZCoKXj73odmbhzNot` was verified `READY` after PR #806;
+  both public aliases returned 200, and Vercel's route list still shows `Proxy (Middleware)`, so the
+  Next 16 `middleware.ts` → `proxy.ts` migration remains live.
+- The July 6 deployment hygiene and report-output fixes are live: proxy convention (#773), role-safe
+  dashboard links (#777), Tailwind/Linux optional lockfile alignment (#780), report print/export
+  polish (#803-#805), and report catalog refresh (#806). Post-deploy runtime sweeps found no error
+  clusters and no production `error`/`fatal` logs for the latest production deployment.
 
 ## ✅ Resolved incident — Vercel Root Directory was wrong (2026-06-24)
 Historical failure: `https://farm-ui-one.vercel.app/` served the **`@amrebeid/ui` library JS**, and
@@ -622,7 +623,6 @@ The phone-OTP UI skeleton stays unused; ensure the login path never calls `signI
 ## Remaining for a real pilot
 - **Frontend smoke test** — walk the wedge loop on the live `*.vercel.app` URL signed in as each role.
 - **Real data** — only after Stage 0 (`STAGE-0-REMEDIATION-RUNBOOK.md`) + a privacy review (Stage M).
-- The deployed build predates the schema load; if any page cached an empty-DB error, redeploy.
 
 ## ⛔→✅ Root cause of the failing Vercel builds (2026-06-24)
 The committed root `.npmrc` (`@amrebeid:registry=…github` + `_authToken=${NODE_AUTH_TOKEN}`) made the
