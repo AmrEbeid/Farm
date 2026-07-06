@@ -34,6 +34,7 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-022** | A null-dated planned demand is treated as immediate (period 1), never silently dropped. | `coalesce(planned_at,…)` (`0047`) | `04_stock_coverage` | FEAT-007 |
 | **BR-023** | An overdue PO (needed_by before the window) is not projected into period 1 to mask a shortage. | stale-PO guard (`0034`/`0045`) | `34_engine_stale_po_guard` | FEAT-007 |
 | **BR-024** | Available = on_hand − reserved; reserved never exceeds on_hand in coverage. | `fn_stock_coverage` (`0009`) | `04_stock_coverage` | FEAT-007 |
+| **BR-025** | `blocked` operations are paused demand: stock coverage ignores them until they return to a live status. | `fn_stock_coverage` LIVE_OP filter (`20260701200000`) | `133_engine_blocked_demand_semantics` | FEAT-007 |
 
 ## Operation execution & reservation
 | BR | Rule | Enforced by | Test | FEAT |
