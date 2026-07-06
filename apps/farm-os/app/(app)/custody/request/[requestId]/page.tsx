@@ -345,6 +345,60 @@ export default async function PaymentRequestPage({
     },
   ];
 
+  const proofSummary = [
+    { id: "request_no", label: "رقم الإذن", value: num(req.request_no) },
+    { id: "org", label: "المزرعة", value: orgName },
+    { id: "holder", label: "العهدة", value: holderLabel ?? "—" },
+    { id: "period", label: "الفترة", value: periodLabel ?? "—" },
+    { id: "status", label: "الحالة", value: REQ_STATUS_AR[req.status] ?? req.status },
+    { id: "gross", label: "إجمالي الطلب", value: egp(t.gross_request ?? 0) },
+    { id: "approved", label: "المعتمد من المالك", value: egp(t.approved_net_request ?? t.gross_request ?? 0) },
+    { id: "funded", label: "تمويل مستلم كعهدة", value: egp(t.owner_funding_received ?? 0) },
+    { id: "paid", label: "مدفوع من الطلب", value: egp(t.request_cash_out ?? 0) },
+    { id: "remaining", label: "المتبقي تمويله", value: egp(remainingToFund) },
+  ];
+  const proofCols: SimpleColumn[] = [
+    { id: "stage", header: "المرحلة" },
+    { id: "actor", header: "المسؤول" },
+    { id: "date", header: "التاريخ" },
+    { id: "state", header: "الحالة" },
+    { id: "signature", header: "التوقيع" },
+  ];
+  const proofRows = [
+    {
+      id: "prepared",
+      stage: "إعداد الإذن",
+      actor: preparedByName ?? "—",
+      date: fmtDate(req.created_at),
+      state: "مثبت",
+      signature: "....................",
+    },
+    {
+      id: "submitted",
+      stage: "إرسال للاعتماد",
+      actor: preparedByName ?? "—",
+      date: req.submitted_at ? fmtDate(req.submitted_at) : "—",
+      state: req.submitted_at ? "تم" : "بانتظار الإرسال",
+      signature: "....................",
+    },
+    {
+      id: "approved_op",
+      stage: "اعتماد تشغيلي",
+      actor: approvedOpByName ?? "—",
+      date: req.approved_op_at ? fmtDate(req.approved_op_at) : "—",
+      state: req.approved_op_at ? "تم" : req.submitted_at ? "بانتظار الاعتماد" : "لم يبدأ",
+      signature: "....................",
+    },
+    {
+      id: "approved_final",
+      stage: "اعتماد نهائي",
+      actor: approvedFinalByName ?? "—",
+      date: req.approved_final_at ? fmtDate(req.approved_final_at) : "—",
+      state: req.approved_final_at ? "تم" : req.approved_op_at ? "بانتظار المالك" : "لم يبدأ",
+      signature: "....................",
+    },
+  ];
+
   const tabItems: TabItem[] = [
     { id: "overview", label: "نظرة عامة" },
     { id: "expenses", label: `المصروفات (${num(lineRows.length)})` },
@@ -388,7 +442,51 @@ export default async function PaymentRequestPage({
 
       <StoryLine lead={railLead} notes={railNotes} />
 
-      <EntityTabs items={tabItems} value={tab} ariaLabel="أقسام طلب الصرف" />
+      <div className="no-print">
+        <EntityTabs items={tabItems} value={tab} ariaLabel="أقسام طلب الصرف" />
+      </div>
+
+      <section className="print-only">
+        <div className="flex flex-col gap-5">
+          <Card title="حزمة إذن الصرف للطباعة">
+            <div className="grid gap-3 md:grid-cols-5">
+              {proofSummary.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-md border p-3"
+                  style={{ borderColor: "var(--line)", background: "var(--surface)" }}
+                >
+                  <div className="text-xs" style={{ color: "var(--ink-muted)" }}>
+                    {item.label}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold">{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card title="مسار الاعتماد والتوقيع">
+            <SimpleTable
+              columns={proofCols}
+              rows={proofRows}
+              ariaLabel="مسار الاعتماد والتوقيع"
+              empty="لا توجد مراحل اعتماد"
+            />
+          </Card>
+
+          <Card title="الملخص حسب الفئة">
+            <SimpleTable columns={catCols} rows={catRows} ariaLabel="الملخص حسب الفئة" empty="لا توجد بنود بعد" />
+          </Card>
+
+          <Card title="البنود التفصيلية">
+            <SimpleTable columns={lineCols} rows={lineRows} ariaLabel="البنود التفصيلية للطباعة" empty="لم تُضف بنود لهذا الطلب بعد" />
+          </Card>
+
+          <Card title="التمويلات المسجلة">
+            <SimpleTable columns={fundingCols} rows={fundingRows} ariaLabel="التمويلات المسجلة للطباعة" empty="لا توجد تمويلات مسجلة بعد" />
+          </Card>
+        </div>
+      </section>
 
       {tab === "overview" && (
         <div
@@ -396,12 +494,37 @@ export default async function PaymentRequestPage({
           id={tabPanelId("overview")}
           aria-labelledby={tabId("overview")}
           tabIndex={0}
-          className="flex flex-col gap-5"
+          className="flex flex-col gap-5 no-print"
         >
           <RequestLifecycle requestId={req.id} status={req.status} role={m.role} />
 
           <Card title="مسار الاعتماد">
             <ApprovalChain steps={approvalSteps} ariaLabel="مسار اعتماد طلب الصرف" />
+          </Card>
+
+          <Card title="حزمة الطباعة والتوقيع">
+            <div className="grid gap-3 md:grid-cols-5">
+              {proofSummary.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-md border p-3"
+                  style={{ borderColor: "var(--line)", background: "var(--surface)" }}
+                >
+                  <div className="text-xs" style={{ color: "var(--ink-muted)" }}>
+                    {item.label}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold">{item.value}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <SimpleTable
+                columns={proofCols}
+                rows={proofRows}
+                ariaLabel="حزمة الطباعة والتوقيع"
+                empty="لا توجد مراحل اعتماد"
+              />
+            </div>
           </Card>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -418,17 +541,11 @@ export default async function PaymentRequestPage({
           <Card title="الملخص حسب الفئة">
             <SimpleTable columns={catCols} rows={catRows} ariaLabel="الملخص حسب الفئة" empty="لا توجد بنود بعد" />
           </Card>
-
-          <div className="grid grid-cols-3 gap-6 pt-8 text-center text-sm">
-            <div>المحاسب<br /><br />التوقيع: ...........</div>
-            <div>مدير المزرعة<br /><br />التوقيع: ...........</div>
-            <div>المالك<br /><br />التوقيع: ...........</div>
-          </div>
         </div>
       )}
 
       {tab === "expenses" && (
-        <div role="tabpanel" id={tabPanelId("expenses")} aria-labelledby={tabId("expenses")} tabIndex={0}>
+        <div role="tabpanel" id={tabPanelId("expenses")} aria-labelledby={tabId("expenses")} tabIndex={0} className="no-print">
           <Card title="البنود التفصيلية">
             <SimpleTable columns={lineCols} rows={lineRows} ariaLabel="البنود التفصيلية" empty="لم تُضف بنود لهذا الطلب بعد" />
           </Card>
@@ -441,7 +558,7 @@ export default async function PaymentRequestPage({
           id={tabPanelId("settlement")}
           aria-labelledby={tabId("settlement")}
           tabIndex={0}
-          className="grid gap-5 lg:grid-cols-2"
+          className="grid gap-5 lg:grid-cols-2 no-print"
         >
           <Card title="تمويل المالك">
             {req.status === "approved_final" || (req.status === "paid" && remainingToFund > 0) ? (
@@ -485,7 +602,7 @@ export default async function PaymentRequestPage({
           id={tabPanelId("add")}
           aria-labelledby={tabId("add")}
           tabIndex={0}
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-4 no-print"
         >
           {req.status === "draft" && unclassifiedAvailableCount > 0 && (
             <Alert
