@@ -15,8 +15,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, EmptyState, KpiCard, Tag } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
+import { PrintButton } from "@/components/print-button";
 import { egp, num } from "@/lib/money";
 import {
   bestUnitBenchmark,
@@ -96,12 +98,17 @@ export default async function SectorScorecardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold">بطاقة أداء القطاعات</h1>
-        <p style={mutedStyle}>
-          ترتيب القطاعات حسب الربح لكل فدان، والفرصة الكامنة لو بلغ كل قطاع إنتاجية الأفضل — إيراد كل قطاع من
-          مبيعاته الموسمية ناقص مصروفاته الموزّعة.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-bold">بطاقة أداء القطاعات</h1>
+          <p style={mutedStyle}>
+            ترتيب القطاعات حسب الربح لكل فدان، والفرصة الكامنة لو بلغ كل قطاع إنتاجية الأفضل — إيراد كل قطاع من
+            مبيعاته الموسمية ناقص مصروفاته الموزّعة.
+          </p>
+        </div>
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة أداء القطاعات" />
+        </div>
       </header>
 
       {sectors.length < 2 || !benchmark ? (
@@ -131,7 +138,14 @@ export default async function SectorScorecardPage() {
           )}
 
           <Card title="ترتيب القطاعات">
-            <SimpleTable columns={cols} rows={tableRows} ariaLabel="ترتيب القطاعات حسب الربح لكل فدان" empty="—" />
+            <FilterableTable
+              columns={cols}
+              rows={tableRows}
+              ariaLabel="ترتيب القطاعات حسب الربح لكل فدان"
+              exportFilename="sector-scorecard"
+              minRowsForSearch={1}
+              empty="—"
+            />
             <div className="mt-3 flex flex-wrap gap-2">
               {(["crown", "strong", "recovering", "attention"] as SectorStatus[]).map((s) => (
                 <Tag key={s} tone={STATUS_TONE[s]}>{STATUS_AR[s]}</Tag>
@@ -141,8 +155,9 @@ export default async function SectorScorecardPage() {
 
           <p className="text-sm" style={mutedStyle}>
             «الفرصة» = فجوة الربح/فدان عن الأفضل × مساحة القطاع — ليست تنبؤًا بل ما كان القطاع سيضيفه عند بلوغ
-            إنتاجية الأفضل. الإيراد من المبيعات المُسعّرة؛ المسحوبات لا تُحتسب.{" "}
-            <Link href="/finance/insights" className="font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            إنتاجية الأفضل. الإيراد من المبيعات المُسعّرة؛ المسحوبات لا تُحتسب.
+            {" "}
+            <Link href="/finance/insights" className="no-print font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
               رؤى المالك ←
             </Link>
           </p>
