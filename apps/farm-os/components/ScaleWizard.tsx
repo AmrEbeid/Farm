@@ -90,8 +90,10 @@ export function ScaleWizard({
               <Button>📲 أرسل البون واتساب</Button>
             </a>
             <Button variant="ghost" onClick={() => window.location.reload()}>+ حمولة أخرى</Button>
-            <Link href="/finance/revenue-reports" className="inline-block">
-              <Button variant="ghost">الأسعار المعلّقة</Button>
+            {/* Chain delivery → price: send the operator to the pricing wizard (the canonical pending-price
+                route) to act, not the read-only revenue report. Same owner/accountant gate, so no bounce. */}
+            <Link href="/record/price" className="inline-block">
+              <Button variant="ghost">سعّر المعلّقة</Button>
             </Link>
           </div>
         </div>
