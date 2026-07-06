@@ -82,8 +82,17 @@ that pin the end state.
 ### 4. Process
 
 - **Pair each migration with a pgTAP test** under
-  `apps/farm-os/supabase/tests/` (the `NN_*_test.sql` suite — every migration in
-  the set has a corresponding oracle, e.g. `0021` ↔ `19`, `0023` ↔ `21`).
+  `apps/farm-os/supabase/tests/`. New files must use a globally unique prefix;
+  for new 2026+ migrations and review pins, prefer the migration timestamp or
+  the current UTC timestamp (`YYYYMMDDHHMMSS_slug_test.sql`) instead of reusing
+  the older small-number buckets. Existing duplicate small-number prefixes stay
+  as historical order; mass-renaming them can change the lexicographic suite
+  order. Every migration in the set has a corresponding oracle, e.g. `0021` ↔
+  `19`, `0023` ↔ `21`.
+- **Never edit a merged or applied migration file in place**, even for
+  comment-only cleanup. Correct behavior with a new timestamped follow-up
+  migration; correct stale explanations in docs, tests, ADRs, or review notes.
+  The migration files are an append-only ledger once they have shipped.
 - The remote records applied versions in
   `supabase_migrations.schema_migrations`; `supabase db push` is incremental and
   idempotent against that table.
