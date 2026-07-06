@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, FormRow, Input, Textarea, Alert } from "@/components/ui";
 import { executeOperation, type ExecuteInput } from "@/app/(app)/m/execute/[opId]/actions";
-import { parseExecuteInput, parseMaterialActuals } from "@/lib/execute-input";
+import { parseExecuteInput, parseMaterialActuals, parseLaborCount, FIELD_LABOR_INVALID } from "@/lib/execute-input";
 import { addToOutbox, removeFromOutbox } from "@/lib/exec-outbox";
 
 /** F1: honest offline banner — saved locally, NOT sent. Never claim the op was recorded. */
@@ -48,6 +48,7 @@ export function ExecuteForm({
 }) {
   const router = useRouter();
   const single = materials.length <= 1;
+  const hasMaterials = materials.length > 0;
   const soleUnit = materials[0]?.unit ?? "كجم";
 
   const [qty, setQty] = useState(materials[0]?.defaultQty != null ? String(materials[0].defaultQty) : "");
@@ -75,7 +76,9 @@ export function ExecuteForm({
       <div aria-live="assertive" aria-atomic="true">
         {error && <Alert tone="danger" title={error} />}
       </div>
-      {single ? (
+      {/* A 0-material op (e.g. a فحص inspection) has nothing to quantify — show no qty field at all rather than
+          a meaningless required "الكمية المستخدمة" (SPEC-0030 flow audit A2). map([]) renders nothing. */}
+      {single && hasMaterials ? (
         <FormRow id="qty" label={`الكمية المستخدمة (${soleUnit})`} required error={fieldErrors.qty}>
           <Input
             type="number"
@@ -113,7 +116,8 @@ export function ExecuteForm({
           </FormRow>
         ))
       )}
-      <FormRow id="labor" label="عدد العمال" required error={fieldErrors.labor}>
+      {/* Labor is optional (A2): a labor-less op leaves this blank (⇒ 0 crew), no fabricated number. */}
+      <FormRow id="labor" label="عدد العمال (اتركه فارغًا إن لم توجد عمالة)" error={fieldErrors.labor}>
         <Input
           type="number"
           inputMode="numeric"
@@ -141,7 +145,7 @@ export function ExecuteForm({
           // Build the exact ExecuteInput payload once, so the network-failure path can persist it to
           // the offline outbox verbatim (F1) — the resend replays this identical payload.
           let payload: ExecuteInput;
-          if (single) {
+          if (single && hasMaterials) {
             const parsed = parseExecuteInput(qty, labor);
             if (!parsed.ok) {
               setFieldErrors(parsed.fieldErrors);
@@ -149,6 +153,14 @@ export function ExecuteForm({
             }
             const { actualQty, laborCount } = parsed.value;
             payload = { actualQty, laborCount, note };
+          } else if (single) {
+            // 0-material op (e.g. inspection) — nothing to quantify; labor is optional (blank ⇒ 0 crew).
+            const laborCount = parseLaborCount(labor);
+            if (laborCount == null) {
+              setFieldErrors({ labor: FIELD_LABOR_INVALID });
+              return;
+            }
+            payload = { actualQty: 0, laborCount, note };
           } else {
             const parsed = parseMaterialActuals(
               materials.map((m, i) => ({
