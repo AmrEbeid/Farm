@@ -332,8 +332,9 @@ type StructFunctions = {
   //    assignees), migrations 0090 (schema) / 0093 (RPC). p_materials/p_labor are jsonb line arrays.
   //    p_harvest_stage (optional, default null) added by the operation-vocabulary re-emit
   //    (migration 20260701240000) for the harvest ripening stage (خلال/رطب/تمر). Further extended by
-  //    migration 20260701330000 with two trailing OPTIONAL params so an irrigation op can record
-  //    whether it was soil-test-driven (and the reading that justified it). Finally extended by
+  //    migration 20260701320000 with p_preferred_time_of_day, then by migration 20260701330000 with
+  //    two trailing OPTIONAL params so an irrigation op can record whether it was soil-test-driven
+  //    (and the reading that justified it). Finally extended by
   //    migration 20260701340000 with p_target_type/p_target_id/p_note (individual-palm treatments):
   //    when target_type/target_id are set (target_type='palm'), they override the plan-scope-derived
   //    target for this one operation; p_note is a free-text note persisted on plan_operations.note.
@@ -350,6 +351,7 @@ type StructFunctions = {
       p_assignee_ids: string[];
       p_lead_id: string | null;
       p_harvest_stage?: string | null;
+      p_preferred_time_of_day?: string | null;
       p_irrigation_basis?: string | null;
       p_soil_moisture_reading?: string | null;
       p_target_type?: string | null;
