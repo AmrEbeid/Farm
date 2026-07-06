@@ -53,6 +53,18 @@ export const APP_MODULES: AppModule[] = [
     pages: [{ id: "record", label: "سجّل عملية", icon: "➕", href: "/record" }],
   },
   {
+    // SPEC-0030 §4.1 — «راجع»: the third daily intent. One inbox for every decision awaiting the user
+    // (dose/spray sign-offs + purchase-request + payment-request approvals), so approvals aren't hunted
+    // across three modules. Visible to the roles that approve something; the page shows only their sections.
+    id: "approvals-module",
+    group: "tasks",
+    label: "راجع",
+    icon: "🖊",
+    dashboardHref: "/approvals",
+    roles: ["owner", "agri_engineer", "accountant"],
+    pages: [{ id: "approvals", label: "ما يحتاج قرارك", icon: "🖊", href: "/approvals", roles: ["owner", "agri_engineer", "accountant"] }],
+  },
+  {
     // SPEC-0025 U-3: the unified money ledger — every transaction in one place.
     id: "transactions-module",
     group: "tasks",
