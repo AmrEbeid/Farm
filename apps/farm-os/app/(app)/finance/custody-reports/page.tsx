@@ -119,6 +119,7 @@ export default async function FinanceCustodyReportsPage({
   const today = new Date();
   const defaultStart = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
   const defaultEnd = isoDate(today);
+  const generatedOn = isoDate(today);
   const start = parseDateParam(params.start, defaultStart);
   const end = parseDateParam(params.end, defaultEnd);
   const asOf = parseDateParam(params.asOf, end);
@@ -143,6 +144,12 @@ export default async function FinanceCustodyReportsPage({
   const closingTotal = ledger.holders.reduce((sum, row) => sum + Number(row.closing_balance ?? 0), 0);
   const periodIn = ledger.holders.reduce((sum, row) => sum + Number(row.amount_in ?? 0), 0);
   const periodOut = ledger.holders.reduce((sum, row) => sum + Number(row.amount_out ?? 0), 0);
+  const printSummary = [
+    { id: "period", label: "فترة التقرير", value: `${fmtDate(start)} → ${fmtDate(end)}` },
+    { id: "as-of", label: "تاريخ أعمار الالتزامات", value: fmtDate(asOf) },
+    { id: "generated", label: "تاريخ الإصدار", value: fmtDate(generatedOn) },
+    { id: "source", label: "المصدر", value: "العهدة، المصروفات، طلبات الصرف، وتمويل المالك" },
+  ];
 
   const holderRows: SimpleRow[] = ledger.holders.map((row) => ({
     id: row.custody_account_id,
@@ -224,7 +231,7 @@ export default async function FinanceCustodyReportsPage({
             كشف شهري عملي للعهدة، المصروفات النقدية، الالتزامات الآجلة، وتمويل المالك.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
           <PrintButton label="طباعة التقرير" />
           <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
           <HeaderLink href="/custody">العهدة وطلبات الصرف</HeaderLink>
@@ -232,7 +239,26 @@ export default async function FinanceCustodyReportsPage({
         </div>
       </header>
 
-      <Card title="الفترة">
+      <section className="print-only">
+        <Card title="هوية تقرير العهدة والصرف">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {printSummary.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-md border p-3"
+                style={{ borderColor: "var(--line)", background: "var(--surface)" }}
+              >
+                <div className="text-xs" style={{ color: "var(--ink-muted)" }}>
+                  {item.label}
+                </div>
+                <div className="mt-1 text-sm font-semibold">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      <Card title="الفترة" className="no-print">
         <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
           <label className="flex flex-col gap-1 text-sm font-semibold">
             من تاريخ
