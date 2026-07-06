@@ -3,10 +3,12 @@ import Link from "next/link";
 import { requireMembership } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { TrendLineChart } from "@/components/charts";
+import { PrintButton } from "@/components/print-button";
 import { getForecast } from "@/lib/weather-server";
 import { computeGates } from "@/lib/weather";
 import { getOrgWeatherThresholds } from "@/lib/weather-thresholds-server";
@@ -52,9 +54,9 @@ export default async function WeatherDashboardPage({
 
   const gateColumns: SimpleColumn[] = [
     { id: "day", header: "اليوم" },
-    { id: "temp", header: "الحرارة" },
-    { id: "wind", header: "الرياح" },
-    { id: "rain", header: "الأمطار" },
+    { id: "temp", header: "الحرارة (°م)", kind: "num", numeric: true },
+    { id: "wind", header: "الرياح (كم/س)", kind: "num", numeric: true },
+    { id: "rain", header: "الأمطار (مم)", kind: "num", numeric: true },
     { id: "spray", header: "الرش", kind: "status" },
     { id: "pollinate", header: "التلقيح", kind: "status" },
     { id: "harvest", header: "الحصاد", kind: "status" },
@@ -65,12 +67,12 @@ export default async function WeatherDashboardPage({
     if (filter === "frost") return gates.frost;
     return true;
   });
-  const gateRows = filteredRowsWithGates.slice(0, 7).map(({ forecast, gates }) => ({
+  const gateRows: SimpleRow[] = filteredRowsWithGates.slice(0, 7).map(({ forecast, gates }) => ({
     id: forecast.date,
     day: fmtDay(forecast.date),
-    temp: `${num(Math.round(forecast.tempC))}°م`,
-    wind: `${num(Math.round(forecast.windKph))} كم/س`,
-    rain: `${num(forecast.rainMm)} مم`,
+    temp: Math.round(forecast.tempC),
+    wind: Math.round(forecast.windKph),
+    rain: forecast.rainMm,
     spray: GATE_AR[gates.spray],
     pollinate: GATE_AR[gates.pollinate],
     harvest: GATE_AR[gates.harvest],
@@ -86,7 +88,7 @@ export default async function WeatherDashboardPage({
     { id: "day", header: "اليوم" },
     { id: "reason", header: "سبب التنبيه" },
   ];
-  const reasonRows = filteredRowsWithGates.flatMap(({ forecast, gates }) =>
+  const reasonRows: SimpleRow[] = filteredRowsWithGates.flatMap(({ forecast, gates }) =>
     Object.entries(gates.reasons).map(([key, reason]) => ({
       id: `${forecast.date}-${key}`,
       day: fmtDay(forecast.date),
@@ -103,7 +105,8 @@ export default async function WeatherDashboardPage({
             تلخيص تنبيهات الطقس الاسترشادية قبل التخطيط والتنفيذ الميداني.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة لوحة الطقس" />
           <HeaderLink href="/weather">التوقعات التفصيلية</HeaderLink>
           <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
           {(m.role === "owner" || m.role === "farm_manager") && (
@@ -153,7 +156,16 @@ export default async function WeatherDashboardPage({
         {gateRows.length === 0 ? (
           <EmptyState title={result.configured ? "لا توجد توقعات متاحة" : "خدمة الطقس غير مفعّلة"} />
         ) : (
-          <SimpleTable columns={gateColumns} rows={gateRows} ariaLabel="نافذة المخاطر حسب اليوم" empty="—" />
+          <FilterableTable
+            columns={gateColumns}
+            rows={gateRows}
+            ariaLabel="نافذة المخاطر حسب اليوم"
+            searchColumns={["day", "spray", "pollinate", "harvest"]}
+            placeholder="ابحث في نافذة المخاطر…"
+            exportFilename="weather-risk-window"
+            minRowsForSearch={2}
+            empty="—"
+          />
         )}
       </Card>
 
@@ -161,7 +173,16 @@ export default async function WeatherDashboardPage({
         {reasonRows.length === 0 ? (
           <EmptyState title="لا توجد تنبيهات طقس" />
         ) : (
-          <SimpleTable columns={reasonColumns} rows={reasonRows} ariaLabel="أسباب التنبيهات" empty="—" />
+          <FilterableTable
+            columns={reasonColumns}
+            rows={reasonRows}
+            ariaLabel="أسباب التنبيهات"
+            searchColumns={["day", "reason"]}
+            placeholder="ابحث في أسباب التنبيهات…"
+            exportFilename="weather-advisories"
+            minRowsForSearch={2}
+            empty="—"
+          />
         )}
       </Card>
     </div>
