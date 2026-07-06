@@ -1,6 +1,6 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-06 (budget-check output coverage live). Owner: Amr Ebeid.*
+*Updated: 2026-07-06 (plan-operation positive requirement backstop live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
@@ -12,7 +12,7 @@
 | 1 SaaS foundation (RLS/RBAC/audit) | ✅ Done | 58/58 tenant tables FORCE RLS; `authorize()` **19-perm** union pinned by tests/97 (added `site.write` 2026-07-03; S-10 reused existing `budget.write`). |
 | 2 Farm structure + registry | 88% code / **0% real data** | Real Nov-2025 registry (4,380/299/28) never imported (#239); prod palms are synthetic. Import path shipped (#561, SPEC-0020). Sector/hawsha/line/palm 360 pages now show linked plans/tasks with operation targets and assignees (#673). |
 | 3 Activity/event model | ✅ ~95% | Event spine + rollups + connected work graph (#582). |
-| 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673). |
+| 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673), and DB/RPC positive plan-requirement backstop live (#848 / prod `20260706180856`). |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
 | 6 Budget + approvals | 70% | PR workflow live; **budget gate is display-only** (#157) — approval never reads budget_lines. |
 | 7 Accounting | 96% | GL kernel + custody/payment requests live (#568/#468); custody transfer/reports, revenue/A-R backend/reports, COA, cost centers, owner insights, offshoot valuation, close/period lock, trusted balance sheet, trusted income statement, budget-vs-actual, report catalog, and print/CSV coverage are live through #846; finance dashboard separates accountant custody/payment-request due work (#673). Missing: voucher/proof polish, server PDF/signed statement package, Excel dual-run, and historical import/reconciliation after Stage-M. |
@@ -34,7 +34,7 @@
 5. **Build now:** finance proof/PDF polish and the remaining real-data runway. Close/period lock, trusted balance sheet, trusted P&L, budget-vs-actual, custody/revenue reports, and report output coverage are live; **after 2:** real palm-registry import via SPEC-0020 path → #157 real budget gate → historical import/reconciliation.
 6. **Money-integrity PRs** (from review): custody↔GL movement-type vocabulary + journal completeness; general custody cash-out balance floor beyond transfers; `fn_reverse_journal_entry`; `audit_read` completeness pin (tests/97-style).
 7. **Page-speed follow-up if still slow:** consolidate owner/dashboard multi-query loaders into read RPCs, keep heavy search/help/chart tools async, and add route-specific skeletons for the slowest finance/farm pages after live timing feedback.
-8. **Field-readiness follow-ups**: field/DevTools smoke-test the shipped ExecuteForm offline outbox (#625), add PWA brand icons when the real logo asset exists, choose the signed-URL-safe image path for MediaGallery, and batch the deferred DS rebuild. Already shipped: OperationBuilder fabricated-zero fix (#607), DB/RPC positive plan-requirement backstop (`20260706175357`), shared retry/finally submit handling across the 8 forms (#608), bounded `/m` feed (#610), storekeeper `/m/receive` (#614), field-level errors (#613/#627), and decimal mobile keyboards (#611). Full list: `REVIEW-360-2026-07-01.md` §Frontend.
+8. **Field-readiness follow-ups**: field/DevTools smoke-test the shipped ExecuteForm offline outbox (#625), add PWA brand icons when the real logo asset exists, choose the signed-URL-safe image path for MediaGallery, and batch the deferred DS rebuild. Already shipped: OperationBuilder fabricated-zero fix (#607), DB/RPC positive plan-requirement backstop (repo `20260706175357`, prod `20260706180856`), shared retry/finally submit handling across the 8 forms (#608), bounded `/m` feed (#610), storekeeper `/m/receive` (#614), field-level errors (#613/#627), and decimal mobile keyboards (#611). Full list: `REVIEW-360-2026-07-01.md` §Frontend.
 
 ## Feature freeze
 
