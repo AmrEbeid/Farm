@@ -264,7 +264,7 @@ export default async function OwnerDashboard() {
       {/* First-run guidance: only for a genuinely empty org (zero palms, zero
           plans) — gated on data already fetched above, so it disappears on its
           own once the org has real data (no separate dismiss state to persist). */}
-      {isNewOrg && <OnboardingChecklist />}
+      {isNewOrg && <OnboardingChecklist role={m.role} />}
 
       {/* Cross-module KPI hero — 6 query-derived metrics (responsive 2 → 3 → 6), each a deep link to its module */}
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">

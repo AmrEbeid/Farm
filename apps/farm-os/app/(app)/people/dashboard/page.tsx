@@ -33,6 +33,7 @@ export default async function PeopleDashboardPage({
   const { filter = "all" } = await searchParams;
   const m = await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const sb = await createClient();
+  const canOpenFieldDashboard = m.role === "owner" || m.role === "farm_manager" || m.role === "agri_engineer";
 
   // Current calendar month, for the payroll ESTIMATE below (a rolling window, not a closed/idempotent
   // payroll run — see the PR description for that scope decision).
@@ -228,7 +229,7 @@ export default async function PeopleDashboardPage({
         <div className="flex flex-wrap gap-2">
           <HeaderLink href="/people">دليل الفريق</HeaderLink>
           <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
-          <HeaderLink href="/m">الميدان</HeaderLink>
+          {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
         </div>
       </header>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
+import type { Role } from "@/lib/auth";
 
 interface ChecklistStep {
   icon: string;
@@ -45,13 +46,17 @@ const STEPS: ChecklistStep[] = [
   },
 ];
 
+const PEOPLE_DIRECTORY_ROLES: Role[] = ["owner", "farm_manager", "agri_engineer", "accountant"];
+
 /**
  * First-run guidance for a genuinely empty org. Gated by the caller on real,
  * already-fetched data (e.g. zero palms AND zero plans) — no persisted "dismissed"
  * flag: once the org has real data the emptiness check fails and this stops
  * rendering on its own, so there's nothing to remember or clean up.
  */
-export function OnboardingChecklist() {
+export function OnboardingChecklist({ role }: { role: Role }) {
+  const steps = STEPS.filter((step) => step.href !== "/people" || PEOPLE_DIRECTORY_ROLES.includes(role));
+
   return (
     <Card>
       <div className="mb-4">
@@ -61,7 +66,7 @@ export function OnboardingChecklist() {
         </p>
       </div>
       <ol className="grid gap-3 sm:grid-cols-2">
-        {STEPS.map((step, i) => (
+        {steps.map((step, i) => (
           <li key={step.href}>
             <Link href={step.href} className="block h-full transition-opacity hover:opacity-90">
               <div

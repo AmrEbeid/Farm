@@ -26,7 +26,7 @@ export default async function InventoryDashboardPage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  await requireMembership();
+  const m = await requireMembership();
   const { filter = "all" } = await searchParams;
   const sb = await createClient();
 
@@ -178,7 +178,7 @@ export default async function InventoryDashboardPage({
 
       {/* First-run guidance: no inventory items registered yet (already-fetched
           `items`, no new query) — disappears once the org has real stock. */}
-      {(items ?? []).length === 0 && <OnboardingChecklist />}
+      {(items ?? []).length === 0 && <OnboardingChecklist role={m.role} />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={filter === "reorder"}>
