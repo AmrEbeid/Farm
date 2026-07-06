@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #835. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #837. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -50,6 +50,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-38** | `/farm/dashboard` | Farm structure and field-health overview | sectors, hawshat, Barhi/male palms, attention palms, offshoot availability, palm-count reconciliation | `CategoryBarChart`, `CategoryDoughnut` | Attention, operation, sector, hawsha, and palm-count reconciliation CSV; print-ready | `sectors`, `hawshat`, `assets`, `farm_event`, `offshoot_movements`, `lib/palm-count-reconciliation.ts` | any member; offshoot KPI owner/accountant/farm_manager |
 | **RPT-39** | `/inventory/dashboard` | Inventory and purchasing work dashboard | reorder items, submitted PRs, partial receipts, active PRs, supplier count | `CategoryDoughnut` | Work-table CSV; print-ready | `inventory_items`, `inventory_bin`, `purchase_requests`, `suppliers` | any member |
 | **RPT-40** | `/people/dashboard` | Team workload and labor dashboard | active people, employment mix, assigned operations, unassigned operations, payroll estimate when permitted | `CategoryBarChart`, `CategoryDoughnut` | Workload, unassigned-operation, and directory CSV; print-ready; payroll estimate no CSV | `people`, `plan_operations`, `plan_operation_assignees`, gated `labor_logs`/`people_compensation` | owner, farm_manager, agri_engineer, accountant; payroll estimate owner/accountant |
+| **RPT-41** | `/finance/dashboard` | Finance operating dashboard | approved budget, committed + actual, available budget, operating expenses, open PRs, custody/payment/unpaid/journal queues when permitted | `BudgetDoughnut`, `VarianceChart` | Budget-pressure, expense, purchase-request CSV; accounting-only custody/payment/unpaid/journal CSV; print-ready | `budgets`, `expenses`, `purchase_requests`, `custody_accounts`, RPC-045 `fn_custody_ledger_report`, `payment_requests`, `journal_entries` | owner, accountant, farm_manager; drawings/accounting sections owner/accountant only |
 
 ## Chart Catalog
 
@@ -71,7 +72,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 - The deployed print-ready surfaces are:
   `/dashboard/owner`, `/dashboard/manager`,
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
-  `/finance/close`, `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/finance/periods`,
+  `/finance/close`, `/finance/dashboard`, `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/finance/periods`,
   `/finance/insights`, `/finance/pnl-trend`, `/finance/enterprise-scorecard`, `/finance/sector-scorecard`,
   `/weather/dashboard`,
   `/budgets`, `/finance/season`, `/finance/cost-centers/[id]`, `/budgets/[budgetId]`,

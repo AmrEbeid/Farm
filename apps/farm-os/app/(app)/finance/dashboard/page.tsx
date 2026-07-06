@@ -3,9 +3,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { PrintButton } from "@/components/print-button";
 import { BudgetDoughnut, VarianceChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
@@ -184,10 +186,10 @@ export default async function FinanceDashboardPage({
   const budgetColumns: SimpleColumn[] = [
     { id: "name", header: "الموازنة" },
     { id: "category", header: "الفئة" },
-    { id: "approved", header: "المعتمد", numeric: true },
-    { id: "committed", header: "الملتزم", numeric: true },
-    { id: "actual", header: "الفعلي", numeric: true },
-    { id: "available", header: "المتاح", numeric: true },
+    { id: "approved", header: "المعتمد", kind: "money", numeric: true },
+    { id: "committed", header: "الملتزم", kind: "money", numeric: true },
+    { id: "actual", header: "الفعلي", kind: "money", numeric: true },
+    { id: "available", header: "المتاح", kind: "money", numeric: true },
     { id: "signal", header: "الإشارة", kind: "status" },
   ];
   const budgetRows = [...(budgets ?? [])]
@@ -203,10 +205,10 @@ export default async function FinanceDashboardPage({
         sortAvailable: remaining,
         name: b.name ?? "—",
         category: b.category ?? "—",
-        approved: egp(approved),
-        committed: egp(committed),
-        actual: egp(actual),
-        available: egp(remaining),
+        approved,
+        committed,
+        actual,
+        available: remaining,
         signal,
       };
     })
@@ -230,7 +232,7 @@ export default async function FinanceDashboardPage({
     { id: "category", header: "الفئة" },
     { id: "description", header: "البيان" },
     { id: "supplier", header: "المورّد" },
-    { id: "total", header: "المبلغ", numeric: true },
+    { id: "total", header: "المبلغ", kind: "money", numeric: true },
   ];
   const expenseRows = expenseKindRows
     .filter((row) =>
@@ -252,7 +254,7 @@ export default async function FinanceDashboardPage({
       category: expense.category ?? "—",
       description: expense.description ?? "—",
       supplier: supplier?.name ?? "—",
-      total: expense.total != null ? egp(Number(expense.total)) : "—",
+      total: expense.total != null ? Number(expense.total) : undefined,
     };
   });
 
@@ -282,26 +284,26 @@ export default async function FinanceDashboardPage({
 
   const custodyColumns: SimpleColumn[] = [
     { id: "holder", header: "العهدة لدى" },
-    { id: "balance", header: "الرصيد", numeric: true },
-    { id: "target", header: "المستهدف", numeric: true },
-    { id: "topup", header: "التغذية المطلوبة", numeric: true },
+    { id: "balance", header: "الرصيد", kind: "money", numeric: true },
+    { id: "target", header: "المستهدف", kind: "money", numeric: true },
+    { id: "topup", header: "التغذية المطلوبة", kind: "money", numeric: true },
   ];
   const custodyRows = custodyWithBalance.map((account) => {
     const target = Number(account.target_float ?? 0);
     return {
       id: account.id,
       holder: account.holder_label,
-      balance: egp(account.balance),
-      target: egp(target),
-      topup: egp(Math.max(0, target - account.balance)),
+      balance: account.balance,
+      target,
+      topup: Math.max(0, target - account.balance),
     };
   });
 
   const paymentColumns: SimpleColumn[] = [
-    { id: "no", header: "طلب الصرف", numeric: true },
+    { id: "no", header: "طلب الصرف", kind: "num", numeric: true },
     { id: "period", header: "الفترة" },
     { id: "status", header: "الحالة", kind: "status" },
-    { id: "amount", header: "المعتمد", numeric: true },
+    { id: "amount", header: "المعتمد", kind: "money", numeric: true },
   ];
   const openPaymentRequests = (paymentRequestsRes.data ?? []).filter((request) =>
     ["submitted", "approved_operational", "approved_final"].includes(request.status),
@@ -310,10 +312,10 @@ export default async function FinanceDashboardPage({
   const paymentRows = openPaymentRequests.map((request) => ({
     id: request.id,
     href: `/custody/request/${request.id}`,
-    no: num(request.request_no),
+    no: request.request_no,
     period: `${fmtDate(request.period_start)} → ${fmtDate(request.period_end)}`,
     status: REQUEST_STATUS_AR[request.status] ?? request.status,
-    amount: request.approved_net_request != null ? egp(Number(request.approved_net_request)) : "—",
+    amount: request.approved_net_request != null ? Number(request.approved_net_request) : undefined,
   }));
 
   const unpaidColumns: SimpleColumn[] = [
@@ -321,7 +323,7 @@ export default async function FinanceDashboardPage({
     { id: "kind", header: "النوع", kind: "status" },
     { id: "category", header: "الفئة" },
     { id: "description", header: "البيان" },
-    { id: "total", header: "المبلغ", numeric: true },
+    { id: "total", header: "المبلغ", kind: "money", numeric: true },
   ];
   const unpaidRows = (unpaidExpensesRes.data ?? []).map((expense) => ({
     id: expense.id,
@@ -330,7 +332,7 @@ export default async function FinanceDashboardPage({
     kind: EXPENSE_KIND_AR[(expense.kind ?? "operating") as ExpenseKind],
     category: expense.category ?? "—",
     description: expense.description ?? "—",
-    total: expense.total != null ? egp(Number(expense.total)) : "—",
+    total: expense.total != null ? Number(expense.total) : undefined,
   }));
   const unpaidTotal = (unpaidExpensesRes.data ?? []).reduce((sum, expense) => sum + Number(expense.total ?? 0), 0);
   const accountantCustodyRows = accountantCustody.map((account) => {
@@ -338,9 +340,9 @@ export default async function FinanceDashboardPage({
     return {
       id: account.id,
       holder: account.holder_label,
-      balance: egp(account.balance),
-      target: egp(target),
-      topup: egp(Math.max(0, target - account.balance)),
+      balance: account.balance,
+      target,
+      topup: Math.max(0, target - account.balance),
     };
   });
 
@@ -367,7 +369,8 @@ export default async function FinanceDashboardPage({
             متابعة الموازنة والمصروفات وطلبات الشراء من السجلات الفعلية.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة لوحة المالية" />
           <HeaderLink href="/budgets">الموازنات</HeaderLink>
           <HeaderLink href="/expenses">المصروفات</HeaderLink>
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
@@ -467,18 +470,26 @@ export default async function FinanceDashboardPage({
         </section>
       )}
 
-      <CurrentFilterCard
-        label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
-        clearHref="/finance/dashboard"
-        showClear={filter !== "all"}
-      />
+      <div className="no-print">
+        <CurrentFilterCard
+          label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
+          clearHref="/finance/dashboard"
+          showClear={filter !== "all"}
+        />
+      </div>
 
       {(filter === "all" || filter === "budgets") && (
         <Card title="ضغط الموازنة">
           {budgetRows.length === 0 ? (
             <EmptyState title="لا توجد موازنات" />
           ) : (
-            <SimpleTable columns={budgetColumns} rows={budgetRows} ariaLabel="ضغط الموازنة" empty="—" />
+            <FilterableTable
+              columns={budgetColumns}
+              rows={budgetRows}
+              ariaLabel="ضغط الموازنة"
+              exportFilename="finance-dashboard-budget-pressure"
+              empty="—"
+            />
           )}
         </Card>
       )}
@@ -495,22 +506,34 @@ export default async function FinanceDashboardPage({
             filter === "operating" ||
             filter === "drawings" ||
             filter === "unclassified") && (
-        <Card title={expenseCardTitle}>
-          {expenseRows.length === 0 ? (
-            <EmptyState title="لا توجد مصروفات مسجّلة" />
-          ) : (
-            <SimpleTable columns={expenseColumns} rows={expenseRows} ariaLabel={expenseCardTitle} empty="—" />
-          )}
-        </Card>
+            <Card title={expenseCardTitle}>
+              {expenseRows.length === 0 ? (
+                <EmptyState title="لا توجد مصروفات مسجّلة" />
+              ) : (
+                <FilterableTable
+                  columns={expenseColumns}
+                  rows={expenseRows}
+                  ariaLabel={expenseCardTitle}
+                  exportFilename="finance-dashboard-expenses"
+                  empty="—"
+                />
+              )}
+            </Card>
           )}
           {(filter === "all" || filter === "prs") && (
-        <Card title="طلبات شراء للمتابعة">
-          {prRows.length === 0 ? (
-            <EmptyState title="لا توجد طلبات شراء للمتابعة" />
-          ) : (
-            <SimpleTable columns={prColumns} rows={prRows} ariaLabel="طلبات شراء للمتابعة" empty="—" />
-          )}
-        </Card>
+            <Card title="طلبات شراء للمتابعة">
+              {prRows.length === 0 ? (
+                <EmptyState title="لا توجد طلبات شراء للمتابعة" />
+              ) : (
+                <FilterableTable
+                  columns={prColumns}
+                  rows={prRows}
+                  ariaLabel="طلبات شراء للمتابعة"
+                  exportFilename="finance-dashboard-purchase-requests"
+                  empty="—"
+                />
+              )}
+            </Card>
           )}
         </section>
       )}
@@ -526,7 +549,13 @@ export default async function FinanceDashboardPage({
                     {accountantCustodyRows.length === 0 ? (
                       <EmptyState title="لا توجد عهدة مربوطة بهذا الحساب" />
                     ) : (
-                      <SimpleTable columns={custodyColumns} rows={accountantCustodyRows} ariaLabel="عهدتي" empty="—" />
+                      <FilterableTable
+                        columns={custodyColumns}
+                        rows={accountantCustodyRows}
+                        ariaLabel="عهدتي"
+                        exportFilename="finance-dashboard-accountant-custody"
+                        empty="—"
+                      />
                     )}
                   </div>
                 )}
@@ -535,7 +564,13 @@ export default async function FinanceDashboardPage({
                   {custodyRows.length === 0 ? (
                     <EmptyState title="لا توجد عهد مسجلة" />
                   ) : (
-                    <SimpleTable columns={custodyColumns} rows={custodyRows} ariaLabel="العهدة حسب الشخص" empty="—" />
+                    <FilterableTable
+                      columns={custodyColumns}
+                      rows={custodyRows}
+                      ariaLabel="العهدة حسب الشخص"
+                      exportFilename="finance-dashboard-custody"
+                      empty="—"
+                    />
                   )}
                 </div>
               </div>
@@ -546,7 +581,13 @@ export default async function FinanceDashboardPage({
               {paymentRows.length === 0 ? (
                 <EmptyState title="لا توجد طلبات صرف مفتوحة" />
               ) : (
-                <SimpleTable columns={paymentColumns} rows={paymentRows} ariaLabel="طلبات صرف تحتاج متابعة" empty="—" />
+                <FilterableTable
+                  columns={paymentColumns}
+                  rows={paymentRows}
+                  ariaLabel="طلبات صرف تحتاج متابعة"
+                  exportFilename="finance-dashboard-payment-requests"
+                  empty="—"
+                />
               )}
             </Card>
           )}
@@ -555,7 +596,13 @@ export default async function FinanceDashboardPage({
               {unpaidRows.length === 0 ? (
                 <EmptyState title="لا توجد مصروفات آجلة غير مدفوعة" />
               ) : (
-                <SimpleTable columns={unpaidColumns} rows={unpaidRows} ariaLabel="مصروفات آجلة غير مدفوعة" empty="—" />
+                <FilterableTable
+                  columns={unpaidColumns}
+                  rows={unpaidRows}
+                  ariaLabel="مصروفات آجلة غير مدفوعة"
+                  exportFilename="finance-dashboard-unpaid-obligations"
+                  empty="—"
+                />
               )}
             </Card>
           )}
@@ -564,7 +611,13 @@ export default async function FinanceDashboardPage({
               {journalRows.length === 0 ? (
                 <EmptyState title="لا توجد قيود محاسبية بعد" />
               ) : (
-                <SimpleTable columns={journalColumns} rows={journalRows} ariaLabel="آخر القيود المحاسبية" empty="—" />
+                <FilterableTable
+                  columns={journalColumns}
+                  rows={journalRows}
+                  ariaLabel="آخر القيود المحاسبية"
+                  exportFilename="finance-dashboard-journal-entries"
+                  empty="—"
+                />
               )}
             </Card>
           )}
