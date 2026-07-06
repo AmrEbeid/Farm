@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { StoryLine } from "@/components/StoryLine";
 import { egp, num } from "@/lib/money";
+import { closePeriod } from "../periods/actions";
 
 // R-7 — «إقفال الشهر»: the accountant's generated to-do. The month is "closed" when this page says
 // so — no memorized checklist. Every item is a LIVE count with one tap to its fixing surface, scoped
@@ -13,6 +14,7 @@ import { egp, num } from "@/lib/money";
 export const dynamic = "force-dynamic";
 
 const CUTOVER = "2026-07-01"; // live-entry era start (Stage-M archive before this is closed history)
+const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
 
 interface CloseItem {
   label: string;
@@ -23,11 +25,18 @@ interface CloseItem {
   tone: "act" | "watch";
 }
 
-export default async function MonthClosePage() {
+export default async function MonthClosePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
   await requireRole(["owner", "accountant"]);
   const sb = await createClient();
+  const params = await searchParams;
   const today = new Date();
+  const todayIso = today.toISOString().slice(0, 10);
   const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+  const monthLabel = monthStart.slice(0, 7);
   const thirtyAgo = new Date(today.getTime() - 30 * 86400000).toISOString().slice(0, 10);
 
   const [pendingSalesRes, unroutedRes, unclassifiedRes, unallocatedRes, agingRes, collectionsRes] =
@@ -125,6 +134,17 @@ export default async function MonthClosePage() {
 
       <StoryLine lead={lead} />
 
+      {params.ok ? (
+        <Card title="تم">
+          <p className="font-semibold">{params.ok}</p>
+        </Card>
+      ) : null}
+      {params.error ? (
+        <Card title="تعذّر التنفيذ">
+          <p className="font-semibold">{params.error}</p>
+        </Card>
+      ) : null}
+
       {open.length > 0 && (
         <div className="flex flex-col gap-2">
           {open.map((i) => (
@@ -149,21 +169,66 @@ export default async function MonthClosePage() {
       )}
 
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-2 p-1">
+        <div className="flex flex-col gap-4 p-1">
           <div>
             <span className="font-bold" style={{ color: "var(--ink)" }}>قفل الفترة المحاسبية</span>
             <span className="text-sm" style={{ color: "var(--ink-muted)" }}>
               {" "}— {open.length === 0
-                ? "القائمة فارغة — أقفل الفترة لمنع ترحيل أي قيد جديد بتاريخها."
-                : "بعد إفراغ القائمة أعلاه، أقفل الفترة من صفحة الفترات المحاسبية."}
+                ? "القائمة فارغة — أقفل الفترة هنا لمنع ترحيل أي قيد جديد بتاريخها."
+                : "أفرغ البنود أعلاه أولًا؛ بعدها يصبح زر الإقفال جاهزًا هنا."}
             </span>
           </div>
+          <form action={closePeriod} className="grid gap-3 md:grid-cols-[1fr_1fr_1.4fr_auto]">
+            <input type="hidden" name="return_to" value="close" />
+            <label className="flex flex-col gap-1 text-sm font-semibold">
+              من تاريخ
+              <input
+                name="period_start"
+                type="date"
+                defaultValue={monthStart}
+                required
+                className="rounded-md px-3 py-2"
+                style={inputStyle}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-semibold">
+              إلى تاريخ
+              <input
+                name="period_end"
+                type="date"
+                defaultValue={todayIso}
+                required
+                className="rounded-md px-3 py-2"
+                style={inputStyle}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-semibold">
+              ملاحظة
+              <input
+                name="note"
+                type="text"
+                defaultValue={`إقفال شهر ${monthLabel}`}
+                className="rounded-md px-3 py-2"
+                style={inputStyle}
+              />
+            </label>
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={open.length > 0}
+                className="rounded-md px-4 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ color: "white", background: open.length === 0 ? "var(--brand)" : "var(--ink-muted)" }}
+              >
+                {open.length === 0 ? "إقفال الشهر الآن" : "أفرغ البنود أولًا"}
+              </button>
+            </div>
+          </form>
           <Link
             href="/finance/periods"
             className="text-sm font-bold underline underline-offset-4"
-            style={{ color: open.length === 0 ? "var(--brand)" : "var(--ink-muted)" }}
+            style={{ color: "var(--brand)" }}
           >
-            الفترات المحاسبية (الإقفال) ←
+            عرض سجل الفترات المحاسبية ←
           </Link>
         </div>
       </Card>
