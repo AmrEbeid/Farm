@@ -39,6 +39,7 @@ export default async function FinanceBudgetVsActualPage({
   if (res.error) throw res.error;
   const bva = parseBudgetVsActual(res.data);
 
+  const hasComparisonRows = bva.lines.length > 0;
   const rows: SimpleRow[] = bva.lines.map((l, i) => ({
     id: `${l.category}-${i}`,
     category: l.category,
@@ -85,15 +86,20 @@ export default async function FinanceBudgetVsActualPage({
       </Card>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="إجمالي المخطط" value={egp(bva.plannedTotal)} icon="🎯" />
-        <KpiCard label="إجمالي الفعلي" value={egp(bva.actualTotal)} icon="💸" />
+        <KpiCard label="إجمالي المخطط" value={egp(hasComparisonRows ? bva.plannedTotal : null)} icon="🎯" />
+        <KpiCard label="إجمالي الفعلي" value={egp(hasComparisonRows ? bva.actualTotal : null)} icon="💸" />
         <KpiCard
           label="إجمالي الفرق"
-          value={egp(bva.varianceTotal)}
+          value={egp(hasComparisonRows ? bva.varianceTotal : null)}
           icon="⚖️"
-          deltaDirection={bva.varianceTotal >= 0 ? "up" : "down"}
+          deltaDirection={hasComparisonRows ? (bva.varianceTotal >= 0 ? "up" : "down") : "none"}
         />
-        <KpiCard label="فئات متجاوزة الموازنة" value={String(overCount)} icon="🚩" deltaDirection={overCount > 0 ? "down" : "none"} />
+        <KpiCard
+          label="فئات متجاوزة الموازنة"
+          value={hasComparisonRows ? String(overCount) : "—"}
+          icon="🚩"
+          deltaDirection={hasComparisonRows && overCount > 0 ? "down" : "none"}
+        />
       </section>
 
       <Card title="الموازنة مقابل الفعلي حسب الفئة">

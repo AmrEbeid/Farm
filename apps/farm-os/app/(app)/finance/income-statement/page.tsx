@@ -45,6 +45,7 @@ export default async function FinanceIncomeStatementPage({
   const res = await sb.rpc("fn_accounting_income_statement", { p_org: m.orgId, p_from: start, p_to: end });
   if (res.error) throw res.error;
   const is = parseIncomeStatement(res.data);
+  const hasActivity = is.revenue.length > 0 || is.expenses.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,18 +83,18 @@ export default async function FinanceIncomeStatementPage({
       </Card>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="إجمالي الإيرادات" value={egp(is.revenueTotal)} icon="🧾" />
-        <KpiCard label="إجمالي المصروفات" value={egp(is.expensesTotal)} icon="📉" />
-        <KpiCard label="منها مصروفات تشغيلية" value={egp(is.operatingExpenses)} icon="🛠️" />
+        <KpiCard label="إجمالي الإيرادات" value={egp(hasActivity ? is.revenueTotal : null)} icon="🧾" />
+        <KpiCard label="إجمالي المصروفات" value={egp(hasActivity ? is.expensesTotal : null)} icon="📉" />
+        <KpiCard label="منها مصروفات تشغيلية" value={egp(hasActivity ? is.operatingExpenses : null)} icon="🛠️" />
         <KpiCard
           label="صافي الربح / الخسارة"
-          value={egp(is.netIncome)}
+          value={egp(hasActivity ? is.netIncome : null)}
           icon="📈"
-          deltaDirection={is.netIncome >= 0 ? "up" : "down"}
+          deltaDirection={hasActivity ? (is.netIncome >= 0 ? "up" : "down") : "none"}
         />
       </section>
 
-      <Card title={`الإيرادات — ${egp(is.revenueTotal)}`}>
+      <Card title={`الإيرادات — ${egp(hasActivity ? is.revenueTotal : null)}`}>
         {is.revenue.length ? (
           <FilterableTable columns={lineColumns} rows={toRows(is.revenue)} ariaLabel="الإيرادات" exportFilename="income-statement-revenue" />
         ) : (
@@ -101,7 +102,7 @@ export default async function FinanceIncomeStatementPage({
         )}
       </Card>
 
-      <Card title={`المصروفات — ${egp(is.expensesTotal)}`}>
+      <Card title={`المصروفات — ${egp(hasActivity ? is.expensesTotal : null)}`}>
         {is.expenses.length ? (
           <FilterableTable columns={lineColumns} rows={toRows(is.expenses)} ariaLabel="المصروفات" exportFilename="income-statement-expenses" />
         ) : (
@@ -110,10 +111,14 @@ export default async function FinanceIncomeStatementPage({
       </Card>
 
       <Card title="النتيجة">
-        <p style={mutedStyle}>
-          الإيرادات {egp(is.revenueTotal)} − المصروفات {egp(is.expensesTotal)} = صافي {is.netIncome >= 0 ? "ربح" : "خسارة"}{" "}
-          {egp(is.netIncome)}. يطابق صافي الربح في قائمة المركز المالي لنفس التاريخ.
-        </p>
+        {hasActivity ? (
+          <p style={mutedStyle}>
+            الإيرادات {egp(is.revenueTotal)} − المصروفات {egp(is.expensesTotal)} = صافي {is.netIncome >= 0 ? "ربح" : "خسارة"}{" "}
+            {egp(is.netIncome)}. يطابق صافي الربح في قائمة المركز المالي لنفس التاريخ.
+          </p>
+        ) : (
+          <p style={mutedStyle}>لا توجد قيود مُرحّلة في هذه الفترة — لا يوجد صافي ربح أو خسارة لعرضه بعد.</p>
+        )}
       </Card>
 
       <FinanceStatementsNav current="income-statement" />
