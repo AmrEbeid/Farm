@@ -251,7 +251,9 @@ export default async function OwnerDashboard() {
           <Link href="/budgets"><Button variant="ghost" size="sm">الموازنات</Button></Link>
           <Link href="/finance/insights"><Button variant="ghost" size="sm">رؤى المالك</Button></Link>
           <Link href="/farm/offshoots"><Button variant="ghost" size="sm">بنك الفسائل</Button></Link>
-          <Link href="/finance/pnl"><Button variant="ghost" size="sm">قائمة الدخل</Button></Link>
+          <Link href="/finance/income-statement"><Button variant="ghost" size="sm">قائمة الدخل</Button></Link>
+          <Link href="/finance/balance-sheet"><Button variant="ghost" size="sm">المركز المالي</Button></Link>
+          <Link href="/finance/periods"><Button variant="ghost" size="sm">إقفال الفترات</Button></Link>
           <Link href="/purchase-requests"><Button variant="primary" size="sm">طلبات الشراء</Button></Link>
         </div>
       </header>
@@ -325,9 +327,13 @@ export default async function OwnerDashboard() {
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">رؤى مالية</h2>
-          <Link href="/finance/insights"><Button variant="ghost" size="sm">فتح الرؤى</Button></Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/finance/income-statement"><Button variant="ghost" size="sm">قائمة الدخل</Button></Link>
+            <Link href="/finance/balance-sheet"><Button variant="ghost" size="sm">المركز المالي</Button></Link>
+            <Link href="/finance/insights"><Button variant="ghost" size="sm">فتح الرؤى</Button></Link>
+          </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
           <DashboardKpiLink href="/finance/reports?focus=posted" active={false}>
