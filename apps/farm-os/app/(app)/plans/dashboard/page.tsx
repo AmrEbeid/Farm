@@ -3,14 +3,15 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryDoughnut, CategoryBarChart } from "@/components/charts";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
-import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
+import { egp, egpSummary, moneyNumber, num, sumMoney } from "@/lib/money";
 import { OP_STATUS_AR, PLAN_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
 
 const SCOPE_AR: Record<string, string> = {
@@ -226,8 +227,8 @@ export default async function PlanningDashboardPage({
     { id: "period", header: "الفترة" },
     { id: "scope", header: "النطاق" },
     { id: "status", header: "الحالة", kind: "status" },
-    { id: "openOps", header: "عمليات مفتوحة", numeric: true },
-    { id: "blockedChecks", header: "فحوص محظورة", numeric: true },
+    { id: "openOps", header: "عمليات مفتوحة", kind: "num", numeric: true },
+    { id: "blockedChecks", header: "فحوص محظورة", kind: "num", numeric: true },
   ];
   const planAttentionRows = activePlans
     .filter((p) => (openOpsByPlan.get(p.id) ?? 0) > 0 || (blockedByPlan.get(p.id) ?? 0) > 0)
@@ -238,8 +239,8 @@ export default async function PlanningDashboardPage({
       period: formatPeriod(p.period_start, p.period_end),
       scope: SCOPE_AR[p.scope_type ?? ""] ?? "غير معروف",
       status: PLAN_STATUS_AR[p.status ?? ""] ?? "غير معروف",
-      openOps: num(openOpsByPlan.get(p.id) ?? 0),
-      blockedChecks: num(blockedByPlan.get(p.id) ?? 0),
+      openOps: openOpsByPlan.get(p.id) ?? 0,
+      blockedChecks: blockedByPlan.get(p.id) ?? 0,
     }));
 
   const operationColumns: SimpleColumn[] = [
@@ -247,9 +248,11 @@ export default async function PlanningDashboardPage({
     { id: "plan", header: "الخطة" },
     { id: "planned_at", header: "التاريخ" },
     { id: "status", header: "الحالة", kind: "status" },
-    { id: "cost", header: "التكلفة", numeric: true },
+    { id: "cost", header: "التكلفة", kind: "money", numeric: true },
   ];
   const opsForTable = filter === "due" ? dueOps : executableOps;
+  const operationExportFilename =
+    filter === "due" ? "plans-dashboard-due-operations" : "plans-dashboard-upcoming-operations";
   const operationRows = opsForTable.slice(0, 12).map((op) => {
     const embedded = normalizePlan(op.plans);
     const plan = embedded?.id ? embedded : planRowsById.get(op.plan_id);
@@ -260,7 +263,7 @@ export default async function PlanningDashboardPage({
       plan: planLabel(plan),
       planned_at: op.planned_at ? fmtDate(op.planned_at) : "—",
       status: OP_STATUS_AR[op.status ?? "planned"] ?? "غير معروف",
-      cost: egpValue(op.est_cost),
+      cost: moneyNumber(op.est_cost) ?? undefined,
     };
   });
 
@@ -404,18 +407,26 @@ export default async function PlanningDashboardPage({
         </section>
       )}
 
-      <CurrentFilterCard
-        label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
-        clearHref="/plans/dashboard"
-        showClear={filter !== "all"}
-      />
+      <div className="no-print">
+        <CurrentFilterCard
+          label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
+          clearHref="/plans/dashboard"
+          showClear={filter !== "all"}
+        />
+      </div>
 
       {(filter === "all" || filter === "plans") && (
         <Card title="خطط تحتاج متابعة">
           {planAttentionRows.length === 0 ? (
             <EmptyState title="لا توجد خطط نشطة تحتاج متابعة" />
           ) : (
-            <SimpleTable columns={planColumns} rows={planAttentionRows} ariaLabel="خطط تحتاج متابعة" empty="—" />
+            <FilterableTable
+              columns={planColumns}
+              rows={planAttentionRows}
+              ariaLabel="خطط تحتاج متابعة"
+              empty="—"
+              exportFilename="plans-dashboard-attention-plans"
+            />
           )}
         </Card>
       )}
@@ -423,22 +434,34 @@ export default async function PlanningDashboardPage({
       {(filter === "all" || filter === "operations" || filter === "due" || filter === "checks") && (
         <section className="grid gap-4 md:grid-cols-2">
           {(filter === "all" || filter === "operations" || filter === "due") && (
-        <Card title={operationCardTitle}>
-          {operationRows.length === 0 ? (
-            <EmptyState title="لا توجد عمليات مفتوحة" />
-          ) : (
-            <SimpleTable columns={operationColumns} rows={operationRows} ariaLabel={operationCardTitle} empty="—" />
-          )}
-        </Card>
+            <Card title={operationCardTitle}>
+              {operationRows.length === 0 ? (
+                <EmptyState title="لا توجد عمليات مفتوحة" />
+              ) : (
+                <FilterableTable
+                  columns={operationColumns}
+                  rows={operationRows}
+                  ariaLabel={operationCardTitle}
+                  empty="—"
+                  exportFilename={operationExportFilename}
+                />
+              )}
+            </Card>
           )}
           {(filter === "all" || filter === "checks") && (
-        <Card title="الفحوص المحظورة">
-          {checkRows.length === 0 ? (
-            <EmptyState title="لا توجد فحوص محظورة" />
-          ) : (
-            <SimpleTable columns={checkColumns} rows={checkRows} ariaLabel="الفحوص المحظورة" empty="—" />
-          )}
-        </Card>
+            <Card title="الفحوص المحظورة">
+              {checkRows.length === 0 ? (
+                <EmptyState title="لا توجد فحوص محظورة" />
+              ) : (
+                <FilterableTable
+                  columns={checkColumns}
+                  rows={checkRows}
+                  ariaLabel="الفحوص المحظورة"
+                  empty="—"
+                  exportFilename="plans-dashboard-blocked-checks"
+                />
+              )}
+            </Card>
           )}
         </section>
       )}
