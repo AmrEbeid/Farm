@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
@@ -144,6 +145,7 @@ export default async function MonthClosePage({
       hint: "اقفل الفترة بعد اعتماد القوائم",
     },
   ];
+  const statementPackageHref = `/api/finance/statements.pdf?start=${encodeURIComponent(monthStart)}&end=${encodeURIComponent(todayIso)}&asOf=${encodeURIComponent(todayIso)}`;
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -219,6 +221,16 @@ export default async function MonthClosePage({
           <p className="mt-3 text-sm" style={{ color: "var(--ink-muted)" }}>
             لا يتم قفل الشهر تلقائيًا عند نظافة القائمة؛ راجع قائمة الدخل والمركز المالي، ثم اقفل الفترة المحاسبية.
           </p>
+          <div className="no-print mt-3">
+            <a
+              href={statementPackageHref}
+              className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
+              style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
+            >
+              <Download aria-hidden="true" size={16} />
+              تنزيل حزمة القوائم PDF
+            </a>
+          </div>
         </Card>
       ) : null}
 

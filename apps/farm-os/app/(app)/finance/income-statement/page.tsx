@@ -2,6 +2,7 @@
 // Calls fn_accounting_income_statement (SPEC-0004 Slice A): posted-only, period-scoped; net income ties to the
 // balance sheet. Owner drawings are NOT expenses (excluded by construction, #6). Server Component; finance.read.
 
+import { Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
@@ -68,7 +69,17 @@ export default async function FinanceIncomeStatementPage({
             من واقع القيود المُرحّلة. مسحوبات المالك ليست مصروفًا ولا تظهر هنا.
           </p>
         </div>
-        <PrintButton label="طباعة القائمة" />
+        <div className="no-print flex flex-wrap gap-2">
+          <a
+            href={`/api/finance/statements.pdf?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&asOf=${encodeURIComponent(end)}`}
+            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
+            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
+          >
+            <Download aria-hidden="true" size={16} />
+            تنزيل حزمة PDF
+          </a>
+          <PrintButton label="طباعة القائمة" />
+        </div>
       </header>
 
       <FinanceStatementPrintPacket title="هوية واعتماد قائمة الدخل" items={printItems} />

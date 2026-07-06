@@ -72,6 +72,14 @@ export default async function FinanceBalanceSheetPage({
         </div>
         <div className="no-print flex flex-wrap gap-2">
           <a
+            href={`/api/finance/statements.pdf?start=${encodeURIComponent(monthStartFor(asOf))}&end=${encodeURIComponent(asOf)}&asOf=${encodeURIComponent(asOf)}`}
+            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
+            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
+          >
+            <Download aria-hidden="true" size={16} />
+            تنزيل حزمة PDF
+          </a>
+          <a
             href={`/api/finance/balance-sheet.pdf?asOf=${encodeURIComponent(asOf)}`}
             className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
             style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
@@ -193,6 +201,10 @@ function parseDateParam(value: string | undefined, fallback: string): string {
 
 function isoDate(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function monthStartFor(date: string): string {
+  return `${date.slice(0, 7)}-01`;
 }
 
 function pad(value: number): string {
