@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — Plan 360 output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — PVA details output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#843** merged to `main` at **`88f1144`** with no Supabase migration. Scope: CSV export for
+> `/reports/[planId]/pva` detail rows, raw numeric planned/actual/variance money values for spreadsheet use,
+> plain assignee text in the extract while the screen keeps rendered assignee badges, and owner/accountant-only
+> planned labor-cost columns still gated by `payroll.read`. Boundaries held: no schema/RPC/data change, no PVA
+> query widening, no mutation-path change, no complete historical planning export, and no payroll permission
+> widening or labor-cost CSV leak for roles that cannot see those columns. Validation: focused eslint,
+> export/filter/table/help/PVA-materials Vitest **34/34**, `tsc`, production build, GitHub `ci` and
+> `db-tests` green, Vercel preview `dpl_FAPbUfHvQj9X98aEESbd3D3prDc7` READY with clean preview error logs,
+> Vercel production READY for `dpl_5FjXVCL78t4rcSgUFbXpDdngHeXs`, build logs clean of errors, no production
+> runtime errors or 5xx logs, and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200 with
+> etag `"2c4b71fe32ab40801d97d34dc6f0749d"`.
+
+> **2026-07-06 — Plan 360 output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#841** merged to `main` at **`6f66cdd`** with no Supabase migration. Scope: print-ready
 > `/plans/[planId]`, CSV export for operations, operation-calendar snapshots, plan checks, and dose sign-off
 > state, with tab navigation, CSV controls, plan mutation actions, check runner, operation builder, template
