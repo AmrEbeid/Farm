@@ -3,7 +3,7 @@
 -- executed sector/hawsha/line/palm operations show on the right 360 pages and the field dashboard.
 
 begin;
-select plan(9);
+select plan(12);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set planid 'c1130000-0000-0000-0000-000000000113'
@@ -11,6 +11,7 @@ select plan(9);
 \set hawop  'c1130002-0000-0000-0000-000000000113'
 \set lineop 'c1130003-0000-0000-0000-000000000113'
 \set palmop 'c1130004-0000-0000-0000-000000000113'
+\set legacyop 'c1130005-0000-0000-0000-000000000113'
 
 select set_config(
   'test.palm',
@@ -47,6 +48,9 @@ values
   (:'hawop',  :'org', :'planid', 'inspection', 'hawsha', current_setting('test.haw')::uuid, 0, false, 'ready'),
   (:'lineop', :'org', :'planid', 'inspection', 'line',   current_setting('test.line')::uuid, 0, false, 'ready'),
   (:'palmop', :'org', :'planid', 'inspection', 'palm',   current_setting('test.palm')::uuid, 0, false, 'ready');
+insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est_cost, approval_needed, status)
+values
+  (:'legacyop', :'org', :'planid', 'inspection', current_setting('test.palm')::uuid, 0, false, 'ready');
 
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('test.sup'), 'role','authenticated')::text, true);
@@ -55,6 +59,7 @@ select set_config('test.sec_ev',  (public.fn_execute_operation(:'secop',  0, 1, 
 select set_config('test.haw_ev',  (public.fn_execute_operation(:'hawop',  0, 1, 'hawsha') ->> 'event_id'), false);
 select set_config('test.line_ev', (public.fn_execute_operation(:'lineop', 0, 1, 'line') ->> 'event_id'), false);
 select set_config('test.palm_ev', (public.fn_execute_operation(:'palmop', 0, 1, 'palm') ->> 'event_id'), false);
+select set_config('test.legacy_ev', (public.fn_execute_operation(:'legacyop', 0, 1, 'legacy palm uuid') ->> 'event_id'), false);
 reset role;
 
 select ok(
@@ -85,6 +90,20 @@ select is(
   (select asset_id::text from public.event_assets where event_id = current_setting('test.palm_ev')::uuid),
   current_setting('test.palm'),
   'palm execution links the executed event to the palm asset');
+select is(
+  (select sector_id from public.event_locations where event_id = current_setting('test.legacy_ev')::uuid),
+  null::uuid,
+  'legacy null target_type does not write a non-sector UUID into sector_id');
+select is(
+  (select data #>> '{location_warning,code}'
+     from public.farm_event where id = current_setting('test.legacy_ev')::uuid),
+  'legacy_target_id_not_sector',
+  'legacy unresolved target records a location warning');
+select is(
+  (select data #>> '{location_warning,target_id}'
+     from public.farm_event where id = current_setting('test.legacy_ev')::uuid),
+  current_setting('test.palm'),
+  'legacy unresolved target warning keeps the original target_id');
 
 select * from finish();
 rollback;
