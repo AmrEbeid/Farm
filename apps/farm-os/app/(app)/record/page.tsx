@@ -50,6 +50,14 @@ const ACTIONS: ActionCard[] = [
     roles: ["owner", "farm_manager", "agri_engineer", "supervisor"],
   },
   {
+    // SPEC-0030 A4: the missing home for OFF-plan work — /m only lists PLANNED operations.
+    href: "/record/activity",
+    icon: "📝",
+    title: "سجّلت نشاطًا غير مخطط",
+    hint: "عمل في الحقل خارج الخطة — فحص أو ملاحظة أو عملية",
+    roles: ["owner", "farm_manager", "agri_engineer", "supervisor"],
+  },
+  {
     href: "/m/receive",
     icon: "📥",
     title: "استلمت بضاعة",
