@@ -1,5 +1,5 @@
 -- 100 — #398 follow-up: fn_unassign_plan_operation removes a person from a plan operation (migration
--- 20260701220000). Covers (a) a plan.write role can unassign, (b) a non-plan.write role (storekeeper) is
+-- 20260701360000). Covers (a) a plan.write role can unassign, (b) a non-plan.write role (storekeeper) is
 -- refused, (c) unassigning a person not actually assigned is a safe no-op (no error, removed:false — not
 -- a confusing silent "success"), (d) the assignee row is actually gone, (e) fn_audit still fires a
 -- DELETE audit_log row. Mirrors test 92's JWT-claim role simulation and grant-lockdown checks. Run via
