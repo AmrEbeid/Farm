@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — finance close print coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — inventory dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#833** merged to `main` at **`9079cb7`** with no Supabase migration. Scope: print-ready
+> `/inventory/dashboard`, CSV export for the inventory/purchase work table, with dashboard navigation, first-run
+> guidance, supplier action link, filter helper, result count, search, and CSV controls hidden from printed output
+> while KPIs, supplier/context cards, charts, and the work table remain printable. Boundaries held: no
+> schema/RPC/data change, no inventory-dashboard query change, no purchase-request or inventory mutation-path
+> change, no server CSV route, and no permission widening. Validation: focused eslint, export/filter/table/nav/help
+> Vitest **38/38**, `tsc`, production build, GitHub `ci` and `db-tests` green, Vercel preview
+> `dpl_BMXCLRgNeFD6WrpKmzxvGT2petaA` READY with clean preview error logs, Vercel production READY for
+> `dpl_DKdtqSPSPSKYBBAXKUjWxFa9oJHG`, build logs clean of errors, no production runtime errors, and aliases
+> `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200 with etag
+> `"1afd07669b1eb96104faabff85fbfef1"`.
+
+> **2026-07-06 — finance close print coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#831** merged to `main` at **`b71663f`** with no Supabase migration. Scope: print-ready
 > `/finance/close`, with transient action messages, checklist fix links, and the close-period form hidden from
 > printed output while the live close checklist, blocker counts/amounts, clean-state statement handoff, and story
