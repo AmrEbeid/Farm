@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-06 (latest) — report-output readiness and catalog refresh LIVE; prod ledger head remains `20260705150000`.**
+> PRs **#803-#806** merged to `main` through **`e21a2e3`** with no Supabase migration. Scope: month-close clean-state
+> handoff to income statement / balance sheet / period lock review; honest blank placeholders for empty income
+> statement and budget-vs-actual summaries; print buttons and print CSS for accounting and finance report packs;
+> accounting CSV exports; period/as-of-aware finance export filenames; and refreshed `REPORT-CATALOG` current-state
+> coverage. Boundaries held: no schema change, no posting/cash/custody mutation, and no permission widening. Validation:
+> local focused lint/test/type/build on the code slice, `git diff --check` on docs, GitHub checks green for #803-#806,
+> Vercel production READY for `dpl_HJrGPiyFEuPZCoKXj73odmbhzNot`, error-only build logs clean, no production runtime
+> error/fatal logs, and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+>
 > **2026-07-05 (latest) — SPEC-0004 Slice A budget-vs-actual (read-only) LIVE — Slice A now complete; prod ledger head `20260705150000`.**
 > PR **#728** merged to `main` (RPC) after migrate-first apply; UI page **#730** (`/finance/budget-vs-actual`, app-only).
 > Scope: read-only `fn_budget_vs_actual(p_org, p_from, p_to)` — makes budget **actuals live** from the posted GL
