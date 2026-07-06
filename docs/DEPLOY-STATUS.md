@@ -2,7 +2,23 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — budget-check output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — plan-operation positive requirement backstop LIVE; prod migration head now `20260706180856`.**
+> PR **#848** merged to `main` at **`a2a4e7`**. Scope: DB/RPC hardening for plan operation
+> requirement quantities, using repo migration `20260706175357_plan_op_positive_backstop.sql` and production
+> migration record `20260706180856_plan_op_positive_backstop`; direct labor requirement writes now reject NULL
+> `count`/`days` through explicit positive CHECKs, and `fn_add_plan_operation_multi` now rejects missing, NULL, zero,
+> or negative material/labor quantities with clean `22023` errors before writing requirement rows. Boundaries held:
+> no new table/exposed schema/RLS policy/public grant, anon still cannot execute the RPC, authenticated remains the
+> intended caller role, and existing rows were not forced through a blocking validation scan. Production verification:
+> both rebuilt labor CHECKs present as NOT VALID with `IS NOT NULL` + `> 0`, RPC source contains the new material and
+> labour positive guards, function privileges are anon=false/authenticated=true, and historical bad-row probes returned
+> zero NULL/nonpositive labor counts/days. Validation: local pgTAP **1641/1641**, GitHub `ci` and `db-tests` green,
+> Vercel preview `dpl_BHnZiev7GgW28aSzdzP91NTjK8nv` READY, Vercel production READY for
+> `dpl_2ijBVBZvoXZMmx64FAo8qty4s4xi`, build logs clean of errors, no production runtime errors in the last hour, and
+> aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200 with etag
+> `"ff54e51799cc1ead6db45d0833be78e3"`.
+
+> **2026-07-06 — budget-check output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#845** merged to `main` at **`81edaf7`** with no Supabase migration. Scope: CSV export for
 > `/budget/[planId]/check` category snapshots, with raw numeric approved/this-plan/after-plan/review-ceiling
 > values, verdict/reason fields, utilization percentages, unknown-cost counts, budget-scope flags, and explicit
