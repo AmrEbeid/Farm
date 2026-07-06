@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — plan detail print outputs LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — finance report output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PRs **#818-#819** merged to `main` through **`118041b`** with no Supabase migration. Scope: print actions for
+> `/finance/season`, `/finance/cost-centers/[id]`, and `/finance/periods`; accounting periods now render as a
+> sortable table with CSV export; finance season/center/period action controls and statement navigation are hidden
+> from printed output while KPIs, report stories, tables, status, and audit dates remain printable. Boundaries held:
+> no schema/RPC/data change, no accounting-period lock/reopen behavior change, no finance posting/cash/custody
+> mutation change, and no permission widening. Validation: focused eslint, table/export/filter Vitest **21/21** on
+> #819, `tsc`, production build, GitHub `ci` and `db-tests` green for both PRs, CodeRabbit green, Vercel previews
+> `dpl_3ApDFKaCYaSy4vVxbK244sK7A2HF` and `dpl_DkL6kvCQ8KbZQHduHqSDyrYrQThb` READY, Vercel production READY for
+> `dpl_AauZ3PrcTBHtJu5eDpXJMdyGjGfW` and `dpl_GkXz59PRNsoA3v1e88EdcJiVciAa`, build logs clean of errors, no
+> production runtime errors, and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+
+> **2026-07-06 — plan detail print outputs LIVE; prod ledger head remains `20260705150000`.**
 > PR **#816** merged to `main` at **`5655388`** with no Supabase migration. Scope: print actions for
 > `/plans/[planId]` and `/reports/[planId]/pva`; plan edit/clone/status/check/template/builder/tab/quick-action
 > controls, assignee removal controls, sign-off buttons, and transient mutation errors are hidden from printed output
