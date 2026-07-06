@@ -4,7 +4,8 @@ import Link from "next/link";
 
 // SPEC-0025 U-14 (§2c) — the phone-first bottom tab bar: the 5 destinations a thumb needs, fixed at the
 // bottom on small screens only (hidden ≥48rem, where the sidebar rules). Role-aware: finance roles get
-// «المعاملات»; field roles get «الميدان». Pure links — no drawer/state coupling.
+// «المعاملات»; the storekeeper gets «المخزون» (their real home); other field roles get «الميدان». Pure
+// links — no drawer/state coupling.
 
 interface Tab {
   href: string;
@@ -19,7 +20,11 @@ export function MobileTabBar({ role, pathname }: { role: string; pathname: strin
     { href: "/record", icon: "➕", label: "سجّل" },
     finance
       ? { href: "/transactions", icon: "📜", label: "المعاملات" }
-      : { href: "/m", icon: "📱", label: "الميدان" },
+      : role === "storekeeper"
+        ? // storekeeper can't access /m (field-role only); their real home is the store — pointing the
+          // field tab at /m bounced them to /dashboard on their primary device (SPEC-0030 §4.2).
+          { href: "/inventory/dashboard", icon: "📦", label: "المخزون" }
+        : { href: "/m", icon: "📱", label: "الميدان" },
     { href: "/reports", icon: "📈", label: "التقارير" },
     { href: "/farm/dashboard", icon: "🌴", label: "المزرعة" },
   ];
