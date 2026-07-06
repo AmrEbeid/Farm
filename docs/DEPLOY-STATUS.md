@@ -2,7 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — finance insight output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — weather dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#823** merged to `main` at **`396fe52`** with no Supabase migration. Scope: print-ready
+> `/weather/dashboard`, CSV export for the weather risk-window table and advisory-reason table, raw numeric weather
+> readings in CSV with unit-aware headers, and weather navigation/threshold links hidden from printed output while
+> KPIs, filter context, chart, risk table, and advisory table remain printable. Boundaries held: no schema/RPC/data
+> change, no weather-provider/threshold behavior change, no planning gate enforcement change, and no permission
+> widening. Validation: focused eslint, export/filter/table/weather/help/nav Vitest **57/57**, `tsc`, production
+> build, GitHub `ci` and `db-tests` green, Vercel preview `dpl_CWLXWK8zcJrwgVHn1QLJuMJcWkpn` READY with clean
+> preview logs, Vercel production READY for `dpl_55gtZcLgbRbVT5ppg5x2jCzV3fP1`, build logs clean of errors, no
+> production runtime errors, and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+
+> **2026-07-06 — finance insight output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#821** merged to `main` at **`87998c1`** with no Supabase migration. Scope: print-ready finance owner
 > insights at `/finance/insights`, printable and CSV-exportable P&L trend data at `/finance/pnl-trend`, and printable
 > CSV-exportable enterprise/sector scorecards at `/finance/enterprise-scorecard` and `/finance/sector-scorecard`;
