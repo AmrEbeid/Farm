@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #827. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #829. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -47,6 +47,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-35** | `/plans/[planId]` | Plan 360 detail | plan status, readiness, operation count, estimated cost, check results, operation calendar, assignees, agronomist sign-off state | `OpsCalendar` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees`, `people`, `inventory_items`, templates | any member; write controls owner/farm_manager; sign-off owner/agri_engineer |
 | **RPT-36** | `/finance/enterprise-scorecard` | Enterprise/crop profitability scorecard | revenue, expenses, profit, margin, ROI, unallocated revenue/expense | - | Enterprise scorecard CSV; print-ready | `v_cost_center_rollup`, finalized `sales`, `lib/entity-pnl.ts`, `lib/pnl-insights.ts` | owner, accountant |
 | **RPT-37** | `/finance/sector-scorecard` | Sector profitability benchmark | sector net profit, profit/feddan, best-unit benchmark, upside, unallocated revenue/expense | - | Sector scorecard CSV; print-ready | `v_cost_center_rollup`, finalized `sales`, `lib/entity-pnl.ts`, `lib/pnl-insights.ts` | owner, accountant |
+| **RPT-38** | `/farm/dashboard` | Farm structure and field-health overview | sectors, hawshat, Barhi/male palms, attention palms, offshoot availability, palm-count reconciliation | `CategoryBarChart`, `CategoryDoughnut` | Attention, operation, sector, hawsha, and palm-count reconciliation CSV; print-ready | `sectors`, `hawshat`, `assets`, `farm_event`, `offshoot_movements`, `lib/palm-count-reconciliation.ts` | any member; offshoot KPI owner/accountant/farm_manager |
 
 ## Chart Catalog
 
@@ -76,7 +77,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
   `/inventory/[itemId]/coverage`,
   `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,
   `/plans`, `/plans/[planId]`, `/plans/dashboard`, `/reports/[planId]/pva`,
-  `/farm/pest-scouting`, and `/farm/offshoots`.
+  `/farm/dashboard`, `/farm/pest-scouting`, and `/farm/offshoots`.
 - Print CSS hides app chrome, print buttons, filters, result counts, and CSV controls while preserving report
   content, cards, KPIs, charts, and tables.
 - Date-aware filenames are live for the statement/report packs where the page has `start/end` or `asOf`
