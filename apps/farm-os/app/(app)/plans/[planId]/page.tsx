@@ -267,15 +267,41 @@ export default async function MonthlyPlanPage({
   const pillStatus: PillStatus = PLAN_STATUS_PILL[planStatus] ?? "draft";
   const pillLabel = PLAN_STATUS_AR[planStatus] ?? "غير معروف";
 
+  // SPEC-0030 A5: derive EACH lifecycle step from real plan data. Previously pr/approve/execute/report were
+  // hardcoded "pending" — the stepper advertised a journey it never tracked (read as a broken progress bar).
+  const totalStepOps = (ops ?? []).length;
+  const doneStepOps = (ops ?? []).filter((o) => o.status === "done").length;
+  const opsNeedingApproval = (ops ?? []).filter((o) => o.approval_needed).length;
+  const approvedStepOps = (ops ?? []).filter((o) => o.signed_off_at != null).length;
   const steps: LoopStep[] = [
     { id: "plan", label: "الخطة", state: "active" },
     // not-yet-run checks are pending, not "done" — the empty list must not read as a pass.
     { id: "check", label: "الفحوصات", state: !checksRun ? "pending" : blocked ? "blocked" : "done" },
     { id: "coverage", label: "تغطية المخزون", state: stockCheck?.result === "block" ? "active" : "pending" },
-    { id: "pr", label: "طلب الشراء", state: "pending" },
-    { id: "approve", label: "الاعتماد", state: "pending" },
-    { id: "execute", label: "التنفيذ", state: "pending" },
-    { id: "report", label: "المخطط مقابل الفعلي", state: "pending" },
+    // a stock shortage means a purchase is needed → the PR step is live; otherwise nothing to order from here.
+    { id: "pr", label: "طلب الشراء", state: stockCheck?.result === "block" ? "active" : "pending" },
+    {
+      id: "approve",
+      label: "الاعتماد",
+      state:
+        opsNeedingApproval === 0
+          ? totalStepOps > 0
+            ? "done"
+            : "pending"
+          : approvedStepOps >= opsNeedingApproval
+            ? "done"
+            : "active",
+    },
+    {
+      id: "execute",
+      label: "التنفيذ",
+      state: totalStepOps === 0 || doneStepOps === 0 ? "pending" : doneStepOps >= totalStepOps ? "done" : "active",
+    },
+    {
+      id: "report",
+      label: "المخطط مقابل الفعلي",
+      state: doneStepOps === 0 ? "pending" : doneStepOps >= totalStepOps ? "done" : "active",
+    },
   ];
 
   const tabItems: TabItem[] = [
