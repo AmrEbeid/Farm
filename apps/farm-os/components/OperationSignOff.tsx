@@ -47,32 +47,34 @@ export function OperationSignOff({
       <div className="flex flex-wrap items-center gap-2">
         <Tag tone="warning">قالب — يحتاج اعتماد مهندس زراعي</Tag>
         {canSignOff && (
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={pending}
-            onClick={async () => {
-              setPending(true);
-              setError(null);
-              try {
-                const res = await signOffPlanOperation(planId, opId);
-                if (res.ok) {
-                  router.refresh();
-                } else {
-                  setError(res.error ?? "تعذّر اعتماد العملية");
+          <span className="no-print">
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={pending}
+              onClick={async () => {
+                setPending(true);
+                setError(null);
+                try {
+                  const res = await signOffPlanOperation(planId, opId);
+                  if (res.ok) {
+                    router.refresh();
+                  } else {
+                    setError(res.error ?? "تعذّر اعتماد العملية");
+                  }
+                } catch {
+                  setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
+                } finally {
+                  setPending(false);
                 }
-              } catch {
-                setError("تعذّر الاتصال بالخادم. تحقّق من الاتصال وحاول مرة أخرى.");
-              } finally {
-                setPending(false);
-              }
-            }}
-          >
-            اعتماد كمهندس زراعي
-          </Button>
+              }}
+            >
+              اعتماد كمهندس زراعي
+            </Button>
+          </span>
         )}
       </div>
-      <div aria-live="assertive" aria-atomic="true">
+      <div className="no-print" aria-live="assertive" aria-atomic="true">
         {error && <Alert tone="danger" title={error} />}
       </div>
     </div>
