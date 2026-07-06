@@ -226,6 +226,11 @@ export default async function MobileHomePage({
         <p style={{ color: "var(--ink-muted)" }}>{m.name ?? "المشرف"}</p>
       </header>
 
+      {/* SPEC-0030 A4: off-plan work has a home too — this feed lists only PLANNED operations. */}
+      <Link href="/record/activity" className="text-sm underline underline-offset-4" style={{ color: "var(--brand)" }}>
+        📝 عملت شيئًا خارج الخطة؟ سجّل نشاطًا غير مخطط ←
+      </Link>
+
       {done && <Alert tone="ok" title="تم تسجيل العملية بنجاح." />}
 
       {/* F1: on-device outbox of executions that failed to send (network drop) — resend on reconnect. */}
