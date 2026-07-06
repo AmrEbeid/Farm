@@ -2,6 +2,7 @@
 // Calls fn_accounting_balance_sheet (SPEC-0004 Slice A): posted-only, as-of-scoped, self-checking `balanced`.
 // Server Component; role enforced here AND in the RPC (finance.read).
 
+import { Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
@@ -69,7 +70,17 @@ export default async function FinanceBalanceSheetPage({
             صورة فعلية من القيود المُرحّلة حتى {fmtDate(bs.asOf ?? asOf)} — الموارد والالتزامات وحقوق المالك.
           </p>
         </div>
-        <PrintButton label="طباعة القائمة" />
+        <div className="no-print flex flex-wrap gap-2">
+          <a
+            href={`/api/finance/balance-sheet.pdf?asOf=${encodeURIComponent(asOf)}`}
+            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
+            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
+          >
+            <Download aria-hidden="true" size={16} />
+            تنزيل PDF
+          </a>
+          <PrintButton label="طباعة القائمة" />
+        </div>
       </header>
 
       <FinanceStatementPrintPacket title="هوية واعتماد قائمة المركز المالي" items={printItems} />
