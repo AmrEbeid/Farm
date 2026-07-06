@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { StoryLine } from "@/components/StoryLine";
+import { PrintButton } from "@/components/print-button";
 import { egp, num } from "@/lib/money";
 import { isAgedLiveReceivable, isSaleInLiveEra } from "@/lib/month-close";
 import { closePeriod } from "../periods/actions";
@@ -146,24 +147,31 @@ export default async function MonthClosePage({
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <header>
-        <h1 className="text-xl font-bold" style={{ color: "var(--ink)" }}>إقفال الشهر</h1>
-        <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-          قائمة مولَّدة من الدفاتر الحية (منذ قطع {CUTOVER}) — الشهر يُقفل عندما تفرغ. شهر الفحص الحالي يبدأ {monthStart}.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "var(--ink)" }}>إقفال الشهر</h1>
+          <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+            قائمة مولَّدة من الدفاتر الحية (منذ قطع {CUTOVER}) — الشهر يُقفل عندما تفرغ. شهر الفحص الحالي يبدأ {monthStart}.
+          </p>
+        </div>
+        <PrintButton label="طباعة إقفال الشهر" />
       </header>
 
       <StoryLine lead={lead} />
 
       {params.ok ? (
-        <Card title="تم">
-          <p className="font-semibold">{params.ok}</p>
-        </Card>
+        <div className="no-print">
+          <Card title="تم">
+            <p className="font-semibold">{params.ok}</p>
+          </Card>
+        </div>
       ) : null}
       {params.error ? (
-        <Card title="تعذّر التنفيذ">
-          <p className="font-semibold">{params.error}</p>
-        </Card>
+        <div className="no-print">
+          <Card title="تعذّر التنفيذ">
+            <p className="font-semibold">{params.error}</p>
+          </Card>
+        </div>
       ) : null}
 
       {open.length > 0 && (
@@ -180,7 +188,7 @@ export default async function MonthClosePage({
                     <span className="text-sm" style={{ color: "var(--ink-muted)" }}> — {egp(i.amount)}</span>
                   )}
                 </div>
-                <Link href={i.href} className="text-sm font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+                <Link href={i.href} className="no-print text-sm font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
                   {i.cta} ←
                 </Link>
               </div>
@@ -214,7 +222,7 @@ export default async function MonthClosePage({
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="no-print">
         <div className="flex flex-col gap-4 p-1">
           <div>
             <span className="font-bold" style={{ color: "var(--ink)" }}>قفل الفترة المحاسبية</span>
