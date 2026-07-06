@@ -9,6 +9,7 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { CategoryBarChart, MultiInsightChart } from "@/components/charts";
 import { ImportPanel } from "@/components/import/ImportPanel";
+import { PrintButton } from "@/components/print-button";
 import { OffshootMovementForm, OffshootValuationForm, type OffshootCostCenterOption } from "@/components/OffshootBankForms";
 import { buildOffshootBankSummary, OFFSHOOT_TYPE_AR, type OffshootMovementType } from "@/lib/offshoot-bank";
 import { fmtDate } from "@/lib/dates";
@@ -104,7 +105,8 @@ export default async function OffshootBankPage({
             سجل كمي للفسائل المنتجة والمزروعة والمباعة والمستخدمة في الإحلال، مرتبط بمراكز التكلفة.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة بنك الفسائل" />
           <HeaderLink href="/farm/dashboard">لوحة المزرعة</HeaderLink>
           <HeaderLink href="/farm">هيكل المزرعة</HeaderLink>
           {canSeeValuation && <HeaderLink href="/finance/insights">رؤى المالك</HeaderLink>}
@@ -145,7 +147,7 @@ export default async function OffshootBankPage({
         showClear={focus !== "all"}
       />
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section className="no-print grid gap-4 xl:grid-cols-2">
         {canRecord && (
           <Card title="تسجيل حركة">
             <OffshootMovementForm centers={centerOptions} />
@@ -235,9 +237,11 @@ export default async function OffshootBankPage({
       </Card>
 
       {canRecord && (
-        <Card title="استيراد الحركات">
-          <ImportPanel descriptorKey="offshoot-movements" titleAr="حركات بنك الفسائل" />
-        </Card>
+        <div className="no-print">
+          <Card title="استيراد الحركات">
+            <ImportPanel descriptorKey="offshoot-movements" titleAr="حركات بنك الفسائل" />
+          </Card>
+        </div>
       )}
     </div>
   );

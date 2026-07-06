@@ -40,7 +40,7 @@ export function MultiInsightChartClient({
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-2">
+      <div role="group" aria-label={ariaLabel} className="no-print flex flex-wrap gap-2">
         {options.map((option) => {
           const active = option.id === selected.id;
           return (
