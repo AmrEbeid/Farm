@@ -21,14 +21,15 @@ const KIND_LABELS: Record<string, string> = {
   capex: "رأسمالي",
 };
 
-type ExpenseFilter = "all" | "month" | "operating" | "drawing" | "unrouted" | "unclassified";
+type ExpenseFilter = "all" | "month" | "operating" | "drawing" | "unrouted" | "unclassified" | "uncentered";
 
 function parseExpenseFilter(raw: string | undefined): ExpenseFilter {
   return raw === "month" ||
     raw === "operating" ||
     raw === "drawing" ||
     raw === "unrouted" ||
-    raw === "unclassified"
+    raw === "unclassified" ||
+    raw === "uncentered"
     ? raw
     : "all";
 }
@@ -45,7 +46,7 @@ export default async function ExpensesListPage({
   const [{ data: expenses, error }, { data: suppliers }, { data: accounts }] = await Promise.all([
     sb
       .from("expenses")
-      .select("id, date, category, description, total, kind, supplier_id, payment_status, account_id")
+      .select("id, date, category, description, total, kind, supplier_id, payment_status, account_id, cost_center_id")
       .order("date", { ascending: false }),
     sb.from("suppliers").select("id, name").order("name"),
     sb
@@ -65,6 +66,9 @@ export default async function ExpensesListPage({
   // the backlog honestly instead of letting it hide.
   const isUnrouted = (e: (typeof all)[number]) => e.payment_status == null;
   const isUnclassified = (e: (typeof all)[number]) => e.account_id == null;
+  // «بلا مركز تكلفة»: cost_center_id is NULL — recorded but not allocated to a cost center, so it can't be
+  // attributed in per-center P&L. This is the third «مصروفات بلا…» month-close item's fixing surface.
+  const isUncentered = (e: (typeof all)[number]) => e.cost_center_id == null;
 
   const chips: { key: ExpenseFilter; label: string; value: number; danger?: boolean }[] = [
     { key: "all", label: "كل المصروفات", value: all.length },
@@ -73,6 +77,7 @@ export default async function ExpensesListPage({
     { key: "drawing", label: "مسحوبات", value: all.filter((e) => e.kind === "drawing").length },
     { key: "unrouted", label: "غير موجّهة للسداد", value: all.filter(isUnrouted).length, danger: true },
     { key: "unclassified", label: "بدون حساب", value: all.filter(isUnclassified).length, danger: true },
+    { key: "uncentered", label: "بدون مركز تكلفة", value: all.filter(isUncentered).length, danger: true },
   ];
   // Real SUMs over the full ledger (not a row-capped sample): this month, split per non-negotiable #6.
   const monthOperating = all
@@ -108,6 +113,8 @@ export default async function ExpensesListPage({
               ? isUnrouted(e)
               : filter === "unclassified"
                 ? isUnclassified(e)
+                : filter === "uncentered"
+                  ? isUncentered(e)
               : true,
     )
     .map((e) => ({
