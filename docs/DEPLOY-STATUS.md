@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — payment-request proof packet LIVE; prod migration head remains `20260706180856`.**
+> **2026-07-06 (latest) — custody report print/PDF polish LIVE; prod migration head remains `20260706180856`.**
+> PR **#852** merged to `main` at **`deb3046`** with no Supabase migration. Scope: `/finance/custody-reports`
+> now prints as an intentional report snapshot with a print-only period/as-of/issue/source identity strip, screen-only
+> header links and period filters hidden from PDF output, and shared report table print chrome cleaned so table wraps
+> are visible and sort arrows are hidden. Boundaries held: no schema/RPC/data change, no query widening, no permission
+> widening, no hidden finance export, and no generated/server PDF dependency. Validation: focused eslint,
+> page-help Vitest **7/7**, `tsc`, production build, GitHub `ci` and `db-tests` green, Vercel preview
+> `dpl_6N3pRJ9XuR2edn4bWVVF5fEi347A` READY, Vercel production READY for
+> `dpl_GwQtjHQsahG459v2h8v8nqXmii47`, build logs clean of errors, no production runtime errors in the last
+> 30 minutes, production runtime status grouping showed 200s, and aliases `ebeidfarm.business` /
+> `farm-ui-one.vercel.app` returned 200 with etag `"44a3dd36571661ccb0497ea1b632ed72"`.
+
+> **2026-07-06 — payment-request proof packet LIVE; prod migration head remains `20260706180856`.**
 > PR **#850** merged to `main` at **`482f641`** with no Supabase migration. Scope: `/custody/request/[requestId]`
 > now has a print-only payment-request proof packet shared by all tabs, with request identity, approval/signature
 > trail, category summary, detailed expense lines, and registered funding rows; screen overview also shows the
