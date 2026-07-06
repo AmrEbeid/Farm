@@ -3,7 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { subtreeNetByCode } from "@/lib/accounting-rollup";
@@ -161,6 +163,7 @@ export default async function AccountingPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <PrintButton label="طباعة الدفتر" />
           <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>
           <HeaderLink href="/custody">العهدة وطلبات الصرف</HeaderLink>
           <HeaderLink href="/expenses">المصروفات</HeaderLink>
@@ -183,7 +186,14 @@ export default async function AccountingPage() {
 
       <Card title="ميزان المراجعة النقدي">
         {trialRows.length ? (
-          <SimpleTable columns={trialCols} rows={trialRows} ariaLabel="ميزان المراجعة النقدي" empty="—" />
+          <FilterableTable
+            columns={trialCols}
+            rows={trialRows}
+            ariaLabel="ميزان المراجعة النقدي"
+            empty="—"
+            exportFilename="accounting-trial-balance.csv"
+            minRowsForSearch={1}
+          />
         ) : (
           <EmptyState title="لا توجد قيود محاسبية بعد" />
         )}
@@ -191,10 +201,24 @@ export default async function AccountingPage() {
 
       <section className="grid gap-5 xl:grid-cols-2">
         <Card title={`آخر القيود (${num(entryRows.length)})`}>
-          <SimpleTable columns={entryCols} rows={entryRows} ariaLabel="آخر القيود" empty="لا توجد قيود بعد" />
+          <FilterableTable
+            columns={entryCols}
+            rows={entryRows}
+            ariaLabel="آخر القيود"
+            empty="لا توجد قيود بعد"
+            exportFilename="accounting-journal-entries.csv"
+            minRowsForSearch={1}
+          />
         </Card>
         <Card title="تفاصيل القيود">
-          <SimpleTable columns={lineCols} rows={lineRows} ariaLabel="تفاصيل القيود" empty="لا توجد سطور قيود بعد" />
+          <FilterableTable
+            columns={lineCols}
+            rows={lineRows}
+            ariaLabel="تفاصيل القيود"
+            empty="لا توجد سطور قيود بعد"
+            exportFilename="accounting-journal-lines.csv"
+            minRowsForSearch={1}
+          />
         </Card>
       </section>
     </div>

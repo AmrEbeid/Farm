@@ -12,6 +12,7 @@ import { fmtDate } from "@/lib/dates";
 import { parseBudgetVsActual } from "@/lib/budget-vs-actual";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
+import { PrintButton } from "@/components/print-button";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -52,12 +53,15 @@ export default async function FinanceBudgetVsActualPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold">الموازنة مقابل الفعلي</h1>
-        <p style={mutedStyle}>
-          المخطط لكل فئة مقابل الإنفاق الفعلي من القيود المُرحّلة للفترة من {fmtDate(bva.periodStart ?? start)} إلى{" "}
-          {fmtDate(bva.periodEnd ?? end)}. تقرير للمتابعة فقط — لا يمنع أي اعتماد.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-bold">الموازنة مقابل الفعلي</h1>
+          <p style={mutedStyle}>
+            المخطط لكل فئة مقابل الإنفاق الفعلي من القيود المُرحّلة للفترة من {fmtDate(bva.periodStart ?? start)} إلى{" "}
+            {fmtDate(bva.periodEnd ?? end)}. تقرير للمتابعة فقط — لا يمنع أي اعتماد.
+          </p>
+        </div>
+        <PrintButton label="طباعة التقرير" />
       </header>
 
       <Card title="الفترة">
@@ -104,7 +108,12 @@ export default async function FinanceBudgetVsActualPage({
 
       <Card title="الموازنة مقابل الفعلي حسب الفئة">
         {rows.length ? (
-          <FilterableTable columns={columns} rows={rows} ariaLabel="الموازنة مقابل الفعلي" exportFilename="budget-vs-actual" />
+          <FilterableTable
+            columns={columns}
+            rows={rows}
+            ariaLabel="الموازنة مقابل الفعلي"
+            exportFilename={`budget-vs-actual-${start}-to-${end}.csv`}
+          />
         ) : (
           <EmptyState title="لا موازنة ولا إنفاق مُرحّل في هذه الفترة" description="أضِف بنود موازنة أو رحّل مصروفات لتظهر المقارنة." />
         )}

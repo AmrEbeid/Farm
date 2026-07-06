@@ -215,3 +215,47 @@ body {
     z-index: calc(var(--z-drawer) + 1);
   }
 }
+
+/* Print/PDF reports: keep the actual report content, hide app chrome and controls. */
+@media print {
+  .no-print,
+  .fos-appshell__topbar,
+  .fos-appshell__sidebar,
+  .fos-appshell__overlay,
+  .farm-module-nav {
+    display: none !important;
+  }
+
+  html,
+  body,
+  .fos-appshell,
+  .fos-appshell__main {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .fos-appshell {
+    display: block !important;
+    min-height: auto !important;
+  }
+
+  .fos-appshell__main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .fos-card,
+  .fos-kpi,
+  .fos-alert,
+  .fos-table {
+    box-shadow: none !important;
+  }
+
+  .fos-card,
+  .fos-kpi,
+  .fos-table,
+  table,
+  tr {
+    break-inside: avoid;
+  }
+}
