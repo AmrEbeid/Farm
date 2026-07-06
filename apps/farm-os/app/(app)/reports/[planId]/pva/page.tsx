@@ -5,9 +5,10 @@ import { Breadcrumbs, Card, Stat, EmptyState } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { VarianceChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
+import { ExportButton } from "@/components/ExportButton";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAssignees";
-import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
+import { egp, egpSummary, moneyNumber, num, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR } from "@/lib/labels";
 import { computeLaborCostRollup, type LaborRequirementCostInput } from "@/lib/payroll";
@@ -199,6 +200,11 @@ export default async function PlannedVsActualPage({
     // machinery is out of scope entirely — no machinery data model exists yet) + planned labor cost
     // (this PR). payroll.read only; the section is entirely absent otherwise (see canSeeLaborCost).
     const labor = laborByOp.get(o.id);
+    const assignees = assigneesByOp.get(o.id) ?? [];
+    const assigneeLabel =
+      assignees.length === 0
+        ? "—"
+        : assignees.map((a) => (a.isLead ? `${a.name} (مسؤول)` : a.name)).join("، ");
     const laborCostLabel = labor
       ? labor.hasUnpriced
         ? labor.total > 0
@@ -218,11 +224,12 @@ export default async function PlannedVsActualPage({
       op: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
       planned_qty: plannedQtyStr,
       actual_qty: actualQtyStr,
-      planned_cost: egpValue(o.est_cost),
-      actual_cost: egp(act.cost),
+      planned_cost: plannedCost ?? undefined,
+      actual_cost: act.cost,
       var_qty: varQtyStr,
-      var_cost: egp(varCost),
+      var_cost: varCost ?? undefined,
       var_pct: varPct == null ? "—" : `${num(varPct, 1)}٪`,
+      assignees: assigneeLabel,
       ...(laborCostLabel != null ? { labor_cost: laborCostLabel } : {}),
       ...(totalCostLabel != null ? { total_cost: totalCostLabel } : {}),
     };
@@ -232,9 +239,9 @@ export default async function PlannedVsActualPage({
     { id: "op", header: "العملية" },
     { id: "planned_qty", header: "كمية مخططة", numeric: true },
     { id: "actual_qty", header: "كمية فعلية", numeric: true },
-    { id: "planned_cost", header: "تكلفة مخططة", numeric: true },
-    { id: "actual_cost", header: "تكلفة فعلية", numeric: true },
-    { id: "var_cost", header: "الانحراف", numeric: true },
+    { id: "planned_cost", header: "تكلفة مخططة", kind: "money", numeric: true },
+    { id: "actual_cost", header: "تكلفة فعلية", kind: "money", numeric: true },
+    { id: "var_cost", header: "الانحراف", kind: "money", numeric: true },
     { id: "var_pct", header: "%", numeric: true },
     {
       id: "assignees",
@@ -259,6 +266,7 @@ export default async function PlannedVsActualPage({
         ] as SimpleColumn[])
       : []),
   ];
+  const exportColumns = columns.map(({ id, header }) => ({ id, header }));
 
   const totalPlannedCost = sumMoney(executed.map((o) => o.est_cost));
   const totalActualCost = executed.reduce((s, o) => s + (actualByOp.get(o.id)?.cost ?? 0), 0);
@@ -312,6 +320,9 @@ export default async function PlannedVsActualPage({
         actions={
           <div className="flex flex-wrap gap-2">
             <PrintButton label="طباعة المخطط مقابل الفعلي" />
+            <span className="no-print">
+              <ExportButton rows={rows} columns={exportColumns} filename={`plan-${planId}-pva`} />
+            </span>
             <Link
               href={`/plans/${planId}`}
               className="no-print inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"

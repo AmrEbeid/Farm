@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #841. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #843. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -15,7 +15,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-03** | `/dashboard/manager` | Plan readiness and assigned work | active operations, done operations, blocking checks, readiness %, open/due/unassigned tasks | Progress | Assigned-task and active-operation CSV; print-ready | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees` | farm_manager, agri_engineer |
 | **RPT-04** | `/inventory/[itemId]/coverage` | Stock coverage and reorder decision | available, coverage days, reorder point, recommended quantity, verdict | `PabChart` | Coverage summary and projection CSV; print-ready | RPC-007 `fn_stock_coverage` | any member; reserve action owner/farm_manager/storekeeper |
 | **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, actual, committed, available, utilization %, verdict | Progress | Print-ready | `budget_lines`, `plan_operations`, `lib/budget-check.ts` | any member |
-| **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance % per operation | `VarianceChart` | Print-ready | `plan_operations`, done `farm_event` actuals, `plans` | any member |
+| **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance %, assignees, role-gated planned labor cost per operation | `VarianceChart` | Detail CSV; print-ready | `plan_operations`, done `farm_event` actuals, `plans`, role-gated `people_compensation` | any member; labor-cost columns owner/accountant |
 | **RPT-07** | `/finance/revenue-reports` | Revenue, collections, pending-price deliveries, A/R aging | finalized revenue, collections, outstanding A/R, 30+ A/R, pending count/qty | `MultiInsightChart` with `CategoryBarChart` by buyer or crop/season | CSV per table with period/as-of filenames; print-ready | RPC-053 `fn_revenue_sales_report` | owner, accountant |
 | **RPT-08** | `/finance/custody-reports` | Custody and payment-request settlement pack | opening/period/closing custody, cash expenses, unpaid obligations, 30+ obligations, owner funding | - | CSV per table with period/as-of filenames; print-ready | RPC-045 `fn_custody_ledger_report`, RPC-046 `fn_custody_cash_expense_report`, RPC-047 `fn_unpaid_obligations_report`, RPC-048 `fn_owner_funding_report` | owner, accountant |
 | **RPT-09** | `/finance/reports` | Cost-center economics and reconciliation | posted centers, unallocated lines, review flags, operating net, debit/credit/net, net per feddan | `MultiInsightChart` with `CategoryBarChart` and `TrendLineChart` | CSV per table; print-ready | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags`, `journal_lines`, `journal_entries`, `accounts` | owner, accountant |

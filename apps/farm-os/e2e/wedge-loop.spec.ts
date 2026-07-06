@@ -146,6 +146,19 @@ test("wedge loop: coverage → PR(reserve) → budget gate → owner approve →
   // planned 500 kg / 42,000 vs actual 480 kg / 40,320 → variance −1,680 (−4%)
   await expect(page.getByText("المخطط مقابل الفعلي").first()).toBeVisible();
   await expect(page.getByText(/١٬٦٨٠|1,680/).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "تصدير CSV" })).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "تصدير CSV" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe(`plan-${PLAN}-pva.csv`);
+  const downloadPath = await download.path();
+  expect(downloadPath).toBeTruthy();
+  const csv = fs.readFileSync(downloadPath!, "utf8");
+  expect(csv).toContain("تكلفة مخططة");
+  expect(csv).toContain("42000");
+  expect(csv).toContain("40320");
+  expect(csv).not.toContain("تكلفة العمالة المخططة");
 
   // DB sanity on the recorded actuals
   const { data: ev } = await admin
