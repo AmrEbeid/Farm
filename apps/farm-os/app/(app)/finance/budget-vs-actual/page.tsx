@@ -13,6 +13,7 @@ import { parseBudgetVsActual } from "@/lib/budget-vs-actual";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
 import { PrintButton } from "@/components/print-button";
+import { FinanceStatementPrintPacket, type FinanceStatementPrintItem } from "@/components/FinanceStatementPrintPacket";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -35,10 +36,19 @@ export default async function FinanceBudgetVsActualPage({
   const params = await searchParams;
   const start = parseDateParam(params.start, firstOfMonth());
   const end = parseDateParam(params.end, isoDate(new Date()));
+  const generatedOn = isoDate(new Date());
 
   const res = await sb.rpc("fn_budget_vs_actual", { p_org: m.orgId, p_from: start, p_to: end });
   if (res.error) throw res.error;
   const bva = parseBudgetVsActual(res.data);
+  const periodStart = bva.periodStart ?? start;
+  const periodEnd = bva.periodEnd ?? end;
+  const printItems: FinanceStatementPrintItem[] = [
+    { id: "report", label: "نوع التقرير", value: "الموازنة مقابل الفعلي" },
+    { id: "period", label: "الفترة", value: `${fmtDate(periodStart)} إلى ${fmtDate(periodEnd)}` },
+    { id: "issued", label: "تاريخ الإصدار", value: fmtDate(generatedOn) },
+    { id: "source", label: "المصدر", value: "الفعلي من القيود المُرحّلة؛ التقرير لا يمنع الاعتماد" },
+  ];
 
   const hasComparisonRows = bva.lines.length > 0;
   const rows: SimpleRow[] = bva.lines.map((l, i) => ({
@@ -64,7 +74,9 @@ export default async function FinanceBudgetVsActualPage({
         <PrintButton label="طباعة التقرير" />
       </header>
 
-      <Card title="الفترة">
+      <FinanceStatementPrintPacket title="هوية ومراجعة تقرير الموازنة مقابل الفعلي" items={printItems} />
+
+      <Card title="الفترة" className="no-print">
         <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
           <label className="flex flex-col gap-1 text-sm font-semibold">
             من تاريخ

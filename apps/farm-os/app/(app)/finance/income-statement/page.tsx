@@ -13,6 +13,7 @@ import { parseIncomeStatement, type IncomeStatementLine } from "@/lib/income-sta
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
 import { PrintButton } from "@/components/print-button";
+import { FinanceStatementPrintPacket, type FinanceStatementPrintItem } from "@/components/FinanceStatementPrintPacket";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -42,10 +43,19 @@ export default async function FinanceIncomeStatementPage({
   const params = await searchParams;
   const start = parseDateParam(params.start, firstOfMonth());
   const end = parseDateParam(params.end, isoDate(new Date()));
+  const generatedOn = isoDate(new Date());
 
   const res = await sb.rpc("fn_accounting_income_statement", { p_org: m.orgId, p_from: start, p_to: end });
   if (res.error) throw res.error;
   const is = parseIncomeStatement(res.data);
+  const periodStart = is.periodStart ?? start;
+  const periodEnd = is.periodEnd ?? end;
+  const printItems: FinanceStatementPrintItem[] = [
+    { id: "statement", label: "نوع القائمة", value: "قائمة الدخل" },
+    { id: "period", label: "الفترة", value: `${fmtDate(periodStart)} إلى ${fmtDate(periodEnd)}` },
+    { id: "issued", label: "تاريخ الإصدار", value: fmtDate(generatedOn) },
+    { id: "source", label: "المصدر", value: "القيود المُرحّلة فقط" },
+  ];
   const hasActivity = is.revenue.length > 0 || is.expenses.length > 0;
 
   return (
@@ -61,7 +71,9 @@ export default async function FinanceIncomeStatementPage({
         <PrintButton label="طباعة القائمة" />
       </header>
 
-      <Card title="الفترة">
+      <FinanceStatementPrintPacket title="هوية واعتماد قائمة الدخل" items={printItems} />
+
+      <Card title="الفترة" className="no-print">
         <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
           <label className="flex flex-col gap-1 text-sm font-semibold">
             من تاريخ
