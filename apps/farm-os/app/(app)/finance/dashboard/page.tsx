@@ -266,6 +266,14 @@ export default async function FinanceDashboardPage({
         : filter === "unclassified"
           ? "مصروفات بدون حساب"
           : "آخر المصروفات";
+  const expenseExportFilename =
+    filter === "drawings"
+      ? "finance-dashboard-owner-drawings"
+      : filter === "operating"
+        ? "finance-dashboard-operating-expenses"
+        : filter === "unclassified"
+          ? "finance-dashboard-unclassified-expenses"
+          : "finance-dashboard-expenses";
 
   const prColumns: SimpleColumn[] = [
     { id: "code", header: "طلب الشراء" },
@@ -514,7 +522,7 @@ export default async function FinanceDashboardPage({
                   columns={expenseColumns}
                   rows={expenseRows}
                   ariaLabel={expenseCardTitle}
-                  exportFilename="finance-dashboard-expenses"
+                  exportFilename={expenseExportFilename}
                   empty="—"
                 />
               )}
