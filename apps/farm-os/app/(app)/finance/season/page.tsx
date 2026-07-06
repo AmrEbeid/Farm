@@ -5,6 +5,7 @@ import { KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
 
@@ -123,7 +124,8 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
           <h1 className="text-xl font-bold" style={{ color: "var(--ink)" }}>لوحة الموسم</h1>
           <p className="text-sm" style={{ color: "var(--ink-muted)" }}>من {fmtDate(seasonStart)} حتى اليوم — تتحدث مع كل حمولة تمر على الميزان.</p>
         </div>
-        <div className="flex flex-wrap gap-2 text-sm font-bold">
+        <div className="no-print flex flex-wrap gap-2 text-sm font-bold">
+          <PrintButton label="طباعة الموسم" />
           <Link href="/record/scale" className="underline underline-offset-4" style={{ color: "var(--brand)" }}>⚖️ الميزان</Link>
           <Link href="/record/price" className="underline underline-offset-4" style={{ color: "var(--brand)" }}>🏷️ سعّر المعلّق</Link>
           <Link href="/record/collect" className="underline underline-offset-4" style={{ color: "var(--brand)" }}>💰 حصّل</Link>

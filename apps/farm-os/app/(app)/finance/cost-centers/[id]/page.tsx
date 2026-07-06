@@ -6,6 +6,7 @@ import { Alert, Card, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 
@@ -97,9 +98,12 @@ export default async function CostCenterPage({ params }: { params: Promise<{ id:
             {area && area > 0 ? ` · ${num(area)} فدان` : ""}
           </p>
         </div>
-        <Link href="/record/expense" className="text-sm font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
-          + سجّل مصروفًا عليه
-        </Link>
+        <div className="no-print flex flex-wrap gap-2 text-sm font-bold">
+          <PrintButton label="طباعة المركز" />
+          <Link href="/record/expense" className="underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            + سجّل مصروفًا عليه
+          </Link>
+        </div>
       </header>
 
       <StoryLine lead={lead} notes={notes} />
