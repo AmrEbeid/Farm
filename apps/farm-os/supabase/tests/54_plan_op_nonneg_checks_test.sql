@@ -9,7 +9,7 @@
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(11);
+select plan(13);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set item '39e22867-fbe2-5cd9-8a76-ce5871a8e8f4'
@@ -66,6 +66,20 @@ select throws_ok(
             values (%L, %L, 1, 0) $$, :'orgA', :'op'),
   '23514', null,
   'F2: a ZERO plan_labor_requirements.days is now rejected');
+
+-- ===== DB backstop: NULL labor count/days are rejected too =====
+-- CHECK (count > 0) admits NULL, so the positive constraints must explicitly include IS NOT NULL.
+select throws_ok(
+  format($$ insert into public.plan_labor_requirements (org_id, plan_op_id, count, days)
+            values (%L, %L, NULL, 1) $$, :'orgA', :'op'),
+  '23514', null,
+  'F2 backstop: a NULL plan_labor_requirements.count is rejected');
+
+select throws_ok(
+  format($$ insert into public.plan_labor_requirements (org_id, plan_op_id, count, days)
+            values (%L, %L, 1, NULL) $$, :'orgA', :'op'),
+  '23514', null,
+  'F2 backstop: a NULL plan_labor_requirements.days is rejected');
 
 -- ===== positive rows still insert — the tightening did not over-restrict =====
 select lives_ok(
