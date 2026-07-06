@@ -1,4 +1,4 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-04)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-06)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
@@ -507,11 +507,9 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `20260629150100` (current).** The live ledger includes the #466 hardening/alignment
-    migrations `20260622000098`, `20260629135038`, `20260629140248`, `20260629141650`, plus the #468 SPEC-0018
-    backend migrations `20260629150000` and `20260629150100`. The #474 SPEC-0018 frontend, #476 chart pass,
-    #477/#478/#479/#480 Entity-360 UI pass, and #481/#482/#483/#484 app/CI follow-ups add no migrations. Draft
-    PR migrations `0088`, `0091`, and `0097` are **not** applied. Historical note: by
+  - **Migrations now at `20260705150000` (current; see latest ledger entry at the top of this file).**
+    The live ledger includes the SPEC-0004 Slice A accounting/reporting migrations through
+    budget-vs-actual. Historical note: by
     2026-06-27, Stages 2/3/4 had been applied via the Supabase MCP:
     `0080` structure_soft_delete_audit, `0081` structure_write_rpcs (+ `structure.write` on `authorize`;
     structure `tenant_all` re-emit), `0082` attachments (table + RLS + RPCs), `0083` record_event (3 RPCs),
@@ -579,14 +577,21 @@ as an open gate again unless the Owner reopens it.
    secrets — `.gitleaks.toml` + `ci.yml` `secret-scan` job — but this pre-existing one needs the manual
    de-hardcode + a Vercel env var, so it is Owner-gated.)*
 
-## ⛔ Known issue — Vercel Root Directory is wrong (2026-06-24)
-`https://farm-ui-one.vercel.app/` serves the **`@amrebeid/ui` library JS**, and `/login` is 404 —
-i.e. Vercel is building the **monorepo root / library**, not the Next.js app. **Fix (Owner, in the
-Vercel dashboard):** project `farm-ui` → **Settings → Build & Deployment → Root Directory** = `apps/farm-os`
-→ Save → **Redeploy**. Framework preset: **Next.js**. Keep the env vars. If the build then fails to
-resolve the `@amrebeid/ui` workspace dep, enable "Include source files outside the Root Directory"
-(Vercel monorepo/workspaces support) or set Install Command to install from the repo root. Custom
-domain `ebeidfarm.business` will serve the app once the root is fixed + redeployed.
+## ✅ Current Vercel state (2026-07-06)
+- `farm-ui` deploys the Next app from `apps/farm-os`, not the monorepo root, and production aliases
+  are attached to `ebeidfarm.business` + `farm-ui-one.vercel.app`.
+- Production deployment `dpl_39Yw6KaFeNc1zDqf7FPbKgzVg9X5` was verified `READY` after PR #780;
+  Vercel's route list shows `Proxy (Middleware)`, so the Next 16 `middleware.ts` → `proxy.ts`
+  migration is live.
+- The July 6 deployment hygiene fixes are live: proxy convention (#773), role-safe dashboard links
+  (#777), and Tailwind/Linux optional lockfile alignment (#780). Post-deploy runtime sweep found no
+  error clusters and no production `error`/`fatal` logs for the PR #780 deployment.
+
+## ✅ Resolved incident — Vercel Root Directory was wrong (2026-06-24)
+Historical failure: `https://farm-ui-one.vercel.app/` served the **`@amrebeid/ui` library JS**, and
+`/login` was 404 because Vercel built the monorepo root/library instead of the Next.js app. The
+Vercel project was corrected to build `apps/farm-os` with the Next.js framework preset; the custom
+domain now serves the app.
 
 **Monorepo build fix (2026-06-24):** `@amrebeid/ui` resolves to `dist/`. First attempt — a
 `vercel-build` that built the lib on Vercel (`npm … run build --workspace @amrebeid/ui && next build`)
@@ -645,7 +650,7 @@ backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
   `dist/`; removed the root `.npmrc` (`${NODE_AUTH_TOKEN}` crashed the build); app-local CSS copy;
   `turbopack.root`+`outputFileTracingRoot`; **pinned Tailwind v4 Linux native binaries**
   (`@tailwindcss/oxide-linux-x64-gnu`, `lightningcss-linux-x64-gnu` — npm/cli#4828, the real crash);
-  `framework:"nextjs"` (Vercel had expected a `dist/` output); resilient middleware.
+  `framework:"nextjs"` (Vercel had expected a `dist/` output); resilient proxy.
 
 ## ✅ Prod DB migration push (2026-06-25)
 Prod was provisioned at `0001–0013`. After an **8-agent adversarial prod-push assurance returned
