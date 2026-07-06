@@ -4,6 +4,7 @@ import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { PrintButton } from "@/components/print-button";
 import { CustodyForms } from "@/components/CustodyForms";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
@@ -152,14 +153,19 @@ export default async function CustodyDashboardPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">العهدة وطلبات الصرف</h1>
-        <p style={{ color: "var(--ink-muted)" }}>
-          رصيد العهدة النقدية والمطلوب من المالك — محدّث لحظيًا من سجل العهدة والمصروفات.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">العهدة وطلبات الصرف</h1>
+          <p style={{ color: "var(--ink-muted)" }}>
+            رصيد العهدة النقدية والمطلوب من المالك — محدّث لحظيًا من سجل العهدة والمصروفات.
+          </p>
+        </div>
+        <PrintButton label="طباعة العهدة" />
       </header>
 
-      <CustodyForms accounts={acctList.map((a) => ({ id: a.id, holder_label: a.holder_label }))} />
+      <div className="no-print">
+        <CustodyForms accounts={acctList.map((a) => ({ id: a.id, holder_label: a.holder_label }))} />
+      </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
         <KpiCard label="الرصيد الحالي للعهدة" value={egp(totalBalance)} />

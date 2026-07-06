@@ -4,6 +4,7 @@ import { EmptyState, KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { MOVEMENT_TYPE_AR } from "@/lib/labels";
@@ -94,11 +95,14 @@ export default async function InventoryMovementsPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">حركات المخزون</h1>
-        <p style={{ color: "var(--ink-muted)" }}>
-          سجل الحركات عبر كل الأصناف — للتدقيق والتصدير. يعرض الجدول أحدث {num(TABLE_WINDOW)} حركة للفلتر المحدد.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">حركات المخزون</h1>
+          <p style={{ color: "var(--ink-muted)" }}>
+            سجل الحركات عبر كل الأصناف — للتدقيق والتصدير. يعرض الجدول أحدث {num(TABLE_WINDOW)} حركة للفلتر المحدد.
+          </p>
+        </div>
+        <PrintButton label="طباعة حركات المخزون" />
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

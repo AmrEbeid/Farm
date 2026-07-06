@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { PrintButton } from "@/components/print-button";
 import { AddExpense } from "@/components/AddExpense";
 import { accountOptionLabel, leafPostingAccounts } from "@/components/AccountPicker";
 
@@ -135,9 +136,12 @@ export default async function ExpensesListPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">المصروفات</h1>
-        <p style={{ color: "var(--ink-muted)" }}>سجل مصروفات التشغيل</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">المصروفات</h1>
+          <p style={{ color: "var(--ink-muted)" }}>سجل مصروفات التشغيل</p>
+        </div>
+        <PrintButton label="طباعة المصروفات" />
       </header>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
@@ -160,10 +164,12 @@ export default async function ExpensesListPage({
       </div>
 
       {WRITE_ROLES.includes(m.role) && (
-        <AddExpense
-          suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))}
-          accounts={postingAccounts}
-        />
+        <div className="no-print">
+          <AddExpense
+            suppliers={(suppliers ?? []).map((s) => ({ id: s.id, name: s.name }))}
+            accounts={postingAccounts}
+          />
+        </div>
       )}
       <FilterableTable
         ariaLabel="المصروفات"
@@ -176,7 +182,9 @@ export default async function ExpensesListPage({
       />
 
       {/* SPEC-0024 S-9 (D.1): template download + Excel/CSV import for this entry. Imported expenses arrive unrouted — cash never moves in bulk (#1). */}
-      <ImportPanel descriptorKey="expenses" titleAr="المصروفات" />
+      <div className="no-print">
+        <ImportPanel descriptorKey="expenses" titleAr="المصروفات" />
+      </div>
     </div>
   );
 }
