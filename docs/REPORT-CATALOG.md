@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #808. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #810. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -33,6 +33,12 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-21** | `/weather/dashboard` | Weather risk dashboard | weather readings and threshold risk signals | `TrendLineChart` | - | weather readings/thresholds | any member |
 | **RPT-22** | `/budgets` | Budget overview | budget count, planned total, approved total, available by budget | - | Budget CSV; print-ready | `budgets`, RPC-060 for owner/accountant over-budget signal | owner, accountant, farm_manager |
 | **RPT-23** | `/budgets/[budgetId]` | Budget 360 detail | planned, approved, committed + actual, available, lines, linked PRs, category expenses | - | Lines, linked PRs, and finance-expense CSV; print-ready | `budgets`, `budget_lines`, `purchase_requests`, gated `expenses` | owner, accountant, farm_manager; expense tab owner/accountant only |
+| **RPT-24** | `/purchase-requests` | Purchase request console | open/submitted/open-order/overdue/stale request counts, remaining qty, needed-by alerts | - | Purchase-request CSV; print-ready | `purchase_requests`, `purchase_request_items`, `inventory_items`, `lib/pr-console.ts` | any member |
+| **RPT-25** | `/inventory` | Inventory item directory | item count, reorder threshold flags, uncosted count, standard-cost inventory value | `bar` column | Inventory CSV; print-ready | `inventory_items`, `inventory_bin` | any member |
+| **RPT-26** | `/inventory/movements` | Inventory movement audit ledger | last-30-day movement counts by group; latest movement window | - | Inventory movement CSV; print-ready | `inventory_movements`, `inventory_items`, `suppliers` | any member |
+| **RPT-27** | `/expenses` | Expense ledger | expense counts by filter, current-month operating expenses, owner drawings when visible | - | Expense CSV; print-ready | `expenses`, `suppliers`, `accounts` | owner, accountant, farm_manager; drawings owner/accountant only |
+| **RPT-28** | `/custody` | Custody and payment-request dashboard | custody balance/target/top-up, unpaid post-paid split, payment-request queue | - | Payment-request CSV; print-ready | `custody_accounts`, `custody_movements`, `payment_requests`, `expenses`, RPC `fn_custody_balance` | owner, accountant |
+| **RPT-29** | `/transactions` | Unified money ledger | count by expense/sale/collection/custody transaction type, pending-price follow-up count | - | Transaction CSV; print-ready | `expenses`, `sales`, `sale_collections`, `custody_movements`, buyers/suppliers/custody accounts | owner, accountant |
 
 ## Chart Catalog
 
@@ -51,10 +57,11 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 - `FilterableTable` exports the current visible table view: after client-side search and sort.
 - CSV uses raw values for spreadsheet work and includes a UTF-8 BOM for Arabic text in Excel.
 - `ExportButton` appends `.csv` only when the supplied filename does not already include it.
-- The deployed finance/reporting print surfaces are:
+- The deployed print-ready surfaces are:
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
   `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/budgets`,
-  `/budgets/[budgetId]`, and `/budget/[planId]/check`.
+  `/budgets/[budgetId]`, `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
+  `/inventory/movements`, `/expenses`, `/custody`, and `/transactions`.
 - Print CSS hides app chrome, print buttons, filters, result counts, and CSV controls while preserving report
   content, cards, KPIs, charts, and tables.
 - Date-aware filenames are live for the statement/report packs where the page has `start/end` or `asOf`
@@ -79,7 +86,8 @@ The clean checklist does not auto-lock. It deliberately hands the accountant to 
 - Cost-center reports are all-history today; their CSV filenames are intentionally generic until a period filter is added.
 - Budget-vs-actual remains report-only. It exposes variance and unbudgeted spend but does not enforce caps
   (Decision-0157).
-- Several operational list pages export CSV but are not statement-style printable pages yet.
+- Some remaining operational list pages still need print polish after the first operational output pass
+  (for example people, suppliers, plans, pest scouting, and offshoots).
 - The report catalog is a current-state index, not a replacement for `RPC-CATALOG.md`, `FEATURE-REGISTRY.md`, or
   the Arabic user manual.
 
