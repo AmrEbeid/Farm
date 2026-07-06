@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after budget-check CSV coverage. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after balance-sheet server PDF coverage. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -21,7 +21,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-09** | `/finance/reports` | Cost-center economics and reconciliation | posted centers, unallocated lines, review flags, operating net, debit/credit/net, net per feddan | `MultiInsightChart` with `CategoryBarChart` and `TrendLineChart` | CSV per table; print-ready | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags`, `journal_lines`, `journal_entries`, `accounts` | owner, accountant |
 | **RPT-10** | `/finance/insights` | Owner finance insight summary | allocation score, posted centers, unallocated net, review flags, operating net | `CategoryBarChart` | Center insight CSV; print-ready | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags` | owner, accountant |
 | **RPT-11** | `/accounting` | Accounting ledger overview | custody cash, owner funding, operating expenses, capex, drawings, trial balance, recent entries/lines | - | Trial-balance, journal-entry, and journal-line CSV; print-ready | RPC-040 `fn_accounting_trial_balance`, `journal_entries`, `journal_lines`, accounts | owner, accountant |
-| **RPT-12** | `/finance/balance-sheet` | Trusted balance sheet | assets, liabilities, equity incl. net income, cumulative net income, balanced flag | - | Assets/liabilities/equity CSV with as-of filename; print-ready | RPC-055 `fn_accounting_balance_sheet` | owner, accountant |
+| **RPT-12** | `/finance/balance-sheet` | Trusted balance sheet | assets, liabilities, equity incl. net income, cumulative net income, balanced flag | - | Assets/liabilities/equity CSV with as-of filename; print-ready; server PDF download | RPC-055 `fn_accounting_balance_sheet` | owner, accountant |
 | **RPT-13** | `/finance/income-statement` | Trusted income statement / P&L | revenue, expenses, operating expenses, net income/loss | - | Revenue/expense CSV with period filename; print-ready | RPC-056 `fn_accounting_income_statement` | owner, accountant |
 | **RPT-14** | `/finance/budget-vs-actual` | Budget-vs-actual from posted GL | planned, actual, variance, variance %, status | - | Comparison CSV with period filename; print-ready | RPC-060 `fn_budget_vs_actual` | owner, accountant |
 | **RPT-15** | `/finance/close` | Month-close checklist and statement handoff | pending-price deliveries, unrouted/unclassified/unallocated expenses, aged receivables | - | Statement-review handoff; print-ready; no CSV | `sales`, `sale_collections`, `expenses`, accounting period actions | owner, accountant |
@@ -101,7 +101,8 @@ The clean checklist does not auto-lock. It deliberately hands the accountant to 
 
 ## Known Limitations
 
-- Browser print is live, but there is still no server-generated PDF bundle or signed statement package.
+- Server-generated PDF is live for the balance sheet only; the combined statement package and signed/archive workflow
+  are still future work.
 - Cost-center reports are all-history today; their CSV filenames are intentionally generic until a period filter is added.
 - Budget-vs-actual remains report-only. It exposes variance and unbudgeted spend but does not enforce caps
   (Decision-0157).
