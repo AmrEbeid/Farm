@@ -9,6 +9,7 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryDoughnut } from "@/components/charts";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -170,7 +171,8 @@ export default async function InventoryDashboardPage({
             مؤشرات قابلة للتصفية؛ اضغط على البطاقة لتصفية جدول العمل.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة لوحة المخزون" />
           <HeaderLink href="/inventory">الأصناف</HeaderLink>
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
         </div>
@@ -178,7 +180,11 @@ export default async function InventoryDashboardPage({
 
       {/* First-run guidance: no inventory items registered yet (already-fetched
           `items`, no new query) — disappears once the org has real stock. */}
-      {(items ?? []).length === 0 && <OnboardingChecklist role={m.role} />}
+      {(items ?? []).length === 0 && (
+        <div className="no-print">
+          <OnboardingChecklist role={m.role} />
+        </div>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={filter === "reorder"}>
@@ -237,30 +243,34 @@ export default async function InventoryDashboardPage({
           <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
             {num(suppliers?.length ?? 0)} مورّد مسجّل. تُستخدم مدد التوريد في توصيات التغطية عندما تكون متاحة.
           </p>
-          <Link
-            href="/suppliers"
-            className="mt-3 inline-block font-medium underline underline-offset-4"
-            style={{ color: "var(--brand)" }}
-          >
-            فتح الموردين
-          </Link>
+          <div className="no-print">
+            <Link
+              href="/suppliers"
+              className="mt-3 inline-block font-medium underline underline-offset-4"
+              style={{ color: "var(--brand)" }}
+            >
+              فتح الموردين
+            </Link>
+          </div>
         </Card>
         <Card title="نطاق هذه اللوحة">
           <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
             هذه قراءة تشغيلية من المخزون وطلبات الشراء فقط. توقعات النقص التفصيلية تبقى داخل صفحة تغطية كل صنف.
           </p>
         </Card>
-        <CurrentFilterCard
-          label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
-          clearHref="/inventory/dashboard"
-          showClear={filter !== "all"}
-        />
+        <div className="no-print">
+          <CurrentFilterCard
+            label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
+            clearHref="/inventory/dashboard"
+            showClear={filter !== "all"}
+          />
+        </div>
       </section>
 
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">جدول العمل</h2>
-          <span className="text-sm tabular-nums" style={{ color: "var(--ink-muted)" }}>
+          <span className="no-print text-sm tabular-nums" style={{ color: "var(--ink-muted)" }}>
             {num(rows.length)} عنصر
           </span>
         </div>
@@ -272,6 +282,7 @@ export default async function InventoryDashboardPage({
           searchColumns={["name", "category", "status"]}
           placeholder="ابحث في المخزون والطلبات…"
           minRowsForSearch={1}
+          exportFilename="inventory-dashboard-work"
         />
       </section>
     </div>
