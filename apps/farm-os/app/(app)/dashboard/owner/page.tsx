@@ -214,7 +214,9 @@ export default async function OwnerDashboard() {
   // ── U-10 (§2c): the hub — quick-nav buttons with live badges + the attention inbox ──
   const attention: AttentionItem[] = [];
   if ((pendingPriceCount ?? 0) > 0)
-    attention.push({ href: "/record/collect", tone: "act", text: `${num(pendingPriceCount ?? 0)} بيع بسعر معلّق — حدّد السعر ليدخل الدفاتر` });
+    // «حدّد السعر» must go to the pricing wizard — /record/collect only lists FINALIZED sales, so the pending
+    // ones this counts wouldn't even appear there (SPEC-0030 flow audit B1).
+    attention.push({ href: "/record/price", tone: "act", text: `${num(pendingPriceCount ?? 0)} بيع بسعر معلّق — حدّد السعر ليدخل الدفاتر` });
   if ((unpaidExpenseCount ?? 0) > 0)
     attention.push({ href: "/custody", tone: "watch", text: `${num(unpaidExpenseCount ?? 0)} مصروف آجل لم يُسدَّد — راجع طلبات الصرف` });
   if (pending.length > 0)

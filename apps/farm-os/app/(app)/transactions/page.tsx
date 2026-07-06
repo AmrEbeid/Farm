@@ -194,7 +194,8 @@ export default async function TransactionsPage({
       {pendingPriceCount > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm" style={{ background: "var(--surface-raised, #fff)", border: "1px solid var(--line)" }}>
           <span className="font-bold" style={{ color: "var(--ink)" }}>التالي المقترح:</span>
-          <Link href="/finance/revenue-reports" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+          {/* Actionable "set prices" → the pricing wizard, not the read-only revenue report (SPEC-0030 flow audit B2). */}
+          <Link href="/record/price" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
             حدّد أسعار {num(pendingPriceCount)} بيع معلّق ليدخل الدفاتر ←
           </Link>
         </div>
