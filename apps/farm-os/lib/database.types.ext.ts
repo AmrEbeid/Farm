@@ -190,6 +190,12 @@ type AcademyContentTable = {
 };
 
 type StructFunctions = {
+  fn_record_stock_take: {
+    // Gated stock-take (جرد) reconciliation — posts an adjustment/loss to reconcile on_hand to a physical
+    // count (migration 20260705160000). Returns the reconciled on_hand (= p_counted_qty).
+    Args: { p_item: string; p_counted_qty: number; p_location?: string };
+    Returns: number;
+  };
   fn_save_sector: {
     Args: {
       p_id: string | null;

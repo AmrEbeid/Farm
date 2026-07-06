@@ -148,6 +148,15 @@ export const APP_MODULES: AppModule[] = [
       },
       { id: "inventory", label: "الأصناف", icon: "📦", href: "/inventory" },
       { id: "inventory-movements", label: "حركات المخزون", icon: "📜", href: "/inventory/movements" },
+      {
+        // SPEC-0030 Phase 4 (#778): reconcile the system on-hand to a physical count. Roles match the
+        // fn_record_stock_take authz (inventory.write: owner/farm_manager/storekeeper).
+        id: "stock-take",
+        label: "الجرد",
+        icon: "🔢",
+        href: "/inventory/stock-take",
+        roles: ["storekeeper", "owner", "farm_manager"],
+      },
       { id: "purchase", label: "طلبات الشراء", icon: "🧾", href: "/purchase-requests" },
       {
         // F6: storekeeper mobile receive surface. Roles match the desktop `canReceive` set and the
