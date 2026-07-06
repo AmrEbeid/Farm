@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #837. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #839. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -42,7 +42,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-30** | `/people` | Team directory by manager | total people, active people, people assigned to open planned operations | - | People CSV; print-ready | `people`, `plan_operation_assignees`, `plan_operations` | owner, farm_manager, agri_engineer, accountant |
 | **RPT-31** | `/suppliers` | Supplier directory | supplier count, suppliers with active purchase-order lines, lead time, open lines | - | Supplier CSV; print-ready | `suppliers`, `purchase_request_items`, `purchase_requests` | any member; create action owner/farm_manager/storekeeper |
 | **RPT-32** | `/plans` | Plan register | plan count by all/active/draft/closed status, due operation count | - | Plans CSV; print-ready | `plans`, `plan_operations` | any member; create action owner/farm_manager |
-| **RPT-33** | `/plans/dashboard` | Planning and operations readiness dashboard | active plans, due operations, blocked checks, open estimated cost, executed operation cost KPIs | `CategoryDoughnut`, `CategoryBarChart` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `farm_event`, farm structure | any member; field dashboard link role-gated |
+| **RPT-33** | `/plans/dashboard` | Planning and operations readiness dashboard | active plans, due operations, blocked checks, open estimated cost, executed operation cost KPIs | `CategoryDoughnut`, `CategoryBarChart` | Attention-plan, operation-slice, and blocked-check CSV; print-ready | `plans`, `plan_operations`, `plan_checks`, `farm_event`, farm structure | any member; field dashboard link role-gated |
 | **RPT-34** | `/farm/pest-scouting` | Red-palm-weevil scouting register | traps needing attention, all traps, weekly catches, suspected incidents | - | CSV per table; print-ready | `pest_traps`, `pest_trap_catches`, `pest_incidents`, farm structure | any member; write owner/farm_manager/agri_engineer/supervisor |
 | **RPT-35** | `/plans/[planId]` | Plan 360 detail | plan status, readiness, operation count, estimated cost, check results, operation calendar, assignees, agronomist sign-off state | `OpsCalendar` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees`, `people`, `inventory_items`, templates | any member; write controls owner/farm_manager; sign-off owner/agri_engineer |
 | **RPT-36** | `/finance/enterprise-scorecard` | Enterprise/crop profitability scorecard | revenue, expenses, profit, margin, ROI, unallocated revenue/expense | - | Enterprise scorecard CSV; print-ready | `v_cost_center_rollup`, finalized `sales`, `lib/entity-pnl.ts`, `lib/pnl-insights.ts` | owner, accountant |
