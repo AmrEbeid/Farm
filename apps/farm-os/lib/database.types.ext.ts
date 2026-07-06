@@ -556,7 +556,7 @@ type CostCenterReconciliationFlagsView = {
   Relationships: [];
 };
 type JournalEntriesTable = {
-  Row: { id: string; org_id: string; entry_date: string; source_type: string; source_id: string; description: string | null; status: string; posted_at: string; posted_by: string | null; reversal_of: string | null; created_at: string };
+  Row: { id: string; org_id: string; entry_date: string; source_type: string; source_id: string; source_sequence: number; description: string | null; status: string; posted_at: string; posted_by: string | null; reversal_of: string | null; created_at: string };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
