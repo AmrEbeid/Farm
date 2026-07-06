@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — farm dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#829** merged to `main` at **`176750b`** with no Supabase migration. Scope: print-ready
+> `/farm/dashboard`, CSV export for attention palms, recent operations, sector totals, hawsha totals, and palm-count
+> reconciliation rows, with farm dashboard navigation, onboarding, filter controls, and CSV controls hidden from
+> printed output while KPIs, charts, reconciliation alerts, and report tables remain printable. Boundaries held: no
+> schema/RPC/data change, no farm dashboard query change, no field/offshoot mutation-path change, and no permission
+> widening. Validation: focused eslint, export/filter/table/reconciliation/nav/help Vitest **45/45**, `tsc`,
+> production build, GitHub `ci` and `db-tests` green, Vercel preview
+> `dpl_8Y7ZtJ39ib3MH3j97Y1XNGmkMhqC` READY with clean preview error logs, Vercel production READY for
+> `dpl_7nv1kLwg56Cpx4z62XpYYpAoEmCc`, build logs clean of errors, no production runtime errors, and aliases
+> `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+
+> **2026-07-06 — dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#827** merged to `main` at **`81b54f6`** with no Supabase migration. Scope: print-ready
 > `/dashboard/owner` and `/dashboard/manager`, CSV export for manager assigned tasks and active-plan operations, and
 > dashboard tours, navigation, inbox, checklist, finance links, and section navigation hidden from printed output
