@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import {
-  budgetCheckResultForKnownCost,
+  aggregateBudgetLinesByCategory,
+  buildCategoryBudgetView,
   summarizePlannedCostByCategory,
   worstBudgetVerdict,
 } from "@/lib/budget-check";
@@ -91,39 +92,42 @@ export async function runPlanChecks(planId: string) {
   if (categories.length > 0) {
     const { data: lines, error: budgetErr } = await sb
       .from("budget_lines")
-      .select("category, approved, committed, actual")
+      .select("budget_id, category, planned, approved, committed, actual")
       .eq("org_id", m.orgId)
       .in("category", categories);
     // A read error must not be confused with "no budget line" (a legitimate null): a failed read
-    // would otherwise persist budget = "ok" (a false pass). A genuinely-absent line stays "ok"
-    // unless the plan also has unknown costs, which must not be treated as free.
+    // would otherwise persist budget = "ok" (a false pass). A genuinely-absent line stays advisory
+    // for costed work rather than becoming either a false green pass or a hard zero-ceiling block.
     if (budgetErr) return { ok: false, error: "تعذّر قراءة بنود الميزانية، حاول مرة أخرى." };
-    const lineByCategory = new Map((lines ?? []).map((l) => [l.category, l]));
+    const lineByCategory = aggregateBudgetLinesByCategory(lines ?? []);
 
     const perCategoryResults: Array<"ok" | "warn" | "block"> = [];
     const byCategory: Record<string, Json> = {};
     for (const category of categories) {
       const cost = plannedByCategory.get(category)!;
       const line = lineByCategory.get(category);
-      if (line) {
-        const available = Number(line.approved) - Number(line.committed) - Number(line.actual);
-        const added = cost.knownCost;
-        const result = budgetCheckResultForKnownCost(available, added, cost.hasUnknownCost);
-        perCategoryResults.push(result);
-        byCategory[category] = {
-          available,
-          added,
-          after: available - added,
-          unknown_cost_count: cost.unknownCostCount,
-        };
-      } else if (cost.hasUnknownCost) {
-        perCategoryResults.push("warn");
-        byCategory[category] = {
-          added: cost.knownCost,
-          unknown_cost_count: cost.unknownCostCount,
-          note: `تكلفة بعض عمليات بند ${category} غير معروفة`,
-        };
-      }
+      const view = buildCategoryBudgetView(category, line, cost, {
+        actualSource: "unavailable",
+        committedSource: "static",
+      });
+      const result = view.verdict === "block" ? "block" : view.verdict === "approval-needed" ? "warn" : "ok";
+      perCategoryResults.push(result);
+      byCategory[category] = {
+        available: view.available,
+        added: view.thisOp,
+        after: view.after,
+        approved: view.approved,
+        budget_line_count: view.budgetLineCount,
+        budget_scope_count: view.budgetScopeCount,
+        multiple_budget_scopes: view.hasMultipleBudgetScopes,
+        actual: view.actual,
+        actual_source: view.actualSource,
+        committed_baseline: view.committed,
+        committed_source: view.committedSource,
+        needs_finance_review: view.needsFinanceReview,
+        unknown_cost_count: cost.unknownCostCount,
+        ...(cost.hasUnknownCost ? { note: `تكلفة بعض عمليات بند ${category} غير معروفة` } : {}),
+      };
     }
     budgetResult = worstBudgetVerdict(perCategoryResults);
     budgetDetail = { by_category: byCategory };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  aggregateBudgetLinesByCategory,
   budgetCategoryForSubtype,
   budgetCheckResultForKnownCost,
   buildCategoryBudgetView,
@@ -87,11 +88,31 @@ describe("worstBudgetVerdict", () => {
 });
 
 describe("buildCategoryBudgetView", () => {
+  it("aggregates repeated category rows instead of picking an arbitrary budget line", () => {
+    const byCategory = aggregateBudgetLinesByCategory([
+      { budget_id: "budget-1", category: "أسمدة", planned: 100, approved: 90, committed: 10, actual: 20 },
+      { budget_id: "budget-1", category: "أسمدة", planned: "200", approved: "150", committed: "5", actual: "15" },
+      { category: null, planned: 999, approved: 999 },
+    ]);
+
+    expect(byCategory.get("أسمدة")).toMatchObject({
+      category: "أسمدة",
+      planned: 300,
+      approved: 240,
+      committed: 15,
+      actual: 35,
+      lineCount: 2,
+      budgetScopeCount: 1,
+      hasMultipleBudgetScopes: false,
+    });
+  });
+
   it("blocks when this category's planned cost exceeds what's available", () => {
     const view = buildCategoryBudgetView(
       "أسمدة",
       { category: "أسمدة", planned: 100000, approved: 100000, committed: 7000, actual: 87000 },
       { knownCost: 42000, unknownCostCount: 0, hasUnknownCost: false },
+      { actual: 87000, actualSource: "live", committedSource: "live" },
     );
     expect(view.available).toBe(6000);
     expect(view.verdict).toBe("block");
@@ -105,5 +126,63 @@ describe("buildCategoryBudgetView", () => {
     });
     expect(view.available).toBe(0);
     expect(view.verdict).toBe("ok");
+  });
+
+  it("requires finance review instead of a green pass when live budget state is incomplete", () => {
+    const view = buildCategoryBudgetView(
+      "أسمدة",
+      { category: "أسمدة", planned: 100000, approved: 100000, committed: 0, actual: 0 },
+      { knownCost: 1200, unknownCostCount: 0, hasUnknownCost: false },
+      { actualSource: "unavailable", committedSource: "static" },
+    );
+
+    expect(view.actual).toBeNull();
+    expect(view.needsFinanceReview).toBe(true);
+    expect(view.verdict).toBe("approval-needed");
+  });
+
+  it("hard-blocks when this plan's own cost exceeds the approved ceiling even without live actuals", () => {
+    const view = buildCategoryBudgetView(
+      "أسمدة",
+      { category: "أسمدة", planned: 100000, approved: 100000, committed: 0, actual: 0 },
+      { knownCost: 120000, unknownCostCount: 0, hasUnknownCost: false },
+      { actualSource: "unavailable", committedSource: "static" },
+    );
+
+    expect(view.available).toBe(100000);
+    expect(view.after).toBe(-20000);
+    expect(view.verdict).toBe("block");
+  });
+
+  it("warns for finance review instead of hard-blocking when no budget line exists", () => {
+    const view = buildCategoryBudgetView(
+      "عمليات أخرى",
+      null,
+      { knownCost: 2500, unknownCostCount: 0, hasUnknownCost: false },
+      { actualSource: "unavailable", committedSource: "static" },
+    );
+
+    expect(view.approved).toBe(0);
+    expect(view.after).toBe(-2500);
+    expect(view.needsFinanceReview).toBe(true);
+    expect(view.verdict).toBe("approval-needed");
+  });
+
+  it("uses the highest single budget scope ceiling instead of summing duplicates for hard-blocks", () => {
+    const byCategory = aggregateBudgetLinesByCategory([
+      { budget_id: "budget-1", category: "أسمدة", planned: 1000, approved: 1000, committed: 0, actual: 0 },
+      { budget_id: "budget-2", category: "أسمدة", planned: 1000, approved: 1000, committed: 0, actual: 0 },
+    ]);
+    const view = buildCategoryBudgetView(
+      "أسمدة",
+      byCategory.get("أسمدة"),
+      { knownCost: 1500, unknownCostCount: 0, hasUnknownCost: false },
+      { actualSource: "unavailable", committedSource: "static" },
+    );
+
+    expect(view.hasMultipleBudgetScopes).toBe(true);
+    expect(view.approved).toBe(1000);
+    expect(view.after).toBe(-500);
+    expect(view.verdict).toBe("block");
   });
 });
