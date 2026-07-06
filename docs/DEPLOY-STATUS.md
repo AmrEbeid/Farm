@@ -2,7 +2,21 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — planning dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — Plan 360 output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#841** merged to `main` at **`6f66cdd`** with no Supabase migration. Scope: print-ready
+> `/plans/[planId]`, CSV export for operations, operation-calendar snapshots, plan checks, and dose sign-off
+> state, with tab navigation, CSV controls, plan mutation actions, check runner, operation builder, template
+> picker, clone link, and sign-off controls hidden from printed output while KPIs, cycle state, alerts,
+> calendar, dose sign-off state, operation rows, and check results remain printable. Boundaries held: no
+> schema/RPC/data change, no Plan 360 query widening beyond the existing `ends_on` calendar read, no complete
+> historical planning export, no mutation-path change, and no permission widening. Validation: focused eslint,
+> export/filter/table/nav/help Vitest **38/38**, `tsc`, production build, GitHub `ci` and `db-tests` green,
+> Vercel preview `dpl_D6NATRTM3pyyXdxj8hEokBjAQnF6` READY with clean preview error logs, Vercel production
+> READY for `dpl_CQpu33M2i8xb6kYWCoTgJR3rHLk9`, build logs clean of errors, no production runtime errors,
+> and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200 with etag
+> `"bf4426ebde7b50c3c0549b44a17bfecb"`.
+
+> **2026-07-06 — planning dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#839** merged to `main` at **`43dfe9f`** with no Supabase migration. Scope: print-ready
 > `/plans/dashboard`, CSV export for attention plans, upcoming/due operation snapshots, and blocked checks, with
 > dashboard navigation, filter helper, search, and CSV controls hidden from printed output while KPIs, charts,
