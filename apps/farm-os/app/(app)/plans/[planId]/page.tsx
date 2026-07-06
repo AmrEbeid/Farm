@@ -18,8 +18,9 @@ import { OperationSignOff } from "@/components/OperationSignOff";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { PlanStatusActions } from "@/components/PlanStatusActions";
 import { PrintButton } from "@/components/print-button";
+import { ExportButton } from "@/components/ExportButton";
 import { POTASSIUM_ID } from "@/lib/nav";
-import { egpSummary, egpValue, num, pct, sumMoney } from "@/lib/money";
+import { egpSummary, moneyNumber, num, pct, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import {
   OP_STATUS_AR,
@@ -43,6 +44,12 @@ const CHECK_AR: Record<string, string> = {
   weather: "الطقس",
   labor: "العمالة",
   responsibility: "المسؤولية",
+};
+
+const CHECK_RESULT_AR: Record<string, string> = {
+  pass: "سليم",
+  warn: "منخفض",
+  block: "محظور",
 };
 
 // Plan status → semantic 360 pill. Real statuses live in PLAN_STATUS_AR
@@ -204,6 +211,21 @@ export default async function MonthlyPlanPage({
   // Dose-bearing ops (fertilization/spraying) needing agronomist sign-off (non-negotiable #4). This is
   // a GENERIC mechanism — it does not gate execution or the engine's demand in this slice.
   const signoffOps = (ops ?? []).filter((o) => isDoseBearingSubtype(o.subtype));
+  const signoffColumns: SimpleColumn[] = [
+    { id: "operation", header: "العملية" },
+    { id: "plannedAt", header: "التاريخ" },
+    { id: "status", header: "حالة الاعتماد" },
+    { id: "signedBy", header: "اعتمدها" },
+    { id: "signedAt", header: "وقت الاعتماد" },
+  ];
+  const signoffRows = signoffOps.map((o) => ({
+    id: o.id,
+    operation: SUBTYPE_AR[o.subtype ?? ""] ?? "عملية",
+    plannedAt: fmtDate(o.planned_at),
+    status: o.signed_off_at ? "معتمد" : "بانتظار الاعتماد",
+    signedBy: o.signed_off_by ? (nameById.get(o.signed_off_by) ?? "غير معروف") : "—",
+    signedAt: o.signed_off_at ? fmtDate(o.signed_off_at) : "—",
+  }));
 
   const opColumns: SimpleColumn[] = [
     { id: "subtype", header: "العملية" },
@@ -220,16 +242,31 @@ export default async function MonthlyPlanPage({
         />
       ),
     },
-    { id: "cost", header: "التكلفة", numeric: true },
+    { id: "cost", header: "التكلفة", numeric: true, kind: "money" },
     { id: "approval", header: "موافقة؟" },
     { id: "status", header: "الحالة", kind: "status" },
     { id: "dependency", header: "يعتمد على" },
   ];
+  const opExportColumns: SimpleColumn[] = [
+    { id: "subtype", header: "العملية" },
+    { id: "planned_at", header: "التاريخ" },
+    { id: "assignees", header: "المكلّفون" },
+    { id: "cost", header: "التكلفة" },
+    { id: "approval", header: "موافقة؟" },
+    { id: "status", header: "الحالة" },
+    { id: "dependency", header: "يعتمد على" },
+  ];
+  const assigneeNames = (opId: string) => {
+    const list = assigneesByOp.get(opId) ?? [];
+    if (list.length === 0) return "—";
+    return list.map((a) => (a.isLead ? `${a.name} (مسؤول)` : a.name)).join("؛ ");
+  };
   const opRows = (ops ?? []).map((o) => ({
     id: o.id,
     subtype: opLabel(o),
     planned_at: fmtDate(o.planned_at),
-    cost: egpValue(o.est_cost),
+    assignees: assigneeNames(o.id),
+    cost: moneyNumber(o.est_cost) ?? undefined,
     approval: o.approval_needed ? "نعم" : "لا",
     status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
     dependency: dependencyNote(o) || "—",
@@ -341,8 +378,36 @@ export default async function MonthlyPlanPage({
     href: `/plans/${planId}?tab=operations`,
     tone: o.status === "done" ? "ok" : dueOps.some((d) => d.id === o.id) ? "warn" : "active",
   }));
+  const calendarColumns: SimpleColumn[] = [
+    { id: "operation", header: "العملية" },
+    { id: "startsOn", header: "تاريخ البداية" },
+    { id: "endsOn", header: "تاريخ النهاية" },
+    { id: "status", header: "الحالة" },
+    { id: "dependency", header: "يعتمد على" },
+  ];
+  const calendarRows = allOps.map((o) => {
+    const endDate = endsById.get(o.id);
+    return {
+      id: o.id,
+      operation: opLabel(o),
+      startsOn: o.planned_at ? String(o.planned_at).slice(0, 10) : undefined,
+      endsOn: endDate ? String(endDate).slice(0, 10) : undefined,
+      status: OP_STATUS_AR[o.status ?? "planned"] ?? "غير معروف",
+      dependency: dependencyNote(o) || "—",
+    };
+  });
   const calStart = plan.period_start ? String(plan.period_start).slice(0, 10) : null;
   const calEnd = plan.period_end ? String(plan.period_end).slice(0, 10) : null;
+
+  const checkColumns: SimpleColumn[] = [
+    { id: "kind", header: "الفحص" },
+    { id: "result", header: "النتيجة" },
+  ];
+  const checkRows = (checks ?? []).map((c) => ({
+    id: c.kind,
+    kind: CHECK_AR[c.kind] ?? "غير معروف",
+    result: CHECK_RESULT_AR[c.result ?? ""] ?? "غير معروف",
+  }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -486,6 +551,14 @@ export default async function MonthlyPlanPage({
         >
           {calStart && calEnd && calendarItems.length > 0 && (
             <Card title="تقويم الخطة">
+              <div className="no-print mb-3 flex justify-end">
+                <ExportButton
+                  rows={calendarRows}
+                  columns={calendarColumns}
+                  filename={`plan-${planId}-calendar`}
+                  label="تصدير تقويم الخطة CSV"
+                />
+              </div>
               <OpsCalendar start={calStart} end={calEnd} items={calendarItems} todayIso={todayStr} />
             </Card>
           )}
@@ -494,6 +567,14 @@ export default async function MonthlyPlanPage({
             // is a TEMPLATE, not a prescription, until a named agronomist signs off. This is the
             // GENERIC mechanism only — execution/engine behaviour is unchanged by this state.
             <Card title="اعتماد العمليات ذات الجرعات">
+              <div className="no-print mb-3 flex justify-end">
+                <ExportButton
+                  rows={signoffRows}
+                  columns={signoffColumns}
+                  filename={`plan-${planId}-dose-signoffs`}
+                  label="تصدير اعتمادات الجرعات CSV"
+                />
+              </div>
               <ul className="flex flex-col gap-3">
                 {signoffOps.map((o) => (
                   <li
@@ -517,6 +598,14 @@ export default async function MonthlyPlanPage({
             </Card>
           )}
           <Card title="العمليات المخطّطة">
+            <div className="no-print mb-3 flex justify-end">
+              <ExportButton
+                rows={opRows}
+                columns={opExportColumns}
+                filename={`plan-${planId}-operations`}
+                label="تصدير عمليات الخطة CSV"
+              />
+            </div>
             <SimpleTable columns={opColumns} rows={opRows} ariaLabel="العمليات المخطّطة" empty="لا توجد عمليات بعد" />
           </Card>
         </div>
@@ -530,6 +619,14 @@ export default async function MonthlyPlanPage({
           tabIndex={0}
         >
           <Card title="فحوصات الخطة">
+            <div className="no-print mb-3 flex justify-end">
+              <ExportButton
+                rows={checkRows}
+                columns={checkColumns}
+                filename={`plan-${planId}-checks`}
+                label="تصدير فحوصات الخطة CSV"
+              />
+            </div>
             <ul className="flex flex-col gap-2">
               {(checks ?? []).map((c) => (
                 <li key={c.kind} className="flex items-center justify-between">
