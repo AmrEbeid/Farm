@@ -2,7 +2,22 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — balance-sheet server PDF download LIVE; prod migration head remains `20260706180856`.**
+> **2026-07-06 (latest) — finance statement PDF package LIVE; prod migration head remains `20260706180856`.**
+> PR **#859** merged to `main` at **`d157246`** with no Supabase migration. Scope: `/finance/income-statement`,
+> `/finance/balance-sheet`, and the clean `/finance/close` handoff now expose an owner/accountant-only server
+> PDF package download backed by the existing posted income-statement and balance-sheet RPCs. The new
+> `/api/finance/statements.pdf` route repeats owner/accountant authorization, uses the session/RLS Supabase client,
+> renders bundled Noto Naskh Arabic fonts inside the Vercel function, serves successful responses as
+> `application/pdf`, and returns `Cache-Control: no-store` for auth errors. Boundaries held: no schema/RPC/data
+> change, no query widening, no permission widening, no storage/archive/email/WhatsApp delivery, no electronic
+> signature workflow, and budget-vs-actual remains a separate print/CSV report. Validation: focused eslint,
+> full `farm-os` Vitest **588/588**, `tsc`, production build, Recharts bundle guard, server/client guard, GitHub
+> `ci` and `db-tests` green, CodeRabbit green, Vercel preview green, Vercel production READY for
+> `dpl_8xDGcfKpSezAAHhE5Tt5QgEaVLuy`, aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200 with
+> etag `"46f7b801dc055b7481ee2a75fbcaa5de"`, and both public PDF endpoints returned unauthenticated 401 with
+> `Cache-Control: no-store`.
+
+> **2026-07-06 — balance-sheet server PDF download LIVE; prod migration head remains `20260706180856`.**
 > PR **#856** merged to `main` at **`50fe1d0`** and PR **#857** merged at **`0b78d65`**, both with no Supabase
 > migration. Scope: `/finance/balance-sheet` now has an owner/accountant-only server-generated PDF download backed
 > by the existing posted/as-of balance-sheet RPC, with bundled Noto Naskh Arabic fonts traced into the Vercel
