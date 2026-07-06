@@ -7,6 +7,9 @@ operations development plan that came out of this review).*
 
 > 2026-07-06 status note: the `middleware.ts` → `proxy.ts` hygiene item called out below was
 > completed and deployed in PR #773. The rest of this document remains a 2026-07-01 snapshot.
+> 2026-07-06 status note: item #1 was resolved by migration
+> `20260706084915_restrict_expense_drawings_read.sql` plus app-layer drawing guards on `/expenses`,
+> `/expenses/[expenseId]`, and `/finance/dashboard`.
 
 ## Verdict at a glance
 
@@ -29,6 +32,8 @@ and easy" is mostly **product depth + cross‑cutting UX consistency**, plus a h
    `farm_manager` (the dashboard even renders a "مسحوبات مالك معروضة" KPI). This contradicts `budgets/[budgetId]/page.tsx:35`
    which calls the same ledger "private finance data scoped to owner/accountant." Touches non‑negotiable #6. Fix:
    filter `kind='drawing'` to owner/accountant, or add `authorize('finance.read', org_id)` to the `expenses` USING clause.
+   **Resolved 2026-07-06:** drawing rows are now hidden by RLS unless `authorize('finance.read', org_id)` passes,
+   and the three UI surfaces hide/normalize drawing views for non-finance roles.
 2. **[Engine UI — Inventory] "Warning‑only" recommendation is a green dead‑end.** When the engine returns
    `shortage=false` + `recommend_qty>0` + `first_warning_period`, the coverage page shows a green "مغطّى" pill, a
    green banner around a ⚠️ shortage sentence, and **hides the Create‑PR button** (`coverage/page.tsx:108,120,148`).
@@ -50,7 +55,7 @@ and easy" is mostly **product depth + cross‑cutting UX consistency**, plus a h
 | Farm structure/map | 3.5 | 5 | 3.5 | Stored palm counts can diverge from `assets` (trust); **no search across 4,380 palms**; croquis is a schematic not a map |
 | Planning/Ops | 3 | 4.5 | 3.5 | "Offline‑tolerant" not implemented; no agronomist sign‑off (#4); `/m` a flat list — see **SPEC‑0019** |
 | Inventory/Engine | 3 | 4 | 3.5 | Items #2–#3 above; verdict message hardcodes "كجم"/"الأسبوع القادم" regardless of unit/period |
-| Finance | 4 | 4 | 4 | Drawings/opex separation **DB‑enforced** (strong); item #1 above; no P&L view; dashboard totals are a 12‑row sample |
+| Finance | 4 | 4 | 4 | Drawings/opex separation **DB‑enforced** (strong); item #1 resolved 2026-07-06; no P&L view; dashboard totals are a 12‑row sample |
 | People | 2 | 5 | 3 | PII posture best‑in‑class, but a read‑only 6‑person directory — no crew onboarding/attendance/day‑rate cost; payroll engine orphaned |
 | Weather | 3 | 5 | 4 | Honestly degrades to empty (no fake data ✓); **no frost gate**; "editable thresholds" has no editor |
 | Settings/Admin | 4 | 4 | 4 | Import route well‑guarded; seed‑auth double‑gated vs prod; import not idempotent across retries; dashboard `people` query not org‑scoped |
@@ -88,7 +93,7 @@ P&L); one‑click professional PDF reports. **P1:** WhatsApp channel (highest‑
 (the biggest "premium" visual signal); red‑palm‑weevil pest alerts; GlobalGAP/export traceability; guided onboarding.
 
 ## Prioritized roadmap (product‑wide)
-- **P0 — correctness & trust:** Finance drawings visibility (#1); engine warning‑only dead‑end + list/engine
+- **P0 — correctness & trust:** Finance drawings visibility (#1, resolved 2026-07-06); engine warning‑only dead‑end + list/engine
   unification (#2–3); manager dashboard real query + palm‑count reconciliation (#5); operations multi‑material fix
   + soften the offline claim + agronomist gate (SPEC‑0019 P0).
 - **P1 — "feels premium":** ⌘K palette + search; DS toasts + confirm dialogs; kill the nav fork; per‑route

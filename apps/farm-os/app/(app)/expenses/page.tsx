@@ -42,6 +42,8 @@ export default async function ExpensesListPage({
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
   const filter = parseExpenseFilter((await searchParams).filter);
+  const canSeeOwnerDrawings = m.role === "owner" || m.role === "accountant";
+  const effectiveFilter = !canSeeOwnerDrawings && filter === "drawing" ? "all" : filter;
 
   const [{ data: expenses, error }, { data: suppliers }, { data: accounts }] = await Promise.all([
     sb
@@ -56,7 +58,7 @@ export default async function ExpensesListPage({
   ]);
   if (error) throw error;
 
-  const all = expenses ?? [];
+  const all = (expenses ?? []).filter((e) => canSeeOwnerDrawings || e.kind !== "drawing");
   const monthStart = new Date();
   monthStart.setDate(1);
   const monthStartStr = monthStart.toISOString().slice(0, 10);
@@ -74,7 +76,9 @@ export default async function ExpensesListPage({
     { key: "all", label: "كل المصروفات", value: all.length },
     { key: "month", label: "هذا الشهر", value: all.filter(isThisMonth).length },
     { key: "operating", label: "تشغيلي", value: all.filter((e) => (e.kind ?? "operating") === "operating").length },
-    { key: "drawing", label: "مسحوبات", value: all.filter((e) => e.kind === "drawing").length },
+    ...(canSeeOwnerDrawings
+      ? [{ key: "drawing" as ExpenseFilter, label: "مسحوبات", value: all.filter((e) => e.kind === "drawing").length }]
+      : []),
     { key: "unrouted", label: "غير موجّهة للسداد", value: all.filter(isUnrouted).length, danger: true },
     { key: "unclassified", label: "بدون حساب", value: all.filter(isUnclassified).length, danger: true },
     { key: "uncentered", label: "بدون مركز تكلفة", value: all.filter(isUncentered).length, danger: true },
@@ -103,17 +107,17 @@ export default async function ExpensesListPage({
 
   const rows = all
     .filter((e) =>
-      filter === "month"
+      effectiveFilter === "month"
         ? isThisMonth(e)
-        : filter === "operating"
+        : effectiveFilter === "operating"
           ? (e.kind ?? "operating") === "operating"
-          : filter === "drawing"
+          : effectiveFilter === "drawing"
             ? e.kind === "drawing"
-            : filter === "unrouted"
+            : effectiveFilter === "unrouted"
               ? isUnrouted(e)
-              : filter === "unclassified"
+              : effectiveFilter === "unclassified"
                 ? isUnclassified(e)
-                : filter === "uncentered"
+                : effectiveFilter === "uncentered"
                   ? isUncentered(e)
               : true,
     )
@@ -141,7 +145,7 @@ export default async function ExpensesListPage({
           <DashboardKpiLink
             key={chip.key}
             href={chip.key === "all" ? "/expenses" : `/expenses?filter=${chip.key}`}
-            active={filter === chip.key}
+            active={effectiveFilter === chip.key}
           >
             <KpiCard
               label={chip.label}
@@ -152,7 +156,7 @@ export default async function ExpensesListPage({
         ))}
         {/* Display-only real SUMs (full ledger, not a sample); drawings stay separate (#6). */}
         <KpiCard label="مصروفات هذا الشهر (بدون مسحوبات)" value={egp(monthOperating)} />
-        <KpiCard label="مسحوبات هذا الشهر" value={egp(monthDrawings)} />
+        {canSeeOwnerDrawings && <KpiCard label="مسحوبات هذا الشهر" value={egp(monthDrawings)} />}
       </div>
 
       {WRITE_ROLES.includes(m.role) && (
@@ -165,7 +169,7 @@ export default async function ExpensesListPage({
         ariaLabel="المصروفات"
         columns={columns}
         rows={rows}
-        empty={filter === "all" ? "لا توجد مصروفات مسجّلة" : "لا مصروفات مطابقة لهذا الفلتر"}
+        empty={effectiveFilter === "all" ? "لا توجد مصروفات مسجّلة" : "لا مصروفات مطابقة لهذا الفلتر"}
         searchColumns={["category", "kind", "account", "description", "supplier"]}
         placeholder="ابحث في المصروفات…"
         exportFilename="expenses"

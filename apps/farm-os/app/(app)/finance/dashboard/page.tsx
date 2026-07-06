@@ -43,10 +43,11 @@ export default async function FinanceDashboardPage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  const { filter = "all" } = await searchParams;
+  const { filter: requestedFilter = "all" } = await searchParams;
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
   const canSeeAccounting = m.role === "owner" || m.role === "accountant";
+  const filter = !canSeeAccounting && requestedFilter === "drawings" ? "all" : requestedFilter;
 
   const [
     { data: budgets, error: budgetsError },
@@ -170,7 +171,7 @@ export default async function FinanceDashboardPage({
   const expenseKindRows = (expenses ?? []).map((expense) => ({
     expense,
     kind: (expense.kind ?? "operating") as ExpenseKind,
-  }));
+  })).filter((row) => canSeeAccounting || row.kind !== "drawing");
   // Operating and drawings are each their own kind; capex is neither, so it is excluded from both totals.
   const ownerDrawingsTotal = expenseKindRows
     .filter((row) => row.kind === "drawing")
@@ -389,9 +390,11 @@ export default async function FinanceDashboardPage({
         <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
           <KpiCard label="المتاح" value={egp(available)} deltaDirection={available < 0 ? "down" : "none"} />
         </DashboardKpiLink>
-        <DashboardKpiLink href="/finance/dashboard?filter=drawings" active={filter === "drawings"}>
-          <KpiCard label="مسحوبات مالك معروضة" value={egp(ownerDrawingsTotal)} />
-        </DashboardKpiLink>
+        {canSeeAccounting && (
+          <DashboardKpiLink href="/finance/dashboard?filter=drawings" active={filter === "drawings"}>
+            <KpiCard label="مسحوبات مالك معروضة" value={egp(ownerDrawingsTotal)} />
+          </DashboardKpiLink>
+        )}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
