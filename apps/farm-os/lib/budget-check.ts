@@ -94,11 +94,86 @@ export function worstBudgetVerdict(results: Array<"ok" | "warn" | "block">): "ok
 }
 
 export interface BudgetLineRow {
+  budget_id?: string | null;
   category?: string | null;
   planned?: number | string | null;
   approved?: number | string | null;
   committed?: number | string | null;
   actual?: number | string | null;
+  lineCount?: number;
+  budgetScopeCount?: number;
+  hasMultipleBudgetScopes?: boolean;
+  maxPlanned?: number;
+  maxApproved?: number;
+  maxCommitted?: number;
+  maxActual?: number;
+}
+
+export interface BudgetLineAggregate extends BudgetLineRow {
+  lineCount: number;
+  budgetScopeCount: number;
+  hasMultipleBudgetScopes: boolean;
+  maxPlanned: number;
+  maxApproved: number;
+  maxCommitted: number;
+  maxActual: number;
+}
+
+export function aggregateBudgetLinesByCategory(lines: BudgetLineRow[]): Map<string, BudgetLineAggregate> {
+  const byCategory = new Map<string, BudgetLineAggregate>();
+  const budgetIdsByCategory = new Map<string, Set<string>>();
+  for (const line of lines) {
+    const category = line.category;
+    if (!category) continue;
+    const planned = Number(line.planned ?? 0);
+    const approved = Number(line.approved ?? 0);
+    const committed = Number(line.committed ?? 0);
+    const actual = Number(line.actual ?? 0);
+    const prev = byCategory.get(category) ?? {
+      category,
+      planned: 0,
+      approved: 0,
+      committed: 0,
+      actual: 0,
+      lineCount: 0,
+      budgetScopeCount: 0,
+      hasMultipleBudgetScopes: false,
+      maxPlanned: 0,
+      maxApproved: 0,
+      maxCommitted: 0,
+      maxActual: 0,
+    };
+    const budgetIds = budgetIdsByCategory.get(category) ?? new Set<string>();
+    if (line.budget_id) budgetIds.add(line.budget_id);
+    budgetIdsByCategory.set(category, budgetIds);
+    const lineCount = prev.lineCount + 1;
+    // If the query did not select budget_id, duplicate rows are still ambiguous scopes.
+    const budgetScopeCount = budgetIds.size || lineCount;
+    byCategory.set(category, {
+      category,
+      planned: Number(prev.planned ?? 0) + planned,
+      approved: Number(prev.approved ?? 0) + approved,
+      committed: Number(prev.committed ?? 0) + committed,
+      actual: Number(prev.actual ?? 0) + actual,
+      lineCount,
+      budgetScopeCount,
+      hasMultipleBudgetScopes: budgetScopeCount > 1,
+      maxPlanned: Math.max(prev.maxPlanned, planned),
+      maxApproved: Math.max(prev.maxApproved, approved),
+      maxCommitted: Math.max(prev.maxCommitted, committed),
+      maxActual: Math.max(prev.maxActual, actual),
+    });
+  }
+  return byCategory;
+}
+
+export type BudgetActualSource = "live" | "static" | "unavailable";
+export type BudgetCommittedSource = "live" | "static";
+
+export interface BudgetStateBasis {
+  actual?: number | string | null;
+  actualSource?: BudgetActualSource;
+  committedSource?: BudgetCommittedSource;
 }
 
 export interface CategoryBudgetView {
@@ -106,7 +181,12 @@ export interface CategoryBudgetView {
   planned: number;
   approved: number;
   committed: number;
-  actual: number;
+  budgetLineCount: number;
+  budgetScopeCount: number;
+  hasMultipleBudgetScopes: boolean;
+  committedSource: BudgetCommittedSource;
+  actual: number | null;
+  actualSource: BudgetActualSource;
   available: number;
   thisOp: number;
   after: number;
@@ -115,40 +195,71 @@ export interface CategoryBudgetView {
   verdict: "block" | "approval-needed" | "ok";
   hasUnknownCost: boolean;
   unknownCostCount: number;
+  needsFinanceReview: boolean;
 }
 
 /**
  * Build the richer PR-approval-routing view (ok/approval-needed/block — distinct from the
  * plan_checks ok/warn/block vocabulary) used by /budget/[planId]/check. A missing budget_lines
- * row (line == null) is treated as planned=approved=committed=actual=0 — same safe default the
- * page always used for an unconfigured category.
+ * row is shown as planned=approved=committed=actual=0, but it is not treated as an explicit
+ * zero-approved ceiling; costed work with no configured line needs finance review instead. When
+ * several budget scopes are returned for one category, the hard-block ceiling uses the highest
+ * single approved candidate, not the sum, so duplicate periods/budgets cannot dilute a block.
+ *
+ * Until Decision-0157 lands a canonical plan→budget scope and live committed/actual basis, plan
+ * budget checks must not claim a clean green pass from frozen budget_lines.committed/actual values.
+ * The safe current behaviour is: hard-block only when this plan's own known cost exceeds the
+ * approved ceiling by itself; otherwise require finance review for costed operations.
  */
 export function buildCategoryBudgetView(
   category: string,
   line: BudgetLineRow | null | undefined,
   costSummary: PlannedCostSummary,
+  basis: BudgetStateBasis = {},
 ): CategoryBudgetView {
-  const planned = Number(line?.planned ?? 0);
-  const approved = Number(line?.approved ?? 0);
-  const committed = Number(line?.committed ?? 0);
-  const actual = Number(line?.actual ?? 0);
-  const available = approved - committed - actual;
+  const hasMultipleBudgetScopes = Boolean(line?.hasMultipleBudgetScopes);
+  const budgetLineCount = line?.lineCount ?? (line ? 1 : 0);
+  const budgetScopeCount = line?.budgetScopeCount ?? (line ? 1 : 0);
+  const planned = Number(hasMultipleBudgetScopes ? (line?.maxPlanned ?? 0) : (line?.planned ?? 0));
+  const approved = Number(hasMultipleBudgetScopes ? (line?.maxApproved ?? 0) : (line?.approved ?? 0));
+  const hasApprovedCeiling = line?.approved != null;
+  const committed = Number(hasMultipleBudgetScopes ? (line?.maxCommitted ?? 0) : (line?.committed ?? 0));
+  const committedSource = basis.committedSource ?? "static";
+  const actualSource = basis.actualSource ?? "static";
+  const actual =
+    actualSource === "unavailable"
+      ? null
+      : Number(actualSource === "live" ? (basis.actual ?? 0) : (hasMultipleBudgetScopes ? (line?.maxActual ?? 0) : (line?.actual ?? 0)));
+  const actualForMath = actual ?? 0;
+  const committedForMath = committedSource === "live" ? committed : 0;
+  const available = approved - committedForMath - actualForMath;
   const thisOp = costSummary.knownCost;
   const after = available - thisOp;
-  const utilization = approved > 0 ? Math.round(((committed + actual) / approved) * 100) : 0;
+  const utilization = approved > 0 ? Math.round(((committedForMath + actualForMath) / approved) * 100) : 0;
   // Utilization AFTER committing this category's planned cost — the same "would this push us
   // past the comfort threshold" question the old أسمدة-only page asked, now per category.
   const utilizationAfter =
-    approved > 0 ? Math.round(((committed + thisOp + actual) / approved) * 100) : 0;
+    approved > 0 ? Math.round(((committedForMath + thisOp + actualForMath) / approved) * 100) : 0;
+  const needsFinanceReview =
+    thisOp > 0 && (actualSource !== "live" || committedSource !== "live");
   const verdict: CategoryBudgetView["verdict"] =
-    after < 0 ? "block" : costSummary.hasUnknownCost || utilizationAfter > 90 ? "approval-needed" : "ok";
+    hasApprovedCeiling && after < 0
+      ? "block"
+      : costSummary.hasUnknownCost || needsFinanceReview || utilizationAfter > 90
+        ? "approval-needed"
+        : "ok";
 
   return {
     category,
     planned,
     approved,
     committed,
+    budgetLineCount,
+    budgetScopeCount,
+    hasMultipleBudgetScopes,
+    committedSource,
     actual,
+    actualSource,
     available,
     thisOp,
     after,
@@ -157,6 +268,7 @@ export function buildCategoryBudgetView(
     verdict,
     hasUnknownCost: costSummary.hasUnknownCost,
     unknownCostCount: costSummary.unknownCostCount,
+    needsFinanceReview,
   };
 }
 
@@ -169,6 +281,9 @@ export function budgetVerdictTextAr(v: CategoryBudgetView): string {
   if (v.hasUnknownCost) {
     return `⚠️ توجد ${v.unknownCostCount} عملية (بند ${v.category}) بلا تكلفة تقديرية — لا يمكن اعتبارها مجانية، ويتطلب ذلك مراجعة المالك/المحاسب.`;
   }
+  if (v.needsFinanceReview) {
+    return `⚠️ فحص بند ${v.category} يحتاج مراجعة مالية لأن الالتزامات الحية غير مربوطة هنا بعد.`;
+  }
   if (v.verdict === "approval-needed") {
     return `⚠️ الموازنة منخفضة (${pct(v.utilizationAfter)} بعد هذه العملية) — يتطلب اعتماد المالك.`;
   }
@@ -177,7 +292,13 @@ export function budgetVerdictTextAr(v: CategoryBudgetView): string {
 
 /** Arabic PR-routing text for a single category's view. */
 export function budgetRoutingTextAr(v: CategoryBudgetView): string {
+  if (v.verdict === "block") {
+    return `تتجاوز هذه العملية حدود بند ${v.category}، لذا يجب توجيه طلب الشراء إلى المالك للاعتماد (فصل الواجبات: لا يعتمد مقدّم الطلب طلبه).`;
+  }
+  if (v.needsFinanceReview) {
+    return `لا يمكن اعتبار فحص بند ${v.category} تمريرًا نهائيًا لأن الالتزامات/الفعلي الحي غير مثبتين في بوابة الخطة بعد، لذلك يجب مراجعة الطلب قبل الاعتماد.`;
+  }
   return v.hasUnknownCost
     ? `لا يمكن تأكيد كفاية الموازنة لأن تكلفة بعض عمليات بند ${v.category} غير معروفة، لذلك يجب مراجعة الطلب قبل الاعتماد.`
-    : `تتجاوز هذه العملية حدود بند ${v.category}، لذا يجب توجيه طلب الشراء إلى المالك للاعتماد (فصل الواجبات: لا يعتمد مقدّم الطلب طلبه).`;
+    : `تحتاج موازنة بند ${v.category} إلى مراجعة قبل الاعتماد.`;
 }
