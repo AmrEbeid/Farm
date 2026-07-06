@@ -8,6 +8,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { EXPENSE_KIND_AR, REQUEST_STATUS_AR } from "@/lib/labels";
+import { PrintButton } from "@/components/print-button";
 
 type CustodyHolderReportRow = {
   custody_account_id: string;
@@ -224,6 +225,7 @@ export default async function FinanceCustodyReportsPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <PrintButton label="طباعة التقرير" />
           <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
           <HeaderLink href="/custody">العهدة وطلبات الصرف</HeaderLink>
           <HeaderLink href="/accounting">المحاسبة</HeaderLink>
@@ -277,7 +279,7 @@ export default async function FinanceCustodyReportsPage({
             columns={holderColumns}
             rows={holderRows}
             ariaLabel="العهدة حسب الشخص"
-            exportFilename="custody holders report.csv"
+            exportFilename={`custody-holders-${start}-to-${end}.csv`}
             minRowsForSearch={1}
           />
         ) : (
@@ -291,7 +293,7 @@ export default async function FinanceCustodyReportsPage({
             columns={movementColumns}
             rows={movementRows}
             ariaLabel="سجل حركات العهدة في الفترة"
-            exportFilename="custody ledger report.csv"
+            exportFilename={`custody-ledger-${start}-to-${end}.csv`}
             minRowsForSearch={1}
           />
         ) : (
@@ -305,7 +307,7 @@ export default async function FinanceCustodyReportsPage({
             columns={cashColumns}
             rows={cashRows}
             ariaLabel="مصروفات مدفوعة من العهدة"
-            exportFilename="custody cash expenses report.csv"
+            exportFilename={`custody-cash-expenses-${start}-to-${end}.csv`}
             minRowsForSearch={1}
           />
         ) : (
@@ -319,7 +321,7 @@ export default async function FinanceCustodyReportsPage({
             columns={obligationColumns}
             rows={obligationRows}
             ariaLabel="التزامات آجلة غير مدفوعة"
-            exportFilename="unpaid obligations report.csv"
+            exportFilename={`unpaid-obligations-${asOf}.csv`}
             minRowsForSearch={1}
           />
         ) : (
@@ -333,7 +335,7 @@ export default async function FinanceCustodyReportsPage({
             columns={fundingColumns}
             rows={fundingRows}
             ariaLabel="تمويل المالك والتغذية"
-            exportFilename="owner funding replenishment report.csv"
+            exportFilename={`owner-funding-${start}-to-${end}.csv`}
             minRowsForSearch={1}
           />
         ) : (

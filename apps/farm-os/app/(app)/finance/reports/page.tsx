@@ -9,6 +9,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { CategoryBarChart, MultiInsightChart, TrendLineChart } from "@/components/charts";
 import { egp, num } from "@/lib/money";
 import { StoryLine } from "@/components/StoryLine";
+import { PrintButton } from "@/components/print-button";
 
 type CostCenterRollupRow = {
   org_id: string;
@@ -177,6 +178,7 @@ export default async function FinanceReportsPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <PrintButton label="طباعة التقرير" />
           <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
           <HeaderLink href="/finance/accounts">شجرة الحسابات</HeaderLink>
           <HeaderLink href="/accounting">المحاسبة</HeaderLink>

@@ -12,6 +12,7 @@ import { fmtDate } from "@/lib/dates";
 import { parseBalanceSheet, type BalanceSheetLine } from "@/lib/balance-sheet";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
+import { PrintButton } from "@/components/print-button";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -52,11 +53,14 @@ export default async function FinanceBalanceSheetPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold">قائمة المركز المالي</h1>
-        <p style={mutedStyle}>
-          صورة فعلية من القيود المُرحّلة حتى {fmtDate(bs.asOf ?? asOf)} — الموارد والالتزامات وحقوق المالك.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-bold">قائمة المركز المالي</h1>
+          <p style={mutedStyle}>
+            صورة فعلية من القيود المُرحّلة حتى {fmtDate(bs.asOf ?? asOf)} — الموارد والالتزامات وحقوق المالك.
+          </p>
+        </div>
+        <PrintButton label="طباعة القائمة" />
       </header>
 
       <Card title="التاريخ">
@@ -103,7 +107,12 @@ export default async function FinanceBalanceSheetPage({
 
       <Card title={`الموارد — ${egp(bs.assetsTotal)}`}>
         {bs.assets.length ? (
-          <FilterableTable columns={sectionColumns} rows={toRows(bs.assets)} ariaLabel="الموارد" exportFilename="balance-sheet-assets" />
+          <FilterableTable
+            columns={sectionColumns}
+            rows={toRows(bs.assets)}
+            ariaLabel="الموارد"
+            exportFilename={`balance-sheet-assets-${asOf}.csv`}
+          />
         ) : (
           <EmptyState title="لا موارد بأرصدة حتى هذا التاريخ" />
         )}
@@ -111,7 +120,12 @@ export default async function FinanceBalanceSheetPage({
 
       <Card title={`الالتزامات — ${egp(bs.liabilitiesTotal)}`}>
         {bs.liabilities.length ? (
-          <FilterableTable columns={sectionColumns} rows={toRows(bs.liabilities)} ariaLabel="الالتزامات" exportFilename="balance-sheet-liabilities" />
+          <FilterableTable
+            columns={sectionColumns}
+            rows={toRows(bs.liabilities)}
+            ariaLabel="الالتزامات"
+            exportFilename={`balance-sheet-liabilities-${asOf}.csv`}
+          />
         ) : (
           <EmptyState title="لا التزامات حتى هذا التاريخ" />
         )}
@@ -119,7 +133,12 @@ export default async function FinanceBalanceSheetPage({
 
       <Card title={`حقوق المالك — ${egp(bs.equityTotal)}`} subtitle={`منها مسحوبات المالك: ${egp(bs.drawingsTotal)}`}>
         {bs.equity.length ? (
-          <FilterableTable columns={sectionColumns} rows={toRows(bs.equity)} ariaLabel="حقوق المالك" exportFilename="balance-sheet-equity" />
+          <FilterableTable
+            columns={sectionColumns}
+            rows={toRows(bs.equity)}
+            ariaLabel="حقوق المالك"
+            exportFilename={`balance-sheet-equity-${asOf}.csv`}
+          />
         ) : (
           <EmptyState title="لا حقوق مالك حتى هذا التاريخ" />
         )}

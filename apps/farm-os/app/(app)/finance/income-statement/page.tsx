@@ -12,6 +12,7 @@ import { fmtDate } from "@/lib/dates";
 import { parseIncomeStatement, type IncomeStatementLine } from "@/lib/income-statement";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
+import { PrintButton } from "@/components/print-button";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -49,12 +50,15 @@ export default async function FinanceIncomeStatementPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold">قائمة الدخل (الأرباح والخسائر)</h1>
-        <p style={mutedStyle}>
-          الإيرادات ناقص المصروفات للفترة من {fmtDate(is.periodStart ?? start)} إلى {fmtDate(is.periodEnd ?? end)} —
-          من واقع القيود المُرحّلة. مسحوبات المالك ليست مصروفًا ولا تظهر هنا.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-bold">قائمة الدخل (الأرباح والخسائر)</h1>
+          <p style={mutedStyle}>
+            الإيرادات ناقص المصروفات للفترة من {fmtDate(is.periodStart ?? start)} إلى {fmtDate(is.periodEnd ?? end)} —
+            من واقع القيود المُرحّلة. مسحوبات المالك ليست مصروفًا ولا تظهر هنا.
+          </p>
+        </div>
+        <PrintButton label="طباعة القائمة" />
       </header>
 
       <Card title="الفترة">
@@ -96,7 +100,12 @@ export default async function FinanceIncomeStatementPage({
 
       <Card title={`الإيرادات — ${egp(hasActivity ? is.revenueTotal : null)}`}>
         {is.revenue.length ? (
-          <FilterableTable columns={lineColumns} rows={toRows(is.revenue)} ariaLabel="الإيرادات" exportFilename="income-statement-revenue" />
+          <FilterableTable
+            columns={lineColumns}
+            rows={toRows(is.revenue)}
+            ariaLabel="الإيرادات"
+            exportFilename={`income-statement-revenue-${start}-to-${end}.csv`}
+          />
         ) : (
           <EmptyState title="لا إيرادات مُرحّلة في هذه الفترة" />
         )}
@@ -104,7 +113,12 @@ export default async function FinanceIncomeStatementPage({
 
       <Card title={`المصروفات — ${egp(hasActivity ? is.expensesTotal : null)}`}>
         {is.expenses.length ? (
-          <FilterableTable columns={lineColumns} rows={toRows(is.expenses)} ariaLabel="المصروفات" exportFilename="income-statement-expenses" />
+          <FilterableTable
+            columns={lineColumns}
+            rows={toRows(is.expenses)}
+            ariaLabel="المصروفات"
+            exportFilename={`income-statement-expenses-${start}-to-${end}.csv`}
+          />
         ) : (
           <EmptyState title="لا مصروفات مُرحّلة في هذه الفترة" />
         )}

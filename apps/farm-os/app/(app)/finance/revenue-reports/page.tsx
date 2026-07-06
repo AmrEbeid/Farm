@@ -10,6 +10,7 @@ import { ImportPanel } from "@/components/import/ImportPanel";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
 import { StoryLine } from "@/components/StoryLine";
+import { PrintButton } from "@/components/print-button";
 
 type RevenueSaleRow = {
   sale_id: string;
@@ -257,6 +258,7 @@ export default async function FinanceRevenueReportsPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <PrintButton label="طباعة التقرير" />
           <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
           <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>
           <HeaderLink href="/accounting">المحاسبة</HeaderLink>
@@ -358,7 +360,7 @@ export default async function FinanceRevenueReportsPage({
               columns={buyerColumns}
               rows={buyerRows}
               ariaLabel="الإيراد حسب العميل"
-              exportFilename="revenue by buyer.csv"
+              exportFilename={`revenue-by-buyer-${start}-to-${end}.csv`}
               minRowsForSearch={1}
             />
           ) : (
@@ -371,7 +373,7 @@ export default async function FinanceRevenueReportsPage({
               columns={cropColumns}
               rows={cropRows}
               ariaLabel="الإيراد حسب المحصول والموسم"
-              exportFilename="revenue by crop season.csv"
+              exportFilename={`revenue-by-crop-season-${start}-to-${end}.csv`}
               minRowsForSearch={1}
             />
           ) : (
@@ -386,7 +388,7 @@ export default async function FinanceRevenueReportsPage({
             columns={saleColumns}
             rows={salesRows}
             ariaLabel="المبيعات والتسليمات في الفترة"
-            exportFilename="revenue sales report.csv"
+            exportFilename={`revenue-sales-${start}-to-${end}.csv`}
             minRowsForSearch={1}
           />
         ) : (
@@ -400,7 +402,7 @@ export default async function FinanceRevenueReportsPage({
             columns={arColumns}
             rows={arRows}
             ariaLabel="الذمم القائمة وأعمارها"
-            exportFilename="accounts receivable aging.csv"
+            exportFilename={`accounts-receivable-aging-${asOf}.csv`}
             minRowsForSearch={1}
           />
         ) : (
@@ -414,7 +416,7 @@ export default async function FinanceRevenueReportsPage({
             columns={collectionColumns}
             rows={collectionRows}
             ariaLabel="تحصيلات الفترة"
-            exportFilename="sale collections report.csv"
+            exportFilename={`sale-collections-${start}-to-${end}.csv`}
             minRowsForSearch={1}
           />
         ) : (
