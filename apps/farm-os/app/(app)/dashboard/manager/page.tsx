@@ -166,12 +166,17 @@ export default async function ManagerDashboard() {
   if (total > 0 && readiness < 50)
     fmAttention.push({ href: "/plans", tone: "watch", text: `جاهزية الخطط ${pct(readiness)} — راجع العمليات المتأخرة` });
 
+  // This dashboard serves farm_manager AND agri_engineer, but /record/plan (owner|farm_manager) and
+  // /farm/offshoots (owner|accountant|farm_manager) both exclude agri_engineer — showing those quick-nav
+  // tiles unconditionally bounced agri_engineer to /dashboard on tap (SPEC-0030 §5 no-dead-ends).
+  // canSeeOffshoots (above) already encodes the offshoots gate; guard the plan tile the same way.
+  const canPlan = m.role === "farm_manager";
   const fmQuickNav = [
     { href: "/record", icon: "➕", label: "سجّل" },
-    { href: "/record/plan", icon: "🗓️", label: "خطة جديدة" },
+    ...(canPlan ? [{ href: "/record/plan", icon: "🗓️", label: "خطة جديدة" }] : []),
     { href: "/m", icon: "📱", label: "الميدان", badge: myDueOps.length },
     { href: "/inventory/dashboard", icon: "📦", label: "المخزون" },
-    { href: "/farm/offshoots", icon: "🌱", label: "الفسائل" },
+    ...(canSeeOffshoots ? [{ href: "/farm/offshoots", icon: "🌱", label: "الفسائل" }] : []),
     { href: "/reports", icon: "📈", label: "التقارير" },
   ];
 
