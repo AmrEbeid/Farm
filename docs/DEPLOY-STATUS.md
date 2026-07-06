@@ -2,7 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — weather dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — stock coverage output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#825** merged to `main` at **`2398c60`** with no Supabase migration. Scope: print-ready
+> `/inventory/[itemId]/coverage`, CSV export for the stock coverage summary and projected-balance week table, and
+> inventory item/action links hidden from printed output while the recommendation text, KPIs, chart, summary table,
+> and projection table remain printable. Boundaries held: no schema/RPC/data change, no reservation or purchase
+> request mutation-path change, no stock coverage engine behavior change, and no permission widening. Validation:
+> focused eslint, export/filter/table/help/money/coverage tests **66/66**, `tsc`, production build, GitHub `ci` and
+> `db-tests` green, Vercel preview `dpl_4EDufr7TEaJKfzvnesD51Wr4G1h6` READY with clean preview error logs, Vercel
+> production READY for `dpl_D8Z3UkvsCHH2DXEXwqopvYfsViwa`, build logs clean of errors, no production runtime errors,
+> and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+
+> **2026-07-06 — weather dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#823** merged to `main` at **`396fe52`** with no Supabase migration. Scope: print-ready
 > `/weather/dashboard`, CSV export for the weather risk-window table and advisory-reason table, raw numeric weather
 > readings in CSV with unit-aware headers, and weather navigation/threshold links hidden from printed output while
