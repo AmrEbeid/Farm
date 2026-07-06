@@ -3,11 +3,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryBarChart, CategoryDoughnut } from "@/components/charts";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
@@ -239,7 +241,8 @@ export default async function FarmDashboardPage({
             مؤشرات الهيكل والنخيل والحوش والعمليات من السجلات الفعلية.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة لوحة المزرعة" />
           <HeaderLink href="/farm">هيكل المزرعة</HeaderLink>
           {canSeeOffshoots && <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>}
           <HeaderLink href="/farm/croquis">الكروكي</HeaderLink>
@@ -248,7 +251,11 @@ export default async function FarmDashboardPage({
 
       {/* First-run guidance: no palms registered yet on this page's own tally
           (totalBarhi, already computed above) — disappears once real data exists. */}
-      {totalBarhi === 0 && <OnboardingChecklist role={m.role} />}
+      {totalBarhi === 0 && (
+        <div className="no-print">
+          <OnboardingChecklist role={m.role} />
+        </div>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <DashboardKpiLink href="/farm/dashboard?filter=sectors" active={filter === "sectors"}>
@@ -288,7 +295,16 @@ export default async function FarmDashboardPage({
               title={`${num(palmCountReconciliation.mismatches.length)} موقع يحتاج مراجعة عداد النخيل`}
               description={`${num(palmCountReconciliation.hawshaMismatches.length)} حوشة · ${num(palmCountReconciliation.lineMismatches.length)} خط`}
             />
-            <SimpleTable columns={reconciliationColumns} rows={reconciliationRows} empty="لا توجد فروق" />
+            <FilterableTable
+              columns={reconciliationColumns}
+              rows={reconciliationRows}
+              ariaLabel="مطابقة عداد النخيل"
+              empty="لا توجد فروق"
+              searchColumns={["scope", "name"]}
+              placeholder="ابحث في فروق العدادات…"
+              minRowsForSearch={8}
+              exportFilename="farm-palm-count-reconciliation"
+            />
             {hiddenReconciliationCount > 0 && (
               <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
                 يعرض الجدول أول {num(reconciliationRows.length)} من {num(palmCountReconciliation.mismatches.length)}.
@@ -327,11 +343,13 @@ export default async function FarmDashboardPage({
         </section>
       )}
 
-      <CurrentFilterCard
-        label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
-        clearHref="/farm/dashboard"
-        showClear={filter !== "all"}
-      />
+      <div className="no-print">
+        <CurrentFilterCard
+          label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
+          clearHref="/farm/dashboard"
+          showClear={filter !== "all"}
+        />
+      </div>
 
       {(filter === "all" || filter === "attention" || filter === "events") && (
         <section className="grid gap-4 md:grid-cols-2">
@@ -340,7 +358,16 @@ export default async function FarmDashboardPage({
           {attentionRows.length === 0 ? (
             <EmptyState title="لا يوجد نخيل يحتاج عناية" />
           ) : (
-            <SimpleTable columns={attentionColumns} rows={attentionRows} empty="—" />
+            <FilterableTable
+              columns={attentionColumns}
+              rows={attentionRows}
+              ariaLabel="نخيل يحتاج عناية"
+              empty="—"
+              searchColumns={["tag", "sector", "hawsha", "status"]}
+              placeholder="ابحث في النخيل الذي يحتاج عناية…"
+              minRowsForSearch={8}
+              exportFilename="farm-attention-palms"
+            />
           )}
         </Card>
           )}
@@ -349,7 +376,16 @@ export default async function FarmDashboardPage({
           {eventRows.length === 0 ? (
             <EmptyState title="لا توجد عمليات مسجلة" />
           ) : (
-            <SimpleTable columns={eventColumns} rows={eventRows} empty="—" />
+            <FilterableTable
+              columns={eventColumns}
+              rows={eventRows}
+              ariaLabel="آخر العمليات"
+              empty="—"
+              searchColumns={["subtype", "status", "notes"]}
+              placeholder="ابحث في آخر العمليات…"
+              minRowsForSearch={8}
+              exportFilename="farm-recent-events"
+            />
           )}
         </Card>
           )}
@@ -358,13 +394,31 @@ export default async function FarmDashboardPage({
 
       {(filter === "all" || filter === "sectors") && (
         <Card title="القطاعات">
-          <SimpleTable columns={sectorColumns} rows={sectorRows} empty="لا توجد قطاعات" />
+          <FilterableTable
+            columns={sectorColumns}
+            rows={sectorRows}
+            ariaLabel="القطاعات"
+            empty="لا توجد قطاعات"
+            searchColumns={["name", "crop"]}
+            placeholder="ابحث في القطاعات…"
+            minRowsForSearch={8}
+            exportFilename="farm-sectors"
+          />
         </Card>
       )}
 
       {(filter === "all" || filter === "hawshat") && (
         <Card title="حوشات للمراجعة">
-          <SimpleTable columns={hawshaColumns} rows={hawshaRows} empty="لا توجد حوشات" />
+          <FilterableTable
+            columns={hawshaColumns}
+            rows={hawshaRows}
+            ariaLabel="حوشات للمراجعة"
+            empty="لا توجد حوشات"
+            searchColumns={["name", "sector"]}
+            placeholder="ابحث في الحوشات…"
+            minRowsForSearch={8}
+            exportFilename="farm-hawshat"
+          />
         </Card>
       )}
     </div>
