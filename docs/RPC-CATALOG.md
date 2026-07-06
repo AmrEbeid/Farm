@@ -4,8 +4,8 @@
 function with a stable `RPC-NNN` id: purpose, args, return, the rule it enforces (→ `BR-NNN`), side effects, and
 the feature it serves (→ `FEAT-NNN`). Reconciled to `main` 2026-07-01 (through the cash-method accounting kernel
 `20260701220000`, PR #568 — GL + custody settlement; prior SPEC-0018 custody/payment backend
-`20260629150000`/`20260629150100`). **Refreshed 2026-07-05** through the trusted-statements trio: balance sheet
-(`20260705110000`), income statement (`20260705120000`), and period lock (`20260701550000`) — RPC-054..059. Maturity **L3**.
+`20260629150000`/`20260629150100`). **Refreshed 2026-07-06** through the trusted-statements trio, budget-vs-actual,
+period lock, and journal reversal RPCs (`20260705110000`..`20260706081636`) — RPC-054..061. Maturity **L3**.
 All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (BR-053).*
 
 ## Callable RPCs (client entry points)
@@ -71,6 +71,7 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 | **RPC-058** | `fn_reopen_accounting_period(p_org,p_period_id)` | org,period_id | void | Reopen (unlock) a locked period; **owner-only** | BR-066 | `accounting_periods` | FEAT-030 |
 | **RPC-059** | `fn_period_locked(p_org,p_date)` | org,date | boolean | **Internal** period-lock state check consulted by `fn_post_two_line_journal`; no client EXECUTE | BR-053 | (reads) | FEAT-030 |
 | **RPC-060** | `fn_budget_vs_actual(p_org,p_from,p_to)` | org,from,to | jsonb | Read-only budget-vs-actual: `SUM(budget_lines.planned)` per category vs LIVE posted-GL actuals rolled up by expense category; variance + over_budget/unbudgeted flags. Report only — no cap enforcement (Decision-0157) | BR-066/131 | (reads) | FEAT-030 |
+| **RPC-061** | `fn_reverse_journal_entry(p_entry,p_reason,p_reversal_date?)` | entry,reason,date? | uuid | Reverse a posted journal entry with a linked mirror entry; idempotent retry returns the existing reversal; re-posting the same business source after reversal advances `source_sequence` | BR-066/117/132 | `journal_entries`,`journal_lines` | FEAT-030 |
 
 ## Trigger functions (fire on table DML)
 | RPC | Function | Table / when | Enforces | BR | FEAT |
@@ -93,7 +94,9 @@ All SECURITY DEFINER functions pin `search_path=''` (BR-055) and reject `anon` (
 `fn_post_two_line_journal` (`20260701220000`) are likewise **internal** (no client EXECUTE) — journals are posted
 only as a side effect of the gated finance RPCs. RPC-030/031/035/038/039 were **re-emitted** in `20260701220000`
 to post the matching journal entry / carry settlement fields (FEAT-030). Idempotency = claim-first (RPC-009,
-RPC-017) + unique `(org, source_type, source_id)` on journal postings (RPC-041/042, BR-117). Atomicity = single
+RPC-017) + posted-entry no-op / unique `(org, source_type, source_id, source_sequence)` on journal postings
+(RPC-041/042/061, BR-117). Corrected re-posts after reversal create the next `source_sequence` instead of
+being swallowed by the old source key. Atomicity = single
 transaction (RPC-009, RPC-014, RPC-017, RPC-018, RPC-026, RPC-031, RPC-034..RPC-038, RPC-041..RPC-043,
 RPC-049..RPC-052). Maintenance:
 a new RPC → next free `RPC-NNN` + add its `BR`/`FEAT`.

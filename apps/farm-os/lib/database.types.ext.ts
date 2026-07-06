@@ -779,6 +779,10 @@ type CustodyFunctions = {
   fn_pnl_timeseries: { Args: { p_org: string; p_grain: string; p_from: string; p_to?: string | null }; Returns: Json };
   fn_close_accounting_period: { Args: { p_org: string; p_period_start: string; p_period_end: string; p_note?: string | null }; Returns: string };
   fn_reopen_accounting_period: { Args: { p_org: string; p_period_id: string }; Returns: undefined };
+  fn_reverse_journal_entry: {
+    Args: { p_entry: string; p_reason: string; p_reversal_date?: string | null };
+    Returns: string;
+  };
   fn_custody_ledger_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
   fn_custody_cash_expense_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
   fn_unpaid_obligations_report: { Args: { p_org: string; p_as_of?: string | null }; Returns: Json };

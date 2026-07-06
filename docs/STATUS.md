@@ -32,7 +32,9 @@
 3. **Owner: 1-click** leaked-password Auth toggle (#229 iii).
 4. **Owner decisions (cheap)**: wage model #388 · #157 budget-cap (4 one-line answers) · #199/#526 reservation semantics (one line).
 5. **Build now:** remaining real-data runway. Close/period lock, trusted balance sheet, trusted P&L, budget-vs-actual, custody/revenue reports, custody report print/PDF polish, finance statement print/PDF polish, balance-sheet server PDF download, combined statement package PDF, payment-request proof packet, and report output coverage are live; **after 2:** real palm-registry import via SPEC-0020 path → #157 real budget gate → historical import/reconciliation.
-6. **Money-integrity PRs** (from review): custody↔GL movement-type vocabulary + journal completeness; general custody cash-out balance floor beyond transfers; `fn_reverse_journal_entry`; `audit_read` completeness pin (tests/97-style).
+6. **Money-integrity follow-up:** D1-D4 from `REVIEW-360-2026-07-01.md` are fixed and pgTAP-pinned
+   (custody↔GL journal completeness, cash-out floor, `fn_reverse_journal_entry`, and `audit_read` completeness).
+   Remaining small lift: expose safe correction/audit review UI around the shipped RPCs when the accountant workflow needs it.
 7. **Page-speed follow-up if still slow:** consolidate owner/dashboard multi-query loaders into read RPCs, keep heavy search/help/chart tools async, and add route-specific skeletons for the slowest finance/farm pages after live timing feedback.
 8. **Field-readiness follow-ups**: field/DevTools smoke-test the shipped ExecuteForm offline outbox (#625), add PWA brand icons when the real logo asset exists, choose the signed-URL-safe image path for MediaGallery, and batch the deferred DS rebuild. Already shipped: OperationBuilder fabricated-zero fix (#607), DB/RPC positive plan-requirement backstop (repo `20260706175357`, prod `20260706180856`), shared retry/finally submit handling across the 8 forms (#608), bounded `/m` feed (#610), storekeeper `/m/receive` (#614), field-level errors (#613/#627), and decimal mobile keyboards (#611). Full list: `REVIEW-360-2026-07-01.md` §Frontend.
 
