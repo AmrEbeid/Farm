@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { EmptyState, KpiCard } from "@/components/ui";
@@ -117,8 +118,19 @@ export default async function PurchaseRequestsPage({
           title={filter === "all" ? "لا توجد طلبات شراء" : "لا توجد طلبات مطابقة لهذا الفلتر"}
           description={
             filter === "all"
-              ? "تُنشأ الطلبات تلقائيًا من شاشة تغطية المخزون عند وجود نقص."
+              ? "تُنشأ طلبات الشراء من شاشة تغطية المخزون عند وجود نقص — راجع النواقص لإنشاء أول طلب."
               : "جرّب فلترًا آخر أو ارجع إلى كل الطلبات."
+          }
+          action={
+            filter === "all" ? (
+              <Link
+                href="/inventory/dashboard?filter=reorder"
+                className="inline-flex min-h-9 items-center rounded-md px-3 text-sm font-semibold"
+                style={{ color: "var(--brand)", border: "1px solid var(--line)", background: "var(--surface)" }}
+              >
+                راجع النواقص ←
+              </Link>
+            ) : undefined
           }
         />
       ) : (

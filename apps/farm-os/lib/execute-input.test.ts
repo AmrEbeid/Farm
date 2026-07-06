@@ -1,25 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { parseExecuteInput, parseMaterialActuals } from "./execute-input";
+import { parseExecuteInput, parseMaterialActuals, parseLaborCount } from "./execute-input";
+
+describe("parseLaborCount", () => {
+  it("treats blank as 0 (labor is optional — SPEC-0030 A2)", () => {
+    expect(parseLaborCount("")).toBe(0);
+    expect(parseLaborCount("   ")).toBe(0);
+  });
+  it("parses a provided non-negative number, rejects invalid/negative", () => {
+    expect(parseLaborCount("3")).toBe(3);
+    expect(parseLaborCount("0")).toBe(0);
+    expect(parseLaborCount("-1")).toBeNull();
+    expect(parseLaborCount("x")).toBeNull();
+  });
+});
 
 describe("parseExecuteInput", () => {
-  it("rejects blank quantity or labor instead of coercing them to zero", () => {
+  it("still rejects a blank QUANTITY (it's meaningful for a material op)", () => {
     expect(parseExecuteInput("", "2")).toEqual({
       ok: false,
       error: "أدخل الكمية وعدد العمال قبل إنهاء العملية.",
       fieldErrors: { qty: "أدخل كمية صالحة." },
     });
+  });
+
+  it("coerces blank LABOR to 0 (labor is optional — SPEC-0030 A2)", () => {
     expect(parseExecuteInput("4", "   ")).toEqual({
-      ok: false,
-      error: "أدخل الكمية وعدد العمال قبل إنهاء العملية.",
-      fieldErrors: { labor: "أدخل عدد عمال صالح." },
+      ok: true,
+      value: { actualQty: 4, laborCount: 0 },
     });
   });
 
-  it("keys a field error to EACH offending field (F7), not just a banner", () => {
-    // Both blank → both keys present so the form can mark both controls at once.
+  it("with both blank, keys only the qty error (labor blank ⇒ 0, not an error)", () => {
     expect(parseExecuteInput("", "")).toMatchObject({
       ok: false,
-      fieldErrors: { qty: "أدخل كمية صالحة.", labor: "أدخل عدد عمال صالح." },
+      fieldErrors: { qty: "أدخل كمية صالحة." },
     });
   });
 
@@ -106,15 +120,16 @@ describe("parseMaterialActuals", () => {
   });
 
   it("keys the field error to the offending requirementId and to labor (F7)", () => {
-    // A bad material row AND blank labor → the map carries both the requirementId key and "labor",
-    // so the multi-material form marks exactly the wrong controls.
+    // A bad material row AND an INVALID (non-blank) labor → the map carries both the requirementId key
+    // and "labor", so the multi-material form marks exactly the wrong controls. (Blank labor is now valid
+    // ⇒ 0, SPEC-0030 A2 — so an invalid value, not a blank one, is what still errors.)
     expect(
       parseMaterialActuals(
         [
           { requirementId: "r1", itemId: "a", qty: "5" },
           { requirementId: "r2", itemId: "b", qty: "-3" },
         ],
-        "",
+        "x",
       ),
     ).toMatchObject({
       ok: false,
@@ -122,12 +137,19 @@ describe("parseMaterialActuals", () => {
     });
   });
 
-  it("rejects a negative quantity on any material or blank/negative labor", () => {
+  it("rejects a negative quantity on any material or an invalid/negative labor", () => {
     expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "-1" }], "1")).toMatchObject({
       ok: false,
     });
-    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "1" }], "")).toMatchObject({
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "1" }], "-2")).toMatchObject({
       ok: false,
+    });
+  });
+
+  it("coerces blank labor to 0 on a valid multi-material op (A2)", () => {
+    expect(parseMaterialActuals([{ requirementId: "r1", itemId: "a", qty: "5" }], "")).toEqual({
+      ok: true,
+      value: { materialActuals: [{ requirementId: "r1", itemId: "a", actualQty: 5 }], laborCount: 0 },
     });
   });
 });
