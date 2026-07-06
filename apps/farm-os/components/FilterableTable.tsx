@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { SimpleTable, type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
+import { SimpleTableClient as SimpleTable, type SimpleColumn, type SimpleRow } from "@/components/SimpleTableClient";
 import { ExportButton } from "@/components/ExportButton";
 import { filterRows } from "@/lib/filter";
 import { num } from "@/lib/money";
