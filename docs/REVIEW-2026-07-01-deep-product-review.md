@@ -10,6 +10,8 @@ operations development plan that came out of this review).*
 > 2026-07-06 status note: item #1 was resolved by migration
 > `20260706084915_restrict_expense_drawings_read.sql` plus app-layer drawing guards on `/expenses`,
 > `/expenses/[expenseId]`, and `/finance/dashboard`.
+> 2026-07-06 status note: items #2-#5 are no longer current on `main`: #2/#3 shipped in PR #541,
+> #4 shipped in PR #545, and #5 shipped in PR #539. Palm-count reconciliation remains open.
 
 ## Verdict at a glance
 
@@ -39,22 +41,26 @@ and easy" is mostly **product depth + cross‑cutting UX consistency**, plus a h
    green banner around a ⚠️ shortage sentence, and **hides the Create‑PR button** (`coverage/page.tsx:108,120,148`).
    The engine says "order X today"; the UI offers no way to act. Add an amber warning state + show the button on
    `recommend_qty > 0`.
+   **Resolved 2026-07-01:** PR #541 added the amber warning verdict state and action path for recommended orders.
 3. **[Engine UI — Inventory] List/dashboard bypass the engine.** `inventory/page.tsx:36` + `dashboard/page.tsx:61`
    use a static `available < reorder_point` TS flag, so an item short *next week* shows green while the engine (on the
    buried per‑item page) says `shortage=true`. Unify on the engine or clearly relabel the static flag.
+   **Resolved 2026-07-01:** PR #541 relabeled the static inventory signals so they no longer claim engine coverage.
 4. **[Operations] Multi‑material execute bug** — `fn_execute_operation` consumes only the first material
    (`order by item_id limit 1`, `…190000:60`) → under‑records actuals/stock issue for multi‑input ops. See SPEC‑0019 P0‑1.
+   **Resolved 2026-07-01:** PR #545 added multi-material execution and the target rollup follow-up migration.
 5. **[Dashboard] Manager view pinned to a seed fixture** — `dashboard/manager/page.tsx:23` queries `.eq("plan_id", SEED_PLAN_ID)`;
    a manager sees one demo plan regardless of real data.
+   **Resolved 2026-07-01:** PR #539 changed the manager dashboard to aggregate active plans for the current org.
 
 ## Per‑module scorecard (UX / Security / Professionalism, ⭐1‑5)
 
 | Module | UX | Sec | Pro | Headline |
 |---|---|---|---|---|
-| Home/Dashboard | 4 | 5 | 4 | Strong owner cockpit; manager view seed‑pinned; KPI delta‑coloring is dead code; KPIs not clickable |
+| Home/Dashboard | 4 | 5 | 4 | Strong owner cockpit; manager view now follows active plans; KPI delta‑coloring is dead code; KPIs not clickable |
 | Farm structure/map | 3.5 | 5 | 3.5 | Stored palm counts can diverge from `assets` (trust); **no search across 4,380 palms**; croquis is a schematic not a map |
-| Planning/Ops | 3 | 4.5 | 3.5 | "Offline‑tolerant" not implemented; no agronomist sign‑off (#4); `/m` a flat list — see **SPEC‑0019** |
-| Inventory/Engine | 3 | 4 | 3.5 | Items #2–#3 above; verdict message hardcodes "كجم"/"الأسبوع القادم" regardless of unit/period |
+| Planning/Ops | 3 | 4.5 | 3.5 | "Offline‑tolerant" not implemented; no agronomist sign‑off gate; `/m` a flat list — see **SPEC‑0019** |
+| Inventory/Engine | 3 | 4 | 3.5 | Warning/list honesty fixed after review; verdict message hardcodes "كجم"/"الأسبوع القادم" regardless of unit/period |
 | Finance | 4 | 4 | 4 | Drawings/opex separation **DB‑enforced** (strong); item #1 resolved 2026-07-06; no P&L view; dashboard totals are a 12‑row sample |
 | People | 2 | 5 | 3 | PII posture best‑in‑class, but a read‑only 6‑person directory — no crew onboarding/attendance/day‑rate cost; payroll engine orphaned |
 | Weather | 3 | 5 | 4 | Honestly degrades to empty (no fake data ✓); **no frost gate**; "editable thresholds" has no editor |
@@ -93,9 +99,9 @@ P&L); one‑click professional PDF reports. **P1:** WhatsApp channel (highest‑
 (the biggest "premium" visual signal); red‑palm‑weevil pest alerts; GlobalGAP/export traceability; guided onboarding.
 
 ## Prioritized roadmap (product‑wide)
-- **P0 — correctness & trust:** Finance drawings visibility (#1, resolved 2026-07-06); engine warning‑only dead‑end + list/engine
-  unification (#2–3); manager dashboard real query + palm‑count reconciliation (#5); operations multi‑material fix
-  + soften the offline claim + agronomist gate (SPEC‑0019 P0).
+- **P0 — correctness & trust:** Finance drawings visibility (#1, resolved 2026-07-06); palm-count reconciliation;
+  soften the offline claim + agronomist gate (SPEC‑0019 P0). Engine warning-only/list honesty (#2-#3), operations
+  multi-material execution (#4), and manager active-plan routing (#5) are resolved on `main`.
 - **P1 — "feels premium":** ⌘K palette + search; DS toasts + confirm dialogs; kill the nav fork; per‑route
   skeletons; first‑run onboarding; redesign login.
 - **P1 — product depth:** owner P&L (drawings below the line); yield/harvest; frost gate + editable thresholds;

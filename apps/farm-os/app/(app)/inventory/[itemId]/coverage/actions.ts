@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
-import { SEED_PLAN_ID } from "@/lib/nav";
+import { coverageDemandContext, coveragePrNeededBy } from "@/lib/coverage-pr";
 
 /**
  * Reserve stock for a quantity: bumps inventory_bin.reserved (available drops,
@@ -43,12 +43,13 @@ async function reserveStock(
 }
 
 /**
- * Create a draft purchase request from a stock shortage and reserve the planned
- * quantity. Step 4 of the wedge loop. Returns the new PR id.
+ * Create a draft purchase request from a stock shortage. For unambiguous plan demand,
+ * also reserve the planned quantity. Step 4 of the wedge loop. Returns the new PR id.
  *
  * - inserts purchase_requests (status='draft', requested_by = current user)
  * - inserts a purchase_request_items line for the recommended qty
- * - reserves the planned requirement (available drops, on_hand unchanged)
+ * - reserves the planned requirement only when the PR belongs to exactly one plan
+ *   (available drops, on_hand unchanged)
  */
 export async function createPurchaseRequestFromShortage(
   itemId: string,
@@ -83,18 +84,67 @@ export async function createPurchaseRequestFromShortage(
     return { ok: false, error: "الكمية غير صالحة" };
   }
 
+  const { data: item, error: itemError } = await sb
+    .from("inventory_items")
+    .select("name, unit, preferred_supplier_id, unit_cost")
+    .eq("id", itemId)
+    .single();
+  // A6: a transient read error must NOT masquerade as "item not found" and silently block a
+  // legitimate PR. PGRST116 is .single()'s genuine 0-row (nonexistent / RLS-hidden cross-org item)
+  // case — keep the specific message for it; any other error is a real failure, surfaced retryably.
+  if (itemError && itemError.code !== "PGRST116") {
+    return { ok: false, error: toArabicError(itemError) };
+  }
+  // Don't create a PR line for a nonexistent / cross-org item (RLS hides it → .single() returns null):
+  // that would persist an orphan PR pointing at an invalid item_id.
+  if (!item) {
+    return { ok: false, error: "الصنف غير موجود" };
+  }
+
+  // Resolve the live demand rows that made this item actionable. The coverage engine reads live
+  // plan_material_requirements across plans; creating the PR against a hard-coded seed plan routes
+  // budget checks/reservations to the wrong plan. If several plans demand the same item, keep the PR
+  // planless rather than pinning it to the wrong plan.
+  const { data: demandOps, error: demandErr } = await sb
+    .from("plan_operations")
+    .select("planned_at, plan_id, plan_material_requirements!inner(item_id), plans!inner(status)")
+    .eq("org_id", m.orgId)
+    // Live ops with un-issued demand = the app's LIVE_OP set; matches fn_stock_coverage's demand filter
+    // (migration 20260701130000) so the PR's needed_by reflects an in_progress/approved op's date too.
+    .in("status", ["planned", "approved", "reserved", "ready", "in_progress"])
+    .eq("plan_material_requirements.item_id", itemId)
+    .in("plans.status", ["draft", "active", "approved"])
+    .order("planned_at", { ascending: true, nullsFirst: false });
+  // Distinguish a FAILED read from a genuine "no demand op". On error, abort — silently stamping
+  // a PR onto the wrong/default plan would decouple procurement from the plan that triggered it.
+  if (demandErr) return { ok: false, error: toArabicError(demandErr) };
+  const demand = coverageDemandContext(
+    (demandOps ?? []).map((op) => ({
+      plan_id: op.plan_id,
+      planned_at: op.planned_at,
+    })),
+  );
+  const demandPlanId = demand.planId;
+  // Match fn_stock_coverage's forward anchor: past-due demand is treated as period 1 (today),
+  // and a null-dated/planless live op is immediate. A stale/null PR needed_by would be excluded from
+  // the scheduled-receipts projection, so clamp it to today when the source date is absent or old.
+  const neededBy = coveragePrNeededBy(demand.plannedAt);
+
   // CREATE-1: idempotency. A double-submit / network retry would otherwise create a duplicate draft
   // PR AND post a second `reserve` movement (over-stating `reserved`). If an OPEN (draft/submitted) PR
-  // for this plan already carries a line for this item, reuse it — no duplicate, no re-reserve.
+  // for this plan/general-stock scope already carries a line for this item, reuse it — no duplicate,
+  // no re-reserve.
   // (Conservative residual: a truly concurrent pair of calls could still both create, which only
   // over-reserves — it can never mask a shortage. A fully race-safe guard would need a DB constraint
   // spanning purchase_requests.plan_id/status and purchase_request_items.item_id.)
-  const { data: openPrs, error: openPrsErr } = await sb
+  const openPrsBase = sb
     .from("purchase_requests")
     .select("id, code")
     .eq("org_id", m.orgId)
-    .eq("plan_id", SEED_PLAN_ID)
     .in("status", ["draft", "submitted"]);
+  const { data: openPrs, error: openPrsErr } = await (demandPlanId
+    ? openPrsBase.eq("plan_id", demandPlanId)
+    : openPrsBase.is("plan_id", null));
   // A FAILED read must not be treated as "no open PR" — that would skip the idempotency guard and
   // fall through to create a duplicate draft PR + a second reserve (the exact double-reserve this guard
   // prevents). Abort on error instead of proceeding on a silent null.
@@ -124,73 +174,30 @@ export async function createPurchaseRequestFromShortage(
       // does NOT roll back the committed PR/line, which is why the orphan is reachable; the fully
       // race/atomicity-safe fix is to fold the line-insert + reserve into one SECURITY DEFINER RPC —
       // tracked as the migration-gated follow-up in #188.)
-      const { data: existingReserve, error: existingReserveErr } = await sb
-        .from("inventory_movements")
-        .select("id")
-        .eq("org_id", m.orgId)
-        .eq("item_id", itemId)
-        .eq("plan_id", SEED_PLAN_ID)
-        .eq("type", "reserve")
-        .limit(1)
-        .maybeSingle();
-      // A failed read here would look like "no reserve exists" and re-post a duplicate reserve —
-      // abort instead of double-reserving.
-      if (existingReserveErr) return { ok: false, error: toArabicError(existingReserveErr) };
-      if (!existingReserve) {
-        const reserve = await reserveStock(sb, itemId, reserveQty, SEED_PLAN_ID);
-        if (!reserve.ok) return { ok: false, error: reserve.error };
-        revalidatePath(`/inventory/${itemId}/coverage`);
-        revalidatePath(`/purchase-requests`);
+      if (demandPlanId) {
+        const { data: existingReserve, error: existingReserveErr } = await sb
+          .from("inventory_movements")
+          .select("id")
+          .eq("org_id", m.orgId)
+          .eq("item_id", itemId)
+          .eq("type", "reserve")
+          .eq("plan_id", demandPlanId)
+          .limit(1)
+          .maybeSingle();
+        // A failed read here would look like "no reserve exists" and re-post a duplicate reserve —
+        // abort instead of double-reserving.
+        if (existingReserveErr) return { ok: false, error: toArabicError(existingReserveErr) };
+        if (!existingReserve) {
+          const reserve = await reserveStock(sb, itemId, reserveQty, demandPlanId);
+          if (!reserve.ok) return { ok: false, error: reserve.error };
+          revalidatePath(`/inventory/${itemId}/coverage`);
+          revalidatePath(`/purchase-requests`);
+          revalidatePath(`/budget/${demandPlanId}/check`);
+        }
       }
-      return { ok: true, prId: existing.id, code: existing.code, deduped: true };
+      return { ok: true, prId: existing.id, code: existing.code, planId: demandPlanId, deduped: true };
     }
   }
-
-  const { data: item, error: itemError } = await sb
-    .from("inventory_items")
-    .select("name, unit, preferred_supplier_id, unit_cost")
-    .eq("id", itemId)
-    .single();
-  // A6: a transient read error must NOT masquerade as "item not found" and silently block a
-  // legitimate PR. PGRST116 is .single()'s genuine 0-row (nonexistent / RLS-hidden cross-org item)
-  // case — keep the specific message for it; any other error is a real failure, surfaced retryably.
-  if (itemError && itemError.code !== "PGRST116") {
-    return { ok: false, error: toArabicError(itemError) };
-  }
-  // Don't create a PR line for a nonexistent / cross-org item (RLS hides it → .single() returns null):
-  // that would persist an orphan PR pointing at an invalid item_id.
-  if (!item) {
-    return { ok: false, error: "الصنف غير موجود" };
-  }
-
-  // NEEDED-BY (#89, correctness): derive the PR's needed_by from the plan's REAL demand date for
-  // this item — the earliest plan_operations.planned_at for a live op (status planned/reserved/ready,
-  // plan status draft/active/approved) in SEED_PLAN_ID that carries a plan_material_requirement for
-  // this item. This mirrors fn_stock_coverage's demand origin (v_period_start). It matters because
-  // the scheduled-receipts projection only counts an approved PO when its needed_by >= v_period_start
-  // and buckets it by that date (migrations 0034/0018): a stale/hardcoded needed_by would silently
-  // drop this PO from the projection and could MASK the very shortage that triggered it.
-  const { data: demandOp, error: demandErr } = await sb
-    .from("plan_operations")
-    .select("planned_at, plan_material_requirements!inner(item_id), plans!inner(status)")
-    .eq("plan_id", SEED_PLAN_ID)
-    // Live ops with un-issued demand = the app's LIVE_OP set; matches fn_stock_coverage's demand filter
-    // (migration 20260701130000) so the PR's needed_by reflects an in_progress/approved op's date too.
-    .in("status", ["planned", "approved", "reserved", "ready", "in_progress"])
-    .eq("plan_material_requirements.item_id", itemId)
-    .in("plans.status", ["draft", "active", "approved"])
-    .order("planned_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  // Distinguish a FAILED read from a genuine "no demand op". On error, abort — silently stamping
-  // needed_by = null on a failed read would drop this PO from the scheduled-receipts projection and
-  // could mask the very shortage that triggered the PR. A true null (no error) keeps the fallback below.
-  if (demandErr) return { ok: false, error: toArabicError(demandErr) };
-  // Fallback when no live demanding op exists for this item: leave needed_by null (the column is
-  // nullable). The demand date is genuinely unknown, and a null is honest rather than pinning the PO
-  // to a fabricated date. In practice this branch is unreachable from the shortage flow — a coverage
-  // shortage requires planned demand to exist, which is exactly what the query above finds.
-  const neededBy = demandOp?.planned_at ?? null;
 
   const code = `PR-${Date.now().toString().slice(-6)}`;
   const { data: pr, error: prErr } = await sb
@@ -200,8 +207,8 @@ export async function createPurchaseRequestFromShortage(
       code,
       requested_by: m.userId,
       needed_by: neededBy,
-      reason: `نقص ${item?.name ?? "صنف"} لعملية التسميد المخطّطة`,
-      plan_id: SEED_PLAN_ID,
+      reason: demandPlanId ? `نقص ${item.name} لاحتياج مخطّط` : `إعادة طلب ${item.name} حسب تغطية المخزون`,
+      plan_id: demandPlanId,
       status: "draft",
       version: 1,
     })
@@ -224,12 +231,16 @@ export async function createPurchaseRequestFromShortage(
   });
   if (itemErr) return { ok: false, error: toArabicError(itemErr) };
 
-  // reserve the planned requirement — propagate a reserve failure as a structured
-  // error instead of letting it throw as an unhandled server-action rejection.
-  const reserve = await reserveStock(sb, itemId, reserveQty, SEED_PLAN_ID);
-  if (!reserve.ok) return { ok: false, error: reserve.error };
+  // Reserve only when the demand belongs to one clear plan. Planless safety-stock and multi-plan
+  // replenishment PRs should not post a generic reserve movement, because that would reduce
+  // availability without a real plan commitment.
+  if (demandPlanId) {
+    const reserve = await reserveStock(sb, itemId, reserveQty, demandPlanId);
+    if (!reserve.ok) return { ok: false, error: reserve.error };
+  }
 
   revalidatePath(`/inventory/${itemId}/coverage`);
   revalidatePath(`/purchase-requests`);
-  return { ok: true, prId: pr.id, code: pr.code };
+  if (demandPlanId) revalidatePath(`/budget/${demandPlanId}/check`);
+  return { ok: true, prId: pr.id, code: pr.code, planId: demandPlanId };
 }
