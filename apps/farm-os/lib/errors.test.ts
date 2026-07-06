@@ -9,7 +9,7 @@ const hasLatinLetters = (s: string) => /[A-Za-z]/.test(s);
 
 describe("toArabicError", () => {
   it("maps each known SQLSTATE to a non-English Arabic message", () => {
-    const codes = ["42501", "23514", "22023", "23505", "23503", "23502", "P0002", "40001", "40P01", "57014"];
+    const codes = ["42501", "23514", "22023", "23505", "23503", "23502", "55000", "P0002", "40001", "40P01", "57014"];
     for (const code of codes) {
       const msg = toArabicError({ code, message: "some raw English postgres detail" });
       expect(msg).not.toBe("some raw English postgres detail");
@@ -44,6 +44,12 @@ describe("toArabicError", () => {
   it("honors a custom Arabic fallback for unmapped codes", () => {
     const msg = toArabicError({ code: "99999", message: "x" }, {}, "تعذّر إنشاء طلب الشراء");
     expect(msg).toBe("تعذّر إنشاء طلب الشراء");
+  });
+
+  it("explains period-lock SQLSTATEs before falling back to action-specific messages", () => {
+    expect(toArabicError({ code: "55000", message: "period is locked" })).toBe(
+      "الفترة المحاسبية مقفلة؛ افتحها أو اختر تاريخًا خارج الفترة المقفلة.",
+    );
   });
 
   it("override for an unrelated code does not shadow the matched default", () => {

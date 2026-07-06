@@ -25,6 +25,7 @@ export default async function FinancePeriodsPage({
   const { data, error } = await sb
     .from("accounting_periods")
     .select("id, period_start, period_end, status, note, locked_at, reopened_at")
+    .eq("org_id", m.orgId)
     .order("period_start", { ascending: false });
   if (error) throw error;
 
