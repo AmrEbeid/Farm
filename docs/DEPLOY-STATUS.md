@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — stock coverage output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#827** merged to `main` at **`81b54f6`** with no Supabase migration. Scope: print-ready
+> `/dashboard/owner` and `/dashboard/manager`, CSV export for manager assigned tasks and active-plan operations, and
+> dashboard tours, navigation, inbox, checklist, finance links, and section navigation hidden from printed output
+> while KPI cards, operational queues, budget/request tables, assigned tasks, active-plan context, and operation
+> tables remain printable. Boundaries held: no schema/RPC/data change, no dashboard query change, no finance/plan
+> mutation-path change, and no permission widening. Validation: focused eslint, export/filter/table/nav/help Vitest
+> **38/38**, `tsc`, production build, GitHub `ci` and `db-tests` green, Vercel preview
+> `dpl_AWuDvTS437FnWeXY7ZyjB1uCgRXY` READY with clean preview error logs, Vercel production READY for
+> `dpl_BZKJjSGF61ExCzd8uDa1JgCePpLt`, build logs clean of errors, no production runtime errors, and aliases
+> `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+
+> **2026-07-06 — stock coverage output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#825** merged to `main` at **`2398c60`** with no Supabase migration. Scope: print-ready
 > `/inventory/[itemId]/coverage`, CSV export for the stock coverage summary and projected-balance week table, and
 > inventory item/action links hidden from printed output while the recommendation text, KPIs, chart, summary table,
