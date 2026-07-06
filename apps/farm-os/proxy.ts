@@ -8,7 +8,7 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
  * cookies back onto the response, so Server Components always see a valid
  * session. (Server Components cannot set cookies themselves.)
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   // Resilience: never let a session-refresh hiccup 500 the whole site. If the Supabase
