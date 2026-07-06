@@ -58,6 +58,7 @@ select is(
         'fn_execute_operation',                   -- intended authenticated RPC surface
         'fn_post_receipt',                        -- atomic PR receipt RPC (migration 0024)
         'fn_reserve_stock',                       -- gated reserve wrapper (AUTHZ-3 #182, migration 0036)
+        'fn_record_stock_take',                   -- gated stock-take (جرد) reconciliation wrapper (SPEC-0030 Phase 4, migration 20260705160000)
         'fn_add_plan_operation',                  -- atomic plan-operation authoring RPC (CREATE-3 #196, migration 0038)
         'fn_add_plan_operation_multi',            -- atomic multi-line op authoring (materials+labour+assignees+multi-day, #398 slice 2, migration 0093)
         'fn_unassign_plan_operation',              -- gated un-assign RPC for plan_operation_assignees (#398 follow-up, migration 20260701220000)
