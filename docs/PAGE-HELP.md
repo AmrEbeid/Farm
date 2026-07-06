@@ -44,8 +44,8 @@ approval. *Why:* control spend before money moves. *When:* a shortage or need ar
 editing lines after approval (BR-040); over-receiving (BR-044). Refs: RPC-009, RPC-T01.
 
 **`/budget/[planId]/check` — Budget check.** *What:* does this plan fit the budget. *Why:* the gate before
-approval. *When:* before executing costed operations. *How:* read approved/committed/actual + verdict. *Note:*
-currently scoped to the fertilization (أسمدة) category + seed plan (MVP). Refs: RPT-05.
+approval. *When:* before executing costed operations. *How:* read category-level approved/committed/actual +
+verdict for the selected plan. Refs: RPT-05.
 
 **`/budgets` — Budgets.** *What:* budget overview by category. *Who:* owner/accountant/farm_manager. *How:* view
 planned vs committed vs actual. Refs: BR-063.
@@ -74,7 +74,7 @@ RPC-053, BR-127.
 farm_manager. *Avoid:* mixing drawings into opex (BR-111). **`/people` — Team.** *What:* staff directory
 (PII-locked). *Avoid:* expecting to see phone/email/wages (BR-070/071). **`/weather` — Weather.** *What:* forecast +
 advisory operation gates. *Note:* needs the server `WEATHER_API_KEY`. **`/dashboard` (owner/manager).** *What:*
-role overview. *Note:* manager view uses a seed plan (MVP). **`/profile`.** *What:* your identity, role, active org
+role overview for owner finance/control and manager active-plan operations. **`/profile`.** *What:* your identity, role, active org
 (read-only). **`/settings`.** *What:* org settings (owner only, BR-... `fn_update_org_settings`).
 
 Maintenance: when a page is added/changed, update its block + the [Documentation Health](DOCUMENTATION-HEALTH.md)

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Alert } from "@/components/ui";
 import { createPurchaseRequestFromShortage } from "@/app/(app)/inventory/[itemId]/coverage/actions";
-import { SEED_PLAN_ID } from "@/lib/nav";
 
 export function CreatePrButton({
   itemId,
@@ -37,8 +36,11 @@ export function CreatePrButton({
               reserveQty,
             );
             if (res.ok) {
-              // route to the budget gate for this plan
-              router.push(`/budget/${SEED_PLAN_ID}/check?pr=${res.prId}`);
+              // Plan-scoped demand goes to the budget gate; planless/multi-plan stock replenishment
+              // goes to the PR itself so we don't pretend it belongs to one plan.
+              router.push(
+                res.planId ? `/budget/${res.planId}/check?pr=${res.prId}` : `/purchase-requests/${res.prId}`,
+              );
               router.refresh();
               return;
             }
