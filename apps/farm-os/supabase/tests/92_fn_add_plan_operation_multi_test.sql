@@ -3,7 +3,7 @@
 -- (c) multi-day validation, (d) plan.write authz refusal, (e) anon EXECUTE lockdown. Mirrors test 38's
 -- JWT-claim role simulation. Run via supabase test db or test-shims/run-pgtap-local.sh.
 begin;
-select plan(12);
+select plan(22);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set plan  'c9200000-0000-0000-0000-000000000092'
@@ -85,6 +85,70 @@ select throws_ok(
 reset role;
 select is((select count(*) from public.plan_operations where plan_id = :'plan' and subtype = 'irrigation'),
   0::bigint, 'ATOMICITY: the rejected material rolled the op back — no orphan operation');
+
+-- ── (b2) positive-requirement backstop: missing/null/zero lines fail with clean 22023 errors ───────
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.fm'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-20'::date, null, 100,
+    '[{"item_id":"%s","unit":"kg"}]'::jsonb, '[]'::jsonb, null, null) $$,
+    current_setting('t.plan', true), :'item1'),
+  '22023', null, 'material line with missing qty is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-21'::date, null, 100,
+    '[{"item_id":"%s","qty":null,"unit":"kg"}]'::jsonb, '[]'::jsonb, null, null) $$,
+    current_setting('t.plan', true), :'item1'),
+  '22023', null, 'material line with NULL qty is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-22'::date, null, 100,
+    '[{"item_id":"%s","qty":0,"unit":"kg"}]'::jsonb, '[]'::jsonb, null, null) $$,
+    current_setting('t.plan', true), :'item1'),
+  '22023', null, 'material line with zero qty is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-23'::date, null, 100,
+    '[]'::jsonb, '[{"person_or_team":"فريق الاختبار","days":1}]'::jsonb, null, null) $$,
+    current_setting('t.plan', true)),
+  '22023', null, 'labour line with missing count is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-24'::date, null, 100,
+    '[]'::jsonb, '[{"person_or_team":"فريق الاختبار","count":null,"days":1}]'::jsonb, null, null) $$,
+    current_setting('t.plan', true)),
+  '22023', null, 'labour line with NULL count is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-25'::date, null, 100,
+    '[]'::jsonb, '[{"person_or_team":"فريق الاختبار","count":1}]'::jsonb, null, null) $$,
+    current_setting('t.plan', true)),
+  '22023', null, 'labour line with missing days is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-26'::date, null, 100,
+    '[]'::jsonb, '[{"person_or_team":"فريق الاختبار","count":1,"days":null}]'::jsonb, null, null) $$,
+    current_setting('t.plan', true)),
+  '22023', null, 'labour line with NULL days is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-27'::date, null, 100,
+    '[]'::jsonb, '[{"person_or_team":"فريق الاختبار","count":0,"days":1}]'::jsonb, null, null) $$,
+    current_setting('t.plan', true)),
+  '22023', null, 'labour line with zero count is rejected (22023)');
+
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi('%s'::uuid, 'inspection', '2026-07-28'::date, null, 100,
+    '[]'::jsonb, '[{"person_or_team":"فريق الاختبار","count":1,"days":0}]'::jsonb, null, null) $$,
+    current_setting('t.plan', true)),
+  '22023', null, 'labour line with zero days is rejected (22023)');
+reset role;
+
+select is(
+  (select count(*) from public.plan_operations
+     where plan_id = :'plan' and subtype = 'inspection' and planned_at between '2026-07-20' and '2026-07-28'),
+  0::bigint, 'ATOMICITY: rejected missing/null/zero requirement lines left no orphan operations');
 
 -- ── (c) multi-day validation: ends_on before planned_at is rejected ────────────────────────────────
 -- subtype uses 'pruning_dethorning' (not the old free-text 'pruning') — PR #543's operation-vocabulary
