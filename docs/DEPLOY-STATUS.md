@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — PVA details output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — budget-check output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#845** merged to `main` at **`81edaf7`** with no Supabase migration. Scope: CSV export for
+> `/budget/[planId]/check` category snapshots, with raw numeric approved/this-plan/after-plan/review-ceiling
+> values, verdict/reason fields, utilization percentages, unknown-cost counts, budget-scope flags, and explicit
+> committed/actual source labels. Boundaries held: no schema/RPC/data change, no budget-check query widening, no
+> hidden finance/expense/labor export, no mutation-path change, no permission widening, and the page remains a
+> decision-support budget gate rather than a live committed/actual ledger. Validation: focused eslint,
+> budget-check/export/help Vitest **26/26**, `tsc`, production build, GitHub `ci` and `db-tests` green, Vercel
+> preview `dpl_FHUexWMSH6kT6TCkH9jpC6qwjvXp` READY, Vercel production READY for
+> `dpl_6xRj3hgDqev9fANLnYdwE2hvU6Ft`, build logs clean of errors, no production runtime errors or error/fatal
+> logs, production status grouping showed only 200s, and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app`
+> returned 200 with etag `"41185c24fd6cfa5a19171e930ae3e398"`.
+
+> **2026-07-06 — PVA details output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#843** merged to `main` at **`88f1144`** with no Supabase migration. Scope: CSV export for
 > `/reports/[planId]/pva` detail rows, raw numeric planned/actual/variance money values for spreadsheet use,
 > plain assignee text in the extract while the screen keeps rendered assignee badges, and owner/accountant-only
