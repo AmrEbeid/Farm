@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #843. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after budget-check CSV coverage. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -14,7 +14,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-02** | `/dashboard/owner` | Owner operating overview | area, pending approvals, stock risk, budget status, finance insight summary, offshoot estimate | `BudgetDoughnut`, `VarianceChart`, `PalmStatusDoughnut`, `CategoryBarChart` | Purchase-request CSV; print-ready | `purchase_requests`, `budget_lines`, inventory, farm structure, cost-center rollups | owner, accountant |
 | **RPT-03** | `/dashboard/manager` | Plan readiness and assigned work | active operations, done operations, blocking checks, readiness %, open/due/unassigned tasks | Progress | Assigned-task and active-operation CSV; print-ready | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees` | farm_manager, agri_engineer |
 | **RPT-04** | `/inventory/[itemId]/coverage` | Stock coverage and reorder decision | available, coverage days, reorder point, recommended quantity, verdict | `PabChart` | Coverage summary and projection CSV; print-ready | RPC-007 `fn_stock_coverage` | any member; reserve action owner/farm_manager/storekeeper |
-| **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, actual, committed, available, utilization %, verdict | Progress | Print-ready | `budget_lines`, `plan_operations`, `lib/budget-check.ts` | any member |
+| **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, this-plan cost, review ceiling, utilization %, verdict, finance-review flag | Progress | Budget category CSV; print-ready | `budget_lines` static ceilings, planned `plan_operations`, `lib/budget-check.ts` | any member |
 | **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance %, assignees, role-gated planned labor cost per operation | `VarianceChart` | Detail CSV; print-ready | `plan_operations`, done `farm_event` actuals, `plans`, role-gated `people_compensation` | any member; labor-cost columns owner/accountant |
 | **RPT-07** | `/finance/revenue-reports` | Revenue, collections, pending-price deliveries, A/R aging | finalized revenue, collections, outstanding A/R, 30+ A/R, pending count/qty | `MultiInsightChart` with `CategoryBarChart` by buyer or crop/season | CSV per table with period/as-of filenames; print-ready | RPC-053 `fn_revenue_sales_report` | owner, accountant |
 | **RPT-08** | `/finance/custody-reports` | Custody and payment-request settlement pack | opening/period/closing custody, cash expenses, unpaid obligations, 30+ obligations, owner funding | - | CSV per table with period/as-of filenames; print-ready | RPC-045 `fn_custody_ledger_report`, RPC-046 `fn_custody_cash_expense_report`, RPC-047 `fn_unpaid_obligations_report`, RPC-048 `fn_owner_funding_report` | owner, accountant |

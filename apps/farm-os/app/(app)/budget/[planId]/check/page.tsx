@@ -4,6 +4,7 @@ import { requireMembership } from "@/lib/auth";
 import type { PillStatus } from "@amrebeid/ui";
 import { Alert, VerdictBanner, KpiCard, Progress, Card } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
+import { ExportButton } from "@/components/ExportButton";
 import { PrintButton } from "@/components/print-button";
 import {
   aggregateBudgetLinesByCategory,
@@ -14,7 +15,47 @@ import {
   summarizePlannedCostByCategory,
   type CategoryBudgetView,
 } from "@/lib/budget-check";
+import type { CsvColumn, CsvRow } from "@/lib/export-csv";
 import { egp, pct } from "@/lib/money";
+
+const BUDGET_CHECK_EXPORT_COLUMNS: CsvColumn[] = [
+  { id: "plan_id", header: "معرف الخطة" },
+  { id: "purchase_request_id", header: "معرف طلب الشراء" },
+  { id: "category", header: "البند" },
+  { id: "verdict", header: "الحكم" },
+  { id: "verdict_reason", header: "سبب الحكم" },
+  { id: "approved", header: "المعتمد" },
+  { id: "this_plan_cost", header: "تكلفة هذه الخطة" },
+  { id: "after_plan", header: "بعد هذه الخطة" },
+  { id: "review_ceiling", header: "السقف للمراجعة" },
+  { id: "current_utilization_pct", header: "الاستخدام الحالي %" },
+  { id: "after_plan_utilization_pct", header: "الاستخدام بعد الخطة %" },
+  { id: "planned_budget", header: "المخطط" },
+  { id: "budget_line_count", header: "عدد بنود الموازنة" },
+  { id: "budget_scope_count", header: "عدد نطاقات الموازنة" },
+  { id: "multiple_budget_scopes", header: "أكثر من نطاق موازنة" },
+  { id: "unknown_cost", header: "تكلفة غير معروفة" },
+  { id: "unknown_cost_count", header: "عدد التكاليف غير المعروفة" },
+  { id: "finance_review", header: "يحتاج مراجعة مالية" },
+  { id: "committed_source", header: "مصدر الالتزامات" },
+  { id: "actual_source", header: "مصدر الفعلي" },
+];
+
+function yesNoAr(condition: boolean): string {
+  return condition ? "نعم" : "لا";
+}
+
+function budgetVerdictLabelAr(verdict: CategoryBudgetView["verdict"]): string {
+  if (verdict === "block") return "تجاوز";
+  if (verdict === "approval-needed") return "يتطلب اعتماد";
+  return "كافية";
+}
+
+function budgetSourceLabelAr(source: string): string {
+  if (source === "live") return "حي";
+  if (source === "static") return "مسجل";
+  return "غير متاح";
+}
 
 export default async function BudgetCheckPage({
   params,
@@ -74,13 +115,46 @@ export default async function BudgetCheckPage({
   const needsOwner = overallVerdict !== "ok";
   const blockingOrWarningView = views.find((v) => v.verdict === overallVerdict) ?? views[0];
   const needsFinanceReview = views.some((v) => v.needsFinanceReview);
+  const budgetCheckRows: CsvRow[] = views.map((v) => ({
+    plan_id: planId,
+    purchase_request_id: pr ?? "",
+    category: v.category,
+    verdict: budgetVerdictLabelAr(v.verdict),
+    verdict_reason: budgetVerdictTextAr(v),
+    approved: v.approved,
+    this_plan_cost: v.thisOp,
+    after_plan: v.after,
+    review_ceiling: v.available,
+    current_utilization_pct: v.utilization,
+    after_plan_utilization_pct: v.utilizationAfter,
+    planned_budget: v.planned,
+    budget_line_count: v.budgetLineCount,
+    budget_scope_count: v.budgetScopeCount,
+    multiple_budget_scopes: yesNoAr(v.hasMultipleBudgetScopes),
+    unknown_cost: yesNoAr(v.hasUnknownCost),
+    unknown_cost_count: v.unknownCostCount,
+    finance_review: yesNoAr(v.needsFinanceReview),
+    committed_source: budgetSourceLabelAr(v.committedSource),
+    actual_source: budgetSourceLabelAr(v.actualSource),
+  }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
       <Entity360Header
         title="فحص الموازنة"
         subtitle="فحص كفاية الموازنة قبل تنفيذ عمليات الخطة، لكل بند على حدة"
-        actions={<PrintButton label="طباعة الفحص" />}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <PrintButton label="طباعة الفحص" />
+            <span className="no-print">
+              <ExportButton
+                rows={budgetCheckRows}
+                columns={BUDGET_CHECK_EXPORT_COLUMNS}
+                filename={`plan-${planId}-budget-check`}
+              />
+            </span>
+          </div>
+        }
         pills={[
           overallVerdict === "block"
             ? { status: "blocked" as PillStatus, label: "تجاوز" }
@@ -124,10 +198,10 @@ export default async function BudgetCheckPage({
               tone={v.utilization > 90 ? "danger" : v.utilization > 75 ? "warning" : "default"}
               label={`استخدام بند ${v.category}`}
             />
-          <p className="mt-2 text-sm" style={{ color: "var(--ink-muted)" }}>
-            {pct(v.utilizationAfter)} من المعتمد بعد تكلفة هذه الخطة فقط. المخطط {egp(v.planned)}.
-            {v.hasMultipleBudgetScopes ? " توجد أكثر من موازنة محتملة لهذا البند؛ استُخدم أعلى سقف منفرد للمراجعة." : ""}
-          </p>
+            <p className="mt-2 text-sm" style={{ color: "var(--ink-muted)" }}>
+              {pct(v.utilizationAfter)} من المعتمد بعد تكلفة هذه الخطة فقط. المخطط {egp(v.planned)}.
+              {v.hasMultipleBudgetScopes ? " توجد أكثر من موازنة محتملة لهذا البند؛ استُخدم أعلى سقف منفرد للمراجعة." : ""}
+            </p>
           </div>
         </Card>
       ))}

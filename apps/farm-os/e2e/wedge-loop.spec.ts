@@ -80,6 +80,20 @@ test("wedge loop: coverage → PR(reserve) → budget gate → owner approve →
 
   // ---------------------------------------------------------------- step 5: budget gate routes to owner
   await expect(page.getByText(/تجاوز للموازنة|اعتماد المالك/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "تصدير CSV" })).toBeVisible();
+  const [budgetDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "تصدير CSV" }).click(),
+  ]);
+  expect(budgetDownload.suggestedFilename()).toBe(`plan-${PLAN}-budget-check.csv`);
+  const budgetDownloadPath = await budgetDownload.path();
+  expect(budgetDownloadPath).toBeTruthy();
+  const budgetCsv = fs.readFileSync(budgetDownloadPath!, "utf8");
+  expect(budgetCsv).toContain("تكلفة هذه الخطة");
+  expect(budgetCsv).toContain("السقف للمراجعة");
+  expect(budgetCsv).toContain("42000");
+  expect(budgetCsv).toContain("مصدر الفعلي");
+  expect(budgetCsv).toContain("غير متاح");
   await page.getByRole("link", { name: "الذهاب إلى طلب الشراء للاعتماد" }).click();
   await page.waitForURL(/\/purchase-requests\//, { timeout: 15_000 });
   const prUrl = page.url();
