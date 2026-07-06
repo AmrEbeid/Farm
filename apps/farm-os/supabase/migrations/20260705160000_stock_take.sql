@@ -67,7 +67,15 @@ begin
     raise exception 'forbidden: cross-org stock-take on item %', p_item using errcode = '42501';
   end if;
 
-  -- Lock the bin row FIRST so read-variance-then-post is atomic vs concurrent movements. Missing bin ⇒ 0.
+  -- Ensure the bin row EXISTS before locking it — else `FOR UPDATE` on a non-existent row locks nothing and
+  -- does NOT serialize, so a concurrent first-ever movement on this (item,location) could commit between our
+  -- read and our post, leaving on_hand ≠ counted (an over-count that could mask a shortage). Mirrors
+  -- fn_post_movement's own insert-then-lock ordering. Idempotent (no-op if the bin already exists).
+  insert into public.inventory_bin (org_id, item_id, location)
+    values (v_org, p_item, p_location)
+    on conflict (item_id, location) do nothing;
+
+  -- Now lock the (guaranteed) bin row so read-variance-then-post is atomic vs concurrent movements.
   select coalesce(on_hand, 0) into v_onhand
     from public.inventory_bin where item_id = p_item and location = p_location for update;
   v_onhand := coalesce(v_onhand, 0);

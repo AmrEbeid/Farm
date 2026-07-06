@@ -10,12 +10,15 @@
 -- backing movement would be discarded on the first reconciling post. In production on_hand is always this sum.
 -- Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(12);
+select plan(14);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set ti  'c1290000-0000-0000-0000-0000000000a1'
+\set ti2 'c1290000-0000-0000-0000-0000000000a2'
 
 insert into public.inventory_items (id, org_id, name, unit) values (:'ti', :'org', 'سماد اختبار الجرد', 'كجم');
+-- a second item with NO movements and NO bin, to exercise the missing-bin path (the FOR UPDATE must serialize).
+insert into public.inventory_items (id, org_id, name, unit) values (:'ti2', :'org', 'صنف بلا حركة', 'كجم');
 
 select set_config('test.owner',
   (select user_id::text from public.organization_member where org_id = :'org' and role = 'owner' limit 1), false);
@@ -46,6 +49,12 @@ select is(public.fn_record_stock_take(:'ti', 6, 'main'), 6::numeric, 'lower coun
 select is((select on_hand from public.inventory_bin where item_id = :'ti'), 6::numeric, 'lower count lowers on_hand to 6');
 select ok(exists(select 1 from public.inventory_movements where item_id = :'ti' and type = 'loss' and qty = 9),
   'lower count posts a loss outflow of the 9 variance');
+
+-- 3b) MISSING-BIN path: an item with no prior movements → the RPC creates the bin (insert-on-conflict before
+-- the FOR UPDATE) and reconciles it to the count. A higher count on on_hand 0 posts an 'adjustment' of +7.
+select is(public.fn_record_stock_take(:'ti2', 7, 'main'), 7::numeric, 'stock-take on a bin-less item returns 7');
+select is((select on_hand from public.inventory_bin where item_id = :'ti2'), 7::numeric,
+  'stock-take on a bin-less item creates the bin at on_hand 7');
 
 -- 4) a negative count is rejected.
 select throws_ok(format($$ select public.fn_record_stock_take(%L, -1, 'main') $$, :'ti'),
