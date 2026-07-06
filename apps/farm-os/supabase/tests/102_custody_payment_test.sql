@@ -6,13 +6,14 @@
 -- equal to its total, idempotently (no double-count, #6). Impersonation via request.jwt.claims (the JWT
 -- harness used by tests 36/82). Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(37);
+select plan(43);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set orgB 'c1020000-0000-0000-0000-00000000000b'
 \set acct 'a0c0a000-0000-0000-0000-0000000000c0'
 \set exp  'a0e00000-0000-0000-0000-0000000000e0'
 \set expMismatch 'a0e00000-0000-0000-0000-0000000000e1'
+\set expOverdraw 'a0e00000-0000-0000-0000-0000000000e2'
 
 -- fixtures (superuser, RLS-bypassed): a custody account + a 5,000 expense; capture ids/uids as GUCs so
 -- the dollar-quoted RPC calls below can read them.
@@ -22,6 +23,8 @@ insert into public.expenses (id, org_id, date, category, description, total, sta
   values (:'exp', :'org', current_date, 'تسميد', 'بند اختبار', 5000, 'approved');
 insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
   values (:'expMismatch', :'org', current_date, 'تسميد', 'بند اختبار مبلغ مختلف', 700, 'approved', 'paid_from_custody', 'operating');
+insert into public.expenses (id, org_id, date, category, description, total, status, payment_status, kind)
+  values (:'expOverdraw', :'org', current_date, 'تسميد', 'بند اختبار رصيد غير كاف', 999999, 'approved', 'paid_from_custody', 'operating');
 insert into public.organization (id, name) values (:'orgB', 'مزرعة اختبار العهدة');
 select set_config('test.cross_holder', gen_random_uuid()::text, false);
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at)
@@ -32,6 +35,7 @@ insert into public.organization_member (org_id, user_id, role)
 select set_config('test.acct_id', :'acct', false);
 select set_config('test.exp_id', :'exp', false);
 select set_config('test.exp_mismatch_id', :'expMismatch', false);
+select set_config('test.exp_overdraw_id', :'expOverdraw', false);
 select set_config('test.accountant', (select user_id::text from public.organization_member
   where org_id = :'org' and role = 'accountant' limit 1), false);
 select set_config('test.owner', (select user_id::text from public.organization_member
@@ -127,16 +131,32 @@ select throws_ok(
 select lives_ok(
   format($$ select public.fn_record_custody_movement(%L,'استلام عهدة من المالك',30000,0) $$, current_setting('test.acct_id')),
   'accountant records a 30,000 custody receipt');
+select is(
+  (select count(*)::int from public.custody_movements
+    where custody_account_id = :'acct'
+      and movement_type = 'استلام عهدة من المالك'
+      and amount_in = 30000
+      and journal_entry_id is not null),
+  1, 'owner-funding custody receipt is tied to a journal entry');
 select is(public.fn_custody_balance(:'acct'), 30000::numeric, 'balance = Σin − Σout = 30,000');
 select throws_ok(
   format($$ select public.fn_record_custody_movement(%L,'تسوية',100,100) $$, current_setting('test.acct_id')),
   '22023', null, 'reject a movement with both amount_in and amount_out > 0');
+select throws_ok(
+  format($$ select public.fn_record_custody_movement(%L,'رد/إيداع',100,0) $$, current_setting('test.acct_id')),
+  '22023', null, 'reject direct non-owner cash-in without journal semantics');
+select throws_ok(
+  format($$ select public.fn_record_custody_movement(%L,'صرف نقدي',0,100) $$, current_setting('test.acct_id')),
+  '22023', null, 'reject direct cash out without a linked expense or transfer');
 select throws_ok(
   format($$ select public.fn_record_custody_movement(%L,'صرف نقدي',0,5000,current_date,%L) $$, current_setting('test.acct_id'), current_setting('test.exp_id')),
   '22023', null, 'reject direct expense-linked cash out before paid_from_custody routing');
 select throws_ok(
   format($$ select public.fn_record_custody_movement(%L,'صرف نقدي',0,100,current_date,%L) $$, current_setting('test.acct_id'), current_setting('test.exp_mismatch_id')),
   '22023', null, 'reject an expense-linked cash out that does not equal the expense total');
+select throws_ok(
+  format($$ select public.fn_record_custody_movement(%L,'صرف نقدي',0,999999,current_date,%L) $$, current_setting('test.acct_id'), current_setting('test.exp_overdraw_id')),
+  '22023', null, 'reject an expense-linked cash out above custody balance');
 select lives_ok(
   format($$ select public.fn_set_expense_payment_status(%L,'paid_from_custody',%L) $$, current_setting('test.exp_id'), current_setting('test.acct_id')),
   'mark expense paid_from_custody (first call)');
@@ -161,6 +181,19 @@ select is(
 select is(
   (select coalesce(sum(amount_out),0) from public.custody_movements where expense_id = :'exp'),
   5000::numeric, 'the single out-movement equals the expense total (5,000)');
+select is(
+  (select count(*)::int from public.custody_movements
+    where expense_id = :'exp'
+      and amount_out = 5000
+      and journal_entry_id is not null),
+  1, 'the expense cash out-movement is tied to a journal entry');
+select is(
+  (select count(*)::int from public.custody_movements
+    where custody_account_id = :'acct'
+      and coalesce(amount_in,0) + coalesce(amount_out,0) > 0
+      and transfer_group_id is null
+      and journal_entry_id is null),
+  0, 'non-transfer money movements recorded by the RPC all have journals');
 
 -- 6) supervisor (no custody.write) cannot record
 select pg_temp.as_user(current_setting('test.supervisor'));

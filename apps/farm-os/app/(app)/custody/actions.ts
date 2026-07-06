@@ -17,6 +17,7 @@ const PERM: Record<string, string> = {
   "22023": "قيمة غير صالحة",
   "P0002": "العنصر غير موجود",
 };
+const OWNER_FUNDING_MOVEMENT_TYPE = "استلام عهدة من المالك";
 
 async function requireCustodyFinanceRole() {
   return requireRole(["owner", "accountant"]);
@@ -83,7 +84,7 @@ export async function createCustodyAccount(input: { holderLabel: string; targetF
   return { ok: true };
 }
 
-/** Record a custody cash movement (receipt / handover / cash spend / settlement). */
+/** Record owner funding into custody; payouts and transfers use stricter dedicated RPCs. */
 export async function recordCustodyMovement(input: {
   accountId: string;
   movementType: string;
@@ -97,6 +98,9 @@ export async function recordCustodyMovement(input: {
   }
   if (isFinitePositive(input.amountIn) === isFinitePositive(input.amountOut)) {
     return { ok: false, error: "أدخل مبلغًا واردًا أو صادرًا واحدًا فقط" };
+  }
+  if (input.movementType !== OWNER_FUNDING_MOVEMENT_TYPE || !isFinitePositive(input.amountIn) || input.amountOut !== 0) {
+    return { ok: false, error: "استخدم مسار الاستلام من المالك أو مسار الصرف/التحويل المخصص" };
   }
   await requireCustodyFinanceRole();
   const sb = await createClient();
