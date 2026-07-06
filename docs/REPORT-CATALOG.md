@@ -1,42 +1,84 @@
-# Report Catalog — Farm OS
+# Report Catalog - Farm OS
 
-*Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). Every report,
-dashboard, and chart on `main`, with its purpose, metrics, filters, data source, chart, and access. Reconciled
-2026-06-27 (verified page code + `components/charts.tsx` + `FilterableTable.tsx`/`lib/filter.ts`). Maturity **L3**.
-Feature: FEAT-018 (+ FEAT-007 coverage, FEAT-014 planned-vs-actual).*
+Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
+Reconciled against `main` on 2026-07-06 after PR #805. Maturity: **L3**.
 
-## Reports & dashboards
-| RPT | Route | Purpose | Metrics | Chart | Data source | Access |
-|---|---|---|---|---|---|---|
-| **RPT-01** | `/dashboard` | Role router (no UI) | — | — | role → owner/manager/`/m`/`/inventory` | `requireMembership` |
-| **RPT-02** | `/dashboard/owner` | Owner overview | pending PRs; over-budget lines; budget-line cards (used vs approved); PR table | — | `purchase_requests`, `budget_lines` | owner, accountant |
-| **RPT-03** | `/dashboard/manager` | Plan readiness | active-plan ops, done, blocking checks, **readiness %** (progress bar), assigned/due task count | — (Progress) | `plans` (`status='active'`), `plan_operations`, `plan_checks`, `plan_operation_assignees` | farm_manager, agri_engineer |
-| **RPT-04** | `/inventory/[itemId]/coverage` | **Stock coverage (the wedge)** | available, coverage days, reorder point, recommended qty, verdict banner; conditional Create-PR | **PabChart** (projected available balance over 8 weeks; marks first shortage) | RPC-007 `fn_stock_coverage` | any member (reserve = owner/farm_manager/storekeeper) |
-| **RPT-05** | `/budget/[planId]/check` | Budget gate for a plan | category-level approved, actual, committed, available, utilization %, verdict (block/approval-needed/ok) | — (Progress) | `budget_lines`, `plan_operations`, `lib/budget-check.ts` category mapping | any member |
-| **RPT-06** | `/reports/[planId]/pva` | **Planned-vs-actual** (FEAT-014) | total planned, total actual, variance + trend; per-op breakdown table | **VarianceChart** (planned vs actual cost per operation) | `plan_operations` + done `farm_event` actuals + `plans` | any member |
-| **RPT-07** | `/finance/revenue-reports` | **Revenue + A/R aging** (FEAT-023) | finalized revenue, period collections, pending-price deliveries, outstanding A/R, 30+ A/R; buyer/crop rollups; sales/collections tables | **CategoryBarChart** in `MultiInsightChart` (buyer vs crop) | RPC-053 `fn_revenue_sales_report` | owner, accountant |
+This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
+reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
 
-## Charts (`components/charts.tsx`, code-split via `@amrebeid/ui/charts`)
-| Chart | Type | Plots | Used by |
-|---|---|---|---|
-| `PabChart` | LineChart | Projected available balance across the planning horizon; highlights first shortage period | RPT-04 |
-| `VarianceChart` | BarChart | Planned vs actual cost, two bars per operation subtype | RPT-06 |
-| `CategoryBarChart` + `MultiInsightChart` | BarChart + toggle | Revenue and outstanding A/R by buyer or by crop/season | RPT-07 |
+## Reports And Dashboards
 
-## List filtering (`FilterableTable.tsx` + `lib/filter.ts`)
-- Client-side live search; **Arabic-aware normalization** (strips tashkeel/tatweel, folds alef/ya/ta-marbuta variants)
-  so variant spellings still match. Shows a result count (`N من M نتيجة`); only appears when rows ≥ 8.
-- **Current limitation:** the infrastructure exists and is unit-tested (`filter.test.ts`) but is **not yet wired onto
-  the list pages** — list pages render server-side reads without the filter wrapper. (Tracker notes search/filter as
-  reusable; deployment across lists is pending.)
+| RPT | Route | Purpose | Metrics | Chart | Extract / print | Data source | Access |
+|---|---|---|---|---|---|---|---|
+| **RPT-01** | `/dashboard` | Role router | - | - | - | membership role | `requireMembership` |
+| **RPT-02** | `/dashboard/owner` | Owner operating overview | area, pending approvals, stock risk, budget status, finance insight summary, offshoot estimate | `BudgetDoughnut`, `VarianceChart`, `PalmStatusDoughnut`, `CategoryBarChart` | Purchase-request CSV | `purchase_requests`, `budget_lines`, inventory, farm structure, cost-center rollups | owner, accountant |
+| **RPT-03** | `/dashboard/manager` | Plan readiness and assigned work | active operations, done operations, blocking checks, readiness %, open/due/unassigned tasks | Progress | - | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees` | farm_manager, agri_engineer |
+| **RPT-04** | `/inventory/[itemId]/coverage` | Stock coverage and reorder decision | available, coverage days, reorder point, recommended quantity, verdict | `PabChart` | - | RPC-007 `fn_stock_coverage` | any member; reserve action owner/farm_manager/storekeeper |
+| **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, actual, committed, available, utilization %, verdict | Progress | - | `budget_lines`, `plan_operations`, `lib/budget-check.ts` | any member |
+| **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance % per operation | `VarianceChart` | - | `plan_operations`, done `farm_event` actuals, `plans` | any member |
+| **RPT-07** | `/finance/revenue-reports` | Revenue, collections, pending-price deliveries, A/R aging | finalized revenue, collections, outstanding A/R, 30+ A/R, pending count/qty | `MultiInsightChart` with `CategoryBarChart` by buyer or crop/season | CSV per table with period/as-of filenames; print-ready | RPC-053 `fn_revenue_sales_report` | owner, accountant |
+| **RPT-08** | `/finance/custody-reports` | Custody and payment-request settlement pack | opening/period/closing custody, cash expenses, unpaid obligations, 30+ obligations, owner funding | - | CSV per table with period/as-of filenames; print-ready | RPC-045 `fn_custody_ledger_report`, RPC-046 `fn_custody_cash_expense_report`, RPC-047 `fn_unpaid_obligations_report`, RPC-048 `fn_owner_funding_report` | owner, accountant |
+| **RPT-09** | `/finance/reports` | Cost-center economics and reconciliation | posted centers, unallocated lines, review flags, operating net, debit/credit/net, net per feddan | `MultiInsightChart` with `CategoryBarChart` and `TrendLineChart` | CSV per table; print-ready | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags`, `journal_lines`, `journal_entries`, `accounts` | owner, accountant |
+| **RPT-10** | `/finance/insights` | Owner finance insight summary | allocation score, posted centers, unallocated net, review flags, operating net | `CategoryBarChart` | Center insight CSV | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags` | owner, accountant |
+| **RPT-11** | `/accounting` | Accounting ledger overview | custody cash, owner funding, operating expenses, capex, drawings, trial balance, recent entries/lines | - | Trial-balance, journal-entry, and journal-line CSV; print-ready | RPC-040 `fn_accounting_trial_balance`, `journal_entries`, `journal_lines`, accounts | owner, accountant |
+| **RPT-12** | `/finance/balance-sheet` | Trusted balance sheet | assets, liabilities, equity incl. net income, cumulative net income, balanced flag | - | Assets/liabilities/equity CSV with as-of filename; print-ready | RPC-055 `fn_accounting_balance_sheet` | owner, accountant |
+| **RPT-13** | `/finance/income-statement` | Trusted income statement / P&L | revenue, expenses, operating expenses, net income/loss | - | Revenue/expense CSV with period filename; print-ready | RPC-056 `fn_accounting_income_statement` | owner, accountant |
+| **RPT-14** | `/finance/budget-vs-actual` | Budget-vs-actual from posted GL | planned, actual, variance, variance %, status | - | Comparison CSV with period filename; print-ready | RPC-060 `fn_budget_vs_actual` | owner, accountant |
+| **RPT-15** | `/finance/close` | Month-close checklist and statement handoff | pending-price deliveries, unrouted/unclassified/unallocated expenses, aged receivables | - | Links to statement review; no CSV | `sales`, `sale_collections`, `expenses`, accounting period actions | owner, accountant |
+| **RPT-16** | `/finance/periods` | Accounting period lock register | total periods, locked periods, reopened/open periods | - | - | `accounting_periods`, `fn_close_accounting_period`, `fn_reopen_accounting_period` | owner, accountant |
+| **RPT-17** | `/finance/pnl-trend` | GL-backed P&L time series | latest revenue, expenses, net income, cumulative net income | `TrendLineChart` | - | `fn_pnl_timeseries` | owner, accountant |
+| **RPT-18** | `/finance/season` | Harvest/revenue season view | delivered tons, receipts, pending-price tons, booked revenue, collected, trader A/R | - | Deliveries and center summary CSV | `sales`, `sale_collections`, cost centers | owner, accountant |
+| **RPT-19** | `/finance/cost-centers/[id]` | Cost-center 360 | direct expenses, finalized sales, tree net, net per feddan | - | Expense and sales CSV | selected cost center, `expenses`, `sales`, rollup views | owner, accountant |
+| **RPT-20** | `/farm/offshoots` | Offshoot bank reporting | produced/planted/replanted/sold quantities, valuation estimate | `MultiInsightChart` with `CategoryBarChart` | Movement and expansion CSV | offshoot ledger and valuation tables | owner, accountant, farm_manager |
+| **RPT-21** | `/weather/dashboard` | Weather risk dashboard | weather readings and threshold risk signals | `TrendLineChart` | - | weather readings/thresholds | any member |
 
-## Known limitations (reconcile honesty)
-- **Budget gate still estimates planned spend from operations:** RPT-05 is now plan-routed and category-generalized
-  (fertilization/irrigation plus a general-ops fallback), but committed/actual budget ledger integration remains a
-  separate control gap until PR approval/expense posting updates `budget_lines` authoritatively.
-- **No PDF export:** reports now use CSV export where wired; PDF/export packaging is still a market table-stakes gap.
-- **Chart suite is expanding:** PAB, variance, and finance report category charts are live; broader analytics remain incremental.
-- **Cross-cutting cost analytics** (P&L by sector/crop) depend on the draft accounting work (FEAT-023, PR #368) —
-  not on `main`.
+## Chart Catalog
 
-Maintenance: a new report → next `RPT-NN` + its `FEAT`; a new chart → add to `charts.tsx` then here.
+| Chart | Type | Primary use |
+|---|---|---|
+| `PabChart` | Line | Projected available balance and first shortage marker for stock coverage |
+| `VarianceChart` | Bar | Planned vs actual cost by operation or budget category |
+| `BudgetDoughnut` | Doughnut | Used vs available budget on owner/finance dashboards |
+| `PalmStatusDoughnut` | Doughnut | Palm status distribution on the owner dashboard |
+| `CategoryBarChart` | Bar | Category comparisons across revenue, centers, finance insights, farm/planning modules |
+| `TrendLineChart` | Line | Time-series financial and weather trends |
+| `MultiInsightChart` | Toggle wrapper | Switches one report card between related chart perspectives |
+
+## CSV And Print Coverage
+
+- `FilterableTable` exports the current visible table view: after client-side search and sort.
+- CSV uses raw values for spreadsheet work and includes a UTF-8 BOM for Arabic text in Excel.
+- `ExportButton` appends `.csv` only when the supplied filename does not already include it.
+- The deployed finance/reporting print surfaces are:
+  `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
+  `/finance/custody-reports`, `/finance/reports`, and `/finance/revenue-reports`.
+- Print CSS hides app chrome, print buttons, filters, result counts, and CSV controls while preserving report
+  content, cards, KPIs, charts, and tables.
+- Date-aware filenames are live for the statement/report packs where the page has `start/end` or `asOf`
+  parameters. All-history reports keep generic names.
+
+## Month-Close Output Pack
+
+The accountant-facing month-close path is now:
+
+1. Clear `/finance/close` live checklist items.
+2. Review `/finance/income-statement?start=...&end=...`.
+3. Review `/finance/balance-sheet?asOf=...`.
+4. Review `/finance/budget-vs-actual?start=...&end=...` when budget comparison is needed.
+5. Print or export the statement tables as support.
+6. Lock the period in `/finance/periods`.
+
+The clean checklist does not auto-lock. It deliberately hands the accountant to the statements first.
+
+## Known Limitations
+
+- Browser print is live, but there is still no server-generated PDF bundle or signed statement package.
+- Cost-center reports are all-history today; their CSV filenames are intentionally generic until a period filter is added.
+- Budget-vs-actual remains report-only. It exposes variance and unbudgeted spend but does not enforce caps
+  (Decision-0157).
+- Several operational list pages export CSV but are not statement-style printable pages yet.
+- The report catalog is a current-state index, not a replacement for `RPC-CATALOG.md`, `FEATURE-REGISTRY.md`, or
+  the Arabic user manual.
+
+Maintenance: add a new report route as the next `RPT-NN`; add any new chart component to the chart catalog; note
+CSV and print coverage when the page is exportable or print-ready.
