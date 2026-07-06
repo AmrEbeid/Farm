@@ -9,7 +9,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { StoryLine } from "@/components/StoryLine";
+import { FilterableTable } from "@/components/FilterableTable";
 import { TrendLineChart } from "@/components/charts";
+import { PrintButton } from "@/components/print-button";
+import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { egp } from "@/lib/money";
 import {
   parsePnlTimeseries,
@@ -21,6 +24,14 @@ import {
 } from "@/lib/pnl-insights";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
+
+const PNL_TREND_COLUMNS: SimpleColumn[] = [
+  { id: "period", header: "الفترة" },
+  { id: "revenue", header: "الإيرادات", kind: "money", numeric: true },
+  { id: "expenses", header: "المصروفات", kind: "money", numeric: true },
+  { id: "netIncome", header: "صافي الربح", kind: "money", numeric: true },
+  { id: "cumulativeNetIncome", header: "الصافي التراكمي", kind: "money", numeric: true },
+];
 
 const VERDICT_ICON: Record<Verdict, string> = { good: "🟢", mixed: "🟡", bad: "🔴" };
 function verdictIcon(metricKey: string, prev: number | undefined, curr: number | undefined): string {
@@ -64,6 +75,14 @@ export default async function FinancePnlTrendPage({
     "صافي الربح": p.net_income,
     "الصافي التراكمي": p.cumulative_net_income,
   }));
+  const tableRows: SimpleRow[] = ps.map((p) => ({
+    id: p.period,
+    period: p.period,
+    revenue: p.revenue,
+    expenses: p.expenses,
+    netIncome: p.net_income,
+    cumulativeNetIncome: p.cumulative_net_income,
+  }));
 
   const grainLabel = grain === "year" ? "سنوي" : "شهري";
   const otherGrain = grain === "year" ? "month" : "year";
@@ -79,13 +98,16 @@ export default async function FinancePnlTrendPage({
             ليست مصروفًا ولا تظهر هنا.
           </p>
         </div>
-        <Link
-          href={`/finance/pnl-trend?grain=${otherGrain}`}
-          className="rounded-md px-3 py-2 text-sm font-semibold"
-          style={{ border: "1px solid var(--line)", background: "var(--surface)" }}
-        >
-          العرض {otherGrainLabel}
-        </Link>
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة الاتجاه" />
+          <Link
+            href={`/finance/pnl-trend?grain=${otherGrain}`}
+            className="rounded-md px-3 py-2 text-sm font-semibold"
+            style={{ border: "1px solid var(--line)", background: "var(--surface)" }}
+          >
+            العرض {otherGrainLabel}
+          </Link>
+        </div>
       </header>
 
       {!hasData || !latest ? (
@@ -123,9 +145,21 @@ export default async function FinancePnlTrendPage({
             />
           </Card>
 
+          <Card title="بيانات الاتجاه">
+            <FilterableTable
+              columns={PNL_TREND_COLUMNS}
+              rows={tableRows}
+              ariaLabel="بيانات اتجاه الأرباح والخسائر"
+              exportFilename={`pnl-trend-${grain}`}
+              minRowsForSearch={1}
+              empty="لا توجد فترات"
+            />
+          </Card>
+
           <p className="text-sm" style={mutedStyle}>
-            صافي الربح هنا يطابق صافي الربح في قائمة الدخل لنفس الفترة. القيود المعكوسة والمسحوبات لا تُحتسب.{" "}
-            <Link href="/finance/income-statement" className="font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            صافي الربح هنا يطابق صافي الربح في قائمة الدخل لنفس الفترة. القيود المعكوسة والمسحوبات لا تُحتسب.
+            {" "}
+            <Link href="/finance/income-statement" className="no-print font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
               قائمة الدخل ←
             </Link>
           </p>

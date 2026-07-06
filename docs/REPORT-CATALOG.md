@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #819. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #821. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -19,14 +19,14 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-07** | `/finance/revenue-reports` | Revenue, collections, pending-price deliveries, A/R aging | finalized revenue, collections, outstanding A/R, 30+ A/R, pending count/qty | `MultiInsightChart` with `CategoryBarChart` by buyer or crop/season | CSV per table with period/as-of filenames; print-ready | RPC-053 `fn_revenue_sales_report` | owner, accountant |
 | **RPT-08** | `/finance/custody-reports` | Custody and payment-request settlement pack | opening/period/closing custody, cash expenses, unpaid obligations, 30+ obligations, owner funding | - | CSV per table with period/as-of filenames; print-ready | RPC-045 `fn_custody_ledger_report`, RPC-046 `fn_custody_cash_expense_report`, RPC-047 `fn_unpaid_obligations_report`, RPC-048 `fn_owner_funding_report` | owner, accountant |
 | **RPT-09** | `/finance/reports` | Cost-center economics and reconciliation | posted centers, unallocated lines, review flags, operating net, debit/credit/net, net per feddan | `MultiInsightChart` with `CategoryBarChart` and `TrendLineChart` | CSV per table; print-ready | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags`, `journal_lines`, `journal_entries`, `accounts` | owner, accountant |
-| **RPT-10** | `/finance/insights` | Owner finance insight summary | allocation score, posted centers, unallocated net, review flags, operating net | `CategoryBarChart` | Center insight CSV | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags` | owner, accountant |
+| **RPT-10** | `/finance/insights` | Owner finance insight summary | allocation score, posted centers, unallocated net, review flags, operating net | `CategoryBarChart` | Center insight CSV; print-ready | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags` | owner, accountant |
 | **RPT-11** | `/accounting` | Accounting ledger overview | custody cash, owner funding, operating expenses, capex, drawings, trial balance, recent entries/lines | - | Trial-balance, journal-entry, and journal-line CSV; print-ready | RPC-040 `fn_accounting_trial_balance`, `journal_entries`, `journal_lines`, accounts | owner, accountant |
 | **RPT-12** | `/finance/balance-sheet` | Trusted balance sheet | assets, liabilities, equity incl. net income, cumulative net income, balanced flag | - | Assets/liabilities/equity CSV with as-of filename; print-ready | RPC-055 `fn_accounting_balance_sheet` | owner, accountant |
 | **RPT-13** | `/finance/income-statement` | Trusted income statement / P&L | revenue, expenses, operating expenses, net income/loss | - | Revenue/expense CSV with period filename; print-ready | RPC-056 `fn_accounting_income_statement` | owner, accountant |
 | **RPT-14** | `/finance/budget-vs-actual` | Budget-vs-actual from posted GL | planned, actual, variance, variance %, status | - | Comparison CSV with period filename; print-ready | RPC-060 `fn_budget_vs_actual` | owner, accountant |
 | **RPT-15** | `/finance/close` | Month-close checklist and statement handoff | pending-price deliveries, unrouted/unclassified/unallocated expenses, aged receivables | - | Links to statement review; no CSV | `sales`, `sale_collections`, `expenses`, accounting period actions | owner, accountant |
 | **RPT-16** | `/finance/periods` | Accounting period lock register | total periods, locked periods, reopened/open periods | - | Accounting-period CSV; print-ready | `accounting_periods`, `fn_close_accounting_period`, `fn_reopen_accounting_period` | owner, accountant |
-| **RPT-17** | `/finance/pnl-trend` | GL-backed P&L time series | latest revenue, expenses, net income, cumulative net income | `TrendLineChart` | - | `fn_pnl_timeseries` | owner, accountant |
+| **RPT-17** | `/finance/pnl-trend` | GL-backed P&L time series | latest revenue, expenses, net income, cumulative net income | `TrendLineChart` | P&L trend CSV; print-ready | `fn_pnl_timeseries` | owner, accountant |
 | **RPT-18** | `/finance/season` | Harvest/revenue season view | delivered tons, receipts, pending-price tons, booked revenue, collected, trader A/R | - | Deliveries and center summary CSV; print-ready | `sales`, `sale_collections`, cost centers | owner, accountant |
 | **RPT-19** | `/finance/cost-centers/[id]` | Cost-center 360 | direct expenses, finalized sales, tree net, net per feddan | - | Expense and sales CSV; print-ready | selected cost center, `expenses`, `sales`, rollup views | owner, accountant |
 | **RPT-20** | `/farm/offshoots` | Offshoot bank reporting | produced/planted/replanted/sold quantities, valuation estimate | `MultiInsightChart` with `CategoryBarChart` | Movement and expansion CSV; print-ready | offshoot ledger and valuation tables | owner, accountant, farm_manager |
@@ -45,6 +45,8 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-33** | `/plans/dashboard` | Planning and operations readiness dashboard | active plans, due operations, blocked checks, open estimated cost, executed operation cost KPIs | `CategoryDoughnut`, `CategoryBarChart` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `farm_event`, farm structure | any member; field dashboard link role-gated |
 | **RPT-34** | `/farm/pest-scouting` | Red-palm-weevil scouting register | traps needing attention, all traps, weekly catches, suspected incidents | - | CSV per table; print-ready | `pest_traps`, `pest_trap_catches`, `pest_incidents`, farm structure | any member; write owner/farm_manager/agri_engineer/supervisor |
 | **RPT-35** | `/plans/[planId]` | Plan 360 detail | plan status, readiness, operation count, estimated cost, check results, operation calendar, assignees, agronomist sign-off state | `OpsCalendar` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees`, `people`, `inventory_items`, templates | any member; write controls owner/farm_manager; sign-off owner/agri_engineer |
+| **RPT-36** | `/finance/enterprise-scorecard` | Enterprise/crop profitability scorecard | revenue, expenses, profit, margin, ROI, unallocated revenue/expense | - | Enterprise scorecard CSV; print-ready | `v_cost_center_rollup`, finalized `sales`, `lib/entity-pnl.ts`, `lib/pnl-insights.ts` | owner, accountant |
+| **RPT-37** | `/finance/sector-scorecard` | Sector profitability benchmark | sector net profit, profit/feddan, best-unit benchmark, upside, unallocated revenue/expense | - | Sector scorecard CSV; print-ready | `v_cost_center_rollup`, finalized `sales`, `lib/entity-pnl.ts`, `lib/pnl-insights.ts` | owner, accountant |
 
 ## Chart Catalog
 
@@ -66,6 +68,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 - The deployed print-ready surfaces are:
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
   `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/finance/periods`,
+  `/finance/insights`, `/finance/pnl-trend`, `/finance/enterprise-scorecard`, `/finance/sector-scorecard`,
   `/budgets`, `/finance/season`, `/finance/cost-centers/[id]`, `/budgets/[budgetId]`,
   `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
   `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,

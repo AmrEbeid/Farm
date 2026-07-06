@@ -15,8 +15,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
+import { PrintButton } from "@/components/print-button";
 import { egp, num, pct } from "@/lib/money";
 import { cropRoi, cropRoiThesis } from "@/lib/pnl-insights";
 import { computeEnterprisePnl } from "@/lib/entity-pnl";
@@ -67,12 +69,17 @@ export default async function EnterpriseScorecardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold">اقتصاد المحاصيل</h1>
-        <p style={mutedStyle}>
-          ربحية كل محصول وعائده على التكلفة — إيراد المحصول من مبيعاته الموسمية ناقص مصروفات مراكزه، مرتّبة حسب
-          العائد على التكلفة.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-bold">اقتصاد المحاصيل</h1>
+          <p style={mutedStyle}>
+            ربحية كل محصول وعائده على التكلفة — إيراد المحصول من مبيعاته الموسمية ناقص مصروفات مراكزه، مرتّبة حسب
+            العائد على التكلفة.
+          </p>
+        </div>
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة اقتصاد المحاصيل" />
+        </div>
       </header>
 
       {!hasData || rows.length < 1 ? (
@@ -104,13 +111,21 @@ export default async function EnterpriseScorecardPage() {
           )}
 
           <Card title="ترتيب المحاصيل حسب العائد">
-            <SimpleTable columns={cols} rows={tableRows} ariaLabel="ربحية المحاصيل والعائد على التكلفة" empty="—" />
+            <FilterableTable
+              columns={cols}
+              rows={tableRows}
+              ariaLabel="ربحية المحاصيل والعائد على التكلفة"
+              exportFilename="enterprise-scorecard"
+              minRowsForSearch={1}
+              empty="—"
+            />
           </Card>
 
           <p className="text-sm" style={mutedStyle}>
             «العائد على التكلفة» = الربح ÷ التكلفة؛ «هامش الربح» = الربح ÷ الإيراد. الإيراد من المبيعات المُسعّرة؛
-            المسحوبات لا تُحتسب.{" "}
-            <Link href="/finance/sector-scorecard" className="font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            المسحوبات لا تُحتسب.
+            {" "}
+            <Link href="/finance/sector-scorecard" className="no-print font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
               أداء القطاعات ←
             </Link>
           </p>

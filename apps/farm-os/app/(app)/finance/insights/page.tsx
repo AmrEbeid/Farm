@@ -7,6 +7,7 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { CategoryBarChart } from "@/components/charts";
+import { PrintButton } from "@/components/print-button";
 import { buildFinanceInsightSummary, type CostCenterInsightFlag, type CostCenterInsightRollup } from "@/lib/finance-insights";
 import { egp, num } from "@/lib/money";
 
@@ -39,7 +40,8 @@ export default async function FinanceInsightsPage() {
             قراءة آلية من القيود ومراكز التكلفة الحالية، بدون أرقام مقدّرة أو ذكاء اصطناعي.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة الرؤى" />
           <HeaderLink href="/dashboard/owner">لوحة المالك</HeaderLink>
           <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>
           <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
