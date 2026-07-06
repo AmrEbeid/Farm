@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — inventory dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — people dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#835** merged to `main` at **`bc347f0`** with no Supabase migration. Scope: print-ready
+> `/people/dashboard`, CSV export for workload, unassigned-operation, and team-directory tables, with dashboard
+> navigation/filter helper, search, and CSV controls hidden from printed output while team KPIs, workload, unassigned
+> operations, directory rows, and the owner/accountant payroll estimate remain printable. Boundaries held: no
+> schema/RPC/data change, no people-dashboard query change, no contact-data export, no payroll CSV export, no closed
+> payroll exposure, and no permission widening. Validation: focused eslint, export/filter/table/nav/help/payroll
+> Vitest **54/54**, `tsc`, production build, GitHub `ci` and `db-tests` green, Vercel preview
+> `dpl_7p9HapdyKcmRe1kbdztgisCknaf3` READY with clean preview error logs, Vercel production READY for
+> `dpl_o6DEJnGwfLv2TjHLCxURsQejYuqY`, build logs clean of errors, no production runtime errors, and aliases
+> `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200 with etag
+> `"2b6433a73ffda915b51fd50f9df76dac"`.
+
+> **2026-07-06 — inventory dashboard output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PR **#833** merged to `main` at **`9079cb7`** with no Supabase migration. Scope: print-ready
 > `/inventory/dashboard`, CSV export for the inventory/purchase work table, with dashboard navigation, first-run
 > guidance, supplier action link, filter helper, result count, search, and CSV controls hidden from printed output
