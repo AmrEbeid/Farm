@@ -5,6 +5,9 @@ import { Breadcrumbs, VerdictBanner, KpiCard, Card } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { PabChart } from "@/components/charts";
 import { CreatePrButton } from "@/components/CreatePrButton";
+import { FilterableTable } from "@/components/FilterableTable";
+import { PrintButton } from "@/components/print-button";
+import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { num, coverageDays } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 
@@ -85,6 +88,23 @@ const STATE_TONE: Record<CoverageState, "ok" | "warning" | "danger"> = {
   ok: "ok",
 };
 
+const SUMMARY_COLUMNS: SimpleColumn[] = [
+  { id: "metric", header: "المؤشر" },
+  { id: "value", header: "القيمة", kind: "num", numeric: true },
+  { id: "unit", header: "الوحدة" },
+  { id: "note", header: "ملاحظة" },
+];
+
+function finiteCoverageDays(value: Coverage["coverage_days"]): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function projectionSignal(c: Coverage, week: number, projectedBalance: number): string {
+  if (week === c.first_shortage_period || projectedBalance <= 0) return "نقص";
+  if (week === c.first_warning_period || projectedBalance < c.safety_stock) return "دون حد الأمان";
+  return "مغطّى";
+}
+
 // Build the human message CLIENT-SIDE from the structured numeric fields instead of trusting
 // the RPC's `message_ar` string: that string hardcodes "كجم" and "الأسبوع القادم" regardless of
 // the item's real unit or the real first_shortage_period/first_warning_period number (a SQL
@@ -159,6 +179,32 @@ export default async function CoveragePage({
   const unit = item?.unit ?? "كجم";
   const state = coverageState(c);
   const pill = STATE_PILL[state];
+  const finiteDays = finiteCoverageDays(c.coverage_days);
+  const summaryRows: SimpleRow[] = [
+    { id: "available", metric: "المتاح", value: c.available, unit, note: "رصيد الموقع الرئيسي" },
+    { id: "safety-stock", metric: "حد الأمان", value: c.safety_stock, unit, note: "قبل التحذير" },
+    { id: "lead-time", metric: "مهلة التوريد", value: c.lead_time_days, unit: "يوم", note: "" },
+    { id: "reorder-point", metric: "نقطة إعادة الطلب", value: c.reorder_point, unit, note: "" },
+    { id: "coverage-days", metric: "أيام التغطية", value: finiteDays, unit: "يوم", note: finiteDays == null ? "∞" : "" },
+    { id: "recommended-qty", metric: "الكمية الموصى بها", value: c.recommend_qty, unit, note: "" },
+    { id: "shortfall", metric: "العجز المتوقع", value: c.shortfall, unit, note: c.shortage ? "نقص فعلي" : "" },
+    { id: "order-by", metric: "آخر موعد للطلب", unit: "", note: c.order_by ? fmtDate(c.order_by) : "—" },
+    { id: "verdict", metric: "الحكم", unit: "", note: pill.label },
+  ];
+  const projectionColumns: SimpleColumn[] = [
+    { id: "week", header: "الأسبوع", kind: "num", numeric: true },
+    { id: "projectedBalance", header: `الرصيد المتوقع (${unit})`, kind: "num", numeric: true },
+    { id: "signal", header: "الإشارة" },
+  ];
+  const projectionRows: SimpleRow[] = c.pab.map((projectedBalance, index) => {
+    const week = index + 1;
+    return {
+      id: `week-${week}`,
+      week,
+      projectedBalance,
+      signal: projectionSignal(c, week, projectedBalance),
+    };
+  });
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -176,13 +222,16 @@ export default async function CoveragePage({
         subtitle="محرّك التغطية (fn_stock_coverage)"
         pills={[{ status: pill.status, label: pill.label }]}
         actions={
-          <Link
-            href={`/inventory/${itemId}`}
-            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
-            style={{ color: "var(--brand)", background: "var(--surface)", border: "1px solid var(--line)" }}
-          >
-            ملف الصنف
-          </Link>
+          <div className="no-print flex flex-wrap gap-2">
+            <PrintButton label="طباعة التغطية" />
+            <Link
+              href={`/inventory/${itemId}`}
+              className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+              style={{ color: "var(--brand)", background: "var(--surface)", border: "1px solid var(--line)" }}
+            >
+              ملف الصنف
+            </Link>
+          </div>
         }
       />
 
@@ -205,6 +254,17 @@ export default async function CoveragePage({
         />
       </section>
 
+      <Card title="ملخص التغطية">
+        <FilterableTable
+          columns={SUMMARY_COLUMNS}
+          rows={summaryRows}
+          ariaLabel="ملخص تغطية المخزون"
+          exportFilename={`stock-coverage-summary-${itemId}`}
+          minRowsForSearch={20}
+          empty="لا توجد بيانات تغطية."
+        />
+      </Card>
+
       <Card title="الرصيد المتوقع عبر الأسابيع">
         <PabChart
           series={c.pab}
@@ -217,6 +277,18 @@ export default async function CoveragePage({
             تاريخ نفاد المخزون المتوقع: {fmtDate(c.stockout_date)}
           </p>
         )}
+      </Card>
+
+      <Card title="جدول الرصيد المتوقع">
+        <FilterableTable
+          columns={projectionColumns}
+          rows={projectionRows}
+          ariaLabel="جدول الرصيد المتوقع عبر الأسابيع"
+          searchColumns={["week", "signal"]}
+          exportFilename={`stock-coverage-projection-${itemId}`}
+          minRowsForSearch={20}
+          empty="لا توجد بيانات إسقاط."
+        />
       </Card>
 
       {/* Show whenever the engine recommends a purchase (recommend_qty > 0), not only on a hard
@@ -232,11 +304,13 @@ export default async function CoveragePage({
             {c.order_by ? ` (آخر موعد للطلب: ${fmtDate(c.order_by)})` : ""}.
           </p>
           {canReserve && (
-            <CreatePrButton
-              itemId={itemId}
-              recommendQty={c.recommend_qty}
-              reserveQty={c.recommend_qty}
-            />
+            <div className="no-print">
+              <CreatePrButton
+                itemId={itemId}
+                recommendQty={c.recommend_qty}
+                reserveQty={c.recommend_qty}
+              />
+            </div>
           )}
         </Card>
       )}

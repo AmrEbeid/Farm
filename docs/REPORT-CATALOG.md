@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #823. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #825. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -13,7 +13,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-01** | `/dashboard` | Role router | - | - | - | membership role | `requireMembership` |
 | **RPT-02** | `/dashboard/owner` | Owner operating overview | area, pending approvals, stock risk, budget status, finance insight summary, offshoot estimate | `BudgetDoughnut`, `VarianceChart`, `PalmStatusDoughnut`, `CategoryBarChart` | Purchase-request CSV | `purchase_requests`, `budget_lines`, inventory, farm structure, cost-center rollups | owner, accountant |
 | **RPT-03** | `/dashboard/manager` | Plan readiness and assigned work | active operations, done operations, blocking checks, readiness %, open/due/unassigned tasks | Progress | - | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees` | farm_manager, agri_engineer |
-| **RPT-04** | `/inventory/[itemId]/coverage` | Stock coverage and reorder decision | available, coverage days, reorder point, recommended quantity, verdict | `PabChart` | - | RPC-007 `fn_stock_coverage` | any member; reserve action owner/farm_manager/storekeeper |
+| **RPT-04** | `/inventory/[itemId]/coverage` | Stock coverage and reorder decision | available, coverage days, reorder point, recommended quantity, verdict | `PabChart` | Coverage summary and projection CSV; print-ready | RPC-007 `fn_stock_coverage` | any member; reserve action owner/farm_manager/storekeeper |
 | **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, actual, committed, available, utilization %, verdict | Progress | Print-ready | `budget_lines`, `plan_operations`, `lib/budget-check.ts` | any member |
 | **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance % per operation | `VarianceChart` | Print-ready | `plan_operations`, done `farm_event` actuals, `plans` | any member |
 | **RPT-07** | `/finance/revenue-reports` | Revenue, collections, pending-price deliveries, A/R aging | finalized revenue, collections, outstanding A/R, 30+ A/R, pending count/qty | `MultiInsightChart` with `CategoryBarChart` by buyer or crop/season | CSV per table with period/as-of filenames; print-ready | RPC-053 `fn_revenue_sales_report` | owner, accountant |
@@ -72,6 +72,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
   `/weather/dashboard`,
   `/budgets`, `/finance/season`, `/finance/cost-centers/[id]`, `/budgets/[budgetId]`,
   `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
+  `/inventory/[itemId]/coverage`,
   `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,
   `/plans`, `/plans/[planId]`, `/plans/dashboard`, `/reports/[planId]/pva`,
   `/farm/pest-scouting`, and `/farm/offshoots`.
