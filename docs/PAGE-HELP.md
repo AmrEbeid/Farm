@@ -44,8 +44,9 @@ approval. *Why:* control spend before money moves. *When:* a shortage or need ar
 editing lines after approval (BR-040); over-receiving (BR-044). Refs: RPC-009, RPC-T01.
 
 **`/budget/[planId]/check` — Budget check.** *What:* does this plan fit the budget. *Why:* the gate before
-approval. *When:* before executing costed operations. *How:* read category-level approved/committed/actual +
-verdict for the selected plan. Refs: RPT-05.
+approval. *When:* before executing costed operations. *How:* read category-level approved amount, this-plan cost,
+review ceiling, and verdict; export the CSV snapshot when needed. *Avoid:* treating it as a live committed/actual
+ledger report. Refs: RPT-05.
 
 **`/budgets` — Budgets.** *What:* budget overview by category. *Who:* owner/accountant/farm_manager. *How:* view
 planned vs committed vs actual. Refs: BR-063.
