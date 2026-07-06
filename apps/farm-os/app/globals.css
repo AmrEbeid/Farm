@@ -217,6 +217,10 @@ body {
 }
 
 /* Print/PDF reports: keep the actual report content, hide app chrome and controls. */
+.print-only {
+  display: none !important;
+}
+
 @media print {
   .no-print,
   .fos-appshell__topbar,
@@ -224,6 +228,10 @@ body {
   .fos-appshell__overlay,
   .farm-module-nav {
     display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
   }
 
   html,
