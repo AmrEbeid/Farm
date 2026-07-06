@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #814. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #816. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -15,7 +15,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-03** | `/dashboard/manager` | Plan readiness and assigned work | active operations, done operations, blocking checks, readiness %, open/due/unassigned tasks | Progress | - | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees` | farm_manager, agri_engineer |
 | **RPT-04** | `/inventory/[itemId]/coverage` | Stock coverage and reorder decision | available, coverage days, reorder point, recommended quantity, verdict | `PabChart` | - | RPC-007 `fn_stock_coverage` | any member; reserve action owner/farm_manager/storekeeper |
 | **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, actual, committed, available, utilization %, verdict | Progress | Print-ready | `budget_lines`, `plan_operations`, `lib/budget-check.ts` | any member |
-| **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance % per operation | `VarianceChart` | - | `plan_operations`, done `farm_event` actuals, `plans` | any member |
+| **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance % per operation | `VarianceChart` | Print-ready | `plan_operations`, done `farm_event` actuals, `plans` | any member |
 | **RPT-07** | `/finance/revenue-reports` | Revenue, collections, pending-price deliveries, A/R aging | finalized revenue, collections, outstanding A/R, 30+ A/R, pending count/qty | `MultiInsightChart` with `CategoryBarChart` by buyer or crop/season | CSV per table with period/as-of filenames; print-ready | RPC-053 `fn_revenue_sales_report` | owner, accountant |
 | **RPT-08** | `/finance/custody-reports` | Custody and payment-request settlement pack | opening/period/closing custody, cash expenses, unpaid obligations, 30+ obligations, owner funding | - | CSV per table with period/as-of filenames; print-ready | RPC-045 `fn_custody_ledger_report`, RPC-046 `fn_custody_cash_expense_report`, RPC-047 `fn_unpaid_obligations_report`, RPC-048 `fn_owner_funding_report` | owner, accountant |
 | **RPT-09** | `/finance/reports` | Cost-center economics and reconciliation | posted centers, unallocated lines, review flags, operating net, debit/credit/net, net per feddan | `MultiInsightChart` with `CategoryBarChart` and `TrendLineChart` | CSV per table; print-ready | `v_cost_center_rollup`, `v_cost_center_reconciliation_flags`, `journal_lines`, `journal_entries`, `accounts` | owner, accountant |
@@ -44,6 +44,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-32** | `/plans` | Plan register | plan count by all/active/draft/closed status, due operation count | - | Plans CSV; print-ready | `plans`, `plan_operations` | any member; create action owner/farm_manager |
 | **RPT-33** | `/plans/dashboard` | Planning and operations readiness dashboard | active plans, due operations, blocked checks, open estimated cost, executed operation cost KPIs | `CategoryDoughnut`, `CategoryBarChart` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `farm_event`, farm structure | any member; field dashboard link role-gated |
 | **RPT-34** | `/farm/pest-scouting` | Red-palm-weevil scouting register | traps needing attention, all traps, weekly catches, suspected incidents | - | CSV per table; print-ready | `pest_traps`, `pest_trap_catches`, `pest_incidents`, farm structure | any member; write owner/farm_manager/agri_engineer/supervisor |
+| **RPT-35** | `/plans/[planId]` | Plan 360 detail | plan status, readiness, operation count, estimated cost, check results, operation calendar, assignees, agronomist sign-off state | `OpsCalendar` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees`, `people`, `inventory_items`, templates | any member; write controls owner/farm_manager; sign-off owner/agri_engineer |
 
 ## Chart Catalog
 
@@ -67,7 +68,8 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
   `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/budgets`,
   `/budgets/[budgetId]`, `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
   `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,
-  `/plans`, `/plans/dashboard`, `/farm/pest-scouting`, and `/farm/offshoots`.
+  `/plans`, `/plans/[planId]`, `/plans/dashboard`, `/reports/[planId]/pva`,
+  `/farm/pest-scouting`, and `/farm/offshoots`.
 - Print CSS hides app chrome, print buttons, filters, result counts, and CSV controls while preserving report
   content, cards, KPIs, charts, and tables.
 - Date-aware filenames are live for the statement/report packs where the page has `start/end` or `asOf`
@@ -92,8 +94,6 @@ The clean checklist does not auto-lock. It deliberately hands the accountant to 
 - Cost-center reports are all-history today; their CSV filenames are intentionally generic until a period filter is added.
 - Budget-vs-actual remains report-only. It exposes variance and unbudgeted spend but does not enforce caps
   (Decision-0157).
-- Some detail pages still need deeper print polish after the list/report output passes
-  (for example `/plans/[planId]` and `/reports/[planId]/pva`).
 - The report catalog is a current-state index, not a replacement for `RPC-CATALOG.md`, `FEATURE-REGISTRY.md`, or
   the Arabic user manual.
 
