@@ -186,9 +186,9 @@ export default async function OwnerDashboard() {
   type Att = { key: string; tone: "danger" | "warning"; prio: number; title: string; desc: string; href: string };
   const alerts: Att[] = [
     // #157: no "budget over" danger from frozen seed committed/actual — it would be a false alarm on static data.
-    overduePOs.length && { key: "overdue", tone: "danger", prio: 1, title: `${num(overduePOs.length)} طلب شراء متأخر`, desc: "معتمد ولم يُستلم بحلول تاريخ الحاجة.", href: "/purchase-requests" },
+    overduePOs.length && { key: "overdue", tone: "danger", prio: 1, title: `${num(overduePOs.length)} طلب شراء متأخر`, desc: "معتمد ولم يُستلم بحلول تاريخ الحاجة.", href: "/purchase-requests?filter=overdue" },
     reorderItems.length && { key: "reorder", tone: "warning", prio: 2, title: `${num(reorderItems.length)} صنف تحت حد إعادة الطلب`, desc: "المخزون عند أو دون نقطة إعادة الطلب.", href: "/inventory/dashboard?filter=reorder" },
-    pending.length && { key: "pending", tone: "warning", prio: 3, title: `${num(pending.length)} طلب شراء بانتظار اعتمادك`, desc: "فصل الواجبات: لا يعتمد مقدّم الطلب طلبه.", href: "/purchase-requests" },
+    pending.length && { key: "pending", tone: "warning", prio: 3, title: `${num(pending.length)} طلب شراء بانتظار اعتمادك`, desc: "فصل الواجبات: لا يعتمد مقدّم الطلب طلبه.", href: "/purchase-requests?filter=submitted" },
     blockedChecks.length && { key: "checks", tone: "warning", prio: 4, title: `${num(blockedChecks.length)} فحص خطة محظور`, desc: "فحوص تمنع تنفيذ الخطة حتى تُعالَج.", href: "/plans/dashboard" },
     palmAttention.length && { key: "palm", tone: "warning", prio: 5, title: `${num(palmAttention.length)} نخلة تحتاج عناية`, desc: "أصول بحالة مراقبة / مريضة / متضررة.", href: "/farm/dashboard" },
     unassignedOps.length && { key: "unassigned", tone: "warning", prio: 6, title: `${num(unassignedOps.length)} عملية بلا مسؤول`, desc: "عمليات نشطة دون شخص مسؤول مُسنَد.", href: "/plans" },
@@ -218,9 +218,9 @@ export default async function OwnerDashboard() {
   if ((unpaidExpenseCount ?? 0) > 0)
     attention.push({ href: "/custody", tone: "watch", text: `${num(unpaidExpenseCount ?? 0)} مصروف آجل لم يُسدَّد — راجع طلبات الصرف` });
   if (pending.length > 0)
-    attention.push({ href: "/purchase-requests", tone: "watch", text: `${num(pending.length)} طلب شراء ينتظر الاعتماد` });
+    attention.push({ href: "/purchase-requests?filter=submitted", tone: "watch", text: `${num(pending.length)} طلب شراء ينتظر الاعتماد` });
   if (overduePOs.length > 0)
-    attention.push({ href: "/purchase-requests", tone: "act", text: `${num(overduePOs.length)} طلب معتمد تجاوز موعد التوريد` });
+    attention.push({ href: "/purchase-requests?filter=overdue", tone: "act", text: `${num(overduePOs.length)} طلب معتمد تجاوز موعد التوريد` });
   // #157: no "budget over" act item from frozen seed committed/actual (false alarm on static data).
   if (reorderItems.length > 0)
     attention.push({ href: "/inventory/dashboard?filter=reorder", tone: "watch", text: `${num(reorderItems.length)} صنف تحت حد إعادة الطلب` });
