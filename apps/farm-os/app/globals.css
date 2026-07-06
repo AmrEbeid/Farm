@@ -252,6 +252,18 @@ body {
     padding: 0 !important;
   }
 
+  .fos-table-wrap {
+    overflow: visible !important;
+  }
+
+  .fos-table__sort {
+    cursor: default !important;
+  }
+
+  .fos-table__sort-icon {
+    display: none !important;
+  }
+
   .fos-card,
   .fos-kpi,
   .fos-alert,
