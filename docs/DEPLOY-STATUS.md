@@ -2,7 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — plan-operation positive requirement backstop LIVE; prod migration head now `20260706180856`.**
+> **2026-07-06 (latest) — payment-request proof packet LIVE; prod migration head remains `20260706180856`.**
+> PR **#850** merged to `main` at **`482f641`** with no Supabase migration. Scope: `/custody/request/[requestId]`
+> now has a print-only payment-request proof packet shared by all tabs, with request identity, approval/signature
+> trail, category summary, detailed expense lines, and registered funding rows; screen overview also shows the
+> proof/signature summary. Boundaries held: no schema/RPC/data change, no query widening, no permission widening,
+> no hidden finance export, and no server PDF dependency. Validation: focused eslint, request-lifecycle/help/label
+> Vitest **76/76**, `tsc`, production build, GitHub `ci` and `db-tests` green, Vercel preview
+> `dpl_Hn3xxzKmSimpENMrdVeZKGV9A5HE` READY, Vercel production READY for
+> `dpl_B9XKoF7MLHXnX3QWodxSFipuy5Ch`, build logs clean of errors, no production runtime errors in the last
+> 30 minutes, production runtime status grouping showed 200s, and aliases `ebeidfarm.business` /
+> `farm-ui-one.vercel.app` returned 200 with etag `"e9b5fd1420d8ad9b7bf832886092f3e3"`.
+
+> **2026-07-06 — plan-operation positive requirement backstop LIVE; prod migration head now `20260706180856`.**
 > PR **#848** merged to `main` at **`a2a4e7`**. Scope: DB/RPC hardening for plan operation
 > requirement quantities, using repo migration `20260706175357_plan_op_positive_backstop.sql` and production
 > migration record `20260706180856_plan_op_positive_backstop`; direct labor requirement writes now reject NULL
