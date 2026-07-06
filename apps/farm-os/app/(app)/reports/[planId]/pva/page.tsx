@@ -4,6 +4,7 @@ import { requireMembership } from "@/lib/auth";
 import { Breadcrumbs, Card, Stat, EmptyState } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { VarianceChart } from "@/components/charts";
+import { PrintButton } from "@/components/print-button";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { OperationAssignees, type AssigneeInfo } from "@/components/OperationAssignees";
 import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/money";
@@ -309,13 +310,16 @@ export default async function PlannedVsActualPage({
               ]
         }
         actions={
-          <Link
-            href={`/plans/${planId}`}
-            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
-            style={{ color: "var(--brand)", background: "var(--surface)", border: "1px solid var(--line)" }}
-          >
-            ملف الخطة
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <PrintButton label="طباعة المخطط مقابل الفعلي" />
+            <Link
+              href={`/plans/${planId}`}
+              className="no-print inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+              style={{ color: "var(--brand)", background: "var(--surface)", border: "1px solid var(--line)" }}
+            >
+              ملف الخطة
+            </Link>
+          </div>
         }
       />
 

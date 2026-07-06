@@ -17,6 +17,7 @@ import { OperationTemplatePicker, type TemplateOpt } from "@/components/Operatio
 import { OperationSignOff } from "@/components/OperationSignOff";
 import { PlanChecksRunner } from "@/components/PlanChecksRunner";
 import { PlanStatusActions } from "@/components/PlanStatusActions";
+import { PrintButton } from "@/components/print-button";
 import { POTASSIUM_ID } from "@/lib/nav";
 import { egpSummary, egpValue, num, pct, sumMoney } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
@@ -358,7 +359,7 @@ export default async function MonthlyPlanPage({
 
       <StoryLine lead={planLead} notes={planNotes} />
       {canEditPlan && (
-        <div className="flex flex-wrap gap-2 text-sm font-bold">
+        <div className="no-print flex flex-wrap gap-2 text-sm font-bold">
           <Link href={`/record/plan?planId=${planId}`} className="underline underline-offset-4" style={{ color: "var(--brand)" }}>
             + أضِف عمليات بالمعالج (أسطر متعددة)
           </Link>
@@ -371,20 +372,22 @@ export default async function MonthlyPlanPage({
         subtitle={`${fmtDate(plan.period_start)} إلى ${fmtDate(plan.period_end)}`}
         pills={[{ status: pillStatus, label: pillLabel }]}
         actions={
-          canEditPlan ? (
-            <>
-              <PlanStatusActions planId={planId} status={planStatus} />
-              <PlanChecksRunner planId={planId} />
-              <OperationTemplatePicker planId={planId} templates={templateOptions} />
-              <OperationBuilder
-                planId={planId}
-                items={items ?? []}
-                people={people ?? []}
-                existingOps={existingOpOptions}
-              />
-
-            </>
-          ) : undefined
+          <>
+            <PrintButton label="طباعة الخطة" />
+            {canEditPlan && (
+              <div className="no-print flex flex-wrap gap-2">
+                <PlanStatusActions planId={planId} status={planStatus} />
+                <PlanChecksRunner planId={planId} />
+                <OperationTemplatePicker planId={planId} templates={templateOptions} />
+                <OperationBuilder
+                  planId={planId}
+                  items={items ?? []}
+                  people={people ?? []}
+                  existingOps={existingOpOptions}
+                />
+              </div>
+            )}
+          </>
         }
       />
 
@@ -412,7 +415,9 @@ export default async function MonthlyPlanPage({
         />
       </section>
 
-      <EntityTabs items={tabItems} value={tab} />
+      <div className="no-print">
+        <EntityTabs items={tabItems} value={tab} />
+      </div>
 
       {tab === "overview" && (
         <div
@@ -449,7 +454,7 @@ export default async function MonthlyPlanPage({
             />
           )}
 
-          <Card title="إجراءات سريعة">
+          <Card title="إجراءات سريعة" className="no-print">
             <div className="flex flex-col gap-3">
               <ActionLink href={`/inventory/${POTASSIUM_ID}/coverage`} primary>
                 عرض تغطية سلفات البوتاسيوم

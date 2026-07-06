@@ -68,21 +68,23 @@ export function OperationAssignees({
           <span key={a.id} className="inline-flex items-center gap-1">
             <Tag tone={a.isLead ? "accent" : "neutral"}>{a.isLead ? `${a.name} · قائد` : a.name}</Tag>
             {canRemove && (
-              <IconButton
-                label={`إزالة ${a.name} من العملية`}
-                size="sm"
-                variant="ghost"
-                loading={pendingId === a.personId}
-                onClick={() => handleRemove(a.personId)}
-              >
-                ×
-              </IconButton>
+              <span className="no-print">
+                <IconButton
+                  label={`إزالة ${a.name} من العملية`}
+                  size="sm"
+                  variant="ghost"
+                  loading={pendingId === a.personId}
+                  onClick={() => handleRemove(a.personId)}
+                >
+                  ×
+                </IconButton>
+              </span>
             )}
           </span>
         ))}
       </div>
       {error && (
-        <p role="alert" aria-live="assertive" className="text-xs" style={{ color: "var(--danger,#b91c1c)" }}>
+        <p role="alert" aria-live="assertive" className="no-print text-xs" style={{ color: "var(--danger,#b91c1c)" }}>
           {error}
         </p>
       )}
