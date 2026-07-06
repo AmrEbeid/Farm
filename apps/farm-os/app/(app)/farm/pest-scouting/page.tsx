@@ -6,6 +6,7 @@ import { trapStatus } from "@/lib/pest-scouting";
 import { TRAP_STATUS_AR, INCIDENT_SEVERITY_AR } from "@/lib/labels";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { MasterTable, type MasterField } from "@/components/MasterTable";
+import { PrintButton } from "@/components/print-button";
 import {
   registerTrapFromForm,
   logCatchFromForm,
@@ -182,12 +183,15 @@ export default async function PestScoutingPage() {
 
   return (
     <div className="flex flex-col gap-8 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">مكافحة سوسة النخيل الحمراء</h1>
-        <p style={{ color: "var(--ink-muted)" }}>
-          سجل المصائد الفرمونية، الرصد الأسبوعي، وبلاغات الاشتباه بالإصابة. سجل ميداني للبيانات الحقيقية —
-          وليس نظام إنذار آلي.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">مكافحة سوسة النخيل الحمراء</h1>
+          <p style={{ color: "var(--ink-muted)" }}>
+            سجل المصائد الفرمونية، الرصد الأسبوعي، وبلاغات الاشتباه بالإصابة. سجل ميداني للبيانات الحقيقية —
+            وليس نظام إنذار آلي.
+          </p>
+        </div>
+        <PrintButton label="طباعة سجل المكافحة" />
       </header>
 
       <MasterTable

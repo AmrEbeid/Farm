@@ -6,6 +6,7 @@ import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { PlanCreateForm } from "@/components/PlanCreateForm";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PLAN_STATUS_AR, PLAN_TYPE_AR } from "@/lib/labels";
@@ -84,17 +85,20 @@ export default async function PlansListPage({
           <h1 className="text-2xl font-bold">الخطط</h1>
           <p style={{ color: "var(--ink-muted)" }}>دليل الخطط؛ ابدأ من لوحة التخطيط لمراجعة الجاهزية والعمليات.</p>
         </div>
-        <Link
-          href="/plans/dashboard"
-          className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
-          style={{
-            color: "var(--brand)",
-            background: "var(--surface)",
-            border: "1px solid var(--line)",
-          }}
-        >
-          لوحة التخطيط
-        </Link>
+        <div className="no-print flex flex-wrap items-center gap-2">
+          <PrintButton label="طباعة الخطط" />
+          <Link
+            href="/plans/dashboard"
+            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+            style={{
+              color: "var(--brand)",
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+            }}
+          >
+            لوحة التخطيط
+          </Link>
+        </div>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -117,7 +121,11 @@ export default async function PlansListPage({
         </DashboardKpiLink>
       </div>
 
-      {canCreate && <PlanCreateForm />}
+      {canCreate && (
+        <div className="no-print">
+          <PlanCreateForm />
+        </div>
+      )}
 
       <Card title="كل الخطط">
         {rows.length === 0 ? (

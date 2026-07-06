@@ -16,7 +16,7 @@ export function CurrentFilterCard({
         {label}
       </p>
       {showClear && (
-        <Link href={clearHref} className="mt-3 inline-block font-medium underline underline-offset-4" style={{ color: "var(--brand)" }}>
+        <Link href={clearHref} className="no-print mt-3 inline-block font-medium underline underline-offset-4" style={{ color: "var(--brand)" }}>
           مسح الفلتر
         </Link>
       )}
