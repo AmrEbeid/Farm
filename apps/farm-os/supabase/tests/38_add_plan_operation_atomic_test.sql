@@ -15,9 +15,9 @@
 -- Run via `supabase test db`.
 
 begin;
--- 12 assertions below (the 12th — accountant refusal — was added without bumping the plan,
+-- 18 assertions below (the 12th — accountant refusal — was added without bumping the plan,
 -- which the false-green harness did not catch).
-select plan(12);
+select plan(18);
 
 -- ===== grants (migration 0038 lockdown): anon must NOT execute; authenticated MUST =====
 select ok(not has_function_privilege('anon',
@@ -30,6 +30,7 @@ select ok(has_function_privilege('authenticated',
 \set orgA    '00000000-0000-0000-0000-000000000001'
 \set item    'c0000000-0000-0000-0000-000000000038'
 \set plan    'c0000000-0000-0000-0000-000000000138'
+\set palm    'c0000000-0000-0000-0000-000000000238'
 \set baditem 'deadbeef-0000-0000-0000-000000000038'
 
 -- GUCs the throws_ok format() strings reach
@@ -49,6 +50,8 @@ insert into public.inventory_items (id, org_id, name, unit, pack_size, safety_st
   values (:'item', :'orgA', 'صنف خطة', 'kg', 1, 0, 5);
 insert into public.plans (id, org_id, type, scope_type, scope_id, status)
   values (:'plan', :'orgA', 'monthly', 'sector', null, 'active');
+insert into public.assets (id, org_id, type, name)
+  values (:'palm', :'orgA', 'palm', 'نخلة اختبارية');
 
 -- ===== (a) a farm_manager authors the operation + requirement atomically =====
 select set_config('request.jwt.claims',
@@ -98,7 +101,55 @@ select is((select count(*) from public.plan_operations
   where plan_id = :'plan' and subtype = 'fertilization' and planned_at = '2026-07-01'),
   1::bigint, 'CREATE-2 dedup: still exactly one op (no duplicate inserted)');
 
--- ===== (d) authz: a non-plan.write role (storekeeper / accountant) is refused with 42501 =====
+-- ===== (d) target-aware dedup: a palm-targeted sibling must not swallow plan-scope demand =====
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.fm'), 'role','authenticated')::text, true);
+set local role authenticated;
+select set_config('t.palmres', public.fn_add_plan_operation_multi(
+  p_plan_id => :'plan', p_subtype => 'spraying', p_planned_at => '2026-07-04'::date,
+  p_ends_on => null, p_est_cost => 700,
+  p_materials => format('[{"item_id":"%s","qty":12,"unit":"kg"}]', :'item')::jsonb,
+  p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+  p_target_type => 'palm', p_target_id => :'palm',
+  p_note => 'معالجة نخلة اختبارية')::text, false);
+reset role;
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.fm'), 'role','authenticated')::text, true);
+set local role authenticated;
+select set_config('t.res3', public.fn_add_plan_operation(
+  :'plan', 'spraying', '2026-07-04'::date, 700, :'item', 12, 'kg')::text, false);
+reset role;
+
+select is((current_setting('t.res3')::jsonb)->>'deduped', 'false',
+  'CREATE-2 target-aware dedup: a palm-targeted sibling does not swallow plan-scope demand');
+select isnt((current_setting('t.res3')::jsonb)->>'operationId',
+  (current_setting('t.palmres')::jsonb)->>'operationId',
+  'CREATE-2 target-aware dedup: the returned operation is not the palm-targeted sibling');
+select is((select target_type from public.plan_operations
+  where id = ((current_setting('t.res3')::jsonb)->>'operationId')::uuid),
+  'sector', 'CREATE-2 target-aware dedup: single RPC still writes the plan-derived target');
+select is((select count(*) from public.plan_operations po
+  join public.plan_material_requirements pmr on pmr.plan_op_id = po.id
+  where po.plan_id = :'plan'
+    and po.subtype = 'spraying'
+    and po.planned_at = '2026-07-04'
+    and pmr.item_id = :'item'),
+  2::bigint, 'CREATE-2 target-aware dedup: both palm and plan-scope operations coexist');
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.fm'), 'role','authenticated')::text, true);
+set local role authenticated;
+select set_config('t.res4', public.fn_add_plan_operation(
+  :'plan', 'spraying', '2026-07-04'::date, 700, :'item', 12, 'kg')::text, false);
+reset role;
+
+select is((current_setting('t.res4')::jsonb)->>'deduped', 'true',
+  'CREATE-2 target-aware dedup: a true plan-scope retry is still deduped');
+select is((current_setting('t.res4')::jsonb)->>'operationId', (current_setting('t.res3')::jsonb)->>'operationId',
+  'CREATE-2 target-aware dedup: a true plan-scope retry returns the plan-scope operation');
+
+-- ===== (e) authz: a non-plan.write role (storekeeper / accountant) is refused with 42501 =====
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.store'), 'role','authenticated')::text, true);
 set local role authenticated;
