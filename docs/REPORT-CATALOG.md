@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #831. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #833. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -48,6 +48,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-36** | `/finance/enterprise-scorecard` | Enterprise/crop profitability scorecard | revenue, expenses, profit, margin, ROI, unallocated revenue/expense | - | Enterprise scorecard CSV; print-ready | `v_cost_center_rollup`, finalized `sales`, `lib/entity-pnl.ts`, `lib/pnl-insights.ts` | owner, accountant |
 | **RPT-37** | `/finance/sector-scorecard` | Sector profitability benchmark | sector net profit, profit/feddan, best-unit benchmark, upside, unallocated revenue/expense | - | Sector scorecard CSV; print-ready | `v_cost_center_rollup`, finalized `sales`, `lib/entity-pnl.ts`, `lib/pnl-insights.ts` | owner, accountant |
 | **RPT-38** | `/farm/dashboard` | Farm structure and field-health overview | sectors, hawshat, Barhi/male palms, attention palms, offshoot availability, palm-count reconciliation | `CategoryBarChart`, `CategoryDoughnut` | Attention, operation, sector, hawsha, and palm-count reconciliation CSV; print-ready | `sectors`, `hawshat`, `assets`, `farm_event`, `offshoot_movements`, `lib/palm-count-reconciliation.ts` | any member; offshoot KPI owner/accountant/farm_manager |
+| **RPT-39** | `/inventory/dashboard` | Inventory and purchasing work dashboard | reorder items, submitted PRs, partial receipts, active PRs, supplier count | `CategoryDoughnut` | Work-table CSV; print-ready | `inventory_items`, `inventory_bin`, `purchase_requests`, `suppliers` | any member |
 
 ## Chart Catalog
 
@@ -73,7 +74,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
   `/finance/insights`, `/finance/pnl-trend`, `/finance/enterprise-scorecard`, `/finance/sector-scorecard`,
   `/weather/dashboard`,
   `/budgets`, `/finance/season`, `/finance/cost-centers/[id]`, `/budgets/[budgetId]`,
-  `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
+  `/budget/[planId]/check`, `/purchase-requests`, `/inventory`, `/inventory/dashboard`,
   `/inventory/[itemId]/coverage`,
   `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,
   `/plans`, `/plans/[planId]`, `/plans/dashboard`, `/reports/[planId]/pva`,
