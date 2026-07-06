@@ -10,6 +10,7 @@ import { egp, egpSummary, egpValue, moneyNumber, num, sumMoney } from "@/lib/mon
 import { fmtDate } from "@/lib/dates";
 import { SUBTYPE_AR } from "@/lib/labels";
 import { computeLaborCostRollup, type LaborRequirementCostInput } from "@/lib/payroll";
+import { materialActualQtyForRequirement, type MaterialActual } from "@/lib/pva-materials";
 
 export default async function PlannedVsActualPage({
   params,
@@ -31,7 +32,7 @@ export default async function PlannedVsActualPage({
       sb
         .from("plan_operations")
         .select(
-          "id, subtype, est_cost, status, plan_material_requirements(item_id, qty, unit), plan_labor_requirements(id, count, days, person_id)",
+          "id, subtype, est_cost, status, plan_material_requirements(id, item_id, qty, unit), plan_labor_requirements(id, count, days, person_id)",
         )
         .eq("plan_id", planId)
         .order("priority"),
@@ -97,7 +98,6 @@ export default async function PlannedVsActualPage({
   // `actual_qty`/(the legacy scalar) stays meaningful only for a 0/1-material op (null for >1, where
   // no single quantity/unit is coherent across different materials). Older events (recorded before
   // this migration) never had material_actuals at all — the per-op fallback below covers them.
-  type MaterialActual = { item_id?: string; actual_qty?: number };
   const actualByOp = new Map<string, { qty: number; cost: number; materialActuals: MaterialActual[] | null }>();
   for (const ev of events ?? []) {
     const d = (ev.data ?? {}) as {
@@ -150,6 +150,7 @@ export default async function PlannedVsActualPage({
 
   const rows = executed.map((o) => {
     const reqs = (o.plan_material_requirements ?? []) as Array<{
+      id?: string;
       item_id?: string;
       qty?: number;
       unit?: string;
@@ -169,20 +170,23 @@ export default async function PlannedVsActualPage({
     let plannedQtyStr: string;
     let actualQtyStr: string;
     let varQtyStr: string;
-    if (reqs.length <= 1) {
+    if (reqs.length === 0) {
+      plannedQtyStr = "—";
+      actualQtyStr = "—";
+      varQtyStr = "—";
+    } else if (reqs.length === 1) {
       const req = reqs[0];
-      const plannedQty = Number(req?.qty ?? 0);
+      const plannedQty = Number(req.qty ?? 0);
       // Legacy events (recorded before #520) have no material_actuals; fall back to the scalar.
-      const actualQty =
-        act.materialActuals?.find((m) => !req?.item_id || m.item_id === req.item_id)?.actual_qty ?? act.qty;
-      plannedQtyStr = `${num(plannedQty)} ${req?.unit ?? ""}`;
-      actualQtyStr = `${num(actualQty)} ${req?.unit ?? ""}`;
-      varQtyStr = num(actualQty - plannedQty);
+      const actualQty = materialActualQtyForRequirement(req, act.materialActuals, act.qty);
+      plannedQtyStr = `${num(plannedQty)} ${req.unit ?? ""}`;
+      actualQtyStr = actualQty == null ? "—" : `${num(actualQty)} ${req.unit ?? ""}`;
+      varQtyStr = actualQty == null ? "—" : num(actualQty - plannedQty);
     } else {
       plannedQtyStr = reqs.map((r) => `${num(Number(r.qty ?? 0))} ${r.unit ?? ""}`).join("، ");
       actualQtyStr = reqs
         .map((r) => {
-          const a = act.materialActuals?.find((m) => m.item_id === r.item_id)?.actual_qty ?? null;
+          const a = materialActualQtyForRequirement(r, act.materialActuals);
           return `${a == null ? "—" : num(Number(a))} ${r.unit ?? ""}`;
         })
         .join("، ");
