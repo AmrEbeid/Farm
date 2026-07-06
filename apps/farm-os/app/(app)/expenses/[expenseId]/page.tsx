@@ -54,7 +54,7 @@ export default async function Expense360Page({
   const tab: ExpenseTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
     ? (rawTab as ExpenseTab)
     : "overview";
-  await requireRole(["owner", "accountant", "farm_manager"]);
+  const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
 
   const { data: expense, error } = await sb
@@ -65,7 +65,7 @@ export default async function Expense360Page({
     .eq("id", expenseId)
     .maybeSingle();
   if (error) throw error;
-  if (!expense)
+  if (!expense || (expense.kind === "drawing" && m.role !== "owner" && m.role !== "accountant"))
     return (
       <div className="p-6">
         <EmptyState title="المصروف غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
