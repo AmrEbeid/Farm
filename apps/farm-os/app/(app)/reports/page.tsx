@@ -25,12 +25,12 @@ const GROUPS: ReportGroup[] = [
   {
     question: "أين تذهب الفلوس؟",
     cards: [
+      { href: "/finance/income-statement", icon: "📈", title: "قائمة الدخل من القيود", hint: "الإيرادات ناقص المصروفات وصافي الربح للفترة — البيان الرسمي من القيود", roles: FIN },
+      { href: "/finance/balance-sheet", icon: "📋", title: "قائمة المركز المالي", hint: "الموارد والالتزامات وحقوق المالك حتى تاريخ — قائمة متوازنة", roles: FIN },
       { href: "/finance/reports", icon: "📊", title: "تقارير التكلفة", hint: "المصروفات حسب الحساب ومركز التكلفة والفترة", roles: FIN },
-      { href: "/finance/pnl", icon: "🧾", title: "الأرباح والخسائر", hint: "ملخص P&L — المسحوبات مفصولة عن التشغيل", roles: FIN },
+      { href: "/finance/pnl", icon: "🧾", title: "ملخص التشغيل القديم", hint: "عرض تشغيلي سابق؛ اعتمد قائمة الدخل من القيود للتقرير الرسمي", roles: FIN },
       { href: "/budgets", icon: "🎯", title: "الموازنات", hint: "المخطط مقابل الفعلي لكل بند", roles: OPS },
       { href: "/accounting", icon: "📒", title: "المحاسبة وميزان المراجعة", hint: "الحسابات والقيود الفعلية", roles: FIN },
-      { href: "/finance/balance-sheet", icon: "📋", title: "قائمة المركز المالي", hint: "الموارد والالتزامات وحقوق المالك حتى تاريخ — قائمة متوازنة", roles: FIN },
-      { href: "/finance/income-statement", icon: "📈", title: "قائمة الدخل (P&L من القيود)", hint: "الإيرادات ناقص المصروفات وصافي الربح للفترة — يطابق المركز المالي", roles: FIN },
       { href: "/finance/budget-vs-actual", icon: "📊", title: "الموازنة مقابل الفعلي", hint: "المخطط مقابل الفعلي الحيّ من القيود لكل فئة", roles: FIN },
       { href: "/finance/pnl-trend", icon: "📈", title: "اتجاه الأرباح", hint: "اتجاه الربح والخسارة عبر الفترات — رسم بياني من القيود", roles: FIN },
     ],
@@ -41,6 +41,7 @@ const GROUPS: ReportGroup[] = [
       { href: "/finance/revenue-reports", icon: "💰", title: "تقارير الإيرادات", hint: "المبيعات حسب المحصول والمشتري + الأسعار المعلّقة + الذمم", roles: FIN },
       { href: "/finance/season", icon: "🌾", title: "لوحة الموسم", hint: "الحصاد لحظة بلحظة: أطنان، بونات، معلّق، محصَّل، وإنتاج كل فدان", roles: FIN },
       { href: "/finance/close", icon: "🔏", title: "إقفال الشهر", hint: "قائمة المعلّقات المولَّدة — الشهر يُقفل حين تفرغ", roles: FIN },
+      { href: "/finance/periods", icon: "🔒", title: "الفترات المحاسبية", hint: "إقفال أو إعادة فتح فترة بعد مراجعة القوائم", roles: FIN },
       { href: "/farm/offshoots", icon: "🌱", title: "بنك الفسائل", hint: "حركة الفسائل والتقدير", roles: OPS },
     ],
   },
