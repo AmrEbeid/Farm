@@ -5,9 +5,11 @@ import { requireRole } from "@/lib/auth";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
 import { Alert, Breadcrumbs, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { BUDGET_STATUS_AR, PR_STATUS_AR } from "@/lib/labels";
@@ -107,11 +109,11 @@ export default async function Budget360Page({
 
   const lineColumns: SimpleColumn[] = [
     { id: "category", header: "الفئة" },
-    { id: "planned", header: "المخطط", numeric: true },
-    { id: "approved", header: "المعتمد", numeric: true },
-    { id: "committed", header: "الملتزم", numeric: true },
-    { id: "actual", header: "الفعلي", numeric: true },
-    { id: "available", header: "المتاح", numeric: true },
+    { id: "planned", header: "المخطط", numeric: true, kind: "money" },
+    { id: "approved", header: "المعتمد", numeric: true, kind: "money" },
+    { id: "committed", header: "الملتزم", numeric: true, kind: "money" },
+    { id: "actual", header: "الفعلي", numeric: true, kind: "money" },
+    { id: "available", header: "المتاح", numeric: true, kind: "money" },
   ];
   const lineRows = (lines ?? []).map((line) => {
     const lineApproved = Number(line.approved ?? 0);
@@ -120,25 +122,25 @@ export default async function Budget360Page({
     return {
       id: line.id,
       category: line.category ?? "—",
-      planned: egp(Number(line.planned ?? 0)),
-      approved: egp(lineApproved),
-      committed: egp(lineCommitted),
-      actual: egp(lineActual),
-      available: egp(lineApproved - lineCommitted - lineActual),
+      planned: Number(line.planned ?? 0),
+      approved: lineApproved,
+      committed: lineCommitted,
+      actual: lineActual,
+      available: lineApproved - lineCommitted - lineActual,
     };
   });
 
   const expenseColumns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
     { id: "description", header: "البيان" },
-    { id: "total", header: "المبلغ", numeric: true },
+    { id: "total", header: "المبلغ", numeric: true, kind: "money" },
   ];
   const expenseRows = (expenses ?? []).map((expense) => ({
     id: expense.id,
     href: `/expenses/${expense.id}`,
     date: expense.date ? fmtDate(expense.date) : "—",
     description: expense.description ?? "—",
-    total: expense.total != null ? egp(Number(expense.total)) : "—",
+    total: expense.total != null ? Number(expense.total) : undefined,
   }));
 
   const prColumns: SimpleColumn[] = [
@@ -182,6 +184,7 @@ export default async function Budget360Page({
         pills={[{ status: statusPill, label: statusLabel }]}
         actions={
           <>
+            <PrintButton label="طباعة الموازنة" />
             <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
             <HeaderLink href="/budgets">الموازنات</HeaderLink>
           </>
@@ -233,7 +236,13 @@ export default async function Budget360Page({
             {lineRows.length === 0 ? (
               <EmptyState title="لا توجد بنود موازنة" />
             ) : (
-              <SimpleTable columns={lineColumns} rows={lineRows} ariaLabel="بنود الموازنة" empty="—" />
+              <FilterableTable
+                columns={lineColumns}
+                rows={lineRows}
+                ariaLabel="بنود الموازنة"
+                empty="—"
+                exportFilename={`budget-lines-${budgetId}.csv`}
+              />
             )}
           </Card>
         </div>
@@ -245,7 +254,13 @@ export default async function Budget360Page({
             {prRows.length === 0 ? (
               <EmptyState title="لا توجد طلبات شراء مرتبطة" />
             ) : (
-              <SimpleTable columns={prColumns} rows={prRows} ariaLabel="طلبات شراء مرتبطة" empty="—" />
+              <FilterableTable
+                columns={prColumns}
+                rows={prRows}
+                ariaLabel="طلبات شراء مرتبطة"
+                empty="—"
+                exportFilename={`budget-purchase-requests-${budgetId}.csv`}
+              />
             )}
           </Card>
         </div>
@@ -257,7 +272,13 @@ export default async function Budget360Page({
             {expenseRows.length === 0 ? (
               <EmptyState title="لا توجد مصروفات مرتبطة بالفئة" />
             ) : (
-              <SimpleTable columns={expenseColumns} rows={expenseRows} ariaLabel="مصروفات من نفس الفئة" empty="—" />
+              <FilterableTable
+                columns={expenseColumns}
+                rows={expenseRows}
+                ariaLabel="مصروفات من نفس الفئة"
+                empty="—"
+                exportFilename={`budget-expenses-${budgetId}.csv`}
+              />
             )}
           </Card>
         </div>
