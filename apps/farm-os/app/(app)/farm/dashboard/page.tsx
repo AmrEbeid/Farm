@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
-import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
@@ -11,6 +11,7 @@ import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
+import { buildPalmCountReconciliation } from "@/lib/palm-count-reconciliation";
 
 const ATTENTION_STATUS_AR: Record<string, string> = {
   watch: "تحت المراقبة",
@@ -42,6 +43,9 @@ export default async function FarmDashboardPage({
     { data: atRisk, error: atRiskError, count: atRiskCount },
     { data: events, error: eventsError },
     { data: offshootMovements, error: offshootError },
+    { data: reconciliationHawshat, error: reconciliationHawshatError },
+    { data: reconciliationLines, error: reconciliationLinesError },
+    { data: reconciliationPalms, error: reconciliationPalmsError },
   ] = await Promise.all([
     sb
       .from("sectors")
@@ -68,12 +72,31 @@ export default async function FarmDashboardPage({
       .order("occurred_at", { ascending: false })
       .limit(8),
     sb.from("offshoot_movements").select("movement_type, qty").eq("org_id", m.orgId),
+    sb
+      .from("hawshat")
+      .select("id, name, code, palm_count_barhi, palm_count_male")
+      .eq("archived", false)
+      .order("code"),
+    sb
+      .from("lines")
+      .select("id, line_no, line_code, palm_count, hawshat(name, code)")
+      .eq("archived", false)
+      .order("line_no"),
+    sb
+      .from("assets")
+      .select("id, hawsha_id, line_id, status, archived")
+      .eq("type", "palm")
+      .eq("archived", false)
+      .in("status", ["active", "watch", "sick", "dead"]),
   ]);
   if (sectorsError) throw sectorsError;
   if (hawshatError) throw hawshatError;
   if (atRiskError) throw atRiskError;
   if (eventsError) throw eventsError;
   if (offshootError) throw offshootError;
+  if (reconciliationHawshatError) throw reconciliationHawshatError;
+  if (reconciliationLinesError) throw reconciliationLinesError;
+  if (reconciliationPalmsError) throw reconciliationPalmsError;
 
   const tallied = (sectors ?? []).map((s) => {
     const liveHawshat = (
@@ -115,6 +138,11 @@ export default async function FarmDashboardPage({
     .filter((movement) => movement.movement_type === "plant" || movement.movement_type === "replant" || movement.movement_type === "sell")
     .reduce((sum, movement) => sum + Number(movement.qty ?? 0), 0);
   const offshootAvailable = offshootProduced - offshootUsed;
+  const palmCountReconciliation = buildPalmCountReconciliation({
+    hawshat: reconciliationHawshat ?? [],
+    lines: reconciliationLines ?? [],
+    palms: reconciliationPalms ?? [],
+  });
 
   const attentionColumns: SimpleColumn[] = [
     { id: "tag", header: "النخلة" },
@@ -184,6 +212,23 @@ export default async function FarmDashboardPage({
       male: num(Number(h.palm_count_male ?? 0)),
     };
   });
+  const reconciliationColumns: SimpleColumn[] = [
+    { id: "scope", header: "المستوى" },
+    { id: "name", header: "الموقع" },
+    { id: "stored", header: "المسجل", numeric: true },
+    { id: "actual", header: "الأصول", numeric: true },
+    { id: "difference", header: "الفرق", numeric: true },
+  ];
+  const reconciliationRows = palmCountReconciliation.mismatches.slice(0, 8).map((mismatch) => ({
+    id: `${mismatch.scope}-${mismatch.id}`,
+    href: mismatch.href,
+    scope: mismatch.scope === "hawsha" ? "حوشة" : "خط",
+    name: mismatch.parentLabel ? `${mismatch.parentLabel} · ${mismatch.label}` : mismatch.label,
+    stored: mismatch.stored == null ? "—" : num(mismatch.stored),
+    actual: num(mismatch.actual),
+    difference: mismatch.difference > 0 ? `+${num(mismatch.difference)}` : num(mismatch.difference),
+  }));
+  const hiddenReconciliationCount = palmCountReconciliation.mismatches.length - reconciliationRows.length;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -234,6 +279,24 @@ export default async function FarmDashboardPage({
           </DashboardKpiLink>
         )}
       </section>
+
+      {palmCountReconciliation.mismatches.length > 0 && (
+        <Card title="مطابقة عداد النخيل">
+          <div className="flex flex-col gap-3">
+            <Alert
+              tone="warning"
+              title={`${num(palmCountReconciliation.mismatches.length)} موقع يحتاج مراجعة عداد النخيل`}
+              description={`${num(palmCountReconciliation.hawshaMismatches.length)} حوشة · ${num(palmCountReconciliation.lineMismatches.length)} خط`}
+            />
+            <SimpleTable columns={reconciliationColumns} rows={reconciliationRows} empty="لا توجد فروق" />
+            {hiddenReconciliationCount > 0 && (
+              <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+                يعرض الجدول أول {num(reconciliationRows.length)} من {num(palmCountReconciliation.mismatches.length)}.
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
 
       {(filter === "all" || filter === "sectors") && sectorPalmsData.length > 0 && (
         <section className="grid gap-4 lg:grid-cols-2">
