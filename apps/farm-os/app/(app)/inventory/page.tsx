@@ -7,6 +7,7 @@ import { EmptyState, KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { PrintButton } from "@/components/print-button";
 
 type ItemFilter = "all" | "reorder" | "uncosted";
 
@@ -108,17 +109,20 @@ export default async function InventoryListPage({
             <h1 className="text-2xl font-bold">المخزون</h1>
             <p style={{ color: "var(--ink-muted)" }}>دليل الأصناف؛ ابدأ من لوحة المخزون للمخاطر وطلبات الشراء.</p>
           </div>
-          <Link
-            href="/inventory/dashboard"
-            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
-            style={{
-              color: "var(--brand)",
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-            }}
-          >
-            لوحة المخزون
-          </Link>
+          <div className="no-print flex flex-wrap items-center gap-2">
+            <PrintButton label="طباعة المخزون" />
+            <Link
+              href="/inventory/dashboard"
+              className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+              style={{
+                color: "var(--brand)",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+              }}
+            >
+              لوحة المخزون
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -160,7 +164,9 @@ export default async function InventoryListPage({
       )}
 
       {/* SPEC-0024 S-9 (D.1): template download + Excel/CSV import for this entry.  */}
-      <ImportPanel descriptorKey="inventory-items" titleAr="أصناف المخزون" />
+      <div className="no-print">
+        <ImportPanel descriptorKey="inventory-items" titleAr="أصناف المخزون" />
+      </div>
     </div>
   );
 }

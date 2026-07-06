@@ -5,6 +5,7 @@ import { EmptyState, KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -93,7 +94,10 @@ export default async function PurchaseRequestsPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">طلبات الشراء</h1>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <h1 className="text-2xl font-bold">طلبات الشراء</h1>
+        <PrintButton label="طباعة طلبات الشراء" />
+      </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {chips.map((chip) => (

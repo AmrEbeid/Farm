@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 
@@ -164,9 +165,12 @@ export default async function TransactionsPage({
             كل حركات الفلوس في مكان واحد — آخر {num(LIMIT)} عملية من كل نوع.
           </p>
         </div>
-        <Link href="/record" className="text-sm font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
-          + سجّل عملية جديدة
-        </Link>
+        <div className="no-print flex flex-wrap items-center gap-3">
+          <PrintButton label="طباعة المعاملات" />
+          <Link href="/record" className="text-sm font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+            + سجّل عملية جديدة
+          </Link>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -192,7 +196,7 @@ export default async function TransactionsPage({
 
       {/* SPEC-0025 U-13: «التالي المقترح» — no dead ends; suggestions are data-driven, never fabricated. */}
       {pendingPriceCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm" style={{ background: "var(--surface-raised, #fff)", border: "1px solid var(--line)" }}>
+        <div className="no-print flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-sm" style={{ background: "var(--surface-raised, #fff)", border: "1px solid var(--line)" }}>
           <span className="font-bold" style={{ color: "var(--ink)" }}>التالي المقترح:</span>
           {/* Actionable "set prices" → the pricing wizard, not the read-only revenue report (SPEC-0030 flow audit B2). */}
           <Link href="/record/price" className="font-bold underline underline-offset-4" style={{ color: "var(--brand)" }}>
