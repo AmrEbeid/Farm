@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #805. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #808. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -14,7 +14,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-02** | `/dashboard/owner` | Owner operating overview | area, pending approvals, stock risk, budget status, finance insight summary, offshoot estimate | `BudgetDoughnut`, `VarianceChart`, `PalmStatusDoughnut`, `CategoryBarChart` | Purchase-request CSV | `purchase_requests`, `budget_lines`, inventory, farm structure, cost-center rollups | owner, accountant |
 | **RPT-03** | `/dashboard/manager` | Plan readiness and assigned work | active operations, done operations, blocking checks, readiness %, open/due/unassigned tasks | Progress | - | `plans`, `plan_operations`, `plan_checks`, `plan_operation_assignees` | farm_manager, agri_engineer |
 | **RPT-04** | `/inventory/[itemId]/coverage` | Stock coverage and reorder decision | available, coverage days, reorder point, recommended quantity, verdict | `PabChart` | - | RPC-007 `fn_stock_coverage` | any member; reserve action owner/farm_manager/storekeeper |
-| **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, actual, committed, available, utilization %, verdict | Progress | - | `budget_lines`, `plan_operations`, `lib/budget-check.ts` | any member |
+| **RPT-05** | `/budget/[planId]/check` | Plan budget gate | approved, actual, committed, available, utilization %, verdict | Progress | Print-ready | `budget_lines`, `plan_operations`, `lib/budget-check.ts` | any member |
 | **RPT-06** | `/reports/[planId]/pva` | Planned-vs-actual execution report | planned cost, actual cost, variance, variance % per operation | `VarianceChart` | - | `plan_operations`, done `farm_event` actuals, `plans` | any member |
 | **RPT-07** | `/finance/revenue-reports` | Revenue, collections, pending-price deliveries, A/R aging | finalized revenue, collections, outstanding A/R, 30+ A/R, pending count/qty | `MultiInsightChart` with `CategoryBarChart` by buyer or crop/season | CSV per table with period/as-of filenames; print-ready | RPC-053 `fn_revenue_sales_report` | owner, accountant |
 | **RPT-08** | `/finance/custody-reports` | Custody and payment-request settlement pack | opening/period/closing custody, cash expenses, unpaid obligations, 30+ obligations, owner funding | - | CSV per table with period/as-of filenames; print-ready | RPC-045 `fn_custody_ledger_report`, RPC-046 `fn_custody_cash_expense_report`, RPC-047 `fn_unpaid_obligations_report`, RPC-048 `fn_owner_funding_report` | owner, accountant |
@@ -31,6 +31,8 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-19** | `/finance/cost-centers/[id]` | Cost-center 360 | direct expenses, finalized sales, tree net, net per feddan | - | Expense and sales CSV | selected cost center, `expenses`, `sales`, rollup views | owner, accountant |
 | **RPT-20** | `/farm/offshoots` | Offshoot bank reporting | produced/planted/replanted/sold quantities, valuation estimate | `MultiInsightChart` with `CategoryBarChart` | Movement and expansion CSV | offshoot ledger and valuation tables | owner, accountant, farm_manager |
 | **RPT-21** | `/weather/dashboard` | Weather risk dashboard | weather readings and threshold risk signals | `TrendLineChart` | - | weather readings/thresholds | any member |
+| **RPT-22** | `/budgets` | Budget overview | budget count, planned total, approved total, available by budget | - | Budget CSV; print-ready | `budgets`, RPC-060 for owner/accountant over-budget signal | owner, accountant, farm_manager |
+| **RPT-23** | `/budgets/[budgetId]` | Budget 360 detail | planned, approved, committed + actual, available, lines, linked PRs, category expenses | - | Lines, linked PRs, and finance-expense CSV; print-ready | `budgets`, `budget_lines`, `purchase_requests`, gated `expenses` | owner, accountant, farm_manager; expense tab owner/accountant only |
 
 ## Chart Catalog
 
@@ -51,7 +53,8 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 - `ExportButton` appends `.csv` only when the supplied filename does not already include it.
 - The deployed finance/reporting print surfaces are:
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
-  `/finance/custody-reports`, `/finance/reports`, and `/finance/revenue-reports`.
+  `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/budgets`,
+  `/budgets/[budgetId]`, and `/budget/[planId]/check`.
 - Print CSS hides app chrome, print buttons, filters, result counts, and CSV controls while preserving report
   content, cards, KPIs, charts, and tables.
 - Date-aware filenames are live for the statement/report packs where the page has `start/end` or `asOf`

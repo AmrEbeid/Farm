@@ -12,6 +12,16 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > Vercel production READY for `dpl_HJrGPiyFEuPZCoKXj73odmbhzNot`, error-only build logs clean, no production runtime
 > error/fatal logs, and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
 >
+> **2026-07-06 — budget output polish LIVE; prod ledger head remains `20260705150000`.**
+> PR **#808** merged to `main` at **`6f403b4`** with no Supabase migration. Scope: print actions for `/budgets`,
+> `/budgets/[budgetId]`, and `/budget/[planId]/check`; CSV exports for budget detail lines, linked purchase requests,
+> and gated finance expenses; budget detail money rows now stay as raw numbers with `kind: money` rendering so CSV
+> exports remain spreadsheet-safe. Boundaries held: no query/data/schema change, no posting/cash/custody mutation,
+> and finance expense export remains inside the existing owner/accountant tab gate. Validation: focused eslint,
+> budget/export/filter/sort/nav/help Vitest **57/57**, `tsc`, production build, PR #808 checks green, Vercel production
+> READY for `dpl_2Vu8GnGEYGjHDRHYdyK71LtSLxv2`, error-only build logs clean, no production runtime error/fatal logs,
+> and aliases `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+>
 > **2026-07-05 — SPEC-0004 Slice A budget-vs-actual (read-only) LIVE — Slice A now complete; prod ledger head `20260705150000`.**
 > PR **#728** merged to `main` (RPC) after migrate-first apply; UI page **#730** (`/finance/budget-vs-actual`, app-only).
 > Scope: read-only `fn_budget_vs_actual(p_org, p_from, p_to)` — makes budget **actuals live** from the posted GL
