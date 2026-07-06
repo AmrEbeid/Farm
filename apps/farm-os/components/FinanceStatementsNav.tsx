@@ -8,6 +8,7 @@ const STATEMENTS = [
   { id: "balance-sheet", label: "قائمة المركز المالي", href: "/finance/balance-sheet", icon: "📋" },
   { id: "income-statement", label: "قائمة الدخل", href: "/finance/income-statement", icon: "📈" },
   { id: "budget-vs-actual", label: "الموازنة مقابل الفعلي", href: "/finance/budget-vs-actual", icon: "📊" },
+  { id: "month-close", label: "إقفال الشهر", href: "/finance/close", icon: "🔏" },
   { id: "periods", label: "الفترات المحاسبية (الإقفال)", href: "/finance/periods", icon: "🔒" },
 ] as const;
 

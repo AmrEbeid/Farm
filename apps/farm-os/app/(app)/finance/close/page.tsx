@@ -126,6 +126,23 @@ export default async function MonthClosePage({
     open.length === 0
       ? "الشهر نظيف ✓ — لا معلّقات منذ بداية التسجيل الحي. أقفل براحة بال."
       : `يفصلك عن الإقفال ${num(open.length)} بند: ${open.map((i) => `${num(i.count)} ${i.label}`).join("، ")}.`;
+  const reviewLinks = [
+    {
+      href: `/finance/income-statement?start=${monthStart}&end=${todayIso}`,
+      label: "راجع قائمة الدخل",
+      hint: `من ${monthStart} إلى ${todayIso}`,
+    },
+    {
+      href: `/finance/balance-sheet?asOf=${todayIso}`,
+      label: "راجع المركز المالي",
+      hint: `حتى ${todayIso}`,
+    },
+    {
+      href: "/finance/periods",
+      label: "افتح سجل الفترات",
+      hint: "اقفل الفترة بعد اعتماد القوائم",
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -172,13 +189,38 @@ export default async function MonthClosePage({
         </div>
       )}
 
+      {open.length === 0 ? (
+        <Card title="مراجعة القوائم قبل القفل">
+          <div className="grid gap-3 md:grid-cols-3">
+            {reviewLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-md p-3"
+                style={{ border: "1px solid var(--line)", background: "var(--surface)" }}
+              >
+                <span className="block font-bold" style={{ color: "var(--brand)" }}>
+                  {link.label} ←
+                </span>
+                <span className="block text-sm" style={{ color: "var(--ink-muted)" }}>
+                  {link.hint}
+                </span>
+              </Link>
+            ))}
+          </div>
+          <p className="mt-3 text-sm" style={{ color: "var(--ink-muted)" }}>
+            لا يتم قفل الشهر تلقائيًا عند نظافة القائمة؛ راجع قائمة الدخل والمركز المالي، ثم اقفل الفترة المحاسبية.
+          </p>
+        </Card>
+      ) : null}
+
       <Card>
         <div className="flex flex-col gap-4 p-1">
           <div>
             <span className="font-bold" style={{ color: "var(--ink)" }}>قفل الفترة المحاسبية</span>
             <span className="text-sm" style={{ color: "var(--ink-muted)" }}>
               {" "}— {open.length === 0
-                ? "القائمة فارغة — أقفل الفترة هنا لمنع ترحيل أي قيد جديد بتاريخها."
+                ? "القائمة فارغة — بعد اعتماد القوائم، اقفل الفترة لمنع ترحيل أي قيد جديد بتاريخها."
                 : "أفرغ البنود أعلاه أولًا؛ بعدها يصبح زر الإقفال جاهزًا هنا."}
             </span>
           </div>
