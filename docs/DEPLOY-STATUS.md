@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — custody report print/PDF polish LIVE; prod migration head remains `20260706180856`.**
+> **2026-07-06 (latest) — finance statement print/PDF polish LIVE; prod migration head remains `20260706180856`.**
+> PR **#854** merged to `main` at **`2b8dab4`** with no Supabase migration. Scope:
+> `/finance/balance-sheet`, `/finance/income-statement`, and `/finance/budget-vs-actual` now print as identified
+> statement/report snapshots with a print-only identity strip, issued date, source note, and accountant/owner
+> signature lines; statement date filters and related-statement navigation are hidden from PDF output, and page help
+> now points users to identified PDF snapshots. Boundaries held: no schema/RPC/data change, no query widening, no
+> permission widening, no budget-enforcement change, no hidden finance export, and no generated/server PDF dependency.
+> Validation: focused eslint, page-help/balance-sheet/income-statement/budget-vs-actual Vitest **19/19**, `tsc`,
+> production build, GitHub `ci` and `db-tests` green, Vercel preview `dpl_28MCTxizLDHvSsf7p4DjKjczAeZv` READY,
+> Vercel production READY for `dpl_5qX33PZaoQP37kWJMrSc4mWhHWgW`, build logs clean of errors, no production runtime
+> errors in the last 30 minutes, production runtime status grouping showed 200s, and aliases `ebeidfarm.business` /
+> `farm-ui-one.vercel.app` returned 200 with etag `"1a097fb2da3ff21e886897429632d15c"`.
+
+> **2026-07-06 — custody report print/PDF polish LIVE; prod migration head remains `20260706180856`.**
 > PR **#852** merged to `main` at **`deb3046`** with no Supabase migration. Scope: `/finance/custody-reports`
 > now prints as an intentional report snapshot with a print-only period/as-of/issue/source identity strip, screen-only
 > header links and period filters hidden from PDF output, and shared report table print chrome cleaned so table wraps
