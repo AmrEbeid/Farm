@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #810. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #812. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -39,6 +39,8 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-27** | `/expenses` | Expense ledger | expense counts by filter, current-month operating expenses, owner drawings when visible | - | Expense CSV; print-ready | `expenses`, `suppliers`, `accounts` | owner, accountant, farm_manager; drawings owner/accountant only |
 | **RPT-28** | `/custody` | Custody and payment-request dashboard | custody balance/target/top-up, unpaid post-paid split, payment-request queue | - | Payment-request CSV; print-ready | `custody_accounts`, `custody_movements`, `payment_requests`, `expenses`, RPC `fn_custody_balance` | owner, accountant |
 | **RPT-29** | `/transactions` | Unified money ledger | count by expense/sale/collection/custody transaction type, pending-price follow-up count | - | Transaction CSV; print-ready | `expenses`, `sales`, `sale_collections`, `custody_movements`, buyers/suppliers/custody accounts | owner, accountant |
+| **RPT-30** | `/people` | Team directory by manager | total people, active people, people assigned to open planned operations | - | People CSV; print-ready | `people`, `plan_operation_assignees`, `plan_operations` | owner, farm_manager, agri_engineer, accountant |
+| **RPT-31** | `/suppliers` | Supplier directory | supplier count, suppliers with active purchase-order lines, lead time, open lines | - | Supplier CSV; print-ready | `suppliers`, `purchase_request_items`, `purchase_requests` | any member; create action owner/farm_manager/storekeeper |
 
 ## Chart Catalog
 
@@ -61,7 +63,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
   `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/budgets`,
   `/budgets/[budgetId]`, `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
-  `/inventory/movements`, `/expenses`, `/custody`, and `/transactions`.
+  `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, and `/suppliers`.
 - Print CSS hides app chrome, print buttons, filters, result counts, and CSV controls while preserving report
   content, cards, KPIs, charts, and tables.
 - Date-aware filenames are live for the statement/report packs where the page has `start/end` or `asOf`
@@ -86,8 +88,8 @@ The clean checklist does not auto-lock. It deliberately hands the accountant to 
 - Cost-center reports are all-history today; their CSV filenames are intentionally generic until a period filter is added.
 - Budget-vs-actual remains report-only. It exposes variance and unbudgeted spend but does not enforce caps
   (Decision-0157).
-- Some remaining operational list pages still need print polish after the first operational output pass
-  (for example people, suppliers, plans, pest scouting, and offshoots).
+- Some remaining operational list pages still need print polish after the first operational output passes
+  (for example plans, pest scouting, and offshoots).
 - The report catalog is a current-state index, not a replacement for `RPC-CATALOG.md`, `FEATURE-REGISTRY.md`, or
   the Arabic user manual.
 
