@@ -49,9 +49,11 @@ export default async function PlanningDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter = "all" } = await searchParams;
-  await requireMembership();
+  const m = await requireMembership();
   const sb = await createClient();
   const today = new Date().toISOString().slice(0, 10);
+  const canOpenFieldDashboard =
+    m.role === "owner" || m.role === "farm_manager" || m.role === "agri_engineer" || m.role === "supervisor";
 
   const [
     { data: plans, error: plansError },
@@ -291,13 +293,13 @@ export default async function PlanningDashboardPage({
         </div>
         <div className="flex flex-wrap gap-2">
           <HeaderLink href="/plans">كل الخطط</HeaderLink>
-          <HeaderLink href="/m">الميدان</HeaderLink>
+          {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
         </div>
       </header>
 
       {/* First-run guidance: no plans exist yet (already-fetched `plans`, no new
           query) — disappears once the org has a real plan. */}
-      {(plans ?? []).length === 0 && <OnboardingChecklist />}
+      {(plans ?? []).length === 0 && <OnboardingChecklist role={m.role} />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/plans/dashboard?filter=plans" active={filter === "plans"}>

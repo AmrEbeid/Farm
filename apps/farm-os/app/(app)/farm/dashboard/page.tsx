@@ -203,7 +203,7 @@ export default async function FarmDashboardPage({
 
       {/* First-run guidance: no palms registered yet on this page's own tally
           (totalBarhi, already computed above) — disappears once real data exists. */}
-      {totalBarhi === 0 && <OnboardingChecklist />}
+      {totalBarhi === 0 && <OnboardingChecklist role={m.role} />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <DashboardKpiLink href="/farm/dashboard?filter=sectors" active={filter === "sectors"}>
