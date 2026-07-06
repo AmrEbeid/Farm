@@ -4,9 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
+import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { CategoryBarChart, CategoryDoughnut } from "@/components/charts";
+import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { EMP_TYPE_AR, OP_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
@@ -226,7 +228,8 @@ export default async function PeopleDashboardPage({
             متابعة الفريق والتكليفات المفتوحة دون عرض بيانات اتصال أو أجور.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
+          <PrintButton label="طباعة لوحة الفريق" />
           <HeaderLink href="/people">دليل الفريق</HeaderLink>
           <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
           {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
@@ -322,18 +325,28 @@ export default async function PeopleDashboardPage({
         </section>
       )}
 
-      <CurrentFilterCard
-        label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
-        clearHref="/people/dashboard"
-        showClear={filter !== "all"}
-      />
+      <div className="no-print">
+        <CurrentFilterCard
+          label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
+          clearHref="/people/dashboard"
+          showClear={filter !== "all"}
+        />
+      </div>
 
       {(filter === "all" || filter === "workload") && (
         <Card title="عبء العمل حسب الشخص">
           {workloadRows.length === 0 ? (
             <EmptyState title="لا يوجد أعضاء نشطون" />
           ) : (
-            <SimpleTable columns={workloadColumns} rows={workloadRows} ariaLabel="عبء العمل حسب الشخص" empty="—" />
+            <FilterableTable
+              columns={workloadColumns}
+              rows={workloadRows}
+              ariaLabel="عبء العمل حسب الشخص"
+              empty="—"
+              searchColumns={["name", "position", "type"]}
+              placeholder="ابحث في عبء العمل…"
+              exportFilename="people-dashboard-workload"
+            />
           )}
         </Card>
       )}
@@ -345,7 +358,15 @@ export default async function PeopleDashboardPage({
           {unassignedRows.length === 0 ? (
             <EmptyState title="لا توجد عمليات بلا مسؤول" />
           ) : (
-            <SimpleTable columns={operationColumns} rows={unassignedRows} ariaLabel="عمليات بلا مسؤول" empty="—" />
+            <FilterableTable
+              columns={operationColumns}
+              rows={unassignedRows}
+              ariaLabel="عمليات بلا مسؤول"
+              empty="—"
+              searchColumns={["subtype", "plan", "status"]}
+              placeholder="ابحث في العمليات غير المسندة…"
+              exportFilename="people-dashboard-unassigned-operations"
+            />
           )}
         </Card>
           )}
@@ -354,7 +375,15 @@ export default async function PeopleDashboardPage({
           {directoryRows.length === 0 ? (
             <EmptyState title="لا يوجد أعضاء نشطون" />
           ) : (
-            <SimpleTable columns={directoryColumns} rows={directoryRows} ariaLabel="دليل الفريق" empty="—" />
+            <FilterableTable
+              columns={directoryColumns}
+              rows={directoryRows}
+              ariaLabel="دليل الفريق"
+              empty="—"
+              searchColumns={["name", "position", "type"]}
+              placeholder="ابحث في الفريق…"
+              exportFilename="people-dashboard-directory"
+            />
           )}
         </Card>
           )}
