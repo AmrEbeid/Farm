@@ -1,7 +1,7 @@
 # Report Catalog - Farm OS
 
 Phase 2 of the Product Knowledge System ([SPEC-0015](SPEC-0015-product-knowledge-system.md)).
-Reconciled against `main` on 2026-07-06 after PR #812. Maturity: **L3**.
+Reconciled against `main` on 2026-07-06 after PR #814. Maturity: **L3**.
 
 This catalog tracks reporting surfaces on `main`: dashboards, financial statements, operational
 reports, charts, CSV extracts, print-ready pages, data sources, and access rules.
@@ -29,7 +29,7 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-17** | `/finance/pnl-trend` | GL-backed P&L time series | latest revenue, expenses, net income, cumulative net income | `TrendLineChart` | - | `fn_pnl_timeseries` | owner, accountant |
 | **RPT-18** | `/finance/season` | Harvest/revenue season view | delivered tons, receipts, pending-price tons, booked revenue, collected, trader A/R | - | Deliveries and center summary CSV | `sales`, `sale_collections`, cost centers | owner, accountant |
 | **RPT-19** | `/finance/cost-centers/[id]` | Cost-center 360 | direct expenses, finalized sales, tree net, net per feddan | - | Expense and sales CSV | selected cost center, `expenses`, `sales`, rollup views | owner, accountant |
-| **RPT-20** | `/farm/offshoots` | Offshoot bank reporting | produced/planted/replanted/sold quantities, valuation estimate | `MultiInsightChart` with `CategoryBarChart` | Movement and expansion CSV | offshoot ledger and valuation tables | owner, accountant, farm_manager |
+| **RPT-20** | `/farm/offshoots` | Offshoot bank reporting | produced/planted/replanted/sold quantities, valuation estimate | `MultiInsightChart` with `CategoryBarChart` | Movement and expansion CSV; print-ready | offshoot ledger and valuation tables | owner, accountant, farm_manager |
 | **RPT-21** | `/weather/dashboard` | Weather risk dashboard | weather readings and threshold risk signals | `TrendLineChart` | - | weather readings/thresholds | any member |
 | **RPT-22** | `/budgets` | Budget overview | budget count, planned total, approved total, available by budget | - | Budget CSV; print-ready | `budgets`, RPC-060 for owner/accountant over-budget signal | owner, accountant, farm_manager |
 | **RPT-23** | `/budgets/[budgetId]` | Budget 360 detail | planned, approved, committed + actual, available, lines, linked PRs, category expenses | - | Lines, linked PRs, and finance-expense CSV; print-ready | `budgets`, `budget_lines`, `purchase_requests`, gated `expenses` | owner, accountant, farm_manager; expense tab owner/accountant only |
@@ -41,6 +41,9 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
 | **RPT-29** | `/transactions` | Unified money ledger | count by expense/sale/collection/custody transaction type, pending-price follow-up count | - | Transaction CSV; print-ready | `expenses`, `sales`, `sale_collections`, `custody_movements`, buyers/suppliers/custody accounts | owner, accountant |
 | **RPT-30** | `/people` | Team directory by manager | total people, active people, people assigned to open planned operations | - | People CSV; print-ready | `people`, `plan_operation_assignees`, `plan_operations` | owner, farm_manager, agri_engineer, accountant |
 | **RPT-31** | `/suppliers` | Supplier directory | supplier count, suppliers with active purchase-order lines, lead time, open lines | - | Supplier CSV; print-ready | `suppliers`, `purchase_request_items`, `purchase_requests` | any member; create action owner/farm_manager/storekeeper |
+| **RPT-32** | `/plans` | Plan register | plan count by all/active/draft/closed status, due operation count | - | Plans CSV; print-ready | `plans`, `plan_operations` | any member; create action owner/farm_manager |
+| **RPT-33** | `/plans/dashboard` | Planning and operations readiness dashboard | active plans, due operations, blocked checks, open estimated cost, executed operation cost KPIs | `CategoryDoughnut`, `CategoryBarChart` | Print-ready | `plans`, `plan_operations`, `plan_checks`, `farm_event`, farm structure | any member; field dashboard link role-gated |
+| **RPT-34** | `/farm/pest-scouting` | Red-palm-weevil scouting register | traps needing attention, all traps, weekly catches, suspected incidents | - | CSV per table; print-ready | `pest_traps`, `pest_trap_catches`, `pest_incidents`, farm structure | any member; write owner/farm_manager/agri_engineer/supervisor |
 
 ## Chart Catalog
 
@@ -63,7 +66,8 @@ reports, charts, CSV extracts, print-ready pages, data sources, and access rules
   `/accounting`, `/finance/income-statement`, `/finance/balance-sheet`, `/finance/budget-vs-actual`,
   `/finance/custody-reports`, `/finance/reports`, `/finance/revenue-reports`, `/budgets`,
   `/budgets/[budgetId]`, `/budget/[planId]/check`, `/purchase-requests`, `/inventory`,
-  `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, and `/suppliers`.
+  `/inventory/movements`, `/expenses`, `/custody`, `/transactions`, `/people`, `/suppliers`,
+  `/plans`, `/plans/dashboard`, `/farm/pest-scouting`, and `/farm/offshoots`.
 - Print CSS hides app chrome, print buttons, filters, result counts, and CSV controls while preserving report
   content, cards, KPIs, charts, and tables.
 - Date-aware filenames are live for the statement/report packs where the page has `start/end` or `asOf`
@@ -88,8 +92,8 @@ The clean checklist does not auto-lock. It deliberately hands the accountant to 
 - Cost-center reports are all-history today; their CSV filenames are intentionally generic until a period filter is added.
 - Budget-vs-actual remains report-only. It exposes variance and unbudgeted spend but does not enforce caps
   (Decision-0157).
-- Some remaining operational list pages still need print polish after the first operational output passes
-  (for example plans, pest scouting, and offshoots).
+- Some detail pages still need deeper print polish after the list/report output passes
+  (for example `/plans/[planId]` and `/reports/[planId]/pva`).
 - The report catalog is a current-state index, not a replacement for `RPC-CATALOG.md`, `FEATURE-REGISTRY.md`, or
   the Arabic user manual.
 

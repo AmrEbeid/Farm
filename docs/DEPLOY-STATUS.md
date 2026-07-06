@@ -2,7 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — master-data print outputs LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — remaining operational print outputs LIVE; prod ledger head remains `20260705150000`.**
+> PR **#814** merged to `main` at **`aabc919`** with no Supabase migration. Scope: print actions for
+> `/plans`, `/plans/dashboard`, `/farm/pest-scouting`, and `/farm/offshoots`; planning navigation/create controls,
+> offshoot forms/imports, onboarding CTAs, chart toggles, and filter-clear controls are hidden from printed output
+> while KPIs, charts, registers, and tables remain printable; existing CSV exports are unchanged. Boundaries held:
+> no schema/query/data change, no field/planning/offshoot write-path change, and no permission widening. Validation:
+> focused eslint, filter/table/export/pest/offshoot/nav/help Vitest **51/51**, `tsc`, production build, GitHub `ci`
+> and `db-tests` green, CodeRabbit green, Vercel preview `dpl_3jH6cR4QHnrpLNc4umeNA7CsstoR` READY, Vercel production
+> READY for `dpl_DASCMp8YWUwXahshRuVDBvXRDE7w`, build logs clean of errors, no production runtime errors, and aliases
+> `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+>
+> **2026-07-06 — master-data print outputs LIVE; prod ledger head remains `20260705150000`.**
 > PR **#812** merged to `main` at **`e8af217`** with no Supabase migration. Scope: print actions for
 > `/people` and `/suppliers`; people search/export controls, supplier import, and master-data create controls are
 > hidden from printed output while KPIs and directories remain printable; existing CSV exports are unchanged.
@@ -621,13 +632,13 @@ as an open gate again unless the Owner reopens it.
 ## ✅ Current Vercel state (2026-07-06)
 - `farm-ui` deploys the Next app from `apps/farm-os`, not the monorepo root, and production aliases
   are attached to `ebeidfarm.business` + `farm-ui-one.vercel.app`.
-- Production deployment `dpl_GyyJuvn2YXfmXyp7D5d9diyDUCjD` was verified `READY` after PR #812;
+- Production deployment `dpl_DASCMp8YWUwXahshRuVDBvXRDE7w` was verified `READY` after PR #814;
   both public aliases returned 200, and Vercel's route list still shows `Proxy (Middleware)`, so the
   Next 16 `middleware.ts` → `proxy.ts` migration remains live.
 - The July 6 deployment hygiene and report-output fixes are live: proxy convention (#773), role-safe
   dashboard links (#777), Tailwind/Linux optional lockfile alignment (#780), report print/export
   polish (#803-#805), report catalog refresh (#806), budget output coverage (#808-#809), and
-  operational/master-data print outputs (#810/#812). Post-deploy runtime sweeps for #812 found no error clusters and
+  operational/master-data print outputs (#810/#812/#814). Post-deploy runtime sweeps for #814 found no error clusters and
   no production `error`/`fatal` logs for the latest production deployment.
 
 ## ✅ Resolved incident — Vercel Root Directory was wrong (2026-06-24)
