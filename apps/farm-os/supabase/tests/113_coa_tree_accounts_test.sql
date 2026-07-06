@@ -2,7 +2,7 @@
 -- Verifies the budget.write-gated account tree RPCs, protected system accounts, leaf/kind
 -- expense guards, request-time account_id enforcement, and selected-account cash posting.
 begin;
-select plan(46);
+select plan(47);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set acct 'd1130000-0000-0000-0000-0000000000c0'
@@ -135,6 +135,10 @@ select lives_ok(
           values (%L, %L, current_date, 'اختبار', 'مصروف للدمج', 10, 'draft', %L) $$,
     current_setting('test.exp_merge'), current_setting('test.org'), current_setting('test.merge_source')),
   'expense can reference the merge-source leaf');
+select lives_ok(
+  format($$ select public.fn_record_custody_movement(%L, 'استلام عهدة من المالك', 10, 0) $$,
+    current_setting('test.merge_acct')),
+  'merge-source test custody account is funded before the payout');
 select lives_ok(
   format($$ select public.fn_set_expense_payment_status(%L, 'paid_from_custody', %L, 'اختبار الدمج') $$,
     current_setting('test.exp_merge'), current_setting('test.merge_acct')),

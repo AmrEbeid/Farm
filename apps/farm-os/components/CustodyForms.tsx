@@ -19,12 +19,7 @@ type Msg = { tone: "ok" | "danger"; text: string } | null;
 type PaymentRequestExpense = { id: string; label: string };
 type PayableRequestExpense = { id: string; label: string };
 
-const MOVEMENT_TYPES = [
-  "استلام عهدة من المالك",
-  "صرف نقدي",
-  "رد/إيداع",
-  "تسوية",
-];
+const OWNER_FUNDING_MOVEMENT_TYPE = "استلام عهدة من المالك";
 
 /** SPEC-0018 slice 4 — write surface for the custody module (shown only to finance write-roles). */
 export function CustodyForms({ accounts }: { accounts: Acct[] }) {
@@ -38,8 +33,6 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
   const [target, setTarget] = useState("30000");
   // movement
   const [acct, setAcct] = useState(accounts[0]?.id ?? "");
-  const [mtype, setMtype] = useState(MOVEMENT_TYPES[0]);
-  const [dir, setDir] = useState<"in" | "out">("in");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   // transfer
@@ -75,7 +68,7 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
     <div className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
       <div className="flex flex-wrap gap-2">
         <Button variant="ghost" onClick={() => setOpen(open === "acct" ? null : "acct")}>+ حساب عهدة</Button>
-        <Button variant="ghost" onClick={() => setOpen(open === "move" ? null : "move")}>+ حركة عهدة</Button>
+        <Button variant="ghost" onClick={() => setOpen(open === "move" ? null : "move")}>+ استلام عهدة</Button>
         <Button variant="ghost" onClick={() => setOpen(open === "transfer" ? null : "transfer")}>+ تحويل عهدة</Button>
         <Button variant="ghost" onClick={() => setOpen(open === "req" ? null : "req")}>+ طلب صرف</Button>
       </div>
@@ -105,14 +98,6 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
             <Select id="m-acct" value={acct} onChange={(e) => setAcct(e.target.value)}
               options={accounts.map((a) => ({ value: a.id, label: a.holder_label }))} />
           </Field>
-          <Field label="نوع الحركة" id="m-type">
-            <Select id="m-type" value={mtype} onChange={(e) => setMtype(e.target.value)}
-              options={MOVEMENT_TYPES.map((t) => ({ value: t, label: t }))} />
-          </Field>
-          <Field label="الاتجاه" id="m-dir">
-            <Select id="m-dir" value={dir} onChange={(e) => setDir(e.target.value as "in" | "out")}
-              options={[{ value: "in", label: "وارد (استلام)" }, { value: "out", label: "صادر (صرف/تسليم)" }]} />
-          </Field>
           <Field label="المبلغ (ج.م)" id="m-amount">
             <Input id="m-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
@@ -121,11 +106,11 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
           </Field>
           <div>
             <Button disabled={pending || !acct} onClick={() => run(() => recordCustodyMovement({
-              accountId: acct, movementType: mtype,
-              amountIn: dir === "in" ? Number(amount) : 0, amountOut: dir === "out" ? Number(amount) : 0,
+              accountId: acct, movementType: OWNER_FUNDING_MOVEMENT_TYPE,
+              amountIn: Number(amount), amountOut: 0,
               note: note || null,
-            }), "تم تسجيل الحركة")}>
-              {pending ? "جارٍ الحفظ…" : "تسجيل الحركة"}
+            }), "تم تسجيل الاستلام")}>
+              {pending ? "جارٍ الحفظ…" : "تسجيل الاستلام"}
             </Button>
           </div>
         </div>
