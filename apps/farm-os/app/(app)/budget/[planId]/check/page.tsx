@@ -4,6 +4,7 @@ import { requireMembership } from "@/lib/auth";
 import type { PillStatus } from "@amrebeid/ui";
 import { Alert, VerdictBanner, KpiCard, Progress, Card } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
+import { PrintButton } from "@/components/print-button";
 import {
   aggregateBudgetLinesByCategory,
   buildCategoryBudgetView,
@@ -79,6 +80,7 @@ export default async function BudgetCheckPage({
       <Entity360Header
         title="فحص الموازنة"
         subtitle="فحص كفاية الموازنة قبل تنفيذ عمليات الخطة، لكل بند على حدة"
+        actions={<PrintButton label="طباعة الفحص" />}
         pills={[
           overallVerdict === "block"
             ? { status: "blocked" as PillStatus, label: "تجاوز" }

@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { Alert, KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
+import { PrintButton } from "@/components/print-button";
 import { egp, num } from "@/lib/money";
 import { parseBudgetVsActual } from "@/lib/budget-vs-actual";
 
@@ -69,11 +70,14 @@ export default async function BudgetsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">الموازنات</h1>
-        <p style={{ color: "var(--ink-muted)" }}>
-          المخطط مقابل المعتمد والملتزم والفعلي، والمتاح المتبقّي
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">الموازنات</h1>
+          <p style={{ color: "var(--ink-muted)" }}>
+            المخطط مقابل المعتمد والملتزم والفعلي، والمتاح المتبقّي
+          </p>
+        </div>
+        <PrintButton label="طباعة الموازنات" />
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
