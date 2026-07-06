@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Field, Input, Alert, useToast } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
+import { PrintButton } from "@/components/print-button";
 
 /** A create-form field (drives the inline add form). Writes go through the page's gated server action. */
 export type MasterField = {
@@ -40,6 +41,7 @@ export function MasterTable({
   placeholder,
   exportFilename,
   empty,
+  printLabel,
 }: {
   title: string;
   description?: string;
@@ -53,6 +55,7 @@ export function MasterTable({
   placeholder?: string;
   exportFilename?: string;
   empty?: string;
+  printLabel?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -100,15 +103,20 @@ export function MasterTable({
           <h1 className="text-2xl font-bold">{title}</h1>
           {description && <p style={{ color: "var(--ink-muted)" }}>{description}</p>}
         </div>
-        {canWrite && !open && (
-          <Button variant="ghost" onClick={() => setOpen(true)}>
-            {addLabel}
-          </Button>
+        {(printLabel || (canWrite && !open)) && (
+          <div className="no-print flex flex-wrap items-center gap-2">
+            {printLabel && <PrintButton label={printLabel} />}
+            {canWrite && !open && (
+              <Button variant="ghost" onClick={() => setOpen(true)}>
+                {addLabel}
+              </Button>
+            )}
+          </div>
         )}
       </header>
 
       {canWrite && open && (
-        <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
+        <form onSubmit={submit} className="no-print flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
           <div role="alert" aria-live="assertive" aria-atomic="true">
             {msg && <Alert tone={msg.tone} title={msg.text} />}
           </div>

@@ -5,6 +5,7 @@ import { type SimpleColumn } from "@/components/SimpleTable";
 import { PeopleDirectoryGrouped, type PersonGroup, type PersonRow } from "@/components/PeopleDirectoryGrouped";
 import { PersonCreateForm } from "@/components/PersonCreateForm";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { PrintButton } from "@/components/print-button";
 import { num } from "@/lib/money";
 import { EMP_TYPE_AR } from "@/lib/labels";
 
@@ -104,9 +105,12 @@ export default async function PeopleDirectoryPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header>
-        <h1 className="text-2xl font-bold">الفريق</h1>
-        <p style={{ color: "var(--ink-muted)" }}>دليل العاملين بالمزرعة</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">الفريق</h1>
+          <p style={{ color: "var(--ink-muted)" }}>دليل العاملين بالمزرعة</p>
+        </div>
+        <PrintButton label="طباعة الفريق" />
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -121,7 +125,11 @@ export default async function PeopleDirectoryPage({
         ))}
       </div>
 
-      {canWrite && <PersonCreateForm managers={activeManagers} />}
+      {canWrite && (
+        <div className="no-print">
+          <PersonCreateForm managers={activeManagers} />
+        </div>
+      )}
       <PeopleDirectoryGrouped
         ariaLabel="الفريق"
         columns={columns}
