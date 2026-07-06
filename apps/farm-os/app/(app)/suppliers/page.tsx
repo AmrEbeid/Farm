@@ -100,11 +100,14 @@ export default async function SuppliersListPage({
         searchColumns={["name", "phone"]}
         placeholder="ابحث عن مورّد…"
         exportFilename="suppliers"
+        printLabel="طباعة الموردين"
         empty={filter === "open" ? "لا موردين لديهم أوامر جارية" : "لا يوجد موردون بعد"}
       />
 
       {/* SPEC-0024 S-9 (D.1): template download + Excel/CSV import for this entry.  */}
-      <ImportPanel descriptorKey="suppliers" titleAr="الموردون" />
+      <div className="no-print">
+        <ImportPanel descriptorKey="suppliers" titleAr="الموردون" />
+      </div>
     </div>
   );
 }
