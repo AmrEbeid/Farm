@@ -2,10 +2,10 @@
 -- irrigation_basis CHECK rejects an out-of-vocabulary value, (b) both real values + NULL are
 -- accepted directly, (c) fn_add_plan_operation_multi persists the basis + reading end-to-end,
 -- (d) the columns inherit plan_operations' existing RLS deny-by-default (no new policy needed —
--- verified via the tenant_all USING/WITH CHECK predicate still gating org membership), (e) anon
--- EXECUTE lockdown still holds on the extended RPC signature. Run via test-shims/run-pgtap-local.sh.
+-- verified via the tenant_all USING/WITH CHECK predicate still gating org membership), (e) the RPC
+-- keeps one frozen 16-arg signature and validates soil readings. Run via test-shims/run-pgtap-local.sh.
 begin;
-select plan(8);
+select plan(15);
 
 \set orgA  '00000000-0000-0000-0000-000000000001'
 \set orgB  '00000000-0000-0000-0000-000000000002'
@@ -37,6 +37,15 @@ select lives_ok(
   'irrigation_basis / soil_moisture_reading accept NULL (not recorded / non-irrigation ops)'
 );
 
+select is(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = 'fn_add_plan_operation_multi'),
+  1,
+  'fn_add_plan_operation_multi exposes exactly one frozen overload'
+);
+
 -- ── (c) fn_add_plan_operation_multi persists the basis end-to-end (extended signature, both new
 --        trailing params optional) ────────────────────────────────────────────────────────────────
 -- NAMED-parameter call (matches how PostgREST/the real app calls this RPC — see migration
@@ -52,7 +61,7 @@ select set_config('t.res', public.fn_add_plan_operation_multi(
   p_plan_id => :'plan', p_subtype => 'irrigation', p_planned_at => '2026-07-15'::date,
   p_ends_on => null, p_est_cost => 0, p_materials => '[]'::jsonb, p_labor => '[]'::jsonb,
   p_assignee_ids => null, p_lead_id => null,
-  p_irrigation_basis => 'soil_test', p_soil_moisture_reading => '15%')::text, false);
+  p_irrigation_basis => 'soil_test', p_soil_moisture_reading => ' 15% ')::text, false);
 reset role;
 
 select is(
@@ -63,7 +72,58 @@ select is(
 select is(
   (select soil_moisture_reading from public.plan_operations
      where id = ((current_setting('t.res')::jsonb)->>'operationId')::uuid),
-  '15%', 'fn_add_plan_operation_multi persists soil_moisture_reading via its new optional param'
+  '15%', 'fn_add_plan_operation_multi trims and persists soil_moisture_reading via its optional param'
+);
+
+-- D7 guard: soil readings are still free text, but the RPC only accepts them when they are meaningful.
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select user_id::text from public.organization_member
+    where org_id = :'orgA' and role = 'farm_manager' limit 1), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'irrigation', p_planned_at => '2026-07-17'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_irrigation_basis => 'soil_test', p_soil_moisture_reading => '   ') $$, :'plan'),
+  '22023', null, 'soil_test requires a non-blank soil_moisture_reading (22023)'
+);
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'irrigation', p_planned_at => '2026-07-18'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_irrigation_basis => 'fixed_schedule', p_soil_moisture_reading => '15%%') $$, :'plan'),
+  '22023', null, 'soil_moisture_reading is rejected for fixed_schedule basis (22023)'
+);
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'irrigation', p_planned_at => '2026-07-19'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_irrigation_basis => null, p_soil_moisture_reading => '15%%') $$, :'plan'),
+  '22023', null, 'soil_moisture_reading is rejected without soil_test basis (22023)'
+);
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'irrigation', p_planned_at => '2026-07-20'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_irrigation_basis => 'soil_test', p_soil_moisture_reading => repeat('x', 121)) $$, :'plan'),
+  '22023', null, 'soil_moisture_reading longer than 120 chars is rejected (22023)'
+);
+select throws_ok(
+  format($$ select public.fn_add_plan_operation_multi(p_plan_id => '%s'::uuid,
+    p_subtype => 'irrigation', p_planned_at => '2026-07-21'::date, p_ends_on => null, p_est_cost => 0,
+    p_materials => '[]'::jsonb, p_labor => '[]'::jsonb, p_assignee_ids => null, p_lead_id => null,
+    p_irrigation_basis => 'soil_test', p_soil_moisture_reading => E'wet\nline') $$, :'plan'),
+  '22023', null, 'soil_moisture_reading with control characters is rejected (22023)'
+);
+reset role;
+
+select is(
+  (select count(*) from public.plan_operations
+     where plan_id = :'plan'
+       and subtype = 'irrigation'
+       and planned_at between '2026-07-17'::date and '2026-07-21'::date),
+  0::bigint,
+  'rejected soil_moisture_reading calls leave no orphan plan operations'
 );
 
 -- an existing-shape 9-arg call (no basis/reading) still works unchanged — backward compatibility.
