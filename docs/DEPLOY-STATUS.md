@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — finance report output coverage LIVE; prod ledger head remains `20260705150000`.**
+> **2026-07-06 (latest) — finance insight output coverage LIVE; prod ledger head remains `20260705150000`.**
+> PR **#821** merged to `main` at **`87998c1`** with no Supabase migration. Scope: print-ready finance owner
+> insights at `/finance/insights`, printable and CSV-exportable P&L trend data at `/finance/pnl-trend`, and printable
+> CSV-exportable enterprise/sector scorecards at `/finance/enterprise-scorecard` and `/finance/sector-scorecard`;
+> insight navigation, grain toggles, and secondary statement links are hidden from printed output while KPIs,
+> charts, source context, and scorecard tables remain printable. Boundaries held: no schema/RPC/data change, no
+> accounting-period lock/reopen behavior change, no finance posting/cash/custody mutation change, and no permission
+> widening. Validation: focused eslint, export/filter/table/finance-insight/P&L/entity tests **63/63**, `tsc`,
+> production build, GitHub `ci` and `db-tests` green, CodeRabbit green, Vercel preview
+> `dpl_DWqybPWWaREmM3fStxG7MydmrMSA` READY, Vercel production READY for
+> `dpl_2RdBKJ2LA1pTPiin5ro74EYxMGVi`, build logs clean of errors, no production runtime errors, and aliases
+> `ebeidfarm.business` / `farm-ui-one.vercel.app` returned 200.
+
+> **2026-07-06 — finance report output coverage LIVE; prod ledger head remains `20260705150000`.**
 > PRs **#818-#819** merged to `main` through **`118041b`** with no Supabase migration. Scope: print actions for
 > `/finance/season`, `/finance/cost-centers/[id]`, and `/finance/periods`; accounting periods now render as a
 > sortable table with CSV export; finance season/center/period action controls and statement navigation are hidden
