@@ -22,7 +22,7 @@ const CHAPTERS: Chapter[] = [
   { n: 2, icon: "🏆", title: "أداء القطاعات", question: "أي قطاع يكسب، وأيها يحتاج اهتمامًا؟", href: "/finance/sector-scorecard" },
   { n: 3, icon: "🌱", title: "بنك الفسائل", question: "كم تساوي الفسائل، وكيف تنمو؟", href: "/farm/offshoots" },
   { n: 4, icon: "📊", title: "بطاقة الأداء", question: "سنة مقابل سنة — ما الذي تغيّر؟", href: "/insights/scorecard" },
-  { n: 5, icon: "🎯", title: "المقارنة الداخلية", question: "ماذا لو أدى كل فدان مثل الأفضل؟", href: null },
+  { n: 5, icon: "🎯", title: "المقارنة الداخلية", question: "ماذا لو أدى كل فدان مثل الأفضل؟", href: "/insights/benchmark" },
   { n: 6, icon: "📖", title: "التقرير السنوي", question: "قصة السنة كاملة في صفحة واحدة.", href: null },
   { n: 7, icon: "🔭", title: "النظرة المستقبلية", question: "إلى أين تتجه المزرعة؟", href: null },
 ];

@@ -100,6 +100,7 @@ export const APP_MODULES: AppModule[] = [
       { id: "pnl-trend", label: "اتجاه الأرباح", icon: "📈", href: "/finance/pnl-trend", roles: ["owner", "accountant"] },
       { id: "finance-insights", label: "رؤى المالك", icon: "💡", href: "/finance/insights", roles: ["owner", "accountant"] },
       { id: "scorecard", label: "بطاقة الأداء", icon: "📊", href: "/insights/scorecard", roles: ["owner", "accountant"] },
+      { id: "benchmark", label: "المقارنة الداخلية", icon: "🎯", href: "/insights/benchmark", roles: ["owner", "accountant"] },
     ],
   },
   {
