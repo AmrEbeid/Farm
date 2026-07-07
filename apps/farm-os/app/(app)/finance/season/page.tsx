@@ -43,9 +43,13 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
   const [salesRes, collectionsRes, buyersRes, centersRes, pickedRes] = await Promise.all([
     sb
       .from("sales")
-      .select("id, sale_date, crop, qty, unit, total, price_status, payment_status, buyer_id, cost_center_id, delivery_note_no, crates")
-      .gte("sale_date", seasonStart)
-      .order("sale_date", { ascending: false }),
+      // Anchor the season window on created_at (NOT NULL ≈ when the load crossed the scale), NOT sale_date:
+      // sale_date is nullable and stays null on a PENDING (delivered-but-unpriced) delivery, so a `.gte
+      // ("sale_date", …)` silently drops those from the tonnage — yet the spec counts pending deliveries in
+      // tonnage (they're just never valued). This is the nullable-date understatement bug (honest-null #1).
+      .select("id, sale_date, delivery_date, created_at, crop, qty, unit, total, price_status, payment_status, buyer_id, cost_center_id, delivery_note_no, crates")
+      .gte("created_at", seasonStart)
+      .order("created_at", { ascending: false }),
     sb.from("sale_collections").select("sale_id, amount"),
     sb.from("buyers").select("id, name"),
     sb.from("cost_centers").select("id, name_ar, area_feddan"),
@@ -85,7 +89,7 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
   const deliveryRows: SimpleRow[] = sales.map((s) => ({
     id: s.id,
     note: s.delivery_note_no != null ? String(s.delivery_note_no) : "—",
-    date: s.sale_date ? fmtDate(s.sale_date) : "—",
+    date: fmtDate(s.sale_date ?? s.delivery_date ?? s.created_at),
     crop: s.crop,
     buyer: (s.buyer_id && buyerName.get(s.buyer_id)) || "بدون اسم",
     buyer_href: s.buyer_id ? `/finance/buyers/${s.buyer_id}` : "",
