@@ -207,7 +207,7 @@ export default async function FinanceReportsPage({
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard label="مصروفات" value={egp(expenseTotal)} />
         <KpiCard label="إيرادات" value={revenueTotal === 0 ? "لا يوجد نموذج إيرادات بعد" : egp(revenueTotal)} />
-        <KpiCard label="صافي غير موزّع" value={egp(centerByCode.get("CC-UNALLOC")?.net ?? 0)} />
+        <KpiCard label="مصروفات غير موزّعة" value={egp(centerByCode.get("CC-UNALLOC")?.debit ?? 0)} />
       </section>
 
       {(selectedCenter || focus !== "all") && (

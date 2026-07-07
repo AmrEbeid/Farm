@@ -51,7 +51,7 @@ export type FinanceInsightSummary = {
   totalExpense: number;
   totalRevenue: number;
   operatingNet: number;
-  unallocatedNet: number;
+  unallocatedCost: number;
   centerRows: CenterEconomicsInsight[];
   topExpenseCenters: CenterEconomicsInsight[];
   topPerFeddanCenters: CenterEconomicsInsight[];
@@ -80,7 +80,7 @@ export function buildFinanceInsightSummary({
   const totalExpense = leafRows.reduce((sum, row) => sum + Number(row.debit ?? 0), 0);
   const totalRevenue = leafRows.reduce((sum, row) => sum + Number(row.credit ?? 0), 0);
   const operatingNet = totalRevenue - totalExpense;
-  const unallocatedNet = Number(unallocated?.net ?? 0);
+  const unallocatedCost = Number(unallocated?.debit ?? 0); // untagged EXPENSE (.net is revenue-contaminated — see entity-pnl contract)
   const activeCenterCount = rollup.filter((row) => row.active && !row.is_system).length;
   const postedCenterCount = centerRows.filter((row) => row.expense !== 0 || row.revenue !== 0 || row.net !== 0).length;
   const topExpenseCenters = [...centerRows].filter((row) => row.expense > 0).sort((a, b) => b.expense - a.expense).slice(0, 5);
@@ -91,12 +91,12 @@ export function buildFinanceInsightSummary({
 
   const cards = buildCards({
     flagCount: flags.length,
-    unallocatedNet,
+    unallocatedCost,
     topExpenseCenter: topExpenseCenters[0],
     topPerFeddanCenter: topPerFeddanCenters[0],
     totalRevenue,
   });
-  const score = buildScore(flags.length, unallocatedNet);
+  const score = buildScore(flags.length, unallocatedCost);
 
   return {
     activeCenterCount,
@@ -105,7 +105,7 @@ export function buildFinanceInsightSummary({
     totalExpense,
     totalRevenue,
     operatingNet,
-    unallocatedNet,
+    unallocatedCost,
     centerRows,
     topExpenseCenters,
     topPerFeddanCenters,
@@ -130,13 +130,13 @@ function toCenterEconomics(row: CostCenterInsightRollup): CenterEconomicsInsight
 
 function buildCards({
   flagCount,
-  unallocatedNet,
+  unallocatedCost,
   topExpenseCenter,
   topPerFeddanCenter,
   totalRevenue,
 }: {
   flagCount: number;
-  unallocatedNet: number;
+  unallocatedCost: number;
   topExpenseCenter: CenterEconomicsInsight | undefined;
   topPerFeddanCenter: CenterEconomicsInsight | undefined;
   totalRevenue: number;
@@ -152,11 +152,11 @@ function buildCards({
       href: "/finance/reports?focus=flags",
     });
   }
-  if (Math.abs(unallocatedNet) > 0) {
+  if (Math.abs(unallocatedCost) > 0) {
     cards.push({
       id: "unallocated",
-      title: "غير موزع",
-      value: egp(unallocatedNet),
+      title: "مصروفات غير موزّعة",
+      value: egp(unallocatedCost),
       description: "يوجد أثر مالي على مركز غير موزع؛ يحتاج المحاسب لتحديد مركز التكلفة الصحيح.",
       tone: "warning",
       href: "/finance/reports?center=CC-UNALLOC",
@@ -195,8 +195,8 @@ function buildCards({
   return cards.slice(0, 5);
 }
 
-function buildScore(flagCount: number, unallocatedNet: number): FinanceInsightSummary["score"] {
-  if (flagCount > 0 || Math.abs(unallocatedNet) > 0) {
+function buildScore(flagCount: number, unallocatedCost: number): FinanceInsightSummary["score"] {
+  if (flagCount > 0 || Math.abs(unallocatedCost) > 0) {
     return {
       label: "مختلط",
       tone: "warning",

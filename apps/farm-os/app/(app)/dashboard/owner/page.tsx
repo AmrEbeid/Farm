@@ -348,7 +348,7 @@ export default async function OwnerDashboard() {
             <KpiCard label="مراكز لها قيود" value={num(financeInsights.postedCenterCount)} />
           </DashboardKpiLink>
           <DashboardKpiLink href="/finance/reports?center=CC-UNALLOC" active={false}>
-            <KpiCard label="صافي غير موزع" value={egp(financeInsights.unallocatedNet)} deltaDirection={Math.abs(financeInsights.unallocatedNet) > 0 ? "down" : "none"} />
+            <KpiCard label="مصروفات غير موزّعة" value={egp(financeInsights.unallocatedCost)} deltaDirection={Math.abs(financeInsights.unallocatedCost) > 0 ? "down" : "none"} />
           </DashboardKpiLink>
           <DashboardKpiLink href="/finance/reports?focus=flags" active={false}>
             <KpiCard label="بنود مراجعة" value={num(financeInsights.flagCount)} deltaDirection={financeInsights.flagCount > 0 ? "down" : "none"} />
