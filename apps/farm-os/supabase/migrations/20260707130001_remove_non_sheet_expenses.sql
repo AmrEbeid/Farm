@@ -66,8 +66,11 @@ begin
   select count(*) into v_bak from _recovery.removed_expenses_20260707;
   select count(*) into v_left from public.expenses e
     where e.id in (select id from _recovery.removed_expenses_20260707);
-  if v_bak <> 31 then raise exception 'expected 31 backed-up rows, got %', v_bak; end if;
-  if v_left <> 0 then raise exception 'deletion incomplete: % rows remain', v_left; end if;
+  -- Completeness invariant (always valid): whatever was backed up must be gone. NOT a hard "= 31" check —
+  -- on prod v_bak is 31, but on a clean-DB replay (CI pgTAP / fresh env) the 31 prod ids don't exist so
+  -- v_bak = 0 and this migration is a safe no-op. A hard "= 31" would fail every clean replay.
+  if v_left <> 0 then raise exception 'deletion incomplete: % of % backed-up rows remain', v_left, v_bak; end if;
+  raise notice 'remove_non_sheet_expenses: backed up and removed % rows (0 on a fresh DB — prod ids absent)', v_bak;
 end $$;
 
 commit;
