@@ -61,6 +61,9 @@ const ALLOWED_CHART_ROUTES = [
   // SPEC-0029 Phase 1 P&L-trend renders a revenue/cost/net trend + cumulative J-curve line; recharts
   // stays in this route's own client chunk (via components/charts.tsx), never the global bundle.
   "/finance/pnl-trend/page",
+  // SPEC-0031 insight arc — chapters that render the report chart wrappers (code-split, not global).
+  "/insights/annual-report/page",
+  "/insights/outlook/page",
   // SPEC-0024 S-7b offshoot bank renders physical-flow and expansion charts.
   "/farm/offshoots/page",
   // Module dashboards each render their own charts (status/type doughnuts, grouped

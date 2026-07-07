@@ -101,6 +101,7 @@ export const APP_MODULES: AppModule[] = [
       { id: "finance-insights", label: "رؤى المالك", icon: "💡", href: "/finance/insights", roles: ["owner", "accountant"] },
       { id: "scorecard", label: "بطاقة الأداء", icon: "📊", href: "/insights/scorecard", roles: ["owner", "accountant"] },
       { id: "benchmark", label: "المقارنة الداخلية", icon: "🎯", href: "/insights/benchmark", roles: ["owner", "accountant"] },
+      { id: "annual-report", label: "التقرير السنوي", icon: "📖", href: "/insights/annual-report", roles: ["owner", "accountant"] },
     ],
   },
   {
