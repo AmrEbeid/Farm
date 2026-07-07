@@ -2,7 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-07 (latest) — 7-year history reconciled to the ledger; prod migration head now `20260707120000`.**
+> **2026-07-07 (latest) — ledger reconciled to the source sheet exactly; migration `20260707130001` applied.**
+> A sheet-vs-system reconciliation against the source workbook (`شيت محاسبي للمزارع`, a Feb-2026 snapshot) proved
+> the sheet's data is in the system to the pound. The system additionally held **31 rows not in the sheet** — the
+> June **إذن صرف ٦** permit (289,000) + 2 July live entries (كاش 30,000 / اجل 12,000). Per the Owner's directive
+> ("the sheet should be the only data we have"), migration **`20260707130001_remove_non_sheet_expenses`** removed
+> those 31 rows and their backfill journal entries. **Fully reversible** — every removed row (expenses +
+> journal_entries + journal_lines) is copied into schema `_recovery` first; restore is a 3-line `insert … select`.
+> After: **expenses = 20,527,757**, **revenue = 25,835,533** (both tie to the sheet to the pound; every category
+> matches exactly), GL debit=credit=46,443,290, 0 unbalanced entries. Data-only; no schema/permission/code change.
+
+> **2026-07-07 — 7-year history reconciled to the ledger; prod migration head now `20260707120000`.**
 > Migration **`20260707115445_gl_history_backfill`** applied to prod via the Supabase connector under the Owner's
 > explicit go (data-only; no code change, no schema/permission change). It (1) set `expenses.account_id` for every
 > one of 10,232 expenses — filling 1,271 gaps (726 drawings→`3100`, 511 capex→`1520`, 34 operating→category `5xxx`)

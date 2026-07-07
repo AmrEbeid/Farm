@@ -21,8 +21,16 @@ customer were **never captured** (blank template columns) — so they are delibe
   (Assets = Equity = 5,550,752), 2019–2026 **net income = 8,431,229**, operating expense 17,404,306. Pre-apply pgTAP
   harness 1644/1644. The already-live BS/IS/TB/budget-vs-actual pages now show real numbers with no code change.
 
-**Open / next:** (a) this migration is applied to prod but the tracking PR (`feat/gl-history-backfill`) lands the
-file + these docs — Owner merges. (b) **Security: rotate the Gmail password embedded in the source `اذونات الصرف`
+**SHEET-EXACT RECONCILIATION (same session):** validated system vs the source workbook (`شيت محاسبي للمزارع`,
+Feb-2026 snapshot). Sheet data proven present to the pound; the system additionally held **31 non-sheet rows**
+(June إذن صرف ٦ = 289,000 + 2 July live entries كاش 30,000 / اجل 12,000 = 331,000 total, = the category-Δ exactly).
+Owner: "the sheet should be the only data we have" → applied **`20260707130001_remove_non_sheet_expenses`**
+(reversible; removed rows backed to schema `_recovery.*`). After: **expenses 20,527,757 / revenue 25,835,533 tie to
+the sheet to the pound, every category matches exactly**, GL balanced (debit=credit=46,443,290). ⚠️ The إذن-6 permit
+(real signed June data) is now REMOVED from the live books but recoverable from `_recovery` — re-record it (and any
+post-Feb activity) through the live workflow if/when the Owner wants it back.
+
+**Open / next:** (a) the tracking PR (`feat/gl-history-backfill`, #867) lands both migrations + these docs — Owner merges. (b) **Security: rotate the Gmail password embedded in the source `اذونات الصرف`
 sheet.** (c) Slice 3 (Owner's call): post pre-2019 (~9.66M, summary-only) as opening entries; link the payroll
 roster (`اذونات الصرف` names) to salaries; optional capex sub-split (1510 buildings vs 1520 orchards) and reclassing
 the few "selling mature palms" sale rows out of `4010`.
