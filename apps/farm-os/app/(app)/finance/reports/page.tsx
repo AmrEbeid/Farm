@@ -50,6 +50,7 @@ type JournalLineRow = {
 type JournalEntryRow = {
   id: string;
   entry_date: string;
+  status: string;
 };
 
 type AccountRow = {
@@ -92,7 +93,7 @@ export default async function FinanceReportsPage({
         .range(from, to),
     ),
     fetchAllRows<JournalEntryRow>(async (from, to) =>
-      await sb.from("journal_entries").select("id, entry_date").order("entry_date", { ascending: true }).range(from, to),
+      await sb.from("journal_entries").select("id, entry_date, status").order("entry_date", { ascending: true }).range(from, to),
     ),
     fetchAllRows<AccountRow>(async (from, to) =>
       await sb.from("accounts").select("id, code, name_ar, account_type").order("code", { ascending: true }).range(from, to),
@@ -122,6 +123,10 @@ export default async function FinanceReportsPage({
   });
 
   const financeLines = journalLines.filter((line) => {
+    // Posted-only, matching v_cost_center_rollup + every statement path (#863): a reversed entry (original +
+    // mirror) must not roll up. The expense/revenue totals below are net (debit−credit) so a reversed pair
+    // already cancels, but the untagged-line COUNT would otherwise double-count each reversed line.
+    if (entryById.get(line.journal_entry_id)?.status !== "posted") return false;
     const accountType = accountById.get(line.account_id)?.account_type;
     return accountType === "expense" || accountType === "revenue";
   });
