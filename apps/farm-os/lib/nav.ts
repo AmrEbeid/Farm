@@ -99,6 +99,7 @@ export const APP_MODULES: AppModule[] = [
       { id: "enterprise-scorecard", label: "اقتصاد المحاصيل", icon: "🌿", href: "/finance/enterprise-scorecard", roles: ["owner", "accountant"] },
       { id: "pnl-trend", label: "اتجاه الأرباح", icon: "📈", href: "/finance/pnl-trend", roles: ["owner", "accountant"] },
       { id: "finance-insights", label: "رؤى المالك", icon: "💡", href: "/finance/insights", roles: ["owner", "accountant"] },
+      { id: "scorecard", label: "بطاقة الأداء", icon: "📊", href: "/insights/scorecard", roles: ["owner", "accountant"] },
     ],
   },
   {
