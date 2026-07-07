@@ -111,7 +111,7 @@ type RevenueReport = {
 };
 
 const PRICE_STATUS_AR: Record<RevenueSaleRow["price_status"], string> = {
-  pending: "السعر لم يحدد",
+  pending: "السعر معلّق",
   finalized: "مسعّر",
 };
 
@@ -254,7 +254,7 @@ export default async function FinanceRevenueReportsPage({
         <div>
           <h1 className="text-2xl font-bold">تقارير الإيرادات والذمم</h1>
           <p style={{ color: "var(--ink-muted)" }}>
-            إيراد مسعّر، تسليمات بسعر معلق، تحصيلات العملاء، وأعمار الذمم من سجل المبيعات فقط.
+            إيراد مسعّر، تسليمات بسعر معلّق، تحصيلات العملاء، وأعمار الذمم من سجل المبيعات فقط.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -299,7 +299,7 @@ export default async function FinanceRevenueReportsPage({
         <KpiCard label="تحصيلات الفترة" value={egp(report.period_collections)} />
         <KpiCard label="ذمم قائمة" value={egp(report.outstanding_total)} deltaDirection={report.outstanding_total > 0 ? "down" : "none"} />
         <KpiCard label="ذمم ٣٠+ يوم" value={egp(report.over_30_amount)} deltaDirection={report.over_30_amount > 0 ? "down" : "none"} />
-        <KpiCard label="تسليمات بسعر معلق" value={num(report.pending_count)} deltaDirection={report.pending_count > 0 ? "down" : "none"} />
+        <KpiCard label="تسليمات بسعر معلّق" value={num(report.pending_count)} deltaDirection={report.pending_count > 0 ? "down" : "none"} />
         <KpiCard label="كمية معلقة السعر" value={num(report.pending_qty)} />
       </section>
 
