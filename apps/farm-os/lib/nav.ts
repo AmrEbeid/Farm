@@ -84,6 +84,24 @@ export const APP_MODULES: AppModule[] = [
     pages: [{ id: "reports-hub", label: "كل التقارير", icon: "📈", href: "/reports" }],
   },
   {
+    // SPEC-0029/0031: «الرؤى» — the insight arc. A first-class destination (the insight pages used to be
+    // buried mid-list inside the 20-item finance module). Owner/accountant, finance.read-gated.
+    id: "insights-module",
+    group: "tasks",
+    label: "الرؤى",
+    icon: "💡",
+    dashboardHref: "/insights",
+    roles: ["owner", "accountant"],
+    pages: [
+      { id: "insights-hub", label: "كل الرؤى", icon: "💡", href: "/insights", roles: ["owner", "accountant"] },
+      { id: "insights-summary", label: "ملخّص الرؤى", icon: "🌅", href: "/finance/insights-summary", roles: ["owner", "accountant"] },
+      { id: "sector-scorecard", label: "أداء القطاعات", icon: "🏆", href: "/finance/sector-scorecard", roles: ["owner", "accountant"] },
+      { id: "enterprise-scorecard", label: "اقتصاد المحاصيل", icon: "🌿", href: "/finance/enterprise-scorecard", roles: ["owner", "accountant"] },
+      { id: "pnl-trend", label: "اتجاه الأرباح", icon: "📈", href: "/finance/pnl-trend", roles: ["owner", "accountant"] },
+      { id: "finance-insights", label: "رؤى المالك", icon: "💡", href: "/finance/insights", roles: ["owner", "accountant"] },
+    ],
+  },
+  {
     id: "farm-module",
     label: "المزرعة",
     icon: "🌴",
@@ -241,34 +259,6 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
-        id: "insights-summary",
-        label: "ملخّص الرؤى",
-        icon: "💡",
-        href: "/finance/insights-summary",
-        roles: ["owner", "accountant"],
-      },
-      {
-        id: "pnl-trend",
-        label: "اتجاه الأرباح",
-        icon: "📊",
-        href: "/finance/pnl-trend",
-        roles: ["owner", "accountant"],
-      },
-      {
-        id: "sector-scorecard",
-        label: "أداء القطاعات",
-        icon: "🏆",
-        href: "/finance/sector-scorecard",
-        roles: ["owner", "accountant"],
-      },
-      {
-        id: "enterprise-scorecard",
-        label: "اقتصاد المحاصيل",
-        icon: "🌱",
-        href: "/finance/enterprise-scorecard",
-        roles: ["owner", "accountant"],
-      },
-      {
         id: "periods",
         label: "الفترات المحاسبية",
         icon: "🔒",
@@ -294,13 +284,6 @@ export const APP_MODULES: AppModule[] = [
         label: "تقارير العهدة",
         icon: "📑",
         href: "/finance/custody-reports",
-        roles: ["owner", "accountant"],
-      },
-      {
-        id: "finance-insights",
-        label: "رؤى المالك",
-        icon: "💡",
-        href: "/finance/insights",
         roles: ["owner", "accountant"],
       },
       {
