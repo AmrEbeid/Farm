@@ -157,6 +157,10 @@ export default async function SectorScorecardPage() {
             «الفرصة» = فجوة الربح/فدان عن الأفضل × مساحة القطاع — ليست تنبؤًا بل ما كان القطاع سيضيفه عند بلوغ
             إنتاجية الأفضل. الإيراد من المبيعات المُسعّرة؛ المسحوبات لا تُحتسب.
             {" "}
+            <Link href="/insights/benchmark" className="no-print font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+              المقارنة الداخلية ←
+            </Link>
+            {" · "}
             <Link href="/finance/insights" className="no-print font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
               رؤى المالك ←
             </Link>
