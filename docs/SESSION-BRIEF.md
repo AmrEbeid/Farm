@@ -1,7 +1,33 @@
-# Session Brief — Farm OS      Updated: 2026-07-05 by Claude (Slice A COMPLETE — budget-vs-actual live, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-07 by Claude (7-year history reconciled to the GL, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-05 (latest) — budget-vs-actual LIVE (RPC+UI) → SPEC-0004 Slice A COMPLETE
+## 2026-07-07 (latest) — the whole 7-year history is now LINKED TO THE ACCOUNTS + posted to the GL
+
+Owner asked to review the uploaded transactions and make sure every one is linked to an account (creating accounts
+if needed) — "all finance and accounts for the past years should be 100% accurate". Read-only assessment first
+(DB reachable now via the Supabase MCP — the connector's zeluu org `dicbxecebgdxkhmtavrz` holds Farm, NOT Zeal-only
+as the old note claimed). Findings: 10,232 expenses (20.86M) + 162 sales (25.84M), 2019–2026, were imported into the
+operational tables but **never posted to the double-entry GL** (journal_entries held 1 row) and 1,271 expenses had a
+NULL account — so the trusted statements were empty for all history. Owner provided the source Excel
+(`شيت محاسبي للمزارع`); studying every sheet confirmed the import was faithful and that vendor / item / quantity /
+customer were **never captured** (blank template columns) — so they are deliberately NOT fabricated.
+
+**Applied to prod (Owner go): `20260707115445_gl_history_backfill`** — data-only, idempotent, reversible.
+- Slice 1: `expenses.account_id` set for all 10,232 via the canonical `نوع المصروف`→5xxx rule; 726 drawings→`3100`
+  (equity), 511 capex→`1520` (asset), 34 operating gaps filled, 3 mislabeled `مسحوبات` normalized to `kind='drawing'`.
+- Slice 2: posted 10,232 expense + 162 sale journal entries (20,790 lines, cash method, contra `1000 عهدة نقدية`;
+  sale crop→`4010–4090` revenue by rule). Uses the existing `fn_post_two_line_journal` primitive.
+- Verified on live data: 0 null accounts, debit=credit=46,774,290, 0 unbalanced entries; **balance sheet balances**
+  (Assets = Equity = 5,550,752), 2019–2026 **net income = 8,431,229**, operating expense 17,404,306. Pre-apply pgTAP
+  harness 1644/1644. The already-live BS/IS/TB/budget-vs-actual pages now show real numbers with no code change.
+
+**Open / next:** (a) this migration is applied to prod but the tracking PR (`feat/gl-history-backfill`) lands the
+file + these docs — Owner merges. (b) **Security: rotate the Gmail password embedded in the source `اذونات الصرف`
+sheet.** (c) Slice 3 (Owner's call): post pre-2019 (~9.66M, summary-only) as opening entries; link the payroll
+roster (`اذونات الصرف` names) to salaries; optional capex sub-split (1510 buildings vs 1520 orchards) and reclassing
+the few "selling mature palms" sale rows out of `4010`.
+
+## 2026-07-05 — budget-vs-actual LIVE (RPC+UI) → SPEC-0004 Slice A COMPLETE
 
 Built the last Slice A item — budget-vs-actual — under the Owner's explicit standing directive ("go with your
 recommendation, don't wait my input"), which delegates the read-side mapping call to me. Kept it **strictly
