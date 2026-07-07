@@ -54,7 +54,7 @@ export default async function FinanceInsightsPage() {
           <KpiCard label="مراكز لها قيود" value={num(summary.postedCenterCount)} />
         </DashboardKpiLink>
         <DashboardKpiLink href="/finance/reports?center=CC-UNALLOC" active={false}>
-          <KpiCard label="صافي غير موزع" value={egp(summary.unallocatedNet)} deltaDirection={Math.abs(summary.unallocatedNet) > 0 ? "down" : "none"} />
+          <KpiCard label="مصروفات غير موزّعة" value={egp(summary.unallocatedCost)} deltaDirection={Math.abs(summary.unallocatedCost) > 0 ? "down" : "none"} />
         </DashboardKpiLink>
         <DashboardKpiLink href="/finance/reports?focus=flags" active={false}>
           <KpiCard label="بنود مراجعة" value={num(summary.flagCount)} deltaDirection={summary.flagCount > 0 ? "down" : "none"} />

@@ -34,15 +34,19 @@ describe("buildFinanceInsightSummary", () => {
           parent_id: null,
           code: "CC-UNALLOC",
           name_ar: "غير موزع",
+          // debit = untagged EXPENSE; credit = untagged REVENUE (revenue is never cost-center-tagged), so
+          // net (=-125) is revenue-contaminated. The unallocated figure must report the untagged COST (debit),
+          // NOT the net — this fixture keeps them DIFFERENT so the check actually proves it.
           debit: 75,
-          net: 75,
+          credit: 200,
+          net: -125,
           is_system: true,
         },
       ] as CostCenterInsightRollup[],
       flags: [{ cost_center_id: "x", flag_code: "missing_sector_link", message_ar: "راجع الربط" }],
     });
 
-    expect(summary.unallocatedNet).toBe(75);
+    expect(summary.unallocatedCost).toBe(75); // untagged EXPENSE (debit), NOT the revenue-contaminated net (-125)
     expect(summary.flagCount).toBe(1);
     expect(summary.score.tone).toBe("warning");
     expect(summary.cards.map((card) => card.id)).toContain("unallocated");
