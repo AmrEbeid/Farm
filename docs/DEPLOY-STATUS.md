@@ -2,7 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-07 (latest) — ledger reconciled to the source sheet exactly; migration `20260707130001` applied.**
+> **2026-07-07 (latest) — opening balance for the 2017–2018 founding years; migration `20260707131822` applied.**
+> The ledger started cold at 2019, so the pre-2019 establishment investment was invisible. The source sheet's
+> `مصروفات 2017و2018` records 9,657,887 of founding-year spend (2017: 7,470,586 / 2018: 2,187,302) with **zero
+> revenue** (orchards not yet producing). Per the Owner's Option-A (cost-basis) choice, migration
+> **`20260707131822_opening_balance_2017_2018`** posts one opening entry dated 2019-01-01: **Dr 1520 إنشاء بساتين
+> (asset) / Cr 3000 تمويل المالك (capital) = 9,657,887** — zero P&L impact, only sets the opening balance-sheet
+> position. Balance sheet now (cost basis): **Assets 15,539,639 = Equity 15,539,639** (owner capital 9,737,887 +
+> retained earnings 8,762,229 − drawings 2,960,477), 0 unbalanced. NOT done (accountant/valuer, future): capex-vs-
+> deficit split, land + standing-orchard fair-value, orchard depreciation. Reversible (rollback in header).
+
+> **2026-07-07 — ledger reconciled to the source sheet exactly; migration `20260707130001` applied.**
 > A sheet-vs-system reconciliation against the source workbook (`شيت محاسبي للمزارع`, a Feb-2026 snapshot) proved
 > the sheet's data is in the system to the pound. The system additionally held **31 rows not in the sheet** — the
 > June **إذن صرف ٦** permit (289,000) + 2 July live entries (كاش 30,000 / اجل 12,000). Per the Owner's directive

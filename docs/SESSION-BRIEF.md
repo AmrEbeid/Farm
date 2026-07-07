@@ -30,7 +30,15 @@ the sheet to the pound, every category matches exactly**, GL balanced (debit=cre
 (real signed June data) is now REMOVED from the live books but recoverable from `_recovery` — re-record it (and any
 post-Feb activity) through the live workflow if/when the Owner wants it back.
 
-**Open / next:** (a) the tracking PR (`feat/gl-history-backfill`, #867) lands both migrations + these docs — Owner merges. (b) **Security: rotate the Gmail password embedded in the source `اذونات الصرف`
+**OPENING BALANCE (same session):** the pre-2019 founding years were invisible (ledger started cold at 2019). Source
+`مصروفات 2017و2018` = 9,657,887 spend (2017: 7.47M / 2018: 2.19M), ZERO revenue (establishment, pre-production).
+Owner chose Option A (cost basis) → applied **`20260707131822_opening_balance_2017_2018`**: one opening entry
+2019-01-01, **Dr 1520 إنشاء بساتين / Cr 3000 تمويل المالك = 9,657,887**, zero P&L impact. Balance sheet now
+**Assets 15,539,639 = Equity 15,539,639** (capital 9,737,887 + retained 8,762,229 − drawings 2,960,477). ⚠️ Cost
+basis only — land + standing-orchard fair value (Option C, the farm's biggest real asset) and capex-vs-deficit split
+(Option B) + orchard depreciation are deferred to an accountant/valuer.
+
+**Open / next:** (a) the tracking PR (`feat/gl-history-backfill`, #867) lands all three migrations + these docs — Owner merges. (b) **Security: rotate the Gmail password embedded in the source `اذونات الصرف`
 sheet.** (c) Slice 3 (Owner's call): post pre-2019 (~9.66M, summary-only) as opening entries; link the payroll
 roster (`اذونات الصرف` names) to salaries; optional capex sub-split (1510 buildings vs 1520 orchards) and reclassing
 the few "selling mature palms" sale rows out of `4010`.
