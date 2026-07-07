@@ -6,7 +6,7 @@
 // keeps the entered counts so nothing is silently lost.
 
 import { useState } from "react";
-import { Alert, Button, Input } from "@/components/ui";
+import { Alert, Button, Input, SearchInput } from "@/components/ui";
 import { num } from "@/lib/money";
 import { recordStockTake } from "@/app/(app)/inventory/stock-take/actions";
 
@@ -19,10 +19,15 @@ export interface StockTakeItem {
 
 export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
   const [counts, setCounts] = useState<Record<string, string>>({});
+  const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: number; fail: number; errors: string[] } | null>(null);
 
+  // `entered` is computed over ALL items (not the filtered view) so counts typed under one search term are
+  // never lost when the term changes, and the save button reconciles everything the user counted.
   const entered = items.filter((it) => (counts[it.id] ?? "").trim() !== "");
+  const q = query.trim();
+  const shown = q ? items.filter((it) => it.name.includes(q)) : items;
 
   async function onSave() {
     setBusy(true);
@@ -57,8 +62,20 @@ export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
         />
       )}
 
+      {items.length > 8 && (
+        <SearchInput label="ابحث عن صنف" value={query} onValueChange={setQuery} placeholder="ابحث عن صنف بالاسم…" />
+      )}
+
+      <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
+        عُدّ {num(entered.length)} من {num(items.length)} صنف
+        {q ? ` · عرض ${num(shown.length)} مطابقًا للبحث` : ""}
+      </div>
+
       <div className="flex flex-col gap-2">
-        {items.map((it) => {
+        {shown.length === 0 ? (
+          <div className="text-sm" style={{ color: "var(--ink-muted)" }}>لا صنف يطابق «{q}».</div>
+        ) : (
+          shown.map((it) => {
           const raw = counts[it.id] ?? "";
           const counted = raw.trim() === "" ? null : Number(raw);
           const variance = counted != null && Number.isFinite(counted) ? counted - it.onHand : null;
@@ -96,7 +113,8 @@ export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
               )}
             </div>
           );
-        })}
+          })
+        )}
       </div>
 
       <Button onClick={onSave} disabled={busy || entered.length === 0}>
