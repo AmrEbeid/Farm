@@ -102,6 +102,7 @@ export const APP_MODULES: AppModule[] = [
       { id: "scorecard", label: "بطاقة الأداء", icon: "📊", href: "/insights/scorecard", roles: ["owner", "accountant"] },
       { id: "benchmark", label: "المقارنة الداخلية", icon: "🎯", href: "/insights/benchmark", roles: ["owner", "accountant"] },
       { id: "annual-report", label: "التقرير السنوي", icon: "📖", href: "/insights/annual-report", roles: ["owner", "accountant"] },
+      { id: "outlook", label: "النظرة المستقبلية", icon: "🔭", href: "/insights/outlook", roles: ["owner", "accountant"] },
     ],
   },
   {

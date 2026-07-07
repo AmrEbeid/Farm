@@ -63,7 +63,6 @@ const ALLOWED_CHART_ROUTES = [
   "/finance/pnl-trend/page",
   // SPEC-0031 insight arc — chapters that render the report chart wrappers (code-split, not global).
   "/insights/annual-report/page",
-  "/insights/outlook/page",
   // SPEC-0024 S-7b offshoot bank renders physical-flow and expansion charts.
   "/farm/offshoots/page",
   // Module dashboards each render their own charts (status/type doughnuts, grouped

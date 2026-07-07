@@ -24,7 +24,7 @@ const CHAPTERS: Chapter[] = [
   { n: 4, icon: "📊", title: "بطاقة الأداء", question: "سنة مقابل سنة — ما الذي تغيّر؟", href: "/insights/scorecard" },
   { n: 5, icon: "🎯", title: "المقارنة الداخلية", question: "ماذا لو أدى كل فدان مثل الأفضل؟", href: "/insights/benchmark" },
   { n: 6, icon: "📖", title: "التقرير السنوي", question: "قصة السنة كاملة في صفحة واحدة.", href: "/insights/annual-report" },
-  { n: 7, icon: "🔭", title: "النظرة المستقبلية", question: "إلى أين تتجه المزرعة؟", href: null },
+  { n: 7, icon: "🔭", title: "النظرة المستقبلية", question: "إلى أين تتجه المزرعة؟", href: "/insights/outlook" },
 ];
 
 // Deeper cuts that already exist — kept reachable so nothing is lost in the move to «الرؤى».
