@@ -12,8 +12,9 @@ safely executable autonomously; the other two are correctly gated (no fabricatio
   `نخيل الزغلول` 14,000 = **299,200**. Migration **`20260708090000_reclass_palm_tree_sales`** re-points only their
   credit line 4010→`4090 إيرادات أخرى` (where the era's tree-wood + scrap disposals already sit). Balance-preserving
   (only `account_id` moves) → **total revenue unchanged** (25,835,533, sheet-exact); it just fixes the crop line.
-  Pinned by sale_id, account-guarded (idempotent), reversible. pgTAP **1644/1644**. **Migrate-first: Owner applies,
-  then merges.**
+  Pinned by sale_id, account-guarded (idempotent), reversible. pgTAP **1644/1644**. Independent `farm-os-pr-reviewer`
+  PASS. **APPLIED to prod + PR #869 MERGED** (Owner go): live post-apply `4010` 9,915,069→9,615,869, `4090`
+  776,934→1,076,134, **total revenue 25,835,533 unchanged**, 0 rows left on 4010, 0 unbalanced.
 - **3b — capex sub-split 1510 buildings vs 1520 orchards (ACCOUNTANT-GATED, not executed).** The 511 establishment
   capex rows on `1520` (494k) are a genuine mix: a keyword scan sizes ~142 rows / **108k clearly building**
   (مبني مزرعة، المخازن، الحمامات، اسمنت/طوب/سيراميك), ~73 rows / **157k clearly orchard** (فسائل، شتلات، تسميد،
