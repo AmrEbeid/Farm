@@ -2,7 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-07 (latest) — opening balance for the 2017–2018 founding years; migration `20260707131822` applied.**
+> **2026-07-08 (latest) — DRAFT, NOT YET APPLIED — reclass mature palm-tree sales out of crop revenue.**
+> Migration **`20260708090000_reclass_palm_tree_sales`** re-points the credit line of three 'sale' journal
+> entries from `4010 تمور برحي` (date-crop revenue) → `4090 إيرادات أخرى` (other income): the proceeds of selling
+> mature palm **trees** (`النخيل المجدول والخلاص` 256,600 + its remaining balance 28,600 + `نخيل الزغلول` 14,000 =
+> **299,200**), which are asset disposals, not date-crop revenue. Only `account_id` changes — debit/credit are
+> untouched, so entries stay balanced and **total revenue is unchanged** (still 25,835,533, sheet-exact); it only
+> moves 299,200 off the 4010 crop line. Data-only, idempotent (account-guarded), reversible (rollback SQL in the
+> header). Pre-apply pgTAP harness **1644/1644**. **Migrate-first: Owner applies this migration, THEN merges the
+> PR.** Deliberately NOT in scope (accountant's call): a dedicated disposal account, netting disposals against the
+> `1520` orchard book value, and the `4030` tree sales (اشجار القشطة 73,600، شجر الخوخ 4,500). See SESSION-BRIEF.
+
+> **2026-07-07 — opening balance for the 2017–2018 founding years; migration `20260707131822` applied.**
 > The ledger started cold at 2019, so the pre-2019 establishment investment was invisible. The source sheet's
 > `مصروفات 2017و2018` records 9,657,887 of founding-year spend (2017: 7,470,586 / 2018: 2,187,302) with **zero
 > revenue** (orchards not yet producing). Per the Owner's Option-A (cost-basis) choice, migration
