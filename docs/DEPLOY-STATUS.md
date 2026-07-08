@@ -2,7 +2,42 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-06 (latest) — finance statement PDF package LIVE; prod migration head remains `20260706180856`.**
+> **2026-07-07 (latest) — opening balance for the 2017–2018 founding years; migration `20260707131822` applied.**
+> The ledger started cold at 2019, so the pre-2019 establishment investment was invisible. The source sheet's
+> `مصروفات 2017و2018` records 9,657,887 of founding-year spend (2017: 7,470,586 / 2018: 2,187,302) with **zero
+> revenue** (orchards not yet producing). Per the Owner's Option-A (cost-basis) choice, migration
+> **`20260707131822_opening_balance_2017_2018`** posts one opening entry dated 2019-01-01: **Dr 1520 إنشاء بساتين
+> (asset) / Cr 3000 تمويل المالك (capital) = 9,657,887** — zero P&L impact, only sets the opening balance-sheet
+> position. Balance sheet now (cost basis): **Assets 15,539,639 = Equity 15,539,639** (owner capital 9,737,887 +
+> retained earnings 8,762,229 − drawings 2,960,477), 0 unbalanced. NOT done (accountant/valuer, future): capex-vs-
+> deficit split, land + standing-orchard fair-value, orchard depreciation. Reversible (rollback in header).
+
+> **2026-07-07 — ledger reconciled to the source sheet exactly; migration `20260707130001` applied.**
+> A sheet-vs-system reconciliation against the source workbook (`شيت محاسبي للمزارع`, a Feb-2026 snapshot) proved
+> the sheet's data is in the system to the pound. The system additionally held **31 rows not in the sheet** — the
+> June **إذن صرف ٦** permit (289,000) + 2 July live entries (كاش 30,000 / اجل 12,000). Per the Owner's directive
+> ("the sheet should be the only data we have"), migration **`20260707130001_remove_non_sheet_expenses`** removed
+> those 31 rows and their backfill journal entries. **Fully reversible** — every removed row (expenses +
+> journal_entries + journal_lines) is copied into schema `_recovery` first; restore is a 3-line `insert … select`.
+> After: **expenses = 20,527,757**, **revenue = 25,835,533** (both tie to the sheet to the pound; every category
+> matches exactly), GL debit=credit=46,443,290, 0 unbalanced entries. Data-only; no schema/permission/code change.
+
+> **2026-07-07 — 7-year history reconciled to the ledger; prod migration head now `20260707120000`.**
+> Migration **`20260707115445_gl_history_backfill`** applied to prod via the Supabase connector under the Owner's
+> explicit go (data-only; no code change, no schema/permission change). It (1) set `expenses.account_id` for every
+> one of 10,232 expenses — filling 1,271 gaps (726 drawings→`3100`, 511 capex→`1520`, 34 operating→category `5xxx`)
+> and normalizing 3 mislabeled `مسحوبات` rows to `kind='drawing'` — and (2) posted the full 2019–2026 history to the
+> double-entry GL: 10,232 expense + 162 sale journal entries (20,790 lines, cash method, contra `1000 عهدة نقدية`).
+> Drawings (`3100`, equity) and capex (`1520`, asset) are excluded from the P&L by construction (#6). Post-apply
+> invariants on live data: **0** expenses without an account, **debit = credit = 46,774,290**, **0** unbalanced
+> entries; the balance sheet balances (**Assets = Equity = 5,550,752**) and 2019–2026 **net income = 8,431,229**. The
+> already-live balance-sheet / income-statement / trial-balance / budget-vs-actual pages now render real numbers with
+> no code change. Idempotent + reversible (rollback SQL in the migration header). Migrate-first: applied to prod
+> ahead of this tracking PR. **NOT done (deliberately, no fabrication):** vendor / item / quantity / customer (never
+> captured in the source sheet); pre-2019 (~9.66M, summary-only). **Follow-up flagged:** rotate the Gmail password
+> embedded in the source `اذونات الصرف` sheet.
+
+> **2026-07-06 — finance statement PDF package LIVE; prod migration head remains `20260706180856`.**
 > PR **#859** merged to `main` at **`d157246`** with no Supabase migration. Scope: `/finance/income-statement`,
 > `/finance/balance-sheet`, and the clean `/finance/close` handoff now expose an owner/accountant-only server
 > PDF package download backed by the existing posted income-statement and balance-sheet RPCs. The new
