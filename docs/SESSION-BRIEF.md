@@ -1,7 +1,37 @@
-# Session Brief — Farm OS      Updated: 2026-07-07 by Claude (الرؤى insight arc built — SPEC-0031, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-08 by Claude (Slice-3 finance cleanup dispositioned, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-07 (latest) — «الرؤى» insight arc + nav cleanup ([`SPEC-0031`](SPEC-0031-insight-arc-nav.md), branch feat/insights-hub-nav)
+## 2026-07-08 (latest) — SPEC-0004 Stage-M Slice 3 dispositioned (autonomous /goal); PRs #867 + #868 MERGED
+
+After merging #867 (GL history) + #868 (insight arc), worked the three Slice-3 finance follow-ups. Only one is
+safely executable autonomously; the other two are correctly gated (no fabrication, no silent accounting policy).
+
+- **3c — reclass mature palm-tree sales (DONE → DRAFT PR, branch `feat/reclass-palm-tree-sales`).** Three sale
+  rows were proceeds from selling mature palm **trees** (asset disposal), mis-posted by the backfill's crop-keyword
+  rule into `4010 تمور برحي` (date revenue): `النخيل المجدول والخلاص` 256,600 + remaining balance 28,600 +
+  `نخيل الزغلول` 14,000 = **299,200**. Migration **`20260708090000_reclass_palm_tree_sales`** re-points only their
+  credit line 4010→`4090 إيرادات أخرى` (where the era's tree-wood + scrap disposals already sit). Balance-preserving
+  (only `account_id` moves) → **total revenue unchanged** (25,835,533, sheet-exact); it just fixes the crop line.
+  Pinned by sale_id, account-guarded (idempotent), reversible. pgTAP **1644/1644**. **Migrate-first: Owner applies,
+  then merges.**
+- **3b — capex sub-split 1510 buildings vs 1520 orchards (ACCOUNTANT-GATED, not executed).** The 511 establishment
+  capex rows on `1520` (494k) are a genuine mix: a keyword scan sizes ~142 rows / **108k clearly building**
+  (مبني مزرعة، المخازن، الحمامات، اسمنت/طوب/سيراميك), ~73 rows / **157k clearly orchard** (فسائل، شتلات، تسميد،
+  حفر جور، تقليع), and **296 rows / 229k (46%) neither** — shared establishment overhead (labour, tractor fuel,
+  hospitality, office). Allocating that 46% is a policy call (pro-rata vs all-to-primary-asset) that also drives
+  future depreciation → an **accountant's decision**. Not auto-split (would be ~half fabricated classifications).
+  Recommendation: capitalise all establishment cost to `1520` until an accountant sets a split rule, OR split only
+  the clearly-building rows (108k → 1510) and leave the ambiguous overhead on 1520. Owner/accountant to decide.
+- **3a — link payroll roster names to salaries (BLOCKED, no source data).** `people` = 6 (demo role logins),
+  `people_compensation` = 0, `labor_logs` = 0; the 1,107 salary expenses (5.26M) are **month-aggregate**
+  («مرتبات شهر …»), not per-person; the اذونات الصرف roster names were **never captured** in the import. Linking
+  would require inventing a roster → violates non-negotiable #1. Needs the Owner to enter the real roster first.
+- **Security — Gmail credential.** Confirmed the leaked Gmail/password lives ONLY in the external source workbook
+  (`اذونات الصرف`); it is NOT in the repo (gitleaks green) nor in the DB (details never captured). Rotation is an
+  external Owner action: change the Google password, revoke any app-passwords, and scrub the credential from the
+  sheet before any re-upload. Nothing to change in code/DB.
+
+## 2026-07-07 — «الرؤى» insight arc + nav cleanup ([`SPEC-0031`](SPEC-0031-insight-arc-nav.md), branch feat/insights-hub-nav)
 
 Owner shared the "EBD Farm Insights" reference PDFs («شاهد كم هي منظّمة وسهلة») → build that presentation quality
 into the OS on the now-trusted GL. `/goal` autonomous: 7 slices, one commit each, all CI-green locally.
