@@ -2,7 +2,26 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-08 (latest) — reclass mature palm-tree sales out of crop revenue; migration `20260708090000` APPLIED.**
+> **2026-07-08 (latest) — split general cash out of the field-custody imprest; migration `20260708110000` APPLIED.**
+> Owner reported the custody account balance was "totally wrong". Root cause: the chart had only one cash account,
+> `1000 عهدة نقدية` (a field-custody imprest), so the 7-yr GL backfill routed the whole cash flow through it
+> (balance 5,387,776) while the operational custody ledger held only the one real 80,000 movement. Migration
+> **`20260708110000_general_cash_account_reclass`** adds `1010 النقدية بالخزينة` and reclasses only the backfill
+> cash lines (`source_type in ('sale','expense')`) 1000→1010, leaving the real custody movement in 1000.
+> **Post-apply (live): `1000 عهدة نقدية` = 80,000 (now equals the operational custody ledger exactly), `1010
+> النقدية بالخزينة` = 5,307,776, total assets 15,539,639 UNCHANGED, 0 unbalanced.** Balance-preserving
+> (account_id only), idempotent, reversible, with a post-reclass invariant guard. Reviewed (farm-os-pr-reviewer
+> PASS). PR #873.
+
+> **2026-07-08 — accounting-kernel correctness pass; migration `20260708100000` APPLIED.**
+> Migration **`20260708100000_accounting_kernel_correctness`** (pure function re-emits): `fn_finalize_sale_price`
+> posts revenue on the sale's economic date (coalesce sale_date/delivery_date) not current_date; `fn_record_sale_
+> collection` refuses to collect when the sale's revenue entry was reversed (no live posted 'sale' entry);
+> `fn_accounting_trial_balance` filters `status='posted'` (reversed lines no longer inflate the debit/credit
+> columns). Latent-correctness (prod had 0 pending sales / 0 reversals / 0 locked periods). pgTAP 1651/1651,
+> reviewed (farm-os-pr-reviewer PASS), applied + verified. PR #871.
+
+> **2026-07-08 — reclass mature palm-tree sales out of crop revenue; migration `20260708090000` APPLIED.**
 > Migration **`20260708090000_reclass_palm_tree_sales`** re-points the credit line of three 'sale' journal
 > entries from `4010 تمور برحي` (date-crop revenue) → `4090 إيرادات أخرى` (other income): the proceeds of selling
 > mature palm **trees** (`النخيل المجدول والخلاص` 256,600 + its remaining balance 28,600 + `نخيل الزغلول` 14,000 =

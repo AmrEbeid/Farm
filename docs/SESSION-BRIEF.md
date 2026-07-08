@@ -1,7 +1,27 @@
-# Session Brief — Farm OS      Updated: 2026-07-08 by Claude (Slice-3 finance cleanup dispositioned, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-08 by Claude (autonomous hardening: accounting-kernel + custody-account fixes, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-08 (latest) — SPEC-0004 Stage-M Slice 3 dispositioned (autonomous /goal); PRs #867 + #868 MERGED
+## 2026-07-08 (latest) — autonomous /goal hardening: 3-agent audit + accounting-kernel + custody-account fixes
+
+Under the Owner's standing «keep working, go with your recommendation, use agents» directive. Ran three read-only
+audit agents (money-integrity, accounting-kernel, engine+RLS). Findings + actions:
+- **Engine + multi-tenant RLS: CLEAN** (independent re-audit — no masked-shortage path, all FORCE RLS, all RPCs
+  guard org). Money-integrity §6 items all already shipped (#791/#792/#793) — STATUS §6 struck.
+- **Accounting-kernel correctness (#871, applied `20260708100000`, reviewed):** revenue posts on the sale's
+  economic date not current_date; a reversed sale can't be collected (no live posted entry); trial balance is
+  posted-only. Latent (0 pending/reversals in prod). pgTAP 1651, new test 135.
+- **Custody-account bug (Owner-reported "totally wrong", #873, applied `20260708110000`, reviewed):** the chart had
+  only `1000 عهدة نقدية` (a field imprest) as cash, so the backfill routed the whole 7-yr cash flow through it
+  (5,387,776) vs the 80,000 operational custody ledger. Added `1010 النقدية بالخزينة` and reclassed the backfill
+  cash lines 1000→1010. Live: **1000 = 80,000 (now equals the operational custody ledger), 1010 = 5,307,776, total
+  assets 15,539,639 unchanged, 0 unbalanced.**
+- Docs: STATUS.md refreshed to the real-data era (#872); DEPLOY-STATUS updated.
+- **Open follow-up (product-semantics, deferred):** reversing a sale/expense should also reset the source-row
+  status / unwind prior collections, and the sector/season scorecards should read the posted GL instead of
+  `sales.total` (they only diverge once a reversal exists). Optional LOW hardening: custody `movement_type` CHECK
+  + journal-linkage constraint trigger; auto-discovering audit-entity guard.
+
+## 2026-07-08 — SPEC-0004 Stage-M Slice 3 dispositioned (autonomous /goal); PRs #867 + #868 MERGED
 
 After merging #867 (GL history) + #868 (insight arc), worked the three Slice-3 finance follow-ups. Only one is
 safely executable autonomously; the other two are correctly gated (no fabrication, no silent accounting policy).
