@@ -1,7 +1,34 @@
-# Session Brief — Farm OS      Updated: 2026-07-07 by Claude (7-year history reconciled to the GL, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-07 by Claude (الرؤى insight arc built — SPEC-0031, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-07 (latest) — the whole 7-year history is now LINKED TO THE ACCOUNTS + posted to the GL
+## 2026-07-07 (latest) — «الرؤى» insight arc + nav cleanup ([`SPEC-0031`](SPEC-0031-insight-arc-nav.md), branch feat/insights-hub-nav)
+
+Owner shared the "EBD Farm Insights" reference PDFs («شاهد كم هي منظّمة وسهلة») → build that presentation quality
+into the OS on the now-trusted GL. `/goal` autonomous: 7 slices, one commit each, all CI-green locally.
+**The insight engine (`lib/pnl-insights.ts`) and most chapters already existed** (SPEC-0029) — this shipped the
+**arc** and decluttered nav, without rebuilding what worked.
+
+- **Slice 1** — `/insights` hub: ordered arc of 7 chapters (قريبًا markers flip live as slices land); new «الرؤى»
+  tasks-module; 5 insight pages moved OUT of the 20-item finance module (→15).
+- **Slice 2** — `/insights/scorecard` بطاقة الأداء: year-vs-year traffic lights + Arabic narrator (existing engine
+  over `fn_pnl_timeseries`). Farm-level per-feddan omitted (overlapping enterprises → fabricated ratio, #1).
+- **Slice 3** — `/insights/benchmark` المقارنة الداخلية: best-unit "لو أدى كل فدان مثل الأفضل" via `computeSectorPnl`
+  (an `fn_sector_pnl` RPC was tried then DROPPED — sector_id tagging only covers 2023+; prod clean).
+- **Slice 4** — أداء القطاعات already had per-feddan+status+benchmark; added a cross-link (7-yr sector matrix
+  omitted — pre-2023 not sector-tagged, #1).
+- **Slice 5** — بنك الفسائل: added «معدل الاحتفاظ» KPI.
+- **Slice 6** — `/insights/annual-report` التقرير السنوي: cover + revenue journey chart + sector bars + lifetime
+  stats, all DB-derived (recharts allowlisted; guard green).
+- **Slice 7** — `/insights/outlook` النظرة المستقبلية: 3 CAGR-derived scenarios, prominently labeled «تقديري» (#1),
+  maturity reframe as agronomic template (#4).
+
+**State:** 8 commits on feat/insights-hub-nav; tsc/eslint/build 0, vitest **588/588**, recharts guard green
+(16 routes). **No net schema change** (the exploratory RPC was dropped). PR opened for Owner merge. **NOT done
+(deliberate):** EN/AR toggle (Owner dropped), per-sector 7-yr conditional table + radar (data not sector-tagged
+pre-2023), the "اسأل عمر" GL-grounded AI advisor (SPEC-0029 Phase 4, lethal-trifecta gated).
+**Note:** the finance-reconciliation work (GL backfill / opening balance, PR #867) is a separate branch; both
+touch the docs — union-merge on append.
+## 2026-07-07 — the whole 7-year history is now LINKED TO THE ACCOUNTS + posted to the GL
 
 Owner asked to review the uploaded transactions and make sure every one is linked to an account (creating accounts
 if needed) — "all finance and accounts for the past years should be 100% accurate". Read-only assessment first

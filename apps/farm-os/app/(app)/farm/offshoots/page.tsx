@@ -13,7 +13,7 @@ import { PrintButton } from "@/components/print-button";
 import { OffshootMovementForm, OffshootValuationForm, type OffshootCostCenterOption } from "@/components/OffshootBankForms";
 import { buildOffshootBankSummary, OFFSHOOT_TYPE_AR, type OffshootMovementType } from "@/lib/offshoot-bank";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { egp, num, pct } from "@/lib/money";
 
 type CostCenterRow = {
   id: string;
@@ -129,6 +129,13 @@ export default async function OffshootBankPage({
           value={num(summary.remaining)}
           delta={summary.hasNegativeBalance ? "يحتاج مراجعة" : `${num(summary.replanted)} إحلال`}
           deltaDirection={summary.hasNegativeBalance ? "down" : "none"}
+        />
+        {/* Retention = share of produced offshoots KEPT for the farm's own expansion (not sold). Pure
+            derivation from produced/sold — honest-null when nothing produced yet (#1). */}
+        <KpiCard
+          label="معدل الاحتفاظ"
+          value={summary.produced > 0 ? pct((summary.produced - summary.sold) / summary.produced) : "—"}
+          delta="المُبقى للمزرعة مقابل المُنتج"
         />
       </section>
 
