@@ -63,4 +63,20 @@ begin
   end loop;
 end $$;
 
+-- Post-reclass invariant (money-migration guard): no historical sale/expense cash line may remain on the
+-- field-custody account. Clean-DB-safe (0 such lines in seed → passes); on prod, a silently-incomplete reclass
+-- leaves lines behind and this rolls the whole migration back.
+do $$
+declare v_remaining int;
+begin
+  select count(*) into v_remaining
+    from public.journal_lines jl
+    join public.accounts a on a.id = jl.account_id and a.code = '1000'
+    join public.journal_entries je on je.id = jl.journal_entry_id
+   where je.source_type in ('sale', 'expense');
+  if v_remaining <> 0 then
+    raise exception 'reclass incomplete: % sale/expense cash line(s) still on 1000 عهدة نقدية', v_remaining;
+  end if;
+end $$;
+
 commit;
