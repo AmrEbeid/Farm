@@ -11,10 +11,14 @@ export interface CsvColumn {
 }
 export type CsvRow = Record<string, string | number | null | undefined>;
 
-/** RFC-4180 cell: quote when the value contains a comma, quote, newline, or edge whitespace. */
+/** RFC-4180 cell: quote when the value contains a comma, quote, newline, or edge whitespace.
+ *  Formula-injection guard (security-360 MEDIUM-1): a STRING cell that starts with `= + - @` (or a
+ *  leading tab/CR) is executed as a formula by Excel/LibreOffice on open. Neutralize by prefixing a
+ *  single quote. Applied to strings ONLY — numbers (incl. negatives like -5) are structurally safe
+ *  and must export raw, so a numeric value never gets the quote. */
 function escapeCell(v: string | number | null | undefined): string {
   if (v == null) return "";
-  const s = String(v);
+  const s = typeof v === "string" && /^[=+\-@\t\r]/.test(v) ? "'" + v : String(v);
   if (/[",\n\r]/.test(s) || s !== s.trim()) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
