@@ -16,12 +16,13 @@ begin;
 select plan(3);
 
 -- ============================================================================================
--- INV-6a — every RLS-enabled public base table that HAS policies has at least one ORG-SCOPED policy.
--- "Org-scoped" = the policy's USING/WITH CHECK text references the tenant boundary: user_org_ids(),
--- an org_id predicate, or authorize(...) (which itself joins organization_member on p_org). A table
--- whose only policy is `using (true)` therefore has policies but none org-scoped → flagged. (A table
--- deliberately RLS-enabled with NO policy = deny-all, e.g. an internal/append-only table, is NOT
--- flagged: the "has >=1 policy" precondition excludes it.)
+-- INV-6a — every RLS-enabled public base table that HAS policies is scoped by a per-caller boundary.
+-- "Scoped" = the policy's USING/WITH CHECK text references either the TENANT boundary — user_org_ids(),
+-- an org_id predicate, or authorize(...) (which joins organization_member on p_org) — OR per-user
+-- OWNERSHIP via auth.uid() (e.g. public.user_active_org: a user reads only their own preference row,
+-- writes revoked). Both are deny-by-default safe. A table whose only policy is `using (true)` has
+-- policies but none scoped → flagged. (A table deliberately RLS-enabled with NO policy = deny-all, e.g.
+-- an internal/append-only table, is NOT flagged: the "has >=1 policy" precondition excludes it.)
 -- ============================================================================================
 select is(
   (select count(*)::int
@@ -37,9 +38,9 @@ select is(
         select 1 from pg_policies p
          where p.schemaname = 'public' and p.tablename = c.relname
            and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, ''))
-               ~ '(user_org_ids|org_id|authorize)')),
+               ~ '(user_org_ids|org_id|authorize|auth\.uid)')),
   0,
-  'INV-6a: every RLS public base table that has policies carries >=1 org-scoped policy (no permissive-only table)');
+  'INV-6a: every RLS public base table that has policies carries >=1 scoped policy — org (user_org_ids/org_id/authorize) or owner (auth.uid) — no permissive-only table');
 
 -- ============================================================================================
 -- INV-6b — no policy on a public table is unconditionally permissive. A bare `using (true)` or
