@@ -22,6 +22,44 @@ is load-bearing for every "low-risk" verdict below.
 
 ---
 
+## 0. 2026-07-09 — 360° security check outcome (6-agent audit)
+
+A full 360 re-audit (6 independent read-only agents: RLS/tenant-isolation · SECURITY-DEFINER RPCs · authorize()
+re-emit · secrets/service-role · server-actions+AI · auth/active-org) re-confirmed the posture baseline **CLEAN and
+regression-guarded**, found and **fixed** three issues, and left one Owner-only residual. Every finding was verified
+against source before acting.
+
+**Fixed & merged (2026-07-09):**
+- **HIGH — service-role gallery deletion (`app/(app)/website/actions.ts::saveSiteContent`).** The best-effort storage
+  cleanup ran on the RLS-bypassing service-role client, keyed to the **client-supplied `orgId`**, and executed BEFORE
+  the owner-gated `fn_save_site_content` RPC — so any authenticated non-owner could irreversibly wipe the public
+  gallery, and a forged `orgId` was a latent cross-tenant IDOR. Fixed by an owner + `input.orgId === m.orgId`
+  (session-derived) gate before the admin client. **PR #880 (`5595b48`).**
+- **MEDIUM — CSV formula injection (`lib/export-csv.ts`).** String cells beginning `= + - @` executed as formulas in
+  Excel/LibreOffice on export. Fixed by `'`-prefixing string cells only (numbers/negatives export raw). **PR #881
+  (`2ed8f61`).**
+- **LOW-1 — `_recovery.*` backup tables had no RLS.** Deny-all RLS applied (migration `20260709120000`, applied to
+  prod + verified). **PR #882 (`76482e3`); see DEPLOY-STATUS 2026-07-09.**
+
+**Test-net hardening (PR #881):** new `tests/136` (every RLS public base table with policies is org- or
+`auth.uid()`-owner-scoped; no bare `using(true)`) and `tests/97` role-map assertions (plan 19→45) — so a future
+migration that adds a permissive policy or silently widens an authorize() role list fails CI.
+
+**Not a defect (already guarded):** the Supabase default `anon`/`authenticated` EXECUTE grant on new `public`
+functions is caught dynamically by `tests/22` INV-1 (anon) / INV-2 (authenticated allowlist) — no new artifact needed.
+
+### 0.1 RESIDUAL / follow-up condition — `custom_access_token_hook` must be enabled in prod (LOW, Owner-only)
+- **What:** active-org isolation between *multiple* orgs depends on the `custom_access_token_hook` (migration 0085)
+  being enabled in the **hosted prod** Supabase dashboard. `supabase/config.toml` enables it for local only; hosted
+  auth hooks are dashboard-configured and config.toml does not prove prod state.
+- **Why low-risk today:** the pilot is single-org and the data is single-tenant. If the hook is off, a genuinely
+  multi-org user sees a merged view of **their own** orgs only — **never** a non-member's data (`user_org_ids()`
+  fails closed to the user's real membership set). It is never "everyone sees everything."
+- **Follow-up condition (what would change the verdict):** **before onboarding any second org**, confirm the hook is
+  enabled in the prod dashboard (and consider a startup/health assertion that a minted token carries `active_org_id`).
+
+---
+
 ## 1. Supabase advisor categories — accepted by design
 
 The advisor flags are understood and intentional. None is a defect.

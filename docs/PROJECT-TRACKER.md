@@ -1,6 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-05 by Claude (harvest wave + Stage-M live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-09 by Claude (360 security check: 3 PRs merged + _recovery RLS applied, for Owner: Amr Ebeid)
 
-> **2026-07-05 (latest) — HARVEST WAVE: Stage-M real data LIVE in prod + شاشة الميزان + pricing wizard (PR #692).**
+> **2026-07-09 (latest) — 360° SECURITY CHECK: 3 security PRs MERGED + prod RLS migration applied.**
+> 6-agent read-only audit (RLS · definer RPCs · authorize() re-emit · secrets · server-actions+AI · auth/active-org).
+> **Core model CLEAN & regression-guarded** (all 67 tables ENABLE+FORCE RLS; 197 definer fns `search_path=''`+EXECUTE-
+> locked; authorize() 19-perm union intact; secrets confined + guarded; active-org fail-closed; the عبدالجليل AI policy
+> deny-by-default and inert). Fixes: **#880** `5595b48` HIGH — `saveSiteContent` service-role gallery deletion gated
+> (was any-non-owner wipe + forged-orgId cross-tenant IDOR); **#881** `2ed8f61` — CSV formula-injection guard +
+> new `tests/136` RLS policy-predicate invariant + `tests/97` authorize role-map (plan 19→45); **#882** `76482e3` —
+> migration `20260709120000` deny-all RLS on the `_recovery.*` backup tables, **APPLIED to prod + verified** (see
+> DEPLOY-STATUS 2026-07-09). MEDIUM-3 dropped (anon-EXECUTE already guarded by tests/22 INV-1/INV-2).
+> **OPEN GATE (Owner, non-code): LOW-2** — enable/confirm `custom_access_token_hook` in the prod Supabase dashboard
+> before onboarding a 2nd org (active-org isolation between multiple orgs depends on it). Full detail in SESSION-BRIEF
+> 2026-07-09.
+
+> **2026-07-05 — HARVEST WAVE: Stage-M real data LIVE in prod + شاشة الميزان + pricing wizard (PR #692).**
 > Owner authorized the real-data load: **full history imported + oracle-verified to the pound** (10,207
 > expenses = 20,527,757ج 2019–2026 + 166 sales, `payment_method='stage-m-import'`, year totals match the
 > workbook exactly) + **إذن صرف ٦ recorded (29 rows = 289,000 exact)** + new centers «الاستزراع السمكي» و

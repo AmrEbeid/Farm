@@ -1,7 +1,54 @@
-# Session Brief — Farm OS      Updated: 2026-07-08 by Claude (autonomous hardening: accounting-kernel + custody-account fixes, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-09 by Claude (360 security check: 3 PRs merged + _recovery RLS applied, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-08 (latest) — autonomous /goal hardening: 3-agent audit + accounting-kernel + custody-account fixes
+## 2026-07-09 (latest) — 360° security check: 6-agent audit → 3 security PRs MERGED + prod RLS migration applied
+
+Owner: «do 360 security check» → «draft everything» → «review and merge» → «apply only `20260709120000`». Fanned
+out 6 independent read-only audit agents (RLS/tenant-isolation · SECURITY-DEFINER RPCs · authorize() re-emit ·
+secrets/service-role · server-actions+AI · auth/active-org). Every agent finding was verified against source
+before acting (dismissed one false positive: `organization`/`organization_member` DO have FORCE RLS via the 0028
+dynamic loop). One `farm-os-pr-reviewer` pass PASSed all three PRs.
+
+**Core security model = CLEAN & regression-guarded** (independent re-confirm): all 67 base tables ENABLE+FORCE RLS
++ org-scoped `WITH CHECK` (dynamic invariants tests/22 INV-3 / 29); 197 definer fns 100% `search_path=''` +
+EXECUTE-locked; authorize() latest re-emit (`20260701420000`) carries the full 19-perm union; secrets confined to
+`lib/supabase/admin.ts` (3 guards); active-org fail-closed & spoof-proof; the عبدالجليل AI policy is deny-by-default
+**and inert** (no runtime caller / no LLM route yet).
+
+**Findings + outcomes (all landed):**
+- **HIGH — `saveSiteContent` (`app/(app)/website/actions.ts`):** gated only on `requireMembership()`, then used the
+  RLS-bypassing service-role admin client keyed to the **client-supplied orgId** to irreversibly `storage.remove()`
+  gallery objects BEFORE the owner-gated RPC. Any non-owner could wipe the public gallery; forged orgId = cross-tenant
+  IDOR. Fix = `m.role==='owner' && input.orgId===m.orgId` (session-derived) before the admin client. **PR #880 MERGED
+  `5595b48`.**
+- **MEDIUM — CSV formula injection (`lib/export-csv.ts`):** `escapeCell` did RFC-4180 only; string cells starting
+  `= + - @` execute in Excel. Fix = `'`-prefix STRING cells only (numbers/negatives stay raw). **PR #881 MERGED
+  `2ed8f61`.**
+- **MEDIUM — RLS policy-predicate test-net gap:** new `tests/136` INV-6a/6b (every RLS public base table with policies
+  is org- OR `auth.uid()`-owner-scoped; no bare `using(true)`). CI caught a false positive (`user_active_org` is
+  `auth.uid()`-scoped) → broadened the accepted predicate set. **PR #881.**
+- **MEDIUM — authorize() role-map not pinned:** `tests/97` checked perm presence only; +26 role-map asserts
+  (plan 19→45) + storekeeper fixture. **PR #881.**
+- **LOW-1 — `_recovery.*` backup tables** (real removed financial rows) had no RLS. Migration `20260709120000`
+  (deny-all: enable+FORCE RLS, no policy) **APPLIED to prod (`veezkmytervjnpxcrbkw`) + PR #882 MERGED `76482e3`.**
+  Verified live: all 3 tables rls_enabled+rls_forced, 0 policies, `authenticated` has no schema-USAGE/table-SELECT,
+  `public.expenses` unchanged (10,201). Recorded in `schema_migrations` as `20260709143917` (MCP stamps its own
+  version ≠ the file's `20260709120000`; harmless — the migration is idempotent). See DEPLOY-STATUS.
+- **MEDIUM-3 dropped (already guarded):** the anon-EXECUTE default is already caught dynamically by tests/22
+  INV-1/INV-2 — no artifact shipped (avoided a risky `ALTER DEFAULT PRIVILEGES` the migration role can't set).
+
+**OPEN (Owner action, non-code): LOW-2** — confirm `custom_access_token_hook` is enabled in the **prod** Supabase
+dashboard before onboarding a 2nd org (config.toml proves local only; active-org isolation between multiple orgs
+depends on it). Until then a genuinely multi-org user sees a merged view of *their own* orgs — never a non-member's.
+
+**Durable notes (also folded into the farm-os skill):** pgTAP is **not installed on the Owner's Mac** →
+`run-pgtap-local.sh` can't run locally; the `db-tests.yml` CI is the DB validation gate (it caught the `tests/136`
+false positive). Farm is a ~60-worktree repo → always work in an isolated worktree. **The Supabase MCP connector
+DOES reach the Farm project** `veezkmytervjnpxcrbkw` (org `dicbxecebgdxkhmtavrz` = zeluu acct) — Farm applies are
+doable via MCP with explicit Owner authorization; `apply_migration` stamps its own version, so keep Farm migrations
+idempotent.
+
+## 2026-07-08 — autonomous /goal hardening: 3-agent audit + accounting-kernel + custody-account fixes
 
 Under the Owner's standing «keep working, go with your recommendation, use agents» directive. Ran three read-only
 audit agents (money-integrity, accounting-kernel, engine+RLS). Findings + actions:

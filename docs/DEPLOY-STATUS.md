@@ -2,7 +2,23 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-08 (latest) — split general cash out of the field-custody imprest; migration `20260708110000` APPLIED.**
+> **2026-07-09 (latest) — security-360 LOW-1: deny-all RLS on the `_recovery.*` backup tables; migration `20260709120000` APPLIED.**
+> The three `_recovery.*` tables created by `20260707130001` (backup copies of removed real financial rows —
+> `removed_expenses/journal_entries/journal_lines_20260707`) shipped with **no RLS**, protected only by the
+> `_recovery` schema not being PostgREST-exposed (single-layer, config-only). Migration
+> **`20260709120000_recovery_backup_tables_rls`** adds deny-by-default: `enable` + `force row level security` with
+> **no policy** = deny-all for every client role; `service_role` (BYPASSRLS, server-only) keeps access for a
+> deliberate Owner restore. Guarded by `to_regclass` (idempotent, fresh-DB safe); strictly tightening — no app data
+> read/written/deleted. **Applied to prod (`veezkmytervjnpxcrbkw`) via the Supabase MCP `apply_migration` under the
+> Owner's explicit "apply only 20260709120000" go.** Pre-apply: all 3 tables rls_enabled=false / forced=false / 0
+> policies. **Post-apply (verified live): all 3 rls_enabled=true, rls_forced=true, 0 policies; `authenticated` has no
+> `_recovery` schema-USAGE and no table-SELECT (two independent deny layers); runtime read as `authenticated` denied;
+> `public.expenses` unchanged (10,201 rows).** Recorded in `schema_migrations` as `20260709143917` (the MCP stamps its
+> own timestamp, ≠ the repo file's `20260709120000`) — harmless because the migration is idempotent, so the later file
+> replay is a safe no-op. PR #882 (merged `76482e3`). Part of the 360 security check (see SESSION-BRIEF 2026-07-09);
+> the code fixes #880 (service-role gallery authz) + #881 (CSV injection + RLS test-net) carry no migration.
+
+> **2026-07-08 — split general cash out of the field-custody imprest; migration `20260708110000` APPLIED.**
 > Owner reported the custody account balance was "totally wrong". Root cause: the chart had only one cash account,
 > `1000 عهدة نقدية` (a field-custody imprest), so the 7-yr GL backfill routed the whole cash flow through it
 > (balance 5,387,776) while the operational custody ledger held only the one real 80,000 movement. Migration
