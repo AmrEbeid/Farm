@@ -62,7 +62,7 @@
     "@types/jest-axe": "^3.5.9",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^19.2.3",
-    "@vitest/ui": "^4.1.9",
+    "@vitest/ui": "^4.1.10",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.1.1",
     "react": ">=18",
