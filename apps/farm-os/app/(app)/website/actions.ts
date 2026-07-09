@@ -24,7 +24,17 @@ export async function saveSiteContent(input: {
   orgId: string;
   content: SiteContent;
 }): Promise<Result> {
-  await requireMembership();
+  const m = await requireMembership();
+  // AUTHZ GATE (security-360 HIGH-1): the storage cleanup below runs on the RLS-BYPASSING service-role
+  // admin client, so it MUST be authorized HERE — the fn_save_site_content `site.write` gate cannot
+  // protect a `storage.remove()` that runs before it. Require owner (same gate as the RPC and
+  // uploadGalleryImage) AND pin the org to the caller's session membership, never the client-supplied
+  // arg. Without this, any authenticated non-owner could wipe the public gallery (the RPC would then
+  // reject the content write, but the images would already be gone), and a forged `orgId` would delete
+  // another org's gallery objects (cross-tenant IDOR via the RLS-bypassing client).
+  if (m.role !== "owner" || input.orgId !== m.orgId) {
+    return { ok: false, error: NO_PERM };
+  }
   const sb = await createClient();
 
   // Best-effort storage cleanup: delete site-media gallery objects this save removes/replaces so the
