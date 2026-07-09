@@ -33,4 +33,16 @@ describe("rowsToCsv", () => {
     const csv = rowsToCsv([{ code: "x", qty: null }], cols); // note missing entirely
     expect(csv.endsWith("x,,")).toBe(true);
   });
+
+  it("neutralizes spreadsheet formula injection in string cells (leading = + - @)", () => {
+    const csv = rowsToCsv([{ code: "=1+1", qty: "+cmd|'/c calc'!A1", note: "@SUM(A1)" }], cols);
+    expect(csv).toContain("'=1+1");
+    expect(csv).toContain("'+cmd|'/c calc'!A1");
+    expect(csv).toContain("'@SUM(A1)");
+  });
+
+  it("exports negative NUMBERS raw (a number is not treated as a formula)", () => {
+    const csv = rowsToCsv([{ code: "x", qty: -5 }], cols);
+    expect(csv).toContain("x,-5");
+  });
 });
