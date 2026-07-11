@@ -4,7 +4,7 @@
 -- an org-B user sees their own — i.e. the definer bypass is closed. Role-switched (RLS applies off superuser).
 
 begin;
-select plan(4);
+select plan(5);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set orgB '00000000-0000-0000-0000-0000000cc139'
@@ -47,6 +47,13 @@ select pg_temp.as_user(:'userB');
 select ok(
   (select count(*)::int from public.v_cost_center_rollup where org_id = :'orgB') >= 1,
   'the org-B user sees their own cost-center row through v_cost_center_rollup');
+reset role;
+
+-- (5) same isolation for the reconciliation-flags view (ccB has no sector → emits a flag row for org-B)
+select pg_temp.as_user(current_setting('test.ownerA'));
+select is(
+  (select count(*)::int from public.v_cost_center_reconciliation_flags where org_id = :'orgB'),
+  0, 'an org-A user sees NO org-B rows through v_cost_center_reconciliation_flags');
 reset role;
 
 select finish();
