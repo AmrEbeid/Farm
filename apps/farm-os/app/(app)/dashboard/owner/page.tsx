@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BarChart3, CalendarDays, CloudSun, Package, TreePalm, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
+import { KpiCard, Alert, Card, Button, Progress, Tag } from "@/components/ui";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { ExpandableKpiHero } from "@/components/ExpandableKpiHero";
 import { DashboardTabs } from "@/components/DashboardTabs";
@@ -492,15 +492,27 @@ export default async function OwnerDashboard() {
               const ratio = approved > 0 ? used / approved : 0;
               const tone = over ? "danger" : ratio >= 0.85 ? "warning" : "default";
               return (
-                <Card key={b.category} title={`بند ${b.category}`}>
-                  <p style={{ color: over ? "var(--danger,#b91c1c)" : "var(--ink)" }}>
-                    المستخدم {egp(used)} من {egp(approved)}
-                    {over && " (متجاوز)"}
-                  </p>
-                  <div className="mt-3">
-                    <Progress value={ratio * 100} tone={tone} label={`نسبة استخدام بند ${b.category}`} />
-                  </div>
-                </Card>
+                // Over-budget is a critical decision point (#157) — give it a glance-level cue, not just red
+                // text: a danger ring on the card + a «متجاوز» badge (critique P3). The card no longer looks
+                // identical to an in-budget one.
+                <div
+                  key={b.category}
+                  style={{ borderRadius: "var(--radius-card)", boxShadow: over ? "0 0 0 1.5px var(--danger-fg)" : undefined }}
+                >
+                  <Card title={`بند ${b.category}`}>
+                    {over && (
+                      <div className="mb-2">
+                        <Tag tone="danger">⚠ متجاوز الموازنة</Tag>
+                      </div>
+                    )}
+                    <p style={{ color: over ? "var(--danger,#b91c1c)" : "var(--ink)" }}>
+                      المستخدم {egp(used)} من {egp(approved)}
+                    </p>
+                    <div className="mt-3">
+                      <Progress value={ratio * 100} tone={tone} label={`نسبة استخدام بند ${b.category}`} />
+                    </div>
+                  </Card>
+                </div>
               );
             })}
           </div>
@@ -531,7 +543,7 @@ export default async function OwnerDashboard() {
         </div>{/* /left column */}
 
         {/* Right column — alerts sidebar (most-severe first; each deep-links to its module) */}
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
+        <aside className="flex flex-col gap-3 sm:sticky sm:top-4 sm:self-start lg:top-6">
           {alerts.length > 0 ? (
             <>
               <h2 className="text-lg font-semibold">أهم التنبيهات</h2>
