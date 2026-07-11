@@ -1,6 +1,25 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-05 by Claude (harvest wave + Stage-M live, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-11 by Claude (real-data era: GL history + kernel/custody/money-figure correctness + impeccable design pass, for Owner: Amr Ebeid)
 
-> **2026-07-05 (latest) — HARVEST WAVE: Stage-M real data LIVE in prod + شاشة الميزان + pricing wizard (PR #692).**
+> **2026-07-11 (latest) — REAL-DATA ERA: 7yr GL live, accounting correctness hardened, money figures audited-clean, design pass shipped.**
+> Since the 07-05 harvest wave the project crossed into the real-data era and the Owner is actively using it:
+> - **7-year GL history reconciled & posted (Stage-M, #867)**; **SPEC-0031 «الرؤى» insight arc + nav cleanup (#868)**;
+>   mature palm-tree sales reclassed out of crop revenue 4010 (#869, migrated `20260708090000`).
+> - **Accounting-kernel correctness (#871, `20260708100000`):** revenue on the economic date, reversed-sale
+>   collection guard, posted-only trial balance. **Custody-balance bug (Owner-reported, #873, `20260708110000`):**
+>   split general cash `1010` out of the field-custody imprest `1000` — live balances correct, assets unchanged.
+> - **360 security pass (#880/#881/#882):** service-role gallery-cleanup gate (HIGH), CSV formula-injection guard
+>   (MED), deny-by-default RLS on `_recovery` backup tables (LOW).
+> - **Money-DISPLAY audit COMPLETE** — every owner-facing figure checked; real bugs fixed: CC-UNALLOC `.net`→`.debit`
+>   (#862), `v_cost_center_rollup` posted-only (#864, migrated `20260707120000`), season tonnage null-date (#865),
+>   sector-scorecard unalloc asymmetry (#884/#759). **Stock-take (جرد)** shipped & migrated (`20260705160000`, #781).
+> - **Impeccable design pass** (frontend, reviewed): `PRODUCT.md`; retire side-stripe accents (#885); owner-dashboard
+>   critique (33/40, persisted); dashboard distill = KPI-hero trim + left-column tabs (#886); AttentionInbox icons
+>   (#887); sticky-alerts + over-budget cue (#889). **Release-CI fix (#888):** untracked an accidental absolute-path
+>   `node_modules` symlink (from #736) that broke the Changesets version path (exit 127).
+> - **Prod migration head `20260708110000`**; main fully green (ci · db-tests · release). Only open PR = #691
+>   (Version Packages bot). See SESSION-BRIEF for the next-session bridge.
+
+> **2026-07-05 — HARVEST WAVE: Stage-M real data LIVE in prod + شاشة الميزان + pricing wizard (PR #692).**
 > Owner authorized the real-data load: **full history imported + oracle-verified to the pound** (10,207
 > expenses = 20,527,757ج 2019–2026 + 166 sales, `payment_method='stage-m-import'`, year totals match the
 > workbook exactly) + **إذن صرف ٦ recorded (29 rows = 289,000 exact)** + new centers «الاستزراع السمكي» و
