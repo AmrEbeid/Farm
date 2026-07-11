@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { ExpandableKpiHero } from "@/components/ExpandableKpiHero";
 import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
 import { FirstRunTour } from "@/components/FirstRunTour";
 import { type SimpleColumn } from "@/components/SimpleTable";
@@ -276,59 +277,70 @@ export default async function OwnerDashboard() {
         </div>
       )}
 
-      {/* Cross-module KPI hero — 6 query-derived metrics (responsive 2 → 3 → 6), each a deep link to its module */}
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <DashboardKpiLink href="/budgets" active={false}>
-          <KpiCard
-            label="المتاح من الموازنة"
-            value={egp(available)}
-            delta={totalApproved > 0 ? `${pct(usedPct)} مستخدم من المعتمد` : "لا توجد بنود موازنة"}
-            deltaDirection={available < 0 ? "down" : "none"}
-          />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={false}>
-          <KpiCard
-            label="أصناف تحت حد الطلب"
-            value={num(reorderItems.length)}
-            delta={reorderItems.length ? `${num(outOfStockItems.length)} صنف نفد تمامًا` : "لا توجد أصناف تحت الحد"}
-            deltaDirection={reorderItems.length ? "down" : "none"}
-          />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/purchase-requests" active={false}>
-          <KpiCard
-            label="موافقات معلّقة"
-            value={num(pending.length)}
-            delta={overduePOs.length ? `${num(overduePOs.length)} طلب معتمد متأخر` : "لا طلبات متأخرة"}
-            // Attention (not "up"/positive) + gated on the delta's OWN subject (overdue POs), which
-            // it describes — was mis-set to "up" gated on `pending.length`, so it flagged overdue
-            // orders as positive/green. Overdue = concern.
-            deltaDirection={overduePOs.length ? "down" : "none"}
-          />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/plans/dashboard" active={false}>
-          <KpiCard
-            label="جاهزية الخطط"
-            value={pct(readiness)}
-            delta={activeOps.length ? `${num(doneOps)} من ${num(activeOps.length)} عملية منفّذة` : "لا توجد عمليات نشطة"}
-          />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/farm/dashboard?filter=attention" active={false}>
-          <KpiCard
-            label="نخيل يحتاج عناية"
-            value={num(palmAttention.length)}
-            delta={palmAttention.length ? "يتطلب متابعة" : "لا توجد حالات"}
-            deltaDirection={palmAttention.length ? "down" : "none"}
-          />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/plans/dashboard?filter=due" active={false}>
-          <KpiCard
-            label="عمليات هذا الأسبوع"
-            value={num(dueThisWeek.length)}
-            delta={dueThisWeekUnassigned ? `${num(dueThisWeekUnassigned)} بلا مسؤول` : "الكل مُسند"}
-            deltaDirection={dueThisWeekUnassigned ? "down" : "none"}
-          />
-        </DashboardKpiLink>
-      </section>
+      {/* Cross-module KPI hero (impeccable distill P1): the primary trio the owner must see first — money ·
+          what needs a decision · plan readiness — stays visible; the other three fold behind «عرض كل المؤشرات»
+          (progressive disclosure, nothing removed). Each card is still a deep link to its module. */}
+      <ExpandableKpiHero
+        moreCount={3}
+        primary={
+          <>
+            <DashboardKpiLink href="/budgets" active={false}>
+              <KpiCard
+                label="المتاح من الموازنة"
+                value={egp(available)}
+                delta={totalApproved > 0 ? `${pct(usedPct)} مستخدم من المعتمد` : "لا توجد بنود موازنة"}
+                deltaDirection={available < 0 ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+            <DashboardKpiLink href="/purchase-requests" active={false}>
+              <KpiCard
+                label="موافقات معلّقة"
+                value={num(pending.length)}
+                delta={overduePOs.length ? `${num(overduePOs.length)} طلب معتمد متأخر` : "لا طلبات متأخرة"}
+                // Attention (not "up"/positive) + gated on the delta's OWN subject (overdue POs), which
+                // it describes — was mis-set to "up" gated on `pending.length`, so it flagged overdue
+                // orders as positive/green. Overdue = concern.
+                deltaDirection={overduePOs.length ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+            <DashboardKpiLink href="/plans/dashboard" active={false}>
+              <KpiCard
+                label="جاهزية الخطط"
+                value={pct(readiness)}
+                delta={activeOps.length ? `${num(doneOps)} من ${num(activeOps.length)} عملية منفّذة` : "لا توجد عمليات نشطة"}
+              />
+            </DashboardKpiLink>
+          </>
+        }
+        more={
+          <>
+            <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={false}>
+              <KpiCard
+                label="أصناف تحت حد الطلب"
+                value={num(reorderItems.length)}
+                delta={reorderItems.length ? `${num(outOfStockItems.length)} صنف نفد تمامًا` : "لا توجد أصناف تحت الحد"}
+                deltaDirection={reorderItems.length ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+            <DashboardKpiLink href="/farm/dashboard?filter=attention" active={false}>
+              <KpiCard
+                label="نخيل يحتاج عناية"
+                value={num(palmAttention.length)}
+                delta={palmAttention.length ? "يتطلب متابعة" : "لا توجد حالات"}
+                deltaDirection={palmAttention.length ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+            <DashboardKpiLink href="/plans/dashboard?filter=due" active={false}>
+              <KpiCard
+                label="عمليات هذا الأسبوع"
+                value={num(dueThisWeek.length)}
+                delta={dueThisWeekUnassigned ? `${num(dueThisWeekUnassigned)} بلا مسؤول` : "الكل مُسند"}
+                deltaDirection={dueThisWeekUnassigned ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+          </>
+        }
+      />
 
       {/* Main grid — rich content (left 2/3) + alerts sidebar (right 1/3): Stitch owner-dashboard layout */}
       <div className="grid gap-6 lg:grid-cols-3">
