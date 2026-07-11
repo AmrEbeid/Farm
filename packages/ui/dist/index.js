@@ -176,7 +176,7 @@ function Tabs({ items, value, onChange, ariaLabel }) {
             id: tabId(it.id),
             role: "tab",
             "aria-selected": active,
-            "aria-controls": tabPanelId(it.id),
+            "aria-controls": active ? tabPanelId(it.id) : void 0,
             tabIndex: active ? 0 : -1,
             className: `fos-tabs__tab${active ? " fos-tabs__tab--active" : ""}`,
             onClick: () => onChange(it.id),
