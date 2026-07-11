@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFinanceInsightSummary, type CostCenterInsightRollup } from "./finance-insights";
+import { buildFinanceInsightSummary, computeSalesRevenueByCenter, type CostCenterInsightRollup } from "./finance-insights";
 
 const base = {
   active: true,
@@ -60,5 +60,53 @@ describe("buildFinanceInsightSummary", () => {
     for (const value of [flagsCard?.value, unallocatedCard?.value]) {
       expect(value).not.toMatch(/[0-9]/);
     }
+  });
+
+  it("sources per-center revenue from sales, not the always-0 GL credit (#701)", () => {
+    // The GL credit is 0 on every real center (the revenue line is never cost-center-tagged), so
+    // without salesRevenue the center would read revenue 0 and net = -expense. With the sale-sourced
+    // map, revenue must reflect the sale and net = revenue - expense.
+    const rollup = [
+      { ...base, cost_center_id: "leaf-a", parent_id: null, code: "CC-A", name_ar: "أ", debit: 400, credit: 0, net: -400 },
+    ] as CostCenterInsightRollup[];
+    const salesRevenue = { byCenter: { "leaf-a": 1000 }, total: 1000 };
+
+    const gl = buildFinanceInsightSummary({ rollup, flags: [] });
+    expect(gl.centerRows[0].revenue).toBe(0); // proves the bug it fixes
+    expect(gl.totalRevenue).toBe(0);
+
+    const fixed = buildFinanceInsightSummary({ rollup, flags: [], salesRevenue });
+    expect(fixed.centerRows[0].revenue).toBe(1000);
+    expect(fixed.centerRows[0].net).toBe(600); // 1000 revenue - 400 expense
+    expect(fixed.centerRows[0].netPerFeddan).toBe(60); // net 600 / area 10
+    expect(fixed.totalRevenue).toBe(1000);
+    expect(fixed.operatingNet).toBe(600);
+    // Real revenue means the "الإيرادات غير مفعلة" placeholder card no longer shows (gated on totalRevenue===0).
+    expect(fixed.cards.map((c) => c.id)).not.toContain("revenue-pending");
+  });
+});
+
+describe("computeSalesRevenueByCenter", () => {
+  const sales = [
+    { id: "s1", cost_center_id: "a", total: 1000, price_status: "finalized" },
+    { id: "s2", cost_center_id: "a", total: 500, price_status: "finalized" },
+    { id: "s3", cost_center_id: "b", total: 300, price_status: "finalized" },
+    { id: "s4", cost_center_id: null, total: 200, price_status: "finalized" }, // untagged
+    { id: "s5", cost_center_id: "a", total: 999, price_status: "pending" }, // not finalized → ignored
+  ];
+
+  it("sums finalized live-posted sales by center; total includes untagged, byCenter omits it", () => {
+    const live = new Set(["s1", "s2", "s3", "s4"]);
+    const { byCenter, total } = computeSalesRevenueByCenter(sales, live);
+    expect(byCenter).toEqual({ a: 1500, b: 300 });
+    expect(total).toBe(2000); // 1000+500+300+200 (untagged counts toward total, not byCenter)
+  });
+
+  it("excludes a finalized-but-reversed/void sale (no live posted entry) so revenue can't be overstated (#701)", () => {
+    // s2 is finalized in the sales table but its journal was reversed → not in the live-posted set.
+    const live = new Set(["s1", "s3", "s4"]);
+    const { byCenter, total } = computeSalesRevenueByCenter(sales, live);
+    expect(byCenter).toEqual({ a: 1000, b: 300 });
+    expect(total).toBe(1500); // s2's 500 excluded, tying to the posted GL
   });
 });

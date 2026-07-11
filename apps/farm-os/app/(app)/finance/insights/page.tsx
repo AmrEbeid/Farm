@@ -8,22 +8,36 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { CategoryBarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
-import { buildFinanceInsightSummary, type CostCenterInsightFlag, type CostCenterInsightRollup } from "@/lib/finance-insights";
+import { buildFinanceInsightSummary, computeSalesRevenueByCenter, type CostCenterInsightFlag, type CostCenterInsightRollup } from "@/lib/finance-insights";
 import { egp, num } from "@/lib/money";
 
 export default async function FinanceInsightsPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
-  const [rollupRes, flagsRes] = await Promise.all([
+  const [rollupRes, flagsRes, salesRes, postedRes] = await Promise.all([
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
     sb.from("v_cost_center_reconciliation_flags").select("*").eq("org_id", m.orgId).order("code", { ascending: true }),
+    // Per-center revenue is sourced from finalized sales (SPEC-0024), not the GL credit column which is
+    // structurally 0 (the revenue line is never cost-center-tagged, #701).
+    sb.from("sales").select("id, cost_center_id, total, price_status").eq("org_id", m.orgId).eq("price_status", "finalized"),
+    // Liveness: only sales with a live posted revenue entry count — a reversed/void sale keeps
+    // price_status='finalized' but has no status='posted' entry, so it must not inflate revenue.
+    sb.from("journal_entries").select("source_id").eq("org_id", m.orgId).eq("source_type", "sale").eq("status", "posted"),
   ]);
   if (rollupRes.error) throw rollupRes.error;
   if (flagsRes.error) throw flagsRes.error;
+  if (salesRes.error) throw salesRes.error;
+  if (postedRes.error) throw postedRes.error;
 
+  const livePostedSaleIds = new Set((postedRes.data ?? []).map((r) => r.source_id as string));
+  const salesRevenue = computeSalesRevenueByCenter(
+    (salesRes.data ?? []) as { id: string; cost_center_id: string | null; total: number | null; price_status: string }[],
+    livePostedSaleIds,
+  );
   const summary = buildFinanceInsightSummary({
     rollup: (rollupRes.data ?? []) as CostCenterInsightRollup[],
     flags: (flagsRes.data ?? []) as CostCenterInsightFlag[],
+    salesRevenue,
   });
   const chartRows = summary.topExpenseCenters.map((row) => ({
     center: row.name,
