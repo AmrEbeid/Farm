@@ -1,7 +1,21 @@
-# Session Brief — Farm OS      Updated: 2026-07-11 by Claude (money-figure completeness + impeccable design pass + release-CI fix, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-11 by Claude (audit-issue fixes: per-center revenue + 3 decision-free fixes, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-11 (latest) — money-figure completeness (#884), impeccable design pass (dashboard distill + polish), release-CI fix
+## 2026-07-11 (latest) — audit-issue sweep: per-center revenue (#701) + a11y/advisory/as-of fixes; all merged, main green
+
+Under the Owner's standing «keep working, review then merge and migrate when needed, use agents» directive. Started from a **167-commit-stale local checkout** (worked from a fresh worktree off `origin/main`; the old main worktree held RSC-boundary edits already merged upstream — backed up, untouched). Triaged the open audit issues, verified each still reproduced with read-only agents, fixed the autonomous-safe ones (independent review each), and filed the one that's a real decision. **All FRONTEND (no migration); 4 PRs merged; main green (ci · db-tests · release).**
+
+- **#894 (closes #701) — per-cost-center revenue was structurally 0 on `/finance/insights` AND the owner dashboard.** The revenue credit line is never cost-center-tagged, so `v_cost_center_rollup.credit` is 0 on every center and revenue collapsed to «غير موزّع». Now sourced from finalized `sales` keyed by `cost_center_id` (SPEC-0024) **but only sales with a LIVE posted revenue entry** (`journal_entries source_type='sale' status='posted'`) — a reversed/void sale keeps `price_status='finalized'` but has no posted entry, so excluding it keeps the total tied to the posted GL (avoids the status-void over-count). `net = revenue − expense` recomputed; added the symmetric «إيرادات غير موزّعة» residual card. Read-layer only. Independent money-logic review APPROVE (exact GL tie, reversal-safe, RLS-reachable). Define-checks incl. the reversal exclusion. **Follow-up (option b, deferred):** tag the revenue line at posting + backfill so the GL rollup attributes revenue and folds subtree parents.
+- **#891 (#500)** — DS `Tabs` emitted `aria-controls` for inactive tabs whose panels aren't in the DOM (dangling ARIA across ~11 entity-360 pages); now only on the active tab. DS dist rebuilt + test.
+- **#892 (#707-item2)** — season crate-shrinkage advisory compared برحي-picked against all-crop-delivered (palm-tree/wood/scrap sales inflated it); scoped the delivered side to the field-counted crop. Display-only.
+- **#893 (#719-item4)** — balance-sheet `?asOf` accepted future dates (`2099-01-01`) → clamped to today so a forward-dated posting can't surface early.
+- **#701 decision memo** posted before implementing: flagged that the naive `sales.total` source overstates on reversed sales; recommended option (a)-now (shipped as #894) + (b)-later.
+
+**Deliberately skipped:** #712 (weather rain→0) — the issue documents the deferral as *intentional* (correct for the current OpenWeather provider); fixing now would regress correct behavior.
+
+**Resume point (remaining open audit issues, higher-rigor):** #719 items 1-3 (period-lock hardening — `fn_merge_accounts` lock check, atomic-close EXCLUDE constraint, require entry_date) are kernel **migrations** (owner-authorized under the directive, but need pgTAP oracle + migrate-first); #707-item1 (offshoot negative balance) + #701 option (b) are semantics/backfill decisions; #199/#526 remain over-order-only (safe).
+
+## 2026-07-11 — money-figure completeness (#884), impeccable design pass (dashboard distill + polish), release-CI fix
 
 Under the Owner's standing «keep working, go with your recommendation, use agents» directive. All work this session was FRONTEND (no new prod migration); all PRs merged; main fully green (ci · db-tests · release).
 
