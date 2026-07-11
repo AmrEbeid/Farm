@@ -48,8 +48,11 @@ describe("computeSectorPnl", () => {
     expect(s4.net).toBe(0 - 50_000); // no sales, has area → a loss, not dropped
     expect(r.sectors.map((s) => s.id).sort()).toEqual(["S1", "S2", "S4"]); // S3 (no area) + P (parent) excluded
   });
-  it("uses CC-UNALLOC.debit for untagged expense (NOT its revenue-contaminated net)", () => {
-    expect(r.unallocExpense).toBe(200_000); // debit, positive — not the huge-negative net
+  it("untagged expense = CC-UNALLOC.debit + leaf centers that aren't reported sectors (never revenue-net, never dropped)", () => {
+    // 200k CC-UNALLOC debit (positive — not the huge-negative revenue-contaminated net) + S3's 100k: S3 is a
+    // leaf with no area, so it's not a scorecard sector, and its expense must still be counted here (#759) —
+    // NOT vanish. FAILS on the old code that returned CC-UNALLOC.debit only (200k).
+    expect(r.unallocExpense).toBe(200_000 + 100_000);
   });
   it("routes non-sector revenue (null center OR non-sector center) to unallocRevenue, never vanishing", () => {
     expect(r.unallocRevenue).toBe(300_000 + 150_000); // null-center + the S3 (non-sector) sale
