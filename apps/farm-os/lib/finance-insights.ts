@@ -52,6 +52,7 @@ export type FinanceInsightSummary = {
   totalRevenue: number;
   operatingNet: number;
   unallocatedCost: number;
+  unallocatedRevenue: number;
   centerRows: CenterEconomicsInsight[];
   topExpenseCenters: CenterEconomicsInsight[];
   topPerFeddanCenters: CenterEconomicsInsight[];
@@ -63,24 +64,43 @@ export type FinanceInsightSummary = {
   };
 };
 
+/** Reversal-safe per-center sale revenue. See {@link computeSalesRevenueByCenter}. */
+export type SalesRevenueByCenter = { byCenter: Record<string, number>; total: number };
+
 export function buildFinanceInsightSummary({
   rollup,
   flags,
+  salesRevenue,
 }: {
   rollup: CostCenterInsightRollup[];
   flags: CostCenterInsightFlag[];
+  /**
+   * When provided, per-center revenue is sourced from finalized `sales` (SPEC-0024) instead of the
+   * GL credit column — because the sale's revenue credit line is never cost-center-tagged, so the
+   * rollup's `credit` is structurally 0 on every real center (#701). Omit to keep the GL-credit
+   * behavior (other callers/tests). Only the sale's OWN center is credited, so a sale tagged to a
+   * non-leaf center won't roll up into the leaf-only view — sales are tagged to leaf operational
+   * centers in practice; a subtree fold is the follow-up (option b: tag the revenue line at posting).
+   */
+  salesRevenue?: SalesRevenueByCenter;
 }): FinanceInsightSummary {
   const childParentIds = new Set(rollup.flatMap((row) => (row.parent_id ? [row.parent_id] : [])));
   const leafRows = rollup.filter((row) => row.code === "CC-UNALLOC" || !childParentIds.has(row.cost_center_id));
+  const revenueFor = (row: CostCenterInsightRollup): number | undefined =>
+    salesRevenue ? (salesRevenue.byCenter[row.cost_center_id] ?? 0) : undefined;
   const centerRows = leafRows
     .filter((row) => !row.is_system)
-    .map((row) => toCenterEconomics(row))
+    .map((row) => toCenterEconomics(row, revenueFor(row)))
     .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
   const unallocated = rollup.find((row) => row.code === "CC-UNALLOC");
   const totalExpense = leafRows.reduce((sum, row) => sum + Number(row.debit ?? 0), 0);
-  const totalRevenue = leafRows.reduce((sum, row) => sum + Number(row.credit ?? 0), 0);
+  const totalRevenue = salesRevenue ? salesRevenue.total : leafRows.reduce((sum, row) => sum + Number(row.credit ?? 0), 0);
   const operatingNet = totalRevenue - totalExpense;
   const unallocatedCost = Number(unallocated?.debit ?? 0); // untagged EXPENSE (.net is revenue-contaminated — see entity-pnl contract)
+  // Symmetric to unallocatedCost: sale revenue with no cost_center lands in `total` but in no center
+  // row, so without surfacing it the per-center revenue column can't reconcile to operating net (#701 review).
+  const allocatedRevenue = salesRevenue ? Object.values(salesRevenue.byCenter).reduce((sum, v) => sum + v, 0) : 0;
+  const unallocatedRevenue = salesRevenue ? Math.max(0, salesRevenue.total - allocatedRevenue) : 0;
   const activeCenterCount = rollup.filter((row) => row.active && !row.is_system).length;
   const postedCenterCount = centerRows.filter((row) => row.expense !== 0 || row.revenue !== 0 || row.net !== 0).length;
   const topExpenseCenters = [...centerRows].filter((row) => row.expense > 0).sort((a, b) => b.expense - a.expense).slice(0, 5);
@@ -92,6 +112,7 @@ export function buildFinanceInsightSummary({
   const cards = buildCards({
     flagCount: flags.length,
     unallocatedCost,
+    unallocatedRevenue,
     topExpenseCenter: topExpenseCenters[0],
     topPerFeddanCenter: topPerFeddanCenters[0],
     totalRevenue,
@@ -106,6 +127,7 @@ export function buildFinanceInsightSummary({
     totalRevenue,
     operatingNet,
     unallocatedCost,
+    unallocatedRevenue,
     centerRows,
     topExpenseCenters,
     topPerFeddanCenters,
@@ -114,29 +136,70 @@ export function buildFinanceInsightSummary({
   };
 }
 
-function toCenterEconomics(row: CostCenterInsightRollup): CenterEconomicsInsight {
+function toCenterEconomics(row: CostCenterInsightRollup, revenueOverride?: number): CenterEconomicsInsight {
+  const expense = Number(row.debit ?? 0);
+  // When revenue is sourced from sales (#701), recompute net = revenue − expense and net/feddan from
+  // it, so both stay consistent with the sale-sourced revenue instead of the always-0 GL credit.
+  const revenue = revenueOverride ?? Number(row.credit ?? 0);
+  const net = revenueOverride == null ? Number(row.net ?? 0) : revenue - expense;
+  const area = row.area_feddan == null ? null : Number(row.area_feddan);
+  const netPerFeddan =
+    revenueOverride == null
+      ? row.net_per_feddan == null
+        ? null
+        : Number(row.net_per_feddan)
+      : area && area > 0
+        ? net / area
+        : null;
   return {
     id: row.cost_center_id,
     code: row.code,
     name: row.name_ar,
     enterprise: row.enterprise ?? "غير متوفر",
     areaFeddan: row.area_feddan,
-    expense: Number(row.debit ?? 0),
-    revenue: Number(row.credit ?? 0),
-    net: Number(row.net ?? 0),
-    netPerFeddan: row.net_per_feddan == null ? null : Number(row.net_per_feddan),
+    expense,
+    revenue,
+    net,
+    netPerFeddan,
   };
+}
+
+/**
+ * Reversal-safe per-cost-center sale revenue (#701, SPEC-0024). Sums finalized `sales.total` by the
+ * sale's own `cost_center_id`, but ONLY for sales whose revenue journal entry is live-posted — i.e.
+ * `sale.id ∈ livePostedSaleIds`, the set of `journal_entries.source_id where source_type='sale' and
+ * status='posted'`. A finalized-then-reversed (or voided) sale keeps `price_status='finalized'` but
+ * has no posted entry, so excluding it here keeps the total tied to the posted GL (no status-void
+ * over-count). `total` includes untagged (null-center) revenue; `byCenter` omits it.
+ */
+export function computeSalesRevenueByCenter(
+  sales: { id: string; cost_center_id: string | null; total: number | null; price_status: string }[],
+  livePostedSaleIds: Set<string>,
+): SalesRevenueByCenter {
+  const byCenter: Record<string, number> = {};
+  let total = 0;
+  for (const s of sales) {
+    if (s.price_status !== "finalized") continue;
+    if (!livePostedSaleIds.has(s.id)) continue;
+    const amount = Number(s.total ?? 0);
+    if (amount === 0) continue;
+    total += amount;
+    if (s.cost_center_id) byCenter[s.cost_center_id] = (byCenter[s.cost_center_id] ?? 0) + amount;
+  }
+  return { byCenter, total };
 }
 
 function buildCards({
   flagCount,
   unallocatedCost,
+  unallocatedRevenue,
   topExpenseCenter,
   topPerFeddanCenter,
   totalRevenue,
 }: {
   flagCount: number;
   unallocatedCost: number;
+  unallocatedRevenue: number;
   topExpenseCenter: CenterEconomicsInsight | undefined;
   topPerFeddanCenter: CenterEconomicsInsight | undefined;
   totalRevenue: number;
@@ -160,6 +223,16 @@ function buildCards({
       description: "يوجد أثر مالي على مركز غير موزع؛ يحتاج المحاسب لتحديد مركز التكلفة الصحيح.",
       tone: "warning",
       href: "/finance/reports?center=CC-UNALLOC",
+    });
+  }
+  if (unallocatedRevenue > 0) {
+    cards.push({
+      id: "unallocated-revenue",
+      title: "إيرادات غير موزّعة",
+      value: egp(unallocatedRevenue),
+      description: "مبيعات مؤكدة بلا مركز تكلفة؛ تدخل في إجمالي الإيراد لكنها لا تظهر ضمن أي مركز — حدّد مركز البيع لتكتمل المطابقة.",
+      tone: "warning",
+      href: "/finance/season",
     });
   }
   if (topExpenseCenter) {
