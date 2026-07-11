@@ -53,7 +53,7 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
     sb.from("sale_collections").select("sale_id, amount"),
     sb.from("buyers").select("id, name"),
     sb.from("cost_centers").select("id, name_ar, area_feddan"),
-    sb.from("harvest_days").select("crates_picked, day").gte("day", seasonStart),
+    sb.from("harvest_days").select("crates_picked, crop, day").gte("day", seasonStart),
   ]);
   const sales = salesRes.data ?? [];
   const buyerName = new Map((buyersRes.data ?? []).map((b) => [b.id, b.name]));
@@ -81,8 +81,16 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
   if (pendingSales.length > 0) notes.push(`${num(pendingSales.length)} تسليمًا ينتظر التسعير — كل يوم تأخير يؤخر القيد والتحصيل.`);
   if (outstanding > 0) notes.push(`ذمم على التجار: ${egp(outstanding)}.`);
   if (unnamed > 0) notes.push(`⚠ ${num(unnamed)} تسليمًا بلا اسم تاجر — قاعدة الموسم: كل حمولة باسم.`);
-  const pickedCrates = (pickedRes.data ?? []).reduce((t, h) => t + Number(h.crates_picked ?? 0), 0);
-  const deliveredCrates = sales.reduce((t, s2) => t + Number((s2 as { crates?: number | null }).crates ?? 0), 0);
+  // Compare like-for-like: field-count (harvest_days, default برحي) can only be reconciled
+  // against deliveries of the SAME crop. Scoping the delivered side to the crop set that was
+  // actually field-counted stops the "فارق … عبوة" advisory from comparing برحي-picked against
+  // all-crop-delivered (palm-tree/wood/other sales) and raising a false shortfall (#707).
+  const pickedRows = (pickedRes.data ?? []) as { crates_picked?: number | null; crop?: string | null }[];
+  const pickedCrops = new Set(pickedRows.map((h) => h.crop).filter(Boolean));
+  const pickedCrates = pickedRows.reduce((t, h) => t + Number(h.crates_picked ?? 0), 0);
+  const deliveredCrates = sales
+    .filter((s2) => pickedCrops.has(s2.crop))
+    .reduce((t, s2) => t + Number((s2 as { crates?: number | null }).crates ?? 0), 0);
   if (pickedCrates > 0 && deliveredCrates > 0 && pickedCrates !== deliveredCrates)
     notes.push(`🧺 مقطوف حقليًا ${num(pickedCrates)} عبوة مقابل ${num(deliveredCrates)} وصلت الميزان — فارق ${num(Math.abs(pickedCrates - deliveredCrates))} عبوة يستحق نظرة.`);
 
