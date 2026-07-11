@@ -6,7 +6,7 @@
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(6);
+select plan(9);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set orgB '00000000-0000-0000-0000-0000000007b2'
@@ -53,6 +53,35 @@ select lives_ok(
   $$ insert into public.accounting_periods (org_id, period_start, period_end, status)
      values ('00000000-0000-0000-0000-000000000001', '2025-01-10', '2025-01-20', 'open') $$,
   '#719-2: an OPEN period overlapping a locked one is allowed (partial index on status=locked)');
+
+-- ADJACENCY (the [] vs [) boundary): abutting locked periods that share no day both live.
+insert into public.accounting_periods (org_id, period_start, period_end, status)
+  values ('00000000-0000-0000-0000-000000000001', '2025-04-01', '2025-04-30', 'locked');
+select lives_ok(
+  $$ insert into public.accounting_periods (org_id, period_start, period_end, status)
+     values ('00000000-0000-0000-0000-000000000001', '2025-05-01', '2025-05-31', 'locked') $$,
+  '#719-2: adjacent locked periods (Apr30 | May1) both live — no phantom overlap on abutting ranges');
+
+-- SHARED ENDPOINT: a period that starts on the last day of a locked one DOES overlap (inclusive []).
+insert into public.accounting_periods (org_id, period_start, period_end, status)
+  values ('00000000-0000-0000-0000-000000000001', '2025-06-01', '2025-06-30', 'locked');
+select throws_ok(
+  $$ insert into public.accounting_periods (org_id, period_start, period_end, status)
+     values ('00000000-0000-0000-0000-000000000001', '2025-06-30', '2025-07-15', 'locked') $$,
+  '23P01',
+  null,
+  '#719-2: a locked period sharing an endpoint day (Jun30) is rejected — the inclusive [] bound matches the app check');
+
+-- UPDATE into overlap: exclusion fires on UPDATE too (covers the reopen→reclose / edit path).
+insert into public.accounting_periods (org_id, period_start, period_end, status)
+  values ('00000000-0000-0000-0000-000000000001', '2025-08-01', '2025-08-31', 'locked'),
+         ('00000000-0000-0000-0000-000000000001', '2025-09-01', '2025-09-30', 'locked');
+select throws_ok(
+  $$ update public.accounting_periods set period_start = '2025-08-15'
+      where org_id = '00000000-0000-0000-0000-000000000001' and period_start = '2025-09-01' and status = 'locked' $$,
+  '23P01',
+  null,
+  '#719-2: an UPDATE that moves a locked range into overlap is rejected (constraint fires on UPDATE)');
 
 select * from finish();
 rollback;
