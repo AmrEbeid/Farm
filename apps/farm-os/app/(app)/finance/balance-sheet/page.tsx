@@ -196,7 +196,12 @@ export default async function FinanceBalanceSheetPage({
 }
 
 function parseDateParam(value: string | undefined, fallback: string): string {
-  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
+  // `fallback` is today's date and also serves as the upper bound. A well-formed but
+  // FUTURE as-of (e.g. ?asOf=2099-01-01) is clamped to today so a forward-dated posting
+  // can't surface on the balance sheet before its business date (#719-4). Comparison is
+  // safe: both sides are zero-padded YYYY-MM-DD, so lexical order == chronological order.
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return fallback;
+  return value > fallback ? fallback : value;
 }
 
 function isoDate(date: Date): string {
