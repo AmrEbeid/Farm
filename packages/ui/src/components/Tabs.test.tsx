@@ -58,6 +58,14 @@ describe("Tabs", () => {
     expect(tab).toHaveAttribute("aria-controls", tabPanelId("overview"));
   });
 
+  it("omits aria-controls on inactive tabs (#500: consumers render only the active panel)", () => {
+    render(<Tabs items={items} value="overview" onChange={() => {}} />);
+    // The inactive tab's panel isn't in the DOM, so aria-controls must not dangle.
+    expect(screen.getByRole("tab", { name: "التفاصيل" })).not.toHaveAttribute("aria-controls");
+    // ...while the active tab still points at its rendered panel id.
+    expect(screen.getByRole("tab", { name: "نظرة عامة" })).toHaveAttribute("aria-controls", tabPanelId("overview"));
+  });
+
   it("ArrowRight activates and focuses the next tab (LTR)", async () => {
     render(<ControlledTabs />);
     const first = screen.getByRole("tab", { name: "نظرة عامة" });

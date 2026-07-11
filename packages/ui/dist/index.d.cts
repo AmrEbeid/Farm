@@ -146,8 +146,10 @@ declare function tabPanelId(id: string): string;
  * WAI-ARIA tabs pattern: roving tabindex (only the active tab is in the tab order) and
  * ArrowLeft/ArrowRight/Home/End keyboard navigation that activates the focused tab.
  *
- * Each tab carries `id={tabId(it.id)}` and `aria-controls={tabPanelId(it.id)}`. For the
- * `aria-controls` link to resolve, the consumer's panel for an active tab should render:
+ * Each tab carries `id={tabId(it.id)}`; the *active* tab also carries
+ * `aria-controls={tabPanelId(it.id)}`. Consumers render only the active panel, so inactive
+ * tabs omit `aria-controls` to avoid pointing at an id not in the DOM. For the active tab's
+ * `aria-controls` link to resolve, the consumer's panel should render:
  *
  * ```tsx
  * <div role="tabpanel" id={tabPanelId(id)} aria-labelledby={tabId(id)} tabIndex={0}>…</div>
