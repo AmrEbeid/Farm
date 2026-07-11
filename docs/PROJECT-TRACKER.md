@@ -1,6 +1,17 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-11 by Claude (real-data era: GL history + kernel/custody/money-figure correctness + impeccable design pass, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-11 by Claude (audit-issue sweep: per-center revenue + a11y/advisory/as-of fixes, for Owner: Amr Ebeid)
 
-> **2026-07-11 (latest) — REAL-DATA ERA: 7yr GL live, accounting correctness hardened, money figures audited-clean, design pass shipped.**
+> **2026-07-11 (latest) — AUDIT-ISSUE SWEEP: per-center revenue fixed + 3 decision-free fixes; all merged, main green.**
+> Autonomous review→merge sweep of open audit issues (all FRONTEND, no migration):
+> - **#894 (closes #701)** — `/finance/insights` + owner-dashboard per-center revenue was structurally 0 (revenue credit
+>   line never cost-center-tagged). Now sourced from finalized `sales` (SPEC-0024), **reversal-safe** via a live-posted
+>   journal join, `net = revenue − expense`, + «إيرادات غير موزّعة» residual card. Independent money-logic review APPROVE
+>   (exact posted-GL tie). Option (b) — tag the revenue line at posting + backfill — deferred.
+> - **#891 (#500)** DS Tabs dangling `aria-controls` on inactive tabs · **#892 (#707-2)** season crate-shrinkage advisory
+>   scoped to the field-counted crop · **#893 (#719-4)** balance-sheet `?asOf` clamped to today.
+> - **#701 decision memo** filed first (naive `sales.total` overstates on reversed sales). **Skipped #712** (weather
+>   rain→0 deferral is intentional). Prod migration head unchanged (`20260708110000`); main green (ci · db-tests · release).
+
+> **2026-07-11 — REAL-DATA ERA: 7yr GL live, accounting correctness hardened, money figures audited-clean, design pass shipped.**
 > Since the 07-05 harvest wave the project crossed into the real-data era and the Owner is actively using it:
 > - **7-year GL history reconciled & posted (Stage-M, #867)**; **SPEC-0031 «الرؤى» insight arc + nav cleanup (#868)**;
 >   mature palm-tree sales reclassed out of crop revenue 4010 (#869, migrated `20260708090000`).
