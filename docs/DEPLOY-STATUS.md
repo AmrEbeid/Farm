@@ -2,7 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-11 (latest) — release CI un-wedged (#888); no prod migration this session (all work frontend).**
+> **2026-07-12 (latest) — period-lock hardening applied to prod; prod ledger head `20260712110000`.**
+> Two accounting migrations applied via Supabase MCP `execute_sql` (idempotent DDL) + manual ledger insert, MIGRATE-FIRST
+> then merged, under the Owner's «migrate when needed» directive. Each evidence-first (pre/post probe) + independently reviewed.
+> - **`20260712100000_period_close_exclusion`** (#896) — `btree_gist` EXCLUDE on `accounting_periods` (no two locked periods
+>   overlap per org). Pre-apply: 0 overlapping pairs, 0 rows; post-apply: constraint present (contype='x'), 0 rows moved.
+> - **`20260712110000_merge_accounts_period_lock`** (#897) — `fn_merge_accounts` re-emit rejecting a merge whose source has a
+>   posting in a locked period (55000). Pre/post: guard absent→present; grants preserved (authenticated exec, anon denied).
+> Both idempotent (create-or-replace / `if not exists`), so the repo-file replay under CI is a safe no-op despite the MCP
+> version match. No app data moved.
+
+> **2026-07-11 — release CI un-wedged (#888); no prod migration this session (all work frontend).**
 > The Changesets **`release`** workflow had been failing on `exit 127` (`changeset: command not found`). Root cause:
 > `node_modules` was committed back in #736 as a **symlink to an absolute local path** (`/Users/amrebeidhome/…/farm/
 > node_modules`); the `release` job does `git reset --hard`, which restored that tracked symlink OVER the `npm ci`
