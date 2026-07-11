@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { KpiCard, Alert, Card, Button, Progress } from "@/components/ui";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { ExpandableKpiHero } from "@/components/ExpandableKpiHero";
+import { DashboardTabs } from "@/components/DashboardTabs";
 import { QuickNav, AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
 import { FirstRunTour } from "@/components/FirstRunTour";
 import { type SimpleColumn } from "@/components/SimpleTable";
@@ -344,7 +345,10 @@ export default async function OwnerDashboard() {
 
       {/* Main grid — rich content (left 2/3) + alerts sidebar (right 1/3): Stitch owner-dashboard layout */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
+          <DashboardTabs
+            finance={
+              <>
 
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -428,6 +432,10 @@ export default async function OwnerDashboard() {
           )}
         </div>
       </section>
+              </>
+            }
+            modules={
+              <>
 
       {/* Module-summary cards — strategic view of every module, each links to its dashboard */}
       <section>
@@ -462,6 +470,10 @@ export default async function OwnerDashboard() {
           ))}
         </div>
       </section>
+              </>
+            }
+            purchasing={
+              <>
 
       {/* Budget-line health: detail cards with utilisation bars */}
       <section>
@@ -512,6 +524,9 @@ export default async function OwnerDashboard() {
           empty="لا توجد طلبات شراء بعد."
         />
       </section>
+              </>
+            }
+          />
 
         </div>{/* /left column */}
 
