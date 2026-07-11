@@ -1,6 +1,15 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-11 by Claude (audit-issue sweep: per-center revenue + a11y/advisory/as-of fixes, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-12 by Claude (period-lock hardening migrations applied to prod, for Owner: Amr Ebeid)
 
-> **2026-07-11 (latest) — AUDIT-ISSUE SWEEP: per-center revenue fixed + 3 decision-free fixes; all merged, main green.**
+> **2026-07-12 (latest) — PERIOD-LOCK HARDENING: two accounting migrations applied to prod + merged; prod head `20260712110000`.**
+> Under the Owner's expanded «review then merge and migrate when needed» directive (evidence-first, MIGRATE-FIRST, each independently reviewed):
+> - **#719-2 (#896, prod `20260712100000`)** — `btree_gist` EXCLUDE constraint so concurrent closes can't create
+>   overlapping locked periods; overlap semantics byte-identical to the app check; pgTAP 137 (9 assns).
+> - **#719-1 (#897, prod `20260712110000`)** — `fn_merge_accounts` now rejects a merge whose source has a posting
+>   in a locked period (55000); byte-for-byte RPC re-emit + one guard; pgTAP 138 (6 assns).
+> - Remaining #719 **item 3** (NULL entry_date on the posting choke point) = Owner decision (recommend wontfix /
+>   require-after-audit; note on #719). #707-1 + #701-b also Owner-gated. Prod ledger head `20260712110000`; main green.
+
+> **2026-07-11 — AUDIT-ISSUE SWEEP: per-center revenue fixed + 3 decision-free fixes; all merged, main green.**
 > Autonomous review→merge sweep of open audit issues (all FRONTEND, no migration):
 > - **#894 (closes #701)** — `/finance/insights` + owner-dashboard per-center revenue was structurally 0 (revenue credit
 >   line never cost-center-tagged). Now sourced from finalized `sales` (SPEC-0024), **reversal-safe** via a live-posted

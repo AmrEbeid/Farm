@@ -1,7 +1,19 @@
-# Session Brief — Farm OS      Updated: 2026-07-11 by Claude (audit-issue fixes: per-center revenue + 3 decision-free fixes, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-12 by Claude (period-lock hardening migrations #719-1/#719-2 applied to prod, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-11 (latest) — audit-issue sweep: per-center revenue (#701) + a11y/advisory/as-of fixes; all merged, main green
+## 2026-07-12 (latest) — period-lock hardening: two accounting migrations applied to prod + merged
+
+Continuation of the audit sweep, under the Owner's expanded «do not wait, review then merge **and migrate** when needed» directive. Two clearly-correct period-lock **migrations authored → local pgTAP → independent kernel review → applied to prod (evidence-first, MIGRATE-FIRST) → merged**. **Prod ledger head is now `20260712110000`** (was `20260708110000`).
+
+- **#719-2 (#896) — concurrent double-close, FIXED (prod `20260712100000`).** `fn_close_accounting_period` did exists()-then-insert with no DB uniqueness → two concurrent closes could both land overlapping locked periods. Added an idempotent `btree_gist` `EXCLUDE (org_id =, daterange(start,end,'[]') &&) WHERE status='locked'`. Overlap semantics **byte-identical** to the app check (review-confirmed). pgTAP test 137 (9 assns: overlap/adjacency/shared-endpoint/cross-org/open-period/UPDATE-into-overlap). Prod evidence: pre-apply 0 overlapping pairs + 0 accounting_periods rows; post-apply constraint present (contype='x'), 0 rows moved.
+- **#719-1 (#897) — fn_merge_accounts ignored the period lock, FIXED (prod `20260712110000`).** An account merge repointed `journal_lines` across ALL periods → could rewrite a locked period's per-account balances. Re-emitted the RPC (byte-for-byte + one guard) to reject a merge whose SOURCE has a posting in a locked period (55000). pgTAP test 138 (6 assns incl. mixed open+locked + reopen→succeed). Prod evidence: guard absent→present, grants preserved (authenticated exec, anon denied).
+- **Governance followed:** prod applies were done under the Owner's explicit «migrate when needed» directive, evidence-first (probe → apply idempotent DDL via MCP execute_sql → manual ledger insert → re-probe), each independently reviewed (approver ≠ author). See [[farm-project-gating]] (two-tier gating) and [[farm-prod-migrate-via-mcp]].
+
+**Open (Owner decisions — NOT shipped, `docs/CLAUDE.md` reserves financial-policy choices):**
+- **#719 item 3** — `fn_post_two_line_journal` NULL entry_date → posts to today. Arguably not a bug (NULL=today is a valid "post as of now"); it's *the* posting choke point (highest blast radius). Recommend wontfix or require-after-caller-audit. Decision note posted on #719.
+- **#707 item 1** (offshoot negative balance semantics) · **#701 option b** (tag revenue line at posting + backfill — the durable per-center-revenue fix; #701 option a already shipped as #894).
+
+## 2026-07-11 — audit-issue sweep: per-center revenue (#701) + a11y/advisory/as-of fixes; all merged, main green
 
 Under the Owner's standing «keep working, review then merge and migrate when needed, use agents» directive. Started from a **167-commit-stale local checkout** (worked from a fresh worktree off `origin/main`; the old main worktree held RSC-boundary edits already merged upstream — backed up, untouched). Triaged the open audit issues, verified each still reproduced with read-only agents, fixed the autonomous-safe ones (independent review each), and filed the one that's a real decision. **All FRONTEND (no migration); 4 PRs merged; main green (ci · db-tests · release).**
 
