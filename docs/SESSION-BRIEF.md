@@ -1,7 +1,47 @@
-# Session Brief — Farm OS      Updated: 2026-07-08 by Claude (autonomous hardening: accounting-kernel + custody-account fixes, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-11 by Claude (money-figure completeness + impeccable design pass + release-CI fix, Owner: Amr Ebeid)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-08 (latest) — autonomous /goal hardening: 3-agent audit + accounting-kernel + custody-account fixes
+## 2026-07-11 (latest) — money-figure completeness (#884), impeccable design pass (dashboard distill + polish), release-CI fix
+
+Under the Owner's standing «keep working, go with your recommendation, use agents» directive. All work this session was FRONTEND (no new prod migration); all PRs merged; main fully green (ci · db-tests · release).
+
+**Money-figure correctness — the display-layer audit is now COMPLETE.**
+- **#884 (closes #759) — sector-scorecard unallocated-expense understatement, FIXED.** `computeSectorPnl` counted
+  untagged expense as `CC-UNALLOC.debit` ONLY, while `computeEnterprisePnl` also folds in leaf centers with no
+  enterprise label — so a leaf center with `area_feddan=null` that isn't CC-UNALLOC (a general «عام» / a
+  Stage-M-added center) had its expense counted NOWHERE and the «مصروفات غير موزّعة» banner understated. Fix
+  mirrors the enterprise handling (`+ Σ net of leaf centers not in the reported sectors`; `isLeaf` excludes
+  CC-UNALLOC/parents → no double-count). Independently reviewed (reconciliation now foots), define-check test.
+- Every owner-facing figure is now audited across all surfaces. 3 real display bugs found+fixed this arc:
+  **#862** (CC-UNALLOC `.net`→`.debit`), **#864** (`v_cost_center_rollup` posted-only; migrated `20260707120000`),
+  **#865** (season tonnage null-date), **#884** (sector asymmetry). See [[farm-money-figure-audit-heuristics]].
+
+**Impeccable design pass — a new design-quality workstream (all frontend, all reviewed).**
+- Installed the `impeccable` design skill; ran init → polish → critique → distill on the owner dashboard.
+- **`apps/farm-os/PRODUCT.md`** (init) — strategic design context derived from CLAUDE.md non-negotiables +
+  SPEC-0025/0030 (register=product, web, Arabic-RTL, honest-null, task-first). Owner-gate the brand claims.
+- **#885** — retired the 3px side-stripe accents on Toast/PhaseCard in `@amrebeid/ui` (the AI "side-tab" tell);
+  tone now via icon + full tinted border. Patch changeset.
+- **Critique** — owner dashboard **33/40 (Good)**, dual-agent, persisted to `apps/farm-os/.impeccable/critique/…`.
+- **#886 — dashboard distill:** KPI hero trimmed to a primary trio (money/decisions/readiness) + progressive
+  disclosure; the long left-column scroll grouped into tabs (المالية / الوحدات / الموازنة والمشتريات) via a client
+  `DashboardTabs`; the alerts sidebar + hero stay OUTSIDE the tabs (at-a-glance preserved). Nothing removed.
+- **#887** — AttentionInbox tone via Lucide icon + tinted border (retired emoji + side-stripe; a11y).
+- **#889** — P2 sticky alerts on more breakpoints + P3 over-budget «⚠ متجاوز الموازنة» badge/ring.
+- Backlog remaining: only **tour-sync** (P3) — needs a per-user schema migration for marginal value → recommended
+  SKIP (per-browser localStorage is fine).
+
+**Release-CI footgun fixed (#888) — remember this.** `node_modules` was committed in #736 as a symlink to an
+ABSOLUTE local path (`/Users/amrebeidhome/…/farm/node_modules`). The Changesets `release` job's `git reset --hard`
+restored that tracked symlink OVER the `npm ci` deps → `changeset` gone → **exit 127**. It stayed hidden until
+#885's changeset was the FIRST to exercise the version path. Fix: `git rm --cached node_modules` + `.gitignore`
+`node_modules/`→`node_modules`. **Lessons: a changeset first-exercises the release path; don't burst-merge (3
+concurrent release runs also raced on `changeset-release/main`).**
+
+**Tooling:** installed the OpenAI **Codex CLI** (`codex-cli 0.144.1`) so `/delegate-to-codex` works (needs
+`codex login` first).
+
+## 2026-07-08 — autonomous /goal hardening: 3-agent audit + accounting-kernel + custody-account fixes
 
 Under the Owner's standing «keep working, go with your recommendation, use agents» directive. Ran three read-only
 audit agents (money-integrity, accounting-kernel, engine+RLS). Findings + actions:

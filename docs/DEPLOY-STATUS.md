@@ -2,7 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-08 (latest) — split general cash out of the field-custody imprest; migration `20260708110000` APPLIED.**
+> **2026-07-11 (latest) — release CI un-wedged (#888); no prod migration this session (all work frontend).**
+> The Changesets **`release`** workflow had been failing on `exit 127` (`changeset: command not found`). Root cause:
+> `node_modules` was committed back in #736 as a **symlink to an absolute local path** (`/Users/amrebeidhome/…/farm/
+> node_modules`); the `release` job does `git reset --hard`, which restored that tracked symlink OVER the `npm ci`
+> deps, so the `changeset` bin vanished. It only surfaced now because #885 was the FIRST changeset to exercise the
+> version/publish path. Fix (#888): `git rm --cached node_modules` + tighten `.gitignore` (`node_modules/`→
+> `node_modules`). **Release green again; main fully green (ci · db-tests · release).** No schema change; prod
+> migration head stays **`20260708110000`**. Design/correctness PRs merged this session (#884, #885, #886, #887,
+> #889) are all frontend — nothing to migrate. Earlier prod-applied heads still in force: `20260707120000`
+> (rollup posted-only, #864) and `20260705160000` (stock-take, #781).
+
+> **2026-07-08 — split general cash out of the field-custody imprest; migration `20260708110000` APPLIED.**
 > Owner reported the custody account balance was "totally wrong". Root cause: the chart had only one cash account,
 > `1000 عهدة نقدية` (a field-custody imprest), so the 7-yr GL backfill routed the whole cash flow through it
 > (balance 5,387,776) while the operational custody ledger held only the one real 80,000 movement. Migration

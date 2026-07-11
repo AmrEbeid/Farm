@@ -18,6 +18,9 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/node_modules/
 
+# impeccable design-skill local state (critique snapshots / cache — regenerable, not source)
+.impeccable/
+
 # logs / os
 *.log
 .DS_Store
