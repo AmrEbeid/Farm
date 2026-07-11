@@ -84,6 +84,22 @@ describe("buildFinanceInsightSummary", () => {
     // Real revenue means the "الإيرادات غير مفعلة" placeholder card no longer shows (gated on totalRevenue===0).
     expect(fixed.cards.map((c) => c.id)).not.toContain("revenue-pending");
   });
+
+  it("surfaces untagged (null-center) sale revenue so per-center reconciles to the total (#701 review)", () => {
+    const rollup = [
+      { ...base, cost_center_id: "leaf-a", parent_id: null, code: "CC-A", name_ar: "أ", debit: 400, credit: 0, net: -400 },
+    ] as CostCenterInsightRollup[];
+    // total 1200 but only 1000 attributed to a center → 200 is untagged and must be surfaced.
+    const summary = buildFinanceInsightSummary({ rollup, flags: [], salesRevenue: { byCenter: { "leaf-a": 1000 }, total: 1200 } });
+    expect(summary.unallocatedRevenue).toBe(200);
+    const card = summary.cards.find((c) => c.id === "unallocated-revenue");
+    expect(card?.value).toBe("٢٠٠ ج.م"); // egp(200) — Arabic-Indic
+    expect(card?.value).not.toMatch(/[0-9]/); // Arabic-Indic only (#2)
+    // Fully-attributed revenue shows no residual card.
+    const clean = buildFinanceInsightSummary({ rollup, flags: [], salesRevenue: { byCenter: { "leaf-a": 1000 }, total: 1000 } });
+    expect(clean.unallocatedRevenue).toBe(0);
+    expect(clean.cards.map((c) => c.id)).not.toContain("unallocated-revenue");
+  });
 });
 
 describe("computeSalesRevenueByCenter", () => {

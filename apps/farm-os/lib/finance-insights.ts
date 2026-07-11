@@ -52,6 +52,7 @@ export type FinanceInsightSummary = {
   totalRevenue: number;
   operatingNet: number;
   unallocatedCost: number;
+  unallocatedRevenue: number;
   centerRows: CenterEconomicsInsight[];
   topExpenseCenters: CenterEconomicsInsight[];
   topPerFeddanCenters: CenterEconomicsInsight[];
@@ -96,6 +97,10 @@ export function buildFinanceInsightSummary({
   const totalRevenue = salesRevenue ? salesRevenue.total : leafRows.reduce((sum, row) => sum + Number(row.credit ?? 0), 0);
   const operatingNet = totalRevenue - totalExpense;
   const unallocatedCost = Number(unallocated?.debit ?? 0); // untagged EXPENSE (.net is revenue-contaminated — see entity-pnl contract)
+  // Symmetric to unallocatedCost: sale revenue with no cost_center lands in `total` but in no center
+  // row, so without surfacing it the per-center revenue column can't reconcile to operating net (#701 review).
+  const allocatedRevenue = salesRevenue ? Object.values(salesRevenue.byCenter).reduce((sum, v) => sum + v, 0) : 0;
+  const unallocatedRevenue = salesRevenue ? Math.max(0, salesRevenue.total - allocatedRevenue) : 0;
   const activeCenterCount = rollup.filter((row) => row.active && !row.is_system).length;
   const postedCenterCount = centerRows.filter((row) => row.expense !== 0 || row.revenue !== 0 || row.net !== 0).length;
   const topExpenseCenters = [...centerRows].filter((row) => row.expense > 0).sort((a, b) => b.expense - a.expense).slice(0, 5);
@@ -107,6 +112,7 @@ export function buildFinanceInsightSummary({
   const cards = buildCards({
     flagCount: flags.length,
     unallocatedCost,
+    unallocatedRevenue,
     topExpenseCenter: topExpenseCenters[0],
     topPerFeddanCenter: topPerFeddanCenters[0],
     totalRevenue,
@@ -121,6 +127,7 @@ export function buildFinanceInsightSummary({
     totalRevenue,
     operatingNet,
     unallocatedCost,
+    unallocatedRevenue,
     centerRows,
     topExpenseCenters,
     topPerFeddanCenters,
@@ -185,12 +192,14 @@ export function computeSalesRevenueByCenter(
 function buildCards({
   flagCount,
   unallocatedCost,
+  unallocatedRevenue,
   topExpenseCenter,
   topPerFeddanCenter,
   totalRevenue,
 }: {
   flagCount: number;
   unallocatedCost: number;
+  unallocatedRevenue: number;
   topExpenseCenter: CenterEconomicsInsight | undefined;
   topPerFeddanCenter: CenterEconomicsInsight | undefined;
   totalRevenue: number;
@@ -214,6 +223,16 @@ function buildCards({
       description: "يوجد أثر مالي على مركز غير موزع؛ يحتاج المحاسب لتحديد مركز التكلفة الصحيح.",
       tone: "warning",
       href: "/finance/reports?center=CC-UNALLOC",
+    });
+  }
+  if (unallocatedRevenue > 0) {
+    cards.push({
+      id: "unallocated-revenue",
+      title: "إيرادات غير موزّعة",
+      value: egp(unallocatedRevenue),
+      description: "مبيعات مؤكدة بلا مركز تكلفة؛ تدخل في إجمالي الإيراد لكنها لا تظهر ضمن أي مركز — حدّد مركز البيع لتكتمل المطابقة.",
+      tone: "warning",
+      href: "/finance/season",
     });
   }
   if (topExpenseCenter) {
