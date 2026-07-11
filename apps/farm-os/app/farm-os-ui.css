@@ -496,12 +496,14 @@
   width:min(360px, calc(100vw - var(--space-8))); pointer-events:none; }
 .fos-toast { pointer-events:auto; display:flex; align-items:flex-start; gap:var(--space-3);
   background:var(--surface-raised); color:var(--ink); border:1px solid var(--line);
-  border-inline-start:3px solid var(--info-fg); border-radius:var(--radius-card);
+  border-radius:var(--radius-card);
   box-shadow:var(--shadow-overlay); padding:var(--space-3); animation:fos-toast-in var(--dur) var(--ease); }
-.fos-toast--ok { border-inline-start-color:var(--success-fg); } .fos-toast--ok .fos-toast__icon { color:var(--success-fg); }
-.fos-toast--info { border-inline-start-color:var(--info-fg); } .fos-toast--info .fos-toast__icon { color:var(--info-fg); }
-.fos-toast--warning { border-inline-start-color:var(--warning-fg); } .fos-toast--warning .fos-toast__icon { color:var(--warning-fg); }
-.fos-toast--danger { border-inline-start-color:var(--danger-fg); } .fos-toast--danger .fos-toast__icon { color:var(--danger-fg); }
+/* Tone is carried by the icon + a full border tinted toward the tone — not a side-stripe (retired: the
+   3px inline-start accent is the classic AI-UI tell; a full tinted border reads the tone more legibly). */
+.fos-toast--ok { border-color:color-mix(in srgb, var(--success-fg) 45%, var(--line)); } .fos-toast--ok .fos-toast__icon { color:var(--success-fg); }
+.fos-toast--info { border-color:color-mix(in srgb, var(--info-fg) 45%, var(--line)); } .fos-toast--info .fos-toast__icon { color:var(--info-fg); }
+.fos-toast--warning { border-color:color-mix(in srgb, var(--warning-fg) 45%, var(--line)); } .fos-toast--warning .fos-toast__icon { color:var(--warning-fg); }
+.fos-toast--danger { border-color:color-mix(in srgb, var(--danger-fg) 45%, var(--line)); } .fos-toast--danger .fos-toast__icon { color:var(--danger-fg); }
 .fos-toast__icon { flex:none; font-size:var(--text-md); line-height:1.4; }
 .fos-toast__body { flex:1; min-width:0; }
 .fos-toast__title { font-size:var(--text-sm); font-weight:var(--weight-bold); }
@@ -627,7 +629,7 @@
 
 /* ---- PhaseCard (domain — plan phase / operation summary) ---- */
 .fos-phase { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card);
-  box-shadow:var(--shadow-card); padding:var(--card-pad); border-inline-start:3px solid var(--line); }
+  box-shadow:var(--shadow-card); padding:var(--card-pad); }
 .fos-phase__head { display:flex; align-items:center; gap:var(--space-2); }
 .fos-phase__dot { width:9px; height:9px; flex:none; border-radius:50%; background:var(--ink-muted); }
 .fos-phase__title { font-size:var(--text-md); font-weight:var(--weight-bold); flex:1; }
