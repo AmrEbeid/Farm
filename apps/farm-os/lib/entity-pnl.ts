@@ -23,7 +23,7 @@ export interface SaleLite {
 export interface SectorPnl {
   sectors: CenterPerf[]; // leaf centers with area; `net` = real profit (revenue − expenses)
   unallocRevenue: number; // finalized revenue not on a scorecard sector
-  unallocExpense: number; // untagged expense (CC-UNALLOC debit)
+  unallocExpense: number; // untagged expense: CC-UNALLOC debit + leaf centers that aren't reported sectors (#759)
 }
 
 export interface EnterprisePnl {
@@ -69,7 +69,18 @@ export function computeSectorPnl(rollup: CostCenterInsightRollup[], finalizedSal
     areaFeddan: num(r.area_feddan),
   }));
 
-  return { sectors, unallocRevenue, unallocExpense: ccUnallocDebit(rollup) };
+  // Untagged expense = CC-UNALLOC's debit PLUS every leaf center that is NOT a reported sector — i.e. a leaf
+  // with no area (e.g. a general «عام» center carrying real cost). Mirrors computeEnterprisePnl so EVERY leaf
+  // expense lands somewhere and sector-vs-total reconciles/foots; without this such a center's cost was counted
+  // NOWHERE and the «مصروفات غير موزّعة» banner understated (#759). isLeaf excludes CC-UNALLOC (is_system) and
+  // parents, so there is no double-count of ccUnallocDebit.
+  let unallocExpense = ccUnallocDebit(rollup);
+  for (const r of rollup) {
+    if (!isLeaf(r) || sectorIds.has(r.cost_center_id)) continue;
+    unallocExpense += num(r.net);
+  }
+
+  return { sectors, unallocRevenue, unallocExpense };
 }
 
 /** Per-enterprise (crop) P&L: expenses = Σ leaf net by enterprise; revenue = finalized sales via center→enterprise. */
