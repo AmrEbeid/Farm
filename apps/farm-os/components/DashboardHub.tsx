@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 
 // SPEC-0025 U-10 (§2c) — the dashboard-hub primitives. The home page opens with a row of big quick-nav
 // buttons (with live badges) so the dashboard LAUNCHES to everything, followed by «يحتاج انتباهك» — the
@@ -73,13 +74,21 @@ export function AttentionInbox({ items }: { items: AttentionItem[] }) {
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
               style={{
                 background: "var(--surface-raised, #fff)",
-                border: "1px solid var(--line)",
-                borderInlineStartWidth: "4px",
-                borderInlineStartColor: it.tone === "act" ? "var(--danger, #b23b3b)" : "var(--warning, #b7791f)",
+                // Tone via the icon + a full border tinted toward the tone — not a 4px side-stripe (the AI-UI
+                // "side-tab" tell, retired across the DS in the impeccable pass). Consistent with Toast/Alert.
+                border: `1px solid ${
+                  it.tone === "act"
+                    ? "color-mix(in srgb, var(--danger, #b23b3b) 45%, var(--line))"
+                    : "color-mix(in srgb, var(--warning, #b7791f) 45%, var(--line))"
+                }`,
                 color: "var(--ink)",
               }}
             >
-              <span aria-hidden>{it.tone === "act" ? "🔴" : "🟡"}</span>
+              {it.tone === "act" ? (
+                <AlertCircle width={16} height={16} strokeWidth={2} aria-hidden style={{ flex: "none", color: "var(--danger, #b23b3b)" }} />
+              ) : (
+                <AlertTriangle width={16} height={16} strokeWidth={2} aria-hidden style={{ flex: "none", color: "var(--warning, #b7791f)" }} />
+              )}
               <span className="flex-1">{it.text}</span>
               <span aria-hidden style={{ color: "var(--ink-muted)" }}>
                 ←
