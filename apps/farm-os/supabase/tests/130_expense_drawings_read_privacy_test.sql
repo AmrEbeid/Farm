@@ -63,10 +63,10 @@ reset role;
 select is(
   (select count(*)::int from pg_policies
      where schemaname = 'public' and tablename = 'expenses'
-       and qual like '%finance.read%'
+       and qual like '%private.finance_read_org_ids()%'
        and qual like '%kind <> ''drawing''%'),
   1,
-  'expenses USING policy keeps drawing rows behind finance.read');
+  'expenses USING policy keeps drawing rows behind the finance organization set');
 
 select * from finish();
 rollback;
