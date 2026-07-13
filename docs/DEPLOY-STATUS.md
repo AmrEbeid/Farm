@@ -22,10 +22,22 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > node_modules`); the `release` job does `git reset --hard`, which restored that tracked symlink OVER the `npm ci`
 > deps, so the `changeset` bin vanished. It only surfaced now because #885 was the FIRST changeset to exercise the
 > version/publish path. Fix (#888): `git rm --cached node_modules` + tighten `.gitignore` (`node_modules/`→
-> `node_modules`). **Release green again; main fully green (ci · db-tests · release).** No schema change; prod
-> migration head stays **`20260708110000`**. Design/correctness PRs merged this session (#884, #885, #886, #887,
+> `node_modules`). **Release green again; main fully green (ci · db-tests · release).** No schema change or migration
+> was applied in that July 11 session; the existing production ledger head stayed
+> **`20260709143917`**. Design/correctness PRs merged this session (#884, #885, #886, #887,
 > #889) are all frontend — nothing to migrate. Earlier prod-applied heads still in force: `20260707120000`
 > (rollup posted-only, #864) and `20260705160000` (stock-take, #781).
+
+> **2026-07-09 — deny-all RLS added to the `_recovery.*` financial backup tables; migration `20260709120000` APPLIED.**
+> Migration **`20260709120000_recovery_backup_tables_rls`** enables and forces RLS, with no client policy, on
+> `removed_expenses_20260707`, `removed_journal_entries_20260707`, and `removed_journal_lines_20260707`. This adds
+> a database-level deny layer to the existing unexposed-schema and no-grant controls while preserving a deliberate
+> Owner/database-administrator restore path. Applied to Farm production (`veezkmytervjnpxcrbkw`) via the Supabase
+> MCP under the Owner's explicit go. Pre-apply: all three tables had RLS disabled and zero policies. Post-apply: all three had
+> RLS enabled + forced and zero policies; `authenticated` still had no schema usage or table select; a runtime
+> `authenticated` read was denied; `public.expenses` remained 10,201 rows. Supabase recorded the apply as
+> `20260709143917` rather than the repo filename timestamp; the migration is guarded and idempotent, so later
+> replay is a safe no-op. PR #882 merged at `76482e3`. Related code-only fixes #880 and #881 required no migration.
 
 > **2026-07-08 — split general cash out of the field-custody imprest; migration `20260708110000` APPLIED.**
 > Owner reported the custody account balance was "totally wrong". Root cause: the chart had only one cash account,
