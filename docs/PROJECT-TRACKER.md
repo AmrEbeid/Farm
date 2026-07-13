@@ -1,4 +1,17 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-12 by Claude (period-lock + tenancy migrations applied to prod, for Owner: Amr Ebeid)
+# Project Tracker — Farm OS      Last updated: 2026-07-13 by Codex (accounting RLS performance PR publication in progress; not applied)
+
+> **2026-07-13 (latest; NOT APPLIED) — ACCOUNTING RLS PERFORMANCE PR2a VALIDATED; PUBLICATION IN PROGRESS.**
+> Draft migration `20260713152136_finance_read_org_set_rls` replaces per-row `finance.read` checks on 14
+> finance tables with one active-org-narrowed organization-set helper, while preserving expense-drawing privacy,
+> audit branches, every write check, and owner/accountant role semantics. No indexes or application data change.
+> Docker-free pgTAP is green **1742/1742**; the new 42-assertion test covers anon/auth grants, cross-org reads,
+> forged active-org claims, live role changes, audit behavior, and an authenticated JSON query-plan oracle proving
+> the helper node runs once. Two independent reviews found no remaining P0-P2; the Owner approved commit/push/PR and
+> migrate-first rollout. The stale security-doc overlap was reconciled in merged #901 and conflicted #883 was closed.
+> A manual disposable Supabase branch failed before PR2a at legacy migration `20260622000032`: its production
+> migration-history row stores plain text beginning `applied via MCP ...` as executable SQL. The branch was deleted;
+> production is unchanged. Remaining gate: PR checks/review plus a faithful remote-preview path or separately reviewed
+> disposition of the pre-existing replay defect before production apply.
 
 > **2026-07-12 (latest) — PERIOD-LOCK HARDENING + CROSS-ORG LEAK CLOSED: three migrations applied to prod + merged; prod head `20260712120000`.**
 > Under the Owner's expanded «review then merge and migrate when needed» directive (evidence-first, MIGRATE-FIRST, each independently reviewed):

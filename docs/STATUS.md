@@ -1,10 +1,12 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-08 (real 7-year GL live + accounting-kernel correctness pass). Owner: Amr Ebeid.*
+*Updated: 2026-07-13 (production unchanged; accounting RLS performance PR publication in progress). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
 **2026-07-07/08 — the finance half of Stage M landed.** The real 7-year history (10,232 expenses / 162 sales, 2019–2026) is now account-linked and posted to the double-entry GL, then reconciled **sheet-exact** to the source workbook (expenses 20,527,757 / revenue 25,835,533), with a 2017–2018 opening balance; the trusted BS/IS/TB/budget-vs-actual pages render real numbers. On top: the «الرؤى» 7-chapter insight arc (#868), a palm-tree-sales revenue reclass (#869/#870, applied), and an **accounting-kernel correctness pass** (#871, applied `20260708100000`): revenue posts on the sale's economic date, a reversed sale can't be collected, trial balance is posted-only. Money-integrity review items (reversal RPC, audit_read pin, custody floor/journal-completeness) confirmed already shipped (#791/#792/#793). Engine + multi-tenant RLS independently re-audited **clean**. **Still gating full real-data operation: Stage 0 security (#362) + the palm-registry import (#239, prod palms still synthetic).**
+
+**2026-07-13 PR2a, not production:** accounting performance PR2a is validated at **1742/1742** and independently reviewed with no remaining P0-P2. It removes row-correlated `finance.read` work from 14 finance-table RLS policies while preserving current access behavior. The Owner authorized publication and the migrate-first rollout. A manual disposable Supabase branch failed during legacy replay at `20260622000032`, before PR2a ran, because production migration metadata stores a plain-English `applied via MCP ...` placeholder as executable SQL. The failed branch was deleted; production is unchanged. Next gate: PR review/checks plus a faithful remote-preview path or a separately reviewed disposition of this pre-existing replay defect before production apply.
 
 ## Where we are (honest stage status)
 

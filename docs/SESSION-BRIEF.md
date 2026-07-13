@@ -1,5 +1,31 @@
-# Session Brief — Farm OS      Updated: 2026-07-12 by Claude (period-lock hardening migrations #719-1/#719-2 applied to prod, Owner: Amr Ebeid)
+# Session Brief — Farm OS      Updated: 2026-07-13 by Codex (accounting RLS performance rollout resumed; not applied)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-13 (latest) — accounting RLS performance PR2a validated; publication in progress
+
+Prepared isolated branch `feat/accounting-rls-performance` from remote main `299543ce` in worktree
+`/Users/amrebeid/Projects/farm accounting rls performance pr2a`. The Owner authorized commit/push/PR and the
+migrate-first rollout. No migration apply, merge, deployment, or production data change has occurred yet.
+
+- Migration `20260713152136_finance_read_org_set_rls` adds a locked-down, `STABLE SECURITY INVOKER`
+  `private.finance_read_org_ids()` helper composed from the existing `user_org_ids()` and `authorize()` contracts.
+  Fourteen finance-only table policies now compare `org_id` with that uncorrelated set instead of calling
+  `authorize('finance.read', org_id)` per row. Expense drawings and finance audit rows use the same set without
+  changing ordinary-expense visibility, audit branches, roles, or write checks. No index was added without measured
+  production evidence.
+- Docker-free temporary PostgreSQL + pgTAP passed **1742/1742**. The new 42 assertions cover function/schema ACLs,
+  all affected policy shapes, owner/accountant versus manager/supervisor behavior, multi-org isolation, active-org
+  narrowing, forged claims, live role downgrade, finance/non-finance audit rows, anon denial, and an authenticated
+  `EXPLAIN ANALYZE FORMAT JSON` oracle with helper `Actual Loops = 1`.
+- Independent security and PostgreSQL reviewers found no remaining P0-P2 after the audit behavior and plan-loop
+  findings were fixed. Fresh plan comparison shows the old account policy retained a row-correlated
+  `authorize(..., accounts.org_id)` filter; the new policy uses a one-time hashed subplan.
+- The living-doc overlap was reconciled in merged PR #901; conflicted #883 was closed as superseded. A manual
+  disposable Supabase branch then failed during historical replay at `20260622000032`, before this migration ran:
+  production `schema_migrations.statements[1]` contains the literal sentence `applied via MCP from repo migration ...`,
+  which Branching tried to execute as SQL. The branch was deleted immediately; no production change occurred.
+- **Resume gate:** publish and review the PR, use a repository-backed preview path if available, and do not apply to
+  production until the remote-preview blocker has either been cleared or separately reviewed and dispositioned.
 
 ## 2026-07-12 (latest) — period-lock hardening + a cross-org tenancy leak closed: three migrations applied to prod + merged
 
