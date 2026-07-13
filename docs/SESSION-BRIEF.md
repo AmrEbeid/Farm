@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-13 by Codex (accounting RLS performance rollout resumed; not applied)
+# Session Brief — Farm OS      Updated: 2026-07-13 by Codex (safe stop; #902 open and green; not applied)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-13 (latest) — accounting RLS performance PR2a validated; publication in progress
+## 2026-07-13 (latest) — safe stop: accounting RLS performance PR2a open as #902; production unchanged
 
 Prepared isolated branch `feat/accounting-rls-performance` from remote main `299543ce` in worktree
 `/Users/amrebeid/Projects/farm accounting rls performance pr2a`. The Owner authorized commit/push/PR and the
@@ -24,8 +24,17 @@ migrate-first rollout. No migration apply, merge, deployment, or production data
   disposable Supabase branch then failed during historical replay at `20260622000032`, before this migration ran:
   production `schema_migrations.statements[1]` contains the literal sentence `applied via MCP from repo migration ...`,
   which Branching tried to execute as SQL. The branch was deleted immediately; no production change occurred.
-- **Resume gate:** publish and review the PR, use a repository-backed preview path if available, and do not apply to
-  production until the remote-preview blocker has either been cleared or separately reviewed and dispositioned.
+- PR #902 was published from rebased head `9432c38`. Docker-free full replay + pgTAP remained **1742/1742**; all
+  available GitHub, CodeRabbit, and Vercel checks were green. Final independent review found no P0-P2 and judged the
+  code ready after migrate-first, but production apply not ready without faithful hosted verification. Supabase Preview
+  was skipped. Replay-history repair is tracked separately in #903.
+- **Safe stop:** no paid staging project was created, no production migration was applied, #902 was not merged, and no
+  deployment or production data change occurred. The failed disposable branch had already been deleted.
+- **Tomorrow's approved recommendation:** after Farm-project cost confirmation, create a temporary standalone Supabase
+  project in `eu-west-1`; replay the pinned repository migrations with synthetic data only; apply PR2a; run hosted
+  PostgREST/GoTrue/FORCE-RLS owner/accountant/manager, forged-claim, audit, and plan-loop checks; delete the project;
+  then, only on green evidence, run production preflight, apply migrate-first, postflight, merge #902, verify deployment,
+  and update these docs. Keep #903 separate and do not mutate production migration history to unblock #902.
 
 ## 2026-07-12 (latest) — period-lock hardening + a cross-org tenancy leak closed: three migrations applied to prod + merged
 
