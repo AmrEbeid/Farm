@@ -21,7 +21,8 @@
 > - **#891 (#500)** DS Tabs dangling `aria-controls` on inactive tabs · **#892 (#707-2)** season crate-shrinkage advisory
 >   scoped to the field-counted crop · **#893 (#719-4)** balance-sheet `?asOf` clamped to today.
 > - **#701 decision memo** filed first (naive `sales.total` overstates on reversed sales). **Skipped #712** (weather
->   rain→0 deferral is intentional). Prod migration head unchanged (`20260708110000`); main green (ci · db-tests · release).
+>   rain→0 deferral is intentional). No migration landed in that July 11 session; the existing production head was
+>   `20260709143917`. Main green (ci · db-tests · release).
 
 > **2026-07-11 — REAL-DATA ERA: 7yr GL live, accounting correctness hardened, money figures audited-clean, design pass shipped.**
 > Since the 07-05 harvest wave the project crossed into the real-data era and the Owner is actively using it:
@@ -39,7 +40,7 @@
 >   critique (33/40, persisted); dashboard distill = KPI-hero trim + left-column tabs (#886); AttentionInbox icons
 >   (#887); sticky-alerts + over-budget cue (#889). **Release-CI fix (#888):** untracked an accidental absolute-path
 >   `node_modules` symlink (from #736) that broke the Changesets version path (exit 127).
-> - **Prod migration head `20260708110000`**; main fully green (ci · db-tests · release). Only open PR = #691
+> - **Prod migration head `20260709143917`**; main fully green (ci · db-tests · release). Only open PR = #691
 >   (Version Packages bot). See SESSION-BRIEF for the next-session bridge.
 
 > **2026-07-05 — HARVEST WAVE: Stage-M real data LIVE in prod + شاشة الميزان + pricing wizard (PR #692).**

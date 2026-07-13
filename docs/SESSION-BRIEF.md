@@ -68,6 +68,24 @@ concurrent release runs also raced on `changeset-release/main`).**
 **Tooling:** installed the OpenAI **Codex CLI** (`codex-cli 0.144.1`) so `/delegate-to-codex` works (needs
 `codex login` first).
 
+## 2026-07-09 — security review: three fixes merged; recovery-table RLS applied
+
+A six-lane review covered RLS/tenant isolation, definer routines, the `authorize()` role map, secrets/service-role
+use, server actions/AI, and active-org auth. Source verification produced three shipped fixes:
+
+- **#880 (`5595b48`)** gated RLS-bypassing gallery cleanup behind owner role and the session-derived org id.
+- **#881 (`2ed8f61`)** blocked CSV formula injection and added RLS-policy plus role-map regression checks.
+- **#882 (`76482e3`)** added deny-all RLS to the three `_recovery.*` financial backup tables. Migration
+  `20260709120000_recovery_backup_tables_rls` was applied to Farm production under the Owner's explicit go and
+  verified live: RLS enabled + forced, zero policies, no authenticated schema/table grants, authenticated reads
+  denied, and `public.expenses` unchanged at 10,201 rows. Supabase recorded the apply as `20260709143917`; the repo
+  migration is guarded and idempotent, so replay remains safe.
+
+The review was time-bounded, not a permanent clean verdict: two security-definer views were later found to expose
+cross-org data and were fixed on July 12 in #899. One configuration check remains conditional: verify hosted
+`custom_access_token_hook` enablement and a minted `active_org_id` claim before onboarding a second org. Its current
+state is unverified, not a confirmed-disabled defect.
+
 ## 2026-07-08 — autonomous /goal hardening: 3-agent audit + accounting-kernel + custody-account fixes
 
 Under the Owner's standing «keep working, go with your recommendation, use agents» directive. Ran three read-only
