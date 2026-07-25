@@ -1,5 +1,35 @@
-# Session Brief — Farm OS      Updated: 2026-07-13 by Codex (safe stop; #902 open and green; not applied)
+# Session Brief — Farm OS      Updated: 2026-07-25 by Codex (#902 + Slice 1A migrated; #910 open)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-25 (latest) — reconciliation Slice 1A committed, PR #910 open, dependency + schema migrated
+
+Owner said "all approved" after the explicit request for commit/push/PR and the separate migration gate. Live
+reconciliation first confirmed Farm project `veezkmytervjnpxcrbkw`, production head `20260712120000`, PR #902
+open/green at `19bd7278`, and no helper/reconciliation tables.
+
+- Committed the independently reviewed Slice 1A migration + 58-assertion pgTAP test as `c3c61ab`, pushed branch
+  `feat/accounting-reconciliation-provenance`, and opened stacked PR #910 against
+  `feat/accounting-rls-performance`. Its diff is exactly those two files. Vercel and CodeRabbit are green;
+  Supabase Preview skipped. GitHub app/db workflows do not run against this non-main stacked base.
+- Applied #902 first via Supabase MCP: ledger
+  `20260725183055_finance_read_org_set_rls`. Verified the helper is `STABLE SECURITY INVOKER`, execute is
+  authenticated-only, 16 policies use it, and financial counts did not move.
+- Applied Slice 1A second: ledger `20260725183130_accounting_reconciliation_provenance`. Verified exactly three
+  empty tables, RLS + FORCE RLS on all, authenticated SELECT only, no authenticated/anon DML, three finance-read
+  policies, five expected audit/tenant/freeze triggers, the `reconciliation.write` permission, and finance-gated
+  audit entities.
+- Pre/post financial counts are identical: 10,201 expenses; 162 sales; 10,365 journal entries; 20,730 journal
+  lines. No reconciliation data was staged and no financial row was written.
+- Hosted read-only role probes passed: accountant sees finance/sales/expenses and can read the empty reconciliation
+  tables; owner has `reconciliation.write` but direct reconciliation DML is denied; farm manager has zero finance
+  orgs, sees no accounts/sales/drawings, and still sees ordinary expenses.
+- Exact local validation before commit: dedicated Slice 1A pgTAP 58/58; full harness 1,798 pass, 2 known
+  baseline-identical engine failures, 0 file failures. Clean PR #902 baseline was 1,740 pass with the same 2 failures.
+
+**Resume point / gate:** PR #902 and PR #910 are both open and production schema is ahead of `main` by these two
+applies. Do not merge automatically. With explicit Owner merge approval, merge #902 first; then rebase/retarget
+#910 onto `main`, wait for full app/db CI (not only stacked Vercel), independently review the final diff, and request
+the #910 merge gate. Slice 1B has not started.
 
 ## 2026-07-13 (latest) — safe stop: accounting RLS performance PR2a open as #902; production unchanged
 

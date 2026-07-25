@@ -1,6 +1,21 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-06)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-25)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-07-25 (latest) — #902 dependency + accounting reconciliation Slice 1A APPLIED; production ledger head `20260725183130`.**
+> Owner explicitly approved both migration gates. Applied in dependency order through Supabase MCP:
+> `20260725183055_finance_read_org_set_rls` from PR #902, then
+> `20260725183130_accounting_reconciliation_provenance` from stacked PR #910. Preflight had neither helper nor
+> reconciliation table. Postflight: the private helper is `STABLE SECURITY INVOKER`, authenticated-only, and used
+> by 16 finance policies; all three reconciliation tables exist empty with RLS + FORCE RLS, authenticated SELECT
+> only, no authenticated/anon DML, three finance-read policies, and five expected triggers. `audit_read` and
+> `authorize()` include the new reconciliation entities/permission.
+>
+> Financial data did not move: expenses 10,201; sales 162; journal entries 10,365; journal lines 20,730 before and
+> after. Hosted read-only role simulation passed for accountant, owner, and farm manager, including drawing privacy
+> and ordinary-expense continuity. No app deployment or merge occurred. PR #902 and stacked PR #910 remain open;
+> Vercel preview for #910 is green. The next deployment action is Owner-gated merge order (#902 first, then retarget/
+> rebase #910 and require full main-targeted CI before its merge).
 
 > **2026-07-12 (latest) — period-lock hardening + cross-org tenancy leak closed; prod ledger head `20260712120000`.**
 > Three migrations applied via Supabase MCP `execute_sql` (idempotent DDL) + manual ledger insert, MIGRATE-FIRST
