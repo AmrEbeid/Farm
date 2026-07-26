@@ -1,6 +1,116 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (#902/#910 merged; migrations and production deploy verified)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Claude (slice 1B draft hardened after Codex review round 2, uncommitted; not merged/migrated/deployed)
 
-> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1A MIGRATED, MERGED, AND PRODUCTION-VERIFIED.**
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1B: MONEY-INTEGRITY HARDENING (CODEX REVIEW
+> ROUND 2), STILL DRAFT/UNCOMMITTED.** Same two untracked files as the entry below, revised in place after
+> an independent Codex review found the first draft's schema was not yet a safe money-integrity boundary
+> for a future execution/rollback RPC to trust. Six blocking items, all fixed and re-verified in this same
+> worktree; nothing committed, pushed, merged, migrated, or applied to production.
+>
+> 1. **Baseline snapshot fidelity.** `fn_guard_baseline_journal_header_immutable` and
+>    `fn_guard_baseline_journal_line_immutable` now fetch the REAL `journal_entries`/`journal_lines` row
+>    and reject the insert unless every copied typed column is byte-verbatim (header: entry_date,
+>    source_type, source_id, source_sequence, description, status, posted_at, posted_by, reversal_of;
+>    line: account_id, debit, credit, description, cost_center_id, custody_account_id, custody_movement_id,
+>    expense_id, payment_request_id) — previously only each reference's own org was checked, not its
+>    content. Each line dimension FK is ALSO independently re-verified against its own org_id, fail-closed
+>    even if the source journal_lines row's own bytes are already bad (a "legacy cross-org reference" that
+>    journal_lines itself has no guard against, since this migration doesn't alter that table).
+> 2. **One typed snapshot per source.** Added `unique (batch_id, original_journal_entry_id)` on headers;
+>    `unique (baseline_journal_header_id, original_journal_line_id)` and
+>    `unique (baseline_journal_header_id, line_ordinal)` on lines.
+> 3. **Execution-ledger relational semantics.** A new guard trigger requires `executed_by_batch_row_id`,
+>    when set, to name a batch row reviewing the SAME `evidence_item_id` (not merely the same org — the
+>    composite FK alone permitted a batch row reviewing a different evidence item). A new check constraint
+>    ties `status` to its exact required metadata shape (unexecuted: no execution/reversal metadata;
+>    executed: `executed_by_batch_row_id` + `executed_at`, no `reversed_at`; reversed: all three).
+> 4. **Action-link relational semantics.** A new guard-trigger check requires `batch_row_id` to actually
+>    belong to `batch_id` (the two composite FKs alone permitted `batch_id` from one batch paired with
+>    `batch_row_id` from an unrelated same-org batch) and requires a populated `target_table` to agree with
+>    the batch row's own reviewed `target_table` (fail-closed otherwise). New check constraints require
+>    `target_table`+`target_id`+`journal_entry_id` together for every `action_kind` except
+>    `zero_value_noop` (which requires `journal_entry_id` null and its target pair either both null or both
+>    populated, per §11 item 3's open question), and require `reinstates_journal_entry_id` non-null for
+>    exactly the two reinstatement kinds, null otherwise (previously merely optional for those two).
+> 5. **A real two-backend concurrency proof**, not only a sequential same-session duplicate-insert check.
+>    Using the locally available `dblink` extension, the test opens two genuinely separate Postgres
+>    backends against the same database: one leaves an `executed` insert uncommitted; the other's
+>    conflicting insert is sent ASYNCHRONOUSLY (avoiding a self-deadlock) and blocks server-side; the first
+>    commits; the second's now-unblocked insert is asserted to fail with a real `23505` unique violation.
+>    Because dblink backends are separate sessions that cannot see this file's own uncommitted fixtures, the
+>    block creates and commits its own small, isolated, org-scoped fixture set via dblink itself, and
+>    deletes it again afterward (deliberately leaving only the tiny fixture organization row behind in the
+>    throwaway ephemeral database — deleting it raced an unrelated `audit_log` FK during cascade cleanup,
+>    documented in the test file; harmless in a cluster destroyed at the end of every harness run). The
+>    prior sequential test is kept and relabeled — it is a fast constraint check, not concurrency evidence.
+> 6. Plan counts corrected to match the final assertion count exactly at every step.
+>
+> **Evidence:** `git diff --check` clean. The new test file passes standalone (109/109). The full local
+> `run-pgtap-local.sh` harness reports **TOTAL ok=1909 not_ok=2 file_failures=0** — the 2 `not_ok` are the
+> same pre-existing, already-documented stock-engine baseline failures
+> (`55_engine_maxdeficit_sizing_test` assertion 3 / `#280 F4`; `80_engine_msg_maxdef_test` assertion 3 /
+> `0078`), present before and unrelated to this change; zero new failures, zero file failures.
+> `96_fk_covering_index_invariant_test` (the repo-wide #229(b) gate) passes. Debugging the dblink race
+> required one scratch diagnostic script (`test-shims/diag-dblink.sh` + `.sql`), which surfaced a real
+> dblink usage detail (`dblink_get_result` needs a second drain call after an errored async command before
+> the connection accepts a new command) — both scratch files were deleted after use and never committed.
+>
+> Remaining gates are unchanged from the entry below (Owner review at the money-logic-adjacent independent-
+> review bar → Owner approval to apply → migrate-first-then-merge); this entry only records that the
+> schema itself is now hardened against the specific gaps an independent review found before any
+> execution/rollback RPC is ever written to trust it.
+
+> **2026-07-26 — ACCOUNTING RECONCILIATION SLICE 1B: DRAFT MIGRATION + PGTAP TESTS, LOCALLY VALIDATED, UNCOMMITTED.**
+> New files exist ONLY as uncommitted, untracked worktree state (`git status` shows both `??`):
+> `apps/farm-os/supabase/migrations/20260726090000_accounting_reconciliation_execution_ledger.sql` and its
+> pgTAP test `apps/farm-os/supabase/tests/20260726090000_accounting_reconciliation_execution_ledger_test.sql`.
+> **No commit, push, PR, merge, migration apply (local or hosted), or production access was performed.**
+>
+> Scope (schema-only, per the accepted design's §9 item 1B / §13B — no execution or rollback RPC body):
+> the five slice-1B tables — `reconciliation_execution_ledger`, `reconciliation_action_links`,
+> `reconciliation_baselines`, `reconciliation_baseline_journal_headers`,
+> `reconciliation_baseline_journal_lines` — plus four additive nullable columns
+> (`expenses.corrects_expense_id`, `expenses.reversed_by_rollback_at`, `sales.corrects_sale_id`,
+> `sales.reversed_by_rollback_at`). Tenant-bound composite `(id, org_id)` FKs throughout, including three
+> new composite-uniqueness anchors added on `reconciliation_batch_rows`/`expenses`/`sales` so those
+> references can be true FKs rather than guard triggers. The polymorphic
+> `reconciliation_action_links.target_table`/`target_id` pair (exact §2.6/§13B contract — Postgres has no
+> conditional FK) is enforced by a guard trigger instead. The execution-ledger partial unique index
+> guarantees at most one `executed` row per evidence item at any time. All seven `action_kind` values plus
+> `reinstates_journal_entry_id` reinstatement linkage. The two baseline-journal snapshot tables carry a
+> documented full-field jsonb canonical-hash contract and are immutable through a privileged path (a
+> `before update or delete` trigger rejects every mutation unconditionally, unlike slice 1A's
+> `reconciliation_batch_rows`, which still allows execution-bookkeeping updates while frozen). FORCE RLS +
+> finance-read-only SELECT on all five tables; zero authenticated/anon DML; no new `authorize()` permission
+> (nothing new to gate); no `fn_audit` trigger (execution-time-only, per the accepted design).
+>
+> An independent Codex review round on the first draft found four real regressions — a `target_id`/
+> `target_table` contract deviation from the accepted design, missing #229(b) FK-covering indexes on
+> several baseline-header/line single-column references, an off-by-one pgTAP `plan()` count, and a
+> too-narrow canonical-hash test — all four fixed and re-verified in this worktree.
+>
+> **Evidence:** `git diff --check` clean. The new test file passes standalone (85/85). The full local
+> `run-pgtap-local.sh` harness (ephemeral local PostgreSQL, no Docker, no network, no production access)
+> reports **TOTAL ok=1885 not_ok=2 file_failures=0** — the 2 `not_ok` are the same pre-existing, already-
+> documented stock-engine baseline failures (`55_engine_maxdeficit_sizing_test` assertion 3 / `#280 F4`;
+> `80_engine_msg_maxdef_test` assertion 3 / `0078`), present before and unrelated to this change; zero new
+> failures, zero file failures. The repo-wide FK-covering-index gate
+> (`96_fk_covering_index_invariant_test`) passes. Because the harness runs as a Postgres superuser it
+> cannot verify FORCE ROW LEVEL SECURITY itself (documented harness caveat) — that remains unverified
+> against a real Supabase project until this migration is actually applied there.
+>
+> **Remaining gates, in order:** Owner review of this specific migration at the money-logic-adjacent
+> independent-review bar the design's §13B requires (separate from approving slice 1A and from approving
+> the whole design) → Owner approval to apply → migrate-first-then-merge against whichever Supabase
+> project the Owner designates, evidenced the same way slice 1A's applies were (pre/post `pg_class`/
+> `pg_policies`/`has_table_privilege` probes). **Rollback** (not yet exercised against any real database) is
+> the exact dependency-ordered DDL documented in the migration file's own header comment: drop the five new
+> tables, the two baseline-immutability triggers/functions, the action-link tenant-guard trigger/function,
+> the four additive expenses/sales columns and their constraints, then the three new `(id, org_id)`
+> composite-uniqueness anchors on `reconciliation_batch_rows`/`expenses`/`sales` — leaving a fresh DB
+> byte-identical to one with only slice 1A applied. The prior entry's "Slice 1B has not started" is
+> superseded by this entry; Slice 1A itself remains complete and production-verified, unchanged below.
+
+> **2026-07-26 — ACCOUNTING RECONCILIATION SLICE 1A MIGRATED, MERGED, AND PRODUCTION-VERIFIED.**
 > Owner approved merge and migration of the complete accounting stack. PR #902 merged to `main` at `d1c175e1`;
 > PR #910 merged at `b4ab8ecf`. Production records `20260725183055_finance_read_org_set_rls`,
 > `20260725183130_accounting_reconciliation_provenance`, and
