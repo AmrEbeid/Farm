@@ -2,6 +2,11 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-26 (latest) — Slice 2 committed and integrated with released Slice 1B; PR pending.**
+> Commit `bf6cf8e` contains the accepted read-only staging parser. Slice 1B is already production-migrated
+> and merged through PR #912. Slice 2 has no migration, no database write, and no production financial
+> effect; it is moving through integrated validation and PR review.
+
 > **2026-07-26 (latest) — Slice 2 staging parser: mechanical filename-compliance rename (space-only, one-dot names), local/uncommitted, no deploy, no production access.**
 > Renamed every new multiword filename to space-separated words with exactly one dot before the extension (no
 > pre-existing file renamed): `apps/farm-os/lib/reconciliation/canonical json.mts`, `stable id.mts`,
@@ -50,6 +55,70 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > real pinned files produced byte-identical SHA-256 output; verification artifacts were written to `/tmp` and
 > removed afterward. The external trusted Python harness (`tests/test accounting reconcile.py`) was run read-only
 > and unmodified: 107/107 passed. See `PROJECT-TRACKER.md`/`SESSION-BRIEF.md` for full detail.
+> **2026-07-26 (latest) — accounting reconciliation Slice 1B production migration applied and
+> verified; PR #912 awaiting merge.** Supabase migration ledger:
+> `20260726083453 accounting_reconciliation_execution_ledger`. Post-apply verification confirms all
+> five new tables exist with RLS + FORCE RLS, zero client DML grants, all four additive columns, and all
+> guard functions. No financial data was written. The repository PR remains open until its final review
+> completes.
+
+> **2026-07-26 (latest) — accounting reconciliation Slice 1B committed for approved release, not yet
+> applied.** Commit `4bf7021` records the independently reviewed migration and 109-assertion pgTAP test.
+> Owner approval now covers review, merge, and migration as the standard completion path. Push/PR/CI,
+> production apply, merge, and deployment have not yet occurred at this checkpoint; production ledger
+> head remains `20260726051731`.
+
+> **2026-07-26 (latest) — accounting reconciliation slice 1B: money-integrity hardening (Codex review
+> round 2), STILL a draft, NOT applied anywhere, NOT committed.** Same two untracked files as the entry
+> below, revised in place. An independent review found the schema was not yet safe as the money-integrity
+> boundary a future execution/rollback RPC will trust: baseline-snapshot fidelity checks only verified
+> each reference's org, not its copied content; the execution ledger and action links allowed relational
+> mismatches the composite FKs alone couldn't catch (e.g. a batch row from the wrong batch, or reviewing
+> the wrong evidence item); and the "forced concurrent" test was sequential, not a real two-backend proof.
+> All six blocking items were fixed in this worktree (full detail in `docs/PROJECT-TRACKER.md`'s matching
+> entry): full-field verbatim snapshot checks with independent fail-closed dimension-org verification; one
+> typed-snapshot-per-source uniqueness; execution-ledger and action-link relational guards; and a REAL
+> `dblink`-based two-backend race replacing the sequential-only proof.
+>
+> Validation (local only, no network, no production access): `git diff --check` clean; new test file
+> standalone 109/109; full `run-pgtap-local.sh` — **TOTAL ok=1909 not_ok=2 file_failures=0**, the 2 `not_ok`
+> being the same two pre-existing, already-documented stock-engine baseline failures
+> (`55_engine_maxdeficit_sizing_test` / `#280 F4`; `80_engine_msg_maxdef_test` / `0078`), unrelated to and
+> predating this change; `96_fk_covering_index_invariant_test` passes. No ephemeral processes or scratch
+> diagnostic scripts were left behind.
+>
+> Next gates are unchanged from the entry below — this entry only records that the schema itself closed the
+> gaps an independent review found before any execution/rollback RPC is written to trust it.
+
+> **2026-07-26 — accounting reconciliation slice 1B: DRAFT migration only, NOT applied anywhere, NOT committed.**
+> A new migration (`20260726090000_accounting_reconciliation_execution_ledger`) and its pgTAP test exist as
+> uncommitted, untracked files in this worktree only. No Supabase project (hosted or local), staging, or
+> production environment has had this migration applied — no `apply_migration` call was made against any
+> project. No commit, push, PR, or merge has occurred. This entry records that local schema work happened
+> and was locally validated; it is explicitly **not** a deploy record — production ledger head remains
+> `20260726051731` (unchanged, per the entry below).
+>
+> Validation performed (local only, no network, no production access): `git diff --check` clean; the local
+> ephemeral pgTAP harness (`test-shims/run-pgtap-local.sh`, no Docker, spins up and tears down a throwaway
+> PostgreSQL cluster) applies shims + every migration (including this new one) + seed, then runs every
+> `supabase/tests/*.sql` file. Result: **TOTAL ok=1885 not_ok=2 file_failures=0** — the 2 `not_ok` are the
+> same pre-existing, already-documented stock-engine baseline failures
+> (`55_engine_maxdeficit_sizing_test` assertion 3 / `#280 F4`; `80_engine_msg_maxdef_test` assertion 3 /
+> `0078`), unrelated to and predating this change. The new test file passes standalone (85/85). The
+> repo-wide FK-covering-index gate (`96_fk_covering_index_invariant_test`) passes. Because the harness runs
+> as a Postgres superuser, it cannot verify FORCE ROW LEVEL SECURITY itself (the documented harness
+> caveat) — that remains unverified against a real Supabase project until this migration is actually
+> applied there.
+>
+> Next gates, in order: Owner review of this migration at the money-logic-adjacent independent-review bar
+> the accepted design's §13B requires (same bar as slice 4/6) → Owner approval to apply → migrate-first
+> (to whichever Supabase project the Owner designates), evidenced via pre/post `pg_class`/`pg_policies`/
+> `has_table_privilege` probes exactly as slice 1A's applies were evidenced below → only then merge to
+> `main`. Rollback, if ever needed after a real apply, is the exact dependency-ordered DDL documented in
+> the migration file's own header comment (drops the five new tables, the two baseline-immutability
+> triggers/functions, the action-link tenant-guard trigger/function, the four additive expenses/sales
+> columns, and the three new `(id, org_id)` composite-uniqueness anchors on
+> `reconciliation_batch_rows`/`expenses`/`sales`) — not yet exercised against any real database.
 
 > **2026-07-26 — accounting reconciliation stack applied and merged; production ledger head `20260726051731`.**
 > Owner explicitly approved both migration gates. Applied in dependency order through Supabase MCP:
