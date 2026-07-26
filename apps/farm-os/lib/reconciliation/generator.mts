@@ -60,6 +60,7 @@ export function generateStagingDraft(
   if (evidence.workbook_sha256 !== EXPECTED_WORKBOOK_SHA256) {
     throw new StagingError("workbook hash mismatch against pinned evidence source");
   }
+  const orgId = options.orgId.toLowerCase();
 
   const expectedOccurrenceCounts = options.expectedOccurrenceCounts ?? EXPECTED_OCCURRENCE_COUNTS;
   const expectedClassificationCounts = options.expectedClassificationCounts ?? EXPECTED_CLASSIFICATION_COUNTS;
@@ -84,14 +85,14 @@ export function generateStagingDraft(
     "reconciliation_batch",
     evidence.workbook_sha256,
     EXPECTED_PRODUCTION_SNAPSHOT_SHA256,
-    options.orgId,
+    orgId,
   );
 
   for (const dataset of DATASETS) {
     const datasetEvidence = evidence[dataset];
 
     for (const row of datasetEvidence.exceptions) {
-      const evidenceItem = buildEvidenceItem(dataset, row, options.orgId, batchId);
+      const evidenceItem = buildEvidenceItem(dataset, row, orgId, batchId);
       const existing = evidenceItemsById.get(evidenceItem.id);
       if (existing) {
         assertSameEvidencePosition(existing, evidenceItem);
@@ -102,7 +103,7 @@ export function generateStagingDraft(
       if (!batchRowsByEvidenceId.has(evidenceItem.id)) {
         const batchRow: BatchRowDraft = {
           id: stableUuid("reconciliation_batch_row", batchId, evidenceItem.id),
-          org_id: options.orgId,
+          org_id: orgId,
           batch_id: batchId,
           evidence_item_id: evidenceItem.id,
           review_state: "unreviewed",
@@ -145,7 +146,7 @@ export function generateStagingDraft(
 
   const batch: BatchDraft = {
     id: batchId,
-    org_id: options.orgId,
+    org_id: orgId,
     source_workbook_sha256: evidence.workbook_sha256,
     status: "staged",
     result_summary: {

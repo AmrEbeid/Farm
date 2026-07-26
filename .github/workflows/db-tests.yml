@@ -42,10 +42,20 @@ jobs:
       - name: Check for duplicate migration versions
         run: |
           set -euo pipefail
-          dups="$(ls apps/farm-os/supabase/migrations/*.sql | xargs -n1 basename | sed -E 's/^([0-9]+)_.*/\1/' | sort | uniq -d)"
+          # Accept both the legacy VERSION_name.sql convention and the Owner-required
+          # VERSION name.sql convention; both carry the same migration-version identity.
+          dups="$(
+            while IFS= read -r -d '' file_path; do
+              basename "$file_path" | sed -E 's/^([0-9]+)(_| ).*/\1/'
+            done < <(find apps/farm-os/supabase/migrations -maxdepth 1 -type f -name '*.sql' -print0) \
+              | sort | uniq -d
+          )"
           if [ -n "$dups" ]; then
             echo "::error::Duplicate migration version number(s) — renumber before merge:"
-            for v in $dups; do ls apps/farm-os/supabase/migrations/"${v}"_*.sql; done
+            for v in $dups; do
+              find apps/farm-os/supabase/migrations -maxdepth 1 -type f \
+                \( -name "${v}_*.sql" -o -name "${v} *.sql" \) -print
+            done
             exit 1
           fi
           echo "OK: migration version numbers are unique"

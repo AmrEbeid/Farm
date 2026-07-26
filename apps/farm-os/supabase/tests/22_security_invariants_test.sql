@@ -110,7 +110,9 @@ select is(
         'fn_accounting_balance_sheet', -- read-only balance-sheet report RPC (SPEC-0004 Slice A, migration 20260705110000)
         'fn_accounting_income_statement', -- read-only income-statement/P&L report RPC (SPEC-0004 Slice A, migration 20260705120000)
         'fn_pnl_timeseries', -- read-only GL-backed P&L time-series RPC (SPEC-0029 Phase 0, migration 20260705140000)
-        'fn_budget_vs_actual' -- read-only budget-vs-actual report RPC (SPEC-0004 Slice A, migration 20260705150000)
+        'fn_budget_vs_actual', -- read-only budget-vs-actual report RPC (SPEC-0004 Slice A, migration 20260705150000)
+        'fn_stage_reconciliation_manifest', 'fn_review_reconciliation_row', -- gated reconciliation slice-3 staging/review RPCs (migration 20260726120000)
+        'fn_freeze_reconciliation_batch', 'fn_approve_reconciliation_batch' -- gated reconciliation slice-3 freeze/owner-approve RPCs (migration 20260726120000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )
