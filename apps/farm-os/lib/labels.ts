@@ -161,6 +161,8 @@ export const PAYMENT_STATUS_AR: Record<string, string> = {
   post_paid_unpaid: "آجل غير مدفوع",
   paid_from_custody: "مدفوع من العهدة",
   paid_by_owner: "مدفوع من المالك",
+  historical_treasury: "ترحيل تاريخي من خزينة المزرعة",
+  historical_reversed: "ترحيل تاريخي معكوس",
   cancelled: "ملغى",
 };
 

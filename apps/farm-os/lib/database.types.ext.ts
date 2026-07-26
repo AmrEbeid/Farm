@@ -438,7 +438,13 @@ type StructFunctions = {
 
 // ── SPEC-0018 «العهدة وطلبات الصرف» — custody + payment requests. ──
 // Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
-type ExpensePaymentStatus = "paid_from_custody" | "post_paid_unpaid" | "paid_by_owner" | "cancelled";
+type ExpensePaymentStatus =
+  | "paid_from_custody"
+  | "post_paid_unpaid"
+  | "paid_by_owner"
+  | "historical_treasury"
+  | "historical_reversed"
+  | "cancelled";
 type ExpenseKind = "operating" | "drawing" | "capex";
 type PaymentRoutingColumn = "payment_status" | "paid_by" | "kind";
 type ExpenseDimensionColumn = "account_id" | "cost_center_id";

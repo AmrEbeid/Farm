@@ -201,13 +201,25 @@ describe("reconciliation review — decision payload contract", () => {
       action: "review",
       target_table: "expenses",
       reason: "مصروف حقيقي",
-      expense: { category: "أسمدة", kind: "operating", account_id: UUID_A, description: "سماد" },
+      expense: {
+        category: "أسمدة",
+        kind: "operating",
+        account_id: UUID_A,
+        description: "سماد",
+        payment_decision: "routed_now",
+      },
     });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(Object.keys(r.payload).sort()).toEqual(["action", "expense", "reason", "target_table"]);
     const expense = r.payload.expense as Record<string, unknown>;
-    expect(Object.keys(expense).sort()).toEqual(["account_id", "category", "description", "kind"]);
+    expect(Object.keys(expense).sort()).toEqual([
+      "account_id",
+      "category",
+      "description",
+      "kind",
+      "payment_decision",
+    ]);
     expect(r.payload.target_table).toBe("expenses");
   });
 
@@ -221,6 +233,34 @@ describe("reconciliation review — decision payload contract", () => {
     ).toBe(false);
     expect(
       buildReviewDecision({ ...base, expense: { category: "x", kind: "operating", account_id: "not-a-uuid" } }).ok,
+    ).toBe(false);
+  });
+
+  it("accepts only the explicit historical-treasury payment decision", () => {
+    const base = {
+      action: "review",
+      target_table: "expenses",
+      reason: "مصروف تاريخي",
+      expense: {
+        category: "أسمدة",
+        kind: "operating",
+        account_id: UUID_A,
+      },
+    } as const;
+    expect(
+      buildReviewDecision(base).ok,
+    ).toBe(false);
+    expect(
+      buildReviewDecision({
+        ...base,
+        expense: { ...base.expense, payment_decision: "routed_now" },
+      }).ok,
+    ).toBe(true);
+    expect(
+      buildReviewDecision({
+        ...base,
+        expense: { ...base.expense, payment_decision: "unrouted" },
+      }).ok,
     ).toBe(false);
   });
 
@@ -259,7 +299,12 @@ describe("reconciliation review — decision payload contract", () => {
       target_table: "expenses",
       reason: "تصحيح",
       classification: "amount_correction_candidate",
-      expense: { category: "أسمدة", kind: "operating", account_id: UUID_A },
+      expense: {
+        category: "أسمدة",
+        kind: "operating",
+        account_id: UUID_A,
+        payment_decision: "routed_now",
+      },
     });
     expect(correction.ok).toBe(false); // missing corrects_expense_id
 
@@ -268,7 +313,12 @@ describe("reconciliation review — decision payload contract", () => {
       target_table: "expenses",
       reason: "تصحيح",
       classification: "amount_correction_candidate",
-      expense: { category: "أسمدة", kind: "operating", account_id: UUID_A },
+      expense: {
+        category: "أسمدة",
+        kind: "operating",
+        account_id: UUID_A,
+        payment_decision: "routed_now",
+      },
       corrects_expense_id: UUID_B,
     });
     expect(withTarget.ok).toBe(true);
@@ -279,7 +329,12 @@ describe("reconciliation review — decision payload contract", () => {
       target_table: "expenses",
       reason: "إضافة",
       classification: "source_addition_candidate",
-      expense: { category: "أسمدة", kind: "operating", account_id: UUID_A },
+      expense: {
+        category: "أسمدة",
+        kind: "operating",
+        account_id: UUID_A,
+        payment_decision: "routed_now",
+      },
       corrects_expense_id: UUID_B,
     });
     expect(wrongClass.ok).toBe(false); // correction id not allowed here

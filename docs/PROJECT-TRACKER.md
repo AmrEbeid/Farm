@@ -1,4 +1,37 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slice 4/4A RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (expense execution reviewed)
+
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: REVIEWED, RELEASE PENDING.**
+> The isolated branch `feat/accounting-reconciliation-expense-execution` adds the owner-only,
+> whole-batch atomic `fn_execute_reconciliation_batch(uuid)` expense kernel and append-only migration
+> `20260726150000 accounting reconciliation execute expense batch.sql`. It posts approved/frozen
+> positive additions as Dr reviewed expense leaf / Cr general treasury `1010`, never custody `1000`;
+> zero additions are explicit no-ops. Corrections require an exact two-line expense/treasury journal
+> matching the original expense total, reject any custody/request/second-payment path, reverse the
+> original, mark it immutable `historical_reversed`, and create the reviewed replacement (or no
+> replacement for a zero correction). Owner P&L excludes verified historical reversals.
+>
+> Integrity controls: `routed_now` is mandatory before an expense row can be included; payload hashes
+> are rechecked; account/dimension/correction rows and journals are locked; account `1010` serializes
+> organization accounting baselines before capture; cross-batch evidence replay skips safely; exact
+> correction snapshots, aggregate deltas, balanced journals, and inverse reversals are postflight
+> checked. Failures roll back every baseline/money/link/ledger write and persist only a fixed failure
+> code plus safe row UUID. Historical postings cannot be rerouted or edited. New organizations and the
+> trigger-disabled local seed both receive account `1010`.
+>
+> **Validation:** two independent review rounds ended **APPROVE** after fixing treasury/custody
+> classification, payment-state duplication, correction/P&L divergence, zero corrections, date and
+> business-field mutability, alternate payment paths, expense-vs-journal mismatch, baseline lock order,
+> and nullable execution decisions. Full ESLint and TypeScript are clean; Vitest **673 passed + 13
+> controlled skips**; production build **65/65 pages**; focused execution pgTAP **92/92**, review
+> **127/127**, evidence guard **21/21**, provenance **60/60**; full pgTAP **2,149 passing**, zero file
+> failures, with only the two unchanged stock-engine baseline assertions. `git diff --check` is clean.
+>
+> **Current gate:** local/uncommitted at this checkpoint; not pushed, migrated, merged, or deployed.
+> Production preflight confirms Farm project `veezkmytervjnpxcrbkw`, one existing account `1010`, zero
+> reconciliation batches/evidence/rows, and unchanged financial counts: expenses `10,201`, sales `162`,
+> journal entries `10,365`, journal lines `20,730`. No real manifest or financial row was written.
+> After this release, accounting reconciliation still needs the sale executor, rollback/reinstatement
+> kernel, mixed-batch orchestration, and owner-facing execute/rollback controls before daily-use 100%.
 
 > **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 4/4A — MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > Follows the independent-review REQUEST CHANGES on the Slice 4 review UI. Added, on top of the

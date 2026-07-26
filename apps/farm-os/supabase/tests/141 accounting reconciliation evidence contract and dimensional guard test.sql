@@ -152,21 +152,24 @@ select throws_ok(format($q$ select public.fn_review_reconciliation_row(%L::uuid,
   current_setting('t.row1'),
   jsonb_build_object('action','review','reason','مصروف','target_table','expenses',
     'expense', jsonb_build_object('category','أسمدة','kind','operating',
-      'account_id','c1000000-0000-0000-0000-000000000002'))),
+      'account_id','c1000000-0000-0000-0000-000000000002',
+      'payment_decision','routed_now'))),
   '23514', null, 'inactive posting account rejected');
 -- kind mismatch rejected (account kind operating, decision kind capex)
 select throws_ok(format($q$ select public.fn_review_reconciliation_row(%L::uuid, %L::jsonb) $q$,
   current_setting('t.row1'),
   jsonb_build_object('action','review','reason','مصروف','target_table','expenses',
     'expense', jsonb_build_object('category','أسمدة','kind','capex',
-      'account_id','c1000000-0000-0000-0000-000000000001'))),
+      'account_id','c1000000-0000-0000-0000-000000000001',
+      'payment_decision','routed_now'))),
   '23514', null, 'account kind must equal expense_kind');
 -- non-leaf (parent with active child) rejected
 select throws_ok(format($q$ select public.fn_review_reconciliation_row(%L::uuid, %L::jsonb) $q$,
   current_setting('t.row1'),
   jsonb_build_object('action','review','reason','مصروف','target_table','expenses',
     'expense', jsonb_build_object('category','أسمدة','kind','operating',
-      'account_id','c1000000-0000-0000-0000-000000000003'))),
+      'account_id','c1000000-0000-0000-0000-000000000003',
+      'payment_decision','routed_now'))),
   '23514', null, 'non-leaf account (has active children) rejected');
 reset role;
 
@@ -202,7 +205,8 @@ select lives_ok(format($q$ select public.fn_review_reconciliation_row(%L::uuid, 
   current_setting('t.row1'),
   jsonb_build_object('action','review','reason','مصروف صحيح','target_table','expenses',
     'expense', jsonb_build_object('category','أسمدة','kind','operating',
-      'account_id','c1000000-0000-0000-0000-000000000001'))),
+      'account_id','c1000000-0000-0000-0000-000000000001',
+      'payment_decision','routed_now'))),
   'included expense with an active leaf account of matching kind is accepted');
 select lives_ok(format($q$ select public.fn_review_reconciliation_row(%L::uuid, %L::jsonb) $q$,
   current_setting('t.row2'),

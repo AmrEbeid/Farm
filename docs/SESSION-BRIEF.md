@@ -1,5 +1,31 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slice 4/4A RELEASED)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (expense execution reviewed)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-26 (latest) — expense reconciliation execution reviewed; release pending
+
+Branch `feat/accounting-reconciliation-expense-execution`, worktree
+`/Users/amrebeid/Projects/farm reconciliation expense execution`, base `41d1ea0` (`origin/main`).
+New migration `20260726150000 accounting reconciliation execute expense batch.sql` and pgTAP `200
+accounting reconciliation execute expense batch test.sql`; touched app review contract/types/labels,
+seed, and prior reconciliation test fixtures.
+
+Delivered: owner-only whole-batch atomic expense execution; Dr reviewed expense leaf / Cr treasury
+1010; explicit zero no-op; exact correction target/journal eligibility; immutable
+`historical_treasury` and `historical_reversed` lifecycle; owner-P&L consistency; alternate
+custody/request/payment-path rejection; frozen payload, baseline, aggregate, journal, inverse,
+cross-org, replay, and two-backend lock proofs; fixed-code redacted failures. No real data was staged
+or executed.
+
+Evidence: two independent reviews **APPROVE**. Full ESLint + TypeScript clean; Vitest 673 passed +
+13 controlled skips; build 65/65 pages; execution pgTAP 92/92; review 127/127; evidence guard 21/21;
+provenance 60/60; full pgTAP 2,149 passing, zero file failures, with only the two unchanged stock-engine
+baseline assertions. Production preflight is read-only and clean: Farm project confirmed, account 1010
+present, reconciliation counts 0/0/0, financial counts unchanged at 10,201 / 162 / 10,365 / 20,730.
+
+Release state at this checkpoint: local/uncommitted only; not pushed, migrated, merged, or deployed.
+Resume by committing/pushing/opening the PR, verifying CI, applying the reviewed migration first,
+running production postflight, then merging and verifying Vercel. Next accounting slices: sales
+execution, rollback/reinstatement, mixed-batch orchestration, then owner-facing execute/rollback UI.
 
 ## 2026-07-26 (latest) — reconciliation Slice 4/4A released
 

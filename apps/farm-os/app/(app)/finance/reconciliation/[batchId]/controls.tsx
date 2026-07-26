@@ -101,9 +101,7 @@ const KIND_OPTS = [
   { value: "capex", label: "رأسمالي" },
 ];
 const PAYMENT_OPTS = [
-  { value: "", label: "— بدون —" },
-  { value: "unrouted", label: "بدون توجيه دفع" },
-  { value: "routed_now", label: "توجيه للدفع الآن" },
+  { value: "routed_now", label: "ترحيل تاريخي على خزينة المزرعة" },
 ];
 const HISTORICAL_OPTS = [
   { value: "", label: "— بدون —" },
@@ -454,12 +452,14 @@ function RowCard({
                   options={idOptions("— بدون —", options.suppliers)}
                 />
               </Field>
-              <Field label="قرار الدفع" id={`exp-pay-${row.id}`}>
+              <Field label="قرار الدفع" id={`exp-pay-${row.id}`} required>
                 <Select
                   id={`exp-pay-${row.id}`}
                   value={exp.payment_decision}
                   onChange={(e) => setExp({ ...exp, payment_decision: e.target.value })}
                   options={PAYMENT_OPTS}
+                  placeholder="اختر قرار الترحيل"
+                  required
                 />
               </Field>
               {isCorrection && (

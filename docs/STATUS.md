@@ -1,18 +1,18 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-26 (accounting reconciliation stack migrated and merged; production deployment verified). Owner: Amr Ebeid.*
+*Updated: 2026-07-26 (expense reconciliation executor reviewed; release pending). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-07-26 — accounting reconciliation provenance schema is live and merged.** PR #902 merged to `main` at
-`d1c175e1`; PR #910 merged at `b4ab8ecf` after all three production migrations were applied. Post-merge application,
-UI-library, secret-scan, release, and Vercel production checks pass. The full database harness is
-1,800 pass with the same two known stock-engine baseline failures and zero file failures; all 60 reconciliation
-assertions pass. CodeRabbit found two valid frozen-row gaps, fixed append-only in commit `1660b41` and applied as
-`20260726051731_reconciliation_frozen_row_hardening`: frozen rows now reject DELETE and automatically freeze every
-present/future column except `execution_result` and `execution_error`. Production reconciliation tables remain empty.
-Financial counts remain unchanged at 10,201 expenses, 162 sales, 10,365 journal entries, and 20,730 journal lines.
-No reconciliation evidence or financial row has been written. Slice 1A is complete; Slice 1B has not started.
+**2026-07-26 — reconciliation review stack is live; expense execution is reviewed locally, release pending.**
+Production has provenance, execution-ledger, stage/review/freeze/approve RPCs, and the Arabic review workspace
+(PRs #902/#910/#912/#915/#917/#918). Production reconciliation tables remain empty; no real manifest or
+financial row has been written. The next reviewed migration adds owner-only atomic expense execution with
+treasury 1010, immutable historical reversal state, exact correction/P&L/GL checks, and cross-batch
+serialization. Local evidence: Vitest 673 passed + 13 controlled skips; build 65/65; pgTAP 2,149 passing,
+zero file failures, only the same two stock-engine baselines; two independent reviews APPROVE. It is not
+yet committed, migrated, merged, or deployed. Sales execution, rollback, mixed-batch orchestration, and
+owner-facing execute/rollback controls remain before reconciliation is daily-use complete.
 
 **2026-07-07/08 — the finance half of Stage M landed.** The real 7-year history (10,232 expenses / 162 sales, 2019–2026) is now account-linked and posted to the double-entry GL, then reconciled **sheet-exact** to the source workbook (expenses 20,527,757 / revenue 25,835,533), with a 2017–2018 opening balance; the trusted BS/IS/TB/budget-vs-actual pages render real numbers. On top: the «الرؤى» 7-chapter insight arc (#868), a palm-tree-sales revenue reclass (#869/#870, applied), and an **accounting-kernel correctness pass** (#871, applied `20260708100000`): revenue posts on the sale's economic date, a reversed sale can't be collected, trial balance is posted-only. Money-integrity review items (reversal RPC, audit_read pin, custody floor/journal-completeness) confirmed already shipped (#791/#792/#793). Engine + multi-tenant RLS independently re-audited **clean**. **Still gating full real-data operation: Stage 0 security (#362) + the palm-registry import (#239, prod palms still synthetic).**
 
@@ -30,7 +30,7 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 | 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673), and DB/RPC positive plan-requirement backstop live (#848 / prod `20260706180856`). |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
 | 6 Budget + approvals | 70% | PR workflow live; **budget gate is display-only** (#157) — approval never reads budget_lines. |
-| 7 Accounting | ✅ ~99% | GL kernel + custody/payment requests live (#568/#468); custody transfer/reports, revenue/A-R backend/reports, COA, cost centers, owner insights, offshoot valuation, close/period lock, trusted BS/IS/TB/budget-vs-actual, report catalog, proof packet, PDF/CSV coverage live. **Reversal RPC + audit_read pin + custody floor/journal-completeness shipped (#791/#792/#793); accounting-kernel correctness pass applied (#871, `20260708100000`): revenue posts on sale date, reversed-sale collection blocked, trial balance posted-only.** **Historical import/reconciliation DONE** (real 7-yr GL sheet-exact, `20260707115445`/`130001`/`131822` + reclass `20260708090000`). Remaining: Excel dual-run; deeper reversal semantics (reset source status / unwind collections / scorecards read posted-GL — product decision, latent). |
+| 7 Accounting | ~99% foundation / reconciliation execution incomplete | GL, custody, A/R, COA, close, trusted statements, real 7-year backfill, review/freeze/approve stack, and review UI are live. Expense execution kernel is reviewed but not yet released. Remaining for dependable reconciliation: sales execution, rollback/reinstatement, mixed-batch orchestration, execute/rollback UI, controlled real staging, dual-run, and accountant sign-off. |
 | 8 People/payroll | 50% | Onboarding/attendance/labor live; payroll gated on wage model #388. |
 | 9 Weather | 70% | Gates + thresholds live; forecast service NOT configured in prod. |
 | 10 Care Academy | 20% | #366 draft; gated on agronomist + pesticide-registration sign-off (no agronomist engaged). |
