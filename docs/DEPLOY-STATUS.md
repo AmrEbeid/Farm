@@ -2,6 +2,59 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-26 (latest) — Slice 2 committed and integrated with released Slice 1B; PR pending.**
+> Commit `bf6cf8e` contains the accepted read-only staging parser. Slice 1B is already production-migrated
+> and merged through PR #912. Slice 2 has no migration, no database write, and no production financial
+> effect; it is moving through integrated validation and PR review.
+
+> **2026-07-26 (latest) — Slice 2 staging parser: mechanical filename-compliance rename (space-only, one-dot names), local/uncommitted, no deploy, no production access.**
+> Renamed every new multiword filename to space-separated words with exactly one dot before the extension (no
+> pre-existing file renamed): `apps/farm-os/lib/reconciliation/canonical json.mts`, `stable id.mts`,
+> `pinned hashes.mts`, `canonical fixtures.ts` (plus `types.mts`/`generator.mts`/`cli.mts`/`validate.mts` — an
+> extension-only change so the whole CLI import chain is unambiguous ESM; `index.ts` unchanged); the CLI entry is
+> now `apps/farm-os/scripts/reconciliation stage dry run.mts` (`.mts` so Node never emits the
+> `MODULE_TYPELESS_PACKAGE_JSON` warning, **without** adding `"type": "module"` to `package.json` — confirmed
+> untouched). The four new test files moved to `apps/farm-os/lib/reconciliation/tests/` (no second `.test` dot);
+> `vitest.config.ts`'s `include` was extended additively, the original pattern untouched. Verified: running the new
+> `.mts` entry twice against the real three pinned inputs produced zero-byte stderr both times, byte-identical
+> SHA-256 output, `chmod 0600`, and identical counts to before the rename (698/698/2). `tsc --noEmit` clean, full
+> `eslint` clean, `git diff --check` clean. Focused Vitest with `RUN_RECONCILIATION_CANONICAL=1`: 58/58 passed;
+> full Vitest 651/651 gated, 638/638 + 13 skipped ungated — both unchanged from before the rename. No commit, push,
+> PR, merge, deploy, migration, or production access.
+> Fixed the last blocker from a second Codex acceptance review: `generateStagingDraft` now cross-checks the
+> evidence file's own `summary.source_occurrence_count`/`summary.production_occurrence_count`/`summary.counts`
+> against the counts it independently recomputes from the exception rows (previously those summary fields were
+> emitted unchecked). `summary.counts` may omit a classification key only when its true recomputed count is
+> genuinely 0 (matching the real trusted evidence's own shape); any other mismatch, or any unknown key, fails
+> closed. Added a new `RUN_RECONCILIATION_CANONICAL=1` explicit env gate
+> (`apps/farm-os/lib/reconciliation/canonical fixtures.ts`) so the canonical real-file test suites are never a
+> silent skip: unset, they skip gracefully (portable CI); set, they throw immediately if any of the three pinned
+> real files is missing, otherwise they run for real. **Run and green in this controlled worktree:**
+> `RUN_RECONCILIATION_CANONICAL=1 npx vitest run` → **651/651 passed, 0 skipped**. Also re-verified: `tsc --noEmit`
+> clean, full `eslint` clean, `git diff --check` clean, external Python harness read-only/unmodified 107/107. No
+> commit, push, PR, merge, deploy, migration, or production access.
+
+> **2026-07-26 — accounting reconciliation Slice 2 staging parser hardened per acceptance review: local/uncommitted, no deploy, no production access.**
+> Built and then hardened the Slice 2 dry-run staging generator/CLI (`apps/farm-os/lib/reconciliation/*`,
+> `apps/farm-os/scripts/reconciliation stage dry run.mts`) in the isolated worktree
+> `farm accounting reconciliation slice 2`, in response to a Codex acceptance REQUEST CHANGES review. **No Supabase
+> migration, no production apply, no deploy, no commit, no push, no PR/merge** — this entry exists only to record
+> that local work happened; production is unaffected and its ledger head is unchanged from the entry below. The tool
+> performs zero database writes and zero network access by construction; it only hashes/reads the three pinned local
+> trusted inputs (workbook, protected production snapshot, exception evidence) and writes a local draft JSON file.
+> Fixes applied: the CLI now hashes the raw bytes of all three pinned inputs (not just the evidence file) and fails
+> closed independently per input; classification totals are recomputed from the exception rows and checked against
+> exact pinned per-class counts via a new runtime JSON validator (no bare type casts); the two `2024-02-30` sale
+> quality-flag dates are now preserved verbatim (approved metadata) and pinned exact; `--force` was removed —
+> output creation is atomic (`O_CREAT|O_EXCL`), refuses any pre-existing destination including a symlink, and stays
+> `chmod 0600`; the batch draft no longer claims a `production_snapshot_sha256` column that the real
+> `reconciliation_batches` table does not have (moved to a clearly-labeled non-row `tool_metadata` section).
+> Validation done locally: focused `lib/reconciliation` + `lib/import/convention.test.ts` Vitest 50/50 (including
+> independent per-input hash-mismatch and symlink-refusal tests against the real pinned files); full `farm-os`
+> Vitest 644/644 (no regressions); full `tsc --noEmit` and full `eslint` clean; the CLI run twice against all three
+> real pinned files produced byte-identical SHA-256 output; verification artifacts were written to `/tmp` and
+> removed afterward. The external trusted Python harness (`tests/test accounting reconcile.py`) was run read-only
+> and unmodified: 107/107 passed. See `PROJECT-TRACKER.md`/`SESSION-BRIEF.md` for full detail.
 > **2026-07-26 (latest) — accounting reconciliation Slice 1B production migration applied and
 > verified; PR #912 awaiting merge.** Supabase migration ledger:
 > `20260726083453 accounting_reconciliation_execution_ledger`. Post-apply verification confirms all

@@ -1,4 +1,129 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (slice 1B production-migrated and verified; PR #912 awaiting merge)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (Slice 2 committed and integrated with released Slice 1B; PR pending)
+
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 2 COMMITTED AND INTEGRATED WITH RELEASED
+> MAIN.** Commit `bf6cf8e` contains the independently accepted deterministic staging parser, bounded CLI,
+> and tests. Current `main` includes merged PR #912 and the production-verified Slice 1B migration
+> (`20260726083453 accounting_reconciliation_execution_ledger`). The documentation histories from both
+> lanes were preserved during integration. Slice 2 has no database migration and performs no database or
+> financial writes. Next: rerun the gated canonical suite on the integrated bytes, push/open PR, review
+> CI, and merge if acceptable.
+
+> **2026-07-26 (latest) — SLICE 2 STAGING PARSER: MECHANICAL FILENAME-COMPLIANCE FIX (space-only, one-dot filenames), LOCAL AND UNCOMMITTED. NO PRODUCTION ACCESS.**
+> Renamed every new multiword filename to words-separated-only-by-spaces with exactly one dot before the extension;
+> no pre-existing repo file was renamed. `apps/farm-os/lib/reconciliation/`: `canonical-json.ts` → `canonical
+> json.mts`, `stable-id.ts` → `stable id.mts`, `pinned-hashes.ts` → `pinned hashes.mts`, `canonical-fixtures.ts` →
+> `canonical fixtures.ts`; single-word `types.ts`/`generator.ts`/`cli.ts`/`validate.ts` were additionally converted
+> to `types.mts`/`generator.mts`/`cli.mts`/`validate.mts` (extension-only change, already single-word) because a
+> `.ts` file anywhere in that direct import chain is still ambiguous to Node's module loader and re-triggers the
+> `MODULE_TYPELESS_PACKAGE_JSON` warning even when the entry point itself is `.mts`; `index.ts` stays `.ts` (not
+> part of the CLI's runtime import graph). `apps/farm-os/scripts/reconciliation-stage-dry-run.ts` → `apps/farm-os/
+> scripts/reconciliation stage dry run.mts`. The four new test files can no longer contain a second `.test` dot, so
+> they moved into `apps/farm-os/lib/reconciliation/tests/` as `canonical json.ts`, `stable id.ts`, `generator.ts`,
+> `cli.ts`, with imports updated to `../...`. `apps/farm-os/vitest.config.ts`'s `include` was extended additively
+> to `["lib/**/*.test.ts", "lib/**/tests/**/*.ts"]` (the original pattern is untouched, so every prior test still
+> runs by that pattern; the new pattern picks up only these four files — confirmed no other `lib/**/tests/` folder
+> exists). **`package.json` was not touched** (no `"type": "module"` added) — per instruction.
+> - Verified: running `node "scripts/reconciliation stage dry run.mts"` twice against the real three pinned inputs
+>   produced **zero-byte stderr both times** (no `MODULE_TYPELESS_PACKAGE_JSON` warning), exit 0 both times,
+>   byte-identical SHA-256 output, `chmod 0600`, and identical counts to before the rename
+>   (`evidence_items=698 batch_rows=698 matched_invalid_calendar_quality_flags=2`); temp outputs removed after.
+> - Re-validated: `tsc --noEmit` clean, full `eslint` clean, `git diff --check` clean. Focused
+>   `lib/reconciliation` + `lib/import/convention.test.ts` with `RUN_RECONCILIATION_CANONICAL=1`: **58/58 passed**
+>   (unchanged from before the rename). Full `farm-os` Vitest: **651/651 passed** gated, **638/638 passed + 13
+>   skipped** ungated (both unchanged from before the rename — no test lost or duplicated by the config change).
+> - No commit, push, PR, merge, deploy, migration, or production access.
+
+> **2026-07-26 — SLICE 2 STAGING PARSER: FINAL BLOCKER FIXED (summary cross-checks + explicit controlled canonical gate), LOCAL AND UNCOMMITTED. NO PRODUCTION ACCESS.**
+> A second Codex acceptance review found one remaining blocker in the prior fix: `generateStagingDraft` recomputed
+> and pinned-checked classification/occurrence counts from the exception rows, but never verified the evidence
+> file's own `summary.source_occurrence_count`/`summary.production_occurrence_count`/`summary.counts` against those
+> recomputed values before emitting them unchecked into `result_summary`. Fixed:
+> - `validateDatasetEvidence` (`lib/reconciliation/generator.ts`) now cross-checks `summary.source_occurrence_count`
+>   and `summary.production_occurrence_count` equal both the recomputed-from-rows count and the pinned expected
+>   count; `summary.counts` may not contain any key outside the five known classifications, and every classification
+>   (present or implicitly omitted) must equal the recomputed/pinned value — a key is only allowed to be absent when
+>   its true recomputed count is genuinely 0, matching the trusted upstream harness's own `Counter`-based summary
+>   shape (the real evidence's sale `summary.counts` has no `production_orphan_candidate` key at all, since that
+>   count is 0 — requiring literal presence of all five keys would have rejected the real trusted data itself, so
+>   that was corrected to "value-exact including implicit zero," not "always all five keys present"). `quality_flags
+>   .invalid_source_calendar_date_count` is now also checked against both the actual flag-array length and the
+>   pinned expected length at the generator level (previously only checked in the `validate.ts` JSON validator).
+> - Six new focused negative tests (`describe("summary-field tampering (exception rows unchanged)")`) tamper only a
+>   `summary`/`quality_flags` field while the exception rows array — and hence the independently recomputed counts —
+>   stay exactly as in the healthy fixture, proving generation is rejected; a seventh positive test confirms a
+>   genuinely-zero-count classification may still be omitted from `summary.counts` without being rejected.
+> - **Controlled canonical gate made explicit (not a silent skip):** new `lib/reconciliation/canonical fixtures.ts`
+>   exports the three pinned real-file paths and an `RUN_RECONCILIATION_CANONICAL=1` env gate. Unset (normal/portable
+>   CI): the canonical real-file suites skip gracefully, as before. Set: the suites throw immediately (failing the
+>   test file, not skipping) if any of the three files is missing, and then run for real. **Run and confirmed green
+>   in this controlled worktree** (all three files present):
+>   `RUN_RECONCILIATION_CANONICAL=1 npx vitest run` from `apps/farm-os` → **651/651 passed, 0 skipped** (vs.
+>   **638/638 passed + 13 skipped** with the env unset — the 13 skipped are exactly the canonical real-file tests).
+> - Re-validated: `tsc --noEmit` clean, full `eslint` clean, `git diff --check` clean, external Python harness
+>   (`tests/test accounting reconcile.py`) read-only/unmodified 107/107. Focused `lib/reconciliation` +
+>   `lib/import/convention.test.ts`: **58/58 passed** with the gate enabled (45/58 + 13 skipped with it unset). No
+>   commit/push/PR/merge/deploy/migration/production access.
+
+> **2026-07-26 — ACCOUNTING RECONCILIATION SLICE 2 STAGING PARSER BUILT AND HARDENED (Codex acceptance review REQUEST CHANGES → all fixed), LOCAL AND UNCOMMITTED. NO PRODUCTION ACCESS.**
+> Built in the isolated worktree `farm accounting reconciliation slice 2` (branch
+> `feat/accounting-reconciliation-staging-parser`), per "controlled accounting reconciliation design.md" §9 item 2 /
+> §10 row "2. Staging parser". Scope: a pure, deterministic dry-run generator plus a bounded CLI —
+> `apps/farm-os/lib/reconciliation/` (`types.mts`, `pinned hashes.mts`, `stable id.mts`, `canonical json.mts`,
+> `canonical fixtures.ts`, `validate.mts`, `generator.mts`, `cli.mts`, `index.ts`) and
+> `apps/farm-os/scripts/reconciliation stage dry run.mts`. It reuses the trusted, already-tested
+> `accounting reconcile.py` classification output and never reimplements matching. It performs **zero DB writes,
+> zero network access, zero financial writes, and no migration/API/UI/commit/push/PR/merge/deploy/production
+> access** — output is a local JSON manifest whose `batch`/`evidence_items`/`batch_rows` sections mirror the Slice
+> 1A row shapes (`reconciliation_batches`/`reconciliation_evidence_items`/`reconciliation_batch_rows`) exactly
+> column-for-column, plus a separate `tool_metadata` section explicitly documented as non-row generator provenance
+> (not a database column) — never inserted anywhere.
+> - **Three-input pinning (post-review fix):** the CLI now requires `--evidence`, `--workbook`, and `--snapshot`
+>   paths and hashes the raw bytes of **all three** pinned trusted inputs (workbook, protected production snapshot,
+>   exception evidence) before generating anything, failing closed independently per input on any mismatch. It never
+>   parses the workbook/snapshot content — only their SHA-256 is computed.
+> - **Exact classification/date validation (post-review fix):** classification totals are recomputed directly from
+>   the exception rows (never trusted from the evidence file's own `summary.counts`) and compared key-by-key against
+>   pinned exact totals — expense: ambiguous 409, correction 14, orphan 2, addition 252, zero-placeholder 1; sale:
+>   ambiguous 7, correction 1, orphan 0, addition 11, zero-placeholder 1. A new runtime validator
+>   (`lib/reconciliation/validate.ts`) structurally checks every field of the parsed evidence JSON (dataset,
+>   classification enum, locator shapes, table/dataset domain match, workbook hash, UUID/row/sheet shape, quality
+>   flag array/count consistency) — no bare `as ExceptionEvidenceFile` cast is used anywhere.
+> - **Verbatim date preservation (post-review fix):** the two `2024-02-30` sale quality-flag rows now carry
+>   `source_date_text`/`legacy_import_date` verbatim in the output (approved metadata, not a private
+>   description/party/amount) and are pinned exact — fails closed unless there are exactly two sale rows with
+>   `source_date_text = "2024-02-30"` / `legacy_import_date = "2024-02-28"` (rows 129/130) and zero for expense. They
+>   remain outside the staged exceptions/evidence items/batch rows (already matched in production).
+> - **Output-write hardening (post-review fix):** `--force` was removed entirely. The output file is created with
+>   `O_CREAT|O_EXCL|O_WRONLY` (atomic, no TOCTOU window) and `chmod 0600`; this refuses every pre-existing
+>   destination, including a symlink (dangling or not), because `O_EXCL` fails on the existing directory entry
+>   without following it. Unrecognized-argument errors are a fixed constant string that never echoes the raw
+>   argument text.
+> - Ordinary source exceptions map to `origin_kind = source_workbook_row`; production-only orphans map to
+>   `production_snapshot_row`; an `amount_correction_candidate` maps to a single `source_workbook_row` evidence item.
+>   Every evidence item now carries `first_staged_batch_id = batch.id` (the real Slice 1A column). Every batch row
+>   defaults to `disposition = 'hold'` / `review_state = 'unreviewed'` / `target_table = null` regardless of
+>   classification, per §4 step 1.
+> - IDs are SHA-256 hash-derived (never random), output is canonical (sorted keys) — two runs against all three
+>   pinned real files produced byte-identical SHA-256 output (verified locally, files removed after verification).
+>   Real-file run: 698 evidence items = 698 batch rows (678 expense + 20 sale exceptions), matching every pinned
+>   exact count (occurrence counts, per-classification totals, and the two exact quality-flag date rows).
+> - Privacy unchanged and re-verified: the input types structurally exclude amount/description/counterparty fields,
+>   so output can only ever contain paths, hashes, counts, stable opaque ids, classifications, and the two approved
+>   quality-flag date values — verified by an automated allow-listed-key scan plus a real-evidence leak check.
+> - Tests: 50/50 focused (`lib/reconciliation/*.test.ts` + `lib/import/convention.test.ts`), covering all of the
+>   above including independent per-input hash-mismatch tests against the real workbook/snapshot/evidence files, a
+>   symlink/dangling-symlink write-refusal test, a JSON-parse-failure unit test isolated from hash verification, and
+>   the exact classification/date assertions. Full local `farm-os` Vitest **644/644 passed, 0 failures** (no
+>   regressions). Full `tsc --noEmit` and full `eslint` are clean (0 errors), including the one small tsconfig
+>   change this required — `allowImportingTsExtensions: true` (no emitted-output change; `noEmit: true` already).
+>   The external trusted Python harness (`tests/test accounting reconcile.py`) was run read-only, unmodified:
+>   **107/107 passed**. No production build run — proportionate to a lib+CLI-only change with no route/UI/schema
+>   touched.
+> - **Status: local and uncommitted only.** No git commit, push, PR, merge, deploy, migration, or production access
+>   occurred. Slice 1A (schema) remains the only reconciliation slice actually applied to production (see the
+>   2026-07-26 entry below). This Slice 2 generator is a pure, standalone dry-run tool — it does not depend on Slice
+>   1A being live to run, and staging it for real still requires the not-yet-built Slice 3 review RPCs before
+>   anything could be inserted into the actual `reconciliation_*` tables.
 
 > **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1B APPLIED AND VERIFIED IN PRODUCTION; PR #912
 > AWAITING MERGE.** The exact reviewed migration from commit `4bf7021` was applied migration-first to
