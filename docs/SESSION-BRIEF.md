@@ -1,13 +1,23 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (Slice 2 committed and integrated; PR pending)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slices 1B and 2 released)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-26 (latest) — reconciliation Slice 2 committed and integrated with released main
+## 2026-07-26 (latest) — reconciliation Slices 1B and 2 released
 
-Commit `bf6cf8e` records the independently accepted parser, CLI, and test suite. It is now integrated
-with `main` at merge commit `a09c2ac`, which contains merged PR #912 and the production-verified Slice 1B
-schema. The three shared docs were reconciled by preserving both histories. Slice 2 remains application
-code only: no migration, database write, or financial write. Resume at integrated gated validation,
-push/PR review, and merge.
+PR #912 merged at `a09c2ac`. Its reviewed execution-ledger migration is live in Supabase project
+`veezkmytervjnpxcrbkw` as hosted version `20260726083453`, name
+`accounting_reconciliation_execution_ledger`; production postflight verified the full schema, forced
+tenant isolation, guard functions, and absence of client-role DML grants. No financial rows were written.
+
+PR #913 merged at `087289896b218c2cf8f2e39787f11b4d46770891`. It records the independently
+accepted deterministic parser, CLI, and tests. Slice 2 remains application code only: no migration,
+database write, reconciliation-row insertion, or financial write. Final validation passed for app build,
+typecheck, lint, portable and gated reconciliation tests, design-system, secret scan, Vercel, and the
+external read-only 107-test harness. Database CI reported only the documented baseline two engine
+assertion failures, with 1,909 passing and zero file failures.
+
+**Resume point:** build and independently review the bounded staging/review workflow on current `main`.
+Keep real insertion of the 698 reconciliation review rows behind a separate evidence check; merging and
+applying schema/RPC migrations must not silently stage or execute financial data.
 
 ## 2026-07-26 (latest) — reconciliation Slice 2: mechanical filename-compliance rename (space-only, one-dot filenames)
 
