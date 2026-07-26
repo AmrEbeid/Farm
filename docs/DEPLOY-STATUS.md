@@ -2,10 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-26 (latest) — Slice 2 committed and integrated with released Slice 1B; PR pending.**
-> Commit `bf6cf8e` contains the accepted read-only staging parser. Slice 1B is already production-migrated
-> and merged through PR #912. Slice 2 has no migration, no database write, and no production financial
-> effect; it is moving through integrated validation and PR review.
+> **2026-07-26 (latest) — Reconciliation Slices 1B and 2 released.** PR #912 merged at
+> `a09c2ac`; the Slice 1B schema is live and postflight-verified under hosted migration
+> `20260726083453 accounting_reconciliation_execution_ledger`. PR #913 merged at
+> `087289896b218c2cf8f2e39787f11b4d46770891`; Slice 2 is application-only, with no migration,
+> database write, or production financial effect. App/build/security/deploy checks pass. Database CI is
+> baseline-identical at 1,909 passing, two known pre-existing engine assertion failures, and zero file
+> failures. No reconciliation batch rows or financial rows were inserted by this release.
 
 > **2026-07-26 (latest) — Slice 2 staging parser: mechanical filename-compliance rename (space-only, one-dot names), local/uncommitted, no deploy, no production access.**
 > Renamed every new multiword filename to space-separated words with exactly one dot before the extension (no

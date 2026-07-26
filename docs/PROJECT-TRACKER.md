@@ -1,12 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (Slice 2 committed and integrated with released Slice 1B; PR pending)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slices 1B and 2 merged; Slice 1B production-migrated)
 
-> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 2 COMMITTED AND INTEGRATED WITH RELEASED
-> MAIN.** Commit `bf6cf8e` contains the independently accepted deterministic staging parser, bounded CLI,
-> and tests. Current `main` includes merged PR #912 and the production-verified Slice 1B migration
-> (`20260726083453 accounting_reconciliation_execution_ledger`). The documentation histories from both
-> lanes were preserved during integration. Slice 2 has no database migration and performs no database or
-> financial writes. Next: rerun the gated canonical suite on the integrated bytes, push/open PR, review
-> CI, and merge if acceptable.
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICES 1B AND 2 RELEASED.** PR #912
+> merged at `a09c2ac`; its reviewed Slice 1B execution-ledger migration is live in Supabase project
+> `veezkmytervjnpxcrbkw` under hosted version `20260726083453`, name
+> `accounting_reconciliation_execution_ledger`. Production postflight verified all five tables, RLS and
+> FORCE RLS, four additive expense/sale columns, four guard functions, and zero `anon`/`authenticated`
+> DML grants; no financial rows were written. PR #913 merged at
+> `087289896b218c2cf8f2e39787f11b4d46770891`, delivering the deterministic, read-only staging parser,
+> bounded CLI, and tests. Slice 2 has no migration and performs no database or financial writes. Final
+> accepted validation: app build, typecheck, lint, design-system, secret scan, Vercel, 638 portable tests
+> plus 13 controlled canonical skips, 58/58 gated reconciliation tests, and the external read-only
+> reconciliation harness 107/107. Database CI remains at the documented baseline: 1,909 passing,
+> two pre-existing engine assertion failures, and zero file failures. Next: build the bounded
+> reconciliation staging/review workflow; do not insert the 698 real review rows until their manifest and
+> write boundary have been independently reviewed.
 
 > **2026-07-26 (latest) — SLICE 2 STAGING PARSER: MECHANICAL FILENAME-COMPLIANCE FIX (space-only, one-dot filenames), LOCAL AND UNCOMMITTED. NO PRODUCTION ACCESS.**
 > Renamed every new multiword filename to words-separated-only-by-spaces with exactly one dot before the extension;
