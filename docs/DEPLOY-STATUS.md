@@ -2,7 +2,7 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-26 (latest) — accounting reconciliation stack applied; #902 merged; production ledger head `20260726051731`.**
+> **2026-07-26 (latest) — accounting reconciliation stack applied and merged; production ledger head `20260726051731`.**
 > Owner explicitly approved both migration gates. Applied in dependency order through Supabase MCP:
 > `20260725183055_finance_read_org_set_rls` from PR #902, then
 > `20260725183130_accounting_reconciliation_provenance` from stacked PR #910. Preflight had neither helper nor
@@ -15,9 +15,9 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > columns except execution bookkeeping. Client function execution remains revoked.
 > Financial data did not move: expenses 10,201; sales 162; journal entries 10,365; journal lines 20,730 before and
 > after. Hosted read-only role simulation passed for accountant, owner, and farm manager, including drawing privacy
-> and ordinary-expense continuity. Reconciliation rows remain zero. PR #910 targets `main`; app/UI/secret/Vercel
-> checks pass, and its database run is baseline-identical at 1,800 pass, the same two known stock-engine failures,
-> and zero file failures. The next deployment action is the already Owner-approved #910 merge after final checks.
+> and ordinary-expense continuity. Reconciliation rows remain zero. PR #910 merged at `b4ab8ecf`; post-merge
+> app/UI/secret/release checks and Vercel production deployment pass. Its database run is baseline-identical at
+> 1,800 pass, the same two known stock-engine failures, and zero file failures. Slice 1A rollout is complete.
 
 > **2026-07-12 (historical) — period-lock hardening + cross-org tenancy leak closed; prod ledger head `20260712120000`.**
 > Three migrations applied via Supabase MCP `execute_sql` (idempotent DDL) + manual ledger insert, MIGRATE-FIRST
