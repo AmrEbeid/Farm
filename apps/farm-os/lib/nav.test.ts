@@ -134,6 +134,8 @@ describe("APP_MODULES", () => {
     expect(findActiveNavItem("/finance/accounts")?.id).toBe("accounts");
     expect(findActiveNavItem("/finance/reports")?.id).toBe("finance-reports");
     expect(findActiveNavItem("/finance/revenue-reports")?.id).toBe("revenue-reports");
+    expect(findActiveNavItem("/finance/reconciliation")?.id).toBe("reconciliation");
+    expect(findActiveNavItem("/finance/reconciliation/batch-1")?.id).toBe("reconciliation");
     expect(findActiveNavItem("/finance/custody-reports")?.id).toBe("custody-reports");
     expect(findActiveNavItem("/finance/insights")?.id).toBe("finance-insights");
     expect(findActiveNavItem("/accounting")?.id).toBe("accounting");

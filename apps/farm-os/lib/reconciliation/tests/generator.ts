@@ -18,6 +18,60 @@ import { StagingError } from "../types.mts";
 const ORG_ID = "11111111-1111-1111-1111-111111111111";
 const OTHER_WORKBOOK_SHA = "0".repeat(64);
 
+// The complete set of keys the generator is allowed to emit anywhere in its output. Any OTHER key
+// (a non-contract private field such as production_amount / amount_delta / description) fails the
+// recursive guard below. Slice 4A adds evidence_label + source_amount + source_date_parsed to the
+// contract (source_date_text was already allowed via the quality-flag rows).
+const ALLOWED_DRAFT_KEYS = new Set([
+  "batch",
+  "evidence_items",
+  "batch_rows",
+  "matched_invalid_calendar_quality_flags",
+  "tool_metadata",
+  "id",
+  "org_id",
+  "source_workbook_sha256",
+  "production_snapshot_sha256",
+  "exception_evidence_sha256",
+  "status",
+  "result_summary",
+  "evidence_item_count",
+  "batch_row_count",
+  "by_dataset",
+  "expense",
+  "sale",
+  "exception_row_count",
+  "source_occurrence_count",
+  "production_occurrence_count",
+  "classification_counts",
+  "matched_invalid_calendar_quality_flag_count",
+  "origin_kind",
+  "dataset",
+  "classification",
+  "sheet_name",
+  "row_locator",
+  "snapshot_target_table",
+  "snapshot_target_id",
+  "source_identity_fingerprint",
+  "invalid_calendar_quality_flag",
+  "first_staged_batch_id",
+  "evidence_label",
+  "source_amount",
+  "source_date_parsed",
+  "batch_id",
+  "evidence_item_id",
+  "review_state",
+  "target_table",
+  "disposition",
+  "source_date_text",
+  "legacy_import_date",
+  "source_addition_candidate",
+  "amount_correction_candidate",
+  "production_orphan_candidate",
+  "zero_value_source_placeholder",
+  "ambiguous_identity_group",
+]);
+
 // Throws (failing this test file loudly) if RUN_RECONCILIATION_CANONICAL=1 but a required
 // canonical file is missing -- the controlled gate is never a silent skip.
 assertCanonicalFilesPresentWhenGated();
@@ -59,6 +113,10 @@ function makeEvidence(): ExceptionEvidenceFile {
           identity_fingerprint: null,
           locator: productionLocator("22222222-2222-2222-2222-222222222222", "expenses"),
           is_invalid_source_date: false,
+          // production-only row: label present, source amount/date null
+          label: "بند إنتاج بلا مصدر",
+          source_amount: null,
+          source_date_text: null,
         },
         {
           dataset: "expense",
@@ -66,6 +124,9 @@ function makeEvidence(): ExceptionEvidenceFile {
           identity_fingerprint: null,
           locator: sourceLocator(10, "المصروفات"),
           is_invalid_source_date: false,
+          label: "سماد يوريا",
+          source_amount: "1200.00",
+          source_date_text: "2023-05-01",
         },
       ],
     },
@@ -104,6 +165,9 @@ function makeEvidence(): ExceptionEvidenceFile {
           identity_fingerprint: null,
           locator: sourceLocator(1, "المبيعات"),
           is_invalid_source_date: false,
+          label: "بيع تمر برحي",
+          source_amount: "540.00",
+          source_date_text: "2023-09-15",
         },
         {
           dataset: "sale",
@@ -114,6 +178,10 @@ function makeEvidence(): ExceptionEvidenceFile {
             ...productionLocator("33333333-3333-3333-3333-333333333333", "sales"),
           },
           is_invalid_source_date: false,
+          // correction row carries BOTH locators → built as a source row → keeps its source amount/date
+          label: "تصحيح مبلغ بيع",
+          source_amount: "610.00",
+          source_date_text: "2023-10-02",
         },
         {
           dataset: "sale",
@@ -121,6 +189,9 @@ function makeEvidence(): ExceptionEvidenceFile {
           identity_fingerprint: null,
           locator: sourceLocator(3, "المبيعات"),
           is_invalid_source_date: false,
+          label: "بيع فسائل",
+          source_amount: "0",
+          source_date_text: "2024-02-30", // impossible calendar date → parsed must be null even if flag false
         },
         {
           dataset: "sale",
@@ -128,6 +199,9 @@ function makeEvidence(): ExceptionEvidenceFile {
           identity_fingerprint: null,
           locator: sourceLocator(4, "المبيعات"),
           is_invalid_source_date: false,
+          label: "سطر بقيمة صفرية",
+          source_amount: "0.00",
+          source_date_text: "2023-01-20",
         },
       ],
     },
@@ -240,6 +314,65 @@ describe("generateStagingDraft", () => {
     const draft = generate(evidence);
     const flagged = draft.evidence_items.find((e) => e.row_locator === "3" && e.dataset === "sale");
     expect(flagged?.invalid_calendar_quality_flag).toBe(true);
+  });
+
+  it("carries evidence_label + exact source amount/date on a source row, and parses a real date", () => {
+    const draft = generate(makeEvidence());
+    const addition = draft.evidence_items.find(
+      (e) => e.dataset === "expense" && e.classification === "source_addition_candidate",
+    );
+    expect(addition?.evidence_label).toBe("سماد يوريا");
+    expect(addition?.source_amount).toBe("1200.00");
+    expect(addition?.source_date_text).toBe("2023-05-01");
+    expect(addition?.source_date_parsed).toBe("2023-05-01"); // real calendar date, flag false → parsed = text
+  });
+
+  it("keeps all source-only fields null on a production-snapshot row but still carries a label", () => {
+    const draft = generate(makeEvidence());
+    const orphan = draft.evidence_items.find((e) => e.classification === "production_orphan_candidate");
+    expect(orphan?.evidence_label).toBe("بند إنتاج بلا مصدر");
+    expect(orphan?.source_amount).toBeNull();
+    expect(orphan?.source_date_text).toBeNull();
+    expect(orphan?.source_date_parsed).toBeNull();
+  });
+
+  it("does NOT parse an impossible calendar date, preserving the exact text (2024-02-30 → parsed null)", () => {
+    const draft = generate(makeEvidence());
+    const row3 = draft.evidence_items.find((e) => e.dataset === "sale" && e.row_locator === "3");
+    expect(row3?.source_date_text).toBe("2024-02-30");
+    expect(row3?.source_date_parsed).toBeNull();
+  });
+
+  it("null-parses the source date when the invalid-calendar flag is set, even for a real date", () => {
+    const evidence = makeEvidence();
+    evidence.expense.exceptions[1].is_invalid_source_date = true; // the "2023-05-01" source_addition row
+    const draft = generate(evidence);
+    const addition = draft.evidence_items.find(
+      (e) => e.dataset === "expense" && e.classification === "source_addition_candidate",
+    );
+    expect(addition?.source_date_text).toBe("2023-05-01");
+    expect(addition?.source_date_parsed).toBeNull();
+  });
+
+  it("keeps the source amount/date on an amount_correction_candidate (built as a source row)", () => {
+    const draft = generate(makeEvidence());
+    const correction = draft.evidence_items.find((e) => e.classification === "amount_correction_candidate");
+    expect(correction?.origin_kind).toBe("source_workbook_row");
+    expect(correction?.source_amount).toBe("610.00");
+    expect(correction?.source_date_parsed).toBe("2023-10-02");
+  });
+
+  it("rejects a malformed source_amount / source_date_text at the validate boundary (fail closed)", () => {
+    const base = makeEvidence();
+    const badAmount = JSON.parse(JSON.stringify(base)) as unknown as Record<string, { exceptions: Record<string, unknown>[] }>;
+    badAmount.expense.exceptions[1].source_amount = "-5"; // negative → not a nonnegative decimal
+    expect(() => parseExceptionEvidence(badAmount)).toThrow(StagingError);
+    const badDate = JSON.parse(JSON.stringify(base)) as unknown as Record<string, { exceptions: Record<string, unknown>[] }>;
+    badDate.expense.exceptions[1].source_date_text = "2023/05/01"; // wrong shape
+    expect(() => parseExceptionEvidence(badDate)).toThrow(StagingError);
+    const emptyLabel = JSON.parse(JSON.stringify(base)) as unknown as Record<string, { exceptions: Record<string, unknown>[] }>;
+    emptyLabel.expense.exceptions[1].label = ""; // empty label rejected
+    expect(() => parseExceptionEvidence(emptyLabel)).toThrow(StagingError);
   });
 
   it("is deterministic across repeat runs (byte-identical canonical output)", () => {
@@ -408,60 +541,12 @@ describe("generateStagingDraft", () => {
     expect(() => generate(evidence)).toThrow(StagingError);
   });
 
-  it("never emits a private-shaped value (amount/description) anywhere in the output", () => {
+  it("carries only the allowed keys — no unexpected private field (description/counterparty/delta) leaks", () => {
     const draft = generate(makeEvidence());
-    const serialized = canonicalStringify(draft);
-    // Amounts in the trusted evidence are formatted like "123.45" -- none of this generator's
-    // own emitted values (hashes, uuids, integers, enum strings, approved date text) can ever
-    // match that shape.
-    expect(serialized).not.toMatch(/\b\d+\.\d{2}\b/);
-    const allowedKeys = new Set([
-      "batch",
-      "evidence_items",
-      "batch_rows",
-      "matched_invalid_calendar_quality_flags",
-      "tool_metadata",
-      "id",
-      "org_id",
-      "source_workbook_sha256",
-      "production_snapshot_sha256",
-      "exception_evidence_sha256",
-      "status",
-      "result_summary",
-      "evidence_item_count",
-      "batch_row_count",
-      "by_dataset",
-      "expense",
-      "sale",
-      "exception_row_count",
-      "source_occurrence_count",
-      "production_occurrence_count",
-      "classification_counts",
-      "matched_invalid_calendar_quality_flag_count",
-      "origin_kind",
-      "dataset",
-      "classification",
-      "sheet_name",
-      "row_locator",
-      "snapshot_target_table",
-      "snapshot_target_id",
-      "source_identity_fingerprint",
-      "invalid_calendar_quality_flag",
-      "first_staged_batch_id",
-      "batch_id",
-      "evidence_item_id",
-      "review_state",
-      "target_table",
-      "disposition",
-      "source_date_text",
-      "legacy_import_date",
-      "source_addition_candidate",
-      "amount_correction_candidate",
-      "production_orphan_candidate",
-      "zero_value_source_placeholder",
-      "ambiguous_identity_group",
-    ]);
-    assertOnlyAllowedKeys(draft, allowedKeys);
+    // Slice 4A intentionally carries evidence_label + source_amount/source_date_text/source_date_parsed
+    // for display; the allowed-key guard below is now the privacy boundary — any OTHER private field
+    // (production_amount, amount_delta, description, counterparty, …) would be an unexpected key and fail.
+    assertOnlyAllowedKeys(draft, ALLOWED_DRAFT_KEYS);
   });
 });
 
@@ -535,17 +620,24 @@ describe.runIf(canonicalGateEnabled())("canonical real-file dry run", () => {
     expect(first).toBe(second);
   });
 
-  it("never leaks a private value from the real evidence into the draft output", () => {
+  it("carries only the Slice 4A evidence fields and never leaks a NON-contract private field", () => {
+    // Slice 4A DELIBERATELY carries evidence_label + source_amount/source_date_text/source_date_parsed
+    // for the owner/accountant review UI (RLS-gated finance data). What must still never appear is any
+    // OTHER private field: the production side amount, the computed delta, free-text description, or a
+    // counterparty. Those are asserted absent by KEY NAME (canonicalStringify emits every key), which is
+    // robust against a source amount coincidentally equalling a production amount.
     const raw = JSON.parse(readFileSync(CANONICAL_EVIDENCE_PATH, "utf-8"));
     const evidence = parseExceptionEvidence(raw);
     const draft = generateStagingDraft(evidence, { orgId: ORG_ID });
     const serialized = canonicalStringify(draft);
-    for (const dataset of ["expense", "sale"] as const) {
-      for (const row of (raw as Record<string, { exceptions: Record<string, unknown>[] }>)[dataset].exceptions) {
-        if (typeof row.label === "string") expect(serialized).not.toContain(row.label);
-        if (typeof row.source_amount === "string") expect(serialized).not.toContain(`"${row.source_amount}"`);
-        if (typeof row.production_amount === "string") expect(serialized).not.toContain(`"${row.production_amount}"`);
-      }
+    for (const forbidden of ['"production_amount"', '"amount_delta"', '"description"', '"counterparty"', '"legacy_comparison_date"']) {
+      expect(serialized).not.toContain(forbidden);
     }
+    // Sanity: the enriched contract fields ARE present (the real source rows have amounts/dates).
+    expect(serialized).toContain('"evidence_label"');
+    expect(serialized).toContain('"source_amount"');
+    expect(serialized).toContain('"source_date_parsed"');
+    // And the structural allowed-key guard holds against the real data too.
+    assertOnlyAllowedKeys(draft, ALLOWED_DRAFT_KEYS);
   });
 });

@@ -2,7 +2,28 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-26 (latest) — reconciliation Slice 3 migrated first, production-verified, then merged.**
+> **2026-07-26 (latest) — reconciliation Slice 4A hardening is LOCAL/UNCOMMITTED; migration is a DRAFT.**
+> Added the evidence-contract + dimensional-guard hardening from the review's REQUEST CHANGES: a new
+> append-only migration `20260726140000 accounting reconciliation evidence contract and dimensional
+> guard.sql` (adds nullable `evidence_label`; re-emits the staging validator/stage RPC for the enriched
+> manifest; re-emits the tenant guard with the sale hierarchy + included-expense active-leaf/kind rule),
+> plus parser/generator/UI/types changes, permanent server-resolved correction-target summaries, and a
+> new pgTAP. **The migration was NOT applied**, no data was
+> staged, and production reconciliation counts remain **0/0/0**. Local validation is complete:
+> TypeScript and full ESLint zero errors; focused reconciliation Vitest **67 passed + 13
+> controlled skips**; canonical private-file regression **55/55**; full Vitest **670 passed + 13
+> controlled skips**; production build **65/65 pages**; full local pgTAP **2,057 passing**, zero file
+> failures, and only the two unchanged unrelated engine assertions. Reconciliation suites are
+> **127/127**, **21/21**, and **60/60**. Independent rereview: **APPROVE**, no remaining findings.
+
+> **2026-07-26 — reconciliation Slice 4 review UI is LOCAL/UNCOMMITTED; production untouched.**
+> The Arabic-RTL owner/accountant reconciliation review workspace (`/finance/reconciliation` and
+> `/finance/reconciliation/[batchId]`) was built over the live Slice-3 RPCs in an isolated worktree.
+> **No migration, no schema change, no deploy, no commit/push/PR/merge, and no data staged.** Production
+> reconciliation counts remain **0/0/0** and all financial row counts are unchanged. Its app validation
+> is now included in the complete Slice 4A evidence above.
+
+> **2026-07-26 — reconciliation Slice 3 migrated first, production-verified, then merged.**
 > Reviewed commit `ff39170` was applied to Farm Supabase project `veezkmytervjnpxcrbkw` as hosted
 > migration `20260726111554 accounting_reconciliation_review_rpcs`; PR #915 then merged to `main` at
 > `f2cd87a`. The apply contained function/grant DDL only. Postflight confirms all four gated RPCs and

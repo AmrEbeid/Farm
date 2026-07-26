@@ -291,6 +291,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "reconciliation",
+        label: "مراجعة التسويات",
+        icon: "🧮",
+        href: "/finance/reconciliation",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "accounting",
         label: "المحاسبة",
         icon: "📒",

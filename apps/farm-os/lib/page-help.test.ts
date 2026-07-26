@@ -69,6 +69,9 @@ describe("page help completeness (SPEC-0014 A1 / Documentation Health Score)", (
     expect(helpForPath("/budgets/budget-1", "budgets")?.title).toBe("ملف الموازنة 360");
     expect(helpForPath("/expenses/expense-1", "expenses")?.title).toBe("ملف المصروف 360");
     expect(helpForPath("/people/person-1", "people")?.title).toBe("ملف الشخص 360");
+    expect(helpForPath("/finance/reconciliation/batch-1", "reconciliation")?.title).toBe(
+      "مراجعة دفعة التسوية 360",
+    );
   });
 
   it("falls back to active nav help outside 360 detail routes", () => {

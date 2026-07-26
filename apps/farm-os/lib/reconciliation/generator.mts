@@ -26,6 +26,30 @@ import type {
 
 const DATASETS: Dataset[] = ["expense", "sale"];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * True only for a real Gregorian calendar date (rejects 2024-02-30, 2024-13-01, etc.). Round-trips
+ * the components through a UTC Date and requires them to survive unchanged.
+ */
+function isRealCalendarDate(iso: string): boolean {
+  const m = ISO_DATE_RE.exec(iso);
+  if (!m) return false;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  return dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day;
+}
+
+/**
+ * The parsed source date equals the source text ONLY when that text is a real calendar date and the
+ * invalid-calendar flag is false; otherwise null (never legacy_comparison_date, never a coerced date).
+ */
+function computeSourceDateParsed(sourceDateText: string | null, isInvalid: boolean): string | null {
+  if (sourceDateText === null || isInvalid) return null;
+  return isRealCalendarDate(sourceDateText) ? sourceDateText : null;
+}
 
 export interface GenerateOptions {
   /** Real Farm OS org id these drafts would be staged under. Never fabricated by this module. */
@@ -302,6 +326,11 @@ function buildEvidenceItem(
       snapshot_target_id: null,
       source_identity_fingerprint: row.identity_fingerprint,
       invalid_calendar_quality_flag: row.is_invalid_source_date,
+      // Source row: preserve the exact amount/date text verbatim; derive the parsed date.
+      evidence_label: row.label,
+      source_amount: row.source_amount,
+      source_date_text: row.source_date_text,
+      source_date_parsed: computeSourceDateParsed(row.source_date_text, row.is_invalid_source_date),
       first_staged_batch_id: batchId,
     };
   }
@@ -328,6 +357,11 @@ function buildEvidenceItem(
       snapshot_target_id: id,
       source_identity_fingerprint: row.identity_fingerprint,
       invalid_calendar_quality_flag: row.is_invalid_source_date,
+      // Production-snapshot row: a label but NO source cell, so every source-only field stays null.
+      evidence_label: row.label,
+      source_amount: null,
+      source_date_text: null,
+      source_date_parsed: null,
       first_staged_batch_id: batchId,
     };
   }
@@ -339,7 +373,11 @@ function assertSameEvidencePosition(existing: EvidenceItemDraft, incoming: Evide
   if (
     existing.classification !== incoming.classification ||
     existing.origin_kind !== incoming.origin_kind ||
-    existing.source_identity_fingerprint !== incoming.source_identity_fingerprint
+    existing.source_identity_fingerprint !== incoming.source_identity_fingerprint ||
+    existing.evidence_label !== incoming.evidence_label ||
+    existing.source_amount !== incoming.source_amount ||
+    existing.source_date_text !== incoming.source_date_text ||
+    existing.source_date_parsed !== incoming.source_date_parsed
   ) {
     throw new StagingError("evidence position collision with mismatched classification");
   }

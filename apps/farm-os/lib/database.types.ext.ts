@@ -1289,6 +1289,120 @@ type RevenueFunctions = {
   };
 };
 
+// Accounting reconciliation (SPEC-0004 slices 1A/3, migrations
+// 20260725201546_accounting_reconciliation_provenance.sql and
+// "20260726120000 accounting reconciliation review rpcs.sql"). Not yet in the generated types.
+// Reads are RLS-scoped SELECTs; every write goes through the gated RPCs below, so Insert/Update are
+// closed (Record<string, never>), matching the accounting tables above.
+type ReconciliationBatchesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    source_workbook_sha256: string | null;
+    source_label: string | null;
+    status: string;
+    created_at: string;
+    created_by: string | null;
+    approved_by: string | null;
+    approved_at: string | null;
+    result_summary: Json | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type ReconciliationEvidenceItemsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    origin_kind: string;
+    source_workbook_sha256: string | null;
+    sheet_name: string | null;
+    row_locator: string | null;
+    production_snapshot_sha256: string | null;
+    snapshot_target_table: string | null;
+    snapshot_target_id: string | null;
+    source_identity_fingerprint: string | null;
+    source_amount: number | null;
+    source_date_text: string | null;
+    source_date_parsed: string | null;
+    classification: string;
+    invalid_calendar_quality_flag: boolean;
+    first_staged_batch_id: string | null;
+    created_at: string;
+    created_by: string | null;
+    // Slice 4A (migration 20260726140000): nullable label displayed in the review UI.
+    evidence_label: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type ReconciliationBatchRowsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    batch_id: string;
+    evidence_item_id: string;
+    review_state: string;
+    reviewer_id: string | null;
+    review_reason: string | null;
+    reviewed_at: string | null;
+    target_table: string | null;
+    disposition: string;
+    expense_category: string | null;
+    expense_description: string | null;
+    expense_kind: string | null;
+    expense_account_id: string | null;
+    expense_cost_center_id: string | null;
+    expense_supplier_id: string | null;
+    expense_payment_decision: string | null;
+    sale_crop: string | null;
+    sale_quantity: number | null;
+    sale_unit: string | null;
+    sale_unit_price: number | null;
+    sale_recorded_total: number | null;
+    sale_buyer_id: string | null;
+    sale_cost_center_id: string | null;
+    sale_farm_id: string | null;
+    sale_sector_id: string | null;
+    sale_hawsha_id: string | null;
+    sale_season: string | null;
+    sale_delivery_date: string | null;
+    sale_notes: string | null;
+    sale_historical_date_decision: string | null;
+    sale_effective_date: string | null;
+    corrects_expense_id: string | null;
+    corrects_sale_id: string | null;
+    payload_hash: string | null;
+    frozen: boolean;
+    frozen_at: string | null;
+    execution_result: string;
+    execution_error: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+// The three authenticated client RPCs the review workspace calls. Staging/execution/rollback RPCs are
+// intentionally omitted here — Slice 4 never calls them.
+type ReconciliationFunctions = {
+  fn_review_reconciliation_row: {
+    Args: { p_row_id: string; p_decision: Json };
+    Returns: Json;
+  };
+  fn_freeze_reconciliation_batch: {
+    Args: { p_batch_id: string };
+    Returns: Json;
+  };
+  fn_approve_reconciliation_batch: {
+    Args: { p_batch_id: string };
+    Returns: Json;
+  };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
     Views: Public["Views"] & {
@@ -1341,8 +1455,11 @@ export type Database = Omit<Generated, "public"> & {
       site_enquiries: SiteEnquiriesTable;
       offshoot_movements: OffshootMovementsTable;
       offshoot_valuation: OffshootValuationTable;
+      reconciliation_batches: ReconciliationBatchesTable;
+      reconciliation_evidence_items: ReconciliationEvidenceItemsTable;
+      reconciliation_batch_rows: ReconciliationBatchRowsTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions;
   };
 };
 

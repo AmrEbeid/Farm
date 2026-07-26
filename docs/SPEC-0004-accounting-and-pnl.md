@@ -217,3 +217,87 @@ capitalize/depreciate. It's cheap now and expensive to retrofit.
 
 *All of §7 is design only — no enforcement changes here. Slices land via the gated flow (independent
 review + Owner gate); the real-data reconciliation stays behind Stage M.*
+
+---
+
+## 8. Reconciliation review workspace — Slice 4 UI (2026-07-26, LOCAL/UNCOMMITTED)
+
+The reconciliation review UI slice builds an Arabic-RTL owner/accountant workspace on top of the
+already-live Slice-3 RPCs (migration `20260726111554 accounting_reconciliation_review_rpcs`). **This
+slice is application/UI code only — no migration, no schema change, no new dependency, and it stages
+**no** real data. Production reconciliation counts remain 0/0/0.** It is local and uncommitted at the
+time of writing.
+
+**Routes:**
+- `/finance/reconciliation` — lists the active org's batches, newest first, bounded to ≤50. Shows
+  the honest DB status and the staged row count from `result_summary` (never fabricated). Empty state
+  states clearly that no reconciliation batch has been staged.
+- `/finance/reconciliation/[batchId]` — one RLS-visible batch. Rows are bounded and paginated
+  (50/page via `range()`); a bounded set of head-count queries gives the whole-batch state summary
+  (no unbounded row read, no N+1). Each row surfaces the evidence needed to decide: classification,
+  workbook sheet/row or production-snapshot target, source amount/date, the invalid-date quality flag,
+  the current disposition/state/reason, and the typed target values. Missing or cross-org batches fail
+  closed (`notFound()`), on top of RLS.
+
+**Review controls & contract:** explicit hold / reject / include, each requiring a non-empty reason.
+Include builds the exact `fn_review_reconciliation_row` jsonb payload — `expenses` (category, kind,
+account_id required; description/cost_center/supplier/payment_decision optional) or `sales` (crop,
+quantity, unit_price, recorded_total required; buyer/cost_center/farm/sector/hawsha/season/dates/notes/
+historical-date-decision optional), plus the `corrects_*` id required only for
+`amount_correction_candidate` rows. Options (accounts / cost centers / suppliers / buyers / farm
+structure) are read org-scoped and bounded. No defaults are guessed that would create financial facts;
+the form prefills only values already staged on the row. Validation and errors are Arabic and user
+input is preserved on failure.
+
+**Freeze / approve:** freeze is owner/accountant, allowed only when the batch is staged and every row
+has an explicit decision; approve is owner-only after freeze, with the RPC-enforced separation of
+duties (the creator and any row reviewer cannot approve) surfaced in Arabic. **Execute/post, rollback,
+and manifest staging are out of scope** and are left to separate, independently reviewed migrations.
+
+**Enforcement:** server actions use the RLS-scoped user-session Supabase client only (never the
+service role), re-require owner/accountant, validate UUIDs/payloads, call only
+`fn_review_reconciliation_row` / `fn_freeze_reconciliation_batch` / `fn_approve_reconciliation_batch`,
+and revalidate the exact routes. The gated RPCs + table CHECKs + tenant/freeze guards remain the
+authoritative backstop; the UI fails closed before the RPC for a friendlier message.
+
+Pure logic (payload build/validate, pagination, status summaries) lives in
+`apps/farm-os/lib/reconciliation review.ts` with focused vitest coverage; nav + page-help metadata and
+drift tests were added; the editable `database.types.ext.ts` gained the three reconciliation tables and
+the three RPC signatures (generated `database.types.ts` untouched).
+
+### 8.1 Slice 4A — DB/data-contract hardening (2026-07-26, LOCAL/UNCOMMITTED, migration is a DRAFT)
+
+From the independent-review REQUEST CHANGES. Append-only migration
+`20260726140000 accounting reconciliation evidence contract and dimensional guard.sql` (NOT applied):
+- **Source-evidence contract.** `reconciliation_evidence_items` gains a nullable `evidence_label`. The
+  Slice-2 parser/generator/types now carry `evidence_label` for every row plus `source_amount`
+  (exact nonnegative decimal or null), `source_date_text` (ISO-shaped or null), and `source_date_parsed`
+  (a real calendar date or null — equal to the text ONLY when the text is a real calendar date and the
+  invalid-calendar flag is false; `legacy_comparison_date` is never used). Production-snapshot rows keep
+  every source-only field null. Stable ids are unchanged. The validator + stage RPC are re-emitted to
+  validate, persist, and idempotently replay the enriched manifest and fail closed on a malformed
+  amount/date/label — every existing authz, grant, advisory lock, portable hash, exact-key check, count
+  reconciliation, and replay comparison preserved. `evidence_label` is nullable, so historical rows /
+  older pgTAP fixtures stay valid (backward-safe).
+- **Dimensional integrity.** `fn_guard_reconciliation_batch_row_tenant` is re-emitted with all existing
+  tenant/correction checks plus: a set `sale_sector_id` requires a `sale_farm_id` it belongs to; a set
+  `sale_hawsha_id` requires a `sale_sector_id` it belongs to (farm-only and sector-with-farm allowed);
+  and an included expense must post to an **active leaf** account whose **kind equals `expense_kind`**.
+  The UI mirrors this: sector options filter by the chosen farm and hawsha options by the chosen sector,
+  clearing descendants when a parent changes.
+- **Correctness.** Unreviewed rows display as default/no-decision (not an explicit hold); the frozen KPI
+  counts `frozen=true` across dispositions; every bounded option query requests LIMIT+1 and fails loudly
+  on overflow rather than silently truncating (so leaf-account and hierarchy filters never run on a
+  truncated set). The evidence label is shown with the source amount/date; no raw private value is logged.
+  Amount-correction rows also resolve the org-scoped target record server-side and permanently display
+  its date, amount, and business identity outside editable controls, including after reload/freeze;
+  an unresolved target fails closed before approval.
+
+Coverage: new pgTAP `141 …test.sql` (enriched stage/replay exactness, malformed fail-closed, null-label
+backward-safety, account active/kind/leaf rejection, hierarchy rejection + valid acceptance); expanded
+parser/generator tests; updated Slice-3 pgTAP fixtures. **The migration is a draft, unapplied; no data is
+staged and production counts stay 0/0/0. Local validation is complete: TypeScript and touched-file
+ESLint pass; focused reconciliation Vitest 67 passed + 13 controlled skips; canonical private-file
+regression 55/55; full Vitest 670 passed + 13 controlled skips; production build 65/65 pages; and full
+local pgTAP 2,057 passing with zero file failures and only the two unchanged unrelated engine
+assertions. Reconciliation suites pass 127/127, 21/21, and 60/60. Independent rereview: APPROVE.**

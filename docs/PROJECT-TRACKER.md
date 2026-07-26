@@ -1,6 +1,65 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slice 3 production-verified and merged)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slice 4A validated — LOCAL/UNCOMMITTED)
 
-> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 3 PRODUCTION-VERIFIED AND MERGED.**
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 4A DB/DATA-CONTRACT HARDENING — LOCAL/UNCOMMITTED.**
+> Follows the independent-review REQUEST CHANGES on the Slice 4 review UI. Added, on top of the
+> concurrent Codex fixes (explicit-hold counts, posting-account filtering, correction search,
+> read-only target details), a NEW append-only migration
+> `20260726140000 accounting reconciliation evidence contract and dimensional guard.sql` (a DRAFT — not
+> applied). It (1) adds nullable `evidence_label` to `reconciliation_evidence_items`; (2) re-emits
+> `fn_reconciliation_validate_staging_manifest` + `fn_stage_reconciliation_manifest` so the ENRICHED
+> exact manifest (evidence_label + source_amount + source_date_text + source_date_parsed per item)
+> validates / inserts / replays idempotently and fails closed on a malformed amount/date/label — all
+> existing authz/grants/locks/hashes/exact-key/counts/replay preserved; and (3) re-emits
+> `fn_guard_reconciliation_batch_row_tenant` with every existing check plus the sale farm→sector→hawsha
+> hierarchy and the included-expense active-leaf/kind account rule. The Slice-2 parser/generator/types
+> now carry the enriched evidence fields (source rows preserve exact amount/date; parsed = text only for
+> a real calendar date with the invalid flag off; production rows keep source fields null; stable ids
+> unchanged). UI now shows the evidence label with amount/date, filters sector options by farm and
+> hawsha by sector (clearing descendants), shows unreviewed rows as default/no-decision, counts the
+> frozen KPI by `frozen=true`, and fails loudly (LIMIT+1) instead of silently truncating an option list.
+> Correction rows resolve the org-scoped expense/sale target server-side and permanently show its
+> date, amount, and business identity after reload/freeze; a missing target fails closed before approval.
+> A new pgTAP `141 …test.sql` and updated Slice-3 pgTAP fixtures cover it. `database.types.ext.ts` gained
+> `evidence_label`. **No migration applied, no data staged, production reconciliation counts remain 0/0/0.**
+>
+> **Validation: COMPLETE locally.** Codex ran `tsc --noEmit` and touched-file ESLint with zero errors;
+> focused reconciliation Vitest **67 passed + 13 controlled canonical skips**; the canonical private-file
+> gate **55/55 passed** without logging values; full Vitest **670 passed + 13 controlled skips**; and the
+> production build compiled all **65/65 pages**, including both reconciliation routes. The Docker-free
+> migration replay + pgTAP harness completed with **2,057 passing assertions**, zero file failures, and
+> exactly the same two unrelated engine baseline assertions. Reconciliation pgTAP is **127/127** for
+> Slice 3, **21/21** for Slice 4A, and **60/60** for the provenance suite. Independent rereview:
+> **APPROVE**, no remaining findings. The migration remains unapplied and no real manifest has been staged.
+
+> **2026-07-26 — ACCOUNTING RECONCILIATION SLICE 4 REVIEW UI — LOCAL/UNCOMMITTED, NOT MERGED.**
+> Built the Arabic-RTL owner/accountant reconciliation review workspace on top of the already-live
+> Slice-3 RPCs, in the isolated worktree `farm accounting reconciliation workspace` on branch
+> `feat/accounting-reconciliation-review-workspace`. **UI/app code only — no migration, no schema change,
+> no dependency, no commit/push/PR/merge/deploy, and no real data staged.** Production reconciliation
+> counts remain **0/0/0**; no manifest was staged.
+>
+> Scope delivered: route `/finance/reconciliation` (active-org batches, newest first, ≤50, honest
+> status/counts, empty state) and `/finance/reconciliation/[batchId]` (RLS-visible batch; rows
+> paginated 50/page with evidence provenance — classification, workbook sheet/row or snapshot target,
+> source amount/date, invalid-date flag, current disposition/state/reason, typed target values;
+> fail-closed on missing/cross-org via `notFound()`). Review controls for hold/reject/include with a
+> mandatory reason; include builds the EXACT `fn_review_reconciliation_row` payload for expenses/sales
+> with required typed fields + optional ids/date fields, prefilling only values already staged on the
+> row (no fabricated defaults). Batch freeze (owner/accountant, only when staged and every row decided)
+> and approve (owner only, after freeze; separation-of-duties errors surfaced in Arabic). Execute/post/
+> rollback and manifest staging are intentionally **out of scope**. Server actions use the RLS-scoped
+> user-session client only, re-require owner/accountant, validate UUIDs/payloads, and call only
+> `fn_review_reconciliation_row` / `fn_freeze_reconciliation_batch` / `fn_approve_reconciliation_batch`.
+> Nav entry added under المالية; page-help metadata for both routes; focused pure tests
+> (payload build/validate + pagination/status) and nav/page-help drift assertions added; the editable
+> `database.types.ext.ts` gained the three reconciliation tables + three RPC signatures (generated
+> `database.types.ts` untouched).
+>
+> **Validation superseded by Slice 4A closeout above.** TypeScript, touched-file ESLint, focused and
+> full Vitest, canonical private-file regression, and the production build all pass. The build resolves
+> the Owner-compliant spaced module and includes both reconciliation routes.
+
+> **2026-07-26 — ACCOUNTING RECONCILIATION SLICE 3 PRODUCTION-VERIFIED AND MERGED.**
 > PR #915 merged at `f2cd87a` after migrate-first release of hosted migration
 > `20260726111554 accounting_reconciliation_review_rpcs` from reviewed commit `ff39170`. The migration
 > adds only exact-manifest staging, strict row review, immutable batch freeze, owner-only approval, and

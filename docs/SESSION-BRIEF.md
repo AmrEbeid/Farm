@@ -1,7 +1,94 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slice 3 live and merged)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slice 4A validated — LOCAL/UNCOMMITTED)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-26 (latest) — reconciliation Slice 3 production-verified and merged
+## 2026-07-26 (latest) — reconciliation Slice 4A DB/data-contract hardening (LOCAL/UNCOMMITTED)
+
+From the independent-review REQUEST CHANGES, built on top of the concurrent Codex fixes (explicit-hold
+counts, posting-account filtering via `lib/account-options.ts` + `AccountPicker`, human-readable
+correction search, Arabic pagination/provenance, read-only target details) — none of which were undone.
+
+**Changed/new files (all under `apps/farm-os` unless noted):**
+- **P1 evidence contract:** `lib/reconciliation/types.mts`, `validate.mts`, `generator.mts` now carry
+  `evidence_label` + `source_amount` (nonneg decimal string|null) + `source_date_text` (ISO|null) +
+  `source_date_parsed` (real calendar date|null; = text only for a real date with the invalid flag off;
+  production rows keep source fields null; stable ids unchanged). Tests expanded:
+  `lib/reconciliation/tests/generator.ts` + `cli.ts` (privacy assertion re-based onto the new contract —
+  label/amount/date are intentionally carried; production_amount/amount_delta/description never leak).
+- **P1 migration (DRAFT — NOT applied):**
+  `supabase/migrations/20260726140000 accounting reconciliation evidence contract and dimensional guard.sql`
+  — nullable `evidence_label`; re-emits `fn_reconciliation_validate_staging_manifest` +
+  `fn_stage_reconciliation_manifest` (enriched validate/persist/replay, fail-closed on malformed
+  amount/date/label; all authz/grants/locks/hashes/exact-key/counts/replay preserved) + adds a helper
+  `fn_reconciliation_is_real_calendar_date`; re-emits `fn_guard_reconciliation_batch_row_tenant` with the
+  sale farm→sector→hawsha hierarchy and the included-expense active-leaf/kind account rule.
+- **P1 UI + types:** `app/(app)/finance/reconciliation/[batchId]/page.tsx` + `controls.tsx` show the
+  evidence label with amount/date and filter sector-by-farm / hawsha-by-sector (clearing descendants;
+  parent ids on the option types); `lib/database.types.ext.ts` gained `evidence_label`.
+- **P2 correctness:** unreviewed rows render as default/no-decision; the frozen KPI counts `frozen=true`;
+  every bounded option query is LIMIT+1 with a loud overflow guard (no leaf/hierarchy calc on a truncated set).
+- **Independent rereview P1:** correction targets are resolved by org-scoped server reads and shown
+  permanently with date, amount, and business identity after reload/freeze; missing targets fail closed.
+  `correctionTargetLabel` has expense/sale regression coverage.
+- **Tests:** new pgTAP `supabase/tests/141 accounting reconciliation evidence contract and dimensional guard test.sql`;
+  Slice-3 pgTAP `140 …test.sql` fixtures updated to the enriched contract (its replay-message change by
+  Codex was kept).
+- **Docs:** SPEC-0004 §8.1, PROJECT-TRACKER, DEPLOY-STATUS, user-manual/05, and this brief.
+
+**No migration applied, no data staged; production reconciliation counts remain 0/0/0.**
+
+**Validation: COMPLETE locally by Codex.** `tsc --noEmit` and touched-file ESLint returned zero;
+focused reconciliation Vitest **67 passed + 13 controlled canonical skips**; the canonical private-file
+gate **55/55 passed** without printing values; full Vitest **670 passed + 13 controlled skips**; and
+`npm run build` compiled **65/65 pages**, including both reconciliation routes. The Docker-free clean
+migration replay + full pgTAP harness produced **2,057 passing assertions**, zero file failures, and
+exactly the same two unrelated engine baseline assertions. Reconciliation suites pass **127/127**
+(Slice 3), **21/21** (Slice 4A), and **60/60** (provenance). Initial harness failures were valid fixture
+drift under the stronger account guard; Codex fixed the fixtures to use an explicit active operating
+leaf account and kept the deterministic UUID helper private.
+
+**Independent rereview:** **APPROVE**, no remaining findings after the permanent correction-target
+identity gained the full stable record reference and duplicate-identity regression.
+
+**Resume point:** commit and open the PR, run Farm production preflight, apply only the reviewed
+append-only migration, verify functions/grants/counts, then merge and verify the app deployment. Do not
+stage the real 698-row manifest as part of this schema/UI release.
+
+## 2026-07-26 — reconciliation Slice 4 review workspace built (LOCAL/UNCOMMITTED, NOT MERGED)
+
+Built the Arabic-RTL owner/accountant reconciliation review workspace over the live Slice-3 RPCs, in
+the isolated worktree `farm accounting reconciliation workspace` (branch
+`feat/accounting-reconciliation-review-workspace`). **UI/app code only — no migration, no schema
+change, no new dependency, no commit/push/PR/merge/deploy, and no real data staged. Production
+reconciliation counts remain 0/0/0.**
+
+**Changed/new files (all under `apps/farm-os` unless noted):**
+- `app/(app)/finance/reconciliation/page.tsx` — batch list (active org, newest first, ≤50, honest
+  status/counts, empty state).
+- `app/(app)/finance/reconciliation/[batchId]/page.tsx` — batch detail (RLS-visible; rows paginated
+  50/page with evidence provenance; whole-batch state via bounded head counts; fail-closed `notFound()`
+  on missing/cross-org; org-scoped bounded option lists only when the batch is still staged).
+- `app/(app)/finance/reconciliation/[batchId]/controls.tsx` — `"use client"` review controls
+  (hold/reject/include with mandatory reason + typed fields), batch freeze/approve bar, 50/page
+  navigation. Imports only the erased `DecisionInput` type from the shared lib (no runtime spaced import
+  in the client bundle).
+- `app/(app)/finance/reconciliation/actions.ts` — `"use server"` actions calling ONLY
+  `fn_review_reconciliation_row` / `fn_freeze_reconciliation_batch` / `fn_approve_reconciliation_batch`
+  via the RLS-scoped user-session client; re-require owner/accountant (approve: owner); UUID/payload
+  validation; Arabic errors incl. separation-of-duties; exact-route revalidation.
+- `lib/reconciliation review.ts` (NEW, Owner space-in-filename convention) — pure payload
+  build/validate, pagination, status summaries, Arabic label maps. Tested in
+  `lib/tests/reconciliation review.ts`.
+- `lib/database.types.ext.ts` — added the three reconciliation tables + three RPC signatures (generated
+  `database.types.ts` untouched).
+- `lib/nav.ts` (+`nav.test.ts`), `lib/page-help.ts` (+`page-help.test.ts`) — nav entry under المالية,
+  page-help for both routes + `reconciliation-batch-360`, and drift assertions.
+- Docs: SPEC-0004 §8, PROJECT-TRACKER, DEPLOY-STATUS, user-manual/05, and this brief.
+
+**Validation superseded by the Slice 4A closeout above.** The complete app, canonical, build, and
+database suites have run; the spaced module resolves in the production build. Keep execution/posting
+and rollback as separate reviewed migrations.
+
+## 2026-07-26 — reconciliation Slice 3 production-verified and merged
 
 PR #915 merged at `f2cd87a` after the reviewed `ff39170` migration was applied first to Farm
 Supabase as `20260726111554 accounting_reconciliation_review_rpcs`. Production now has exact

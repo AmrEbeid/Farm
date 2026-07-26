@@ -23,6 +23,19 @@ select set_config('t.fm', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'farm_manager' limit 1), false);
 select set_config('t.store', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
+select set_config('t.operating_leaf_account', (
+  select a.id::text
+  from public.accounts a
+  where a.org_id = :'orgA'
+    and a.active
+    and a.kind = 'operating'
+    and not exists (
+      select 1 from public.accounts child
+      where child.org_id = a.org_id and child.parent_id = a.id and child.active
+    )
+  order by a.code
+  limit 1
+), false);
 
 insert into public.organization (id, name) values (:'orgB', 'مزرعة أخرى — reconciliation test');
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at)
@@ -295,7 +308,7 @@ select throws_ok(
              expense_category, expense_kind, expense_account_id)
             values (%L, 'a1000000-0000-0000-0000-000000000003', 'e5000000-0000-0000-0000-000000000001',
                     'expenses', 'include', 'seed', 'operating', %L)$$,
-         :'orgA', (select id from public.accounts where org_id = :'orgA' limit 1)),
+         :'orgA', current_setting('t.operating_leaf_account')::uuid),
   '23514', null,
   'an included amount_correction_candidate expenses row missing corrects_expense_id is rejected');
 
@@ -305,7 +318,7 @@ select lives_ok(
              expense_category, expense_kind, expense_account_id, corrects_expense_id)
             values (%L, 'a1000000-0000-0000-0000-000000000003', 'e5000000-0000-0000-0000-000000000001',
                     'expenses', 'include', 'seed', 'operating', %L, %L)$$,
-         :'orgA', (select id from public.accounts where org_id = :'orgA' limit 1),
+         :'orgA', current_setting('t.operating_leaf_account')::uuid,
          'f7000000-0000-0000-0000-000000000001'),
   'a valid included amount_correction_candidate expenses row with matching corrects_expense_id lives');
 
@@ -328,7 +341,7 @@ insert into public.reconciliation_batch_rows
    expense_category, expense_kind, expense_account_id, payload_hash, frozen, frozen_at)
   values ('c2000000-0000-0000-0000-000000000001', :'orgA', 'a1000000-0000-0000-0000-000000000002',
           'e2000000-0000-0000-0000-000000000001', 'expenses', 'include', 'seed', 'operating',
-          (select id from public.accounts where org_id = :'orgA' limit 1),
+          current_setting('t.operating_leaf_account')::uuid,
           'deadbeef', true, now());
 select throws_ok(
   $$update public.reconciliation_batch_rows set expense_category = 'changed'

@@ -61,6 +61,12 @@ export interface ExceptionRow {
   identity_fingerprint: string | null;
   locator: ExceptionLocator;
   is_invalid_source_date: boolean;
+  // Slice 4A evidence contract: a human-readable label for every row, and — for source rows — the
+  // exact source amount/date text preserved verbatim. `legacy_comparison_date` exists in the real
+  // file but is deliberately NOT modeled: it must never be treated as a source parsed date.
+  label: string;
+  source_amount: string | null;
+  source_date_text: string | null;
 }
 
 export interface QualityFlagLocator {
@@ -111,6 +117,14 @@ export interface EvidenceItemDraft {
   snapshot_target_id: string | null;
   source_identity_fingerprint: string | null;
   invalid_calendar_quality_flag: boolean;
+  // Slice 4A evidence contract (persisted for the review UI to display). `evidence_label` is set for
+  // every row; the source-only fields are preserved verbatim for a source row and are ALWAYS null for
+  // a production-snapshot row (which has no source cell). `source_date_parsed` equals the source date
+  // text only when that text is a real calendar date AND the invalid-calendar flag is false.
+  evidence_label: string;
+  source_amount: string | null;
+  source_date_text: string | null;
+  source_date_parsed: string | null;
   /** Informational-only FK per the Slice 1A schema; this dry run always sets it to `batch.id`. */
   first_staged_batch_id: string;
 }
