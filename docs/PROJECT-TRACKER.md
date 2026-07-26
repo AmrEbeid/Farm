@@ -1,9 +1,10 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (#902 merged; #910 migrations applied and final merge in progress)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (#902/#910 merged; migrations and production deploy verified)
 
-> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SCHEMA STACK MIGRATED; #902 MERGED; #910 FINAL MERGE IN PROGRESS.**
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1A MIGRATED, MERGED, AND PRODUCTION-VERIFIED.**
 > Owner approved merge and migration of the complete accounting stack. PR #902 merged to `main` at `d1c175e1`;
-> its migration was already recorded as `20260725183055_finance_read_org_set_rls`. PR #910 now targets `main`;
-> Slice 1A is recorded as `20260725183130_accounting_reconciliation_provenance`.
+> PR #910 merged at `b4ab8ecf`. Production records `20260725183055_finance_read_org_set_rls`,
+> `20260725183130_accounting_reconciliation_provenance`, and
+> `20260726051731_reconciliation_frozen_row_hardening`.
 >
 > Slice 1A creates exactly three empty provenance/review tables with FORCE RLS, finance-read-only SELECT, no
 > authenticated/anon DML, five audit/tenant/freeze triggers, and the owner/accountant-only
@@ -14,7 +15,8 @@
 > `20260726051731_reconciliation_frozen_row_hardening`. Reconciliation rows remain zero. The full harness is now
 > 1,800 pass + the same 2 known baseline failures, 0 file failures; all 60 reconciliation assertions pass.
 >
-> **Current gate:** finish #910 main-targeted CI and merge under the Owner's 2026-07-26 approval. Slice 1B has not started.
+> Post-merge main CI, release, and Vercel production deployment pass. The database workflow remains baseline-identical
+> at 1,800 pass and the same two known stock-engine failures. Slice 1A is complete; Slice 1B has not started.
 
 > **2026-07-13 (historical safe stop; not applied at that time) — ACCOUNTING RLS PERFORMANCE PR2a OPEN AS #902.**
 > Draft migration `20260713152136_finance_read_org_set_rls` replaces per-row `finance.read` checks on 14

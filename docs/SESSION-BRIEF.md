@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (#902 merged; #910 final merge in progress)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (#902/#910 merged; production verified)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-26 (latest) — reconciliation stack migrated; #902 merged; #910 hardened and final merge in progress
+## 2026-07-26 (latest) — reconciliation Slice 1A migrated, merged, and production-verified
 
 Owner approved "merge and migrate all" for the active accounting stack. Live queue review excluded seven unrelated
 dependency/release PRs, several failing CI, and resolved the approved stack as #902 followed by #910.
@@ -19,8 +19,11 @@ dependency/release PRs, several failing CI, and resolved the approved stack as #
   comparison active, client function execute denied, reconciliation rows zero, and financial counts still
   10,201 expenses / 162 sales / 10,365 journal entries / 20,730 journal lines.
 
-**Resume point:** finish the refreshed #910 checks, merge under the Owner's approval, verify `main`/production
-deployment state, and close docs. Slice 1B has not started.
+- PR #910 merged to `main` at `b4ab8ecf`. Post-merge `main` CI and release pass; Vercel production deployment
+  completed successfully. The post-merge database workflow has only the same two baseline stock-engine failures.
+
+**Resume point:** Slice 1A is complete. Slice 1B has not started; scope it read-only first from the evidence inventory
+and do not stage reconciliation or financial rows without a separately reviewed write path.
 
 ## 2026-07-25 (historical) — reconciliation Slice 1A committed, PR #910 open, dependency + schema migrated
 

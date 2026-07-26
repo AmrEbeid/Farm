@@ -1,18 +1,18 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-26 (accounting reconciliation stack migrated; PR #902 merged; PR #910 awaiting final merge). Owner: Amr Ebeid.*
+*Updated: 2026-07-26 (accounting reconciliation stack migrated and merged; production deployment verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-07-26 — accounting reconciliation provenance schema is live; code merge is finishing.** PR #902 was
-merged to `main` at `d1c175e1` after its production migration had already been applied. PR #910 was retargeted to
-`main`; its application, UI-library, secret-scan, Vercel, and CodeRabbit checks pass. The full database harness is
+**2026-07-26 — accounting reconciliation provenance schema is live and merged.** PR #902 merged to `main` at
+`d1c175e1`; PR #910 merged at `b4ab8ecf` after all three production migrations were applied. Post-merge application,
+UI-library, secret-scan, release, and Vercel production checks pass. The full database harness is
 1,800 pass with the same two known stock-engine baseline failures and zero file failures; all 60 reconciliation
 assertions pass. CodeRabbit found two valid frozen-row gaps, fixed append-only in commit `1660b41` and applied as
 `20260726051731_reconciliation_frozen_row_hardening`: frozen rows now reject DELETE and automatically freeze every
 present/future column except `execution_result` and `execution_error`. Production reconciliation tables remain empty.
 Financial counts remain unchanged at 10,201 expenses, 162 sales, 10,365 journal entries, and 20,730 journal lines.
-No reconciliation evidence or financial row has been written. Current gate: final #910 CI/review, then merge.
+No reconciliation evidence or financial row has been written. Slice 1A is complete; Slice 1B has not started.
 
 **2026-07-07/08 — the finance half of Stage M landed.** The real 7-year history (10,232 expenses / 162 sales, 2019–2026) is now account-linked and posted to the double-entry GL, then reconciled **sheet-exact** to the source workbook (expenses 20,527,757 / revenue 25,835,533), with a 2017–2018 opening balance; the trusted BS/IS/TB/budget-vs-actual pages render real numbers. On top: the «الرؤى» 7-chapter insight arc (#868), a palm-tree-sales revenue reclass (#869/#870, applied), and an **accounting-kernel correctness pass** (#871, applied `20260708100000`): revenue posts on the sale's economic date, a reversed sale can't be collected, trial balance is posted-only. Money-integrity review items (reversal RPC, audit_read pin, custody floor/journal-completeness) confirmed already shipped (#791/#792/#793). Engine + multi-tenant RLS independently re-audited **clean**. **Still gating full real-data operation: Stage 0 security (#362) + the palm-registry import (#239, prod palms still synthetic).**
 
