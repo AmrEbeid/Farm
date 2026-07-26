@@ -1,7 +1,28 @@
-# Session Brief — Farm OS      Updated: 2026-07-25 by Codex (#902 + Slice 1A migrated; #910 open)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (#902 merged; #910 final merge in progress)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-25 (latest) — reconciliation Slice 1A committed, PR #910 open, dependency + schema migrated
+## 2026-07-26 (latest) — reconciliation stack migrated; #902 merged; #910 hardened and final merge in progress
+
+Owner approved "merge and migrate all" for the active accounting stack. Live queue review excluded seven unrelated
+dependency/release PRs, several failing CI, and resolved the approved stack as #902 followed by #910.
+
+- Production already held the #902 and Slice 1A migrations. Preflight confirmed the three reconciliation tables
+  empty and financial counts unchanged. PR #902 merged to `main` at `d1c175e1`.
+- PR #910 was retargeted to `main` and updated from base. Full CI ran: app/UI/secret checks pass; database is
+  baseline-identical at 1,798 pass + the same two known stock-engine failures, with all 58 Slice 1A assertions green.
+- Final CodeRabbit review identified two valid integrity gaps: privileged DELETE of a frozen row and enumerated
+  columns that could miss future fields. Commit `1660b41` adds append-only migration
+  `20260726083000_reconciliation_frozen_row_hardening` plus direct regression tests. Full local harness after the
+  fix: 1,800 pass, the same two baseline failures, zero file failures; reconciliation suite 60/60.
+- The hardening migration was applied through Supabase MCP and recorded as
+  `20260726051731_reconciliation_frozen_row_hardening`. Postflight: trigger covers DELETE OR UPDATE, generic row
+  comparison active, client function execute denied, reconciliation rows zero, and financial counts still
+  10,201 expenses / 162 sales / 10,365 journal entries / 20,730 journal lines.
+
+**Resume point:** finish the refreshed #910 checks, merge under the Owner's approval, verify `main`/production
+deployment state, and close docs. Slice 1B has not started.
+
+## 2026-07-25 (historical) — reconciliation Slice 1A committed, PR #910 open, dependency + schema migrated
 
 Owner said "all approved" after the explicit request for commit/push/PR and the separate migration gate. Live
 reconciliation first confirmed Farm project `veezkmytervjnpxcrbkw`, production head `20260712120000`, PR #902
@@ -28,10 +49,10 @@ open/green at `19bd7278`, and no helper/reconciliation tables.
 
 **Resume point / gate:** PR #902 and PR #910 are both open and production schema is ahead of `main` by these two
 applies. Do not merge automatically. With explicit Owner merge approval, merge #902 first; then rebase/retarget
-#910 onto `main`, wait for full app/db CI (not only stacked Vercel), independently review the final diff, and request
-the #910 merge gate. Slice 1B has not started.
+PR #910 onto `main`, wait for full app/db CI (not only stacked Vercel), independently review the final diff, and
+request the PR #910 merge gate. Slice 1B has not started.
 
-## 2026-07-13 (latest) — safe stop: accounting RLS performance PR2a open as #902; production unchanged
+## 2026-07-13 (historical) — safe stop: accounting RLS performance PR2a open as #902; production unchanged
 
 Prepared isolated branch `feat/accounting-rls-performance` from remote main `299543ce` in worktree
 `/Users/amrebeid/Projects/farm accounting rls performance pr2a`. The Owner authorized commit/push/PR and the
@@ -66,7 +87,7 @@ migrate-first rollout. No migration apply, merge, deployment, or production data
   then, only on green evidence, run production preflight, apply migrate-first, postflight, merge #902, verify deployment,
   and update these docs. Keep #903 separate and do not mutate production migration history to unblock #902.
 
-## 2026-07-12 (latest) — period-lock hardening + a cross-org tenancy leak closed: three migrations applied to prod + merged
+## 2026-07-12 (historical) — period-lock hardening + a cross-org tenancy leak closed: three migrations applied to prod + merged
 
 Continuation of the audit sweep, under the Owner's expanded «do not wait, review then merge **and migrate** when needed» directive. Three clearly-correct **migrations authored → local pgTAP → independent review → applied to prod (evidence-first, MIGRATE-FIRST) → merged**. **Prod ledger head is now `20260712120000`** (was `20260708110000`).
 

@@ -1,25 +1,22 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-25 by Codex (#902 + Slice 1A migrated; #910 open)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (#902 merged; #910 migrations applied and final merge in progress)
 
-> **2026-07-25 (latest) — ACCOUNTING RECONCILIATION SLICE 1A COMMITTED, OPEN AS STACKED PR #910, AND MIGRATED AFTER #902.**
-> Owner approved commit/push/PR plus both production migration gates. PR #902 remained open and green at unchanged
-> head `19bd7278`; its dependency migration was applied first through Supabase MCP and recorded as
-> `20260725183055_finance_read_org_set_rls`. Slice 1A commit `c3c61ab` was pushed as PR #910, stacked on #902, then
-> applied second and recorded as `20260725183130_accounting_reconciliation_provenance`.
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SCHEMA STACK MIGRATED; #902 MERGED; #910 FINAL MERGE IN PROGRESS.**
+> Owner approved merge and migration of the complete accounting stack. PR #902 merged to `main` at `d1c175e1`;
+> its migration was already recorded as `20260725183055_finance_read_org_set_rls`. PR #910 now targets `main`;
+> Slice 1A is recorded as `20260725183130_accounting_reconciliation_provenance`.
 >
 > Slice 1A creates exactly three empty provenance/review tables with FORCE RLS, finance-read-only SELECT, no
 > authenticated/anon DML, five audit/tenant/freeze triggers, and the owner/accountant-only
 > `reconciliation.write` permission. It writes no expense, sale, journal, custody, or other financial row.
 > Pre/post counts are unchanged: expenses 10,201; sales 162; journal entries 10,365; journal lines 20,730.
-> Hosted read-only role probes passed: accountant finance reads work; owner has `reconciliation.write`; farm manager
-> sees no finance org/accounts/sales/drawings but retains ordinary-expense visibility. Dedicated pgTAP is 58/58;
-> the full local harness is 1,798 pass + the same 2 known baseline failures, 0 file failures. PR #910's stacked
-> diff is exactly the migration and test; Vercel + CodeRabbit are green, Supabase Preview skipped, and main-targeted
-> GitHub app/db checks will run only after #902 merges and #910 is retargeted/rebased.
+> Hosted read-only role probes passed. Final review found and fixed frozen-row DELETE/future-column gaps in forward
+> migration `20260726083000_reconciliation_frozen_row_hardening`, production ledger
+> `20260726051731_reconciliation_frozen_row_hardening`. Reconciliation rows remain zero. The full harness is now
+> 1,800 pass + the same 2 known baseline failures, 0 file failures; all 60 reconciliation assertions pass.
 >
-> **Current gate:** do not merge automatically. Merge #902 first only with explicit Owner approval; then rebase or
-> retarget #910 onto `main`, require the full GitHub app/db checks green, and request the separate merge approval.
+> **Current gate:** finish #910 main-targeted CI and merge under the Owner's 2026-07-26 approval. Slice 1B has not started.
 
-> **2026-07-13 (latest; SAFE STOP, NOT APPLIED) — ACCOUNTING RLS PERFORMANCE PR2a OPEN AS #902.**
+> **2026-07-13 (historical safe stop; not applied at that time) — ACCOUNTING RLS PERFORMANCE PR2a OPEN AS #902.**
 > Draft migration `20260713152136_finance_read_org_set_rls` replaces per-row `finance.read` checks on 14
 > finance tables with one active-org-narrowed organization-set helper, while preserving expense-drawing privacy,
 > audit branches, every write check, and owner/accountant role semantics. No indexes or application data change.
@@ -41,7 +38,7 @@
 > production preflight → migrate-first apply → postflight → merge #902 → deploy verification → final docs. Repair #903
 > later as its own support-confirmed, Owner-approved maintenance operation; do not hand-edit migration history.
 
-> **2026-07-12 (latest) — PERIOD-LOCK HARDENING + CROSS-ORG LEAK CLOSED: three migrations applied to prod + merged; prod head `20260712120000`.**
+> **2026-07-12 (historical) — PERIOD-LOCK HARDENING + CROSS-ORG LEAK CLOSED: three migrations applied to prod + merged; prod head `20260712120000`.**
 > Under the Owner's expanded «review then merge and migrate when needed» directive (evidence-first, MIGRATE-FIRST, each independently reviewed):
 > - **#229 (#899, prod `20260712120000`)** — SECURITY: `v_cost_center_rollup` + `v_cost_center_reconciliation_flags`
 >   were SECURITY DEFINER views granted to authenticated → cross-org read via `/rest/v1/`. Set `security_invoker=true`;
