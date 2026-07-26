@@ -1,4 +1,15 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (slice 1B committed for approved release; not yet merged/migrated/deployed)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (slice 1B production-migrated and verified; PR #912 awaiting merge)
+
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1B APPLIED AND VERIFIED IN PRODUCTION; PR #912
+> AWAITING MERGE.** The exact reviewed migration from commit `4bf7021` was applied migration-first to
+> Supabase project `veezkmytervjnpxcrbkw`. The hosted migration ledger records version
+> `20260726083453`, name `accounting_reconciliation_execution_ledger` (the repository filename remains
+> `20260726090000_accounting_reconciliation_execution_ledger.sql`). Post-apply probes confirm all five
+> tables exist with RLS and FORCE RLS, all four additive expense/sale columns and all four guard
+> functions exist, and `anon`/`authenticated` have zero DML grants on the new tables. No financial rows
+> were inserted or changed. PR #912 is mergeable; app/design-system/secret/Vercel checks pass. Its pgTAP
+> job reports the exact known baseline `1909 passed / 2 pre-existing engine failures / 0 file failures`;
+> the new Slice 1B file itself passes `109/109`.
 
 > **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1B COMMITTED FOR APPROVED RELEASE.**
 > Independent review and final local verification are complete. Commit `4bf7021`

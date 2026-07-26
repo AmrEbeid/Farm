@@ -2,6 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-26 (latest) — accounting reconciliation Slice 1B production migration applied and
+> verified; PR #912 awaiting merge.** Supabase migration ledger:
+> `20260726083453 accounting_reconciliation_execution_ledger`. Post-apply verification confirms all
+> five new tables exist with RLS + FORCE RLS, zero client DML grants, all four additive columns, and all
+> guard functions. No financial data was written. The repository PR remains open until its final review
+> completes.
+
 > **2026-07-26 (latest) — accounting reconciliation Slice 1B committed for approved release, not yet
 > applied.** Commit `4bf7021` records the independently reviewed migration and 109-assertion pgTAP test.
 > Owner approval now covers review, merge, and migration as the standard completion path. Push/PR/CI,

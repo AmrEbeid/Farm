@@ -1,5 +1,18 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (slice 1B committed for approved release)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (slice 1B production-migrated; PR #912 awaiting merge)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-26 (latest) — reconciliation Slice 1B production migration applied and verified
+
+The exact reviewed migration from commit `4bf7021` was applied migration-first to Supabase project
+`veezkmytervjnpxcrbkw`. The hosted ledger records
+`20260726083453 accounting_reconciliation_execution_ledger`; the repository migration filename is
+`20260726090000_accounting_reconciliation_execution_ledger.sql`. Production postflight confirms:
+five expected tables present; RLS and FORCE RLS enabled on all five; zero `anon`/`authenticated` DML
+grants; all four additive expense/sale columns present; all four tenant/immutability guard functions
+present. No financial row was inserted or changed. PR #912 remains open for final review and merge.
+Application, design-system, secret-scan, and Vercel checks pass. The database job contains only the two
+known stock-engine baseline failures (`1909 passed / 2 known failures / 0 file failures`); the Slice 1B
+test passes `109/109`.
 
 ## 2026-07-26 (latest) — reconciliation Slice 1B committed for approved release
 
