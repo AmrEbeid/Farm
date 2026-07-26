@@ -220,13 +220,12 @@ review + Owner gate); the real-data reconciliation stays behind Stage M.*
 
 ---
 
-## 8. Reconciliation review workspace — Slice 4 UI (2026-07-26, LOCAL/UNCOMMITTED)
+## 8. Reconciliation review workspace — Slice 4 UI (2026-07-26, RELEASED)
 
 The reconciliation review UI slice builds an Arabic-RTL owner/accountant workspace on top of the
 already-live Slice-3 RPCs (migration `20260726111554 accounting_reconciliation_review_rpcs`). **This
-slice is application/UI code only — no migration, no schema change, no new dependency, and it stages
-**no** real data. Production reconciliation counts remain 0/0/0.** It is local and uncommitted at the
-time of writing.
+UI portion adds no separate schema/dependency and stages **no** real data. It shipped with Slice 4A in
+PR #917; production reconciliation counts remain 0/0/0.**
 
 **Routes:**
 - `/finance/reconciliation` — lists the active org's batches, newest first, bounded to ≤50. Shows
@@ -265,10 +264,11 @@ Pure logic (payload build/validate, pagination, status summaries) lives in
 drift tests were added; the editable `database.types.ext.ts` gained the three reconciliation tables and
 the three RPC signatures (generated `database.types.ts` untouched).
 
-### 8.1 Slice 4A — DB/data-contract hardening (2026-07-26, LOCAL/UNCOMMITTED, migration is a DRAFT)
+### 8.1 Slice 4A — DB/data-contract hardening (2026-07-26, RELEASED)
 
 From the independent-review REQUEST CHANGES. Append-only migration
-`20260726140000 accounting reconciliation evidence contract and dimensional guard.sql` (NOT applied):
+`20260726140000 accounting reconciliation evidence contract and dimensional guard.sql` (applied to Farm
+production as hosted `20260726131109 accounting_reconciliation_evidence_contract_and_dimensional_guard`):
 - **Source-evidence contract.** `reconciliation_evidence_items` gains a nullable `evidence_label`. The
   Slice-2 parser/generator/types now carry `evidence_label` for every row plus `source_amount`
   (exact nonnegative decimal or null), `source_date_text` (ISO-shaped or null), and `source_date_parsed`
@@ -295,9 +295,10 @@ From the independent-review REQUEST CHANGES. Append-only migration
 
 Coverage: new pgTAP `141 …test.sql` (enriched stage/replay exactness, malformed fail-closed, null-label
 backward-safety, account active/kind/leaf rejection, hierarchy rejection + valid acceptance); expanded
-parser/generator tests; updated Slice-3 pgTAP fixtures. **The migration is a draft, unapplied; no data is
-staged and production counts stay 0/0/0. Local validation is complete: TypeScript and touched-file
+parser/generator tests; updated Slice-3 pgTAP fixtures. **No real manifest was staged and production
+counts stay 0/0/0. Local validation is complete: TypeScript and touched-file
 ESLint pass; focused reconciliation Vitest 67 passed + 13 controlled skips; canonical private-file
 regression 55/55; full Vitest 670 passed + 13 controlled skips; production build 65/65 pages; and full
 local pgTAP 2,057 passing with zero file failures and only the two unchanged unrelated engine
-assertions. Reconciliation suites pass 127/127, 21/21, and 60/60. Independent rereview: APPROVE.**
+assertions. Reconciliation suites pass 127/127, 21/21, and 60/60. Independent rereview: APPROVE.
+PR #917 merged at `31b5b93f`; production postflight and Vercel deployment passed.**

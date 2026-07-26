@@ -1,11 +1,11 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slice 4A validated — LOCAL/UNCOMMITTED)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slice 4/4A RELEASED)
 
-> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 4A DB/DATA-CONTRACT HARDENING — LOCAL/UNCOMMITTED.**
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 4/4A — MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > Follows the independent-review REQUEST CHANGES on the Slice 4 review UI. Added, on top of the
 > concurrent Codex fixes (explicit-hold counts, posting-account filtering, correction search,
 > read-only target details), a NEW append-only migration
-> `20260726140000 accounting reconciliation evidence contract and dimensional guard.sql` (a DRAFT — not
-> applied). It (1) adds nullable `evidence_label` to `reconciliation_evidence_items`; (2) re-emits
+> `20260726140000 accounting reconciliation evidence contract and dimensional guard.sql`. It (1) adds
+> nullable `evidence_label` to `reconciliation_evidence_items`; (2) re-emits
 > `fn_reconciliation_validate_staging_manifest` + `fn_stage_reconciliation_manifest` so the ENRICHED
 > exact manifest (evidence_label + source_amount + source_date_text + source_date_parsed per item)
 > validates / inserts / replays idempotently and fails closed on a malformed amount/date/label — all
@@ -20,7 +20,11 @@
 > Correction rows resolve the org-scoped expense/sale target server-side and permanently show its
 > date, amount, and business identity after reload/freeze; a missing target fails closed before approval.
 > A new pgTAP `141 …test.sql` and updated Slice-3 pgTAP fixtures cover it. `database.types.ext.ts` gained
-> `evidence_label`. **No migration applied, no data staged, production reconciliation counts remain 0/0/0.**
+> `evidence_label`. Reviewed commit `6c49bc9` was applied migrate-first to Farm production
+> (`veezkmytervjnpxcrbkw`) as hosted migration `20260726131109
+> accounting_reconciliation_evidence_contract_and_dimensional_guard`; PR **#917** then merged to `main`
+> at **`31b5b93f73989023d789416c1f51612c25d1e214`** and its Vercel production deployment succeeded.
+> **No real manifest was staged; production reconciliation counts remain 0/0/0.**
 >
 > **Validation: COMPLETE locally.** Codex ran `tsc --noEmit` and touched-file ESLint with zero errors;
 > focused reconciliation Vitest **67 passed + 13 controlled canonical skips**; the canonical private-file
@@ -29,9 +33,14 @@
 > migration replay + pgTAP harness completed with **2,057 passing assertions**, zero file failures, and
 > exactly the same two unrelated engine baseline assertions. Reconciliation pgTAP is **127/127** for
 > Slice 3, **21/21** for Slice 4A, and **60/60** for the provenance suite. Independent rereview:
-> **APPROVE**, no remaining findings. The migration remains unapplied and no real manifest has been staged.
+> **APPROVE**, no remaining findings. GitHub app/UI/secret/Vercel checks passed. Database CI reproduced
+> the exact local baseline: all reconciliation suites green, 2,057 passing assertions, zero file
+> failures, and only the two unchanged unrelated engine assertions. Production postflight confirms the
+> four touched functions remain `SECURITY DEFINER` with empty search paths; only the permission-gated
+> staging RPC is authenticated-executable. Expenses `10,201`, sales `162`, journal entries `10,365`,
+> journal lines `20,730`, custody movements `1`, and payment requests `3` are unchanged.
 
-> **2026-07-26 — ACCOUNTING RECONCILIATION SLICE 4 REVIEW UI — LOCAL/UNCOMMITTED, NOT MERGED.**
+> **2026-07-26 — ACCOUNTING RECONCILIATION SLICE 4 REVIEW UI — RELEASED IN #917.**
 > Built the Arabic-RTL owner/accountant reconciliation review workspace on top of the already-live
 > Slice-3 RPCs, in the isolated worktree `farm accounting reconciliation workspace` on branch
 > `feat/accounting-reconciliation-review-workspace`. **UI/app code only — no migration, no schema change,

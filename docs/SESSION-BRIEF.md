@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slice 4A validated — LOCAL/UNCOMMITTED)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slice 4/4A RELEASED)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-26 (latest) — reconciliation Slice 4A DB/data-contract hardening (LOCAL/UNCOMMITTED)
+## 2026-07-26 (latest) — reconciliation Slice 4/4A released
 
 From the independent-review REQUEST CHANGES, built on top of the concurrent Codex fixes (explicit-hold
 counts, posting-account filtering via `lib/account-options.ts` + `AccountPicker`, human-readable
@@ -14,7 +14,7 @@ correction search, Arabic pagination/provenance, read-only target details) — n
   production rows keep source fields null; stable ids unchanged). Tests expanded:
   `lib/reconciliation/tests/generator.ts` + `cli.ts` (privacy assertion re-based onto the new contract —
   label/amount/date are intentionally carried; production_amount/amount_delta/description never leak).
-- **P1 migration (DRAFT — NOT applied):**
+- **P1 migration (APPLIED):**
   `supabase/migrations/20260726140000 accounting reconciliation evidence contract and dimensional guard.sql`
   — nullable `evidence_label`; re-emits `fn_reconciliation_validate_staging_manifest` +
   `fn_stage_reconciliation_manifest` (enriched validate/persist/replay, fail-closed on malformed
@@ -34,7 +34,10 @@ correction search, Arabic pagination/provenance, read-only target details) — n
   Codex was kept).
 - **Docs:** SPEC-0004 §8.1, PROJECT-TRACKER, DEPLOY-STATUS, user-manual/05, and this brief.
 
-**No migration applied, no data staged; production reconciliation counts remain 0/0/0.**
+**Release state:** reviewed commit `6c49bc9` applied migrate-first to Farm production as hosted migration
+`20260726131109 accounting_reconciliation_evidence_contract_and_dimensional_guard`; PR **#917** merged
+to `main` at `31b5b93f73989023d789416c1f51612c25d1e214`; Vercel production deployment succeeded. No
+real 698-row manifest was staged; production reconciliation counts remain 0/0/0.
 
 **Validation: COMPLETE locally by Codex.** `tsc --noEmit` and touched-file ESLint returned zero;
 focused reconciliation Vitest **67 passed + 13 controlled canonical skips**; the canonical private-file
@@ -49,11 +52,16 @@ leaf account and kept the deterministic UUID helper private.
 **Independent rereview:** **APPROVE**, no remaining findings after the permanent correction-target
 identity gained the full stable record reference and duplicate-identity regression.
 
-**Resume point:** commit and open the PR, run Farm production preflight, apply only the reviewed
-append-only migration, verify functions/grants/counts, then merge and verify the app deployment. Do not
-stage the real 698-row manifest as part of this schema/UI release.
+**Production postflight:** `evidence_label` exists; all four touched functions are `SECURITY DEFINER`
+with empty search paths; helper/validator/trigger remain private and only the permission-gated stage RPC
+is authenticated-executable. Expenses 10,201; sales 162; journal entries 10,365; journal lines 20,730;
+custody movements 1; payment requests 3, all unchanged. Security advisors added no migration-specific
+finding; existing project advisories remain tracked by the security-remediation goal.
 
-## 2026-07-26 — reconciliation Slice 4 review workspace built (LOCAL/UNCOMMITTED, NOT MERGED)
+**Resume point:** continue accounting with the separately reviewed execution/posting/rollback slice.
+Real manifest staging remains a distinct controlled data action, not part of this release.
+
+## 2026-07-26 — reconciliation Slice 4 review workspace released in #917
 
 Built the Arabic-RTL owner/accountant reconciliation review workspace over the live Slice-3 RPCs, in
 the isolated worktree `farm accounting reconciliation workspace` (branch
