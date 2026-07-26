@@ -1,5 +1,13 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Claude (slice 1B money-integrity hardening, Codex review round 2; still uncommitted)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (slice 1B committed for approved release)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-26 (latest) — reconciliation Slice 1B committed for approved release
+
+Commit `4bf7021` (`feat(accounting): add reconciliation execution ledger`) now records the reviewed Slice
+1B migration, its 109-assertion pgTAP test, and the evidence below. The Owner approved review, merge, and
+migration as the standard completion path. Release remains fail-closed: push/PR/CI review comes next,
+then migration-first production apply and merge only if the exact branch remains acceptable. At this
+checkpoint the commit is local only; nothing has been pushed, merged, migrated, or deployed.
 
 ## 2026-07-26 (latest) — reconciliation Slice 1B: money-integrity hardening (Codex review round 2), still draft/uncommitted
 

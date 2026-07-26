@@ -1,4 +1,12 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Claude (slice 1B draft hardened after Codex review round 2, uncommitted; not merged/migrated/deployed)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (slice 1B committed for approved release; not yet merged/migrated/deployed)
+
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1B COMMITTED FOR APPROVED RELEASE.**
+> Independent review and final local verification are complete. Commit `4bf7021`
+> (`feat(accounting): add reconciliation execution ledger`) contains the migration, its 109-assertion
+> pgTAP test, and the detailed review evidence below. The Owner approved the standard review, merge, and
+> migration completion path. This branch is now moving through push/PR/CI review, followed by the
+> migration-first production apply and merge only if every release check remains acceptable. At this
+> checkpoint it is **committed locally only**: not yet pushed, merged, migrated, or deployed.
 
 > **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 1B: MONEY-INTEGRITY HARDENING (CODEX REVIEW
 > ROUND 2), STILL DRAFT/UNCOMMITTED.** Same two untracked files as the entry below, revised in place after

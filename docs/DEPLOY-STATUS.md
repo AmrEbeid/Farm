@@ -2,6 +2,12 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-26 (latest) — accounting reconciliation Slice 1B committed for approved release, not yet
+> applied.** Commit `4bf7021` records the independently reviewed migration and 109-assertion pgTAP test.
+> Owner approval now covers review, merge, and migration as the standard completion path. Push/PR/CI,
+> production apply, merge, and deployment have not yet occurred at this checkpoint; production ledger
+> head remains `20260726051731`.
+
 > **2026-07-26 (latest) — accounting reconciliation slice 1B: money-integrity hardening (Codex review
 > round 2), STILL a draft, NOT applied anywhere, NOT committed.** Same two untracked files as the entry
 > below, revised in place. An independent review found the schema was not yet safe as the money-integrity
