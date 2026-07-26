@@ -248,6 +248,19 @@ describe("generateStagingDraft", () => {
     expect(first).toBe(second);
   });
 
+  it("normalizes accepted UUID casing before deriving any deterministic identity", () => {
+    const lowerOrg = "abcdefab-cdef-abcd-89ab-abcdefabcdef";
+    const options = {
+      expectedOccurrenceCounts: EXPECTED_OCCURRENCES,
+      expectedClassificationCounts: EXPECTED_CLASSES,
+      expectedQualityFlags: EXPECTED_FLAGS,
+    };
+    const lower = generateStagingDraft(makeEvidence(), { ...options, orgId: lowerOrg });
+    const upper = generateStagingDraft(makeEvidence(), { ...options, orgId: lowerOrg.toUpperCase() });
+    expect(canonicalStringify(upper)).toBe(canonicalStringify(lower));
+    expect(upper.batch.org_id).toBe(lowerOrg);
+  });
+
   it("orders evidence items and batch rows deterministically (sorted by id)", () => {
     const draft = generate(makeEvidence());
     const ids = draft.evidence_items.map((e) => e.id);
