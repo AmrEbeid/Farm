@@ -2,21 +2,26 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-26 (latest) — reconciliation Slice 4A hardening is LOCAL/UNCOMMITTED; migration is a DRAFT.**
+> **2026-07-26 (latest) — reconciliation Slice 4/4A is MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > Added the evidence-contract + dimensional-guard hardening from the review's REQUEST CHANGES: a new
 > append-only migration `20260726140000 accounting reconciliation evidence contract and dimensional
 > guard.sql` (adds nullable `evidence_label`; re-emits the staging validator/stage RPC for the enriched
 > manifest; re-emits the tenant guard with the sale hierarchy + included-expense active-leaf/kind rule),
 > plus parser/generator/UI/types changes, permanent server-resolved correction-target summaries, and a
-> new pgTAP. **The migration was NOT applied**, no data was
-> staged, and production reconciliation counts remain **0/0/0**. Local validation is complete:
+> new pgTAP. Reviewed commit `6c49bc9` was applied migrate-first to Farm production as hosted migration
+> `20260726131109 accounting_reconciliation_evidence_contract_and_dimensional_guard`; PR **#917** then
+> merged at `31b5b93f` and the Vercel production deployment succeeded. **No real manifest was staged**;
+> production reconciliation counts remain **0/0/0**. Local validation is complete:
 > TypeScript and full ESLint zero errors; focused reconciliation Vitest **67 passed + 13
 > controlled skips**; canonical private-file regression **55/55**; full Vitest **670 passed + 13
 > controlled skips**; production build **65/65 pages**; full local pgTAP **2,057 passing**, zero file
 > failures, and only the two unchanged unrelated engine assertions. Reconciliation suites are
 > **127/127**, **21/21**, and **60/60**. Independent rereview: **APPROVE**, no remaining findings.
+> Production postflight: the new column exists; the four touched functions are security-definer with
+> empty search paths; only the gated staging RPC is authenticated-executable; financial counts are
+> unchanged. GitHub app/UI/secret checks passed; DB CI is baseline-identical; Vercel production is green.
 
-> **2026-07-26 — reconciliation Slice 4 review UI is LOCAL/UNCOMMITTED; production untouched.**
+> **2026-07-26 — reconciliation Slice 4 review UI released in #917.**
 > The Arabic-RTL owner/accountant reconciliation review workspace (`/finance/reconciliation` and
 > `/finance/reconciliation/[batchId]`) was built over the live Slice-3 RPCs in an isolated worktree.
 > **No migration, no schema change, no deploy, no commit/push/PR/merge, and no data staged.** Production
