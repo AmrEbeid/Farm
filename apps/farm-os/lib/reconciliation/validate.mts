@@ -17,6 +17,9 @@ import type {
 const HEX64_RE = /^[0-9a-f]{64}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// A nonnegative decimal string: digits, optionally a single decimal point + digits. No sign, no
+// thousands separators, no exponent — the exact "123.45"/"0"/"1200" shape of the trusted amounts.
+const NONNEG_DECIMAL_RE = /^\d+(\.\d+)?$/;
 const CLASSIFICATION_SET = new Set<string>(CLASSIFICATIONS);
 
 function fail(message: string): never {
@@ -69,6 +72,24 @@ function asIsoDateText(value: unknown): string {
   return value;
 }
 
+// Slice 4A: the source-only evidence fields. A missing key (undefined) fails closed — the real file
+// carries an explicit `null` for a production-only row, never an absent key.
+function asNonNegativeDecimalStringOrNull(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string" || !NONNEG_DECIMAL_RE.test(value)) {
+    fail("evidence: expected a nonnegative decimal string or null");
+  }
+  return value;
+}
+
+function asIsoDateTextOrNull(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string" || !ISO_DATE_RE.test(value)) {
+    fail("evidence: expected an ISO-shaped date string or null");
+  }
+  return value;
+}
+
 function asBoolean(value: unknown): boolean {
   if (typeof value !== "boolean") {
     fail("evidence: expected a boolean");
@@ -114,12 +135,20 @@ function validateExceptionRow(value: unknown, dataset: Dataset): ExceptionRow {
   const identity_fingerprint = value.identity_fingerprint === null ? null : asHex64(value.identity_fingerprint);
   const locator = validateLocator(value.locator, dataset);
   const is_invalid_source_date = asBoolean(value.is_invalid_source_date);
+  // Slice 4A: label is required and nonempty on every row; source amount/date text are exact strings
+  // for a source row and null for a production-only row. Malformed shapes fail closed here.
+  const label = asNonEmptyString(value.label);
+  const source_amount = asNonNegativeDecimalStringOrNull(value.source_amount);
+  const source_date_text = asIsoDateTextOrNull(value.source_date_text);
   return {
     dataset,
     classification: value.classification as Classification,
     identity_fingerprint,
     locator,
     is_invalid_source_date,
+    label,
+    source_amount,
+    source_date_text,
   };
 }
 

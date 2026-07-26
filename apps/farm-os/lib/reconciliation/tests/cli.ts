@@ -209,12 +209,18 @@ describe.runIf(canonicalGate)("runStagingCli against the canonical three pinned 
     expect(readFileSync(outputPathA, "utf-8")).toBe(readFileSync(outputPathB, "utf-8"));
   });
 
-  it("never writes a private-shaped amount value into the output file", () => {
+  it("carries the Slice 4A evidence fields but never writes a NON-contract private field", () => {
+    // Slice 4A intentionally persists evidence_label + source_amount/source_date_text/source_date_parsed
+    // (RLS-gated finance data shown in the review UI). Only the OTHER private fields must never appear.
     const outputPath = join(dir, "draft.json");
     const { io } = collectIo();
     runStagingCli(baseArgs({ output: outputPath }), io);
     const contents = readFileSync(outputPath, "utf-8");
-    expect(contents).not.toMatch(/\b\d+\.\d{2}\b/);
+    for (const forbidden of ['"production_amount"', '"amount_delta"', '"description"', '"counterparty"', '"legacy_comparison_date"']) {
+      expect(contents).not.toContain(forbidden);
+    }
+    expect(contents).toContain('"evidence_label"');
+    expect(contents).toContain('"source_amount"');
   });
 
   it("preserves the two 2024-02-30 date texts verbatim in the output file", () => {

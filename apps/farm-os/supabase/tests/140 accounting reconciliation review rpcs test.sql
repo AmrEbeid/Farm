@@ -24,7 +24,19 @@ select set_config('t.fm', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'farm_manager' limit 1), false);
 select set_config('t.store', (select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'storekeeper' limit 1), false);
-select set_config('t.account_id', (select id::text from public.accounts where org_id = :'orgA' limit 1), false);
+select set_config('t.account_id', (
+  select a.id::text
+  from public.accounts a
+  where a.org_id = :'orgA'
+    and a.active
+    and a.kind = 'operating'
+    and not exists (
+      select 1 from public.accounts child
+      where child.org_id = a.org_id and child.parent_id = a.id and child.active
+    )
+  order by a.code
+  limit 1
+), false);
 
 insert into public.organization (id, name) values (:'orgB', 'مزرعة أخرى — slice3 test');
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at)
@@ -86,7 +98,10 @@ create or replace function pg_temp.one_source_manifest(
       'classification','source_addition_candidate','source_workbook_sha256',p_source_sha,
       'sheet_name','المصروفات','row_locator',p_locator,'production_snapshot_sha256',null,
       'snapshot_target_table',null,'snapshot_target_id',null,'source_identity_fingerprint',p_fingerprint,
-      'invalid_calendar_quality_flag',false,'first_staged_batch_id',ids.batch_id)),
+      'invalid_calendar_quality_flag',false,'first_staged_batch_id',ids.batch_id,
+      -- Slice 4A enriched evidence contract (a real calendar date → parsed = text).
+      'evidence_label','بند اختبار','source_amount','10.00',
+      'source_date_text','2023-01-01','source_date_parsed','2023-01-01')),
     'batch_rows', jsonb_build_array(jsonb_build_object(
       'id',public.fn_reconciliation_stable_uuid(
         'reconciliation_batch_row',ids.batch_id::text,ids.evidence_id::text
@@ -123,6 +138,8 @@ select set_config('t.m1', jsonb_build_object(
       'source_workbook_sha256',repeat('a',64),'sheet_name','المصروفات','row_locator','A100',
       'production_snapshot_sha256',null,'snapshot_target_table',null,'snapshot_target_id',null,
       'source_identity_fingerprint','fp-100','invalid_calendar_quality_flag',false,
+      'evidence_label','بند A100','source_amount','100.00',
+      'source_date_text','2023-01-01','source_date_parsed','2023-01-01',
       'first_staged_batch_id',public.fn_reconciliation_stable_uuid(
         'reconciliation_batch',repeat('a',64),repeat('c',64),:'orgA'::text)),
     jsonb_build_object(
@@ -132,6 +149,8 @@ select set_config('t.m1', jsonb_build_object(
       'source_workbook_sha256',repeat('a',64),'sheet_name','المصروفات','row_locator','A101',
       'production_snapshot_sha256',null,'snapshot_target_table',null,'snapshot_target_id',null,
       'source_identity_fingerprint','fp-101','invalid_calendar_quality_flag',false,
+      'evidence_label','بند A101','source_amount','101.50',
+      'source_date_text','2023-02-15','source_date_parsed','2023-02-15',
       'first_staged_batch_id',public.fn_reconciliation_stable_uuid(
         'reconciliation_batch',repeat('a',64),repeat('c',64),:'orgA'::text)),
     jsonb_build_object(
@@ -143,6 +162,8 @@ select set_config('t.m1', jsonb_build_object(
       'sheet_name',null,'row_locator',null,'production_snapshot_sha256',repeat('c',64),
       'snapshot_target_table','expenses','snapshot_target_id','f0000000-0000-0000-0000-0000000000a1',
       'source_identity_fingerprint','fp-200','invalid_calendar_quality_flag',false,
+      'evidence_label','يتيم إنتاج','source_amount',null,
+      'source_date_text',null,'source_date_parsed',null,
       'first_staged_batch_id',public.fn_reconciliation_stable_uuid(
         'reconciliation_batch',repeat('a',64),repeat('c',64),:'orgA'::text))),
   'batch_rows',jsonb_build_array(
