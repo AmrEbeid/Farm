@@ -1,4 +1,28 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slices 1B and 2 merged; Slice 1B production-migrated)
+# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slice 3 production-verified and merged)
+
+> **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 3 PRODUCTION-VERIFIED AND MERGED.**
+> PR #915 merged at `f2cd87a` after migrate-first release of hosted migration
+> `20260726111554 accounting_reconciliation_review_rpcs` from reviewed commit `ff39170`. The migration
+> adds only exact-manifest staging, strict row review, immutable batch freeze, owner-only approval, and
+> private validation helpers; it creates no tables/columns and stages no real data. Production
+> postflight: all nine functions are `SECURITY DEFINER` with empty search paths; only the four gated
+> RPCs are executable by `authenticated`; anon/public cannot execute them; all helpers stay private.
+> Reconciliation rows remain `0/0/0`. Financial row counts are unchanged: expenses `10,201`, sales
+> `162`, journal entries `10,365`, journal lines `20,730`, custody movements `1`, payment requests `3`.
+>
+> Independent acceptance: **APPROVE**, no findings. The exact real Slice-2 manifest staged successfully
+> only in ephemeral PostgreSQL (`698` evidence items / `698` batch rows / deterministic batch
+> `80a1051d-5bcf-504c-93cd-07206b4c59ef`). Slice 3 pgTAP is `127/127`; full local pgTAP is `2036`
+> passing with zero file failures and only the two pre-existing engine assertions failing
+> (`55_engine_maxdeficit_sizing_test.sql` assertion 3 and `80_engine_msg_maxdef_test.sql` assertion 3).
+> GitHub application/design-system CI, secret scan, Vercel, and review are green; GitHub DB CI is red
+> only for those same baseline assertions. **No canonical manifest or real reconciliation data has
+> been staged in production.**
+>
+> **Next accounting slice:** build the Arabic-RTL owner/accountant review workspace over these RPCs,
+> with bounded loading and explicit hold/reject/include decisions. Keep financial execution/posting
+> and rollback in separate independently reviewed migrations; do not stage the real 698-row manifest
+> until the UI is usable and the Owner separately approves that data action.
 
 > **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICES 1B AND 2 RELEASED.** PR #912
 > merged at `a09c2ac`; its reviewed Slice 1B execution-ledger migration is live in Supabase project
