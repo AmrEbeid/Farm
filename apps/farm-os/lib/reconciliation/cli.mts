@@ -94,6 +94,13 @@ export function runStagingCli(argv: string[], io: CliIo = defaultIo): number {
   try {
     const args = parseArgs(argv);
 
+    const evidenceBytes = readFileOrFail(args.evidence);
+    verifyPinnedHash(
+      evidenceBytes,
+      EXPECTED_EXCEPTION_EVIDENCE_SHA256,
+      "exception evidence hash mismatch against pinned value",
+    );
+
     const workbookBytes = readFileOrFail(args.workbook);
     verifyPinnedHash(workbookBytes, EXPECTED_WORKBOOK_SHA256, "workbook hash mismatch against pinned value");
 
@@ -102,13 +109,6 @@ export function runStagingCli(argv: string[], io: CliIo = defaultIo): number {
       snapshotBytes,
       EXPECTED_PRODUCTION_SNAPSHOT_SHA256,
       "production snapshot hash mismatch against pinned value",
-    );
-
-    const evidenceBytes = readFileOrFail(args.evidence);
-    verifyPinnedHash(
-      evidenceBytes,
-      EXPECTED_EXCEPTION_EVIDENCE_SHA256,
-      "exception evidence hash mismatch against pinned value",
     );
 
     const rawEvidence = parseJsonBytes(evidenceBytes);
