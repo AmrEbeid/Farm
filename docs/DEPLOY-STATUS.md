@@ -2,6 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-26 (latest) — reconciliation Slice 3 migrated first, production-verified, then merged.**
+> Reviewed commit `ff39170` was applied to Farm Supabase project `veezkmytervjnpxcrbkw` as hosted
+> migration `20260726111554 accounting_reconciliation_review_rpcs`; PR #915 then merged to `main` at
+> `f2cd87a`. The apply contained function/grant DDL only. Postflight confirms all four gated RPCs and
+> five private helpers exist with `SECURITY DEFINER` + empty search paths; authenticated can execute
+> only stage/review/freeze/approve, while anon/public cannot and helpers remain non-executable.
+> Reconciliation table counts stayed `0/0/0`; expenses `10,201`, sales `162`, journal entries `10,365`,
+> journal lines `20,730`, custody movements `1`, and payment requests `3` were unchanged from preflight.
+> No manifest, evidence item, review row, expense, sale, journal, custody, or payment data was written.
+> Independent final review: APPROVE. Local Slice 3 pgTAP `127/127`; full suite `2036` passing plus the
+> same two known engine baseline failures, zero file failures. Rollback is the dependency-ordered nine
+> function drops documented in the migration header.
+
 > **2026-07-26 (latest) — Reconciliation Slices 1B and 2 released.** PR #912 merged at
 > `a09c2ac`; the Slice 1B schema is live and postflight-verified under hosted migration
 > `20260726083453 accounting_reconciliation_execution_ledger`. PR #913 merged at

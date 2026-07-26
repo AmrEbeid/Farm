@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slices 1B and 2 released)
+# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slice 3 live and merged)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-26 (latest) — reconciliation Slice 3 production-verified and merged
+
+PR #915 merged at `f2cd87a` after the reviewed `ff39170` migration was applied first to Farm
+Supabase as `20260726111554 accounting_reconciliation_review_rpcs`. Production now has exact
+Slice-2 deterministic manifest staging, strict owner/accountant row review, immutable batch freeze,
+and owner-only approval with creator/reviewer separation of duties. The four client RPCs are
+authenticated-only; all five validation helpers are private; every function has `SECURITY DEFINER`
+and an empty search path.
+
+No real reconciliation data was staged. Production reconciliation counts are still `0/0/0`, and all
+captured financial counts are unchanged: expenses `10,201`, sales `162`, journal entries `10,365`,
+journal lines `20,730`, custody movements `1`, payment requests `3`. The real pinned manifest was
+used only in ephemeral PostgreSQL and passed at `698/698`, deterministic batch
+`80a1051d-5bcf-504c-93cd-07206b4c59ef`.
+
+Acceptance evidence: independent review APPROVE; Slice 3 pgTAP `127/127`; full local pgTAP `2036`
+passing with zero file failures and only the two known engine baseline assertions failing. GitHub
+app/design-system CI, secret scan, Vercel, and review are green; the DB job reports only those same
+baseline failures.
+
+**Resume point:** build the Arabic-RTL reconciliation review workspace for owner/accountant using the
+live Slice-3 RPCs. Keep execution/posting and rollback as separate reviewed migrations. Do not stage
+the canonical 698-row manifest in production until the review UI is usable and the Owner separately
+approves that data action.
 
 ## 2026-07-26 (latest) — reconciliation Slices 1B and 2 released
 
