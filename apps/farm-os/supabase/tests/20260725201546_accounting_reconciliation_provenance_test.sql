@@ -8,7 +8,7 @@
 -- caveat).
 
 begin;
-select plan(58);
+select plan(60);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set orgB 'accc0001-0000-0000-0000-000000000002'
@@ -54,11 +54,11 @@ insert into public.reconciliation_evidence_items
 select has_table('public', 'reconciliation_batches', 'reconciliation_batches table exists');
 select has_table('public', 'reconciliation_evidence_items', 'reconciliation_evidence_items table exists');
 select has_table('public', 'reconciliation_batch_rows', 'reconciliation_batch_rows table exists');
-select is((select relforcerowsecurity from pg_class where relname = 'reconciliation_batches'), true,
+select is((select relforcerowsecurity from pg_class where oid = 'public.reconciliation_batches'::regclass), true,
   'reconciliation_batches: FORCE row level security is on');
-select is((select relforcerowsecurity from pg_class where relname = 'reconciliation_evidence_items'), true,
+select is((select relforcerowsecurity from pg_class where oid = 'public.reconciliation_evidence_items'::regclass), true,
   'reconciliation_evidence_items: FORCE row level security is on');
-select is((select relforcerowsecurity from pg_class where relname = 'reconciliation_batch_rows'), true,
+select is((select relforcerowsecurity from pg_class where oid = 'public.reconciliation_batch_rows'::regclass), true,
   'reconciliation_batch_rows: FORCE row level security is on');
 
 -- ── no public/anon DML widening; no client insert/update/delete grant to authenticated either (no RPC
@@ -230,7 +230,7 @@ select throws_ok(
   '23503', null, 'cross-org batch_id (org A row, org B batch) is rejected');
 select throws_ok(
   format($$insert into public.reconciliation_batch_rows (org_id, batch_id, evidence_item_id)
-            values (%L, 'a1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001')$$, :'orgB'),
+            values (%L, 'b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001')$$, :'orgB'),
   '23503', null, 'cross-org evidence_item_id (org B row, org A evidence item) is rejected');
 select throws_ok(
   format($$insert into public.reconciliation_batch_rows (org_id, batch_id, evidence_item_id, reviewer_id)
@@ -355,6 +355,16 @@ select lives_ok(
   $$update public.reconciliation_batch_rows set execution_error = 'posting failed: timeout'
     where id = 'c2000000-0000-0000-0000-000000000001'$$,
   'the allowed execution-bookkeeping column (execution_error) can still be updated while frozen');
+select throws_ok(
+  $$delete from public.reconciliation_batch_rows
+    where id = 'c2000000-0000-0000-0000-000000000001'$$,
+  '22023', null, 'deleting a frozen row is rejected even through a privileged path');
+alter table public.reconciliation_batch_rows add column future_guard_probe text;
+select throws_ok(
+  $$update public.reconciliation_batch_rows set future_guard_probe = 'changed'
+    where id = 'c2000000-0000-0000-0000-000000000001'$$,
+  '22023', null, 'future columns are immutable automatically after a row is frozen');
+alter table public.reconciliation_batch_rows drop column future_guard_probe;
 
 -- ── audit: rows recorded, visible only through the finance gate ────────────────────────────────────────
 select isnt((select count(*) from public.audit_log where entity_type = 'reconciliation_batch'), 0::bigint,
