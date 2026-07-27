@@ -939,7 +939,12 @@ select throws_ok(
 );
 select throws_ok(
   $$delete from public.expenses
-     where corrects_expense_id = 'e5000000-0000-0000-0000-000000000001'::uuid$$,
+     where id = (
+       select target_id
+         from public.reconciliation_action_links
+        where batch_id = 'e0000000-0000-0000-0000-000000000060'::uuid
+          and action_kind = 'correction_replacement'
+     )$$,
   '22023', null,
   'a historical_treasury expense cannot be deleted'
 );
@@ -1196,7 +1201,7 @@ select throws_ok(
       expense_payment_decision
     ) values (
       'e2000000-0000-0000-0000-000000000081',
-      '00000000-0000-0000-0000-000000000001',
+      current_setting('t.org')::uuid,
       'e0000000-0000-0000-0000-000000000080',
       'e1000000-0000-0000-0000-000000000080', 'expenses', 'include',
       'unrouted'
@@ -1224,7 +1229,7 @@ select is(
 );
 select lives_ok(
   $$select private.fn_ensure_general_treasury_account(
-    '00000000-0000-0000-0000-000000000001'::uuid
+    current_setting('t.org')::uuid
   )$$,
   'the treasury helper can be re-run against an already-seeded organization'
 );
