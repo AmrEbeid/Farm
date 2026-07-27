@@ -45,6 +45,10 @@ export default async function CostCenterPage({ params }: { params: Promise<{ id:
       .from("sales")
       .select("id, sale_date, crop, total, price_status, payment_status")
       .eq("cost_center_id", id)
+      // A reconciliation-reversed sale keeps price_status='finalized' but its revenue journal is
+      // reversed, so it must not inflate this centre's sales total. A historical_treasury sale IS
+      // real revenue for the centre and deliberately still counts. (migration 20260726160000)
+      .neq("payment_status", "historical_reversed")
       .order("sale_date", { ascending: false })
       .limit(200),
   ]);

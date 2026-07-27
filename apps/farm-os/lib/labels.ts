@@ -166,6 +166,29 @@ export const PAYMENT_STATUS_AR: Record<string, string> = {
   cancelled: "ملغى",
 };
 
+// Reconciliation-created sale lifecycle states (`sales.payment_status`). Exported so every
+// data-fetch that must drop them uses the SAME definition — one source of truth for "this sale is a
+// historical reconciliation row, not live operational revenue". A historical_treasury sale was
+// settled in cash at posting (Dr 1010) so it opens no receivable and can never be collected; a
+// historical_reversed sale's revenue journal is reversed so it is not revenue at all.
+// See migration 20260726160000.
+export const HISTORICAL_SALE_PAYMENT_STATUSES = ["historical_treasury", "historical_reversed"] as const;
+
+/** PostgREST `in`-list form of the above, for `.not("payment_status", "in", …)` filters. */
+export const HISTORICAL_SALE_PAYMENT_STATUS_FILTER = `(${HISTORICAL_SALE_PAYMENT_STATUSES.join(",")})`;
+
+/**
+ * Sale collection status (`sales.payment_status`) → Arabic. Distinct from PAYMENT_STATUS_AR above,
+ * which maps the EXPENSE payment states; the two columns share a name but not a value set.
+ */
+export const SALE_PAYMENT_STATUS_AR: Record<string, string> = {
+  unpaid: "غير محصل",
+  partially_collected: "محصل جزئي",
+  collected: "محصل",
+  historical_treasury: "ترحيل تاريخي — محصل بالخزينة",
+  historical_reversed: "ترحيل تاريخي معكوس",
+};
+
 /**
  * Payment-/funding-request lifecycle status (`payment_requests.status`) → Arabic. Hoisted here
  * (A5 follow-up) from two byte-identical copies (finance dashboard + linked-work sections).

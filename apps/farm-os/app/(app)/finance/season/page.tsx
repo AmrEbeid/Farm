@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { HISTORICAL_SALE_PAYMENT_STATUS_FILTER } from "@/lib/labels";
 import { requireRole } from "@/lib/auth";
 import { KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -49,6 +50,11 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
       // tonnage (they're just never valued). This is the nullable-date understatement bug (honest-null #1).
       .select("id, sale_date, delivery_date, created_at, crop, qty, unit, total, price_status, payment_status, buyer_id, cost_center_id, delivery_note_no, crates")
       .gte("created_at", seasonStart)
+      // ...which is exactly why a reconciliation-created HISTORICAL sale must be excluded here: it is
+      // written today (created_at = now) but its economic date is years old, so the created_at anchor
+      // would drop an archive row into the current season and inflate tonnage, finalized revenue, and
+      // the derived `outstanding`. A reversed one is not revenue at all. (migration 20260726160000)
+      .not("payment_status", "in", HISTORICAL_SALE_PAYMENT_STATUS_FILTER)
       .order("created_at", { ascending: false }),
     sb.from("sale_collections").select("sale_id, amount"),
     sb.from("buyers").select("id, name"),

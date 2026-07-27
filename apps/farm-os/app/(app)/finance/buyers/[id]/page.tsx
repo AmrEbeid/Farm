@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { HISTORICAL_SALE_PAYMENT_STATUS_FILTER } from "@/lib/labels";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -34,6 +35,10 @@ export default async function BuyerPage({ params }: { params: Promise<{ id: stri
       .from("sales")
       .select("id, sale_date, crop, qty, unit, total, price_status, payment_status")
       .eq("buyer_id", id)
+      // A historical reconciliation sale opens no receivable (Dr 1010 at posting) and a reversed one
+      // is not revenue, so neither may reach this buyer's outstanding balance or its collection CTA.
+      // (migration 20260726160000)
+      .not("payment_status", "in", HISTORICAL_SALE_PAYMENT_STATUS_FILTER)
       .order("sale_date", { ascending: false }),
     sb.from("sale_collections").select("sale_id, amount"),
   ]);

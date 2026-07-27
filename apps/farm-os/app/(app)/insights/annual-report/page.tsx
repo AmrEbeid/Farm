@@ -27,7 +27,14 @@ export default async function AnnualReportPage() {
   const [tsRes, rollupRes, salesRes, areaRes] = await Promise.all([
     sb.rpc("fn_pnl_timeseries", { p_org: m.orgId, p_grain: "year", p_from: "2017-01-01", p_to: `${nowYear}-12-31` }),
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb.from("sales").select("cost_center_id, total, price_status").eq("org_id", m.orgId).eq("price_status", "finalized"),
+    sb
+      .from("sales")
+      .select("cost_center_id, total, price_status")
+      .eq("org_id", m.orgId)
+      .eq("price_status", "finalized")
+      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
+      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
+      .neq("payment_status", "historical_reversed"),
     sb.from("cost_centers").select("area_feddan").eq("org_id", m.orgId).eq("active", true).eq("enterprise", "عام").not("area_feddan", "is", null),
   ]);
   if (tsRes.error) throw tsRes.error;

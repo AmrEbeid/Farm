@@ -1,6 +1,77 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Codex (expense execution released)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude (sale execution drafted, LOCAL)
 
-> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, MERGED, DEPLOYED, VERIFIED.**
+> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION SALE + MIXED-BATCH EXECUTION: LOCAL / UNRELEASED.**
+> **NOT migrated, NOT pushed, NOT in a PR, NOT merged, NOT deployed. No production or real-data action.**
+> Branch `feat/accounting-reconciliation-sale-execution`, worktree
+> `/Users/amrebeid/Projects/farm reconciliation sale execution`, base `dbe8fcc` (main after #919/#920).
+> Append-only migration `20260726160000 accounting reconciliation execute sale batch.sql` re-emits the single
+> `fn_execute_reconciliation_batch(uuid)` so it executes **expense-only, sale-only, and mixed** approved+frozen
+> batches inside one atomic subtransaction, preserving every expense guarantee verbatim.
+>
+> **Economic contract (derived from repo bytes, not assumed).** Historical reconciliation sales are CASH-IN:
+> `Dr 1010 النقدية بالخزينة / Cr <typed revenue leaf>` on the **reviewed effective date**. Evidence:
+> `20260707115445` SLICE 2 posted every historical sale Dr cash / Cr a crop-typed revenue leaf; `20260708110000`
+> reclassed that cash leg 1000 → 1010 and states verbatim that the 162 sale lines are "all historical sales
+> cash-in" and that "Live sales post Dr 1200/Cr 4000 (never 1000)". The executor therefore never posts to
+> receivable 1200, never to the **parent** account 4000 (parent of 4010..4090 per `20260701440000:667-687`),
+> never fabricates a buyer, and never records a collection. The crop → leaf mapping is reproduced **verbatim**
+> (regexes, branch order and the `else '4090'` fallback all byte-identical to `20260707115445:145-153`, verified
+> programmatically).
+>
+> **Documented boundary — the palm-tree disposal exception is NOT reproducible.** `20260708090000` moved exactly
+> three sales 4010 → 4090 by **pinned sale_id** and says in its own header that "the rest is an accountant's
+> policy call, NOT decided here". No derivable rule separates a palm-TREE disposal from date-crop revenue, so
+> this slice does not invent one: a crop matching the 4010 keywords maps to 4010. Routing a genuine tree disposal
+> to 4090 remains a human review decision. Stated rather than guessed.
+>
+> **Lifecycle.** `sales.payment_status` gains `historical_treasury` and `historical_reversed` (the three
+> operational states are preserved verbatim). New guards: business-field immutability, delete refusal, no reroute
+> into an operational payment state, no status flip without a verified reversal, and a `sale_collections` guard
+> that blocks any second money path (including a privileged direct insert).
+>
+> **Proof-gated classification, never heuristic.** Existing rows are relabelled only via
+> `private.fn_reconciliation_sale_has_exact_historical_journal` — the single definition of the proven shape
+> (finalized, positive total, zero collection rows, exactly one `sale` journal, posted and not itself a reversal,
+> exactly two lines, a 1010 debit = total, a typed-leaf credit = total, entry_date = the sale's economic date).
+> The UPDATE runs **through** the new guard, counts are `NOTICE`d and never hardcoded, ambiguous rows are left
+> untouched, and a final invariant aborts the migration if any `historical_treasury` row fails the predicate.
+>
+> **Report defect closed (narrowly).** `fn_revenue_sales_report` computed `outstanding = total − Σ collections`
+> for every finalized sale and never read `payment_status` (`20260701510000:76-79,107-113`), so a historical
+> cash-in sale — which has zero collection rows by construction — reported as full outstanding A/R aged 60+.
+> Re-emitted with exactly two changes: `historical_treasury` ⇒ `outstanding = 0`, and `historical_reversed` rows
+> leave the report. Seven frontend surfaces were also corrected: `/finance/season` and `/finance/close` (which
+> anchor on `created_at`, so an archive row written today would land in the current season / age into A/R) and
+> five revenue aggregations that lacked the posted-journal liveness check `insights` and `owner` already had.
+>
+> **Local evidence.** pgTAP `201 accounting reconciliation execute sale batch test.sql` 232/232; full pgTAP
+> **2,425 ok / 2 not-ok / 0 file failures** (baseline before this work was 2,193 ok / the same 2) — the only
+> failures are the two known unrelated stock-engine baselines
+> (`55_engine_maxdeficit_sizing_test` #3, `80_engine_msg_maxdef_test` #3). TypeScript `tsc --noEmit` exit 0;
+> ESLint exit 0 on the 9 touched files and 0 across the whole app; Vitest 682 passed + 13 controlled skips
+> (70 files); `next build` exit 0, 65/65 static pages; recharts code-split guard and client-fn-in-server guard
+> both pass; `git diff --check` clean.
+>
+> **Internal adversarial review — one CRITICAL finding, fixed.** The classification was filtered on
+> `payment_status = 'collected'`; the only writer of that value is `fn_record_sale_collection`, which
+> requires a collection row a historical cash-in sale never has. On data carrying the column's `'unpaid'`
+> default the backfill would have relabelled nothing while printing `0 proven / 0 ambiguous`, leaving the
+> report defect open and making every historical sale permanently un-correctable. It is now **proof-driven**
+> (safe either way: the predicate demands Dr 1010 and zero collections, so an operational receivable cannot
+> be swept in) with a **two-sided invariant** that aborts on an unproven label *or* an unlabelled provable
+> row. Also fixed: timezone-dependent `created_at::date` (UTC now pinned, invariance asserted across four
+> zones); unguarded `sale_collections` DELETE (a posted collection could be removed to launder an
+> operational receivable into a "proven" historical sale — now refused); UPDATE-only sale guards (a direct
+> INSERT could claim an unprovable, then-indelible historical state — now refused); an unconditional
+> revenue-leaf lock (widened expense-only batches and added a deadlock edge against `fn_merge_accounts` —
+> now taken only for sale-bearing batches); a hand-listed sale baseline hash missing six columns (now hashes
+> the whole row); a one-cent tolerance on the qty×price cross-check; and uuid ordering of the baseline array.
+> The review independently confirmed **no expense regression** by statement-by-statement diff.
+>
+> **Remaining before this is dependable:** owner review, rollback/reinstatement, owner-facing execute/rollback
+> UI, controlled real staging, dual-run, accountant sign-off.
+
+> **2026-07-27 — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The isolated branch `feat/accounting-reconciliation-expense-execution` adds the owner-only,
 > whole-batch atomic `fn_execute_reconciliation_batch(uuid)` expense kernel and append-only migration
 > `20260726150000 accounting reconciliation execute expense batch.sql`. It posts approved/frozen

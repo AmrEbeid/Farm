@@ -2,12 +2,37 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-27 (latest) — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
+> **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: LOCAL / UNRELEASED. NOTHING DEPLOYED.**
+> Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) holds append-only migration
+> `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
+> `201 accounting reconciliation execute sale batch test.sql`, committed **locally only**.
+>
+> **Release state: NOT applied to any database, NOT pushed, NO PR, NOT merged, NOT deployed.** No production
+> access, no hosted migration, no financial or real-data write occurred at any point. Every check below ran
+> against an **ephemeral local PostgreSQL 17 cluster** created and destroyed by
+> `apps/farm-os/supabase/test-shims/run-pgtap-local.sh` (Docker-free harness). Production remains exactly as the
+> 2026-07-27 expense-execution entry below describes it: hosted migration `20260727063039
+> accounting_reconciliation_execute_expense_batch`, reconciliation tables empty, financial counts unchanged.
+>
+> Local evidence for this slice:
+> - pgTAP focused: `201 …execute sale batch test.sql` — **232 ok / 0 not ok / 0 errors**, plan `1..232` matched.
+> - pgTAP full suite: **ok=2425, not_ok=2, file_failures=0** (harness exit 1 solely because the two known
+>   baselines are not `# TODO`-tagged). Pre-change baseline on the same harness: **ok=2193, not_ok=2,
+>   file_failures=0** — i.e. +232 new assertions and **zero new failures**.
+> - Known unrelated baselines, unchanged: `55_engine_maxdeficit_sizing_test` assertion 3 (#280 F4) and
+>   `80_engine_msg_maxdef_test` assertion 3 (0078). Neither was weakened, skipped, or `TODO`-tagged.
+> - `tsc --noEmit` exit 0 · `eslint` exit 0 (9 touched files, and 0 across the whole app) · `vitest run`
+>   70 files, 682 passed + 13 skipped · `next build` exit 0, 65/65 static pages · recharts code-split guard PASS
+>   · client-fn-in-server guard PASS · `git diff --check` clean.
+>
+> **Next gate: Owner review. Applying the migration remains the Owner's act, not the agent's.**
+
+> **2026-07-27 — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The reviewed branch adds migration `20260726150000 accounting reconciliation execute expense
 > batch.sql`, owner-only expense execution, treasury `1010`, immutable historical posting/reversal
 > states, exact correction and postflight checks, and 136 focused pgTAP assertions. Two independent
 > reviews approved the first commit; every valid CodeRabbit finding was then fixed and tested. Full
-> local evidence: ESLint/TypeScript clean, Vitest 673 passed + 13 controlled skips, build 65/65 pages,
+> local evidence: ESLint/TypeScript clean, Vitest 682 passed + 13 controlled skips, build 65/65 pages,
 > pgTAP 2,193 passing with only the same two unrelated engine assertions and zero file failures.
 > Migration `20260726150000 accounting reconciliation execute expense batch.sql` was applied first to
 > Farm production as hosted migration `20260727063039

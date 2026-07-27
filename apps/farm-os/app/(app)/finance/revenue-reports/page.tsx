@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { SALE_PAYMENT_STATUS_AR } from "@/lib/labels";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { CategoryBarChart, MultiInsightChart } from "@/components/charts";
@@ -24,7 +25,7 @@ type RevenueSaleRow = {
   unit_price: number | null;
   total: number | null;
   price_status: "pending" | "finalized";
-  payment_status: "unpaid" | "partially_collected" | "collected";
+  payment_status: SalePaymentStatus;
   buyer_id: string | null;
   buyer_name: string | null;
   buyer_type: string | null;
@@ -76,8 +77,20 @@ type RevenueArRow = {
   outstanding: number;
   age_days: number;
   aging_bucket: string;
-  payment_status: "unpaid" | "partially_collected" | "collected";
+  payment_status: SalePaymentStatus;
 };
+
+/**
+ * Mirrors public.sales.payment_status. The two `historical_*` states are written only by the
+ * owner-only reconciliation executor (fn_execute_reconciliation_batch); the UI renders them but
+ * never produces them.
+ */
+type SalePaymentStatus =
+  | "unpaid"
+  | "partially_collected"
+  | "collected"
+  | "historical_treasury"
+  | "historical_reversed";
 
 type RevenueCollectionRow = {
   collection_id: string;
@@ -113,12 +126,6 @@ type RevenueReport = {
 const PRICE_STATUS_AR: Record<RevenueSaleRow["price_status"], string> = {
   pending: "السعر معلّق",
   finalized: "مسعّر",
-};
-
-const PAYMENT_STATUS_AR: Record<RevenueSaleRow["payment_status"], string> = {
-  unpaid: "غير محصل",
-  partially_collected: "محصل جزئي",
-  collected: "محصل",
 };
 
 const BUYER_TYPE_AR: Record<string, string> = {
@@ -164,7 +171,7 @@ export default async function FinanceRevenueReportsPage({
     collected: Number(row.collected_to_as_of ?? 0),
     outstanding: row.outstanding ?? undefined,
     price: PRICE_STATUS_AR[row.price_status] ?? row.price_status,
-    payment: PAYMENT_STATUS_AR[row.payment_status] ?? row.payment_status,
+    payment: SALE_PAYMENT_STATUS_AR[row.payment_status] ?? row.payment_status,
     center: formatCenter(row.cost_center_code, row.cost_center_name),
     location: formatLocation(row.farm_name, row.sector_name, row.hawsha_name),
   }));
@@ -203,7 +210,7 @@ export default async function FinanceRevenueReportsPage({
     outstanding: Number(row.outstanding ?? 0),
     age: Number(row.age_days ?? 0),
     bucket: row.aging_bucket,
-    payment: PAYMENT_STATUS_AR[row.payment_status] ?? row.payment_status,
+    payment: SALE_PAYMENT_STATUS_AR[row.payment_status] ?? row.payment_status,
   }));
 
   const collectionRows: SimpleRow[] = report.collections.map((row) => ({

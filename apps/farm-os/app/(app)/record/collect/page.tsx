@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { HISTORICAL_SALE_PAYMENT_STATUS_FILTER } from "@/lib/labels";
 import { requireRole } from "@/lib/auth";
 import { CollectWizard } from "@/components/CollectWizard";
 import { fmtDate } from "@/lib/dates";
@@ -17,6 +18,10 @@ export default async function RecordCollectPage() {
       .select("id, sale_date, crop, total, buyer_id, price_status, payment_status")
       .eq("price_status", "finalized")
       .neq("payment_status", "collected")
+      // A historical reconciliation sale was settled in cash at posting and a reversed one is not
+      // revenue; the DB guard refuses a collection against either, so neither may be offered as
+      // collectible here. (migration 20260726160000)
+      .not("payment_status", "in", HISTORICAL_SALE_PAYMENT_STATUS_FILTER)
       .order("sale_date", { ascending: false })
       .limit(200),
     sb.from("sale_collections").select("sale_id, amount"),

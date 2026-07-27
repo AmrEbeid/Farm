@@ -589,7 +589,14 @@ type PaymentRequestFundingsTable = {
 };
 type BuyerType = "cash_customer" | "trader" | "company";
 type SalePriceStatus = "pending" | "finalized";
-type SalePaymentStatus = "unpaid" | "partially_collected" | "collected";
+type SalePaymentStatus =
+  | "unpaid"
+  | "partially_collected"
+  | "collected"
+  // reconciliation-created historical direct-treasury sales (migration 20260726160000):
+  // cash-settled at posting (Dr 1010 / Cr typed revenue leaf), never collectible.
+  | "historical_treasury"
+  | "historical_reversed";
 type BuyersTable = {
   Row: {
     id: string;
