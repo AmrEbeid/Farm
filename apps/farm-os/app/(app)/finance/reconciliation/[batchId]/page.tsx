@@ -165,6 +165,145 @@ function assertNotTruncated<T>(rows: T[] | null, cap: number, whatAr: string): T
   return list;
 }
 
+/**
+ * Keep an already-in-flight read alive across an intervening `await` that may throw first.
+ *
+ * These reads are STARTED eagerly and AWAITED later, so a rejection can land while the render is
+ * still awaiting something else. The no-op handler only stops Node reporting it as an *unhandled*
+ * rejection — the promise still rejects at its `await` below, so a failed read never renders as an
+ * empty or partial page. Fail-closed is unchanged; only the reporting noise is.
+ */
+function started<T>(read: Promise<T>): Promise<T> {
+  read.catch(() => {});
+  return read;
+}
+
+/**
+ * The whole-batch KPI strip: seven bounded head counts over the ENTIRE batch, deliberately
+ * independent of the queue filters (a filter narrows the visible page, never the batch KPIs).
+ * Depends only on the batch identity, so it can run alongside the filtered count and the row page.
+ */
+async function loadWholeBatchCounts(
+  sb: Awaited<ReturnType<typeof createClient>>,
+  batchId: string,
+  orgId: string,
+): Promise<RowStateCounts> {
+  // Whole-batch state summary via bounded head counts (no unbounded row read; no N+1 over data).
+  const [total, unreviewed, included, held, rejected, frozen, executed] = await Promise.all([
+    headCount(sb, batchId, orgId),
+    headCount(sb, batchId, orgId, [{ column: "review_state", value: "unreviewed" }]),
+    headCount(sb, batchId, orgId, [{ column: "disposition", value: "include" }]),
+    headCount(sb, batchId, orgId, [
+      { column: "review_state", value: "reviewed" },
+      { column: "disposition", value: "hold" },
+    ]),
+    headCount(sb, batchId, orgId, [{ column: "review_state", value: "rejected" }]),
+    // Frozen counts the actual frozen flag across ALL dispositions (included rows move to
+    // review_state='frozen', but held/rejected rows keep their state with frozen=true).
+    headCount(sb, batchId, orgId, [{ column: "frozen", value: true }]),
+    executedRowCount(sb, batchId, orgId),
+  ]);
+  return {
+    total,
+    unreviewed,
+    reviewed: total - unreviewed,
+    rejected,
+    frozen,
+    executed,
+    included,
+    held,
+    decided: total - unreviewed,
+    allDecided: total > 0 && unreviewed === 0,
+  };
+}
+
+/**
+ * Option lists for the editable pickers — only when the batch is still editable (staged); bounded +
+ * active/non-archived. Depends only on the batch status, so it runs alongside the queue reads.
+ */
+async function loadEditableOptions(
+  sb: Awaited<ReturnType<typeof createClient>>,
+  orgId: string,
+  editable: boolean,
+): Promise<OptionList> {
+  if (!editable) {
+    return { accounts: [], costCenters: [], suppliers: [], buyers: [], farms: [], sectors: [], hawshat: [] };
+  }
+  // Every bounded option query requests LIMIT+1 so an overflow is DETECTED (assertNotTruncated),
+  // never silently truncated — a truncated set would corrupt the leaf-account and hierarchy filters.
+  const [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes] = await Promise.all([
+    sb
+      .from("accounts")
+      .select("id, code, name_ar, account_type, kind, parent_id, active")
+      .eq("org_id", orgId)
+      .order("code")
+      .limit(OPTION_LIMIT + 1),
+    sb.from("cost_centers").select("id, code, name_ar").eq("org_id", orgId).eq("active", true).order("code").limit(OPTION_LIMIT + 1),
+    sb.from("suppliers").select("id, name").eq("org_id", orgId).order("name").limit(OPTION_LIMIT + 1),
+    sb.from("buyers").select("id, name").eq("org_id", orgId).eq("active", true).order("name").limit(OPTION_LIMIT + 1),
+    sb.from("farms").select("id, name").eq("org_id", orgId).eq("archived", false).order("name").limit(OPTION_LIMIT + 1),
+    sb.from("sectors").select("id, name, farm_id").eq("org_id", orgId).eq("archived", false).order("name").limit(OPTION_LIMIT + 1),
+    sb.from("hawshat").select("id, code, name, sector_id").eq("org_id", orgId).eq("archived", false).order("code").limit(OPTION_LIMIT + 1),
+  ]);
+  for (const res of [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes]) {
+    if (res.error) throw res.error;
+  }
+  const accountRows = assertNotTruncated(accRes.data, OPTION_LIMIT, "الحسابات");
+  return {
+    accounts: leafPostingAccounts(accountRows),
+    costCenters: assertNotTruncated(ccRes.data, OPTION_LIMIT, "مراكز التكلفة").map((c) => ({ id: c.id, label: `${c.code} · ${c.name_ar}` })),
+    suppliers: assertNotTruncated(supRes.data, OPTION_LIMIT, "الموردين").map((s) => ({ id: s.id, label: s.name })),
+    buyers: assertNotTruncated(buyRes.data, OPTION_LIMIT, "المشترين").map((b) => ({ id: b.id, label: b.name })),
+    farms: assertNotTruncated(farmRes.data, OPTION_LIMIT, "المزارع").map((f) => ({ id: f.id, label: f.name })),
+    sectors: assertNotTruncated(secRes.data, OPTION_LIMIT, "القطاعات").map((s) => ({ id: s.id, label: s.name, farmId: s.farm_id })),
+    hawshat: assertNotTruncated(hawRes.data, OPTION_LIMIT, "الحوش").map((h) => ({ id: h.id, label: `${h.code} · ${h.name}`, sectorId: h.sector_id })),
+  };
+}
+
+/**
+ * Correction targets for the CURRENT bounded page of rows — resolved on every render because these
+ * summaries are displayed outside the editable picker, so the approver can verify the exact target
+ * after reload and freeze. Depends on the row page, so it starts only once those rows are known.
+ */
+async function loadCorrectionTargets(
+  sb: Awaited<ReturnType<typeof createClient>>,
+  orgId: string,
+  batchRows: BatchRowRecord[],
+): Promise<{ expenses: Map<string, CorrectionExpense>; sales: Map<string, CorrectionSale> }> {
+  const correctionExpenseIds = Array.from(
+    new Set(batchRows.map((row) => row.corrects_expense_id).filter((id): id is string => id !== null)),
+  );
+  const correctionSaleIds = Array.from(
+    new Set(batchRows.map((row) => row.corrects_sale_id).filter((id): id is string => id !== null)),
+  );
+  const [correctionExpenseResult, correctionSaleResult] = await Promise.all([
+    correctionExpenseIds.length === 0
+      ? Promise.resolve({ data: [] as CorrectionExpense[], error: null })
+      : sb
+          .from("expenses")
+          .select("id, date, category, description, total")
+          .eq("org_id", orgId)
+          .in("id", correctionExpenseIds),
+    correctionSaleIds.length === 0
+      ? Promise.resolve({ data: [] as CorrectionSale[], error: null })
+      : sb
+          .from("sales")
+          .select("id, sale_date, crop, notes, total")
+          .eq("org_id", orgId)
+          .in("id", correctionSaleIds),
+  ]);
+  if (correctionExpenseResult.error) throw correctionExpenseResult.error;
+  if (correctionSaleResult.error) throw correctionSaleResult.error;
+  const expenses = new Map(
+    (correctionExpenseResult.data as CorrectionExpense[]).map((row) => [row.id, row]),
+  );
+  const sales = new Map((correctionSaleResult.data as CorrectionSale[]).map((row) => [row.id, row]));
+  if (expenses.size !== correctionExpenseIds.length || sales.size !== correctionSaleIds.length) {
+    throw new Error("تعذّر تحميل سجل مالي مرتبط بقرار تصحيح. أوقف الاعتماد وراجع صلاحيات السجل.");
+  }
+  return { expenses, sales };
+}
+
 export default async function ReconciliationBatchPage({
   params,
   searchParams,
@@ -195,33 +334,13 @@ export default async function ReconciliationBatchPage({
   if (batchError) throw batchError;
   if (!batch) notFound(); // missing or cross-org (RLS) → fail closed.
 
-  // Whole-batch state summary via bounded head counts (no unbounded row read; no N+1 over data).
-  const [total, unreviewed, included, held, rejected, frozen, executed] = await Promise.all([
-    headCount(sb, batchId, m.orgId),
-    headCount(sb, batchId, m.orgId, [{ column: "review_state", value: "unreviewed" }]),
-    headCount(sb, batchId, m.orgId, [{ column: "disposition", value: "include" }]),
-    headCount(sb, batchId, m.orgId, [
-      { column: "review_state", value: "reviewed" },
-      { column: "disposition", value: "hold" },
-    ]),
-    headCount(sb, batchId, m.orgId, [{ column: "review_state", value: "rejected" }]),
-    // Frozen counts the actual frozen flag across ALL dispositions (included rows move to
-    // review_state='frozen', but held/rejected rows keep their state with frozen=true).
-    headCount(sb, batchId, m.orgId, [{ column: "frozen", value: true }]),
-    executedRowCount(sb, batchId, m.orgId),
-  ]);
-  const counts: RowStateCounts = {
-    total,
-    unreviewed,
-    reviewed: total - unreviewed,
-    rejected,
-    frozen,
-    executed,
-    included,
-    held,
-    decided: total - unreviewed,
-    allDecided: total > 0 && unreviewed === 0,
-  };
+  const editable = batch.status === "staged";
+
+  // Everything below depends only on the batch (identity + status), never on the filters or on the
+  // page of rows — so START them all here and await them at the end. The filtered count is the only
+  // read the render must block on next, because pagination and the row range derive from it.
+  const wholeBatchCountsRead = started(loadWholeBatchCounts(sb, batchId, m.orgId));
+  const optionsRead = started(loadEditableOptions(sb, m.orgId, editable));
 
   const statePredicates = reconciliationQueueStatePredicates(filters.state);
   let filteredCountQuery = sb
@@ -315,86 +434,16 @@ export default async function ReconciliationBatchPage({
 
   // Resolve correction targets for this bounded page on every render. These summaries are displayed
   // outside the editable picker, so the approver can verify the exact target after reload and freeze.
-  const correctionExpenseIds = Array.from(
-    new Set(batchRows.map((row) => row.corrects_expense_id).filter((id): id is string => id !== null)),
-  );
-  const correctionSaleIds = Array.from(
-    new Set(batchRows.map((row) => row.corrects_sale_id).filter((id): id is string => id !== null)),
-  );
-  const [correctionExpenseResult, correctionSaleResult] = await Promise.all([
-    correctionExpenseIds.length === 0
-      ? Promise.resolve({ data: [] as CorrectionExpense[], error: null })
-      : sb
-          .from("expenses")
-          .select("id, date, category, description, total")
-          .eq("org_id", m.orgId)
-          .in("id", correctionExpenseIds),
-    correctionSaleIds.length === 0
-      ? Promise.resolve({ data: [] as CorrectionSale[], error: null })
-      : sb
-          .from("sales")
-          .select("id, sale_date, crop, notes, total")
-          .eq("org_id", m.orgId)
-          .in("id", correctionSaleIds),
+  // Started here (it needs the row page) while the batch-wide reads above are still in flight.
+  const correctionTargetsRead = started(loadCorrectionTargets(sb, m.orgId, batchRows));
+
+  // Nothing renders until every read has settled — no partial page, no stale or missing count.
+  const [counts, options, correctionTargets] = await Promise.all([
+    wholeBatchCountsRead,
+    optionsRead,
+    correctionTargetsRead,
   ]);
-  if (correctionExpenseResult.error) throw correctionExpenseResult.error;
-  if (correctionSaleResult.error) throw correctionSaleResult.error;
-  const correctionExpenses = new Map(
-    (correctionExpenseResult.data as CorrectionExpense[]).map((row) => [row.id, row]),
-  );
-  const correctionSales = new Map(
-    (correctionSaleResult.data as CorrectionSale[]).map((row) => [row.id, row]),
-  );
-  if (
-    correctionExpenses.size !== correctionExpenseIds.length ||
-    correctionSales.size !== correctionSaleIds.length
-  ) {
-    throw new Error("تعذّر تحميل سجل مالي مرتبط بقرار تصحيح. أوقف الاعتماد وراجع صلاحيات السجل.");
-  }
-
-  const editable = batch.status === "staged";
-
-  // Option lists only when the batch is still editable (staged); bounded + active/non-archived.
-  let options: OptionList = {
-    accounts: [],
-    costCenters: [],
-    suppliers: [],
-    buyers: [],
-    farms: [],
-    sectors: [],
-    hawshat: [],
-  };
-  if (editable) {
-    // Every bounded option query requests LIMIT+1 so an overflow is DETECTED (assertNotTruncated),
-    // never silently truncated — a truncated set would corrupt the leaf-account and hierarchy filters.
-    const [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes] = await Promise.all([
-      sb
-        .from("accounts")
-        .select("id, code, name_ar, account_type, kind, parent_id, active")
-        .eq("org_id", m.orgId)
-        .order("code")
-        .limit(OPTION_LIMIT + 1),
-      sb.from("cost_centers").select("id, code, name_ar").eq("org_id", m.orgId).eq("active", true).order("code").limit(OPTION_LIMIT + 1),
-      sb.from("suppliers").select("id, name").eq("org_id", m.orgId).order("name").limit(OPTION_LIMIT + 1),
-      sb.from("buyers").select("id, name").eq("org_id", m.orgId).eq("active", true).order("name").limit(OPTION_LIMIT + 1),
-      sb.from("farms").select("id, name").eq("org_id", m.orgId).eq("archived", false).order("name").limit(OPTION_LIMIT + 1),
-      sb.from("sectors").select("id, name, farm_id").eq("org_id", m.orgId).eq("archived", false).order("name").limit(OPTION_LIMIT + 1),
-      sb.from("hawshat").select("id, code, name, sector_id").eq("org_id", m.orgId).eq("archived", false).order("code").limit(OPTION_LIMIT + 1),
-    ]);
-    for (const res of [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes]) {
-      if (res.error) throw res.error;
-    }
-    const accountRows = assertNotTruncated(accRes.data, OPTION_LIMIT, "الحسابات");
-    options = {
-      accounts: leafPostingAccounts(accountRows),
-      costCenters: assertNotTruncated(ccRes.data, OPTION_LIMIT, "مراكز التكلفة").map((c) => ({ id: c.id, label: `${c.code} · ${c.name_ar}` })),
-      suppliers: assertNotTruncated(supRes.data, OPTION_LIMIT, "الموردين").map((s) => ({ id: s.id, label: s.name })),
-      buyers: assertNotTruncated(buyRes.data, OPTION_LIMIT, "المشترين").map((b) => ({ id: b.id, label: b.name })),
-      farms: assertNotTruncated(farmRes.data, OPTION_LIMIT, "المزارع").map((f) => ({ id: f.id, label: f.name })),
-      sectors: assertNotTruncated(secRes.data, OPTION_LIMIT, "القطاعات").map((s) => ({ id: s.id, label: s.name, farmId: s.farm_id })),
-      hawshat: assertNotTruncated(hawRes.data, OPTION_LIMIT, "الحوش").map((h) => ({ id: h.id, label: `${h.code} · ${h.name}`, sectorId: h.sector_id })),
-    };
-  }
+  const { expenses: correctionExpenses, sales: correctionSales } = correctionTargets;
 
   const rowVms: RowVM[] = batchRows.map((r) => {
     const ev = r.evidence;

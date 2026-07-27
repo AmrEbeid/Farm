@@ -457,6 +457,85 @@ describe("reconciliation review — decision payload contract", () => {
   });
 });
 
+// The batch page fans its independent server reads out instead of walking them one at a time. That
+// is a SOURCE-ORDER property — it cannot be observed from the rendered output — so it is pinned
+// here: a future edit that re-serialises the reads (or, worse, renders before one of them settles)
+// fails this suite rather than silently costing a round trip per read or shipping a partial page.
+describe("reconciliation review — batch page read-concurrency contract", () => {
+  const pageSource = readFileSync(
+    join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/page.tsx"),
+    "utf8",
+  );
+  const body = pageSource.slice(
+    pageSource.indexOf("export default async function ReconciliationBatchPage"),
+  );
+  const at = (needle: string) => {
+    const index = body.indexOf(needle);
+    expect(index, `missing in the page body: ${needle}`).toBeGreaterThan(-1);
+    return index;
+  };
+
+  const batchAwait = at("const { data: batch, error: batchError } = await sb");
+  const wholeCountsStart = at("const wholeBatchCountsRead = started(loadWholeBatchCounts(");
+  const optionsStart = at("const optionsRead = started(loadEditableOptions(");
+  const filteredCountAwait = at(
+    "const { count: filteredCount, error: filteredCountError } = await filteredCountQuery;",
+  );
+  const rowPageAwait = at("const { data: rowData, error: rowError } = await rowQuery");
+  const correctionsStart = at("const correctionTargetsRead = started(loadCorrectionTargets(");
+  const settleAll = at("const [counts, options, correctionTargets] = await Promise.all([");
+  const render = at("return (");
+
+  it("starts the whole-batch counts and the option lists once the batch is known, BEFORE awaiting the filtered count", () => {
+    expect(wholeCountsStart).toBeGreaterThan(batchAwait);
+    expect(optionsStart).toBeGreaterThan(batchAwait);
+    expect(wholeCountsStart).toBeLessThan(filteredCountAwait);
+    expect(optionsStart).toBeLessThan(filteredCountAwait);
+  });
+
+  it("blocks on nothing between starting them and awaiting the filtered count", () => {
+    // Any `await` in this window would re-serialise the fan-out and reinstate the waterfall.
+    expect(body.slice(wholeCountsStart, filteredCountAwait)).not.toMatch(/\bawait\b/);
+  });
+
+  it("lets them keep running across pagination, the row page, and the correction targets", () => {
+    const whileInFlight = body.slice(filteredCountAwait, settleAll);
+    expect(whileInFlight).not.toMatch(/\bawait\s+(wholeBatchCountsRead|optionsRead)\b/);
+    expect(filteredCountAwait).toBeLessThan(rowPageAwait);
+    // Correction targets need the row page, so they start after it — and still before the join.
+    expect(correctionsStart).toBeGreaterThan(rowPageAwait);
+    expect(correctionsStart).toBeLessThan(settleAll);
+  });
+
+  it("awaits every started read before rendering, so no partial page can ship", () => {
+    expect(settleAll).toBeGreaterThan(correctionsStart);
+    expect(settleAll).toBeLessThan(render);
+    const joined = body.slice(settleAll, body.indexOf("]);", settleAll));
+    for (const read of ["wholeBatchCountsRead", "optionsRead", "correctionTargetsRead"]) {
+      expect(joined, `${read} must be awaited before render`).toContain(read);
+      // Started exactly once and awaited exactly once — never re-read, never dropped.
+      expect(body.match(new RegExp(read, "g")), `${read} start/await pair`).toHaveLength(2);
+    }
+  });
+
+  it("keeps the whole-batch KPI definition free of the queue filters", () => {
+    const loader = pageSource.slice(
+      pageSource.indexOf("async function loadWholeBatchCounts"),
+      pageSource.indexOf("async function loadEditableOptions"),
+    );
+    expect(loader).not.toMatch(/\bfilters\b|statePredicates|pagination/);
+    expect(loader).toContain("const [total, unreviewed");
+  });
+
+  it("keeps every extracted loader read-only — no write or RPC path", () => {
+    const loaders = pageSource.slice(
+      pageSource.indexOf("async function loadWholeBatchCounts"),
+      pageSource.indexOf("export default async function ReconciliationBatchPage"),
+    );
+    expect(loaders).not.toMatch(/\.(insert|update|upsert|delete|rpc)\(/);
+  });
+});
+
 // Type-only guard: DecisionInput stays a discriminated union the builder can exhaust.
 const _sample: DecisionInput = { action: "hold", reason: "x" };
 void _sample;
