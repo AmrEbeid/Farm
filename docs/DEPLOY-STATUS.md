@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-27 (latest) — reconciliation review filters DEPLOYED / LIVE-VERIFIED.**
+> PR #927 merged at `2d325fd`; matching Vercel production deployment
+> `dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY on `ebeidfarm.business`. App-only: no migration,
+> schema, dependency, RPC, action, or posting-path change. CI app/shared/secret/Vercel passed; DB CI is
+> baseline-identical at 2,861 passing, two unchanged stock-engine assertions, and zero file failures.
+> Live owner-session evidence: 698 rows unfiltered; 15 amount-correction + unreviewed rows filtered;
+> zero included amount-correction rows renders the empty result while the whole-batch 698 KPI and disabled
+> freeze gate remain. No reconciliation or financial state changed. No runtime errors on the routes in one hour.
+
 > **2026-07-27 (latest) — authenticated staging path DEPLOYED; canonical batch STAGED / VERIFIED.**
 > PR #925 merged at `d976bba`; matching production deployment
 > `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY on `ebeidfarm.business`. This app-only release added no

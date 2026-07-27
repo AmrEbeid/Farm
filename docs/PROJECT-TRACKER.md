@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (canonical batch STAGED)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (review filters LIVE)
+
+> **2026-07-27 (latest) — RECONCILIATION REVIEW FILTERS: LIVE / VERIFIED; NO DECISION OR MONEY CHANGED.**
+> App-only PR #927 (`51c57f4`, merged `2d325fd`) added allowlisted server-side filters for the five
+> evidence classifications and the unreviewed/included/held/rejected/frozen decision queues. Filtered
+> count and 50-row pagination are separate from the existing whole-batch KPI and release-gate counts;
+> previous/next links preserve filters, repeated/unknown values resolve to all, and an empty filtered
+> queue keeps the batch controls visible. No action, RPC, migration, schema, dependency, or posting path changed.
+>
+> Evidence: focused 32/32; full Vitest 797 passed + 13 controlled skips; TypeScript/ESLint clean; build
+> 65/65; app/shared/secret/Vercel green; DB CI baseline-identical at 2,861 pass / two unchanged stock-engine
+> assertions / zero file failures. Production deployment `dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY,
+> with no route runtime errors. Live owner-session checks proved 698 unfiltered rows, 15 filtered
+> amount-correction rows, and the zero-result state while the full 698 KPI and disabled freeze gate remained.
+> **Next remains human:** decide 698 rows, dual-run, resolve exceptions, obtain signed accountant acceptance.
 
 > **2026-07-27 (latest) — CANONICAL 698-ROW RECONCILIATION BATCH: STAGED / VERIFIED; NO MONEY POSTED.**
 > App-only PR #925 (`ae7e34d`, merged `d976bba`) added the bounded owner/accountant manifest upload through

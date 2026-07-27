@@ -1,5 +1,29 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (canonical batch STAGED)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (review filters LIVE)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-27 (latest) — staged reconciliation review filters live — VERIFIED / READ-ONLY
+
+PR #927 added allowlisted server-side classification and decision-state filters to the live 698-row review
+queue. Commit `51c57f4` merged at `2d325fd`; production deployment
+`dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY. The slice is app-only: no migration, schema, dependency, action,
+RPC, financial posting path, bulk decision, freeze, approval, or execution change.
+
+The filtered count and bounded 50-row page query are scoped by batch and org. Evidence is embedded through
+the composite tenant-safe FK and explicitly tenant-filtered. Filter values are fixed allowlists; repeated or
+unknown values resolve to all. State predicates match the existing whole-batch definitions exactly. Filtered
+pagination preserves active choices and an empty filtered queue keeps the whole-batch action bar and KPIs visible.
+The whole-batch counts and all release gates remain independent from the filtered total.
+
+Evidence: focused tests 32/32; full Vitest 797 passed + 13 controlled skips; TypeScript and touched ESLint clean;
+build 65/65; app/shared/secret/Vercel CI green. DB CI is unchanged at 2,861 passing, exactly the same two
+stock-engine assertion-3 failures, and zero file failures. Live owner-session checks showed 698 unfiltered rows,
+15 amount-correction + unreviewed rows, and zero amount-correction + included rows with the dedicated empty state,
+while the full 698 KPI and disabled freeze gate remained visible. Route runtime errors in the last hour: none.
+No row decision or financial state changed.
+
+**Exact resume point:** use the filters to make explicit human decisions on all 698 rows. Then dual-run totals
+and samples against the workbook, resolve every exception, and obtain signed accountant acceptance. Do not
+fabricate mappings, bulk-decide, freeze, approve, execute, or call dependable daily use 100% before that evidence.
 
 ## 2026-07-27 (latest) — canonical reconciliation batch staged — VERIFIED / NO MONEY POSTED
 
