@@ -1,5 +1,33 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (rollback workflow LIVE)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (canonical batch STAGED)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-27 (latest) — canonical reconciliation batch staged — VERIFIED / NO MONEY POSTED
+
+PR #925 added the missing authenticated application path for an owner/accountant to upload the bounded JSON
+manifest through the existing user-session `fn_stage_reconciliation_manifest` RPC. Commit `ae7e34d` merged at
+`d976bba`; Vercel production deployment `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY. App-only: no migration,
+schema, dependency, direct DML, admin client, or service role.
+
+The three private canonical input hashes matched their pins. The gated real-file suite passed 91/91; generated
+manifest SHA-256 was `21331ab753110923e81d0d4c0b757df7d850e985cfad2cfe052722fe72835fc3`, owner-only mode 0600,
+698 evidence items, 698 batch rows, two preserved invalid-calendar flags, deterministic batch
+`80a1051d-5bcf-504c-93cd-07206b4c59ef`. The temporary manifest was deleted immediately after upload.
+
+The live owner session staged that batch successfully. Production postflight: one staged batch; 698 evidence
+items; 698 rows all `unreviewed`, `hold`, and not frozen; workbook hash
+`9728167b7860b18ff802dda85fe01897a2c645c4fc21677c22dfeaead2f71dc3`; snapshot/evidence hashes match the
+committed pins; action links and execution ledger remain 0/0. Financial state is unchanged: 10,201 expenses
+(EGP 20,527,757.01), 162 sales (EGP 25,835,533.40), 10,365 journals, 20,730 lines. No expense, sale, journal,
+custody, or payment record was posted or changed.
+
+Validation: full Vitest 791 passed + 13 controlled skips; TypeScript and touched-file ESLint clean; build 65/65;
+CI app/shared/secret/Vercel green; DB CI 2,861 pass / exactly two unchanged stock-engine baseline failures /
+zero file failures. Independent review found no authorization, tenant-isolation, leakage, direct-DML, or
+posting-path blocker.
+
+**Exact resume point:** the owner/accountant must make explicit decisions on the staged 698 rows, then run the
+dual-run comparison, resolve exceptions, and sign accountant acceptance. Do not fabricate mappings, freeze,
+approve, execute, or call accounting dependable daily use 100% before those controls complete.
 
 ## 2026-07-27 (latest) — reconciliation rollback + owner controls — LIVE / VERIFIED
 

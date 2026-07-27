@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-27 (latest) — authenticated staging path DEPLOYED; canonical batch STAGED / VERIFIED.**
+> PR #925 merged at `d976bba`; matching production deployment
+> `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY on `ebeidfarm.business`. This app-only release added no
+> migration or dependency. The owner-session upload staged batch `80a1051d-5bcf-504c-93cd-07206b4c59ef`
+> with 698 evidence items and 698 untouched review rows. All rows remain `unreviewed` / `hold` / not frozen.
+> Workbook/snapshot/evidence hashes match the canonical pins; execution ledger and action links remain 0/0.
+> Financial counts and totals are unchanged at 10,201 expenses / EGP 20,527,757.01; 162 sales /
+> EGP 25,835,533.40; 10,365 journals; 20,730 lines. No money or financial row was posted or changed.
+
 > **2026-07-27 (latest) — reconciliation rollback + owner controls: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
 > Exact committed SQL hash `e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420`
 > was applied migrate-first to Farm production as hosted migration `20260727115115
