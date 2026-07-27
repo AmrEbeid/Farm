@@ -2,6 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-27 (latest) — reconciliation review read performance DEPLOYED / MEASURED.**
+> PR #929 merged at `0155c8e`; production deployment `dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev` is READY.
+> The same bounded, tenant-scoped reads now overlap instead of running in avoidable sequential waves; every
+> read still settles before render. Full app/shared/secret/Vercel checks passed and DB CI is baseline-identical.
+> Live owner-session measurements were 4.2s navigation and 2.8s immediate reload with the same 698-row result,
+> page 1/14, default filters, and disabled freeze gate. No migration or reconciliation/financial state change.
+
 > **2026-07-27 (latest) — reconciliation review filters DEPLOYED / LIVE-VERIFIED.**
 > PR #927 merged at `2d325fd`; matching Vercel production deployment
 > `dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY on `ebeidfarm.business`. App-only: no migration,

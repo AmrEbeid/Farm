@@ -1,5 +1,26 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (review filters LIVE)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (review page faster)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-27 (latest) — reconciliation review read performance — LIVE / MEASURED
+
+PR #929 removes avoidable sequential server-read waves from the 698-row batch page. Commit `19da7ed` merged at
+`0155c8e`; production deployment `dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev` is READY. The whole-batch head counts,
+filtered exact count, and bounded editable option reads now overlap. The bounded row page still waits for exact
+filtered pagination; bounded correction targets start only after the page rows are known. Every read is awaited
+before render and every failure remains fail-closed.
+
+No query, org/batch scope, bound, result, KPI definition, filter, UI, cache, action, RPC, migration, schema,
+dependency, decision, freeze, approval, execution, or posting path changed. Source-contract tests pin the
+concurrency ordering and complete-before-render requirement.
+
+Evidence: focused tests 38/38; full Vitest 803 passed + 13 controlled skips; TypeScript and touched ESLint clean;
+build 65/65; app/shared/secret/Vercel CI green; DB CI baseline-identical. Live owner-session measurements were
+4.2 seconds for navigation and 2.8 seconds for immediate reload, while the page still showed 698 rows, page 1/14,
+default filters, and the disabled freeze gate. No reconciliation decision or financial state changed.
+
+**Exact resume point remains human:** use the filters to decide all 698 rows, dual-run totals and samples against
+the workbook, resolve every exception, and obtain signed accountant acceptance. Do not fabricate mappings,
+bulk-decide, freeze, approve, execute, or call dependable daily use 100% before that evidence.
 
 ## 2026-07-27 (latest) — staged reconciliation review filters live — VERIFIED / READ-ONLY
 

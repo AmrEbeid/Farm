@@ -402,3 +402,19 @@ TypeScript/ESLint clean; build 65/65; CI app/shared/secret/Vercel green; DB base
 2,861 passing / two known stock-engine assertions / zero file failures. Live owner-session checks returned
 698 unfiltered rows, 15 amount-correction rows, and the zero-result state with the full-batch 698 KPI and
 disabled freeze gate intact. No decision, freeze, approval, execution, or financial row changed.
+
+### 8.5 Review-page read concurrency (2026-07-27, RELEASED)
+
+PR #929 removes avoidable server-read waterfalls without changing the data contract. Once the batch identity
+and status are known, the whole-batch head counts, filtered exact count, and bounded editable option reads run
+concurrently. The bounded row page still waits for its exact filtered pagination; correction targets start only
+after those rows are known. Every started read is awaited before render, and failures remain fail-closed.
+
+No query, tenant/batch scope, limit, KPI definition, filter, UI control, cache policy, write path, RPC, migration,
+schema, or dependency changed. Source-order regressions pin the concurrency and prevent partial render or a
+future reintroduced waterfall.
+
+Release evidence: commit `19da7ed`, merge `0155c8e`, production deployment
+`dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev`. Focused tests 38/38; full Vitest 803 passed + 13 controlled skips;
+TypeScript/ESLint clean; build 65/65; app/shared/secret/Vercel green; DB baseline unchanged. Live owner-session
+measurements: 4.2s navigation and 2.8s immediate reload, with the same 698 rows and release gates.
