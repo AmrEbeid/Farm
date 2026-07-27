@@ -7,11 +7,17 @@ import { Alert, Button, Field, Input, Select, Tag, Textarea } from "@/components
 import { AccountPicker } from "@/components/AccountPicker";
 import type { PickableAccount } from "@/lib/account-options";
 import { num } from "@/lib/money";
-import type { DecisionInput } from "@/lib/reconciliation review";
+import type { DecisionInput, ResultSummaryLine } from "@/lib/reconciliation review";
+// The ONE runtime value this client bundle takes from the (space-named) reconciliation module: the
+// rollback reason bound, so the textarea cannot silently accept text the RPC will reject. It is a
+// plain number constant — importing the value keeps the UI cap and the RPC cap from ever drifting.
+import { ROLLBACK_REASON_MAX } from "@/lib/reconciliation review";
 import {
   reviewRow,
   freezeBatch,
   approveBatch,
+  executeBatch,
+  rollbackBatch,
   searchCorrectionTargets,
   type ActionResult,
   type CorrectionTarget,
@@ -85,8 +91,10 @@ export interface RowVM {
   correctsSaleId: string;
 }
 
-// Local display maps (kept here so the client bundle never runtime-imports a spaced-filename module;
-// the authoritative Arabic maps live in lib/reconciliation review.ts and are used server-side).
+// Local display maps (kept here so the client bundle never pulls the whole spaced-filename module in
+// at runtime; the authoritative Arabic maps live in lib/reconciliation review.ts and are used
+// server-side). ROLLBACK_REASON_MAX above is the deliberate exception: it is a bare numeric const, so
+// the bundler inlines the literal — the built client chunk carries `maxLength:500`, not an import.
 const REVIEW_STATE: Record<string, { label: string; tone: string }> = {
   unreviewed: { label: "بدون قرار", tone: "warning" },
   reviewed: { label: "تمت المراجعة", tone: "info" },
@@ -650,78 +658,275 @@ function RowCard({
   );
 }
 
-// ── Batch-level freeze / approve bar. ──────────────────────────────────────────────────────────────
+// ── Batch-level action bar: freeze / approve / execute / rollback, in ONE compact strip. ───────────
+// Only the controls that apply to the batch's CURRENT status are rendered, and the two money actions
+// (execute, rollback) are owner-only — an accountant sees the same truthful status and result summary
+// but no mutation control at all. Both money actions are two-step: the button reveals an inline
+// confirmation strip stating the money impact in Arabic. No native browser dialog is ever used —
+// a source-contract test forbids one outright, because a native dialog cannot carry Arabic RTL copy
+// explaining the money impact and is not reachable by the same keyboard/AT path as the rest of the UI.
+export type MoneyAction = "execute" | "rollback";
+
 function BatchActionBar({
   batchId,
+  status,
   role,
   canFreeze,
   freezeReason,
   canApprove,
   approveReason,
+  canExecute,
+  executeReason,
+  canRollback,
+  rollbackReason,
+  executedRows,
+  summaryLines,
 }: {
   batchId: string;
+  status: string;
   role: string;
   canFreeze: boolean;
   freezeReason: string | null;
   canApprove: boolean;
   approveReason: string | null;
+  canExecute: boolean;
+  executeReason: string | null;
+  canRollback: boolean;
+  rollbackReason: string | null;
+  executedRows: number;
+  summaryLines: ResultSummaryLine[];
 }) {
   const router = useRouter();
-  const [pending, setPending] = useState<"freeze" | "approve" | null>(null);
+  const [pending, setPending] = useState<"freeze" | "approve" | MoneyAction | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
+  const [confirming, setConfirming] = useState<MoneyAction | null>(null);
+  const [reason, setReason] = useState("");
 
-  async function doFreeze() {
-    setPending("freeze");
+  const isOwner = role === "owner";
+  // Freeze is only meaningful while the batch is still editable; hiding it afterwards is what keeps
+  // this strip to a single line once a batch reaches the money stages. The four are mutually
+  // exclusive by status, which is why a single blocked-reason line below can serve all of them.
+  const showFreeze = status === "staged";
+  const showApprove = isOwner && status === "reviewed";
+  const showExecute = isOwner && status === "approved";
+  const showRollback = isOwner && (status === "executed" || status === "rolled_back");
+
+  // Only the reason for the control the user can actually SEE is worth showing; a hidden control's
+  // gate reason would just be noise (and, for a non-owner, would narrate a permission they lack).
+  const blockedReason =
+    [
+      { show: showFreeze, allowed: canFreeze, reason: freezeReason },
+      { show: showApprove, allowed: canApprove, reason: approveReason },
+      { show: showExecute, allowed: canExecute, reason: executeReason },
+      { show: showRollback, allowed: canRollback, reason: rollbackReason },
+    ].find((gate) => gate.show && !gate.allowed)?.reason ?? null;
+
+  /**
+   * One shape for all four batch actions: mark pending, clear the last message, call the server
+   * action, then either report the Arabic error or run the action's own cleanup and refresh.
+   */
+  async function runBatchAction(
+    kind: "freeze" | "approve" | MoneyAction,
+    call: () => Promise<ActionResult>,
+    okText: string,
+    failText: string,
+    onOk?: () => void,
+  ) {
+    setPending(kind);
     setMsg(null);
-    const r = await run(() => freezeBatch(batchId));
+    const result = await run(call);
     setPending(null);
-    if (r.ok) {
-      setMsg({ tone: "ok", text: "تم تجميد الدفعة." });
-      router.refresh();
-    } else setMsg({ tone: "danger", text: r.error ?? "تعذّر التجميد." });
+    if (!result.ok) {
+      setMsg({ tone: "danger", text: result.error ?? failText });
+      return;
+    }
+    onOk?.();
+    setMsg({ tone: "ok", text: okText });
+    router.refresh();
   }
 
-  async function doApprove() {
-    setPending("approve");
-    setMsg(null);
-    const r = await run(() => approveBatch(batchId));
-    setPending(null);
-    if (r.ok) {
-      setMsg({ tone: "ok", text: "تم اعتماد الدفعة." });
-      router.refresh();
-    } else setMsg({ tone: "danger", text: r.error ?? "تعذّر الاعتماد." });
+  function doRollback() {
+    // Mirrors the RPC's own rule so the owner keeps their text instead of getting a raw DB error.
+    if (reason.trim().length === 0) {
+      setMsg({ tone: "danger", text: "سبب التراجع مطلوب ولا يمكن أن يكون فارغًا." });
+      return;
+    }
+    return runBatchAction(
+      "rollback",
+      () => rollbackBatch({ batchId, reason }),
+      "تم التراجع عن الدفعة وإعادة الأرقام كما كانت.",
+      "تعذّر التراجع عن الدفعة.",
+      () => {
+        setConfirming(null);
+        setReason("");
+      },
+    );
   }
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-lg p-4"
+      className="flex flex-col gap-2 rounded-lg px-4 py-3"
       style={{ border: "1px solid var(--line)", backgroundColor: "var(--surface)" }}
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={doFreeze} loading={pending === "freeze"} disabled={!canFreeze || pending !== null}>
-          تجميد الدفعة
-        </Button>
-        {role === "owner" && (
+      <div className="flex flex-wrap items-center gap-2">
+        {showFreeze && (
+          <Button
+            size="sm"
+            onClick={() =>
+              runBatchAction(
+                "freeze",
+                () => freezeBatch(batchId),
+                "تم تجميد الدفعة.",
+                "تعذّر التجميد.",
+              )
+            }
+            loading={pending === "freeze"}
+            disabled={!canFreeze || pending !== null}
+          >
+            تجميد الدفعة
+          </Button>
+        )}
+        {showApprove && (
           <Button
             variant="primary"
-            onClick={doApprove}
+            size="sm"
+            onClick={() =>
+              runBatchAction(
+                "approve",
+                () => approveBatch(batchId),
+                "تم اعتماد الدفعة.",
+                "تعذّر الاعتماد.",
+              )
+            }
             loading={pending === "approve"}
             disabled={!canApprove || pending !== null}
           >
             اعتماد الدفعة
           </Button>
         )}
+        {showExecute && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setMsg(null);
+              setConfirming((v) => (v === "execute" ? null : "execute"));
+            }}
+            disabled={!canExecute || pending !== null}
+          >
+            تنفيذ الدفعة (ترحيل مالي)
+          </Button>
+        )}
+        {showRollback && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setMsg(null);
+              setConfirming((v) => (v === "rollback" ? null : "rollback"));
+            }}
+            disabled={!canRollback || pending !== null}
+          >
+            التراجع عن التنفيذ
+          </Button>
+        )}
+        {(status === "executed" || status === "rolled_back") && (
+          <span className="text-xs" style={{ color: "var(--ink-muted)" }}>
+            صفوف نُفِّذت: {num(executedRows)}
+          </span>
+        )}
+        {summaryLines.map((line) => (
+          <span key={line.key} className="text-xs" style={{ color: "var(--ink-muted)" }}>
+            {line.label}: {line.kind === "count" ? num(line.count) : line.text}
+          </span>
+        ))}
       </div>
-      {!canFreeze && freezeReason && (
+
+      {blockedReason && (
         <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
-          {freezeReason}
+          {blockedReason}
         </p>
       )}
-      {role === "owner" && !canApprove && approveReason && (
-        <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
-          {approveReason}
-        </p>
+
+      {confirming === "execute" && canExecute && (
+        <div
+          className="flex flex-col gap-2 rounded-md px-3 py-2"
+          style={{ background: "var(--surface-raised)" }}
+        >
+          <p className="text-xs" style={{ color: "var(--ink)" }}>
+            سيُنشئ التنفيذ المصروفات والمبيعات المعتمدة ويُرحّل قيودها على خزينة المزرعة فورًا —
+            أرقام الأرباح والإيرادات ستتغيّر. لا يُلغى التنفيذ بحذف أي شيء: يُلغى فقط بعملية «تراجع»
+            تُنشئ قيودًا عكسية وتُعيد القيود الأصلية.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() =>
+                runBatchAction(
+                  "execute",
+                  () => executeBatch(batchId),
+                  "تم تنفيذ الدفعة وترحيل قيودها.",
+                  "تعذّر تنفيذ الدفعة.",
+                  () => setConfirming(null),
+                )
+              }
+              loading={pending === "execute"}
+              disabled={pending !== null}
+            >
+              تأكيد التنفيذ
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(null)} disabled={pending !== null}>
+              إلغاء
+            </Button>
+          </div>
+        </div>
       )}
+
+      {confirming === "rollback" && canRollback && (
+        <div
+          className="flex flex-col gap-2 rounded-md px-3 py-2"
+          style={{ background: "var(--surface-raised)" }}
+        >
+          <p className="text-xs" style={{ color: "var(--ink)" }}>
+            سيعكس التراجع كل قيد أنشأته هذه الدفعة ويُعيد كل قيد عكسته — بقيود جديدة، دون حذف أي
+            سجل. أرقام الأرباح والإيرادات ستعود كما كانت قبل التنفيذ، ولا يمكن تنفيذ هذه الدفعة مرة
+            أخرى بعد التراجع.
+          </p>
+          <Field label="سبب التراجع (إلزامي)" id="rollback-reason" required>
+            <Textarea
+              id="rollback-reason"
+              rows={2}
+              maxLength={ROLLBACK_REASON_MAX}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={doRollback}
+              loading={pending === "rollback"}
+              disabled={pending !== null || reason.trim().length === 0}
+            >
+              تأكيد التراجع
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setConfirming(null);
+                setReason("");
+              }}
+              disabled={pending !== null}
+            >
+              إلغاء
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div role="alert" aria-live="assertive" aria-atomic="true">
         {msg && <Alert tone={msg.tone} title={msg.text} />}
       </div>
@@ -740,6 +945,12 @@ export function ReconciliationControls({
   freezeReason,
   canApprove,
   approveReason,
+  canExecute,
+  executeReason,
+  canRollback,
+  rollbackReason,
+  executedRows,
+  summaryLines,
   page,
   pageCount,
   from,
@@ -756,22 +967,34 @@ export function ReconciliationControls({
   freezeReason: string | null;
   canApprove: boolean;
   approveReason: string | null;
+  canExecute: boolean;
+  executeReason: string | null;
+  canRollback: boolean;
+  rollbackReason: string | null;
+  executedRows: number;
+  summaryLines: ResultSummaryLine[];
   page: number;
   pageCount: number;
   from: number;
   to: number;
   total: number;
 }) {
-  void status;
   return (
     <div className="flex flex-col gap-4">
       <BatchActionBar
         batchId={batchId}
+        status={status}
         role={role}
         canFreeze={canFreeze}
         freezeReason={freezeReason}
         canApprove={canApprove}
         approveReason={approveReason}
+        canExecute={canExecute}
+        executeReason={executeReason}
+        canRollback={canRollback}
+        rollbackReason={rollbackReason}
+        executedRows={executedRows}
+        summaryLines={summaryLines}
       />
 
       <div className="flex flex-col gap-3">
