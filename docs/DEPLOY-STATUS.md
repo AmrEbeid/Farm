@@ -2,12 +2,43 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-27 (latest) — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
+> **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: MIGRATED / PR #921 PENDING MERGE.**
+> Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) contains append-only migration
+> `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
+> `201 accounting reconciliation execute sale batch test.sql`.
+>
+> **Release state:** exact committed SQL hash
+> `c013dffa48244e130cec8e2a5de21cb830886aaad66a2930305675cb77df8a53` was applied migrate-first to Farm
+> production as hosted migration `20260727091633 accounting_reconciliation_execute_sale_batch`. PR #921 is
+> open and not merged; Vercel preview and app/shared/secret CI are green. DB CI is baseline-identical.
+>
+> Local evidence for this slice:
+> - pgTAP focused: `201 …execute sale batch test.sql` — **348 ok / 0 not ok / 0 errors**, plan `1..348` matched.
+> - pgTAP full suite: **ok=2541, not_ok=2, file_failures=0** (harness exit 1 solely because the two known
+>   baselines are not `# TODO`-tagged). Pre-change baseline on the same harness: **ok=2193, not_ok=2,
+>   file_failures=0** — i.e. +348 new assertions and **zero new failures**.
+> - Known unrelated baselines, unchanged: `55_engine_maxdeficit_sizing_test` assertion 3 (#280 F4) and
+>   `80_engine_msg_maxdef_test` assertion 3 (0078). Neither was weakened, skipped, or `TODO`-tagged.
+> - `tsc --noEmit` exit 0 · `eslint` exit 0 (touched files, and 0 across the whole app) · `vitest run`
+>   71 files, 702 passed + 13 skipped · `next build` exit 0, 65/65 static pages · recharts code-split guard PASS
+>   · client-fn-in-server guard PASS · `git diff --check` clean.
+>
+> Production postflight: collection-to-sale tenant binding is enforced by a validated composite
+> foreign key; posted collection evidence cannot be reassigned or financially edited; cross-tenant batch UUIDs
+> are indistinguishable from unknown UUIDs; and the public reversal RPC cannot directly reverse historical-sale
+> or historical-expense journals. Approved executor corrections use the revoked private path; ordinary reversals
+> remain unchanged. All 162 sales are proof-backed `historical_treasury` for unchanged total EGP 25,835,533.40;
+> reconciliation counts remain 0/0/0 and financial counts remain 10,201 / 162 / 10,365 / 20,730. No batch
+> execution or financial posting occurred. The connector could not impersonate an authenticated JWT for a true
+> remote role smoke; catalog grants and local role regressions are green, and that limitation is not overstated.
+> **Next gate: merge PR #921 and verify the production deployment.**
+
+> **2026-07-27 — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The reviewed branch adds migration `20260726150000 accounting reconciliation execute expense
 > batch.sql`, owner-only expense execution, treasury `1010`, immutable historical posting/reversal
 > states, exact correction and postflight checks, and 136 focused pgTAP assertions. Two independent
 > reviews approved the first commit; every valid CodeRabbit finding was then fixed and tested. Full
-> local evidence: ESLint/TypeScript clean, Vitest 673 passed + 13 controlled skips, build 65/65 pages,
+> local evidence: ESLint/TypeScript clean, Vitest 682 passed + 13 controlled skips, build 65/65 pages,
 > pgTAP 2,193 passing with only the same two unrelated engine assertions and zero file failures.
 > Migration `20260726150000 accounting reconciliation execute expense batch.sql` was applied first to
 > Farm production as hosted migration `20260727063039
