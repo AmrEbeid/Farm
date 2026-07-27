@@ -1,8 +1,17 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-27 (canonical reconciliation batch staged for review). Owner: Amr Ebeid.*
+*Updated: 2026-07-27 (staged reconciliation queue filters live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-27 — staged reconciliation review filters: MERGED / DEPLOYED / LIVE-VERIFIED.**
+PR #927 merged at `2d325fd`; production deployment `dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY.
+The 698-row batch now has allowlisted server-side classification and decision-state filters, exact filtered
+pagination, preserved filter links, and a distinct empty-filter state. Whole-batch KPIs and freeze/approve/
+execute/rollback gates remain unfiltered and unchanged. Live owner-session checks returned all 698 rows,
+15 amount-correction rows when filtered, and 0 included amount-correction rows with the full-batch 698 KPI
+and disabled freeze gate still visible. Runtime errors: none. No migration existed and no decision, financial
+row, action link, execution claim, freeze, approval, or execution changed. The acceptance gate remains human.
 
 **2026-07-27 — canonical reconciliation staging: MERGED / DEPLOYED / STAGED / VERIFIED.**
 PR #925 merged at `d976bba` and Vercel production deployment `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY.
@@ -13,40 +22,7 @@ unchanged: 10,201 expenses (EGP 20,527,757.01), 162 sales (EGP 25,835,533.40), 1
 No expense, sale, journal, custody, or payment row was posted or changed. Remaining accounting acceptance gate:
 owner/accountant row decisions, dual-run, exception resolution, and signed accountant acceptance.
 
-**2026-07-27 — reconciliation rollback + owner controls: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
-PR #923 merged at `835f80a` after exact SQL hash
-`e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420` was applied migrate-first as
-`20260727115115 accounting_reconciliation_rollback_batch`. The owner can now execute an approved batch and
-atomically roll back an executed batch with a mandatory reason. Rollback appends inverse journals, reinstates
-reversed originals from immutable typed baselines, releases execution claims, and leaves a complete audit trail;
-it never deletes financial evidence. The per-org period mutex now serializes execute/post/reverse/reinstate with
-close/reopen before row locks. Foreign journal UUIDs are rejected before either another tenant's mutex or journal
-row can be locked. Action links are append-only, unique per row/kind, and proved bidirectionally before money moves.
-Focused rollback pgTAP is 317/317; full pgTAP is 2,861 passing with zero file failures and only the same two
-stock-engine baseline assertions; TypeScript/ESLint clean; Vitest 755 passed + 13 controlled skips; build 65/65.
-Two independent final reviews approved after three concurrency/security blockers were found and fixed. Production
-postflight confirms RPCs/grants/guards/indexes and unchanged counts: 10,201 expenses / 162 sales / 10,365 journal
-entries / 20,730 lines; reconciliation batches/action links/execution ledger remain 0/0/0. No real batch executed.
-Vercel production succeeded; live root is 200 and the protected route redirects to login. Remaining accounting
-gate: controlled real staging, accountant review, dual-run, and signed acceptance.
-
-**2026-07-27 — sale reconciliation execution: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
-Migration `20260727091633 accounting_reconciliation_execute_sale_batch` and PR #921 (`3a28ad6`) made the one
-executor cover expense-only, sale-only, and mixed batches. Historical sales post proven cash-in Dr 1010 / Cr
-typed revenue leaf; correction and reporting guards preserve the real 162-sale total of EGP 25,835,533.40.
-Focused pgTAP was 348/348 and production deployment was verified. The former rollback/UI next step is complete
-in PR #923 and the current acceptance gate is stated above.
-
-**2026-07-27 — reconciliation review stack and expense execution are live.** Provenance, execution ledger,
-stage/review/freeze/approve RPCs, the Arabic review workspace, and owner-only atomic **expense** execution
-(treasury 1010, immutable historical reversal, exact correction/P&L/GL checks, cross-batch serialization) are in
-production; reconciliation tables remain empty. Hosted migration `20260727063039
-accounting_reconciliation_execute_expense_batch` is live and postflight-clean; PR #919 merged at `842fc8a`.
-
 **2026-07-07/08 — the finance half of Stage M landed.** The real 7-year history (10,232 expenses / 162 sales, 2019–2026) is now account-linked and posted to the double-entry GL, then reconciled **sheet-exact** to the source workbook (expenses 20,527,757 / revenue 25,835,533), with a 2017–2018 opening balance; the trusted BS/IS/TB/budget-vs-actual pages render real numbers. On top: the «الرؤى» 7-chapter insight arc (#868), a palm-tree-sales revenue reclass (#869/#870, applied), and an **accounting-kernel correctness pass** (#871, applied `20260708100000`): revenue posts on the sale's economic date, a reversed sale can't be collected, trial balance is posted-only. Money-integrity review items (reversal RPC, audit_read pin, custody floor/journal-completeness) confirmed already shipped (#791/#792/#793). Engine + multi-tenant RLS independently re-audited **clean**. **Still gating full real-data operation: Stage 0 security (#362) + the palm-registry import (#239, prod palms still synthetic).**
-
-**2026-07-13 historical safe stop:** PR2a was open as #902 and production was unchanged at that time. This entry is
-retained only as historical evidence; the 2026-07-26 entry above is current.
 
 ## Where we are (honest stage status)
 
@@ -59,7 +35,7 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 | 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673), and DB/RPC positive plan-requirement backstop live (#848 / prod `20260706180856`). |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
 | 6 Budget + approvals | 70% | PR workflow live; **budget gate is display-only** (#157) — approval never reads budget_lines. |
-| 7 Accounting | ~99.5% / workflow complete, operating acceptance pending | Full workflow is live; the pinned 698-row batch is now staged untouched in production (PR #925). Remaining for dependable daily-use acceptance: owner/accountant row decisions, dual-run, exception resolution, and signed acceptance. |
+| 7 Accounting | ~99.5% / workflow complete, operating acceptance pending | Full workflow is live; the pinned 698-row batch is staged untouched and its read-only triage filters are live (PRs #925/#927). Remaining for dependable daily-use acceptance: owner/accountant row decisions, dual-run, exception resolution, and signed acceptance. |
 | 8 People/payroll | 50% | Onboarding/attendance/labor live; payroll gated on wage model #388. |
 | 9 Weather | 70% | Gates + thresholds live; forecast service NOT configured in prod. |
 | 10 Care Academy | 20% | #366 draft; gated on agronomist + pesticide-registration sign-off (no agronomist engaged). |
@@ -71,7 +47,7 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 
 ## Top next actions (in order)
 
-1. **Accounting acceptance:** review the staged 698-row batch, resolve exceptions, run dual-run totals and samples, then obtain signed accountant acceptance. Do not call Stage 7 100% before this evidence exists.
+1. **Accounting acceptance:** use the live classification/state filters to review the staged 698-row batch, resolve exceptions, run dual-run totals and samples, then obtain signed accountant acceptance. Do not call Stage 7 100% before this evidence exists.
 2. **Owner+accountant meeting**: ETA e-invoicing determination (obligation **plausible-not-proven** — the "EGP 250k threshold / deadline passed" claim is DISPUTED after cross-verification; see `MARKET-DELTA-2026-07-02.md` §1) + review/refine live COA, cost centers, reports, owner insights, offshoot valuation, accountant dashboard/custody signals, custody transfer, custody reports, revenue/A-R backend, and revenue/A-R reports (#654/#661/#659/#667/#670/#663/#672/#673/#674/#675/#676/#677) + ETA memo (#578).
 3. **Owner: close Stage 0** (#362) — one afternoon; unlocks the remaining real-data path.
 4. **Owner: 1-click** leaked-password Auth toggle (#229 iii).

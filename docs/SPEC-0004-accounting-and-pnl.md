@@ -383,3 +383,22 @@ RPC, the absence of direct DML/admin/service-role/network/temp-file, and the lis
 `80a1051d-5bcf-504c-93cd-07206b4c59ef` with 698 evidence items and 698 rows. Every row remains
 `unreviewed` / `hold` / not frozen; action links and execution ledger remain empty. Workbook, production
 snapshot, and exception-evidence hashes match the pinned inputs. Financial counts and totals did not change.
+
+### 8.4 Read-only review queue filters (2026-07-27, RELEASED)
+
+PR #927 adds compact server-side filters to the staged batch workspace without adding a bulk decision path.
+Classification is restricted to the five existing evidence classifications. Decision state is restricted to
+unreviewed, included, held, rejected, or frozen, using the same exact predicates as the whole-batch KPIs.
+Unknown or repeated URL values resolve to the unfiltered queue and are never forwarded as PostgREST syntax.
+
+The filtered exact count and 50-row page query are scoped by both `batch_id` and `org_id`; evidence is joined
+through the composite tenant-safe foreign key and explicitly tenant-filtered. Previous/next links retain active
+filters, applying a filter resets to page one, and an empty filtered queue has its own state. Whole-batch KPI
+counts and freeze/approve/execute/rollback gates remain independent and unfiltered.
+
+Release evidence: commit `51c57f4`, merge `2d325fd`, production deployment
+`dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV`. Focused tests 32/32; full Vitest 797 passed + 13 controlled skips;
+TypeScript/ESLint clean; build 65/65; CI app/shared/secret/Vercel green; DB baseline unchanged at
+2,861 passing / two known stock-engine assertions / zero file failures. Live owner-session checks returned
+698 unfiltered rows, 15 amount-correction rows, and the zero-result state with the full-batch 698 KPI and
+disabled freeze gate intact. No decision, freeze, approval, execution, or financial row changed.
