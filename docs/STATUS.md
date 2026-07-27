@@ -1,36 +1,32 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-27 (sale reconciliation executor live and verified). Owner: Amr Ebeid.*
+*Updated: 2026-07-27 (reconciliation execute + rollback workflow live and verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
+**2026-07-27 — reconciliation rollback + owner controls: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
+PR #923 merged at `835f80a` after exact SQL hash
+`e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420` was applied migrate-first as
+`20260727115115 accounting_reconciliation_rollback_batch`. The owner can now execute an approved batch and
+atomically roll back an executed batch with a mandatory reason. Rollback appends inverse journals, reinstates
+reversed originals from immutable typed baselines, releases execution claims, and leaves a complete audit trail;
+it never deletes financial evidence. The per-org period mutex now serializes execute/post/reverse/reinstate with
+close/reopen before row locks. Foreign journal UUIDs are rejected before either another tenant's mutex or journal
+row can be locked. Action links are append-only, unique per row/kind, and proved bidirectionally before money moves.
+Focused rollback pgTAP is 317/317; full pgTAP is 2,861 passing with zero file failures and only the same two
+stock-engine baseline assertions; TypeScript/ESLint clean; Vitest 755 passed + 13 controlled skips; build 65/65.
+Two independent final reviews approved after three concurrency/security blockers were found and fixed. Production
+postflight confirms RPCs/grants/guards/indexes and unchanged counts: 10,201 expenses / 162 sales / 10,365 journal
+entries / 20,730 lines; reconciliation batches/action links/execution ledger remain 0/0/0. No real batch executed.
+Vercel production succeeded; live root is 200 and the protected route redirects to login. Remaining accounting
+gate: controlled real staging, accountant review, dual-run, and signed acceptance.
+
 **2026-07-27 — sale reconciliation execution: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
-Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) adds append-only migration
-`20260726160000 accounting reconciliation execute sale batch.sql` + pgTAP `201 …execute sale batch test.sql`.
-It re-emits the one `fn_execute_reconciliation_batch(uuid)` so it executes **expense-only, sale-only, and mixed**
-approved batches atomically. Historical sales follow the **proven cash-in contract** — Dr treasury `1010` /
-Cr a **typed revenue leaf** (4010/4020/4030/4040/4050/4090) chosen by the crop mapping reproduced verbatim from
-`20260707115445`, on the reviewed effective date — never the operational Dr 1200 / Cr 4000 receivable path, never
-a fabricated buyer or collection. Adds `sales.payment_status` states `historical_treasury`/`historical_reversed`
-with immutability, delete and duplicate-collection guards, a **proof-gated** (never heuristic, no hardcoded counts)
-classification of existing exact rows, and a narrow `fn_revenue_sales_report` re-emit closing the defect where a
-historical cash-in sale (zero collection rows by construction) reported as outstanding A/R and zero collected cash.
-Corrections preserve the original posted revenue leaf (including approved 4090 palm-disposal reclassifications),
-and reversed sales are excluded from transaction/revenue readers while valid historical sales remain fully settled
-in buyer 360. The migration also structurally binds each collection to its sale's tenant, freezes posted
-collection evidence, and blocks direct public reversal of both historical-sale and historical-expense journals
-while preserving approved executor corrections. Exact committed SQL hash
-`c013dffa48244e130cec8e2a5de21cb830886aaad66a2930305675cb77df8a53` was applied migrate-first as hosted
-migration `20260727091633 accounting_reconciliation_execute_sale_batch`; PR #921 merged at `3a28ad6`.
-Postflight: all 162 sales are `historical_treasury` and retain exact proof for EGP 25,835,533.40;
-reconciliation tables stay empty; expenses/sales/journal entries/journal lines remain
-10,201 / 162 / 10,365 / 20,730. No reconciliation batch or financial posting executed.
-Local evidence: pgTAP `201` 348/348; full pgTAP **2,541 passing, zero file failures**, only the same two
-stock-engine baselines; TypeScript clean; ESLint 0 (full app); Vitest 702 passed + 13 controlled skips; build
-65/65 pages; recharts + client-fn guards pass. PR #921 merged at `3a28ad6`; production deployment
-`dpl_AYftJ6rgPievAX4mUbTrsscB8KSY` is READY, live root returns 200, protected reconciliation redirects to
-login, and deployment error/fatal logs are empty. DB CI is baseline-identical; independent rereview approved
-and CodeRabbit findings were fixed. Next: rollback/reinstatement and the owner-facing execute/rollback UI.
+Migration `20260727091633 accounting_reconciliation_execute_sale_batch` and PR #921 (`3a28ad6`) made the one
+executor cover expense-only, sale-only, and mixed batches. Historical sales post proven cash-in Dr 1010 / Cr
+typed revenue leaf; correction and reporting guards preserve the real 162-sale total of EGP 25,835,533.40.
+Focused pgTAP was 348/348 and production deployment was verified. The former rollback/UI next step is complete
+in PR #923 and the current acceptance gate is stated above.
 
 **2026-07-27 — reconciliation review stack and expense execution are live.** Provenance, execution ledger,
 stage/review/freeze/approve RPCs, the Arabic review workspace, and owner-only atomic **expense** execution
@@ -54,7 +50,7 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 | 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673), and DB/RPC positive plan-requirement backstop live (#848 / prod `20260706180856`). |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
 | 6 Budget + approvals | 70% | PR workflow live; **budget gate is display-only** (#157) — approval never reads budget_lines. |
-| 7 Accounting | ~99% foundation / reconciliation execution incomplete | GL, custody, A/R, COA, close, trusted statements, real 7-year backfill, review/freeze/approve stack, review UI, and owner-only atomic expense/sale/mixed execution are **live** (`20260727063039`, `20260727091633`; PRs #919/#921). Remaining for dependable reconciliation: rollback/reinstatement, execute/rollback UI, controlled real staging, dual-run, and accountant sign-off. |
+| 7 Accounting | ~99.5% / workflow complete, operational proof pending | GL, custody, A/R, COA, close, trusted statements, real 7-year backfill, stage/review/freeze/approve, owner execute, atomic rollback/reinstatement, and compact controls are **live** (`20260727063039`, `20260727091633`, `20260727115115`; PRs #919/#921/#923). Remaining for dependable daily-use acceptance: controlled real staging, accountant review, dual-run, and signed acceptance. |
 | 8 People/payroll | 50% | Onboarding/attendance/labor live; payroll gated on wage model #388. |
 | 9 Weather | 70% | Gates + thresholds live; forecast service NOT configured in prod. |
 | 10 Care Academy | 20% | #366 draft; gated on agronomist + pesticide-registration sign-off (no agronomist engaged). |
@@ -66,14 +62,15 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 
 ## Top next actions (in order)
 
-1. **Owner+accountant meeting**: ETA e-invoicing determination (obligation **plausible-not-proven** — the "EGP 250k threshold / deadline passed" claim is DISPUTED after cross-verification; see `MARKET-DELTA-2026-07-02.md` §1) + review/refine live COA, cost centers, reports, owner insights, offshoot valuation, accountant dashboard/custody signals, custody transfer, custody reports, revenue/A-R backend, and revenue/A-R reports (#654/#661/#659/#667/#670/#663/#672/#673/#674/#675/#676/#677) + ETA memo (#578).
-2. **Owner: close Stage 0** (#362) — one afternoon; unlocks the real-data path.
-3. **Owner: 1-click** leaked-password Auth toggle (#229 iii).
-4. **Owner decisions (cheap)**: wage model #388 · #157 budget-cap (4 one-line answers) · #199/#526 reservation semantics (one line).
-5. **Build now:** remaining real-data runway. Close/period lock, trusted balance sheet, trusted P&L, budget-vs-actual, custody/revenue reports, custody report print/PDF polish, finance statement print/PDF polish, balance-sheet server PDF download, combined statement package PDF, payment-request proof packet, and report output coverage are live; **after 2:** real palm-registry import via SPEC-0020 path → #157 real budget gate → historical import/reconciliation.
-6. **Money-integrity — ✅ DONE.** `fn_reverse_journal_entry` (#793), `audit_read` completeness pin (#792, test 131), custody cash-out balance floor + journal-completeness guards (#791), and the accounting-kernel correctness pass (#871: revenue-on-sale-date, reversed-sale collection block, posted-only trial balance) are all shipped/applied. Optional LOW hardening left (defense-in-depth, not correctness): custody `movement_type` CHECK + a journal-linkage constraint trigger; an auto-discovering audit-entity guard.
-7. **Page-speed follow-up if still slow:** consolidate owner/dashboard multi-query loaders into read RPCs, keep heavy search/help/chart tools async, and add route-specific skeletons for the slowest finance/farm pages after live timing feedback.
-8. **Field-readiness follow-ups**: field/DevTools smoke-test the shipped ExecuteForm offline outbox (#625), add PWA brand icons when the real logo asset exists, choose the signed-URL-safe image path for MediaGallery, and batch the deferred DS rebuild. Already shipped: OperationBuilder fabricated-zero fix (#607), DB/RPC positive plan-requirement backstop (repo `20260706175357`, prod `20260706180856`), shared retry/finally submit handling across the 8 forms (#608), bounded `/m` feed (#610), storekeeper `/m/receive` (#614), field-level errors (#613/#627), and decimal mobile keyboards (#611). Full list: `REVIEW-360-2026-07-01.md` §Frontend.
+1. **Accounting acceptance:** controlled stage of the pinned 698-row manifest, owner/accountant row review, dual-run totals and samples, then signed accountant acceptance. Do not call Stage 7 100% before this evidence exists.
+2. **Owner+accountant meeting**: ETA e-invoicing determination (obligation **plausible-not-proven** — the "EGP 250k threshold / deadline passed" claim is DISPUTED after cross-verification; see `MARKET-DELTA-2026-07-02.md` §1) + review/refine live COA, cost centers, reports, owner insights, offshoot valuation, accountant dashboard/custody signals, custody transfer, custody reports, revenue/A-R backend, and revenue/A-R reports (#654/#661/#659/#667/#670/#663/#672/#673/#674/#675/#676/#677) + ETA memo (#578).
+3. **Owner: close Stage 0** (#362) — one afternoon; unlocks the remaining real-data path.
+4. **Owner: 1-click** leaked-password Auth toggle (#229 iii).
+5. **Owner decisions (cheap)**: wage model #388 · #157 budget-cap (4 one-line answers) · #199/#526 reservation semantics (one line).
+6. **Build now:** remaining real-data runway. Close/period lock, trusted balance sheet, trusted P&L, budget-vs-actual, custody/revenue reports, custody report print/PDF polish, finance statement print/PDF polish, balance-sheet server PDF download, combined statement package PDF, payment-request proof packet, and report output coverage are live; **after 3:** real palm-registry import via SPEC-0020 path → #157 real budget gate.
+7. **Money-integrity — ✅ DONE.** `fn_reverse_journal_entry` (#793), `audit_read` completeness pin (#792, test 131), custody cash-out balance floor + journal-completeness guards (#791), and the accounting-kernel correctness pass (#871: revenue-on-sale-date, reversed-sale collection block, posted-only trial balance) are all shipped/applied. Optional LOW hardening left (defense-in-depth, not correctness): custody `movement_type` CHECK + a journal-linkage constraint trigger; an auto-discovering audit-entity guard.
+8. **Page-speed follow-up if still slow:** consolidate owner/dashboard multi-query loaders into read RPCs, keep heavy search/help/chart tools async, and add route-specific skeletons for the slowest finance/farm pages after live timing feedback.
+9. **Field-readiness follow-ups**: field/DevTools smoke-test the shipped ExecuteForm offline outbox (#625), add PWA brand icons when the real logo asset exists, choose the signed-URL-safe image path for MediaGallery, and batch the deferred DS rebuild. Already shipped: OperationBuilder fabricated-zero fix (#607), DB/RPC positive plan-requirement backstop (repo `20260706175357`, prod `20260706180856`), shared retry/finally submit handling across the 8 forms (#608), bounded `/m` feed (#610), storekeeper `/m/receive` (#614), field-level errors (#613/#627), and decimal mobile keyboards (#611). Full list: `REVIEW-360-2026-07-01.md` §Frontend.
 
 ## Feature freeze
 

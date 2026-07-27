@@ -302,3 +302,33 @@ regression 55/55; full Vitest 670 passed + 13 controlled skips; production build
 local pgTAP 2,057 passing with zero file failures and only the two unchanged unrelated engine
 assertions. Reconciliation suites pass 127/127, 21/21, and 60/60. Independent rereview: APPROVE.
 PR #917 merged at `31b5b93f`; production postflight and Vercel deployment passed.**
+
+### 8.2 Execution + atomic rollback workflow (2026-07-27, RELEASED)
+
+The one reconciliation path is now complete from staged evidence through review, freeze, approval, owner
+execution, and owner rollback. Expense, sale, and mixed-batch execution shipped in PRs #919/#921; PR #923 adds
+the compact controls and `fn_rollback_reconciliation_batch(uuid,text)`.
+
+Rollback is whole-batch atomic and append-only. It reverses journals created by execution, restores originals
+that execution reversed by replaying the immutable typed baseline, marks execution-ledger claims reversed,
+records a mandatory reason, and leaves every action link and journal auditable. It never deletes financial
+evidence or claims success from an unrecognized RPC response. Restored sale histories must form exact closed
+reversal/reinstatement chains before they can be corrected again.
+
+The accounting-period exclusion contract is now enforced by a per-org transaction advisory mutex: money writers
+take it shared before any row lock; close/reopen take it exclusive. Executor, rollback, posting, reversal, and
+reinstatement share this order. Membership is resolved without locks first, so a foreign journal UUID cannot
+queue on another tenant's advisory mutex or journal row. Action links are append-only, unique by batch row/action
+kind, and checked in both directions against the frozen decision and execution ledger before rollback touches
+money.
+
+Release evidence: exact SQL hash
+`e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420`, hosted migration
+`20260727115115 accounting_reconciliation_rollback_batch`, PR #923 merge `835f80a`. Rollback pgTAP 317/317;
+full pgTAP 2,861 passing with zero file failures and only the two unchanged stock-engine baselines; TypeScript,
+ESLint, Vitest 755 + 13 controlled skips, and build 65/65 pass. Production counts remain unchanged and no real
+batch was executed.
+
+**Acceptance still pending:** controlled stage of the pinned 698-row manifest, owner/accountant review, dual-run
+comparison to the workbook, exception resolution, and signed accountant acceptance. The implementation workflow
+is live; Stage 7 must not be called 100% dependable daily use until that operating proof is complete.
