@@ -2,7 +2,7 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-27 (latest) — expense reconciliation execution MIGRATED; PR #919 pending merge/deploy.**
+> **2026-07-27 (latest) — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The reviewed branch adds migration `20260726150000 accounting reconciliation execute expense
 > batch.sql`, owner-only expense execution, treasury `1010`, immutable historical posting/reversal
 > states, exact correction and postflight checks, and 136 focused pgTAP assertions. Two independent
@@ -14,8 +14,10 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > accounting_reconciliation_execute_expense_batch`. Postflight confirms the executor/helper privilege
 > boundary, empty search paths, enabled guards, validated constraints, account 1010 coverage, empty
 > reconciliation tables, and unchanged financial counts at 10,201 expenses / 162 sales / 10,365 journal
-> entries / 20,730 lines. PR #919 is open pending merge and Vercel deployment. No real staging,
-> reconciliation execution, or financial write occurred.
+> entries / 20,730 lines. PR #919 merged to `main` at `842fc8afb8f1779539097f0f9ab11c58302f8319`;
+> its Vercel production deployment succeeded, the live root returns HTTP 200, and the protected
+> reconciliation route redirects unauthenticated requests to login. No real staging, reconciliation
+> execution, or financial write occurred.
 
 <!-- -->
 
