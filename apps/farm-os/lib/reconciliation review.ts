@@ -34,6 +34,16 @@ export type Classification =
   | "production_orphan_candidate"
   | "zero_value_source_placeholder"
   | "ambiguous_identity_group";
+export type ReconciliationQueueState =
+  | "unreviewed"
+  | "included"
+  | "held"
+  | "rejected"
+  | "frozen";
+export interface ReconciliationQueueFilters {
+  classification: Classification | null;
+  state: ReconciliationQueueState | null;
+}
 export type OriginKind = "source_workbook_row" | "production_snapshot_row";
 export type ExecutionResult = "pending" | "posted" | "reversed" | "skipped" | "failed";
 export type ExpenseKind = "operating" | "drawing" | "capex";
@@ -115,6 +125,20 @@ const HISTORICAL_DATE_DECISIONS: SaleHistoricalDateDecision[] = [
   "use_matched_production_date",
   "manual_override",
 ];
+const CLASSIFICATIONS = new Set<Classification>([
+  "source_addition_candidate",
+  "amount_correction_candidate",
+  "production_orphan_candidate",
+  "zero_value_source_placeholder",
+  "ambiguous_identity_group",
+]);
+const QUEUE_STATES = new Set<ReconciliationQueueState>([
+  "unreviewed",
+  "included",
+  "held",
+  "rejected",
+  "frozen",
+]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -168,6 +192,64 @@ export function parsePageParam(raw: string | string[] | undefined): number {
   const value = Array.isArray(raw) ? raw[0] : raw;
   const n = Number(value);
   return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+/** Unknown and repeated URL values mean "all"; they never become PostgREST column/value input. */
+export function parseReconciliationQueueFilters(raw: {
+  classification?: string | string[];
+  state?: string | string[];
+}): ReconciliationQueueFilters {
+  const classification =
+    typeof raw.classification === "string" &&
+    CLASSIFICATIONS.has(raw.classification as Classification)
+      ? (raw.classification as Classification)
+      : null;
+  const state =
+    typeof raw.state === "string" && QUEUE_STATES.has(raw.state as ReconciliationQueueState)
+      ? (raw.state as ReconciliationQueueState)
+      : null;
+  return { classification, state };
+}
+
+export type ReconciliationQueuePredicate = {
+  column: "review_state" | "disposition" | "frozen";
+  value: string | boolean;
+};
+
+/** Exact queue predicates; whole-batch KPI counts intentionally use their independent queries. */
+export function reconciliationQueueStatePredicates(
+  state: ReconciliationQueueState | null,
+): ReconciliationQueuePredicate[] {
+  switch (state) {
+    case "unreviewed":
+      return [{ column: "review_state", value: "unreviewed" }];
+    case "included":
+      return [{ column: "disposition", value: "include" }];
+    case "held":
+      return [
+        { column: "review_state", value: "reviewed" },
+        { column: "disposition", value: "hold" },
+      ];
+    case "rejected":
+      return [{ column: "review_state", value: "rejected" }];
+    case "frozen":
+      return [{ column: "frozen", value: true }];
+    default:
+      return [];
+  }
+}
+
+export function reconciliationQueueHref(
+  batchId: string,
+  page: number,
+  filters: ReconciliationQueueFilters,
+): string {
+  const params = new URLSearchParams();
+  if (filters.classification) params.set("classification", filters.classification);
+  if (filters.state) params.set("state", filters.state);
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return `/finance/reconciliation/${encodeURIComponent(batchId)}${query ? `?${query}` : ""}`;
 }
 
 export function paginate(

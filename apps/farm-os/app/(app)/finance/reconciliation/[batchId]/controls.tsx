@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Field, Input, Select, Tag, Textarea } from "@/components/ui";
+import { Alert, Button, EmptyState, Field, Input, Select, Tag, Textarea } from "@/components/ui";
 import { AccountPicker } from "@/components/AccountPicker";
 import type { PickableAccount } from "@/lib/account-options";
 import { num } from "@/lib/money";
@@ -956,6 +956,9 @@ export function ReconciliationControls({
   from,
   to,
   total,
+  hasActiveFilters,
+  previousHref,
+  nextHref,
 }: {
   batchId: string;
   status: string;
@@ -978,6 +981,9 @@ export function ReconciliationControls({
   from: number;
   to: number;
   total: number;
+  hasActiveFilters: boolean;
+  previousHref: string;
+  nextHref: string;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -998,28 +1004,32 @@ export function ReconciliationControls({
       />
 
       <div className="flex flex-col gap-3">
-        {rows.map((row) => (
-          <RowCard
-            key={row.id}
-            row={row}
-            batchId={batchId}
-            classification={row.classification}
-            editable={editable}
-            options={options}
-          />
-        ))}
+        {rows.length === 0 && hasActiveFilters ? (
+          <EmptyState title="لا توجد صفوف تطابق عوامل التصفية" />
+        ) : (
+          rows.map((row) => (
+            <RowCard
+              key={row.id}
+              row={row}
+              batchId={batchId}
+              classification={row.classification}
+              editable={editable}
+              options={options}
+            />
+          ))
+        )}
       </div>
 
       <nav className="flex items-center justify-between gap-3 text-sm" aria-label="ترقيم الصفحات">
         <span style={{ color: "var(--ink-muted)" }}>
-          {num(from)}–{num(to)} من {num(total)}
+          الصفوف المطابقة: {num(from)}–{num(to)} من {num(total)}
         </span>
         <div className="flex gap-2">
-          <PageLink batchId={batchId} page={page - 1} disabled={page <= 1} label="السابق" />
+          <PageLink href={previousHref} disabled={page <= 1} label="السابق" />
           <span style={{ color: "var(--ink-muted)" }}>
             صفحة {num(page)} من {num(pageCount)}
           </span>
-          <PageLink batchId={batchId} page={page + 1} disabled={page >= pageCount} label="التالي" />
+          <PageLink href={nextHref} disabled={page >= pageCount} label="التالي" />
         </div>
       </nav>
     </div>
@@ -1027,13 +1037,11 @@ export function ReconciliationControls({
 }
 
 function PageLink({
-  batchId,
-  page,
+  href,
   disabled,
   label,
 }: {
-  batchId: string;
-  page: number;
+  href: string;
   disabled: boolean;
   label: string;
 }) {
@@ -1046,7 +1054,7 @@ function PageLink({
   }
   return (
     <Link
-      href={`/finance/reconciliation/${batchId}?page=${page}`}
+      href={href}
       className="rounded-md px-3 py-1"
       style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
     >

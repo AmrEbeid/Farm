@@ -1,8 +1,13 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   RECONCILIATION_PAGE_SIZE,
   paginate,
   parsePageParam,
+  parseReconciliationQueueFilters,
+  reconciliationQueueHref,
+  reconciliationQueueStatePredicates,
   summarizeRowStates,
   freezeGate,
   approveGate,
@@ -102,6 +107,87 @@ describe("reconciliation review — pagination", () => {
     expect(parsePageParam(["4", "5"])).toBe(4);
     expect(parsePageParam("-2")).toBe(1);
     expect(parsePageParam("abc")).toBe(1);
+  });
+});
+
+describe("reconciliation review — read-only queue filters", () => {
+  it("accepts only single allowlisted values", () => {
+    expect(
+      parseReconciliationQueueFilters({
+        classification: "source_addition_candidate",
+        state: "unreviewed",
+      }),
+    ).toEqual({ classification: "source_addition_candidate", state: "unreviewed" });
+    expect(
+      parseReconciliationQueueFilters({
+        classification: ["source_addition_candidate"],
+        state: "review_state.eq.executed",
+      }),
+    ).toEqual({ classification: null, state: null });
+  });
+
+  it("maps each state to its exact fixed predicates", () => {
+    expect(reconciliationQueueStatePredicates("unreviewed")).toEqual([
+      { column: "review_state", value: "unreviewed" },
+    ]);
+    expect(reconciliationQueueStatePredicates("included")).toEqual([
+      { column: "disposition", value: "include" },
+    ]);
+    expect(reconciliationQueueStatePredicates("held")).toEqual([
+      { column: "review_state", value: "reviewed" },
+      { column: "disposition", value: "hold" },
+    ]);
+    expect(reconciliationQueueStatePredicates("rejected")).toEqual([
+      { column: "review_state", value: "rejected" },
+    ]);
+    expect(reconciliationQueueStatePredicates("frozen")).toEqual([
+      { column: "frozen", value: true },
+    ]);
+    expect(reconciliationQueueStatePredicates(null)).toEqual([]);
+  });
+
+  it("preserves active filters in pagination and omits page one", () => {
+    const filters = {
+      classification: "amount_correction_candidate" as const,
+      state: "held" as const,
+    };
+    expect(reconciliationQueueHref(UUID_A, 2, filters)).toBe(
+      `/finance/reconciliation/${UUID_A}?classification=amount_correction_candidate&state=held&page=2`,
+    );
+    expect(reconciliationQueueHref(UUID_A, 1, filters)).not.toContain("page=");
+  });
+});
+
+describe("reconciliation review — queue source contract", () => {
+  const pageSource = readFileSync(
+    join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/page.tsx"),
+    "utf8",
+  );
+  const queueStart = pageSource.indexOf("const statePredicates");
+  const queueEnd = pageSource.indexOf("// Resolve correction targets");
+  const queueSource = pageSource.slice(queueStart, queueEnd);
+
+  it("keeps whole-batch counts independent from the filtered total", () => {
+    expect(pageSource.indexOf("const [total, unreviewed")).toBeGreaterThan(-1);
+    expect(pageSource.indexOf("const [total, unreviewed")).toBeLessThan(queueStart);
+    expect(queueSource).toContain("const { count: filteredCount");
+    expect(queueSource).toContain("paginate(\n    filteredCount ?? 0");
+  });
+
+  it("scopes both filtered queries by batch, tenant, and the tenant-safe evidence relation", () => {
+    expect(queueSource.match(/\.eq\("batch_id", batchId\)/g)).toHaveLength(2);
+    expect(queueSource.match(/\.eq\("org_id", m\.orgId\)/g)).toHaveLength(2);
+    expect(queueSource.match(/\.eq\("evidence\.org_id", m\.orgId\)/g)).toHaveLength(2);
+    expect(
+      queueSource.match(
+        /reconciliation_evidence_items!reconciliation_batch_rows_evidence_tenant_fk!inner/g,
+      ),
+    ).toHaveLength(2);
+  });
+
+  it("adds no write or RPC path to the filtered queue", () => {
+    expect(queueSource).not.toMatch(/\.(insert|update|upsert|delete|rpc)\(/);
+    expect(queueSource).toContain(".range(pagination.offset");
   });
 });
 
