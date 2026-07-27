@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-27 (latest) — data authority gates MIGRATED / DEPLOYED / LIVE-VERIFIED.**
+> Farm migration `20260727145912 data_authority_status` applied migrate-first; PR #931 merged at `7ce98f5`;
+> production deployment `dpl_DUtDwchLmRVfU9He4MjXMvoeNNJk` is READY. RLS and FORCE RLS are enabled,
+> authenticated access is same-org SELECT plus the owner-gated RPC, anon has no access, and client DML is
+> revoked. Seven canonical domain states were seeded without changing transactional data: 10,201 expenses,
+> 162 sales, and 10,365 journals remain unchanged. Live owner-session checks confirmed palm/operations
+> warnings, offshoot capture-only mode, blocked budget list/detail, actual-only partial-ledger reporting,
+> and no runtime errors. Independent security/accounting review approved.
+
 > **2026-07-27 (latest) — reconciliation review read performance DEPLOYED / MEASURED.**
 > PR #929 merged at `0155c8e`; production deployment `dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev` is READY.
 > The same bounded, tenant-scoped reads now overlap instead of running in avoidable sequential waves; every

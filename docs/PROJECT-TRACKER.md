@@ -1,4 +1,13 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (review filters faster)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (data authority gates live)
+
+> **2026-07-27 (latest) — FULL DATA AUDIT + REPORT AUTHORITY GATES: LIVE / VERIFIED.**
+> Production migration `20260727145912 data_authority_status`, PR #931 merge `7ce98f5`, and deployment
+> `dpl_DUtDwchLmRVfU9He4MjXMvoeNNJk` are complete. Seven domain states are tenant-scoped, owner-controlled,
+> audited, and provenance-gated. Unsupported palm, offshoot, operations, and budget totals/exports now fail
+> closed; posted-ledger actuals remain available with explicit partial-coverage labeling. Live owner checks
+> and runtime-error review passed; transactional counts stayed 10,201 expenses / 162 sales / 10,365 journals.
+> **Still open:** 698 accounting row decisions and acceptance; Stage 0 security; corrected palm registry;
+> wage model/payroll review; and real offshoot, budget, inventory-history, and operations ledgers.
 
 > **2026-07-27 (latest) — RECONCILIATION REVIEW READ WATERFALL REMOVED: LIVE / MEASURED.**
 > App-only PR #929 (`19da7ed`, merged `0155c8e`) overlaps the existing seven whole-batch head counts,
