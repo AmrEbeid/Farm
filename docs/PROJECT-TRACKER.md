@@ -1,6 +1,6 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Codex (expense execution rereviewed)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Codex (expense execution migrated)
 
-> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: REREVIEWED, PR #919 OPEN.**
+> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, PR #919 OPEN.**
 > The isolated branch `feat/accounting-reconciliation-expense-execution` adds the owner-only,
 > whole-batch atomic `fn_execute_reconciliation_batch(uuid)` expense kernel and append-only migration
 > `20260726150000 accounting reconciliation execute expense batch.sql`. It posts approved/frozen
@@ -30,11 +30,15 @@
 > full pgTAP **2,193 passing**, zero file
 > failures, with only the two unchanged stock-engine baseline assertions. `git diff --check` is clean.
 >
-> **Current gate:** PR **#919** is open. The rereview corrections require fresh GitHub/CodeRabbit
-> checks before migrate-first release. Nothing is migrated, merged, or deployed.
-> Production preflight confirms Farm project `veezkmytervjnpxcrbkw`, one existing account `1010`, zero
-> reconciliation batches/evidence/rows, and unchanged financial counts: expenses `10,201`, sales `162`,
-> journal entries `10,365`, journal lines `20,730`. No real manifest or financial row was written.
+> **Current gate:** the reviewed migration was applied first to Farm production project
+> `veezkmytervjnpxcrbkw` as hosted migration `20260727063039
+> accounting_reconciliation_execute_expense_batch`; PR **#919** remains open pending merge and deploy.
+> Production postflight confirms the executor and P&L RPC are security-definer with empty search paths,
+> authenticated-only execution on the public executor, no authenticated/anonymous execution on private
+> helpers, all three guards enabled, both new constraints validated, one account `1010` with no
+> organization missing it, and zero reconciliation batches/evidence/rows. Financial counts are unchanged:
+> expenses `10,201`, sales `162`, journal entries `10,365`, journal lines `20,730`. No real manifest,
+> reconciliation batch, or financial row was written.
 > After this release, accounting reconciliation still needs the sale executor, rollback/reinstatement
 > kernel, mixed-batch orchestration, and owner-facing execute/rollback controls before daily-use 100%.
 

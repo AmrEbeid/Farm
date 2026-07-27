@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Codex (expense execution rereviewed)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Codex (expense execution migrated)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-27 (latest) — expense reconciliation execution rereviewed; PR #919 open
+## 2026-07-27 (latest) — expense reconciliation execution migrated; PR #919 open
 
 Branch `feat/accounting-reconciliation-expense-execution`, worktree
 `/Users/amrebeid/Projects/farm reconciliation expense execution`, base `41d1ea0` (`origin/main`).
@@ -24,11 +24,13 @@ provenance 60/60; full pgTAP 2,193 passing, zero file failures, with only the tw
 baseline assertions. Production preflight is read-only and clean: Farm project confirmed, account 1010
 present, reconciliation counts 0/0/0, financial counts unchanged at 10,201 / 162 / 10,365 / 20,730.
 
-Release state at this checkpoint: PR #919 is open with the rereview corrections ready for fresh remote
-gates. Nothing is migrated, merged, or deployed. Resume by verifying fresh CI and CodeRabbit, applying
-the reviewed migration first, running production postflight, then merging and verifying Vercel. Next
-accounting slices: sales
-execution, rollback/reinstatement, mixed-batch orchestration, then owner-facing execute/rollback UI.
+Release state at this checkpoint: the reviewed migration was applied first to Farm production as hosted
+migration `20260727063039 accounting_reconciliation_execute_expense_batch`. Production postflight
+confirms the executor and P&L RPC security boundary, private helper revokes, all three enabled guards,
+both validated constraints, one treasury 1010 account with no organization missing it, empty
+reconciliation tables, and unchanged financial counts. No real batch or financial row was executed.
+PR #919 remains open pending merge and Vercel deployment. Next accounting slices: sales execution,
+rollback/reinstatement, mixed-batch orchestration, then owner-facing execute/rollback UI.
 
 ## 2026-07-26 (latest) — reconciliation Slice 4/4A released
 
