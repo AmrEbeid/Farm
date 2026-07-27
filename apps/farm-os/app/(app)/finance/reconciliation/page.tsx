@@ -10,6 +10,7 @@ import {
   RECONCILIATION_MAX_BATCHES,
   type BatchStatus,
 } from "@/lib/reconciliation review";
+import { ManifestStagingCard } from "./staging upload";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,10 @@ export default async function ReconciliationListPage() {
         title="مراجعة فقط"
         description="هذه الصفحة لمراجعة الدفعات المُجهَّزة واتخاذ قرار لكل صف ثم التجميد والاعتماد. لا تُرحِّل ولا تُنشئ ولا تُعدِّل أي مصروف أو بيع أو قيد فعلي."
       />
+
+      {/* Staging is the entry point of the workflow, so it stays available whether or not any batch
+          exists yet — including on the empty state, where it is the only thing to do. */}
+      <ManifestStagingCard />
 
       {batches.length === 0 ? (
         <EmptyState

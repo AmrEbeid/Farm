@@ -14,8 +14,19 @@ import {
   parseRollbackOutcome,
   validateRollbackReason,
 } from "@/lib/reconciliation review";
+import {
+  assertManifestOrg,
+  checkManifestFile,
+  parseManifestText,
+  parseStageOutcome,
+  STAGE_MANIFEST_FALLBACK_AR,
+  STAGE_MANIFEST_PERM,
+} from "@/lib/reconciliation staging";
 
 export type ActionResult = { ok: boolean; error?: string };
+export type StageManifestResult =
+  | { ok: true; batchId: string; idempotentReplay: boolean }
+  | { ok: false; error: string };
 export type CorrectionTarget = { id: string; label: string };
 export type CorrectionSearchResult =
   | { ok: true; targets: CorrectionTarget[] }
@@ -27,6 +38,62 @@ function revalidateReconciliation(batchId?: string) {
   if (batchId && isUuid(batchId)) {
     revalidatePath(`/finance/reconciliation/${batchId}`);
   }
+}
+
+/**
+ * Stage an already-generated reconciliation manifest — the ENTRY point of the workflow.
+ *
+ * This creates REVIEW ROWS ONLY: one `reconciliation_batches` row plus its evidence items and
+ * unreviewed/hold batch rows. It creates no expense, no sale, and no journal entry; posting happens
+ * only much later, at owner execution, after per-row review, freeze, and approval.
+ *
+ * The order below is deliberate:
+ *   1. requireRole FIRST — an unauthorized caller never gets as far as an upload being read.
+ *   2. the file is bounded BEFORE it is read (checkManifestFile inspects `size` only).
+ *   3. the org comes from the caller's own membership (`m.orgId`) and is ALSO the value the
+ *      manifest's `batch.org_id` must equal — an `org_id` is never accepted from the client, and a
+ *      manifest built for another tenant is refused before the RPC (which refuses it again).
+ *   4. the ONLY DB call is the gated RPC through the user-session client: no direct DML, no admin
+ *      client, no service role, no network fetch, no temp file.
+ *
+ * Nothing about the upload is logged or echoed — not the filename, not the bytes, not a raw DB
+ * message. Every failure returns one of a fixed set of Arabic strings.
+ */
+export async function stageManifest(formData: FormData): Promise<StageManifestResult> {
+  const m = await requireRole(["owner", "accountant"]);
+
+  const uploads =
+    formData && typeof formData.getAll === "function" ? formData.getAll("manifest") : [];
+  const picked = checkManifestFile(uploads.length === 1 ? uploads[0] : null);
+  if (!picked.ok) return { ok: false, error: picked.error };
+
+  let text: string;
+  try {
+    text = await picked.file.text();
+  } catch {
+    return { ok: false, error: "تعذّر قراءة الملف؛ حاول اختياره مرة أخرى." };
+  }
+
+  const parsed = parseManifestText(text);
+  if (!parsed.ok) return { ok: false, error: parsed.error };
+  const bound = assertManifestOrg(parsed.manifest, m.orgId);
+  if (!bound.ok) return { ok: false, error: bound.error };
+
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_stage_reconciliation_manifest", {
+    p_org: m.orgId,
+    p_manifest: parsed.manifest as unknown as Json,
+  });
+  if (error) {
+    return { ok: false, error: toArabicError(error, STAGE_MANIFEST_PERM, STAGE_MANIFEST_FALLBACK_AR) };
+  }
+  // The returned body — not the absence of an error — decides what is reported. Only a real UUID can
+  // be navigated to; an idempotent replay (the same manifest staged again, nothing written) is a
+  // success and returns the SAME batch id.
+  const outcome = parseStageOutcome(data);
+  if (!outcome.ok) return { ok: false, error: outcome.error };
+  revalidateReconciliation(outcome.batchId);
+  return { ok: true, batchId: outcome.batchId, idempotentReplay: outcome.idempotentReplay };
 }
 
 const REVIEW_PERM: Record<string, string> = {

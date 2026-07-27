@@ -1431,10 +1431,36 @@ export type ReconciliationBatchOutcome = {
   rows_marked_reversed?: number | null;
 };
 
-// The authenticated client RPCs the reconciliation workspace calls: the three review-stage ones plus
-// the two owner-only money RPCs the batch page now drives. The STAGING RPC stays omitted — no client
-// surface calls it.
+/**
+ * What fn_stage_reconciliation_manifest returns.
+ *
+ * Every field is optional and nullable ON PURPOSE — same rationale as ReconciliationBatchOutcome
+ * above: this type describes the shape a caller MAY look for, it does not assert the server sent it.
+ * `lib/reconciliation staging.ts`'s parseStageOutcome is the authoritative runtime validation and
+ * fails closed unless `batch_id` is a real UUID and `status` a non-empty string.
+ */
+export type ReconciliationStageOutcome = {
+  batch_id?: string | null;
+  status?: string | null;
+  /** True when the deterministic manifest was already staged byte-for-byte; nothing was written. */
+  idempotent_replay?: boolean | null;
+  staged_rows?: number | null;
+  total_rows?: number | null;
+};
+
+// The authenticated client RPCs the reconciliation workspace calls: the staging RPC, the three
+// review-stage ones, and the two owner-only money RPCs the batch page drives.
 type ReconciliationFunctions = {
+  /**
+   * Stage an already-generated Slice-2 manifest as REVIEW ROWS ONLY (20260726120000, re-emitted by
+   * 20260726140000). Owner/accountant via authorize('reconciliation.write', p_org); `p_org` must be
+   * the caller's own org and must equal the manifest's own `batch.org_id` (the RPC re-checks both).
+   * Creates no expense, sale, or journal — posting happens only at owner execution.
+   */
+  fn_stage_reconciliation_manifest: {
+    Args: { p_org: string; p_manifest: Json };
+    Returns: ReconciliationStageOutcome;
+  };
   fn_review_reconciliation_row: {
     Args: { p_row_id: string; p_decision: Json };
     Returns: Json;
