@@ -1,17 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-26 (expense reconciliation executor reviewed; release pending). Owner: Amr Ebeid.*
+*Updated: 2026-07-27 (expense reconciliation executor rereviewed; PR #919 open). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-07-26 — reconciliation review stack is live; expense execution is reviewed locally, release pending.**
+**2026-07-27 — reconciliation review stack is live; expense execution is rereviewed in PR #919.**
 Production has provenance, execution-ledger, stage/review/freeze/approve RPCs, and the Arabic review workspace
 (PRs #902/#910/#912/#915/#917/#918). Production reconciliation tables remain empty; no real manifest or
 financial row has been written. The next reviewed migration adds owner-only atomic expense execution with
 treasury 1010, immutable historical reversal state, exact correction/P&L/GL checks, and cross-batch
-serialization. Local evidence: Vitest 673 passed + 13 controlled skips; build 65/65; pgTAP 2,149 passing,
-zero file failures, only the same two stock-engine baselines; two independent reviews APPROVE. It is not
-yet committed, migrated, merged, or deployed. Sales execution, rollback, mixed-batch orchestration, and
+serialization. Local evidence: Vitest 673 passed + 13 controlled skips; build 65/65; execution pgTAP
+136/136 and full pgTAP 2,193 passing, zero file failures, only the same two stock-engine baselines.
+Two independent reviews approved the first commit; CodeRabbit's valid findings are fixed locally and
+await fresh remote review. It is not migrated, merged, or deployed. Sales execution, rollback,
+mixed-batch orchestration, and
 owner-facing execute/rollback controls remain before reconciliation is daily-use complete.
 
 **2026-07-07/08 — the finance half of Stage M landed.** The real 7-year history (10,232 expenses / 162 sales, 2019–2026) is now account-linked and posted to the double-entry GL, then reconciled **sheet-exact** to the source workbook (expenses 20,527,757 / revenue 25,835,533), with a 2017–2018 opening balance; the trusted BS/IS/TB/budget-vs-actual pages render real numbers. On top: the «الرؤى» 7-chapter insight arc (#868), a palm-tree-sales revenue reclass (#869/#870, applied), and an **accounting-kernel correctness pass** (#871, applied `20260708100000`): revenue posts on the sale's economic date, a reversed sale can't be collected, trial balance is posted-only. Money-integrity review items (reversal RPC, audit_read pin, custody floor/journal-completeness) confirmed already shipped (#791/#792/#793). Engine + multi-tenant RLS independently re-audited **clean**. **Still gating full real-data operation: Stage 0 security (#362) + the palm-registry import (#239, prod palms still synthetic).**

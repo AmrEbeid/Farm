@@ -3,7 +3,9 @@
 -- This slice executes only approved, frozen EXPENSE rows. It uses one inner
 -- PL/pgSQL subtransaction for every financial write in the batch. On failure,
 -- the inner block rolls back in full and the outer block persists only a safe
--- batch-level failure code and batch-row UUID locator.
+-- batch-level failure code and batch-row UUID locator. Retryable concurrency SQLSTATEs
+-- (40001 / 40P01 / 55P03) are deliberately re-raised rather than persisted, so a transient
+-- conflict rolls the whole transaction back and leaves the batch `approved` for retry.
 --
 -- No real reconciliation batch is executed by this migration.
 
@@ -21,6 +23,13 @@ alter table public.expenses
     )
   );
 
+-- The reviewed decision narrows from ('unrouted','routed_now') to 'routed_now' only.
+-- Added NOT VALID so it is enforced for every new/updated row without rewriting or
+-- relabelling a legacy `unrouted` review row: a legacy row would have to be re-reviewed
+-- by a human, never silently converted here. The constraint is then validated only when
+-- nothing violates it, so a clean database ends up fully validated
+-- and a dirty one stays visibly unvalidated (`pg_constraint.convalidated = false`)
+-- instead of failing the migration.
 alter table public.reconciliation_batch_rows
   drop constraint if exists reconciliation_batch_rows_expense_payment_decision_check;
 alter table public.reconciliation_batch_rows
@@ -32,22 +41,29 @@ alter table public.reconciliation_batch_rows
       or disposition is distinct from 'include'
       or expense_payment_decision is not distinct from 'routed_now'
     )
-  );
+  ) not valid;
 
-insert into public.accounts(
-  org_id, code, name_ar, account_type, normal_balance, parent_id,
-  kind, is_system, sort_order, active
-)
-select
-  custody.org_id, '1010', 'النقدية بالخزينة', 'asset', 'debit',
-  custody.parent_id, null, true, 15, true
-  from public.accounts custody
- where custody.code = '1000'
-   and not exists (
-     select 1 from public.accounts treasury
-      where treasury.org_id = custody.org_id
-        and treasury.code = '1010'
-   );
+do $$
+begin
+  if not exists (
+    select 1
+      from public.reconciliation_batch_rows br
+     where (
+       br.expense_payment_decision is not null
+       and br.expense_payment_decision <> 'routed_now'
+     ) or (
+       br.target_table = 'expenses'
+       and br.disposition = 'include'
+       and br.expense_payment_decision is distinct from 'routed_now'
+     )
+  ) then
+    alter table public.reconciliation_batch_rows
+      validate constraint reconciliation_batch_rows_expense_payment_decision_check;
+  else
+    raise warning
+      'reconciliation_batch_rows_expense_payment_decision_check left NOT VALID: legacy review rows need re-review';
+  end if;
+end $$;
 
 create or replace function private.fn_ensure_general_treasury_account(p_org uuid)
 returns void
@@ -74,6 +90,17 @@ $$;
 
 revoke execute on function private.fn_ensure_general_treasury_account(uuid)
   from public, anon, authenticated;
+
+-- Backfill existing eligible organizations through the same helper the trigger uses,
+-- so there is exactly one definition of "what a general treasury account is".
+do $$
+declare
+  v_org uuid;
+begin
+  for v_org in select id from public.organization loop
+    perform private.fn_ensure_general_treasury_account(v_org);
+  end loop;
+end $$;
 
 create or replace function private.fn_seed_general_treasury_account()
 returns trigger
@@ -103,8 +130,11 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- A reversed historical expense is frozen except for `reversed_by_rollback_at`,
+  -- the single column a future reconciliation-rollback executor stamps for bookkeeping.
   if old.payment_status = 'historical_reversed' then
-    if to_jsonb(new) is distinct from to_jsonb(old) then
+    if to_jsonb(new) - array['reversed_by_rollback_at']::text[]
+         is distinct from to_jsonb(old) - array['reversed_by_rollback_at']::text[] then
       raise exception 'reversed historical expense is immutable'
         using errcode = '22023';
     end if;
@@ -191,6 +221,33 @@ drop trigger if exists guard_historical_treasury_expense
 create trigger guard_historical_treasury_expense
   before update on public.expenses
   for each row execute function private.fn_guard_historical_treasury_expense();
+
+-- A posted or reversed historical reconciliation expense is the accounting evidence for a
+-- posted journal; deleting it would silently orphan that journal, so DELETE is refused
+-- outright. Undoing a reconciliation is a rollback (a new reversing entry), not a delete.
+create or replace function private.fn_guard_historical_treasury_expense_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.payment_status in ('historical_treasury', 'historical_reversed') then
+    raise exception 'historical reconciliation expense cannot be deleted'
+      using errcode = '22023';
+  end if;
+  return old;
+end;
+$$;
+
+revoke execute on function private.fn_guard_historical_treasury_expense_delete()
+  from public, anon, authenticated;
+
+drop trigger if exists guard_historical_treasury_expense_delete
+  on public.expenses;
+create trigger guard_historical_treasury_expense_delete
+  before delete on public.expenses
+  for each row execute function private.fn_guard_historical_treasury_expense_delete();
 
 -- Expense-based owner P&L excludes both ordinary cancellations and verified historical reversals.
 create or replace function public.fn_owner_pnl_summary(
@@ -325,7 +382,9 @@ declare
   v_expected_posted_journal_delta integer := 0;
   v_dimension_id uuid;
   v_result jsonb;
+  v_zero_value_skip boolean;
   r record;
+  v_evidence record;
   v_batch_row public.reconciliation_batch_rows%rowtype;
 begin
   if p_batch_id is null then
@@ -641,6 +700,7 @@ begin
        for update
     loop
       v_last_safe_row_locator := v_batch_row.id;
+      v_zero_value_skip := false;
 
       select l.id
         into v_ledger_id
@@ -660,16 +720,17 @@ begin
 
       select ei.source_amount, ei.source_date_parsed, ei.classification,
              ei.invalid_calendar_quality_flag
-        into r
+        into v_evidence
         from public.reconciliation_evidence_items ei
        where ei.id = v_batch_row.evidence_item_id
          and ei.org_id = v_org;
 
-      if r.source_amount is null
-        or r.source_date_parsed is null
-        or coalesce(r.invalid_calendar_quality_flag, false)
-        or r.source_amount < 0
-        or round(r.source_amount, 2) is distinct from r.source_amount
+      if v_evidence.source_amount is null
+        or v_evidence.source_date_parsed is null
+        or coalesce(v_evidence.invalid_calendar_quality_flag, false)
+        or v_evidence.source_amount < 0
+        or round(v_evidence.source_amount, 2)
+             is distinct from v_evidence.source_amount
       then
         raise exception 'source amount or date is not executable' using errcode = '23514';
       end if;
@@ -785,9 +846,12 @@ begin
         end if;
 
         v_reversal_journal_id := public.fn_reverse_journal_entry(
-          v_original_journal_id,
-          coalesce(nullif(v_batch_row.review_reason, ''), 'approved reconciliation correction'),
-          r.source_date_parsed
+          p_entry => v_original_journal_id,
+          p_reason => coalesce(
+            nullif(v_batch_row.review_reason, ''),
+            'approved reconciliation correction'
+          ),
+          p_reversal_date => v_evidence.source_date_parsed
         );
         insert into public.reconciliation_action_links(
           org_id, batch_id, batch_row_id, action_kind, target_table,
@@ -805,8 +869,12 @@ begin
           v_expected_posted_journal_delta - 1;
       end if;
 
-      if r.source_amount = 0 then
-        if v_batch_row.corrects_expense_id is null then
+      if v_evidence.source_amount = 0 then
+        -- A zero-value addition posts nothing: it is an acknowledged no-op, so it is
+        -- reported as skipped (and claimed in the ledger so it cannot be replayed).
+        -- A zero-value correction still reverses a real journal, so it stays executed.
+        v_zero_value_skip := v_batch_row.corrects_expense_id is null;
+        if v_zero_value_skip then
           insert into public.reconciliation_action_links(
             org_id, batch_id, batch_row_id, action_kind
           )
@@ -814,8 +882,7 @@ begin
         end if;
         update public.reconciliation_batch_rows
            set execution_result = case
-                 when v_batch_row.corrects_expense_id is null then 'skipped'
-                 else 'reversed'
+                 when v_zero_value_skip then 'skipped' else 'reversed'
                end,
                execution_error = null
          where id = v_batch_row.id;
@@ -826,10 +893,16 @@ begin
         end if;
 
         v_result := public.fn_save_expense(
-          null, v_org, r.source_date_parsed, v_batch_row.expense_category,
-          r.source_amount, v_batch_row.expense_description,
-          v_batch_row.expense_supplier_id, v_batch_row.expense_kind,
-          v_batch_row.expense_account_id, v_batch_row.expense_cost_center_id
+          p_id => null,
+          p_org => v_org,
+          p_date => v_evidence.source_date_parsed,
+          p_category => v_batch_row.expense_category,
+          p_total => v_evidence.source_amount,
+          p_description => v_batch_row.expense_description,
+          p_supplier_id => v_batch_row.expense_supplier_id,
+          p_kind => v_batch_row.expense_kind,
+          p_account_id => v_batch_row.expense_account_id,
+          p_cost_center_id => v_batch_row.expense_cost_center_id
         );
         v_new_expense_id := (v_result->>'id')::uuid;
         if v_new_expense_id is null then
@@ -844,10 +917,15 @@ begin
         end if;
 
         v_new_journal_id := public.fn_post_two_line_journal(
-          v_org, r.source_date_parsed, 'expense', v_new_expense_id,
-          left(coalesce(v_batch_row.expense_description, ''), 500),
-          v_batch_row.expense_account_id, v_cash_account, r.source_amount,
-          null, null, null, null, v_new_expense_id, null
+          p_org => v_org,
+          p_entry_date => v_evidence.source_date_parsed,
+          p_source_type => 'expense',
+          p_source_id => v_new_expense_id,
+          p_description => left(coalesce(v_batch_row.expense_description, ''), 500),
+          p_debit_account => v_batch_row.expense_account_id,
+          p_credit_account => v_cash_account,
+          p_amount => v_evidence.source_amount,
+          p_expense => v_new_expense_id
         );
 
         update public.expenses
@@ -874,7 +952,8 @@ begin
                execution_error = null
          where id = v_batch_row.id;
 
-        v_expected_domain_total := v_expected_domain_total + r.source_amount;
+        v_expected_domain_total :=
+          v_expected_domain_total + v_evidence.source_amount;
         v_expected_domain_count := v_expected_domain_count + 1;
         v_expected_posted_journal_delta :=
           v_expected_posted_journal_delta + 1;
@@ -905,7 +984,12 @@ begin
                reversed_at = null
          where id = v_ledger_id;
       end if;
-      v_executed_count := v_executed_count + 1;
+
+      if v_zero_value_skip then
+        v_skipped_count := v_skipped_count + 1;
+      else
+        v_executed_count := v_executed_count + 1;
+      end if;
     end loop;
 
     select count(*)::integer, coalesce(sum(e.total), 0)
@@ -1128,6 +1212,14 @@ begin
   exception
     when others then
       get stacked diagnostics v_sqlstate = returned_sqlstate;
+      -- Retryable concurrency failures are NOT a verdict on the batch. Persisting one as
+      -- terminal `failed` would strand a perfectly valid approved batch on a transient
+      -- serialization/deadlock/lock-timeout error. Re-raise instead: the outer transaction
+      -- (including the `executing` status write) rolls back and the batch is left
+      -- `approved`, so the owner can simply retry.
+      if v_sqlstate in ('40001', '40P01', '55P03') then
+        raise;
+      end if;
       v_failure := true;
       v_failure_code := case
         when v_sqlstate = '55000' then 'locked_period'

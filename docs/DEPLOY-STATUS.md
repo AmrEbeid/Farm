@@ -1,16 +1,20 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-26)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-27)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-26 (latest) — expense reconciliation execution reviewed; NOT YET APPLIED.**
+> **2026-07-27 (latest) — expense reconciliation execution rereviewed in PR #919; NOT YET APPLIED.**
 > The reviewed branch adds migration `20260726150000 accounting reconciliation execute expense
 > batch.sql`, owner-only expense execution, treasury `1010`, immutable historical posting/reversal
-> states, exact correction and postflight checks, and 92 focused pgTAP assertions. Two independent
-> reviews approve the current bytes. Full local evidence: ESLint/TypeScript clean, Vitest 673 passed +
-> 13 controlled skips, build 65/65 pages, pgTAP 2,149 passing with only the same two unrelated engine
+> states, exact correction and postflight checks, and 136 focused pgTAP assertions. Two independent
+> reviews approved the first commit; every valid CodeRabbit finding was then fixed and tested. Full
+> local evidence: ESLint/TypeScript clean, Vitest 673 passed + 13 controlled skips, build 65/65 pages,
+> pgTAP 2,193 passing with only the same two unrelated engine
 > assertions and zero file failures. Production preflight only: reconciliation counts 0/0/0 and
 > financial counts unchanged at 10,201 expenses / 162 sales / 10,365 journal entries / 20,730 lines.
-> No migration, real staging, financial execution, merge, or deployment has occurred for this slice yet.
+> PR #919 is open; its correction commit and fresh remote checks precede migrate-first release. No
+> migration, real staging, financial execution, merge, or deployment has occurred for this slice yet.
+
+<!-- -->
 
 > **2026-07-26 (latest) — reconciliation Slice 4/4A is MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > Added the evidence-contract + dimensional-guard hardening from the review's REQUEST CHANGES: a new

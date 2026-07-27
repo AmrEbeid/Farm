@@ -6,6 +6,10 @@ select no_plan();
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 
+-- Single source for the fixture org. Every pg_temp helper takes `p_org` and falls back to
+-- this setting, so no helper hard-codes a tenant id and each can be pointed at another org.
+select set_config('t.org', :'orgA', false);
+
 select set_config('t.owner', (
   select user_id::text from public.organization_member
   where org_id = :'orgA' and role = 'owner' limit 1
@@ -39,15 +43,18 @@ end $$;
 
 create or replace function pg_temp.make_batch(
   p_id uuid,
-  p_status text default 'approved'
+  p_status text default 'approved',
+  p_org uuid default null
 ) returns uuid language plpgsql as $$
+declare
+  v_org uuid := coalesce(p_org, current_setting('t.org')::uuid);
 begin
   insert into public.reconciliation_batches(
     id, org_id, source_workbook_sha256, source_label, status,
     created_by, approved_by, approved_at
   )
   values (
-    p_id, '00000000-0000-0000-0000-000000000001'::uuid,
+    p_id, v_org,
     repeat('a', 64), 'execution test', p_status,
     current_setting('t.acct')::uuid,
     case when p_status = 'approved' then current_setting('t.owner')::uuid end,
@@ -65,8 +72,11 @@ create or replace function pg_temp.add_expense_row(
   p_date date,
   p_account uuid,
   p_corrects_expense uuid default null,
-  p_bad_hash boolean default false
+  p_bad_hash boolean default false,
+  p_org uuid default null
 ) returns uuid language plpgsql as $$
+declare
+  v_org uuid := coalesce(p_org, current_setting('t.org')::uuid);
 begin
   insert into public.reconciliation_evidence_items(
     id, org_id, origin_kind, source_workbook_sha256, sheet_name,
@@ -75,7 +85,7 @@ begin
     invalid_calendar_quality_flag, first_staged_batch_id, evidence_label
   )
   values (
-    p_evidence, '00000000-0000-0000-0000-000000000001'::uuid,
+    p_evidence, v_org,
     'source_workbook_row', repeat('a', 64),
     'execution test', p_locator, p_locator, p_amount,
     p_date::text, p_date,
@@ -96,7 +106,7 @@ begin
     expense_account_id, expense_payment_decision, corrects_expense_id
   )
   values (
-    p_row, '00000000-0000-0000-0000-000000000001'::uuid,
+    p_row, v_org,
     p_batch, p_evidence, 'reviewed',
     current_setting('t.acct')::uuid, 'approved synthetic execution test',
     now(), 'expenses', 'include', 'execution test', 'execution test',
@@ -116,8 +126,11 @@ end $$;
 create or replace function pg_temp.reuse_expense_evidence(
   p_batch uuid,
   p_evidence uuid,
-  p_row uuid
+  p_row uuid,
+  p_org uuid default null
 ) returns uuid language plpgsql as $$
+declare
+  v_org uuid := coalesce(p_org, current_setting('t.org')::uuid);
 begin
   insert into public.reconciliation_batch_rows(
     id, org_id, batch_id, evidence_item_id, review_state, reviewer_id,
@@ -126,7 +139,7 @@ begin
     expense_account_id, expense_payment_decision
   )
   values (
-    p_row, '00000000-0000-0000-0000-000000000001'::uuid,
+    p_row, v_org,
     p_batch, p_evidence, 'reviewed',
     current_setting('t.acct')::uuid, 'approved replay test', now(),
     'expenses', 'include', 'execution test', 'execution test',
@@ -417,13 +430,40 @@ select pg_temp.add_expense_row(
 select set_config('t.exp_before_zero', (select count(*)::text from public.expenses), false);
 select set_config('t.je_before_zero', (select count(*)::text from public.journal_entries), false);
 select pg_temp.as_user(current_setting('t.owner'));
-select is(
+select set_config(
+  't.zero_result',
   (public.fn_execute_reconciliation_batch(
     'e0000000-0000-0000-0000-000000000012'
-  ))->>'status',
-  'executed', 'zero-value evidence executes as an explicit no-op'
+  ))::text,
+  false
 );
 reset role;
+select is(
+  current_setting('t.zero_result')::jsonb->>'status',
+  'executed', 'zero-value evidence executes as an explicit no-op'
+);
+-- A zero-value ADDITION posts nothing, so it must be counted as skipped, never as executed:
+-- an `executed_rows` that includes no-ops overstates what the batch actually did to the ledger.
+select is(
+  current_setting('t.zero_result')::jsonb->>'skipped_rows',
+  '1', 'a zero-value addition is counted as skipped, not executed'
+);
+select is(
+  current_setting('t.zero_result')::jsonb->>'executed_rows',
+  '0', 'a zero-value addition contributes nothing to the executed count'
+);
+select is(
+  (select execution_result from public.reconciliation_batch_rows
+   where id = 'e2000000-0000-0000-0000-000000000012'),
+  'skipped', 'a zero-value addition row records a durable skipped result'
+);
+select is(
+  (select count(*)::int from public.reconciliation_batches
+   where id = 'e0000000-0000-0000-0000-000000000012'
+     and result_summary->>'skipped_rows' = '1'
+     and result_summary->>'executed_rows' = '0'),
+  1, 'the persisted batch summary matches the skipped zero-value addition'
+);
 select is(
   (select count(*)::int from public.expenses),
   current_setting('t.exp_before_zero')::int,
@@ -813,11 +853,26 @@ select set_config(
     ->>'operating_expenses'),
   false
 );
-select is(
+select set_config(
+  't.zero_correction_result',
   (public.fn_execute_reconciliation_batch(
     'e0000000-0000-0000-0000-000000000063'
-  ))->>'status',
+  ))::text,
+  false
+);
+select is(
+  current_setting('t.zero_correction_result')::jsonb->>'status',
   'executed', 'zero-valued correction executes as a full reversal'
+);
+-- The mirror of the addition case: a zero-value CORRECTION still reverses a real posted
+-- journal, so it is genuine executed work and must not be demoted to `skipped`.
+select is(
+  current_setting('t.zero_correction_result')::jsonb->>'executed_rows',
+  '1', 'a zero-value correction stays counted as executed'
+);
+select is(
+  current_setting('t.zero_correction_result')::jsonb->>'skipped_rows',
+  '0', 'a zero-value correction is never counted as skipped'
 );
 select is(
   (
@@ -849,6 +904,90 @@ select is(
    where batch_id = 'e0000000-0000-0000-0000-000000000063'
      and action_kind = 'correction_reversal'),
   1, 'zero-valued correction records exactly one reversal action'
+);
+select is(
+  (select execution_result from public.reconciliation_batch_rows
+   where id = 'e2000000-0000-0000-0000-000000000063'),
+  'reversed', 'a zero-value correction row records reversed, not skipped'
+);
+
+-- ── Historical reconciliation expenses are delete-proof accounting evidence. ────────────────────────
+-- A posted (`historical_treasury`) or reversed (`historical_reversed`) expense is the evidence
+-- behind a posted journal. Deleting it would orphan that journal silently, so DELETE is refused
+-- for both states; undoing a reconciliation is a rollback (a new reversing entry), not a delete.
+-- The single documented exception on the UPDATE path is `reversed_by_rollback_at` bookkeeping.
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'private.fn_guard_historical_treasury_expense_delete()',
+    'EXECUTE'
+  ),
+  'the historical-expense delete guard function is private'
+);
+select is(
+  (select count(*)::int from pg_trigger
+    where tgrelid = 'public.expenses'::regclass
+      and tgname = 'guard_historical_treasury_expense_delete'
+      and not tgisinternal),
+  1, 'the historical-expense delete guard is installed on public.expenses'
+);
+select throws_ok(
+  $$delete from public.expenses
+     where id = 'e5000000-0000-0000-0000-000000000003'::uuid$$,
+  '22023', null,
+  'a historical_reversed expense cannot be deleted'
+);
+select throws_ok(
+  $$delete from public.expenses
+     where corrects_expense_id = 'e5000000-0000-0000-0000-000000000001'::uuid$$,
+  '22023', null,
+  'a historical_treasury expense cannot be deleted'
+);
+select is(
+  (select count(*)::int from public.expenses
+    where id = 'e5000000-0000-0000-0000-000000000003'),
+  1, 'the refused delete leaves the reversed evidence expense in place'
+);
+-- The one permitted write on a reversed historical expense: the rollback bookkeeping stamp.
+select lives_ok(
+  $$update public.expenses
+       set reversed_by_rollback_at = now()
+     where id = 'e5000000-0000-0000-0000-000000000003'::uuid$$,
+  'reversed_by_rollback_at is the one permitted update on a reversed historical expense'
+);
+select ok(
+  (select reversed_by_rollback_at is not null from public.expenses
+    where id = 'e5000000-0000-0000-0000-000000000003'),
+  'the rollback bookkeeping stamp is durably persisted'
+);
+select throws_ok(
+  $$update public.expenses
+       set description = 'tampered', reversed_by_rollback_at = now()
+     where id = 'e5000000-0000-0000-0000-000000000003'::uuid$$,
+  '22023', null,
+  'the rollback stamp does not open a general edit path on a reversed expense'
+);
+-- `date` is deliberately a column no other expense guard is scoped to, so this proves the
+-- reconciliation guard itself (not a neighbouring immutability trigger) refuses the edit.
+select throws_ok(
+  $$update public.expenses
+       set date = current_date - 1
+     where id = 'e5000000-0000-0000-0000-000000000003'::uuid$$,
+  '22023', null,
+  'a reversed historical expense stays immutable in every other column'
+);
+-- An ordinary expense is untouched by the delete guard.
+insert into public.expenses(
+  id, org_id, date, category, description, total, kind, account_id
+) values (
+  'e5000000-0000-0000-0000-000000000009', :'orgA', current_date,
+  'deletable', 'deletable', 5, 'operating',
+  current_setting('t.account')::uuid
+);
+select lives_ok(
+  $$delete from public.expenses
+     where id = 'e5000000-0000-0000-0000-000000000009'::uuid$$,
+  'the delete guard leaves ordinary expenses deletable'
 );
 
 -- A correction target with a second payment journal is rejected without partial reversal.
@@ -997,19 +1136,144 @@ select is(
   0, 'journal-mismatch rejection leaves no partial action'
 );
 
+-- ── The reviewed payment decision is narrowed fail-closed to `routed_now`. ──────────────────────────
+-- The constraint is added NOT VALID so a legacy `unrouted` review row is never silently relabelled,
+-- then VALIDATEd only when nothing violates it. The test fixture is clean, so on this database it
+-- must end up fully validated; a dirty database would
+-- leave it visibly `convalidated = false` instead of failing the migration.
+select ok(
+  (select convalidated from pg_constraint
+    where conrelid = 'public.reconciliation_batch_rows'::regclass
+      and conname =
+        'reconciliation_batch_rows_expense_payment_decision_check'),
+  'the narrowed payment-decision constraint is VALIDATED on a clean database'
+);
+-- An UNFROZEN row, so the check constraint (not the frozen-row immutability trigger) is what
+-- rejects the write, and the rejection is provably the narrowing rather than the freeze.
+select pg_temp.make_batch('e0000000-0000-0000-0000-000000000080', 'reviewed');
+insert into public.reconciliation_evidence_items(
+  id, org_id, origin_kind, source_workbook_sha256, sheet_name,
+  row_locator, source_identity_fingerprint, source_amount,
+  source_date_text, source_date_parsed, classification,
+  invalid_calendar_quality_flag, first_staged_batch_id
+) values (
+  'e1000000-0000-0000-0000-000000000080', :'orgA',
+  'source_workbook_row', repeat('a', 64), 'execution test',
+  'decision-narrowing', 'decision-narrowing', 4,
+  current_date::text, current_date, 'source_addition_candidate',
+  false, 'e0000000-0000-0000-0000-000000000080'
+);
+insert into public.reconciliation_batch_rows(
+  id, org_id, batch_id, evidence_item_id, review_state, reviewer_id,
+  review_reason, reviewed_at, target_table, disposition,
+  expense_category, expense_description, expense_kind,
+  expense_account_id, expense_payment_decision
+) values (
+  'e2000000-0000-0000-0000-000000000080', :'orgA',
+  'e0000000-0000-0000-0000-000000000080',
+  'e1000000-0000-0000-0000-000000000080', 'reviewed',
+  current_setting('t.acct')::uuid, 'narrowing test', now(),
+  'expenses', 'include', 'narrowing', 'narrowing', 'operating',
+  current_setting('t.account')::uuid, 'routed_now'
+);
+select throws_ok(
+  $$update public.reconciliation_batch_rows
+       set expense_payment_decision = 'unrouted'
+     where id = 'e2000000-0000-0000-0000-000000000080'::uuid$$,
+  '23514', null,
+  'the narrowed constraint rejects the retired `unrouted` decision outright'
+);
+select throws_ok(
+  $$update public.reconciliation_batch_rows
+       set expense_payment_decision = null
+     where id = 'e2000000-0000-0000-0000-000000000080'::uuid$$,
+  '23514', null,
+  'an included expense row cannot drop back to no payment decision'
+);
+select throws_ok(
+  $$insert into public.reconciliation_batch_rows(
+      id, org_id, batch_id, evidence_item_id, target_table, disposition,
+      expense_payment_decision
+    ) values (
+      'e2000000-0000-0000-0000-000000000081',
+      '00000000-0000-0000-0000-000000000001',
+      'e0000000-0000-0000-0000-000000000080',
+      'e1000000-0000-0000-0000-000000000080', 'expenses', 'include',
+      'unrouted'
+    )$$,
+  '23514', null,
+  'a NEW included expense row can never be inserted with a legacy decision'
+);
+
+-- ── One definition of "the general treasury account": the private helper, reused by the backfill. ───
+select is(
+  (select count(*)::int from public.accounts custody
+    where custody.code = '1000'
+      and not exists (
+        select 1 from public.accounts treasury
+         where treasury.org_id = custody.org_id
+           and treasury.code = '1010'
+      )),
+  0,
+  'the helper-driven backfill left no eligible organization without treasury 1010'
+);
+select is(
+  (select count(*)::int from public.accounts
+    where org_id = :'orgA' and code = '1010'),
+  1, 'exactly one general treasury account exists per organization'
+);
+select lives_ok(
+  $$select private.fn_ensure_general_treasury_account(
+    '00000000-0000-0000-0000-000000000001'::uuid
+  )$$,
+  'the treasury helper can be re-run against an already-seeded organization'
+);
+select is(
+  (select count(*)::int from public.accounts
+    where org_id = :'orgA' and code = '1010'),
+  1,
+  'the treasury helper is idempotent, so backfill and trigger cannot duplicate 1010'
+);
+
 -- Two different batches sharing one evidence item serialize and post once.
 create extension if not exists dblink;
-create or replace function pg_temp.wait_for_backend_lock(p_pid integer)
+-- Wait for the racer to block on THE SHARED TREASURY ACCOUNT ROW, not merely on "some lock".
+-- A bare `wait_event_type = 'Lock'` would pass if the backend stalled on any unrelated object and
+-- would silently stop proving the serialization point this race exists to prove. While a backend
+-- waits for a row locked by another transaction it holds a heavyweight `tuple` lock on that exact
+-- ctid and then waits on the holder's transaction id, so the tuple entry identifies the row.
+-- The poll is bounded at 10 seconds (1000 x 10ms) and returns false on timeout, so a race that
+-- never reaches the lock fails the assertion loudly instead of hanging the harness.
+create or replace function pg_temp.wait_for_treasury_row_lock(
+  p_pid integer,
+  p_org uuid
+)
 returns boolean
 language plpgsql
 as $$
+declare
+  v_ctid tid;
 begin
-  for attempt in 1..200 loop
+  select a.ctid into v_ctid
+    from public.accounts a
+   where a.org_id = p_org
+     and a.code = '1010'
+     and a.active;
+  if v_ctid is null then
+    return false;
+  end if;
+
+  for attempt in 1..1000 loop
     if exists (
       select 1
-        from pg_stat_activity
-       where pid = p_pid
-         and wait_event_type = 'Lock'
+        from pg_stat_activity sa
+        join pg_locks l on l.pid = sa.pid
+       where sa.pid = p_pid
+         and sa.wait_event_type = 'Lock'
+         and l.locktype = 'tuple'
+         and l.relation = 'public.accounts'::regclass
+         and l.page = (v_ctid::text::point)[0]::integer
+         and l.tuple = (v_ctid::text::point)[1]::smallint
     ) then
       return true;
     end if;
@@ -1197,10 +1461,11 @@ select is(
   1, 'race backend 2 dispatches the concurrent execution'
 );
 select ok(
-  pg_temp.wait_for_backend_lock(
-    current_setting('t.expense_exec_racer_2_pid')::integer
+  pg_temp.wait_for_treasury_row_lock(
+    current_setting('t.expense_exec_racer_2_pid')::integer,
+    'f0000000-0000-0000-0000-000000000001'
   ),
-  'race backend 2 reaches and waits on the shared treasury/account lock'
+  'race backend 2 blocks on the shared treasury 1010 account row itself'
 );
 select dblink_exec('expense_exec_racer_1', 'commit');
 
@@ -1259,7 +1524,20 @@ select is(
 
 select dblink_disconnect('expense_exec_racer_1');
 select dblink_disconnect('expense_exec_racer_2');
+
+-- ── Self-cleaning teardown of everything this race COMMITTED on side connections. ──────────────────
+-- These rows are committed by other backends, so the outer `rollback` at the end of this file cannot
+-- remove them: without an explicit teardown they leak into every later test file in the same
+-- ephemeral cluster. Deleted here in FK-dependency order, on a fresh connection.
+--
+-- `session_replication_role = replica` is set for the teardown because the race deliberately posts a
+-- `historical_treasury` expense and a posted journal, and the production guards this slice adds
+-- refuse to delete exactly those. Disabling the guards per-SESSION is the only lock-free way to undo
+-- a test fixture: `alter table ... disable trigger` would need ACCESS EXCLUSIVE on public.expenses,
+-- which this file's own open transaction already holds a conflicting lock on, and would self-deadlock.
 select dblink_connect('expense_exec_cleanup', current_setting('t.dsn'));
+-- Revoke membership first, while the batch rows still exist, so the cross-org gate below is
+-- exercised against a REAL terminal batch rather than a missing one.
 select dblink_exec(
   'expense_exec_cleanup',
   format(
@@ -1269,7 +1547,7 @@ select dblink_exec(
     current_setting('t.owner')
   )
 );
-select dblink_disconnect('expense_exec_cleanup');
+
 select pg_temp.as_user(current_setting('t.owner'));
 select throws_ok(
   $$select public.fn_execute_reconciliation_batch(
@@ -1279,6 +1557,141 @@ select throws_ok(
   'a user outside the organization cannot execute even a terminal batch'
 );
 reset role;
+
+select dblink_exec('expense_exec_cleanup', 'set session_replication_role = replica');
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_action_links
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_baseline_journal_lines
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_baseline_journal_headers
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_baselines
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_execution_ledger
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_batch_rows
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_evidence_items
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.reconciliation_batches
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.journal_lines
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.journal_entries
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.expenses
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.audit_log
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.cost_centers
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.accounts
+     where org_id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec(
+  'expense_exec_cleanup',
+  $$delete from public.organization
+     where id = 'f0000000-0000-0000-0000-000000000001'$$
+);
+select dblink_exec('expense_exec_cleanup', 'set session_replication_role = origin');
+select dblink_disconnect('expense_exec_cleanup');
+
+-- Prove the teardown, so a future edit that adds a committed side-effect fails here instead of
+-- silently polluting later test files.
+select is(
+  (select count(*)::int from public.expenses
+    where org_id = 'f0000000-0000-0000-0000-000000000001'),
+  0, 'the race leaves behind no committed expense'
+);
+select is(
+  (select count(*)::int from public.journal_entries
+    where org_id = 'f0000000-0000-0000-0000-000000000001'),
+  0, 'the race leaves behind no committed journal entry'
+);
+select is(
+  (select count(*)::int from public.journal_lines
+    where org_id = 'f0000000-0000-0000-0000-000000000001'),
+  0, 'the race leaves behind no committed journal line'
+);
+select is(
+  (
+    (select count(*) from public.reconciliation_batches
+      where org_id = 'f0000000-0000-0000-0000-000000000001')
+    + (select count(*) from public.reconciliation_batch_rows
+        where org_id = 'f0000000-0000-0000-0000-000000000001')
+    + (select count(*) from public.reconciliation_evidence_items
+        where org_id = 'f0000000-0000-0000-0000-000000000001')
+    + (select count(*) from public.reconciliation_execution_ledger
+        where org_id = 'f0000000-0000-0000-0000-000000000001')
+    + (select count(*) from public.reconciliation_action_links
+        where org_id = 'f0000000-0000-0000-0000-000000000001')
+    + (select count(*) from public.reconciliation_baselines
+        where org_id = 'f0000000-0000-0000-0000-000000000001')
+  )::int,
+  0, 'the race leaves behind no committed reconciliation row'
+);
+
+select is(
+  (select count(*)::int from public.accounts
+    where org_id = 'f0000000-0000-0000-0000-000000000001'),
+  0, 'the race leaves behind no auto-seeded account'
+);
+select is(
+  (select count(*)::int from public.cost_centers
+    where org_id = 'f0000000-0000-0000-0000-000000000001'),
+  0, 'the race leaves behind no auto-seeded cost center'
+);
+select is(
+  (select count(*)::int from public.audit_log
+    where org_id = 'f0000000-0000-0000-0000-000000000001'),
+  0, 'the race leaves behind no audit row'
+);
+select is(
+  (select count(*)::int from public.organization
+    where id = 'f0000000-0000-0000-0000-000000000001'),
+  0, 'the race leaves behind no fixture organization'
+);
 select is(
   (
     select count(*) from pg_stat_activity
@@ -1392,6 +1805,149 @@ select is(
    where batch_id = 'e0000000-0000-0000-0000-000000000061'),
   0, 'failed substitution rolls back every baseline snapshot'
 );
+
+-- ── Retryable concurrency SQLSTATEs are re-raised, never persisted as a terminal failure. ───────────
+-- 40001 (serialization failure), 40P01 (deadlock) and 55P03 (lock not available) are transient
+-- conflicts, not a verdict on the batch. Persisting one as `failed` would strand a perfectly valid
+-- approved batch on a retryable error, so the RPC re-raises: the WHOLE transaction — including its
+-- own `status = 'executing'` write and every financial write already made — rolls back, and the
+-- batch is left `approved` for the owner to simply retry.
+--
+-- The conflict is injected on `reconciliation_action_links`, i.e. AFTER the row's expense and
+-- journal have already been written, so these assertions also prove the financial rollback.
+create or replace function pg_temp.raise_injected_sqlstate()
+returns trigger language plpgsql as $$
+begin
+  if new.batch_id::text = current_setting('t.inject_batch') then
+    raise exception 'injected conflict'
+      using errcode = current_setting('t.inject_code');
+  end if;
+  return new;
+end $$;
+create trigger test_injected_sqlstate
+  before insert on public.reconciliation_action_links
+  for each row execute function pg_temp.raise_injected_sqlstate();
+
+select set_config('t.exp_before_retry', (select count(*)::text from public.expenses), false);
+select set_config('t.je_before_retry', (select count(*)::text from public.journal_entries), false);
+
+-- 40001 — serialization failure.
+select pg_temp.make_batch('e0000000-0000-0000-0000-000000000070');
+select pg_temp.add_expense_row(
+  'e0000000-0000-0000-0000-000000000070',
+  'e1000000-0000-0000-0000-000000000070',
+  'e2000000-0000-0000-0000-000000000070',
+  'retryable-40001', 17, current_date, current_setting('t.account')::uuid
+);
+select set_config('t.inject_batch', 'e0000000-0000-0000-0000-000000000070', false);
+select set_config('t.inject_code', '40001', false);
+select pg_temp.as_user(current_setting('t.owner'));
+select throws_ok(
+  $$select public.fn_execute_reconciliation_batch(
+    'e0000000-0000-0000-0000-000000000070'::uuid
+  )$$,
+  '40001', null,
+  'a serialization failure propagates out instead of being swallowed as failed'
+);
+reset role;
+select is(
+  (select status from public.reconciliation_batches
+   where id = 'e0000000-0000-0000-0000-000000000070'),
+  'approved',
+  'a re-raised serialization failure leaves the batch approved for retry'
+);
+select is(
+  (select count(*)::int from public.expenses),
+  current_setting('t.exp_before_retry')::int,
+  're-raising rolls back every expense written before the conflict'
+);
+select is(
+  (select count(*)::int from public.journal_entries),
+  current_setting('t.je_before_retry')::int,
+  're-raising rolls back every journal written before the conflict'
+);
+select is(
+  (select execution_result from public.reconciliation_batch_rows
+   where id = 'e2000000-0000-0000-0000-000000000070'),
+  'pending',
+  'a re-raised batch leaves its rows unexecuted rather than half-marked'
+);
+
+-- 40P01 — deadlock detected.
+select pg_temp.make_batch('e0000000-0000-0000-0000-000000000071');
+select pg_temp.add_expense_row(
+  'e0000000-0000-0000-0000-000000000071',
+  'e1000000-0000-0000-0000-000000000071',
+  'e2000000-0000-0000-0000-000000000071',
+  'retryable-40P01', 18, current_date, current_setting('t.account')::uuid
+);
+select set_config('t.inject_batch', 'e0000000-0000-0000-0000-000000000071', false);
+select set_config('t.inject_code', '40P01', false);
+select pg_temp.as_user(current_setting('t.owner'));
+select throws_ok(
+  $$select public.fn_execute_reconciliation_batch(
+    'e0000000-0000-0000-0000-000000000071'::uuid
+  )$$,
+  '40P01', null, 'a deadlock propagates out instead of being swallowed as failed'
+);
+reset role;
+select is(
+  (select status from public.reconciliation_batches
+   where id = 'e0000000-0000-0000-0000-000000000071'),
+  'approved', 'a re-raised deadlock leaves the batch approved for retry'
+);
+
+-- 55P03 — lock not available.
+select pg_temp.make_batch('e0000000-0000-0000-0000-000000000072');
+select pg_temp.add_expense_row(
+  'e0000000-0000-0000-0000-000000000072',
+  'e1000000-0000-0000-0000-000000000072',
+  'e2000000-0000-0000-0000-000000000072',
+  'retryable-55P03', 19, current_date, current_setting('t.account')::uuid
+);
+select set_config('t.inject_batch', 'e0000000-0000-0000-0000-000000000072', false);
+select set_config('t.inject_code', '55P03', false);
+select pg_temp.as_user(current_setting('t.owner'));
+select throws_ok(
+  $$select public.fn_execute_reconciliation_batch(
+    'e0000000-0000-0000-0000-000000000072'::uuid
+  )$$,
+  '55P03', null,
+  'a lock timeout propagates out instead of being swallowed as failed'
+);
+reset role;
+select is(
+  (select status from public.reconciliation_batches
+   where id = 'e0000000-0000-0000-0000-000000000072'),
+  'approved', 'a re-raised lock timeout leaves the batch approved for retry'
+);
+
+-- Contrast at the SAME injection point: a NON-retryable code still fails closed and terminal,
+-- so the discrimination is provably by SQLSTATE and not by where the error happened.
+select pg_temp.make_batch('e0000000-0000-0000-0000-000000000073');
+select pg_temp.add_expense_row(
+  'e0000000-0000-0000-0000-000000000073',
+  'e1000000-0000-0000-0000-000000000073',
+  'e2000000-0000-0000-0000-000000000073',
+  'non-retryable-23514', 21, current_date, current_setting('t.account')::uuid
+);
+select set_config('t.inject_batch', 'e0000000-0000-0000-0000-000000000073', false);
+select set_config('t.inject_code', '23514', false);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch(
+    'e0000000-0000-0000-0000-000000000073'
+  ))->>'failure_code',
+  'integrity_check',
+  'a non-retryable conflict at the same point is still persisted as a terminal failure'
+);
+reset role;
+select is(
+  (select status from public.reconciliation_batches
+   where id = 'e0000000-0000-0000-0000-000000000073'),
+  'failed', 'a non-retryable conflict durably marks the batch failed'
+);
+drop trigger test_injected_sqlstate on public.reconciliation_action_links;
 
 select * from finish();
 rollback;

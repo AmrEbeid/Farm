@@ -314,6 +314,10 @@ function RowCard({
       setMsg({ tone: "danger", text: "سبب القرار مطلوب ولا يمكن أن يكون فارغًا." });
       return;
     }
+    if (action === "review" && target === "expenses" && exp.payment_decision.trim() === "") {
+      setMsg({ tone: "danger", text: "قرار الترحيل على خزينة المزرعة مطلوب." });
+      return;
+    }
     setPending(true);
     setMsg(null);
     const r = await run(() => reviewRow({ rowId: row.id, batchId, decision: buildDecision() }));
