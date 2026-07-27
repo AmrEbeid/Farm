@@ -7,8 +7,8 @@ describe("parseBudgetVsActual", () => {
       period_start: "2026-03-01",
       period_end: "2026-03-31",
       lines: [
-        { category: "أسمدة", planned: 10000, actual: 7000, variance: 3000, over_budget: false, unbudgeted: false },
-        { category: "وقود", planned: 0, actual: 2000, variance: -2000, over_budget: false, unbudgeted: true },
+        { category: "أسمدة", planned: 10000, actual: 7000, variance: 3000, over_budget: false, unbudgeted: false, actual_row_present: true },
+        { category: "وقود", planned: 0, actual: 2000, variance: -2000, over_budget: false, unbudgeted: true, actual_row_present: true },
       ],
       planned_total: 10000,
       actual_total: 9000,
@@ -16,7 +16,15 @@ describe("parseBudgetVsActual", () => {
     });
     expect(bva.periodStart).toBe("2026-03-01");
     expect(bva.lines).toHaveLength(2);
-    expect(bva.lines[0]).toEqual({ category: "أسمدة", planned: 10000, actual: 7000, variance: 3000, overBudget: false, unbudgeted: false });
+    expect(bva.lines[0]).toEqual({
+      category: "أسمدة",
+      planned: 10000,
+      actual: 7000,
+      variance: 3000,
+      overBudget: false,
+      unbudgeted: false,
+      actualRowPresent: true,
+    });
     expect(bva.lines[1].unbudgeted).toBe(true);
     expect(bva.varianceTotal).toBe(1000);
   });
@@ -46,6 +54,7 @@ describe("parseBudgetVsActual", () => {
     expect(bva.lines[0].actual).toBe(6000);
     expect(bva.lines[0].variance).toBe(-1000);
     expect(bva.lines[0].overBudget).toBe(true);
+    expect(bva.lines[0].actualRowPresent).toBe(false);
     expect(bva.plannedTotal).toBe(5000);
   });
 });

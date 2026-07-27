@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -14,6 +14,7 @@ import { OffshootMovementForm, OffshootValuationForm, type OffshootCostCenterOpt
 import { buildOffshootBankSummary, OFFSHOOT_TYPE_AR, type OffshootMovementType } from "@/lib/offshoot-bank";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
+import { DATA_NOT_VERIFIED_AR, getDataAuthority, isAuthoritative } from "@/lib/data-authority";
 
 type CostCenterRow = {
   id: string;
@@ -41,7 +42,7 @@ export default async function OffshootBankPage({
   const canRecord = m.role === "owner" || m.role === "farm_manager";
   const canSeeValuation = m.role === "owner" || m.role === "accountant";
 
-  const [movementsRes, centersRes, valuationRes] = await Promise.all([
+  const [movementsRes, centersRes, valuationRes, authority] = await Promise.all([
     sb
       .from("offshoot_movements")
       .select("id, movement_date, movement_type, qty, source_cost_center_id, dest_cost_center_id, note")
@@ -56,6 +57,7 @@ export default async function OffshootBankPage({
     canSeeValuation
       ? sb.from("offshoot_valuation").select("low_per_unit, high_per_unit, updated_at").eq("org_id", m.orgId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    getDataAuthority(sb, m.orgId, "offshoots"),
   ]);
   if (movementsRes.error) throw movementsRes.error;
   if (centersRes.error) throw centersRes.error;
@@ -95,6 +97,37 @@ export default async function OffshootBankPage({
     "زراعة": row.planted,
     "إحلال": row.replanted,
   }));
+
+  if (!isAuthoritative(authority.status)) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <header>
+          <h1 className="text-2xl font-bold">بنك الفسائل</h1>
+          <p style={{ color: "var(--ink-muted)" }}>سجل حركات الفسائل ومصادرها.</p>
+        </header>
+        <Alert tone="warning" title="بيانات بنك الفسائل غير موثقة" description={DATA_NOT_VERIFIED_AR} />
+        <section className="no-print grid gap-4 xl:grid-cols-2">
+          {canRecord && (
+            <Card title="تسجيل حركة من واقع مستند">
+              <OffshootMovementForm centers={centerOptions} />
+            </Card>
+          )}
+          {canSeeValuation && (
+            <Card title="التقييم متوقف">
+              <EmptyState title="لن يظهر تقييم حتى اعتماد سجل الحركات" />
+            </Card>
+          )}
+        </section>
+        {canRecord && (
+          <div className="no-print">
+            <Card title="استيراد سجل موثق">
+              <ImportPanel descriptorKey="offshoot-movements" titleAr="حركات بنك الفسائل" />
+            </Card>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">

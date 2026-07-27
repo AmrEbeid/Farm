@@ -114,7 +114,8 @@ select is(
         'fn_stage_reconciliation_manifest', 'fn_review_reconciliation_row', -- gated reconciliation slice-3 staging/review RPCs (migration 20260726120000)
         'fn_freeze_reconciliation_batch', 'fn_approve_reconciliation_batch', -- gated reconciliation slice-3 freeze/owner-approve RPCs (migration 20260726120000)
         'fn_execute_reconciliation_batch', -- owner-only reconciliation expense execution (migration 20260726150000)
-        'fn_rollback_reconciliation_batch' -- owner-only reconciliation batch rollback (migration 20260726170000)
+        'fn_rollback_reconciliation_batch', -- owner-only reconciliation batch rollback (migration 20260726170000)
+        'fn_set_data_authority_status' -- owner-only report-source authority metadata (migration 20260727143000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

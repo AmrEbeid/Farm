@@ -17,6 +17,7 @@ import {
 } from "@/lib/budget-check";
 import type { CsvColumn, CsvRow } from "@/lib/export-csv";
 import { egp, pct } from "@/lib/money";
+import { DATA_NOT_VERIFIED_AR, getDataAuthority, isAuthoritative } from "@/lib/data-authority";
 
 const BUDGET_CHECK_EXPORT_COLUMNS: CsvColumn[] = [
   { id: "plan_id", header: "معرف الخطة" },
@@ -68,6 +69,18 @@ export default async function BudgetCheckPage({
   const { pr } = await searchParams;
   const m = await requireMembership();
   const sb = await createClient();
+  const authority = await getDataAuthority(sb, m.orgId, "budgets");
+  if (!isAuthoritative(authority.status)) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="text-2xl font-bold">فحص الموازنة</h1>
+        <Alert tone="warning" title="لا يمكن إصدار حكم على الموازنة" description={DATA_NOT_VERIFIED_AR} />
+        <Card title="حالة الفحص">
+          لا يوجد تمرير أو منع تلقائي حتى اعتماد مصدر الموازنة. يجب أن يراجع المالك والمحاسب الطلب يدويًا.
+        </Card>
+      </div>
+    );
+  }
 
   // The plan's pending spend, GROUPED by whichever budget_lines category each operation's subtype
   // maps to (generalized from a hardcoded "أسمدة"-only / fertilization-only check — every

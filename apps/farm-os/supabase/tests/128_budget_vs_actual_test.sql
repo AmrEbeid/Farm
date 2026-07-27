@@ -4,7 +4,7 @@
 -- scoping (out-of-window expense excluded); posted-only (reversed entry drops out). Unique BVA-* categories avoid
 -- the seed budget_lines; the seed posts no GL, so the actual side is deterministic.
 begin;
-select plan(16);
+select plan(18);
 
 \set org '00000000-0000-0000-0000-000000000001'
 \set otherOrg '00000000-0000-0000-0000-0000000000ff'
@@ -71,6 +71,8 @@ reset role;
 
 select is(pg_temp.bva_field('BVA-fertilizer','planned')::numeric, 10000::numeric, 'fertilizer planned = 10000');
 select is(pg_temp.bva_field('BVA-fertilizer','actual')::numeric, 7000::numeric, 'fertilizer actual = 7000 (out-of-period 3000 excluded)');
+select is(pg_temp.bva_field('BVA-fertilizer','actual_row_present')::boolean, true,
+  'fertilizer is marked as present on the posted-GL side');
 select is(pg_temp.bva_field('BVA-fertilizer','variance')::numeric, 3000::numeric, 'fertilizer variance = planned − actual = 3000 (under budget)');
 select is(pg_temp.bva_field('BVA-fertilizer','over_budget')::boolean, false, 'fertilizer is not over budget');
 select is(pg_temp.bva_field('BVA-fuel','planned')::numeric, 5000::numeric, 'fuel planned = 5000');
@@ -87,6 +89,8 @@ select pg_temp.as_user(current_setting('test.accountant'));
 select set_config('test.bva', public.fn_budget_vs_actual(current_setting('test.org')::uuid, '2026-03-01'::date, '2026-03-31'::date)::text, false);
 reset role;
 select is(pg_temp.bva_field('BVA-fuel','actual')::numeric, 0::numeric, 'reversed fuel entry excluded: fuel actual = 0');
+select is(pg_temp.bva_field('BVA-fuel','actual_row_present')::boolean, false,
+  'budget-only fuel row is not marked as posted-GL actual after reversal');
 select is(pg_temp.bva_field('BVA-fuel','over_budget')::boolean, false, 'fuel no longer over budget after reversal');
 
 select finish();
