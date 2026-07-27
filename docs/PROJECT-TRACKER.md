@@ -1,4 +1,21 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (rollback workflow LIVE)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (canonical batch STAGED)
+
+> **2026-07-27 (latest) — CANONICAL 698-ROW RECONCILIATION BATCH: STAGED / VERIFIED; NO MONEY POSTED.**
+> App-only PR #925 (`ae7e34d`, merged `d976bba`) added the bounded owner/accountant manifest upload through
+> the existing user-session `fn_stage_reconciliation_manifest` RPC. No schema, migration, dependency, direct
+> DML, admin client, or service role was added. Vercel production deployment
+> `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY.
+>
+> Canonical gate: 91/91 tests; exact private manifest 698 evidence items / 698 batch rows / two preserved
+> invalid-calendar quality flags; deterministic batch `80a1051d-5bcf-504c-93cd-07206b4c59ef`. Full Vitest
+> 791 passed + 13 controlled skips; TypeScript/ESLint clean; build 65/65. CI app/shared/secret/Vercel green;
+> DB CI 2,861 pass / two unchanged stock baselines / zero file failures.
+>
+> Production owner-session staging succeeded. Postflight: one staged batch; 698 evidence items; 698 rows all
+> `unreviewed` / `hold` / not frozen; exact workbook/snapshot/evidence hashes; execution ledger/action links
+> 0/0. Financial rows and totals are unchanged: 10,201 expenses (EGP 20,527,757.01), 162 sales
+> (EGP 25,835,533.40), 10,365 journals, 20,730 lines. **Next:** owner/accountant row decisions, dual-run,
+> exception resolution, and signed accountant acceptance. Do not execute or call accounting 100% before that.
 
 > **2026-07-27 (latest) — ACCOUNTING RECONCILIATION ROLLBACK + OWNER CONTROLS: LIVE / VERIFIED.**
 > Exact SQL hash `e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420`

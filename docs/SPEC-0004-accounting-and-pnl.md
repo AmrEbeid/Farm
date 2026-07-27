@@ -330,11 +330,12 @@ full pgTAP 2,861 passing with zero file failures and only the two unchanged stoc
 ESLint, Vitest 755 + 13 controlled skips, and build 65/65 pass. Production counts remain unchanged and no real
 batch was executed.
 
-**Acceptance still pending:** controlled stage of the pinned 698-row manifest, owner/accountant review, dual-run
-comparison to the workbook, exception resolution, and signed accountant acceptance. The implementation workflow
-is live; Stage 7 must not be called 100% dependable daily use until that operating proof is complete.
+**Acceptance still pending:** the pinned 698-row manifest is staged untouched in production; owner/accountant
+review, dual-run comparison to the workbook, exception resolution, and signed accountant acceptance remain.
+The implementation workflow is live; Stage 7 must not be called 100% dependable daily use until that operating
+proof is complete.
 
-### 8.3 Manifest staging from the app (2026-07-27, IMPLEMENTED — pending review/release)
+### 8.3 Manifest staging from the app (2026-07-27, RELEASED AND CANONICAL BATCH STAGED)
 
 §8 originally left manifest staging out of the UI: the Slice-3 RPC
 `fn_stage_reconciliation_manifest(uuid, jsonb)` was live and pgTAP-covered, but the only way to reach it
@@ -376,3 +377,9 @@ staging RPC signature and its return type (generated `database.types.ts` untouch
 `apps/farm-os/lib/reconciliation/tests/staging upload.ts` — validation, org binding, size cap, outcome
 parsing, the fixed error map, and source-contract guards proving the role requirement, the user-session
 RPC, the absence of direct DML/admin/service-role/network/temp-file, and the list-page integration.
+
+**Release and production evidence:** PR #925 merged at `d976bba`; Vercel deployment
+`dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY. The real owner session staged deterministic batch
+`80a1051d-5bcf-504c-93cd-07206b4c59ef` with 698 evidence items and 698 rows. Every row remains
+`unreviewed` / `hold` / not frozen; action links and execution ledger remain empty. Workbook, production
+snapshot, and exception-evidence hashes match the pinned inputs. Financial counts and totals did not change.

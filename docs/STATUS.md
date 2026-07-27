@@ -1,8 +1,17 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-27 (reconciliation execute + rollback workflow live and verified). Owner: Amr Ebeid.*
+*Updated: 2026-07-27 (canonical reconciliation batch staged for review). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-27 — canonical reconciliation staging: MERGED / DEPLOYED / STAGED / VERIFIED.**
+PR #925 merged at `d976bba` and Vercel production deployment `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY.
+The owner-session app path staged deterministic batch `80a1051d-5bcf-504c-93cd-07206b4c59ef`: 698 evidence
+items and 698 batch rows, all `unreviewed` / `hold` / not frozen. Workbook, protected snapshot, and exception
+evidence hashes match the pins; execution ledger and action links remain 0/0. Financial counts and totals are
+unchanged: 10,201 expenses (EGP 20,527,757.01), 162 sales (EGP 25,835,533.40), 10,365 journals, 20,730 lines.
+No expense, sale, journal, custody, or payment row was posted or changed. Remaining accounting acceptance gate:
+owner/accountant row decisions, dual-run, exception resolution, and signed accountant acceptance.
 
 **2026-07-27 — reconciliation rollback + owner controls: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
 PR #923 merged at `835f80a` after exact SQL hash
@@ -50,7 +59,7 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 | 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673), and DB/RPC positive plan-requirement backstop live (#848 / prod `20260706180856`). |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
 | 6 Budget + approvals | 70% | PR workflow live; **budget gate is display-only** (#157) — approval never reads budget_lines. |
-| 7 Accounting | ~99.5% / workflow complete, operational proof pending | GL, custody, A/R, COA, close, trusted statements, real 7-year backfill, stage/review/freeze/approve, owner execute, atomic rollback/reinstatement, and compact controls are **live** (`20260727063039`, `20260727091633`, `20260727115115`; PRs #919/#921/#923). Remaining for dependable daily-use acceptance: controlled real staging, accountant review, dual-run, and signed acceptance. |
+| 7 Accounting | ~99.5% / workflow complete, operating acceptance pending | Full workflow is live; the pinned 698-row batch is now staged untouched in production (PR #925). Remaining for dependable daily-use acceptance: owner/accountant row decisions, dual-run, exception resolution, and signed acceptance. |
 | 8 People/payroll | 50% | Onboarding/attendance/labor live; payroll gated on wage model #388. |
 | 9 Weather | 70% | Gates + thresholds live; forecast service NOT configured in prod. |
 | 10 Care Academy | 20% | #366 draft; gated on agronomist + pesticide-registration sign-off (no agronomist engaged). |
@@ -62,7 +71,7 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 
 ## Top next actions (in order)
 
-1. **Accounting acceptance:** controlled stage of the pinned 698-row manifest, owner/accountant row review, dual-run totals and samples, then signed accountant acceptance. Do not call Stage 7 100% before this evidence exists.
+1. **Accounting acceptance:** review the staged 698-row batch, resolve exceptions, run dual-run totals and samples, then obtain signed accountant acceptance. Do not call Stage 7 100% before this evidence exists.
 2. **Owner+accountant meeting**: ETA e-invoicing determination (obligation **plausible-not-proven** — the "EGP 250k threshold / deadline passed" claim is DISPUTED after cross-verification; see `MARKET-DELTA-2026-07-02.md` §1) + review/refine live COA, cost centers, reports, owner insights, offshoot valuation, accountant dashboard/custody signals, custody transfer, custody reports, revenue/A-R backend, and revenue/A-R reports (#654/#661/#659/#667/#670/#663/#672/#673/#674/#675/#676/#677) + ETA memo (#578).
 3. **Owner: close Stage 0** (#362) — one afternoon; unlocks the remaining real-data path.
 4. **Owner: 1-click** leaked-password Auth toggle (#229 iii).
