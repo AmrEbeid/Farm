@@ -32,7 +32,6 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > are indistinguishable from unknown UUIDs; and the public reversal RPC cannot directly reverse historical-sale
 > or historical-expense journals. Approved executor corrections use the revoked private path; ordinary reversals
 > remain unchanged.
->
 > **Next gate: Owner review. Applying the migration remains the Owner's act, not the agent's.**
 
 > **2026-07-27 — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**

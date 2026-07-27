@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isSettledHistoricalSale, summariseBuyerSales } from "@/lib/buyer-sales";
+import { summariseBuyerSales } from "@/lib/buyer-sales";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
 import { fmtDate } from "@/lib/dates";
+import { SALE_PAYMENT_STATUS_AR } from "@/lib/labels";
 import { egp, num } from "@/lib/money";
 
 // SPEC-0025 U-11 (§2c) — the buyer 360: the destination that makes every buyer name in the app a LINK.
@@ -68,11 +69,7 @@ export default async function BuyerPage({ params }: { params: Promise<{ id: stri
     status:
       s.price_status === "pending"
         ? "السعر معلّق"
-        : isSettledHistoricalSale(s.payment_status)
-          ? "محصَّل (ترحيل تاريخي)"
-          : s.payment_status === "collected"
-            ? "محصَّل"
-            : "غير محصل",
+        : SALE_PAYMENT_STATUS_AR[s.payment_status] ?? s.payment_status,
   }));
 
   const lead =

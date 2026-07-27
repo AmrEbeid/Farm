@@ -77,7 +77,6 @@
 > collection to its sale's tenant, freezes posted collection evidence, hides cross-tenant batch existence, and
 > blocks the public direct-reversal bypass for both historical-sale and historical-expense journals while approved
 > corrections use the revoked private path.
->
 > **Remaining before this is dependable:** owner review, rollback/reinstatement, owner-facing execute/rollback
 > UI, controlled real staging, dual-run, accountant sign-off.
 

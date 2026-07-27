@@ -8,6 +8,7 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
 import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
+import { SALE_PAYMENT_STATUS_AR } from "@/lib/labels";
 import { egp, num } from "@/lib/money";
 
 // SPEC-0025 U-11 (§2c) — the cost-center 360: the destination that makes every center name a LINK.
@@ -86,7 +87,10 @@ export default async function CostCenterPage({ params }: { params: Promise<{ id:
     date: s.sale_date ? fmtDate(s.sale_date) : "—",
     crop: s.crop,
     total: s.price_status === "pending" ? undefined : (s.total ?? undefined),
-    status: s.price_status === "pending" ? "السعر معلّق" : s.payment_status === "collected" ? "محصَّل" : "غير محصل",
+    status:
+      s.price_status === "pending"
+        ? "السعر معلّق"
+        : SALE_PAYMENT_STATUS_AR[s.payment_status] ?? s.payment_status,
   }));
 
   return (
