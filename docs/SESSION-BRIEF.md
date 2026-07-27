@@ -1,5 +1,36 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (sale execution LIVE)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (rollback workflow LIVE)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-27 (latest) — reconciliation rollback + owner controls — LIVE / VERIFIED
+
+Branch `feat/accounting-reconciliation-rollback-ui` delivered owner-only execute and rollback controls plus
+append-only migration `20260726170000_accounting_reconciliation_rollback_batch.sql`. Exact committed SQL hash
+`e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420` was applied migrate-first as hosted
+version `20260727115115 accounting_reconciliation_rollback_batch`. PR #923 merged at
+`835f80ae4fdf6a2dce620a80e346f6845efb4ebe`; Vercel production completed successfully. Live root is 200 and
+the protected reconciliation route redirects unauthenticated requests to login.
+
+The rollback RPC is whole-batch atomic and never deletes evidence. It reverses execution-created postings,
+reinstates execution-reversed originals from immutable typed baselines, updates domain lifecycle and execution
+ledger state, and stores the owner's mandatory reason. Action links are append-only, unique, and matched in both
+directions to frozen decisions and owned execution-ledger rows before money moves. Restored sales remain eligible
+for a later correction only when their complete journal/action history forms an exact closed chain.
+
+The final adversarial review found three lock/security blockers across two rounds, all fixed before release:
+the executor could hold rows while waiting behind period close; public reversal could queue on a foreign tenant's
+period mutex; and it could still queue on the foreign journal row. The final design resolves membership without
+locks, then takes the caller's org mutex before an org-scoped row lock. Real dblink tests prove the three-backend
+executor/rollback/close order, foreign mutex and held-row non-contention, same-org positive controls, bounded
+outcomes, and cleanup. Mutating back to either old design makes the regression fail.
+
+Evidence: rollback pgTAP 317/317; expense 136/136; sale 348/348; ledger 112/112; full pgTAP 2,861 passing,
+zero file failures, and only the same two stock-engine baseline assertions. TypeScript and ESLint pass; Vitest
+755 passed + 13 controlled skips; production build 65/65. Two final independent reviews approved. Production
+postflight confirms RPC/grant/helper/trigger/index state and unchanged 10,201 / 162 / 10,365 / 20,730 finance
+counts; reconciliation batches/action links/execution ledger remain 0/0/0. No real batch executed.
+
+**Exact resume point:** controlled stage of the pinned 698-row manifest, owner/accountant review, dual-run,
+exception resolution, and signed accountant acceptance. Only then mark accounting dependable daily use 100%.
 
 ## 2026-07-27 (latest) — sale + mixed-batch reconciliation execution — LIVE / VERIFIED
 

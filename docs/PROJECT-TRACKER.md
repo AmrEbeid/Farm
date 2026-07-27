@@ -1,5 +1,31 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (sale execution MIGRATED)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (rollback workflow LIVE)
 
+> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION ROLLBACK + OWNER CONTROLS: LIVE / VERIFIED.**
+> Exact SQL hash `e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420`
+> was applied migrate-first as `20260727115115 accounting_reconciliation_rollback_batch`; PR #923 merged
+> at `835f80ae4fdf6a2dce620a80e346f6845efb4ebe`, and Vercel production completed successfully.
+>
+> Delivered: owner-only execute and mandatory-reason rollback controls; whole-batch append-only reversal of
+> created postings; exact reinstatement of reversed originals from typed immutable baselines; ledger claim
+> release and `rolled_back` lifecycle; action-link append-only/unique/bidirectional proof; sale restoration-chain
+> support for future corrections; and one per-org accounting-period mutex shared by execute/post/reverse/reinstate
+> and exclusive for close/reopen. Missing/foreign journal IDs are rejected before any mutex or row lock, while
+> same-org calls retain mutex-first row serialization.
+>
+> Three release blockers were found and fixed before migration: executor rows-before-mutex cycle; foreign-tenant
+> advisory-mutex contention; and foreign-tenant journal-row contention. Live dblink regressions cover the
+> executor/rollback/close three-backend cycle, foreign mutex, foreign held row with a proven detector control,
+> same-org row serialization, close/reversal ordering, bounded waits, and cleanup. Mutation tests fail against
+> both prior lock-order defects.
+>
+> Evidence: rollback pgTAP 317/317; expense 136/136; sale 348/348; ledger 112/112; full pgTAP 2,861 passing,
+> zero file failures, only the same two stock-engine baseline assertions; TypeScript and ESLint clean; Vitest
+> 755 passed + 13 controlled skips; build 65/65; two final independent reviews APPROVE. Production postflight
+> confirms RPCs, grants, private helpers, trigger and uniqueness index. Counts remain 10,201 expenses / 162 sales /
+> 10,365 journal entries / 20,730 lines, with reconciliation batches/action links/execution ledger 0/0/0.
+> No real batch or financial posting executed. **Next accounting gate:** controlled stage of the pinned 698-row
+> manifest, accountant review, dual-run, and signed acceptance.
+>
 > **2026-07-27 (latest) — ACCOUNTING RECONCILIATION SALE + MIXED-BATCH EXECUTION: MIGRATED / PR #921.**
 > Exact committed SQL was applied migrate-first as hosted migration `20260727091633
 > accounting_reconciliation_execute_sale_batch`; PR #921 merged at `3a28ad6`, and Vercel production deployment

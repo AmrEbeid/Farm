@@ -2,6 +2,27 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-27 (latest) — reconciliation rollback + owner controls: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
+> Exact committed SQL hash `e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420`
+> was applied migrate-first to Farm production as hosted migration `20260727115115
+> accounting_reconciliation_rollback_batch`. PR #923 merged at
+> `835f80ae4fdf6a2dce620a80e346f6845efb4ebe`; Vercel production completed successfully. Live root is
+> HTTP 200 and `/finance/reconciliation` redirects an unauthenticated request to `/login`.
+>
+> The release adds atomic append-only rollback/reinstatement, owner execute/rollback controls, exact outcome
+> parsing, action-link immutability/completeness, and period-close serialization. Final review closed executor
+> mutex ordering and both foreign-tenant lock oracles (advisory mutex and journal row). Focused rollback pgTAP
+> is 317/317; full pgTAP is 2,861 passing / 2 unchanged stock-engine baselines / 0 file failures; TypeScript,
+> ESLint, Vitest 755 + 13 controlled skips, app/shared CI, secret scan, preview, production build 65/65, and two
+> independent reviews are green. The GitHub DB job is red only because those two measured baseline assertions
+> remain intentionally visible rather than skipped.
+>
+> Production postflight: rollback/execute/mutex functions exist; authenticated can call the gated rollback RPC,
+> anon cannot; action-link append-only trigger and unique index are enabled. Financial counts are unchanged at
+> 10,201 expenses / 162 sales / 10,365 journal entries / 20,730 lines; reconciliation batches/action links/
+> execution ledger remain 0/0/0. No real batch or financial row was written. Next: controlled real staging,
+> accountant review, dual-run, and signed acceptance.
+
 > **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: LIVE / VERIFIED.**
 > Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) contains append-only migration
 > `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
