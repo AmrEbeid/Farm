@@ -1,4 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (review filters LIVE)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (review filters faster)
+
+> **2026-07-27 (latest) — RECONCILIATION REVIEW READ WATERFALL REMOVED: LIVE / MEASURED.**
+> App-only PR #929 (`19da7ed`, merged `0155c8e`) overlaps the existing seven whole-batch head counts,
+> filtered exact count, bounded editable option reads, row-page read, and bounded correction-target reads.
+> Every started read is awaited before render; all existing scopes, limits, fail-closed errors, counts, filters,
+> controls, and outputs are preserved. No cache, stale data, UI, action, RPC, migration, schema, dependency,
+> posting, or financial-state change.
+>
+> Evidence: focused 38/38; full Vitest 803 passed + 13 controlled skips; TypeScript/ESLint clean; build 65/65;
+> app/shared/secret/Vercel green; DB baseline-identical. Production deployment
+> `dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev` is READY. Live owner-session measurements: 4.2s navigation and 2.8s immediate
+> reload, still showing 698 rows, page 1/14, default filters, and the disabled freeze gate.
 
 > **2026-07-27 (latest) — RECONCILIATION REVIEW FILTERS: LIVE / VERIFIED; NO DECISION OR MONEY CHANGED.**
 > App-only PR #927 (`51c57f4`, merged `2d325fd`) added allowlisted server-side filters for the five

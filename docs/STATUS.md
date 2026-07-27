@@ -4,7 +4,7 @@
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-07-27 — staged reconciliation review filters: MERGED / DEPLOYED / LIVE-VERIFIED.**
+**2026-07-27 — staged reconciliation review filters + read performance: MERGED / DEPLOYED / LIVE-VERIFIED.**
 PR #927 merged at `2d325fd`; production deployment `dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY.
 The 698-row batch now has allowlisted server-side classification and decision-state filters, exact filtered
 pagination, preserved filter links, and a distinct empty-filter state. Whole-batch KPIs and freeze/approve/
@@ -12,6 +12,9 @@ execute/rollback gates remain unfiltered and unchanged. Live owner-session check
 15 amount-correction rows when filtered, and 0 included amount-correction rows with the full-batch 698 KPI
 and disabled freeze gate still visible. Runtime errors: none. No migration existed and no decision, financial
 row, action link, execution claim, freeze, approval, or execution changed. The acceptance gate remains human.
+PR #929 then merged at `0155c8e`; production deployment `dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev` is READY.
+It overlaps the same bounded independent server reads without changing query scope or output. Live owner-session
+timings were 4.2s navigation and 2.8s immediate reload, with 698 rows and every release gate unchanged.
 
 **2026-07-27 — canonical reconciliation staging: MERGED / DEPLOYED / STAGED / VERIFIED.**
 PR #925 merged at `d976bba` and Vercel production deployment `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY.
