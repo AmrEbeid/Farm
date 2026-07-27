@@ -1,6 +1,6 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Codex (expense execution migrated)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Codex (expense execution released)
 
-> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, PR #919 OPEN.**
+> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The isolated branch `feat/accounting-reconciliation-expense-execution` adds the owner-only,
 > whole-batch atomic `fn_execute_reconciliation_batch(uuid)` expense kernel and append-only migration
 > `20260726150000 accounting reconciliation execute expense batch.sql`. It posts approved/frozen
@@ -30,15 +30,17 @@
 > full pgTAP **2,193 passing**, zero file
 > failures, with only the two unchanged stock-engine baseline assertions. `git diff --check` is clean.
 >
-> **Current gate:** the reviewed migration was applied first to Farm production project
+> **Release state:** the reviewed migration was applied first to Farm production project
 > `veezkmytervjnpxcrbkw` as hosted migration `20260727063039
-> accounting_reconciliation_execute_expense_batch`; PR **#919** remains open pending merge and deploy.
+> accounting_reconciliation_execute_expense_batch`; PR **#919** then merged to `main` at
+> **`842fc8afb8f1779539097f0f9ab11c58302f8319`**, and its Vercel production deployment succeeded.
 > Production postflight confirms the executor and P&L RPC are security-definer with empty search paths,
 > authenticated-only execution on the public executor, no authenticated/anonymous execution on private
 > helpers, all three guards enabled, both new constraints validated, one account `1010` with no
 > organization missing it, and zero reconciliation batches/evidence/rows. Financial counts are unchanged:
 > expenses `10,201`, sales `162`, journal entries `10,365`, journal lines `20,730`. No real manifest,
-> reconciliation batch, or financial row was written.
+> reconciliation batch, or financial row was written. Live smoke: the public root returns HTTP 200 and
+> the protected reconciliation route redirects unauthenticated requests to login.
 > After this release, accounting reconciliation still needs the sale executor, rollback/reinstatement
 > kernel, mixed-batch orchestration, and owner-facing execute/rollback controls before daily-use 100%.
 

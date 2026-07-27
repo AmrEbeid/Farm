@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Codex (expense execution migrated)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Codex (expense execution released)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-27 (latest) — expense reconciliation execution migrated; PR #919 open
+## 2026-07-27 (latest) — expense reconciliation execution migrated, merged, deployed, verified
 
 Branch `feat/accounting-reconciliation-expense-execution`, worktree
 `/Users/amrebeid/Projects/farm reconciliation expense execution`, base `41d1ea0` (`origin/main`).
@@ -29,7 +29,9 @@ migration `20260727063039 accounting_reconciliation_execute_expense_batch`. Prod
 confirms the executor and P&L RPC security boundary, private helper revokes, all three enabled guards,
 both validated constraints, one treasury 1010 account with no organization missing it, empty
 reconciliation tables, and unchanged financial counts. No real batch or financial row was executed.
-PR #919 remains open pending merge and Vercel deployment. Next accounting slices: sales execution,
+PR #919 merged to `main` at `842fc8afb8f1779539097f0f9ab11c58302f8319`; its Vercel production
+deployment succeeded. Live smoke confirms HTTP 200 at the public root and the expected login redirect
+for an unauthenticated reconciliation request. Next accounting slices: sales execution,
 rollback/reinstatement, mixed-batch orchestration, then owner-facing execute/rollback UI.
 
 ## 2026-07-26 (latest) — reconciliation Slice 4/4A released
