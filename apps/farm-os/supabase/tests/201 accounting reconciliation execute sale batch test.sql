@@ -1,10 +1,13 @@
 -- Historical SALE reconciliation execution: the proven direct-treasury cash-in contract
 -- (Dr 1010 / Cr typed revenue leaf), the crop -> leaf mapping, correction eligibility, the
 -- historical sale lifecycle guards, revenue/A-R report correctness, mixed expense+sale batches,
--- expense-path regression, replay/idempotency, rollback, and redaction.
+-- expense-path regression, replay/idempotency, rollback, and redaction. The public-reversal privilege
+-- boundary is covered for BOTH domains: a historical reconciliation sale OR expense journal (in either
+-- historical state) is refused on the public RPC, ordinary operational sale and ordinary expense
+-- reversals still succeed there, and the owner-only executor still corrects both.
 
 begin;
-select no_plan();
+select plan(348);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 
@@ -383,10 +386,57 @@ select throws_ok(
   '42501', null, 'a farm manager cannot execute sale reconciliation'
 );
 reset role;
+-- CROSS-TENANT EXISTENCE ORACLE. A caller outside the org must not be able to tell an EXISTING batch
+-- belonging to someone else apart from a uuid that exists nowhere. Both are resolved through org
+-- membership and fall out as the same not-found, with the same SQLSTATE and the same message — so the
+-- pair below is asserted to be IDENTICAL, not merely each non-'executed'.
 select pg_temp.as_user('11111111-2222-3333-4444-555555555555');
 select throws_ok(
   $$select public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-000000000001'::uuid)$$,
-  '42501', null, 'a user outside the organization cannot execute a sale batch'
+  'P0002', 'reconciliation batch not found',
+  'an existing batch outside the caller org is indistinguishable from a missing one'
+);
+select throws_ok(
+  $$select public.fn_execute_reconciliation_batch('ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid)$$,
+  'P0002', 'reconciliation batch not found',
+  'a uuid that exists nowhere returns that same not-found response'
+);
+reset role;
+-- Prove the two responses are byte-identical rather than merely both P0002: capture SQLSTATE and
+-- message text for each and compare. A future change that reintroduced a distinct 'cross-org' message
+-- would keep both SQLSTATEs at 42501/P0002-ish and still leak, so the message is compared too.
+create or replace function pg_temp.exec_error(p_batch uuid) returns text language plpgsql as $$
+declare v_state text; v_msg text;
+begin
+  begin
+    perform public.fn_execute_reconciliation_batch(p_batch);
+    return 'no error';
+  exception when others then
+    get stacked diagnostics v_state = returned_sqlstate, v_msg = message_text;
+    return v_state || '|' || v_msg;
+  end;
+end $$;
+select pg_temp.as_user('11111111-2222-3333-4444-555555555555');
+select is(
+  pg_temp.exec_error('a0000000-0000-0000-0000-000000000001'),
+  pg_temp.exec_error('ffffffff-ffff-ffff-ffff-ffffffffffff'),
+  'the cross-org and unknown-uuid responses are the SAME sqlstate and the SAME message'
+);
+select is(
+  pg_temp.exec_error('a0000000-0000-0000-0000-000000000001'),
+  'P0002|reconciliation batch not found',
+  'and that shared response is the redacted not-found, never a cross-org disclosure'
+);
+reset role;
+-- A NON-OWNER MEMBER still gets the owner verdict. The normalization must not have collapsed the role
+-- check into not-found for people who legitimately see the batch — that would be a real loss of
+-- diagnosability, and it also proves the not-found above is genuinely about MEMBERSHIP, not about the
+-- owner check swallowing everything.
+select pg_temp.as_user(current_setting('t.acct'));
+select is(
+  pg_temp.exec_error('a0000000-0000-0000-0000-000000000001'),
+  '42501|forbidden: only an owner may execute reconciliation',
+  'a non-owner MEMBER still gets the owner verdict, not the not-found response'
 );
 reset role;
 
@@ -572,6 +622,143 @@ select is(
   500::numeric, 'an operational unpaid sale still reports its full outstanding receivable'
 );
 reset role;
+
+-- ── P1: a historical sale is SETTLED CASH, so it must register as collected, not merely as zero A/R ──
+-- It has no `sale_collections` detail row and by contract never can (the guard refuses one), so a
+-- report that only sums that table understates collected-to-date and period collections. This is the
+-- 25.8m-equivalent semantics: revenue recognised AND cash recognised, receivable zero.
+select pg_temp.as_user(current_setting('t.owner'));
+select set_config('t.rev_cash',
+  (public.fn_revenue_sales_report(:'orgA', '2024-05-01', '2024-05-31', '2024-05-31'))::text, false);
+reset role;
+select is(
+  (select (r->>'collected_to_as_of')::numeric
+     from jsonb_array_elements(current_setting('t.rev_cash')::jsonb->'sales') r
+    where r->>'sale_id' = current_setting('t.sale_added')),
+  1234.56::numeric,
+  'a historical sale reports its own total as collected-to-as-of — it was settled in cash at posting'
+);
+select is(
+  (select (r->>'collected_in_period')::numeric
+     from jsonb_array_elements(current_setting('t.rev_cash')::jsonb->'sales') r
+    where r->>'sale_id' = current_setting('t.sale_added')),
+  1234.56::numeric,
+  'a historical sale settled inside the window counts as collected IN PERIOD'
+);
+select is(
+  (current_setting('t.rev_cash')::jsonb->>'period_collections')::numeric,
+  1234.56::numeric,
+  'period_collections includes the historical settlement even though no collection row exists'
+);
+select is(
+  (current_setting('t.rev_cash')::jsonb->>'finalized_revenue')::numeric,
+  1234.56::numeric,
+  'revenue and cash agree for a historical cash-in sale — the sheet-exact reconciliation semantics'
+);
+select is(
+  (current_setting('t.rev_cash')::jsonb->>'outstanding_total')::numeric,
+  0::numeric, 'and the receivable is still zero'
+);
+select is(
+  (select count(*)::int from public.sale_collections
+    where sale_id = current_setting('t.sale_added')::uuid),
+  0, 'no collection DETAIL row was invented — the settlement is derived, not fabricated'
+);
+select is(
+  (select count(*)::int
+     from jsonb_array_elements(current_setting('t.rev_cash')::jsonb->'collections') r
+    where r->>'sale_id' = current_setting('t.sale_added')),
+  0, 'the historical settlement never appears as a collection line item'
+);
+-- As-of discipline: before the sale's economic date it is neither revenue nor cash.
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  ((public.fn_revenue_sales_report(:'orgA', '2024-01-01', '2024-04-30', '2024-04-30'))
+    ->>'period_collections')::numeric,
+  0::numeric,
+  'a historical settlement does not leak into a period that ends before its economic date'
+);
+select is(
+  (select (r->>'collected_to_as_of')::numeric
+     from jsonb_array_elements(
+       (public.fn_revenue_sales_report(:'orgA', '2024-01-01', '2024-12-31', '2024-04-30'))->'sales'
+     ) r
+    where r->>'sale_id' = current_setting('t.sale_added')),
+  0::numeric, 'collected-to-as-of respects an as-of date earlier than the settlement'
+);
+reset role;
+-- The report's own economic-date fallback must be timezone-pinned too. A historical sale with NO
+-- sale_date falls back to created_at, which is timestamptz: a bare `::date` would resolve against
+-- the READER's session zone, so the same sale could sit inside or outside a period boundary
+-- depending on who ran the report.
+insert into public.sales(
+  id, org_id, crop, qty, unit, unit_price, total,
+  price_status, price_finalized_at, payment_status, created_at
+) values (
+  'd5000000-0000-0000-0000-000000000001', :'orgA', 'برحي', 1, 'كجم', 640, 640,
+  'finalized', now(), 'unpaid', '2024-03-01 00:30:00+00'
+);
+insert into public.journal_entries(
+  id, org_id, entry_date, source_type, source_id, source_sequence, description, status, posted_at
+) values (
+  'd6000000-0000-0000-0000-000000000001', :'orgA', '2024-03-01', 'sale',
+  'd5000000-0000-0000-0000-000000000001', 1, 'report tz probe', 'posted', now()
+);
+insert into public.journal_lines(org_id, journal_entry_id, account_id, debit, credit) values
+  (:'orgA', 'd6000000-0000-0000-0000-000000000001', current_setting('t.cash')::uuid, 640, 0),
+  (:'orgA', 'd6000000-0000-0000-0000-000000000001', current_setting('t.rev4010')::uuid, 0, 640);
+update public.sales set payment_status = 'historical_treasury'
+ where id = 'd5000000-0000-0000-0000-000000000001';
+
+create or replace function pg_temp.march_first_settlement() returns numeric language sql as $$
+  select coalesce((
+    select (r->>'collected_to_as_of')::numeric
+      from jsonb_array_elements(
+        (public.fn_revenue_sales_report(
+          '00000000-0000-0000-0000-000000000001', '2024-03-01', '2024-03-01', '2024-03-01'))->'sales'
+      ) r
+     where r->>'sale_id' = 'd5000000-0000-0000-0000-000000000001'), -1);
+$$;
+select pg_temp.as_user(current_setting('t.owner'));
+set local timezone = 'UTC';
+select is(pg_temp.march_first_settlement(), 640::numeric,
+  'a null-sale_date historical sale settles on its pinned-UTC economic date (UTC session)');
+set local timezone = 'America/New_York';
+select is(pg_temp.march_first_settlement(), 640::numeric,
+  'the report economic-date fallback is INVARIANT under a westward reader timezone');
+set local timezone = 'Asia/Tokyo';
+select is(pg_temp.march_first_settlement(), 640::numeric,
+  'the report economic-date fallback is INVARIANT under an eastward reader timezone');
+set local timezone = 'Africa/Cairo';
+select is(pg_temp.march_first_settlement(), 640::numeric,
+  'the report economic-date fallback is INVARIANT under the tenant timezone');
+reset timezone;
+reset role;
+
+-- An OPERATIONAL sale's collection behaviour is untouched by all of the above.
+insert into public.sale_collections(id, org_id, sale_id, amount, occurred_at)
+values ('a9100000-0000-0000-0000-000000000001', :'orgA',
+        'a9000000-0000-0000-0000-000000000001', 200, '2024-06-10');
+select pg_temp.as_user(current_setting('t.owner'));
+select set_config('t.rev_op',
+  (public.fn_revenue_sales_report(:'orgA', '2024-06-01', '2024-06-30', '2024-06-30'))::text, false);
+reset role;
+select is(
+  (select (r->>'collected_to_as_of')::numeric
+     from jsonb_array_elements(current_setting('t.rev_op')::jsonb->'sales') r
+    where r->>'sale_id' = 'a9000000-0000-0000-0000-000000000001'),
+  200::numeric, 'an operational sale still reports only its REAL collections'
+);
+select is(
+  (select (r->>'outstanding')::numeric
+     from jsonb_array_elements(current_setting('t.rev_op')::jsonb->'sales') r
+    where r->>'sale_id' = 'a9000000-0000-0000-0000-000000000001'),
+  300::numeric, 'an operational sale still carries its genuine remaining receivable'
+);
+select is(
+  (current_setting('t.rev_op')::jsonb->>'period_collections')::numeric,
+  200::numeric, 'operational period_collections is unchanged by the historical branch'
+);
 
 -- ── replay and cross-batch idempotency ────────────────────────────────────────────────────────────
 select set_config('t.je_after_add', (select count(*)::text from public.journal_entries), false);
@@ -781,6 +968,100 @@ select is(
      from jsonb_array_elements(current_setting('t.rev_after_corr')::jsonb->'sales') r
     where r->>'sale_id' = 'b5000000-0000-0000-0000-000000000001'),
   0, 'the reversed original leaves the revenue report entirely'
+);
+
+-- ── P1: an approved manual reclassification survives a correction ─────────────────────────────────
+-- 20260708090000 moved three palm-TREE disposals from 4010 to 4090 by PINNED sale_id; their crop
+-- text still matches the 4010 keywords, so re-deriving the leaf from the crop would reverse 4090 and
+-- replace into 4010 — silently undoing the accountant's decision and moving money between revenue
+-- lines. A correction restates an AMOUNT; it must inherit the leaf the original actually used.
+select pg_temp.make_historical_sale(
+  'ca000000-0000-0000-0000-000000000001', 'cb000000-0000-0000-0000-000000000001',
+  'cc000000-0000-0000-0000-000000000001', 'cc000000-0000-0000-0000-000000000002',
+  256600, '2023-03-15',
+  'النخيل المجدول والخلاص بالخطارة حتي تاريخ 15-03-2023م',
+  current_setting('t.rev4090')::uuid          -- manually reclassed 4010 -> 4090, exactly as in prod
+);
+-- The crop genuinely maps to 4010: this is precisely the trap.
+select is(
+  private.fn_reconciliation_historical_sale_revenue_code(
+    'النخيل المجدول والخلاص بالخطارة حتي تاريخ 15-03-2023م'),
+  '4010',
+  'the palm-disposal crop still maps to 4010 — so a crop-derived correction WOULD have reclassed it'
+);
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000e0');
+select pg_temp.add_sale_row(
+  'a0000000-0000-0000-0000-0000000000e0', 'a1000000-0000-0000-0000-0000000000e0',
+  'a2000000-0000-0000-0000-0000000000e0', 'palm-disposal-correction', 270000, '2023-03-15',
+  'النخيل المجدول والخلاص بالخطارة حتي تاريخ 15-03-2023م',
+  'ca000000-0000-0000-0000-000000000001', 1, 270000, 270000, '2023-03-15'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000e0'))->>'status',
+  'executed', 'a correction of a reclassified palm-disposal sale executes'
+);
+reset role;
+select is(
+  (select a.code from public.journal_entries je
+     join public.journal_lines jl on jl.journal_entry_id = je.id and jl.debit > 0
+     join public.accounts a on a.id = jl.account_id
+    where je.reversal_of = 'cb000000-0000-0000-0000-000000000001'),
+  '4090', 'the REVERSAL debits 4090 — the leaf the original was actually posted to'
+);
+select is(
+  (select a.code from public.reconciliation_action_links al
+     join public.journal_lines jl on jl.journal_entry_id = al.journal_entry_id and jl.credit > 0
+     join public.accounts a on a.id = jl.account_id
+    where al.batch_id = 'a0000000-0000-0000-0000-0000000000e0'
+      and al.action_kind = 'correction_replacement'),
+  '4090',
+  'the REPLACEMENT also credits 4090 — the approved reclassification is preserved, not re-derived'
+);
+select is(
+  (select count(*)::int from public.reconciliation_action_links al
+     join public.journal_lines jl on jl.journal_entry_id = al.journal_entry_id
+     join public.accounts a on a.id = jl.account_id
+    where al.batch_id = 'a0000000-0000-0000-0000-0000000000e0' and a.code = '4010'),
+  0, 'no leg of the correction touches 4010, so no revenue is silently reclassified'
+);
+-- Net effect on the two revenue lines: 4090 moves by exactly the amount delta, 4010 not at all.
+select is(
+  (select round(coalesce(sum(jl.credit), 0) - coalesce(sum(jl.debit), 0), 2)
+     from public.journal_lines jl
+     join public.journal_entries je on je.id = jl.journal_entry_id
+     join public.accounts a on a.id = jl.account_id and a.code = '4090'
+    where je.org_id = :'orgA' and je.source_id in (
+      'ca000000-0000-0000-0000-000000000001',
+      (select target_id from public.reconciliation_action_links
+        where batch_id = 'a0000000-0000-0000-0000-0000000000e0'
+          and action_kind = 'correction_replacement'))),
+  270000::numeric,
+  'net 4090 revenue equals the corrected amount — the original nets out, the replacement stands'
+);
+
+-- Changing the crop during a correction is a RECLASSIFICATION, and is refused outright.
+select pg_temp.make_historical_sale(
+  'ca000000-0000-0000-0000-000000000002', 'cb000000-0000-0000-0000-000000000002',
+  'cc000000-0000-0000-0000-000000000003', 'cc000000-0000-0000-0000-000000000004',
+  500, '2023-04-04', 'برحي'
+);
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000e1');
+select pg_temp.add_sale_row(
+  'a0000000-0000-0000-0000-0000000000e1', 'a1000000-0000-0000-0000-0000000000e1',
+  'a2000000-0000-0000-0000-0000000000e1', 'crop-change-correction', 600, '2023-04-04',
+  'بنجر', 'ca000000-0000-0000-0000-000000000002', 1, 600, 600, '2023-04-04'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000e1'))->>'failure_code',
+  'integrity_check',
+  'a correction that changes the crop is refused — reclassification is a separate, explicit action'
+);
+reset role;
+select is(
+  (select status from public.journal_entries where id = 'cb000000-0000-0000-0000-000000000002'),
+  'posted', 'the refused crop-change correction leaves the original posted'
 );
 
 -- ── zero-value correction: full reversal, no replacement ──────────────────────────────────────────
@@ -1050,6 +1331,344 @@ select lives_ok(
   'the delete guard leaves ordinary sales deletable'
 );
 
+-- ── the public reversal RPC fails CLOSED on a historical reconciliation sale journal ─────────────
+-- `public.fn_reverse_journal_entry` (20260706081636) is granted to `authenticated` and gated on
+-- `budget.write` — a permission the ACCOUNTANT holds. Without the private boundary, such a user could
+-- reverse the journal behind a historical_treasury sale outside reconciliation, and the result is
+-- UNRECOVERABLE rather than merely unlogged: the sale keeps `historical_treasury` (so the revenue
+-- report keeps showing settled revenue and zero receivable), the lifecycle guard freezes every field,
+-- DELETE is refused, and the proof helper then fails on it — so the executor refuses it as a
+-- correction target too. The contract is therefore two-sided: the public path is DENIED, and the
+-- owner-only executor still produces the exact inverse.
+select ok(
+  not has_function_privilege('authenticated',
+    'private.fn_reverse_journal_entry_internal(uuid, text, date, boolean)', 'EXECUTE'),
+  'the reversal helper is private — authenticated cannot reach it to assert the reconciliation context'
+);
+select ok(
+  not has_function_privilege('anon',
+    'private.fn_reverse_journal_entry_internal(uuid, text, date, boolean)', 'EXECUTE'),
+  'and anon cannot reach the reversal helper either'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.fn_reverse_journal_entry(uuid, text, date)', 'EXECUTE'),
+  'the public reversal RPC keeps its existing authenticated grant — ordinary reversals are untouched'
+);
+select ok(
+  (select p.proconfig[1] = 'search_path=""' from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'private' and p.proname = 'fn_reverse_journal_entry_internal'),
+  'the private reversal helper pins an empty search path'
+);
+select ok(
+  (select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'fn_reverse_journal_entry'),
+  'the public reversal RPC is still SECURITY DEFINER, so it can reach the private helper'
+);
+
+select pg_temp.make_historical_sale(
+  'f1000000-0000-0000-0000-000000000001', 'f2000000-0000-0000-0000-000000000001',
+  'f3000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000002',
+  7200, '2024-05-20', 'برحي'
+);
+select is(
+  (select payment_status from public.sales where id = 'f1000000-0000-0000-0000-000000000001'),
+  'historical_treasury', 'the bypass target is a certified historical treasury sale'
+);
+select pg_temp.as_user(current_setting('t.acct'));
+-- NON-VACUITY: if the accountant did not hold budget.write the denial below would prove nothing,
+-- because the RPC would have refused them anyway.
+select ok(
+  public.authorize('budget.write', '00000000-0000-0000-0000-000000000001'::uuid),
+  'non-vacuity: the accountant really does hold the budget.write permission this RPC gates on'
+);
+select throws_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f2000000-0000-0000-0000-000000000001'::uuid, 'محاولة عكس مباشرة', '2024-05-20'::date)$$,
+  '42501', null,
+  'an accountant WITH budget.write cannot reverse a historical treasury sale journal directly'
+);
+reset role;
+select pg_temp.as_user(current_setting('t.owner'));
+select throws_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f2000000-0000-0000-0000-000000000001'::uuid, 'محاولة عكس مباشرة', '2024-05-20'::date)$$,
+  '42501', null,
+  'and neither can the OWNER on the public path — the boundary is the PATH, not the role'
+);
+reset role;
+select is(
+  (select status from public.journal_entries where id = 'f2000000-0000-0000-0000-000000000001'),
+  'posted', 'the refused direct reversal leaves the original journal posted'
+);
+select is(
+  (select count(*)::int from public.journal_entries
+    where reversal_of = 'f2000000-0000-0000-0000-000000000001'),
+  0, 'the refused direct reversal created no mirror entry'
+);
+select is(
+  (select payment_status from public.sales where id = 'f1000000-0000-0000-0000-000000000001'),
+  'historical_treasury',
+  'and the sale is left in the correctable state rather than stranded as unsupported revenue'
+);
+select ok(
+  private.fn_reconciliation_sale_has_exact_historical_journal(
+    'f1000000-0000-0000-0000-000000000001'),
+  'the sale still satisfies the proof, so the executor can still correct it — the damage never happened'
+);
+
+-- The other half: the owner-only executor DOES produce exactly the correction the public path refused.
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000f8');
+select pg_temp.add_sale_row(
+  'a0000000-0000-0000-0000-0000000000f8', 'a1000000-0000-0000-0000-0000000000f8',
+  'a2000000-0000-0000-0000-0000000000f8', 'bypass-then-correct', 7500, '2024-05-20',
+  'برحي', 'f1000000-0000-0000-0000-000000000001', 10, 750, 7500, '2024-05-20'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000f8'))->>'status',
+  'executed',
+  'the owner-only executor still produces the correction the public reversal path was denied'
+);
+reset role;
+select is(
+  (select status from public.journal_entries where id = 'f2000000-0000-0000-0000-000000000001'),
+  'reversed', 'the executor reversed the original journal through the private boundary'
+);
+select is(
+  (select payment_status from public.sales where id = 'f1000000-0000-0000-0000-000000000001'),
+  'historical_reversed', 'and the sale state moved WITH its journal, which is the whole point'
+);
+select is(
+  (select a.code from public.journal_entries je
+     join public.journal_lines jl on jl.journal_entry_id = je.id and jl.credit > 0
+     join public.accounts a on a.id = jl.account_id
+    where je.reversal_of = 'f2000000-0000-0000-0000-000000000001'),
+  '1010', 'the executor reversal is still the EXACT inverse — treasury 1010 is credited'
+);
+select is(
+  (select round(sum(jl.debit) - sum(jl.credit), 2) from public.journal_lines jl
+     join public.journal_entries je on je.id = jl.journal_entry_id
+    where je.reversal_of = 'f2000000-0000-0000-0000-000000000001'),
+  0::numeric, 'and the executor reversal balances'
+);
+-- A `historical_reversed` journal is refused too. Without covering it, the already-reversed branch of
+-- the RPC would idempotently hand a caller back the reconciliation reversal's id.
+select pg_temp.as_user(current_setting('t.acct'));
+select throws_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f2000000-0000-0000-0000-000000000001'::uuid, 'محاولة ثانية', '2024-05-21'::date)$$,
+  '42501', null,
+  'a historical_REVERSED sale journal is refused too, not answered idempotently'
+);
+reset role;
+-- The REPLACEMENT the executor just posted is itself historical_treasury, so it is protected as well.
+select set_config('t.bypass_replacement_journal', (
+  select al.journal_entry_id::text from public.reconciliation_action_links al
+   where al.batch_id = 'a0000000-0000-0000-0000-0000000000f8'
+     and al.action_kind = 'correction_replacement'
+), false);
+select pg_temp.as_user(current_setting('t.acct'));
+select throws_ok(
+  format($$select public.fn_reverse_journal_entry(%L::uuid, 'عكس البديل', '2024-05-20'::date)$$,
+         current_setting('t.bypass_replacement_journal')),
+  '42501', null,
+  'the replacement journal the executor just posted is protected by the same boundary'
+);
+reset role;
+
+-- REGRESSION: ordinary OPERATIONAL and EXPENSE reversals through the public RPC are untouched.
+insert into public.sales(
+  id, org_id, sale_date, crop, qty, unit, unit_price, total,
+  price_status, price_finalized_at, payment_status
+) values (
+  'f1000000-0000-0000-0000-000000000002', :'orgA', '2024-05-22', 'برحي', 1, 'كجم',
+  640, 640, 'finalized', now(), 'unpaid'
+);
+insert into public.journal_entries(
+  id, org_id, entry_date, source_type, source_id, source_sequence, description, status, posted_at
+) values (
+  'f2000000-0000-0000-0000-000000000002', :'orgA', '2024-05-22', 'sale',
+  'f1000000-0000-0000-0000-000000000002', 1, 'operational receivable', 'posted', now()
+);
+insert into public.journal_lines(org_id, journal_entry_id, account_id, debit, credit) values
+  (:'orgA', 'f2000000-0000-0000-0000-000000000002',
+   public.fn_ensure_account(:'orgA', '1200', 'ذمم مدينة (عملاء)', 'asset', 'debit'), 640, 0),
+  (:'orgA', 'f2000000-0000-0000-0000-000000000002', current_setting('t.rev4000')::uuid, 0, 640);
+select pg_temp.as_user(current_setting('t.acct'));
+select lives_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f2000000-0000-0000-0000-000000000002'::uuid, 'تصحيح تشغيلي', '2024-05-22'::date)$$,
+  'an OPERATIONAL sale journal is still reversible through the public RPC, exactly as before'
+);
+reset role;
+select is(
+  (select status from public.journal_entries where id = 'f2000000-0000-0000-0000-000000000002'),
+  'reversed', 'the operational reversal really did happen — the regression is not vacuous'
+);
+insert into public.expenses(
+  id, org_id, date, category, description, total, kind, account_id
+) values (
+  'f4000000-0000-0000-0000-000000000001', :'orgA', '2024-05-23', 'اختبار', 'ordinary expense',
+  95, 'operating', current_setting('t.expense_account')::uuid
+);
+insert into public.journal_entries(
+  id, org_id, entry_date, source_type, source_id, source_sequence, description, status, posted_at
+) values (
+  'f4100000-0000-0000-0000-000000000001', :'orgA', '2024-05-23', 'expense',
+  'f4000000-0000-0000-0000-000000000001', 1, 'ordinary expense journal', 'posted', now()
+);
+insert into public.journal_lines(org_id, journal_entry_id, account_id, debit, credit, expense_id) values
+  (:'orgA', 'f4100000-0000-0000-0000-000000000001', current_setting('t.expense_account')::uuid,
+   95, 0, 'f4000000-0000-0000-0000-000000000001'),
+  (:'orgA', 'f4100000-0000-0000-0000-000000000001', current_setting('t.cash')::uuid,
+   0, 95, 'f4000000-0000-0000-0000-000000000001');
+select pg_temp.as_user(current_setting('t.acct'));
+select lives_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f4100000-0000-0000-0000-000000000001'::uuid, 'تصحيح مصروف', '2024-05-23'::date)$$,
+  'an ordinary EXPENSE journal is still reversible through the public RPC'
+);
+reset role;
+select is(
+  (select status from public.journal_entries where id = 'f4100000-0000-0000-0000-000000000001'),
+  'reversed', 'the ordinary expense reversal really did happen'
+);
+
+-- ── the same boundary on the EXPENSE half of the reconciliation contract ─────────────────────────
+-- The expense executor (20260726150000) created `historical_treasury` expenses BEFORE this slice
+-- existed, and `public.fn_reverse_journal_entry` never knew about them either. The exposure is not an
+-- analogue of the sale one, it is the SAME defect in the other domain, and just as unrecoverable: the
+-- expense keeps `historical_treasury` (so fn_owner_pnl_summary keeps counting settled cash spend)
+-- while its journal leaves the posted ledger, 20260726150000's lifecycle guard freezes every field of
+-- such a row, its DELETE guard refuses removal, and the executor then rejects it as a correction
+-- target because the posted journal it requires is gone. The contract is two-sided here too: the
+-- public path is DENIED, and the owner-only executor still produces the correction.
+insert into public.expenses(
+  id, org_id, date, category, description, total, kind, account_id
+) values (
+  'f5000000-0000-0000-0000-000000000001', :'orgA', '2024-05-24', 'اختبار', 'historical expense',
+  480, 'operating', current_setting('t.expense_account')::uuid
+);
+insert into public.journal_entries(
+  id, org_id, entry_date, source_type, source_id, source_sequence, description, status, posted_at
+) values (
+  'f5100000-0000-0000-0000-000000000001', :'orgA', '2024-05-24', 'expense',
+  'f5000000-0000-0000-0000-000000000001', 1, 'historical expense journal', 'posted', now()
+);
+insert into public.journal_lines(org_id, journal_entry_id, account_id, debit, credit, expense_id) values
+  (:'orgA', 'f5100000-0000-0000-0000-000000000001', current_setting('t.expense_account')::uuid,
+   480, 0, 'f5000000-0000-0000-0000-000000000001'),
+  (:'orgA', 'f5100000-0000-0000-0000-000000000001', current_setting('t.cash')::uuid,
+   0, 480, 'f5000000-0000-0000-0000-000000000001');
+update public.expenses set payment_status = 'historical_treasury'
+ where id = 'f5000000-0000-0000-0000-000000000001';
+select is(
+  (select payment_status from public.expenses where id = 'f5000000-0000-0000-0000-000000000001'),
+  'historical_treasury', 'the expense bypass target is a certified historical treasury expense'
+);
+select pg_temp.as_user(current_setting('t.acct'));
+select throws_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f5100000-0000-0000-0000-000000000001'::uuid, 'محاولة عكس مصروف تاريخي', '2024-05-24'::date)$$,
+  '42501', null,
+  'an accountant WITH budget.write cannot reverse a historical treasury EXPENSE journal directly'
+);
+reset role;
+select pg_temp.as_user(current_setting('t.owner'));
+select throws_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f5100000-0000-0000-0000-000000000001'::uuid, 'محاولة عكس مصروف تاريخي', '2024-05-24'::date)$$,
+  '42501', null,
+  'and neither can the OWNER on the public expense path — the boundary is the PATH, not the role'
+);
+reset role;
+select is(
+  (select status from public.journal_entries where id = 'f5100000-0000-0000-0000-000000000001'),
+  'posted', 'the refused direct expense reversal leaves the original journal posted'
+);
+select is(
+  (select count(*)::int from public.journal_entries
+    where reversal_of = 'f5100000-0000-0000-0000-000000000001'),
+  0, 'the refused direct expense reversal created no mirror entry'
+);
+select is(
+  (select payment_status from public.expenses where id = 'f5000000-0000-0000-0000-000000000001'),
+  'historical_treasury',
+  'and the expense is left in the correctable state rather than stranded as unsupported spend'
+);
+
+-- The other half: the owner-only executor STILL corrects that expense. This is the regression that
+-- would fail if §7 closed the public path without routing §8's expense branch through the private
+-- helper — the executor would be denied its own reversal.
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000f9');
+select pg_temp.add_expense_row(
+  'a0000000-0000-0000-0000-0000000000f9', 'a1000000-0000-0000-0000-0000000000f9',
+  'a2000000-0000-0000-0000-0000000000f9', 'expense-bypass-then-correct', 500, '2024-05-24',
+  'f5000000-0000-0000-0000-000000000001'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000f9'))->>'status',
+  'executed',
+  'the owner-only executor still corrects the expense the public reversal path was denied'
+);
+reset role;
+select is(
+  (select status from public.journal_entries where id = 'f5100000-0000-0000-0000-000000000001'),
+  'reversed', 'the executor reversed the original expense journal through the private boundary'
+);
+select is(
+  (select payment_status from public.expenses where id = 'f5000000-0000-0000-0000-000000000001'),
+  'historical_reversed', 'and the expense state moved WITH its journal'
+);
+select is(
+  (select a.code from public.journal_entries je
+     join public.journal_lines jl on jl.journal_entry_id = je.id and jl.debit > 0
+     join public.accounts a on a.id = jl.account_id
+    where je.reversal_of = 'f5100000-0000-0000-0000-000000000001'),
+  '1010', 'the executor expense reversal is still the EXACT inverse — treasury 1010 is debited back'
+);
+select is(
+  (select round(sum(jl.debit) - sum(jl.credit), 2) from public.journal_lines jl
+     join public.journal_entries je on je.id = jl.journal_entry_id
+    where je.reversal_of = 'f5100000-0000-0000-0000-000000000001'),
+  0::numeric, 'and the executor expense reversal balances'
+);
+-- A `historical_reversed` EXPENSE journal is refused too, for the same reason the sale one is: the
+-- already-reversed branch would otherwise idempotently hand a caller the reconciliation reversal's id.
+select pg_temp.as_user(current_setting('t.acct'));
+select throws_ok(
+  $$select public.fn_reverse_journal_entry(
+      'f5100000-0000-0000-0000-000000000001'::uuid, 'محاولة ثانية', '2024-05-25'::date)$$,
+  '42501', null,
+  'a historical_REVERSED expense journal is refused too, not answered idempotently'
+);
+reset role;
+-- The REPLACEMENT expense the executor just posted is itself historical_treasury, so it is protected.
+select set_config('t.expense_replacement_journal', (
+  select al.journal_entry_id::text from public.reconciliation_action_links al
+   where al.batch_id = 'a0000000-0000-0000-0000-0000000000f9'
+     and al.action_kind = 'correction_replacement'
+), false);
+select is(
+  (select e.payment_status from public.expenses e
+     join public.reconciliation_action_links al
+       on al.target_id = e.id and al.target_table = 'expenses'
+    where al.batch_id = 'a0000000-0000-0000-0000-0000000000f9'
+      and al.action_kind = 'correction_replacement'),
+  'historical_treasury',
+  'non-vacuity: the replacement expense really is a historical treasury row worth protecting'
+);
+select pg_temp.as_user(current_setting('t.acct'));
+select throws_ok(
+  format($$select public.fn_reverse_journal_entry(%L::uuid, 'عكس البديل', '2024-05-24'::date)$$,
+         current_setting('t.expense_replacement_journal')),
+  '42501', null,
+  'the replacement expense journal the executor just posted is protected by the same boundary'
+);
+reset role;
+
 -- Duplicate-collection / alternate-money-path protection.
 select pg_temp.as_user(current_setting('t.owner'));
 select throws_ok(
@@ -1164,15 +1783,73 @@ select throws_ok(
   '22023', null,
   'a collection cannot be re-pointed onto a historical sale by UPDATE'
 );
+select throws_ok(
+  $$update public.sale_collections
+       set sale_id = 'be000000-0000-0000-0000-000000000003'
+     where id = 'bf200000-0000-0000-0000-000000000001'$$,
+  '22023', null,
+  'a posted collection cannot be reassigned even to another ordinary sale'
+);
+select throws_ok(
+  $$update public.sale_collections set amount = amount + 1
+     where id = 'bf200000-0000-0000-0000-000000000001'$$,
+  '22023', null, 'a posted collection amount is immutable'
+);
+select throws_ok(
+  $$update public.sale_collections set occurred_at = occurred_at + 1
+     where id = 'bf200000-0000-0000-0000-000000000001'$$,
+  '22023', null, 'a posted collection economic date is immutable'
+);
+select throws_ok(
+  $$update public.sale_collections set journal_entry_id = null
+     where id = 'bf200000-0000-0000-0000-000000000001'$$,
+  '22023', null, 'a posted collection cannot clear its journal identity'
+);
+
+insert into public.organization(id, name)
+values ('b0000000-0000-0000-0000-000000000001', 'collection tenant probe');
+select throws_ok(
+  $$insert into public.sale_collections(id, org_id, sale_id, amount, occurred_at)
+    values ('bf200000-0000-0000-0000-000000000010',
+            'b0000000-0000-0000-0000-000000000001',
+            'bf000000-0000-0000-0000-000000000001', 1, '2024-02-17')$$,
+  '23503', null,
+  'the composite sale/org foreign key rejects a collection claiming another tenant'
+);
+
+-- Defence in depth: even if a privileged maintenance session bypasses the structural FK, the proof
+-- itself must count ANY matching sale_id and fail closed rather than trusting the collection's org_id.
+select pg_temp.make_historical_sale(
+  'bf000000-0000-0000-0000-000000000011', 'bf100000-0000-0000-0000-000000000011',
+  'bf110000-0000-0000-0000-000000000011', 'bf120000-0000-0000-0000-000000000011',
+  111, '2024-02-18', 'برحي'
+);
+set local session_replication_role = replica;
+insert into public.sale_collections(id, org_id, sale_id, amount, occurred_at)
+values ('bf200000-0000-0000-0000-000000000011',
+        'b0000000-0000-0000-0000-000000000001',
+        'bf000000-0000-0000-0000-000000000011', 1, '2024-02-19');
+set local session_replication_role = origin;
+select ok(
+  not private.fn_reconciliation_sale_has_exact_historical_journal(
+    'bf000000-0000-0000-0000-000000000011'),
+  'the proof rejects any collection matching sale_id even when its org_id is forged'
+);
+delete from public.sale_collections where id = 'bf200000-0000-0000-0000-000000000011';
+select ok(
+  private.fn_reconciliation_sale_has_exact_historical_journal(
+    'bf000000-0000-0000-0000-000000000011'),
+  'removing the unposted forged probe restores the exact historical proof'
+);
 
 -- The proof must be DETERMINISTIC: `created_at::date` is timezone-dependent, so without a pinned
 -- zone the same row would classify differently for different callers and the backfill, the guard and
 -- the executor could disagree about it.
 insert into public.sales(
-  id, org_id, crop, qty, unit, unit_price, total,
+  id, org_id, delivery_date, crop, qty, unit, unit_price, total,
   price_status, price_finalized_at, payment_status, created_at
 ) values (
-  'bf000000-0000-0000-0000-000000000009', :'orgA', 'برحي', 1, 'كجم', 90, 90,
+  'bf000000-0000-0000-0000-000000000009', :'orgA', '2024-02-01', 'برحي', 1, 'كجم', 90, 90,
   'finalized', now(), 'unpaid', '2024-03-01 00:30:00+00'
 );
 insert into public.journal_entries(
@@ -1209,6 +1886,40 @@ select ok(
   'the proof is INVARIANT under the tenant timezone'
 );
 reset timezone;
+update public.sales
+   set payment_status = 'historical_treasury'
+ where id = 'bf000000-0000-0000-0000-000000000009';
+select pg_temp.as_user(current_setting('t.owner'));
+set local timezone = 'America/New_York';
+select is(
+  (select sale_row->>'report_date'
+     from jsonb_array_elements(
+       public.fn_revenue_sales_report(:'orgA', '2024-03-01', '2024-03-31', '2024-03-31')->'sales'
+     ) sale_row
+    where sale_row->>'sale_id' = 'bf000000-0000-0000-0000-000000000009'),
+  '2024-03-01',
+  'historical reporting uses the same UTC created_at fallback as proof, not conflicting delivery_date'
+);
+select is(
+  (select (sale_row->>'collected_to_as_of')::numeric
+     from jsonb_array_elements(
+       public.fn_revenue_sales_report(:'orgA', '2024-03-01', '2024-03-31', '2024-03-31')->'sales'
+     ) sale_row
+    where sale_row->>'sale_id' = 'bf000000-0000-0000-0000-000000000009'),
+  90::numeric,
+  'the historical sale is recognized as collected on that same economic date'
+);
+select is(
+  (select count(*)::int
+     from jsonb_array_elements(
+       public.fn_revenue_sales_report(:'orgA', '2024-02-01', '2024-02-29', '2024-02-29')->'sales'
+     ) sale_row
+    where sale_row->>'sale_id' = 'bf000000-0000-0000-0000-000000000009'),
+  0,
+  'the conflicting February delivery date cannot pull historical cash into the wrong period'
+);
+reset timezone;
+reset role;
 
 -- ── reviewed-data validation at execution time ────────────────────────────────────────────────────
 create or replace function pg_temp.expect_row_rejected(
@@ -1584,6 +2295,132 @@ select is(
   (select count(*)::int from public.reconciliation_action_links
     where batch_id = 'a0000000-0000-0000-0000-000000000095' and action_kind = 'zero_value_noop'),
   1, 'the zero-value sale in a mixed batch still records its no-op link'
+);
+
+-- ── Cross-domain UUID collision: expenses.id and sales.id are INDEPENDENT uuid spaces ────────────
+-- The postflight matched a baseline snapshot to an action link on (batch_id, source_id) alone. A
+-- colliding expense/sale pair corrected in one batch would therefore cross-match domains and verify
+-- each other's reversal. The id below is deliberately used for BOTH rows.
+\set collide 'cd000000-0000-0000-0000-00000000c01d'
+insert into public.expenses(
+  id, org_id, date, category, description, total, kind, account_id
+) values (
+  :'collide', :'orgA', '2024-11-11', 'collision', 'uuid collision target', 300, 'operating',
+  current_setting('t.expense_account')::uuid
+);
+insert into public.journal_entries(
+  id, org_id, entry_date, source_type, source_id, source_sequence, description, status, posted_at
+) values (
+  'ce000000-0000-0000-0000-000000000001', :'orgA', '2024-11-11', 'expense', :'collide', 1,
+  'collision expense journal', 'posted', now()
+);
+insert into public.journal_lines(id, org_id, journal_entry_id, account_id, debit, credit, expense_id)
+values
+  ('cf000000-0000-0000-0000-000000000001', :'orgA', 'ce000000-0000-0000-0000-000000000001',
+   current_setting('t.expense_account')::uuid, 300, 0, :'collide'),
+  ('cf000000-0000-0000-0000-000000000002', :'orgA', 'ce000000-0000-0000-0000-000000000001',
+   current_setting('t.cash')::uuid, 0, 300, :'collide');
+update public.expenses set payment_status = 'historical_treasury' where id = :'collide';
+select pg_temp.make_historical_sale(
+  :'collide', 'ce000000-0000-0000-0000-000000000002',
+  'cf000000-0000-0000-0000-000000000003', 'cf000000-0000-0000-0000-000000000004',
+  800, '2024-11-11', 'برحي'
+);
+select is(
+  (select count(*)::int from (
+     select id from public.expenses where id = :'collide'
+     union all
+     select id from public.sales where id = :'collide'
+   ) both_domains),
+  2, 'an expense and a sale really do share one uuid — the collision is set up'
+);
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000f0');
+select pg_temp.add_expense_row(
+  'a0000000-0000-0000-0000-0000000000f0', 'a1000000-0000-0000-0000-0000000000f0',
+  'a2000000-0000-0000-0000-0000000000f0', 'collision-expense-correction', 350, '2024-11-11',
+  :'collide'
+);
+select pg_temp.add_sale_row(
+  'a0000000-0000-0000-0000-0000000000f0', 'a1000000-0000-0000-0000-0000000000f1',
+  'a2000000-0000-0000-0000-0000000000f1', 'collision-sale-correction', 850, '2024-11-11',
+  'برحي', :'collide', 1, 850, 850, '2024-11-11'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000f0'))->>'status',
+  'executed',
+  'a mixed batch correcting an expense and a sale that SHARE a uuid still verifies per domain'
+);
+reset role;
+select is(
+  (select count(*)::int from public.reconciliation_baseline_journal_headers
+    where batch_id = 'a0000000-0000-0000-0000-0000000000f0'),
+  2, 'both colliding originals are snapshotted'
+);
+select is(
+  (select count(distinct source_type)::int from public.reconciliation_baseline_journal_headers
+    where batch_id = 'a0000000-0000-0000-0000-0000000000f0'),
+  2, 'the two snapshots are typed to different domains despite the shared source_id'
+);
+select is(
+  (select payment_status from public.expenses where id = :'collide'),
+  'historical_reversed', 'the colliding EXPENSE was reversed'
+);
+select is(
+  (select payment_status from public.sales where id = :'collide'),
+  'historical_reversed', 'the colliding SALE was reversed'
+);
+select is(
+  (select count(*)::int from public.expenses where corrects_expense_id = :'collide'),
+  1, 'exactly one expense replacement was created'
+);
+select is(
+  (select count(*)::int from public.sales where corrects_sale_id = :'collide'),
+  1, 'exactly one sale replacement was created'
+);
+select is(
+  (select count(*)::int from public.reconciliation_action_links
+    where batch_id = 'a0000000-0000-0000-0000-0000000000f0'),
+  4, 'the colliding mixed correction records exactly reversal+replacement per domain'
+);
+
+-- Determinism of the matched-production-date path across session timezones.
+select pg_temp.make_historical_sale(
+  'cd000000-0000-0000-0000-000000000002', 'ce000000-0000-0000-0000-000000000003',
+  'cf000000-0000-0000-0000-000000000005', 'cf000000-0000-0000-0000-000000000006',
+  480, '2024-08-08', 'برحي', p_claim_status => false
+);
+-- Force the proof and matched-production path onto the timestamptz fallback. At 00:30 UTC this is
+-- still the PREVIOUS calendar day in New York, so a bare `created_at::date` would resolve 2024-08-07
+-- and fail the reviewed 2024-08-08 effective date below.
+update public.sales
+   set sale_date = null,
+       created_at = '2024-08-08 00:30:00+00'::timestamptz
+ where id = 'cd000000-0000-0000-0000-000000000002';
+update public.sales
+   set payment_status = 'historical_treasury'
+ where id = 'cd000000-0000-0000-0000-000000000002';
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000f5');
+select pg_temp.add_sale_row(
+  'a0000000-0000-0000-0000-0000000000f5', 'a1000000-0000-0000-0000-0000000000f5',
+  'a2000000-0000-0000-0000-0000000000f5', 'matched-date-tz', 520, '2024-08-20',
+  'برحي', 'cd000000-0000-0000-0000-000000000002', 1, 520, 520,
+  '2024-08-08', 'use_matched_production_date'
+);
+set local timezone = 'America/New_York';
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000f5'))->>'status',
+  'executed',
+  'the matched-production-date path resolves identically under a westward session timezone'
+);
+reset role;
+reset timezone;
+select is(
+  (select sale_date from public.sales
+    where corrects_sale_id = 'cd000000-0000-0000-0000-000000000002'),
+  '2024-08-08'::date,
+  'the replacement still adopts the target economic date regardless of the executing timezone'
 );
 
 -- ── expense-path regression: the expense contract is untouched by this slice ──────────────────────
@@ -1977,6 +2814,349 @@ select ok(
   not private.fn_reconciliation_sale_has_exact_historical_journal(
     'bb000000-0000-0000-0000-000000000002'),
   'the predicate rejects a pending-price sale outright'
+);
+
+-- ── the migration's classification, replayed END-TO-END on a pre-migration-shaped fixture ────────
+-- The one-time DO block ran at migration time against an empty database, so it never demonstrated
+-- anything. Here the pre-migration world is reconstructed — provable rows carrying the `unpaid`
+-- DEFAULT, plus an AMBIGUOUS LOOKALIKE that must survive untouched — and the migration's exact
+-- UPDATE and both invariant halves are executed verbatim against it.
+select pg_temp.make_historical_sale(
+  'e1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001',
+  'e3000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000002',
+  1500, '2022-01-10', 'برحي', null, null, null, null, false
+);
+select pg_temp.make_historical_sale(
+  'e1000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000002',
+  'e3000000-0000-0000-0000-000000000003', 'e3000000-0000-0000-0000-000000000004',
+  2500, '2022-02-11', 'بنجر', (select id from public.accounts
+                                where org_id = '00000000-0000-0000-0000-000000000001' and code = '4040'),
+  null, null, null, false
+);
+-- The AMBIGUOUS LOOKALIKE: a posted sale journal with a real 1010 debit — so it trips the
+-- "looks historical" heuristic — but its amount does not match the sale total, so the exact proof
+-- refuses it. It must be counted as ambiguous and left completely alone.
+select pg_temp.make_historical_sale(
+  'e1000000-0000-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000003',
+  'e3000000-0000-0000-0000-000000000005', 'e3000000-0000-0000-0000-000000000006',
+  3500, '2022-03-12', 'برحي', null, null, 3400, null, false
+);
+update public.sales set payment_status = 'unpaid'
+ where id in ('e1000000-0000-0000-0000-000000000001',
+              'e1000000-0000-0000-0000-000000000002',
+              'e1000000-0000-0000-0000-000000000003');
+select is(
+  (select count(*)::int from public.sales
+    where id in ('e1000000-0000-0000-0000-000000000001',
+                 'e1000000-0000-0000-0000-000000000002',
+                 'e1000000-0000-0000-0000-000000000003')
+      and payment_status = 'unpaid'),
+  3, 'the pre-migration fixture carries the unpaid DEFAULT, as an unstaged import would'
+);
+
+-- ---- the migration's UPDATE, verbatim ----
+do $$
+declare v_n int;
+begin
+  update public.sales s
+     set payment_status = 'historical_treasury'
+   where s.payment_status not in ('historical_treasury', 'historical_reversed')
+     and private.fn_reconciliation_sale_has_exact_historical_journal(s.id);
+  get diagnostics v_n = row_count;
+  perform set_config('t.reclassified', v_n::text, false);
+end $$;
+select cmp_ok(
+  current_setting('t.reclassified')::int, '>=', 2,
+  'the classification relabels the provable unpaid-default rows a status-driven filter would skip'
+);
+select is(
+  (select payment_status from public.sales where id = 'e1000000-0000-0000-0000-000000000001'),
+  'historical_treasury', 'the first provable pre-migration row is classified'
+);
+select is(
+  (select payment_status from public.sales where id = 'e1000000-0000-0000-0000-000000000002'),
+  'historical_treasury', 'the second provable pre-migration row is classified'
+);
+select is(
+  (select payment_status from public.sales where id = 'e1000000-0000-0000-0000-000000000003'),
+  'unpaid', 'the AMBIGUOUS LOOKALIKE is left completely untouched'
+);
+
+-- ---- the migration's ambiguous-count query, verbatim ----
+select cmp_ok(
+  (select count(*)::int
+     from public.sales s
+    where s.payment_status <> 'historical_treasury'
+      and exists (
+        select 1
+          from public.journal_entries je
+          join public.journal_lines jl on jl.journal_entry_id = je.id
+          join public.accounts a
+            on a.id = jl.account_id and a.org_id = s.org_id and a.code = '1010'
+         where je.org_id = s.org_id and je.source_type = 'sale'
+           and je.source_id = s.id and je.status = 'posted' and jl.debit > 0
+      )
+      and not private.fn_reconciliation_sale_has_exact_historical_journal(s.id)),
+  '>=', 1,
+  'the ambiguous-count query SEES the lookalike rather than silently ignoring it'
+);
+
+-- ---- both halves of the migration's two-sided invariant, verbatim ----
+select is(
+  (select count(*)::int from public.sales s
+    where s.payment_status = 'historical_treasury'
+      and not private.fn_reconciliation_sale_has_exact_historical_journal(s.id)),
+  0, 'soundness half: nothing ended up labelled without the proof'
+);
+select is(
+  (select count(*)::int from public.sales s
+    where s.payment_status not in ('historical_treasury', 'historical_reversed')
+      and private.fn_reconciliation_sale_has_exact_historical_journal(s.id)),
+  0, 'completeness half: no provable row was left behind'
+);
+-- The classified rows are now correct everywhere a reader looks.
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  ((public.fn_revenue_sales_report(:'orgA', '2022-01-01', '2022-12-31', '2022-12-31'))
+    ->>'outstanding_total')::numeric,
+  3500::numeric,
+  'after classification only the UNclassified lookalike still reports as outstanding A/R'
+);
+select is(
+  ((public.fn_revenue_sales_report(:'orgA', '2022-01-01', '2022-12-31', '2022-12-31'))
+    ->>'period_collections')::numeric,
+  4000::numeric,
+  'and the two classified sales register their totals as settled cash (1500 + 2500)'
+);
+reset role;
+
+-- ── direct GL readers: a reversed sale nets to zero, a historical one is ordinary posted revenue ──
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (select round(sum((r->>'debit')::numeric - (r->>'credit')::numeric), 2)
+     from jsonb_array_elements(public.fn_accounting_trial_balance(:'orgA')) r),
+  0::numeric, 'the trial balance still balances after every sale posting and reversal in this file'
+);
+reset role;
+-- Scoped to journals this slice actually created (via the action links), NOT the whole ledger: this
+-- file also builds OPERATIONAL Dr1200/Cr4000 fixtures on purpose, and those must keep their balances.
+select is(
+  (select count(*)::int
+     from public.reconciliation_action_links al
+     join public.journal_lines jl on jl.journal_entry_id = al.journal_entry_id
+     join public.accounts a on a.id = jl.account_id
+    where a.code in ('1200', '1100')),
+  0, 'no reconciliation-created journal line ever touches receivable 1200 or sales cash 1100'
+);
+select is(
+  (select count(*)::int
+     from public.reconciliation_action_links al
+     join public.journal_lines jl on jl.journal_entry_id = al.journal_entry_id
+     join public.accounts a on a.id = jl.account_id
+    where a.code = '4000'),
+  0, 'and no reconciliation-created journal line ever touches the 4000 PARENT'
+);
+select is(
+  (select count(distinct a.code)::int
+     from public.reconciliation_action_links al
+     join public.journal_lines jl on jl.journal_entry_id = al.journal_entry_id
+     join public.accounts a on a.id = jl.account_id
+    where al.target_table = 'sales'
+      and a.code not in ('1010', '4010', '4020', '4030', '4040', '4050', '4090')),
+  0, 'every reconciliation sale line sits on treasury 1010 or a typed revenue leaf — nothing else'
+);
+
+-- ── a correction cannot repost into a typed account that has become a parent ─────────────────────
+select pg_temp.make_historical_sale(
+  'cafe0000-0000-0000-0000-000000000001', 'cafe1000-0000-0000-0000-000000000001',
+  'cafe2000-0000-0000-0000-000000000001', 'cafe3000-0000-0000-0000-000000000001',
+  600, '2024-06-15', 'برحي'
+);
+insert into public.accounts(
+  id, org_id, parent_id, code, name_ar, account_type, normal_balance, active
+) values (
+  'cafe4000-0000-0000-0000-000000000001', :'orgA', current_setting('t.rev4010')::uuid,
+  '4010-TEST-CHILD', 'اختبار فرع إيراد', 'revenue', 'credit', true
+);
+select pg_temp.make_batch('cafe5000-0000-0000-0000-000000000001');
+select pg_temp.add_sale_row(
+  'cafe5000-0000-0000-0000-000000000001', 'cafe6000-0000-0000-0000-000000000001',
+  'cafe7000-0000-0000-0000-000000000001', 'inherited-parent-account', 650, '2024-06-15',
+  'برحي', 'cafe0000-0000-0000-0000-000000000001', 1, 650, 650, '2024-06-15'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('cafe5000-0000-0000-0000-000000000001'))->>'failure_code',
+  'integrity_check',
+  'a correction fails closed when the inherited typed revenue account has an active child'
+);
+reset role;
+select is(
+  (select payment_status from public.sales where id = 'cafe0000-0000-0000-0000-000000000001'),
+  'historical_treasury', 'the failed non-leaf correction leaves the original sale correctable'
+);
+select is(
+  (select status from public.journal_entries where id = 'cafe1000-0000-0000-0000-000000000001'),
+  'posted', 'the failed non-leaf correction leaves the original journal posted'
+);
+select is(
+  (select count(*)::int from public.reconciliation_action_links
+    where batch_id = 'cafe5000-0000-0000-0000-000000000001'),
+  0, 'the failed non-leaf correction creates no financial action'
+);
+select is(
+  (select count(*)::int from public.sales
+    where corrects_sale_id = 'cafe0000-0000-0000-0000-000000000001'),
+  0, 'the failed non-leaf correction creates no replacement sale'
+);
+update public.accounts
+   set active = false
+ where id = 'cafe4000-0000-0000-0000-000000000001';
+
+-- NOTE ON PLACEMENT: this block is LAST on purpose. It drops and re-adds a CHECK on
+-- reconciliation_batch_rows, which takes ACCESS EXCLUSIVE on that table for the remainder of
+-- the transaction — any earlier placement would block the side connections the concurrency
+-- race above uses, and hang the file.
+-- ── a reviewed sale price must be PRESENT, not merely non-negative ────────────────────────────────
+-- Built WITHOUT pg_temp.add_sale_row, whose defaults would coalesce a null away and could not prove
+-- this. The table CHECK is the first line of defence; the executor no longer relies on it alone.
+insert into public.reconciliation_evidence_items(
+  id, org_id, origin_kind, source_workbook_sha256, sheet_name, row_locator,
+  source_identity_fingerprint, source_amount, source_date_text, source_date_parsed,
+  classification, invalid_calendar_quality_flag, first_staged_batch_id, evidence_label
+) values (
+  'd1000000-0000-0000-0000-000000000001', :'orgA', 'source_workbook_row', repeat('b', 64),
+  'sale execution test', 'null-price-row', 'null-price-row', 0, '2024-07-07', '2024-07-07',
+  'zero_value_source_placeholder', false, 'a0000000-0000-0000-0000-000000000010', 'null price'
+);
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000d8');
+select throws_ok(
+  format($$insert into public.reconciliation_batch_rows(
+      id, org_id, batch_id, evidence_item_id, review_state, target_table, disposition,
+      sale_crop, sale_quantity, sale_unit_price, sale_recorded_total,
+      sale_historical_date_decision, sale_effective_date)
+    values ('d2000000-0000-0000-0000-000000000001', %L::uuid,
+            'a0000000-0000-0000-0000-0000000000d8', 'd1000000-0000-0000-0000-000000000001',
+            'reviewed', 'sales', 'include', 'برحي', null, null, 0,
+            'use_source_text_date', '2024-07-07')$$, :'orgA'),
+  '23514', null,
+  'an included sales row with NULL quantity and unit price is rejected by the table CHECK'
+);
+select throws_ok(
+  format($$insert into public.reconciliation_batch_rows(
+      id, org_id, batch_id, evidence_item_id, review_state, target_table, disposition,
+      sale_crop, sale_quantity, sale_unit_price, sale_recorded_total,
+      sale_historical_date_decision, sale_effective_date)
+    values ('d2000000-0000-0000-0000-000000000002', %L::uuid,
+            'a0000000-0000-0000-0000-0000000000d8', 'd1000000-0000-0000-0000-000000000001',
+            'reviewed', 'sales', 'include', 'برحي', 5, null, 0,
+            'use_source_text_date', '2024-07-07')$$, :'orgA'),
+  '23514', null,
+  'a NULL unit price alone is rejected too — a zero source amount is no excuse'
+);
+-- The executor carries its OWN non-null guard rather than trusting a constraint it does not own.
+-- Reaching that guard means getting a genuinely-null row past the CHECK, and a CHECK cannot be
+-- bypassed by session_replication_role (that only disables triggers) — so the constraint is dropped
+-- for the remainder of this transaction and rolled back with the file. This is the only way to prove
+-- the executor is safe on its own rather than merely shadowed by the table constraint.
+alter table public.reconciliation_batch_rows
+  drop constraint reconciliation_batch_rows_target_required;
+insert into public.reconciliation_batch_rows(
+  id, org_id, batch_id, evidence_item_id, review_state, reviewer_id, review_reason, reviewed_at,
+  target_table, disposition, sale_crop, sale_quantity, sale_unit_price, sale_recorded_total,
+  sale_historical_date_decision, sale_effective_date
+) values (
+  'd2000000-0000-0000-0000-000000000003', :'orgA', 'a0000000-0000-0000-0000-0000000000d8',
+  'd1000000-0000-0000-0000-000000000001', 'reviewed', current_setting('t.acct')::uuid,
+  'null quantity bypass', now(), 'sales', 'include', 'برحي', null, 0, 0,
+  'use_source_text_date', '2024-07-07'
+);
+update public.reconciliation_batch_rows br
+   set payload_hash = private.fn_reconciliation_execution_payload_hash(br),
+       frozen = true, frozen_at = now(), review_state = 'frozen'
+ where br.id = 'd2000000-0000-0000-0000-000000000003';
+select ok(
+  (select sale_quantity is null and sale_unit_price = 0
+     from public.reconciliation_batch_rows where id = 'd2000000-0000-0000-0000-000000000003'),
+  'the first bypassed row isolates NULL quantity with a present zero unit price'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000d8'))->>'failure_code',
+  'integrity_check',
+  'the executor independently refuses a null reviewed quantity with the CHECK bypassed'
+);
+reset role;
+select is(
+  (select count(*)::int from public.reconciliation_action_links
+    where batch_id = 'a0000000-0000-0000-0000-0000000000d8'),
+  0, 'the null-quantity row posts nothing'
+);
+-- Isolate the other half too: quantity is present, only unit price is NULL.
+select pg_temp.make_batch('a0000000-0000-0000-0000-0000000000d9');
+insert into public.reconciliation_batch_rows(
+  id, org_id, batch_id, evidence_item_id, review_state, reviewer_id, review_reason, reviewed_at,
+  target_table, disposition, sale_crop, sale_quantity, sale_unit_price, sale_recorded_total,
+  sale_historical_date_decision, sale_effective_date
+) values (
+  'd2000000-0000-0000-0000-000000000005', :'orgA', 'a0000000-0000-0000-0000-0000000000d9',
+  'd1000000-0000-0000-0000-000000000001', 'reviewed', current_setting('t.acct')::uuid,
+  'null unit price bypass', now(), 'sales', 'include', 'برحي', 0, null, 0,
+  'use_source_text_date', '2024-07-07'
+);
+update public.reconciliation_batch_rows br
+   set payload_hash = private.fn_reconciliation_execution_payload_hash(br),
+       frozen = true, frozen_at = now(), review_state = 'frozen'
+ where br.id = 'd2000000-0000-0000-0000-000000000005';
+select ok(
+  (select sale_quantity = 0 and sale_unit_price is null
+     from public.reconciliation_batch_rows where id = 'd2000000-0000-0000-0000-000000000005'),
+  'the second bypassed row isolates NULL unit price with a present zero quantity'
+);
+select pg_temp.as_user(current_setting('t.owner'));
+select is(
+  (public.fn_execute_reconciliation_batch('a0000000-0000-0000-0000-0000000000d9'))->>'failure_code',
+  'integrity_check',
+  'the executor independently refuses a null reviewed unit price with the CHECK bypassed'
+);
+reset role;
+select is(
+  (select count(*)::int from public.reconciliation_action_links
+    where batch_id = 'a0000000-0000-0000-0000-0000000000d9'),
+  0, 'the null-unit-price row posts nothing'
+);
+-- Restore it immediately: nothing after this point may run with the constraint missing. Restored
+-- NOT VALID because the bypass row cannot be removed first — a frozen batch row is delete-guarded,
+-- which is itself a protection worth keeping. NOT VALID skips only the scan of pre-existing rows;
+-- the CHECK still applies in full to every subsequent insert and update, which is what matters here.
+alter table public.reconciliation_batch_rows
+  add constraint reconciliation_batch_rows_target_required check (
+    disposition <> 'include'
+    or (
+      target_table = 'expenses'
+        and expense_category is not null and expense_kind is not null and expense_account_id is not null
+    )
+    or (
+      target_table = 'sales'
+        and sale_crop is not null and sale_quantity is not null
+        and sale_unit_price is not null and sale_recorded_total is not null
+    )
+  ) not valid;
+select ok(
+  (select count(*)::int from pg_constraint
+    where conrelid = 'public.reconciliation_batch_rows'::regclass
+      and conname = 'reconciliation_batch_rows_target_required') = 1,
+  'the target_required CHECK is restored before any later assertion runs'
+);
+select throws_ok(
+  format($$insert into public.reconciliation_batch_rows(
+      id, org_id, batch_id, evidence_item_id, target_table, disposition,
+      sale_crop, sale_quantity, sale_unit_price, sale_recorded_total)
+    values ('d2000000-0000-0000-0000-000000000004', %L::uuid,
+            'a0000000-0000-0000-0000-0000000000d8', 'd1000000-0000-0000-0000-000000000001',
+            'sales', 'include', 'برحي', null, null, 0)$$, :'orgA'),
+  '23514', null,
+  'and the restored CHECK still rejects a fresh null-price row'
 );
 
 select * from finish();

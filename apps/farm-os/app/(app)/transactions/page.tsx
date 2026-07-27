@@ -54,7 +54,10 @@ export default async function TransactionsPage({
         .limit(LIMIT),
       sb
         .from("sales")
-        .select("id, sale_date, crop, qty, unit, total, price_status, buyer_id")
+        .select("id, sale_date, crop, qty, unit, total, price_status, buyer_id, payment_status")
+        // A reconciliation-reversed sale's revenue journal is reversed, so listing it as a positive
+        // incoming row double-counts it against its replacement. (migration 20260726160000)
+        .neq("payment_status", "historical_reversed")
         .order("sale_date", { ascending: false, nullsFirst: false })
         .limit(LIMIT),
       sb

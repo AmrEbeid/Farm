@@ -1553,13 +1553,17 @@ select dblink_exec(
   )
 );
 
+-- The response is the redacted NOT-FOUND, not a distinct cross-org error: 20260726160000 resolves the
+-- batch through caller org membership so an existing batch in another tenant and an unknown uuid are
+-- indistinguishable (the cross-tenant existence oracle). The gate itself is unchanged — a user outside
+-- the organization still cannot execute this terminal batch.
 select pg_temp.as_user(current_setting('t.owner'));
 select throws_ok(
   $$select public.fn_execute_reconciliation_batch(
     'f0000000-0000-0000-0000-000000000002'::uuid
   )$$,
-  '42501', null,
-  'a user outside the organization cannot execute even a terminal batch'
+  'P0002', 'reconciliation batch not found',
+  'a user outside the organization cannot execute even a terminal batch, and cannot tell it exists'
 );
 reset role;
 

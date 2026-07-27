@@ -1,4 +1,4 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude (sale execution drafted, LOCAL)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (sale execution hardened, LOCAL)
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-27 (latest) — sale + mixed-batch reconciliation execution — LOCAL / UNRELEASED
@@ -6,9 +6,9 @@
 Branch `feat/accounting-reconciliation-sale-execution`, worktree
 `/Users/amrebeid/Projects/farm reconciliation sale execution`, base `dbe8fcc` (main after #919/#920).
 New: migration `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
-`201 accounting reconciliation execute sale batch test.sql`. Touched: `lib/database.types.ext.ts` and
-seven finance/insight pages. **Committed locally only — no push, no PR, no merge, no migration apply, no
-deploy, no production access, no real-data write.**
+`201 accounting reconciliation execute sale batch test.sql`. Touched: accounting types/labels, finance and
+insight readers, transactions, buyer 360, and canonical docs. **Committed locally only — no push, no PR, no
+merge, no migration apply, no deploy, and no production write. Read-only production profiling occurred.**
 
 **The premise had to be corrected mid-task, and it was corrected from repository bytes.** The obvious
 reading — that a reconciliation sale addition should post the operational revenue/receivable entry — is
@@ -20,11 +20,10 @@ receivable, fabricates a buyer, or records a collection. The crop → leaf mappi
 `20260707115445:145-153` (regexes, branch order and the `else '4090'` fallback all verified
 programmatically), and the executor never posts to the **parent** account 4000.
 
-**One boundary is stated, not guessed.** `20260708090000` moved three sales 4010 → 4090 by **pinned
-sale_id** and says in its own header that "the rest is an accountant's policy call, NOT decided here".
-There is no derivable rule separating a palm-TREE disposal from date-crop revenue, so this slice does not
-invent one — a crop matching the 4010 keywords maps to 4010, and routing a genuine tree disposal to 4090
-stays a human review decision.
+**One boundary is stated, not guessed.** New additions use the established crop mapping. An amount correction
+cannot change crop or silently reclassify revenue: it inherits the original sale's actual proven typed revenue
+credit leaf. This preserves the three sales that `20260708090000` deliberately moved from 4010 to 4090 by pinned
+sale ID; an explicit future reclassification remains a separate accountant decision.
 
 Delivered: one execution path (`fn_execute_reconciliation_batch` re-emitted, not forked) covering
 expense-only, sale-only and **mixed** batches atomically; `sales.payment_status` gains
@@ -43,7 +42,8 @@ season and aged into A/R; and five revenue aggregations lacked the posted-journa
 
 **A false-green was caught in my own test file and fixed.** Two pgTAP helpers used `perform is(...)`,
 which advances the plan counter while discarding the TAP line — 31 assertions ran invisibly and a failing
-one would have printed nothing. Both helpers now return `setof text`; plan and printed count agree (232).
+one would have printed nothing. Both helpers now return `setof text`; the final expanded fixed plan and printed
+count agree (348).
 
 **An internal adversarial DB review then found a CRITICAL bug, and it is fixed.** The proof-gated
 classification was filtered on `payment_status = 'collected'`. In this repository the only writer of
@@ -76,17 +76,27 @@ The review also confirmed, by independent statement-by-statement diff, **no expe
 not break the crop mapping, atomicity, redaction, the report re-emit, mixed-batch accounting, period-lock
 coverage, or the grant/search_path posture.
 
-Deliberately **not** changed: `/transactions` still lists `historical_reversed` sales, because it is a raw
-transaction ledger with no revenue aggregate and it already lists `historical_reversed` *expenses* shipped in
-#919 — an auditor should see reversed rows there. Following the reviewer's finding, `/record/collect`,
-`/finance/buyers/[id]` and `/finance/cost-centers/[id]` **were** fixed.
+The correction review also closed reader consistency: `/transactions` excludes a reversed sale from positive
+incoming money; buyer 360 retains a valid `historical_treasury` purchase, counts it as settled, computes debt
+per sale, and never offers an impossible collection action; reversed sales remain excluded.
 
-Evidence (all local, ephemeral cluster): pgTAP `201` **232/232**; full pgTAP **ok=2425, not_ok=2,
-file_failures=0** against a measured pre-change baseline of **ok=2193, not_ok=2, file_failures=0** — +232
+The final hardening pass made collection tenancy structural with a composite sale/org foreign key, made the
+proof reject any collection by sale ID even if old tenant data were malformed, froze posted collection evidence
+and reassignment, hid cross-tenant batch existence behind the same not-found response, required an active typed
+revenue leaf for inherited correction postings, and moved mechanical journal reversal behind a revoked private
+helper so the public RPC cannot bypass historical-sale reconciliation.
+
+The final acceptance blocker is also closed: the same public reversal bypass existed for the already-live
+historical-expense state. The private helper now fails closed for both historical domains and both lifecycle
+states, the expense correction branch uses the non-forgeable private reconciliation context, and ordinary
+operational sale and expense reversals remain unchanged.
+
+Evidence (all local, ephemeral cluster): pgTAP `201` **348/348**; full pgTAP **ok=2541, not_ok=2,
+file_failures=0** against a measured pre-change baseline of **ok=2193, not_ok=2, file_failures=0** — +348
 assertions, zero new failures. The two known unrelated stock-engine baselines
 (`55_engine_maxdeficit_sizing_test` #3, `80_engine_msg_maxdef_test` #3) are unchanged and were not
 weakened, skipped or `TODO`-tagged. `tsc --noEmit` exit 0; ESLint exit 0 (touched files and whole app);
-Vitest 70 files, 682 passed + 13 controlled skips; `next build` exit 0, 65/65 pages; recharts code-split
+Vitest 71 files, 702 passed + 13 controlled skips; `next build` exit 0, 65/65 pages; recharts code-split
 and client-fn-in-server guards pass; `git diff --check` clean.
 
 Known risks carried forward, not fixed here: `v_account_rollup` (`20260701440000:810`) still has no
@@ -94,10 +104,8 @@ Known risks carried forward, not fixed here: `v_account_rollup` (`20260701440000
 sale-journal reversal is double-counted there; this is pre-existing (the expense executor already creates
 reversals) and a fix belongs in its own slice. `private.fn_ensure_general_treasury_account` depends on the
 `organization_seed_default_accounts` → `zz_seed_general_treasury_account` alphabetical trigger order for a
-new org to get 1010; renaming either trigger silently breaks it. The proof predicate uses
-`coalesce(sale_date, created_at::date)` exactly as the source backfill did, so for a row with a NULL
-`sale_date` the classification is session-`TimeZone`-dependent — the failure direction is fail-closed
-(left unclassified).
+new org to get 1010; renaming either trigger silently breaks it. The sale proof, matched-production path, and
+report fallback are now pinned to UTC and tested across session timezones.
 
 Next gates: Owner review of this slice; then rollback/reinstatement, the owner-facing execute/rollback UI,
 controlled real staging, dual-run, accountant sign-off. **Applying the migration is the Owner's act.**

@@ -1,6 +1,6 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-27 (sale reconciliation executor drafted LOCAL/UNRELEASED). Owner: Amr Ebeid.*
+*Updated: 2026-07-27 (sale reconciliation executor hardened and validated LOCAL/UNRELEASED). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
@@ -14,10 +14,16 @@ Cr a **typed revenue leaf** (4010/4020/4030/4040/4050/4090) chosen by the crop m
 a fabricated buyer or collection. Adds `sales.payment_status` states `historical_treasury`/`historical_reversed`
 with immutability, delete and duplicate-collection guards, a **proof-gated** (never heuristic, no hardcoded counts)
 classification of existing exact rows, and a narrow `fn_revenue_sales_report` re-emit closing the defect where a
-historical cash-in sale (zero collection rows by construction) reported as outstanding A/R. **Nothing is applied:
-no migration, no PR, no merge, no deploy, no production or real-data action; reconciliation tables stay empty.**
-Local evidence: pgTAP `201` 232/232; full pgTAP **2,425 passing, zero file failures**, only the same two
-stock-engine baselines; TypeScript clean; ESLint 0 (full app); Vitest 682 passed + 13 controlled skips; build
+historical cash-in sale (zero collection rows by construction) reported as outstanding A/R and zero collected cash.
+Corrections preserve the original posted revenue leaf (including approved 4090 palm-disposal reclassifications),
+and reversed sales are excluded from transaction/revenue readers while valid historical sales remain fully settled
+in buyer 360. The hardened draft also structurally binds each collection to its sale's tenant, freezes posted
+collection evidence, and blocks direct public reversal of both historical-sale and historical-expense journals
+while preserving approved executor corrections. **Nothing is applied:
+no migration, no PR, no merge, no deploy, and no production write; read-only production profiling confirmed the
+proof population and unchanged counts, and reconciliation tables stay empty.**
+Local evidence: pgTAP `201` 348/348; full pgTAP **2,541 passing, zero file failures**, only the same two
+stock-engine baselines; TypeScript clean; ESLint 0 (full app); Vitest 702 passed + 13 controlled skips; build
 65/65 pages; recharts + client-fn guards pass. Next gates: owner review, then rollback/reinstatement and the
 owner-facing execute/rollback UI.
 

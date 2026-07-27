@@ -66,17 +66,50 @@
 -- every operational as-of/aging behaviour, and every other key is byte-identical. No broader report
 -- redesign is attempted here.
 --
+-- THE REVERSAL PATH IS A PRIVILEGE BOUNDARY (§7). `public.fn_reverse_journal_entry` is granted to
+-- `authenticated` and gated on `budget.write`, which the accountant role also holds — so before this
+-- slice any such user could reverse a `historical_treasury` sale's journal outside reconciliation and
+-- strand the sale permanently showing settled revenue with no posted entry behind it. The identical
+-- exposure existed for a `historical_treasury` EXPENSE journal (20260726150000), so BOTH domains are
+-- closed here rather than one. The mechanical body moves verbatim into
+-- `private.fn_reverse_journal_entry_internal` (revoked from public/anon/authenticated); the public
+-- RPC keeps its signature and every existing check and now fails closed on any historical
+-- reconciliation sale OR expense journal, in either historical state. Ordinary operational sale and
+-- ordinary expense reversals are untouched, and the executor reaches both corrections through the
+-- private helper.
+--
+-- THE COLLECTION -> SALE TENANT BINDING IS STRUCTURAL (§1b). `sale_collections` had only a
+-- single-column FK to `sales(id)`, so its own `org_id` could disagree with its sale's — and the
+-- historical proof reads that table to rule out a receivable. Existing rows are validated (the
+-- migration aborts on any mismatch), a composite (sale_id, org_id) FK makes a future mismatch
+-- impossible, and the proof itself now disqualifies a sale on ANY collection matching `sale_id`
+-- rather than trusting the constraint.
+--
 -- NO DATA IS STAGED OR EXECUTED BY THIS MIGRATION. No real reconciliation batch runs here.
 --
 -- ROLLBACK RUNBOOK (exact):
 --   begin;
+--   -- re-emit public.fn_reverse_journal_entry from 20260706081636 verbatim, THEN:
+--   drop function if exists private.fn_reverse_journal_entry_internal(uuid, text, date, boolean);
+--   alter table public.sale_collections drop constraint if exists sale_collections_sale_org_fk;
+--   drop index if exists public.sale_collections_sale_org_idx;
+--   -- (public.sales' `sales_id_org_id_uq` is NOT dropped: it predates this migration, 20260726090000.)
 --   drop trigger if exists guard_historical_sale_collection on public.sale_collections;
 --   drop trigger if exists guard_historical_treasury_sale_delete on public.sales;
 --   drop trigger if exists guard_historical_treasury_sale on public.sales;
---   update public.sales set payment_status = 'collected'
---    where payment_status = 'historical_treasury';   -- reverses the proof-gated backfill only
---   -- (no row may be in 'historical_reversed' unless a reconciliation correction ran; reverse that
---   --  batch first, then re-run the line above.)
+--   -- NOTE — THE STATUS BACKFILL IS LOSSY AND HAS NO SAFE SQL ROLLBACK.
+--   -- `payment_status` is a single column with no history, so relabelling a row to
+--   -- 'historical_treasury' DESTROYS whatever it held before. That prior value is not recoverable
+--   -- from the row, and it is NOT uniformly 'collected': in this repository the only writer of
+--   -- 'collected' is fn_record_sale_collection (which requires a collection row a historical
+--   -- cash-in sale never has), so such rows most likely carried the column's 'unpaid' DEFAULT.
+--   -- An `update ... set payment_status = 'collected'` here would therefore FABRICATE a prior
+--   -- state rather than restore one, and is deliberately NOT provided.
+--   -- To undo the classification, restore public.sales.payment_status from the pre-migration
+--   -- backup. Everything else in this migration (functions, triggers, the constraint) rolls back
+--   -- cleanly with the statements below and is independent of the classification.
+--   -- A row in 'historical_reversed' additionally means a reconciliation correction executed;
+--   -- reverse that batch before restoring, or its journals and the column will disagree.
 --   alter table public.sales drop constraint if exists sales_payment_status_check;
 --   alter table public.sales add constraint sales_payment_status_check
 --     check (payment_status in ('unpaid','partially_collected','collected'));
@@ -106,6 +139,77 @@ alter table public.sales
       'historical_treasury', 'historical_reversed'
     )
   );
+
+-- ── 1b) the collection -> sale tenant binding, made STRUCTURAL ────────────────────────────────────
+-- `public.sale_collections` carries its own `org_id`, but its only foreign key was the single-column
+-- `sale_id -> public.sales(id)`. Nothing forced the two to agree — and this table is the ONLY evidence
+-- the historical proof uses to rule out a receivable. A row whose `org_id` disagreed with its sale's
+-- was therefore invisible to a proof written as `c.sale_id = s.id and c.org_id = s.org_id`: the sale
+-- would pass as "no receivable was ever opened" while a real collection sat against it. Two changes,
+-- because either alone is insufficient:
+--
+--   (a) the proof (§3) and the executor's correction-eligibility check now fail on ANY collection
+--       matching `sale_id`, whatever `org_id` it claims — so a mismatched row can never hide; and
+--   (b) a future mismatch is made impossible by construction with a composite
+--       (sale_id, org_id) -> sales(id, org_id) FK. The composite unique key it targets already exists:
+--       20260726090000 §0 added `sales_id_org_id_uq unique (id, org_id)` as exactly this kind of
+--       anchor, so no second index is created here. This is the same tenant-binding pattern that
+--       migration already applied to `sales.corrects_sale_id`, now extended to the collection table it
+--       did not cover.
+--
+-- (a) closes what already exists; (b) closes what could be written next. The pre-existing single-column
+-- FK is deliberately left in place — it is strictly weaker, never contradictory, and dropping it would
+-- churn the delete-cascade behaviour this migration has no reason to touch.
+--
+-- Existing rows are VALIDATED, and a mismatch ABORTS the migration rather than being silently deleted
+-- or "repaired": a collection pointing at another tenant's sale is a fact that needs a human, not an
+-- automatic rewrite. The count is computed from the catalog, never assumed — this must stay correct on
+-- a database that does carry collection rows.
+do $$
+declare
+  v_mismatched int;
+begin
+  select count(*) into v_mismatched
+    from public.sale_collections c
+    join public.sales s on s.id = c.sale_id
+   where c.org_id is distinct from s.org_id;
+  if v_mismatched <> 0 then
+    raise exception
+      'sale collection tenant invariant failed: % collection row(s) reference a sale in another organization',
+      v_mismatched;
+  end if;
+
+  -- An orphan (a collection whose sale_id matches no sale) cannot exist under the pre-existing FK,
+  -- but the composite FK about to be added would fail obscurely on one. Checked explicitly so the
+  -- failure names the actual problem.
+  select count(*) into v_mismatched
+    from public.sale_collections c
+   where not exists (select 1 from public.sales s where s.id = c.sale_id);
+  if v_mismatched <> 0 then
+    raise exception
+      'sale collection tenant invariant failed: % collection row(s) reference no sale at all',
+      v_mismatched;
+  end if;
+end $$;
+
+-- Leading-column covering index for the composite FK below (test 96's invariant: every public FK has
+-- one). `sale_collections_sale_idx` on (sale_id) alone does not cover a two-column key.
+create index if not exists sale_collections_sale_org_idx
+  on public.sale_collections(sale_id, org_id);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.sale_collections'::regclass
+       and conname = 'sale_collections_sale_org_fk'
+  ) then
+    alter table public.sale_collections
+      add constraint sale_collections_sale_org_fk
+      foreign key (sale_id, org_id) references public.sales(id, org_id)
+      on delete cascade;
+  end if;
+end $$;
 
 -- ── 2) the typed revenue leaves, and the established crop mapping ─────────────────────────────────
 create or replace function private.fn_reconciliation_historical_revenue_codes()
@@ -187,9 +291,16 @@ as $$
        -- laundering route — deleting a collection row to orphan its posted Dr 1100 / Cr 1200 entry and
        -- make an operational receivable look like a historical cash sale — is closed at the source by
        -- the DELETE guard on public.sale_collections below, not guessed at here from amounts or dates.
+       --
+       -- Matched on `sale_id` ALONE, deliberately. An `and c.org_id = s.org_id` here would make the
+       -- proof BLIND to a collection row whose org_id disagreed with its sale's: that row would be
+       -- filtered out, the sale would read as "never collected", and it would be certified historical
+       -- cash-in while a real receivable collection sat against it. §1b now makes such a row impossible
+       -- to create, but the proof must not depend on that constraint to be sound — a collection
+       -- against this sale disqualifies it whatever org_id it claims.
        and not exists (
          select 1 from public.sale_collections c
-          where c.sale_id = s.id and c.org_id = s.org_id
+          where c.sale_id = s.id
        )
        -- exactly ONE `sale` journal for this sale, in any status: an ambiguous or already
        -- re-posted/reversed target can never satisfy this
@@ -389,6 +500,37 @@ begin
     return old;
   end if;
 
+  if tg_op = 'UPDATE' then
+    -- REASSIGNMENT is the UPDATE-shaped form of the same laundering route the DELETE branch closes.
+    -- Moving a collection off its sale leaves the original sale with zero collection rows and its
+    -- posted Dr 1100 / Cr 1200 journal intact — exactly the state the historical proof reads as "no
+    -- receivable was ever opened". An UPDATE is not a correction path for a settled receipt, so both
+    -- tenancy columns are refused outright, for posted and unposted rows alike. (The composite FK in
+    -- §1b independently forbids an org_id that disagrees with the sale; this refuses the whole move.)
+    if new.sale_id is distinct from old.sale_id
+       or new.org_id is distinct from old.org_id then
+      raise exception 'a sale collection cannot be reassigned to another sale or organization'
+        using errcode = '22023';
+    end if;
+
+    -- A POSTED collection is accounting evidence for a posted journal. Its identity and its money are
+    -- frozen: re-pricing or re-dating it would silently desynchronise the receipt from the entry that
+    -- actually moved the cash, and clearing `journal_entry_id` would re-open the DELETE route above.
+    -- Descriptive fields (`collected_by`, `note`) stay editable — they carry no accounting meaning.
+    if old.journal_entry_id is not null
+       and (
+            new.id is distinct from old.id
+         or new.amount is distinct from old.amount
+         or new.occurred_at is distinct from old.occurred_at
+         or new.journal_entry_id is distinct from old.journal_entry_id
+         or new.created_at is distinct from old.created_at
+         or new.created_by is distinct from old.created_by
+       ) then
+      raise exception 'a posted sale collection is immutable'
+        using errcode = '22023';
+    end if;
+  end if;
+
   if exists (
     select 1 from public.sales s
      where s.id = new.sale_id
@@ -518,9 +660,27 @@ begin
 
   return (
     with sale_base as (
+      -- `created_at` is timestamptz, so a bare `::date` resolves against the CALLER's session
+      -- timezone: the same sale with a null sale_date could fall on either side of a period or
+      -- as-of boundary depending on who ran the report. Pinned to UTC — the same expression
+      -- private.fn_reconciliation_sale_has_exact_historical_journal uses — so the economic date
+      -- a reader sees is the one the classification and the executor already agreed on.
+      --
+      -- ▼▼ AND FOR A HISTORICAL SALE THE FALLBACK CHAIN ITSELF DIFFERS. The proof helper, the
+      --    lifecycle guard and the executor's matched-production-date path all define the historical
+      --    economic date as `coalesce(sale_date, created_at UTC)` — `delivery_date` is NOT in that
+      --    chain. Reporting a historical row on `coalesce(sale_date, delivery_date, created_at UTC)`
+      --    would therefore periodise it on a date the classification never used: a row with a null
+      --    sale_date and a delivery_date in another month would be certified, posted and reversed on
+      --    one date but reported, aged and recognised as cash on another. The single expression is
+      --    resolved ONCE in `econ` below and used for the report period, the as-of cut, the aging and
+      --    the settlement recognition, so one sale has exactly one date everywhere.
+      --
+      --    Operational rows keep `delivery_date` in the chain, byte-for-byte as 20260701510000 wrote
+      --    it — a delivery-before-price sale legitimately reports on its delivery date. ▲▲
       select
         s.id as sale_id,
-        coalesce(s.sale_date, s.delivery_date, s.created_at::date) as report_date,
+        econ.report_date,
         s.sale_date,
         s.delivery_date,
         s.crop,
@@ -543,8 +703,23 @@ begin
         sec.name as sector_name,
         s.hawsha_id,
         h.name as hawsha_name,
-        coalesce(col.collected_to_as_of, 0) as collected_to_as_of,
-        coalesce(col.collected_in_period, 0) as collected_in_period,
+        -- ▼▼ A historical direct-treasury sale was SETTLED IN CASH at posting (Dr 1010). It has no
+        --    `sale_collections` detail row and by contract never can — the collection guard refuses
+        --    one — so summing that table alone reports it as uncollected and understates both
+        --    collected-to-date and period collections. Its own total IS the collection, recognised
+        --    on its economic date. There is no double-count risk precisely because the guard proves
+        --    the detail table is empty for these rows. Operational as-of behaviour is untouched. ▼▼
+        case
+          when s.payment_status = 'historical_treasury' then
+            case when econ.report_date <= v_as_of then coalesce(s.total, 0) else 0 end
+          else coalesce(col.collected_to_as_of, 0)
+        end as collected_to_as_of,
+        case
+          when s.payment_status = 'historical_treasury' then
+            case when econ.report_date between v_start and v_end then coalesce(s.total, 0) else 0 end
+          else coalesce(col.collected_in_period, 0)
+        end as collected_in_period,
+        -- ▲▲ end historical settlement recognition ▲▲
         case
           -- ▼▼ historical direct-treasury sale: cash-settled at posting (Dr 1010), so it never opens
           --    a receivable and can never age into A/R. Without this branch the generic
@@ -555,13 +730,22 @@ begin
           when s.price_status = 'finalized' then greatest(coalesce(s.total, 0) - coalesce(col.collected_to_as_of, 0), 0)
           else null
         end as outstanding,
-        greatest(0, v_as_of - coalesce(s.sale_date, s.delivery_date, s.created_at::date)) as age_days,
+        greatest(0, v_as_of - econ.report_date) as age_days,
         case
-          when greatest(0, v_as_of - coalesce(s.sale_date, s.delivery_date, s.created_at::date)) >= 60 then '60+'
-          when greatest(0, v_as_of - coalesce(s.sale_date, s.delivery_date, s.created_at::date)) >= 30 then '30-59'
+          when greatest(0, v_as_of - econ.report_date) >= 60 then '60+'
+          when greatest(0, v_as_of - econ.report_date) >= 30 then '30-59'
           else '0-29'
         end as aging_bucket
       from public.sales s
+      -- The ONE economic date for this row, resolved once. `historical_treasury` uses the exact
+      -- expression the proof/guard/executor use; every other row keeps the original operational chain.
+      cross join lateral (
+        select case
+          when s.payment_status = 'historical_treasury'
+            then coalesce(s.sale_date, (s.created_at at time zone 'UTC')::date)
+          else coalesce(s.sale_date, s.delivery_date, (s.created_at at time zone 'UTC')::date)
+        end as report_date
+      ) econ
       left join public.buyers b on b.id = s.buyer_id and b.org_id = s.org_id
       left join public.cost_centers cc on cc.id = s.cost_center_id and cc.org_id = s.org_id
       left join public.farms f on f.id = s.farm_id and f.org_id = s.org_id
@@ -646,7 +830,15 @@ begin
       'period_end', v_end,
       'as_of', v_as_of,
       'finalized_revenue', coalesce((select sum(total) from period_sales where price_status = 'finalized'), 0),
-      'period_collections', coalesce((select sum(amount) from collections), 0),
+      -- Detail collections plus the historical sales settled in the period. The `collections` CTE
+      -- lists real `sale_collections` rows (a historical sale has none), so the two sets are
+      -- disjoint by construction and cannot double-count.
+      'period_collections',
+        coalesce((select sum(amount) from collections), 0)
+        + coalesce((
+            select sum(collected_in_period) from period_sales
+             where payment_status = 'historical_treasury'
+          ), 0),
       'outstanding_total', coalesce((select sum(outstanding) from ar_rows), 0),
       'over_30_amount', coalesce((select sum(outstanding) from ar_rows where age_days >= 30), 0),
       'over_30_count', coalesce((select count(*) from ar_rows where age_days >= 30), 0),
@@ -769,13 +961,239 @@ revoke execute on function public.fn_revenue_sales_report(uuid, date, date, date
 grant execute on function public.fn_revenue_sales_report(uuid, date, date, date)
   to authenticated;
 
--- ── 7) the one execution path, extended to sales and mixed batches ────────────────────────────────
+-- ── 7) the reversal privilege boundary ────────────────────────────────────────────────────────────
+-- THE HOLE THIS CLOSES. `public.fn_reverse_journal_entry` (20260706081636) is granted to
+-- `authenticated` and gated on `budget.write` — a permission the owner and the ACCOUNTANT both hold.
+-- Nothing in it knew about reconciliation, so any such user could reverse the journal backing a
+-- `historical_treasury` sale — or a `historical_treasury` EXPENSE — directly, outside
+-- reconciliation. The result is not merely an unlogged edit, it is UNRECOVERABLE:
+--
+--   * the sale row keeps `payment_status = 'historical_treasury'`, so fn_revenue_sales_report still
+--     reports it as finalized revenue AND as settled cash (outstanding 0, collected = total) while its
+--     journal no longer exists in the posted ledger — revenue with no entry behind it;
+--   * the lifecycle guard freezes every field of a posted historical sale, so the row cannot be
+--     edited back; the DELETE guard refuses removal; and
+--   * `private.fn_reconciliation_sale_has_exact_historical_journal` now fails on it (the entry is
+--     `reversed`, and the sale carries two `sale` journals), so the reconciliation executor refuses
+--     it as a correction target — 'correction target sale and journal do not match'.
+--
+--   The sale is then permanently stuck showing settled revenue that the ledger does not support, with
+--   no path to correct it. That is why this fails CLOSED rather than being merely audited.
+--
+--   THE EXPENSE SIDE IS THE SAME DEFECT, and is closed in the same clause. A `historical_treasury`
+--   expense whose journal is reversed on the public path keeps that status, so fn_owner_pnl_summary
+--   keeps counting it as a settled cash expense while the ledger no longer carries the entry;
+--   20260726150000's lifecycle guard freezes every field of such a row and its DELETE guard refuses
+--   removal; and the executor's own eligibility check then rejects it (the target's remaining posted
+--   journal is gone, so 'correction target has no posted journal'). Identical exposure, identical
+--   irreversibility, so it fails closed identically rather than being deferred.
+--
+-- THE BOUNDARY IS A PRIVILEGE, NOT A FLAG A CALLER CAN SET. The mechanical reversal body moves
+-- VERBATIM into `private.fn_reverse_journal_entry_internal`, which is revoked from public/anon/
+-- authenticated and so is reachable only by a SECURITY DEFINER function running as the owner role.
+-- Its `p_reconciliation_context` argument is therefore not forgeable by a client: an authenticated
+-- caller cannot reach the function to pass it at all. A custom GUC (`set app.reconciliation = on`)
+-- was rejected for exactly the opposite reason — any caller can set one on their own session.
+--
+-- `public.fn_reverse_journal_entry` keeps its signature, its language-visible contract, its grants and
+-- every one of its existing checks; it becomes a thin wrapper that passes `false`. ORDINARY
+-- OPERATIONAL SALE AND ORDINARY EXPENSE REVERSALS ARE UNCHANGED: the new clause fires only on a
+-- `sale`/`expense` journal whose ROW is in a historical reconciliation state, so an operational A/R
+-- sale journal (Dr 1200 / Cr 4000) and an everyday expense journal reverse through the public RPC
+-- exactly as before. Because the clause now covers expenses, §8's EXPENSE correction is routed
+-- through the private helper with `p_reconciliation_context => true`, exactly as the sale correction
+-- is — otherwise the executor would be denied its own reversal. That is the ONLY change to the
+-- expense execution path; every other line of it stays as the expense slice wrote it.
+--
+-- The guard sits AFTER the org-membership and permission checks on purpose. Placed before them it
+-- would answer "is this journal id a historical row's?" for a caller with no access to that org — a
+-- cross-tenant existence oracle of the same shape §8 removes from the batch executor.
+create or replace function private.fn_reverse_journal_entry_internal(
+  p_entry uuid,
+  p_reason text,
+  p_reversal_date date default current_date,
+  p_reconciliation_context boolean default false)
+returns uuid
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_original public.journal_entries%rowtype;
+  v_reason text;
+  v_reversal_date date;
+  v_reversal uuid;
+  v_source_sequence integer;
+begin
+  if p_entry is null then
+    raise exception 'journal entry required' using errcode = '23502';
+  end if;
+  v_reason := nullif(trim(coalesce(p_reason, '')), '');
+  if v_reason is null then
+    raise exception 'reversal reason required' using errcode = '23502';
+  end if;
+  v_reversal_date := coalesce(p_reversal_date, current_date);
+
+  select *
+    into v_original
+    from public.journal_entries
+   where id = p_entry
+   for update;
+  if not found then
+    raise exception 'journal entry % not found', p_entry using errcode = 'P0002';
+  end if;
+
+  if v_original.org_id not in (select public.user_org_ids()) then
+    raise exception 'forbidden: cross-org journal reversal' using errcode = '42501';
+  end if;
+  if not public.authorize('budget.write', v_original.org_id) then
+    raise exception 'forbidden: budget.write is required' using errcode = '42501';
+  end if;
+
+  -- ▼▼ the one added clause: a historical reconciliation journal — SALE or EXPENSE — is reversed ONLY
+  --    by the reconciliation executor, which reaches this function through the private privilege
+  --    boundary. Both domains are covered because the exposure is identical in both: the row keeps a
+  --    historical payment_status while its journal leaves the posted ledger, and the lifecycle guards
+  --    then freeze that row beyond repair. Both historical STATES are covered for the same reason in
+  --    each domain: `historical_reversed` would otherwise fall into the idempotent already-reversed
+  --    return below and hand a caller the reconciliation reversal's id. The message interpolates
+  --    `source_type`, so the sale text is byte-identical to what this clause raised before. ▼▼
+  if not coalesce(p_reconciliation_context, false)
+     and (
+       (
+         v_original.source_type = 'sale'
+         and exists (
+           select 1
+             from public.sales s
+            where s.id = v_original.source_id
+              and s.org_id = v_original.org_id
+              and s.payment_status in ('historical_treasury', 'historical_reversed')
+         )
+       ) or (
+         v_original.source_type = 'expense'
+         and exists (
+           select 1
+             from public.expenses e
+            where e.id = v_original.source_id
+              and e.org_id = v_original.org_id
+              and e.payment_status in ('historical_treasury', 'historical_reversed')
+         )
+       )
+     ) then
+    raise exception
+      'forbidden: a historical reconciliation % journal is reversed only through reconciliation',
+      v_original.source_type
+      using errcode = '42501';
+  end if;
+  -- ▲▲ end added clause — everything below is 20260706081636 verbatim ▲▲
+
+  if v_original.reversal_of is not null then
+    raise exception 'cannot reverse a reversal journal entry' using errcode = '22023';
+  end if;
+
+  if v_original.status = 'reversed' then
+    select id into v_reversal
+      from public.journal_entries
+     where reversal_of = v_original.id
+     order by created_at desc, id desc
+     limit 1;
+    return coalesce(v_reversal, v_original.id);
+  end if;
+
+  if public.fn_period_locked(v_original.org_id, v_original.entry_date) then
+    raise exception 'cannot reverse a journal entry from a locked accounting period' using errcode = '55000';
+  end if;
+  if public.fn_period_locked(v_original.org_id, v_reversal_date) then
+    raise exception 'cannot post a reversal into a locked accounting period' using errcode = '55000';
+  end if;
+
+  perform 1
+    from public.journal_entries
+   where org_id = v_original.org_id
+     and source_type = v_original.source_type
+     and source_id = v_original.source_id
+   order by source_sequence
+   for update;
+
+  select coalesce(max(source_sequence), 0) + 1 into v_source_sequence
+    from public.journal_entries
+   where org_id = v_original.org_id
+     and source_type = v_original.source_type
+     and source_id = v_original.source_id;
+
+  update public.journal_entries
+     set status = 'reversed'
+   where id = v_original.id;
+
+  insert into public.journal_entries(
+    org_id, entry_date, source_type, source_id, source_sequence, description, status, reversal_of)
+  values (
+    v_original.org_id,
+    v_reversal_date,
+    v_original.source_type,
+    v_original.source_id,
+    v_source_sequence,
+    concat('عكس القيد: ', coalesce(v_original.description, v_original.source_type), ' — السبب: ', v_reason),
+    'reversed',
+    v_original.id)
+  returning id into v_reversal;
+
+  insert into public.journal_lines(
+    org_id, journal_entry_id, account_id, debit, credit, description,
+    custody_account_id, custody_movement_id, expense_id, payment_request_id, cost_center_id)
+  select
+    org_id,
+    v_reversal,
+    account_id,
+    credit,
+    debit,
+    concat('عكس: ', coalesce(description, v_original.description, v_original.source_type)),
+    custody_account_id,
+    custody_movement_id,
+    expense_id,
+    payment_request_id,
+    cost_center_id
+  from public.journal_lines
+  where journal_entry_id = v_original.id
+  order by id;
+
+  return v_reversal;
+end;
+$$;
+revoke execute on function private.fn_reverse_journal_entry_internal(uuid, text, date, boolean)
+  from public, anon, authenticated;
+
+-- The public RPC keeps its exact signature, grants, SQLSTATEs and messages. It is now a delegation
+-- that can never assert the reconciliation context.
+create or replace function public.fn_reverse_journal_entry(
+  p_entry uuid,
+  p_reason text,
+  p_reversal_date date default current_date)
+returns uuid
+language sql
+volatile
+security definer
+set search_path = ''
+as $$
+  select private.fn_reverse_journal_entry_internal(p_entry, p_reason, p_reversal_date, false);
+$$;
+revoke execute on function public.fn_reverse_journal_entry(uuid, text, date)
+  from public, anon;
+grant execute on function public.fn_reverse_journal_entry(uuid, text, date)
+  to authenticated;
+
+-- ── 8) the one execution path, extended to sales and mixed batches ────────────────────────────────
 -- Re-emitted from 20260726150000. Every expense guarantee is preserved verbatim: owner-only +
 -- org-scoped authz, approved+frozen revalidation under locks, payload-hash drift detection, the
 -- single inner subtransaction, retryable-SQLSTATE re-raise, redacted failure metadata, the
 -- execution ledger's cross-batch double-execution guard, baseline serialization, postflight
 -- aggregate/journal/snapshot invariants, and the exact-inverse reversal proof. The additions are the
--- `sales` domain branch and the sales half of every baseline/postflight check.
+-- `sales` domain branch and the sales half of every baseline/postflight check. The one edit inside the
+-- EXPENSE branch is the reversal ROUTE: it now calls `private.fn_reverse_journal_entry_internal(...,
+-- true)` instead of `public.fn_reverse_journal_entry(...)`, because §7 now fails the public path
+-- closed on a historical expense journal too. Same body, same entry written, same postflight proof —
+-- only the privilege boundary it crosses changed.
 --
 -- LOCK ORDER (deterministic, and identical for an expense-only, sale-only, or mixed batch):
 --   batch -> batch rows (by evidence_item_id) -> cash 1010 -> revenue leaves (by id)
@@ -837,17 +1255,27 @@ begin
     raise exception 'batch id required' using errcode = '23502';
   end if;
 
+  -- Resolved THROUGH the caller's org membership, not looked up first and rejected afterwards.
+  -- Reading the row unconditionally and then raising a distinct 'cross-org' 42501 made this function
+  -- a CROSS-TENANT EXISTENCE ORACLE: an authenticated member of any organization could probe batch
+  -- uuids and tell "exists, belongs to someone else" (42501) apart from "does not exist" (P0002),
+  -- because SECURITY DEFINER bypasses the table's RLS. Both cases now fall out of the same empty
+  -- result and raise the SAME message and the SAME SQLSTATE, so an outside caller learns nothing at
+  -- all about another tenant's batches.
+  --
+  -- Membership is resolved BEFORE the owner/permission checks below for the same reason: a role
+  -- verdict ('only an owner may execute') implicitly confirms the row exists, so it must be
+  -- unreachable for a non-member. A non-owner MEMBER still gets the owner error, which tells them
+  -- only about their own organization's batch.
   select b.org_id, b.status
     into v_org, v_status
     from public.reconciliation_batches b
    where b.id = p_batch_id
+     and b.org_id in (select public.user_org_ids())
    for update;
 
   if v_org is null then
     raise exception 'reconciliation batch not found' using errcode = 'P0002';
-  end if;
-  if v_org not in (select public.user_org_ids()) then
-    raise exception 'forbidden: cross-org reconciliation batch' using errcode = '42501';
   end if;
   if not exists (
     select 1
@@ -1371,7 +1799,11 @@ begin
             raise exception 'a matched production date requires a correction target'
               using errcode = '23514';
           end if;
-          select coalesce(t.sale_date, t.created_at::date)
+          -- The SAME pinned-UTC economic-date expression the proof helper uses. A bare
+          -- `created_at::date` here would make the accepted effective date depend on the executing
+          -- session's timezone, so the same reviewed row could pass for one owner and fail for
+          -- another — and could post a replacement into a different period than the reversal.
+          select coalesce(t.sale_date, (t.created_at at time zone 'UTC')::date)
             into v_matched_production_date
             from public.sales t
            where t.id = v_batch_row.corrects_sale_id
@@ -1397,13 +1829,21 @@ begin
           raise exception 'reviewed sale total does not match the source amount'
             using errcode = '23514';
         end if;
+        -- Both figures must be PRESENT, not merely non-negative. reconciliation_batch_rows'
+        -- `target_required` CHECK already demands this for an included sales row, but the executor
+        -- must not silently depend on a table constraint it does not own: coalescing a NULL to zero
+        -- would let a null/null row satisfy the cross-check below for a zero-amount source and post
+        -- a priced sale with no reviewed price at all.
+        if v_batch_row.sale_quantity is null or v_batch_row.sale_unit_price is null then
+          raise exception 'reviewed sale quantity and unit price are required'
+            using errcode = '23514';
+        end if;
         -- Quantity x unit price must reproduce the amount, but only to within one cent: a legitimate
         -- 2-dp sheet row can be a cent off its own product (7.5 x 1333.33 = 9,999.98 against a
         -- recorded 10,000.00). The authoritative posted figure is always `source_amount`; this is a
         -- sanity cross-check on the reviewed decomposition, not a second source of truth.
         if abs(
-             round(coalesce(v_batch_row.sale_quantity, 0)
-                   * coalesce(v_batch_row.sale_unit_price, 0), 2)
+             round(v_batch_row.sale_quantity * v_batch_row.sale_unit_price, 2)
              - v_evidence.source_amount
            ) > 0.01 then
           raise exception 'reviewed sale quantity and unit price do not reconcile to the source amount'
@@ -1413,25 +1853,87 @@ begin
           raise exception 'reviewed sale crop is required' using errcode = '23514';
         end if;
 
-        -- Deterministic crop -> typed revenue leaf, re-resolved and re-validated at EXECUTION time
-        -- so a leaf archived after review fails the batch instead of silently posting.
-        select a.id
-          into v_revenue_account
-          from public.accounts a
-         where a.org_id = v_org
-           and a.code = private.fn_reconciliation_historical_sale_revenue_code(v_batch_row.sale_crop)
-           and a.account_type = 'revenue'
-           and a.active
-           and not exists (
-             select 1
-               from public.accounts child
-              where child.parent_id = a.id
-                and child.org_id = v_org
-                and child.active
-           )
-         for update;
-        if v_revenue_account is null then
-          raise exception 'reviewed sale revenue account is not executable' using errcode = '23514';
+        -- Revenue leaf resolution differs by intent, and the difference is load-bearing.
+        --
+        -- A CORRECTION restates the AMOUNT of an existing sale; it is not a reclassification. So it
+        -- INHERITS the typed revenue leaf the original was actually posted to, read from that
+        -- original's own posted credit line. Re-deriving the leaf from the crop here would silently
+        -- undo an accountant's manual reclassification: 20260708090000 moved three palm-TREE
+        -- disposals from 4010 to 4090 by pinned sale_id, and their crop text still matches the 4010
+        -- keywords. Re-deriving would reverse 4090 and replace into 4010 — quietly reversing a
+        -- decision this slice's own header promises not to touch. The reviewed crop is therefore
+        -- also required to still equal the target's crop: changing it is a reclassification, which
+        -- is a separate, explicit, future action, not a side effect of an amount correction.
+        --
+        -- An ADDITION has no original to inherit from, so it uses the established crop mapping.
+        if v_batch_row.corrects_sale_id is not null then
+          if nullif(trim(v_batch_row.sale_crop), '') is distinct from (
+               select nullif(trim(t.crop), '') from public.sales t
+                where t.id = v_batch_row.corrects_sale_id and t.org_id = v_org
+             ) then
+            raise exception 'a sale correction cannot change the crop; reclassification is a separate action'
+              using errcode = '23514';
+          end if;
+
+          select revenue_account.id
+            into v_revenue_account
+            from public.journal_entries original_entry
+            join public.journal_lines revenue_line
+              on revenue_line.journal_entry_id = original_entry.id
+             and revenue_line.credit > 0
+            join public.accounts revenue_account
+              on revenue_account.id = revenue_line.account_id
+             and revenue_account.org_id = v_org
+           where original_entry.org_id = v_org
+             and original_entry.source_type = 'sale'
+             and original_entry.source_id = v_batch_row.corrects_sale_id
+             and original_entry.status = 'posted'
+             and revenue_account.account_type = 'revenue'
+             and revenue_account.code = any (
+               private.fn_reconciliation_historical_revenue_codes()
+             )
+             and revenue_account.active
+             -- THE INHERITED LEAF MUST STILL BE AN EXECUTABLE LEAF. Inheriting the original's account
+             -- answers "which revenue line does this money belong to"; it does not answer "may I post
+             -- there NOW". The replacement is a brand-new posting, so it faces the same standard the
+             -- ADDITION path applies: active AND childless. Without this, an account that was a leaf
+             -- when the original posted but has since been given active children would take a fresh
+             -- posting onto a parent — double-counting it against its own children in every rollup,
+             -- and doing so silently, on the one path that skips the crop mapping's leaf check. If the
+             -- account has since gained a child, `v_revenue_account` comes back null and the whole
+             -- batch fails atomically below rather than posting to a parent.
+             and not exists (
+               select 1
+                 from public.accounts child
+                where child.parent_id = revenue_account.id
+                  and child.org_id = v_org
+                  and child.active
+             )
+           for update of revenue_account;
+          if v_revenue_account is null then
+            raise exception 'correction target revenue account is not executable' using errcode = '23514';
+          end if;
+        else
+          -- Deterministic crop -> typed revenue leaf, re-resolved and re-validated at EXECUTION time
+          -- so a leaf archived after review fails the batch instead of silently posting.
+          select a.id
+            into v_revenue_account
+            from public.accounts a
+           where a.org_id = v_org
+             and a.code = private.fn_reconciliation_historical_sale_revenue_code(v_batch_row.sale_crop)
+             and a.account_type = 'revenue'
+             and a.active
+             and not exists (
+               select 1
+                 from public.accounts child
+                where child.parent_id = a.id
+                  and child.org_id = v_org
+                  and child.active
+             )
+           for update;
+          if v_revenue_account is null then
+            raise exception 'reviewed sale revenue account is not executable' using errcode = '23514';
+          end if;
         end if;
 
         if v_batch_row.sale_buyer_id is not null and not exists (
@@ -1555,13 +2057,21 @@ begin
             using errcode = '23514';
         end if;
 
-        v_reversal_journal_id := public.fn_reverse_journal_entry(
+        -- The PRIVATE helper, not public.fn_reverse_journal_entry — the same route the sale branch
+        -- below takes, and for the same reason. §7 now makes the public path fail closed on exactly
+        -- this journal (its expense is `historical_treasury` right now, enforced by the eligibility
+        -- check above), so the expense slice's original `public.fn_reverse_journal_entry(...)` call
+        -- would deny the executor its own correction. The reversal produced is byte-identical — same
+        -- function body, same swapped-line inverse — and the postflight exact-inverse proof below
+        -- still verifies it against the snapshot.
+        v_reversal_journal_id := private.fn_reverse_journal_entry_internal(
           p_entry => v_original_journal_id,
           p_reason => coalesce(
             nullif(v_batch_row.review_reason, ''),
             'approved reconciliation correction'
           ),
-          p_reversal_date => v_effective_date
+          p_reversal_date => v_effective_date,
+          p_reconciliation_context => true
         );
         insert into public.reconciliation_action_links(
           org_id, batch_id, batch_row_id, action_kind, target_table,
@@ -1596,6 +2106,9 @@ begin
           raise exception 'correction target sale is not an eligible historical treasury sale'
             using errcode = '23514';
         end if;
+        -- Matched on `sale_id` alone, for the same reason the proof helper is (§3): an org_id filter
+        -- here would hide a collection row that claims a different tenant, and this check exists
+        -- precisely to prove no second money path touches the target.
         if exists (
           select 1
             from public.sale_collections collection
@@ -1625,13 +2138,20 @@ begin
             using errcode = '23514';
         end if;
 
-        v_reversal_journal_id := public.fn_reverse_journal_entry(
+        -- The PRIVATE helper, not public.fn_reverse_journal_entry: §7 makes the public path fail
+        -- closed on exactly this journal (its sale is `historical_treasury` right now), and this is
+        -- the single authorised route past that. The reversal produced is byte-identical — same
+        -- function body, same swapped-line inverse — and the postflight exact-inverse proof below
+        -- still verifies it against the snapshot, so the boundary adds a privilege check without
+        -- changing one column of the entry it writes.
+        v_reversal_journal_id := private.fn_reverse_journal_entry_internal(
           p_entry => v_original_journal_id,
           p_reason => coalesce(
             nullif(v_batch_row.review_reason, ''),
             'approved reconciliation correction'
           ),
-          p_reversal_date => v_effective_date
+          p_reversal_date => v_effective_date,
+          p_reconciliation_context => true
         );
         insert into public.reconciliation_action_links(
           org_id, batch_id, batch_row_id, action_kind, target_table,
@@ -1979,6 +2499,10 @@ begin
         join public.reconciliation_baseline_journal_headers original
           on original.batch_id = reversal.batch_id
          and original.source_id = reversal.target_id
+         -- expenses.id and sales.id are independent UUID spaces and may legally collide; without
+         -- this the snapshot of an expense could verify a sale's reversal (and vice versa).
+         and original.source_type = case reversal.target_table
+               when 'expenses' then 'expense' else 'sale' end
        where reversal.batch_id = p_batch_id
          and reversal.action_kind = 'correction_reversal'
          and (
@@ -2064,6 +2588,9 @@ begin
         join public.reconciliation_baseline_journal_headers baseline_header
           on baseline_header.batch_id = reversal.batch_id
          and baseline_header.source_id = reversal.target_id
+         -- same cross-domain UUID-collision guard as the linkage check above
+         and baseline_header.source_type = case reversal.target_table
+               when 'expenses' then 'expense' else 'sale' end
        where reversal.batch_id = p_batch_id
          and reversal.action_kind = 'correction_reversal'
          and (

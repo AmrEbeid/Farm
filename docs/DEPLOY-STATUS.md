@@ -5,25 +5,33 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: LOCAL / UNRELEASED. NOTHING DEPLOYED.**
 > Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) holds append-only migration
 > `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
-> `201 accounting reconciliation execute sale batch test.sql`, committed **locally only**.
+> `201 accounting reconciliation execute sale batch test.sql`, committed **locally only** with a validated
+> follow-up correction pass still local.
 >
-> **Release state: NOT applied to any database, NOT pushed, NO PR, NOT merged, NOT deployed.** No production
-> access, no hosted migration, no financial or real-data write occurred at any point. Every check below ran
+> **Release state: NOT applied to any database, NOT pushed, NO PR, NOT merged, NOT deployed.** Read-only
+> production profiling confirmed the exact proof population and unchanged counts; no hosted migration,
+> financial write, or real-data write occurred. Every executable check below ran
 > against an **ephemeral local PostgreSQL 17 cluster** created and destroyed by
 > `apps/farm-os/supabase/test-shims/run-pgtap-local.sh` (Docker-free harness). Production remains exactly as the
 > 2026-07-27 expense-execution entry below describes it: hosted migration `20260727063039
 > accounting_reconciliation_execute_expense_batch`, reconciliation tables empty, financial counts unchanged.
 >
 > Local evidence for this slice:
-> - pgTAP focused: `201 …execute sale batch test.sql` — **232 ok / 0 not ok / 0 errors**, plan `1..232` matched.
-> - pgTAP full suite: **ok=2425, not_ok=2, file_failures=0** (harness exit 1 solely because the two known
+> - pgTAP focused: `201 …execute sale batch test.sql` — **348 ok / 0 not ok / 0 errors**, plan `1..348` matched.
+> - pgTAP full suite: **ok=2541, not_ok=2, file_failures=0** (harness exit 1 solely because the two known
 >   baselines are not `# TODO`-tagged). Pre-change baseline on the same harness: **ok=2193, not_ok=2,
->   file_failures=0** — i.e. +232 new assertions and **zero new failures**.
+>   file_failures=0** — i.e. +348 new assertions and **zero new failures**.
 > - Known unrelated baselines, unchanged: `55_engine_maxdeficit_sizing_test` assertion 3 (#280 F4) and
 >   `80_engine_msg_maxdef_test` assertion 3 (0078). Neither was weakened, skipped, or `TODO`-tagged.
-> - `tsc --noEmit` exit 0 · `eslint` exit 0 (9 touched files, and 0 across the whole app) · `vitest run`
->   70 files, 682 passed + 13 skipped · `next build` exit 0, 65/65 static pages · recharts code-split guard PASS
+> - `tsc --noEmit` exit 0 · `eslint` exit 0 (touched files, and 0 across the whole app) · `vitest run`
+>   71 files, 702 passed + 13 skipped · `next build` exit 0, 65/65 static pages · recharts code-split guard PASS
 >   · client-fn-in-server guard PASS · `git diff --check` clean.
+>
+> Security hardening in the unreleased migration: collection-to-sale tenant binding is enforced by a composite
+> foreign key; posted collection evidence cannot be reassigned or financially edited; cross-tenant batch UUIDs
+> are indistinguishable from unknown UUIDs; and the public reversal RPC cannot directly reverse historical-sale
+> or historical-expense journals. Approved executor corrections use the revoked private path; ordinary reversals
+> remain unchanged.
 >
 > **Next gate: Owner review. Applying the migration remains the Owner's act, not the agent's.**
 

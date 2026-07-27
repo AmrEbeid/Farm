@@ -1,7 +1,8 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude (sale execution drafted, LOCAL)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (sale execution hardened, LOCAL)
 
 > **2026-07-27 (latest) — ACCOUNTING RECONCILIATION SALE + MIXED-BATCH EXECUTION: LOCAL / UNRELEASED.**
-> **NOT migrated, NOT pushed, NOT in a PR, NOT merged, NOT deployed. No production or real-data action.**
+> **NOT migrated, NOT pushed, NOT in a PR, NOT merged, NOT deployed. Read-only production profiling occurred;
+> no production or real-data write.**
 > Branch `feat/accounting-reconciliation-sale-execution`, worktree
 > `/Users/amrebeid/Projects/farm reconciliation sale execution`, base `dbe8fcc` (main after #919/#920).
 > Append-only migration `20260726160000 accounting reconciliation execute sale batch.sql` re-emits the single
@@ -39,17 +40,19 @@
 > **Report defect closed (narrowly).** `fn_revenue_sales_report` computed `outstanding = total − Σ collections`
 > for every finalized sale and never read `payment_status` (`20260701510000:76-79,107-113`), so a historical
 > cash-in sale — which has zero collection rows by construction — reported as full outstanding A/R aged 60+.
-> Re-emitted with exactly two changes: `historical_treasury` ⇒ `outstanding = 0`, and `historical_reversed` rows
-> leave the report. Seven frontend surfaces were also corrected: `/finance/season` and `/finance/close` (which
+> Re-emitted so `historical_treasury` contributes its cash-settled total to as-of/period collections and
+> `outstanding = 0`, while `historical_reversed` rows leave the report. UTC pins every report-date fallback.
+> Frontend readers were also corrected: `/finance/season` and `/finance/close` (which
 > anchor on `created_at`, so an archive row written today would land in the current season / age into A/R) and
-> five revenue aggregations that lacked the posted-journal liveness check `insights` and `owner` already had.
+> five revenue aggregations that lacked the posted-journal liveness check `insights` and `owner` already had;
+> `/transactions` excludes reversed originals; buyer 360 includes valid historical purchases as fully settled.
 >
-> **Local evidence.** pgTAP `201 accounting reconciliation execute sale batch test.sql` 232/232; full pgTAP
-> **2,425 ok / 2 not-ok / 0 file failures** (baseline before this work was 2,193 ok / the same 2) — the only
+> **Local evidence.** pgTAP `201 accounting reconciliation execute sale batch test.sql` 348/348; full pgTAP
+> **2,541 ok / 2 not-ok / 0 file failures** (baseline before this work was 2,193 ok / the same 2) — the only
 > failures are the two known unrelated stock-engine baselines
 > (`55_engine_maxdeficit_sizing_test` #3, `80_engine_msg_maxdef_test` #3). TypeScript `tsc --noEmit` exit 0;
-> ESLint exit 0 on the 9 touched files and 0 across the whole app; Vitest 682 passed + 13 controlled skips
-> (70 files); `next build` exit 0, 65/65 static pages; recharts code-split guard and client-fn-in-server guard
+> ESLint exit 0 on touched files and 0 across the whole app; Vitest 702 passed + 13 controlled skips
+> (71 files); `next build` exit 0, 65/65 static pages; recharts code-split guard and client-fn-in-server guard
 > both pass; `git diff --check` clean.
 >
 > **Internal adversarial review — one CRITICAL finding, fixed.** The classification was filtered on
@@ -67,6 +70,13 @@
 > now taken only for sale-bearing batches); a hand-listed sale baseline hash missing six columns (now hashes
 > the whole row); a one-cent tolerance on the qty×price cross-check; and uuid ordering of the baseline array.
 > The review independently confirmed **no expense regression** by statement-by-statement diff.
+> A second correction pass preserved the original posted revenue leaf for amount corrections (including the
+> approved 4090 palm-disposal reclassification), rejected null sale quantity/price, pinned matched-production
+> and report fallbacks to UTC, isolated expense/sale UUID domains in postflight, fixed historical cash totals,
+> computes buyer outstanding per sale so one over-collection cannot hide another debt, structurally binds every
+> collection to its sale's tenant, freezes posted collection evidence, hides cross-tenant batch existence, and
+> blocks the public direct-reversal bypass for both historical-sale and historical-expense journals while approved
+> corrections use the revoked private path.
 >
 > **Remaining before this is dependable:** owner review, rollback/reinstatement, owner-facing execute/rollback
 > UI, controlled real staging, dual-run, accountant sign-off.
