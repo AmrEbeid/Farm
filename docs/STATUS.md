@@ -1,10 +1,10 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-27 (sale reconciliation executor hardened and validated LOCAL/UNRELEASED). Owner: Amr Ebeid.*
+*Updated: 2026-07-27 (sale reconciliation executor migrated; PR #921 pending merge). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-07-27 — sale reconciliation execution: LOCAL / UNRELEASED (not migrated, not merged, not deployed).**
+**2026-07-27 — sale reconciliation execution: MIGRATED / PR #921 PENDING MERGE.**
 Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) adds append-only migration
 `20260726160000 accounting reconciliation execute sale batch.sql` + pgTAP `201 …execute sale batch test.sql`.
 It re-emits the one `fn_execute_reconciliation_batch(uuid)` so it executes **expense-only, sale-only, and mixed**
@@ -17,15 +17,19 @@ classification of existing exact rows, and a narrow `fn_revenue_sales_report` re
 historical cash-in sale (zero collection rows by construction) reported as outstanding A/R and zero collected cash.
 Corrections preserve the original posted revenue leaf (including approved 4090 palm-disposal reclassifications),
 and reversed sales are excluded from transaction/revenue readers while valid historical sales remain fully settled
-in buyer 360. The hardened draft also structurally binds each collection to its sale's tenant, freezes posted
+in buyer 360. The migration also structurally binds each collection to its sale's tenant, freezes posted
 collection evidence, and blocks direct public reversal of both historical-sale and historical-expense journals
-while preserving approved executor corrections. **Nothing is applied:
-no migration, no PR, no merge, no deploy, and no production write; read-only production profiling confirmed the
-proof population and unchanged counts, and reconciliation tables stay empty.**
+while preserving approved executor corrections. Exact committed SQL hash
+`c013dffa48244e130cec8e2a5de21cb830886aaad66a2930305675cb77df8a53` was applied migrate-first as hosted
+migration `20260727091633 accounting_reconciliation_execute_sale_batch`; PR #921 is open, not merged.
+Postflight: all 162 sales are `historical_treasury` and retain exact proof for EGP 25,835,533.40;
+reconciliation tables stay empty; expenses/sales/journal entries/journal lines remain
+10,201 / 162 / 10,365 / 20,730. No reconciliation batch or financial posting executed.
 Local evidence: pgTAP `201` 348/348; full pgTAP **2,541 passing, zero file failures**, only the same two
 stock-engine baselines; TypeScript clean; ESLint 0 (full app); Vitest 702 passed + 13 controlled skips; build
-65/65 pages; recharts + client-fn guards pass. Next gates: owner review, then rollback/reinstatement and the
-owner-facing execute/rollback UI.
+65/65 pages; recharts + client-fn guards pass. PR app/secret/shared CI and Vercel preview are green; DB CI is
+baseline-identical; independent rereview approved and CodeRabbit findings were fixed. Next: merge/deploy
+verification, then rollback/reinstatement and the owner-facing execute/rollback UI.
 
 **2026-07-27 — reconciliation review stack and expense execution are live.** Provenance, execution ledger,
 stage/review/freeze/approve RPCs, the Arabic review workspace, and owner-only atomic **expense** execution
@@ -49,7 +53,7 @@ retained only as historical evidence; the 2026-07-26 entry above is current.
 | 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673), and DB/RPC positive plan-requirement backstop live (#848 / prod `20260706180856`). |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
 | 6 Budget + approvals | 70% | PR workflow live; **budget gate is display-only** (#157) — approval never reads budget_lines. |
-| 7 Accounting | ~99% foundation / reconciliation execution incomplete | GL, custody, A/R, COA, close, trusted statements, real 7-year backfill, review/freeze/approve stack, review UI, and owner-only atomic expense execution are **live**. Sale + mixed-batch execution is **LOCAL/UNRELEASED** on `feat/accounting-reconciliation-sale-execution` (migration `20260726160000`, not applied). Remaining for dependable reconciliation: owner review of the sale slice, rollback/reinstatement, execute/rollback UI, controlled real staging, dual-run, and accountant sign-off. |
+| 7 Accounting | ~99% foundation / reconciliation execution incomplete | GL, custody, A/R, COA, close, trusted statements, real 7-year backfill, review/freeze/approve stack, review UI, and owner-only atomic expense execution are **live**. Sale + mixed-batch backend is **MIGRATED** (`20260727091633`); PR #921 is pending merge/deploy. Remaining for dependable reconciliation: rollback/reinstatement, execute/rollback UI, controlled real staging, dual-run, and accountant sign-off. |
 | 8 People/payroll | 50% | Onboarding/attendance/labor live; payroll gated on wage model #388. |
 | 9 Weather | 70% | Gates + thresholds live; forecast service NOT configured in prod. |
 | 10 Care Academy | 20% | #366 draft; gated on agronomist + pesticide-registration sign-off (no agronomist engaged). |

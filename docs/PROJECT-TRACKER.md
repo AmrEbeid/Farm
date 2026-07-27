@@ -1,8 +1,8 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (sale execution hardened, LOCAL)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (sale execution MIGRATED)
 
-> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION SALE + MIXED-BATCH EXECUTION: LOCAL / UNRELEASED.**
-> **NOT migrated, NOT pushed, NOT in a PR, NOT merged, NOT deployed. Read-only production profiling occurred;
-> no production or real-data write.**
+> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION SALE + MIXED-BATCH EXECUTION: MIGRATED / PR #921.**
+> Exact committed SQL was applied migrate-first as hosted migration `20260727091633
+> accounting_reconciliation_execute_sale_batch`; PR #921 is open, not merged or production-deployed.
 > Branch `feat/accounting-reconciliation-sale-execution`, worktree
 > `/Users/amrebeid/Projects/farm reconciliation sale execution`, base `dbe8fcc` (main after #919/#920).
 > Append-only migration `20260726160000 accounting reconciliation execute sale batch.sql` re-emits the single
@@ -77,8 +77,11 @@
 > collection to its sale's tenant, freezes posted collection evidence, hides cross-tenant batch existence, and
 > blocks the public direct-reversal bypass for both historical-sale and historical-expense journals while approved
 > corrections use the revoked private path.
-> **Remaining before this is dependable:** owner review, rollback/reinstatement, owner-facing execute/rollback
-> UI, controlled real staging, dual-run, accountant sign-off.
+> **Production postflight:** 162/162 sales remain exact-proof cash postings totaling EGP 25,835,533.40 and are
+> now `historical_treasury`; reconciliation counts remain 0/0/0; financial counts remain
+> 10,201 / 162 / 10,365 / 20,730. No reconciliation batch executed. **Remaining before this is dependable:**
+> merge/deploy verification, rollback/reinstatement, owner-facing execute/rollback UI, controlled real staging,
+> dual-run, accountant sign-off.
 
 > **2026-07-27 — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The isolated branch `feat/accounting-reconciliation-expense-execution` adds the owner-only,

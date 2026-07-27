@@ -2,19 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: LOCAL / UNRELEASED. NOTHING DEPLOYED.**
-> Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) holds append-only migration
+> **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: MIGRATED / PR #921 PENDING MERGE.**
+> Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) contains append-only migration
 > `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
-> `201 accounting reconciliation execute sale batch test.sql`, committed **locally only** with a validated
-> follow-up correction pass still local.
+> `201 accounting reconciliation execute sale batch test.sql`.
 >
-> **Release state: NOT applied to any database, NOT pushed, NO PR, NOT merged, NOT deployed.** Read-only
-> production profiling confirmed the exact proof population and unchanged counts; no hosted migration,
-> financial write, or real-data write occurred. Every executable check below ran
-> against an **ephemeral local PostgreSQL 17 cluster** created and destroyed by
-> `apps/farm-os/supabase/test-shims/run-pgtap-local.sh` (Docker-free harness). Production remains exactly as the
-> 2026-07-27 expense-execution entry below describes it: hosted migration `20260727063039
-> accounting_reconciliation_execute_expense_batch`, reconciliation tables empty, financial counts unchanged.
+> **Release state:** exact committed SQL hash
+> `c013dffa48244e130cec8e2a5de21cb830886aaad66a2930305675cb77df8a53` was applied migrate-first to Farm
+> production as hosted migration `20260727091633 accounting_reconciliation_execute_sale_batch`. PR #921 is
+> open and not merged; Vercel preview and app/shared/secret CI are green. DB CI is baseline-identical.
 >
 > Local evidence for this slice:
 > - pgTAP focused: `201 …execute sale batch test.sql` — **348 ok / 0 not ok / 0 errors**, plan `1..348` matched.
@@ -27,12 +23,15 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 >   71 files, 702 passed + 13 skipped · `next build` exit 0, 65/65 static pages · recharts code-split guard PASS
 >   · client-fn-in-server guard PASS · `git diff --check` clean.
 >
-> Security hardening in the unreleased migration: collection-to-sale tenant binding is enforced by a composite
+> Production postflight: collection-to-sale tenant binding is enforced by a validated composite
 > foreign key; posted collection evidence cannot be reassigned or financially edited; cross-tenant batch UUIDs
 > are indistinguishable from unknown UUIDs; and the public reversal RPC cannot directly reverse historical-sale
 > or historical-expense journals. Approved executor corrections use the revoked private path; ordinary reversals
-> remain unchanged.
-> **Next gate: Owner review. Applying the migration remains the Owner's act, not the agent's.**
+> remain unchanged. All 162 sales are proof-backed `historical_treasury` for unchanged total EGP 25,835,533.40;
+> reconciliation counts remain 0/0/0 and financial counts remain 10,201 / 162 / 10,365 / 20,730. No batch
+> execution or financial posting occurred. The connector could not impersonate an authenticated JWT for a true
+> remote role smoke; catalog grants and local role regressions are green, and that limitation is not overstated.
+> **Next gate: merge PR #921 and verify the production deployment.**
 
 > **2026-07-27 — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The reviewed branch adds migration `20260726150000 accounting reconciliation execute expense
