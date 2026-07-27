@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (sale execution MIGRATED)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (sale execution LIVE)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-27 (latest) — sale + mixed-batch reconciliation execution — MIGRATED / PR #921
+## 2026-07-27 (latest) — sale + mixed-batch reconciliation execution — LIVE / VERIFIED
 
 Branch `feat/accounting-reconciliation-sale-execution`, worktree
 `/Users/amrebeid/Projects/farm reconciliation sale execution`, base `dbe8fcc` (main after #919/#920).
@@ -9,7 +9,8 @@ New: migration `20260726160000 accounting reconciliation execute sale batch.sql`
 `201 accounting reconciliation execute sale batch test.sql`. Touched: accounting types/labels, finance and
 insight readers, transactions, buyer 360, and canonical docs. Exact committed migration hash
 `c013dffa48244e130cec8e2a5de21cb830886aaad66a2930305675cb77df8a53` was applied migrate-first as hosted
-version `20260727091633 accounting_reconciliation_execute_sale_batch`. PR #921 is open; not merged or deployed.
+version `20260727091633 accounting_reconciliation_execute_sale_batch`. PR #921 merged at `3a28ad6`; production
+deployment `dpl_AYftJ6rgPievAX4mUbTrsscB8KSY` is READY.
 
 **The premise had to be corrected mid-task, and it was corrected from repository bytes.** The obvious
 reading — that a reconciliation sale addition should post the operational revenue/receivable entry — is
@@ -113,8 +114,9 @@ EGP 25,835,533.40; reconciliation counts remain 0/0/0; financial counts remain
 10,201 / 162 / 10,365 / 20,730. No reconciliation batch or financial posting executed. The new FK/index,
 three lifecycle guards, private reversal helper, executor, grants, and empty search paths are present.
 The connector rejected authenticated-role impersonation, so no true remote JWT smoke is claimed; catalog grants
-and local role regressions are green. Next gates: merge/deploy verification, rollback/reinstatement, the
-owner-facing execute/rollback UI, controlled real staging, dual-run, accountant sign-off.
+and local role regressions are green. Live root is 200, the protected reconciliation route redirects to login,
+and production error/fatal logs are empty. Next gates: rollback/reinstatement, the owner-facing execute/rollback
+UI, controlled real staging, dual-run, accountant sign-off.
 
 ## 2026-07-27 — expense reconciliation execution migrated, merged, deployed, verified
 

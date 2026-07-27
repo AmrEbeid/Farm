@@ -2,7 +2,8 @@
 
 > **2026-07-27 (latest) — ACCOUNTING RECONCILIATION SALE + MIXED-BATCH EXECUTION: MIGRATED / PR #921.**
 > Exact committed SQL was applied migrate-first as hosted migration `20260727091633
-> accounting_reconciliation_execute_sale_batch`; PR #921 is open, not merged or production-deployed.
+> accounting_reconciliation_execute_sale_batch`; PR #921 merged at `3a28ad6`, and Vercel production deployment
+> `dpl_AYftJ6rgPievAX4mUbTrsscB8KSY` is READY with clean error/fatal logs.
 > Branch `feat/accounting-reconciliation-sale-execution`, worktree
 > `/Users/amrebeid/Projects/farm reconciliation sale execution`, base `dbe8fcc` (main after #919/#920).
 > Append-only migration `20260726160000 accounting reconciliation execute sale batch.sql` re-emits the single
@@ -80,7 +81,7 @@
 > **Production postflight:** 162/162 sales remain exact-proof cash postings totaling EGP 25,835,533.40 and are
 > now `historical_treasury`; reconciliation counts remain 0/0/0; financial counts remain
 > 10,201 / 162 / 10,365 / 20,730. No reconciliation batch executed. **Remaining before this is dependable:**
-> merge/deploy verification, rollback/reinstatement, owner-facing execute/rollback UI, controlled real staging,
+> rollback/reinstatement, owner-facing execute/rollback UI, controlled real staging,
 > dual-run, accountant sign-off.
 
 > **2026-07-27 — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, MERGED, DEPLOYED, VERIFIED.**

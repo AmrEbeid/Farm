@@ -2,15 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: MIGRATED / PR #921 PENDING MERGE.**
+> **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: LIVE / VERIFIED.**
 > Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) contains append-only migration
 > `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
 > `201 accounting reconciliation execute sale batch test.sql`.
 >
 > **Release state:** exact committed SQL hash
 > `c013dffa48244e130cec8e2a5de21cb830886aaad66a2930305675cb77df8a53` was applied migrate-first to Farm
-> production as hosted migration `20260727091633 accounting_reconciliation_execute_sale_batch`. PR #921 is
-> open and not merged; Vercel preview and app/shared/secret CI are green. DB CI is baseline-identical.
+> production as hosted migration `20260727091633 accounting_reconciliation_execute_sale_batch`. PR #921 merged
+> to `main` at `3a28ad6bfb05c8158db292bb16afbd3761f72b75`; Vercel production deployment
+> `dpl_AYftJ6rgPievAX4mUbTrsscB8KSY` is READY. App/shared/secret CI are green; DB CI is baseline-identical.
 >
 > Local evidence for this slice:
 > - pgTAP focused: `201 …execute sale batch test.sql` — **348 ok / 0 not ok / 0 errors**, plan `1..348` matched.
@@ -31,7 +32,9 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > reconciliation counts remain 0/0/0 and financial counts remain 10,201 / 162 / 10,365 / 20,730. No batch
 > execution or financial posting occurred. The connector could not impersonate an authenticated JWT for a true
 > remote role smoke; catalog grants and local role regressions are green, and that limitation is not overstated.
-> **Next gate: merge PR #921 and verify the production deployment.**
+> Live verification: `ebeidfarm.business` returns 200, `/finance/reconciliation` redirects unauthenticated users
+> to login, and the production deployment has no error/fatal runtime logs. Next product gate:
+> rollback/reinstatement and the owner-facing execute/rollback UI.
 
 > **2026-07-27 — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > The reviewed branch adds migration `20260726150000 accounting reconciliation execute expense
