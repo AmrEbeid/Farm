@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Alert, EmptyState, KpiCard, Tag } from "@/components/ui";
+import { Alert, Button, EmptyState, Field, KpiCard, Select, Tag } from "@/components/ui";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { leafPostingAccounts } from "@/lib/account-options";
@@ -17,6 +17,9 @@ import {
   isUuid,
   paginate,
   parsePageParam,
+  parseReconciliationQueueFilters,
+  reconciliationQueueHref,
+  reconciliationQueueStatePredicates,
   rollbackGate,
   summarizeResultSummary,
   RECONCILIATION_PAGE_SIZE,
@@ -89,6 +92,7 @@ type BatchRowRecord = {
   sale_farm: { name: string } | null;
   sale_sector: { name: string } | null;
   sale_hawsha: { code: string; name: string } | null;
+  evidence: EvidenceRow | null;
 };
 
 type CorrectionExpense = {
@@ -166,12 +170,18 @@ export default async function ReconciliationBatchPage({
   searchParams,
 }: {
   params: Promise<{ batchId: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{
+    page?: string | string[];
+    classification?: string | string[];
+    state?: string | string[];
+  }>;
 }) {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
   const { batchId } = await params;
-  const { page: pageParam } = await searchParams;
+  const rawSearchParams = await searchParams;
+  const pageParam = rawSearchParams.page;
+  const filters = parseReconciliationQueueFilters(rawSearchParams);
 
   // Fail closed on a malformed id — never send it to PostgREST.
   if (!isUuid(batchId)) notFound();
@@ -213,10 +223,35 @@ export default async function ReconciliationBatchPage({
     allDecided: total > 0 && unreviewed === 0,
   };
 
-  const pagination = paginate(total, parsePageParam(pageParam), RECONCILIATION_PAGE_SIZE);
+  const statePredicates = reconciliationQueueStatePredicates(filters.state);
+  let filteredCountQuery = sb
+    .from("reconciliation_batch_rows")
+    .select(
+      "id, evidence:reconciliation_evidence_items!reconciliation_batch_rows_evidence_tenant_fk!inner(id)",
+      { count: "exact", head: true },
+    )
+    .eq("batch_id", batchId)
+    .eq("org_id", m.orgId)
+    .eq("evidence.org_id", m.orgId);
+  if (filters.classification) {
+    filteredCountQuery = filteredCountQuery.eq(
+      "evidence.classification",
+      filters.classification,
+    );
+  }
+  for (const predicate of statePredicates) {
+    filteredCountQuery = filteredCountQuery.eq(predicate.column, predicate.value);
+  }
+  const { count: filteredCount, error: filteredCountError } = await filteredCountQuery;
+  if (filteredCountError) throw filteredCountError;
+  const pagination = paginate(
+    filteredCount ?? 0,
+    parsePageParam(pageParam),
+    RECONCILIATION_PAGE_SIZE,
+  );
 
   // The page of rows (bounded to 50 via range()).
-  const { data: rowData, error: rowError } = await sb
+  let rowQuery = sb
     .from("reconciliation_batch_rows")
     .select(
       [
@@ -260,29 +295,23 @@ export default async function ReconciliationBatchPage({
         "sale_farm:farms!reconciliation_batch_rows_sale_farm_id_fkey(name)",
         "sale_sector:sectors!reconciliation_batch_rows_sale_sector_id_fkey(name)",
         "sale_hawsha:hawshat!reconciliation_batch_rows_sale_hawsha_id_fkey(code, name)",
+        "evidence:reconciliation_evidence_items!reconciliation_batch_rows_evidence_tenant_fk!inner(id, origin_kind, sheet_name, row_locator, snapshot_target_table, snapshot_target_id, source_amount, source_date_text, source_date_parsed, classification, invalid_calendar_quality_flag, evidence_label)",
       ].join(", "),
     )
     .eq("batch_id", batchId)
     .eq("org_id", m.orgId)
+    .eq("evidence.org_id", m.orgId);
+  if (filters.classification) {
+    rowQuery = rowQuery.eq("evidence.classification", filters.classification);
+  }
+  for (const predicate of statePredicates) {
+    rowQuery = rowQuery.eq(predicate.column, predicate.value);
+  }
+  const { data: rowData, error: rowError } = await rowQuery
     .order("evidence_item_id", { ascending: true })
     .range(pagination.offset, pagination.offset + pagination.pageSize - 1);
   if (rowError) throw rowError;
   const batchRows = (rowData ?? []) as unknown as BatchRowRecord[];
-
-  // Evidence provenance for exactly this page's rows (bounded IN list ≤ 50).
-  const evidenceIds = Array.from(new Set(batchRows.map((r) => r.evidence_item_id)));
-  const evidenceById = new Map<string, EvidenceRow>();
-  if (evidenceIds.length > 0) {
-    const { data: evData, error: evError } = await sb
-      .from("reconciliation_evidence_items")
-      .select(
-        "id, origin_kind, sheet_name, row_locator, snapshot_target_table, snapshot_target_id, source_amount, source_date_text, source_date_parsed, classification, invalid_calendar_quality_flag, evidence_label",
-      )
-      .eq("org_id", m.orgId)
-      .in("id", evidenceIds);
-    if (evError) throw evError;
-    for (const ev of (evData ?? []) as EvidenceRow[]) evidenceById.set(ev.id, ev);
-  }
 
   // Resolve correction targets for this bounded page on every render. These summaries are displayed
   // outside the editable picker, so the approver can verify the exact target after reload and freeze.
@@ -368,7 +397,7 @@ export default async function ReconciliationBatchPage({
   }
 
   const rowVms: RowVM[] = batchRows.map((r) => {
-    const ev = evidenceById.get(r.evidence_item_id);
+    const ev = r.evidence;
     const classification = (ev?.classification ?? "") as Classification;
     const sourceDateText = ev?.source_date_text ?? null;
     const parsed = ev?.source_date_parsed ?? null;
@@ -550,6 +579,53 @@ export default async function ReconciliationBatchPage({
         />
       )}
 
+      <form
+        method="get"
+        className="flex flex-wrap items-end gap-2 rounded-md p-3"
+        style={{ border: "1px solid var(--line)", background: "var(--surface)" }}
+      >
+        <Field label="نوع المطابقة" id="classification">
+          <Select
+            id="classification"
+            name="classification"
+            selectSize="sm"
+            defaultValue={filters.classification ?? ""}
+            options={[
+              { value: "", label: "كل الأنواع" },
+              ...Object.entries(CLASSIFICATION_AR).map(([value, label]) => ({ value, label })),
+            ]}
+          />
+        </Field>
+        <Field label="قرار المراجعة" id="state">
+          <Select
+            id="state"
+            name="state"
+            selectSize="sm"
+            defaultValue={filters.state ?? ""}
+            options={[
+              { value: "", label: "كل القرارات" },
+              { value: "unreviewed", label: "بدون قرار" },
+              { value: "included", label: "تُضمَّن" },
+              { value: "held", label: "مُعلَّقة" },
+              { value: "rejected", label: "مرفوضة" },
+              { value: "frozen", label: "مُجمَّدة" },
+            ]}
+          />
+        </Field>
+        <Button type="submit" size="sm" variant="primary">
+          تطبيق
+        </Button>
+        {(filters.classification || filters.state) && (
+          <Link
+            href={`/finance/reconciliation/${batchId}`}
+            className="rounded-md px-3 py-1.5 text-sm"
+            style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
+          >
+            مسح
+          </Link>
+        )}
+      </form>
+
       {counts.total === 0 ? (
         <EmptyState title="لا توجد صفوف في هذه الدفعة" />
       ) : (
@@ -575,6 +651,9 @@ export default async function ReconciliationBatchPage({
           from={pagination.from}
           to={pagination.to}
           total={pagination.total}
+          hasActiveFilters={Boolean(filters.classification || filters.state)}
+          previousHref={reconciliationQueueHref(batchId, pagination.page - 1, filters)}
+          nextHref={reconciliationQueueHref(batchId, pagination.page + 1, filters)}
         />
       )}
     </div>
