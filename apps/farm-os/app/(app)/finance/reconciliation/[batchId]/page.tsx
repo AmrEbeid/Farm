@@ -12,10 +12,13 @@ import {
   CLASSIFICATION_AR,
   correctionTargetLabel,
   evidenceTargetLabel,
+  executeGate,
   freezeGate,
   isUuid,
   paginate,
   parsePageParam,
+  rollbackGate,
+  summarizeResultSummary,
   RECONCILIATION_PAGE_SIZE,
   EXPENSE_KIND_AR,
   PAYMENT_DECISION_AR,
@@ -122,6 +125,31 @@ async function headCount(
 }
 
 /**
+ * Truthful "how many rows actually executed", as a bounded head count against the executor's own
+ * bookkeeping column — never a hardcoded number, and never derived from the batch status.
+ *
+ * `posted` and `reversed` are the only two `execution_result` values that represent a real money
+ * action: `posted` is a created expense/sale with its journal, `reversed` is a correction that
+ * reversed a production journal (and, after a rollback, a created posting that was itself reversed).
+ * `pending` never ran, `skipped` deliberately did nothing (a zero-value no-op, or an evidence item
+ * another batch had already claimed), and `failed` did not complete — none of those executed.
+ */
+async function executedRowCount(
+  sb: Awaited<ReturnType<typeof createClient>>,
+  batchId: string,
+  orgId: string,
+): Promise<number> {
+  const { count, error } = await sb
+    .from("reconciliation_batch_rows")
+    .select("id", { count: "exact", head: true })
+    .eq("batch_id", batchId)
+    .eq("org_id", orgId)
+    .in("execution_result", ["posted", "reversed"]);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/**
  * Fail LOUDLY when a bounded option list overflows its cap rather than silently truncating — a
  * truncated set would make the leaf-account computation and the hierarchy filters wrong.
  */
@@ -158,7 +186,7 @@ export default async function ReconciliationBatchPage({
   if (!batch) notFound(); // missing or cross-org (RLS) → fail closed.
 
   // Whole-batch state summary via bounded head counts (no unbounded row read; no N+1 over data).
-  const [total, unreviewed, included, held, rejected, frozen] = await Promise.all([
+  const [total, unreviewed, included, held, rejected, frozen, executed] = await Promise.all([
     headCount(sb, batchId, m.orgId),
     headCount(sb, batchId, m.orgId, [{ column: "review_state", value: "unreviewed" }]),
     headCount(sb, batchId, m.orgId, [{ column: "disposition", value: "include" }]),
@@ -170,6 +198,7 @@ export default async function ReconciliationBatchPage({
     // Frozen counts the actual frozen flag across ALL dispositions (included rows move to
     // review_state='frozen', but held/rejected rows keep their state with frozen=true).
     headCount(sb, batchId, m.orgId, [{ column: "frozen", value: true }]),
+    executedRowCount(sb, batchId, m.orgId),
   ]);
   const counts: RowStateCounts = {
     total,
@@ -177,7 +206,7 @@ export default async function ReconciliationBatchPage({
     reviewed: total - unreviewed,
     rejected,
     frozen,
-    executed: 0,
+    executed,
     included,
     held,
     decided: total - unreviewed,
@@ -469,32 +498,35 @@ export default async function ReconciliationBatchPage({
   };
   const freeze = freezeGate(batch.status, counts);
   const approve = approveGate(batch.status, m.role);
+  const execute = executeGate(batch.status, m.role);
+  const rollback = rollbackGate(batch.status, m.role);
+  // Counts and the owner's own rollback reason only — summarizeResultSummary drops every key it does
+  // not recognise (including the row-level `safe_locator`) rather than rendering an unknown value.
+  const summaryLines = summarizeResultSummary(batch.result_summary);
   const sourceLabel =
     batch.source_label?.trim() ||
     (batch.source_workbook_sha256 ? `دفتر ${batch.source_workbook_sha256.slice(0, 8)}` : "دفعة تسوية");
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">{sourceLabel}</h1>
-            <Tag tone={statusMeta.tone as never}>{statusMeta.label}</Tag>
-          </div>
-          <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-            مراجعة صفوف الدفعة واتخاذ قرار صريح لكل صف — بدون ترحيل أو تعديل بيانات فعلية.
-          </p>
-        </div>
+    <div className="flex flex-col gap-4 p-4 sm:p-6">
+      {/* One line, not a stacked block: the batch name, its status, the one-line purpose and the
+          back link all share a single row so the controls below stay above the fold. */}
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="text-lg font-bold">{sourceLabel}</h1>
+        <Tag tone={statusMeta.tone as never}>{statusMeta.label}</Tag>
+        <span className="text-xs" style={{ color: "var(--ink-muted)" }}>
+          قرار صريح لكل صف، ثم تجميد، ثم اعتماد المالك، ثم تنفيذ مالي يمكن التراجع عنه.
+        </span>
         <Link
           href="/finance/reconciliation"
-          className="rounded-md px-3 py-2 text-sm"
+          className="ms-auto rounded-md px-3 py-1 text-sm"
           style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
         >
           كل الدفعات
         </Link>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <section className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard label="الصفوف" value={num(counts.total)} />
         <KpiCard label="بدون قرار" value={num(counts.unreviewed)} />
         <KpiCard label="تُضمَّن" value={num(counts.included)} />
@@ -503,11 +535,18 @@ export default async function ReconciliationBatchPage({
         <KpiCard label="مُجمَّدة" value={num(counts.frozen)} />
       </section>
 
-      {!editable && batch.status !== "reviewed" && batch.status !== "approved" && (
+      {batch.status === "executing" && (
         <Alert
           tone="warning"
-          title="خارج نطاق هذه الشاشة"
-          description="حالة هذه الدفعة لا تُدار من مساحة المراجعة (التنفيذ/التراجع خارج النطاق). تُعرض للاطّلاع فقط."
+          title="الدفعة قيد التنفيذ الآن"
+          description="جارٍ ترحيل هذه الدفعة في معاملة واحدة. لا يُتخذ أي إجراء من هنا حتى تنتهي."
+        />
+      )}
+      {batch.status === "failed" && (
+        <Alert
+          tone="danger"
+          title="فشل التنفيذ ولم يُرحَّل أي شيء"
+          description="أُلغيت المعاملة بالكامل؛ لم تتغيّر أي مصروفات أو مبيعات أو قيود. راجع سبب الفشل بجوار الأزرار."
         />
       )}
 
@@ -525,6 +564,12 @@ export default async function ReconciliationBatchPage({
           freezeReason={freeze.reason}
           canApprove={approve.canApprove}
           approveReason={approve.reason}
+          canExecute={execute.canExecute}
+          executeReason={execute.reason}
+          canRollback={rollback.canRollback}
+          rollbackReason={rollback.reason}
+          executedRows={counts.executed}
+          summaryLines={summaryLines}
           page={pagination.page}
           pageCount={pagination.pageCount}
           from={pagination.from}

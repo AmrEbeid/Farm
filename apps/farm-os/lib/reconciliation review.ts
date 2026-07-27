@@ -11,6 +11,8 @@
 // user sees an Arabic validation message and keeps their input. Never fabricates a value: a missing
 // number stays missing (a validation error), it is not defaulted to 0.
 
+import { num } from "./money";
+
 export const RECONCILIATION_PAGE_SIZE = 50;
 export const RECONCILIATION_MAX_BATCHES = 50;
 /** Slice-2 staging RPC caps a batch at 1000 rows; the summary read is bounded to this. */
@@ -278,6 +280,211 @@ export function approveGate(
     return { canApprove: false, reason: "الاعتماد للمالك فقط." };
   }
   return { canApprove: true, reason: null };
+}
+
+// ── Execute / rollback gates. Both mirror fn_execute_reconciliation_batch and
+//    fn_rollback_reconciliation_batch exactly: owner ONLY, and one specific batch status. The DB is
+//    the authoritative gate; these exist so an accountant is never shown a control they cannot use
+//    and an owner gets an Arabic reason instead of a raw SQLSTATE. ──────────────────────────────────
+export function executeGate(
+  status: string,
+  role: string,
+): { canExecute: boolean; reason: string | null } {
+  if (role !== "owner") {
+    return { canExecute: false, reason: "التنفيذ للمالك فقط." };
+  }
+  if (status !== "approved") {
+    return { canExecute: false, reason: "لا يُنفَّذ إلا بعد اعتماد الدفعة." };
+  }
+  return { canExecute: true, reason: null };
+}
+
+export function rollbackGate(
+  status: string,
+  role: string,
+): { canRollback: boolean; reason: string | null } {
+  if (role !== "owner") {
+    return { canRollback: false, reason: "التراجع للمالك فقط." };
+  }
+  if (status === "rolled_back") {
+    return { canRollback: false, reason: "تم التراجع عن هذه الدفعة بالفعل." };
+  }
+  if (status !== "executed") {
+    return { canRollback: false, reason: "لا يمكن التراجع إلا عن دفعة مُنفَّذة." };
+  }
+  return { canRollback: true, reason: null };
+}
+
+/** The exact bound fn_rollback_reconciliation_batch enforces on a trimmed reason. */
+export const ROLLBACK_REASON_MAX = 500;
+
+export type ReasonResult = { ok: true; reason: string } | { ok: false; error: string };
+
+/**
+ * Validate the mandatory rollback reason BEFORE any RPC call, with the same trim-then-bound rule the
+ * RPC applies, so the owner keeps their text and sees an Arabic message instead of a 23502/22023.
+ */
+export function validateRollbackReason(value: unknown): ReasonResult {
+  if (typeof value !== "string") {
+    return { ok: false, error: "سبب التراجع مطلوب ولا يمكن أن يكون فارغًا." };
+  }
+  const reason = value.trim();
+  if (reason.length === 0) {
+    return { ok: false, error: "سبب التراجع مطلوب ولا يمكن أن يكون فارغًا." };
+  }
+  if (reason.length > ROLLBACK_REASON_MAX) {
+    // The bound stays the NUMBER 500 for every comparison; only the rendered digits are localized.
+    // A bare `${ROLLBACK_REASON_MAX}` leaks Western "500" into an otherwise Arabic string.
+    return {
+      ok: false,
+      error: `سبب التراجع طويل جدًا (الحد ${num(ROLLBACK_REASON_MAX)} حرفًا).`,
+    };
+  }
+  return { ok: true, reason };
+}
+
+// ── result_summary rendering (counts and the owner's own reason ONLY). ─────────────────────────────
+export const EXECUTION_FAILURE_AR: Record<string, string> = {
+  locked_period: "فترة محاسبية مقفلة",
+  integrity_check: "فشل تحقّق سلامة البيانات",
+  invalid_state: "حالة غير صالحة للتنفيذ",
+  execution_failed: "فشل التنفيذ",
+};
+
+// ── Money-RPC response inspection — the authority on whether anything was actually posted. ─────────
+//
+// fn_execute_reconciliation_batch does NOT raise on a non-transient failure. It catches, records the
+// verdict on the batch, and RETURNS `{status:"failed", failure_code, safe_locator}` with NO PostgREST
+// error at all (only a retryable 40001/40P01/55P03 is re-raised). A caller that checks `error` alone
+// therefore reports success on a batch that atomically posted nothing. These parsers are the single
+// place that reads the returned jsonb, and they fail CLOSED: only an explicit, recognised success
+// status is a success, and `safe_locator` is never read, so it can never reach a user-facing string.
+
+/** The undo message both failure paths end on: the DB is atomic, so nothing partial ever survives. */
+const NO_CHANGE_AR = "لم يُرحَّل أي شيء ولم تتغيّر أي أرقام.";
+const UNEXPECTED_EXECUTE_AR =
+  `ردّ غير متوقَّع من خادم التنفيذ. ${NO_CHANGE_AR} راجع حالة الدفعة قبل إعادة المحاولة.`;
+const UNEXPECTED_ROLLBACK_AR =
+  "ردّ غير متوقَّع من خادم التراجع. راجع حالة الدفعة قبل إعادة المحاولة.";
+
+export type BatchOutcome =
+  | { ok: true; status: "executed" | "rolled_back"; idempotent: boolean }
+  | { ok: false; error: string };
+
+/**
+ * Arabic for one execution `failure_code`. An unrecognised (or missing) code degrades to the generic
+ * "unclassified" wording rather than echoing the raw code, so a future DB code can never leak.
+ */
+export function executionFailureMessage(failureCode: unknown): string {
+  const label = typeof failureCode === "string" ? EXECUTION_FAILURE_AR[failureCode] : undefined;
+  return `فشل تنفيذ الدفعة: ${label ?? "فشل غير مصنَّف"}. ${NO_CHANGE_AR}`;
+}
+
+/** The one shape check both parsers share: a plain object carrying a non-empty string `status`. */
+function readOutcome(
+  data: unknown,
+): { status: string; idempotent: boolean; source: Record<string, unknown> } | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const source = data as Record<string, unknown>;
+  if (typeof source.status !== "string" || source.status.trim().length === 0) return null;
+  return { status: source.status, idempotent: source.idempotent === true, source };
+}
+
+/**
+ * Inspect what fn_execute_reconciliation_batch returned.
+ *
+ * `executed` is the ONLY success, and it covers the idempotent repeat (the RPC returns the same
+ * status with `idempotent:true` when an already-executed batch is re-submitted, having written
+ * nothing). `failed` and `rolled_back` are truthful terminal verdicts that posted nothing, and any
+ * other/malformed body is treated as unknown — all four report ok:false.
+ */
+export function parseExecuteOutcome(data: unknown): BatchOutcome {
+  const outcome = readOutcome(data);
+  if (!outcome) return { ok: false, error: UNEXPECTED_EXECUTE_AR };
+  if (outcome.status === "executed") {
+    return { ok: true, status: "executed", idempotent: outcome.idempotent };
+  }
+  if (outcome.status === "failed") {
+    return { ok: false, error: executionFailureMessage(outcome.source.failure_code) };
+  }
+  if (outcome.status === "rolled_back") {
+    return { ok: false, error: `لا يمكن تنفيذ دفعة سبق التراجع عنها. ${NO_CHANGE_AR}` };
+  }
+  return { ok: false, error: UNEXPECTED_EXECUTE_AR };
+}
+
+/**
+ * Inspect what fn_rollback_reconciliation_batch returned. That RPC has no terminal failure state by
+ * design — it either raises (and the whole transaction disappears) or returns `rolled_back`, the
+ * idempotent repeat included. Anything else means the undo cannot be claimed to have happened.
+ */
+export function parseRollbackOutcome(data: unknown): BatchOutcome {
+  const outcome = readOutcome(data);
+  if (!outcome || outcome.status !== "rolled_back") {
+    return { ok: false, error: UNEXPECTED_ROLLBACK_AR };
+  }
+  return { ok: true, status: "rolled_back", idempotent: outcome.idempotent };
+}
+
+/**
+ * One display row of a batch `result_summary`. A discriminated union rather than optional fields, so
+ * a `count` line always HAS its number and a renderer can never fall back to a fabricated 0.
+ */
+export type ResultSummaryLine =
+  | { key: string; label: string; kind: "count"; count: number }
+  | { key: string; label: string; kind: "text"; text: string };
+
+const RESULT_COUNT_LABELS: [string, string][] = [
+  ["executed_rows", "صفوف نُفِّذت"],
+  ["skipped_rows", "صفوف متجاوَزة"],
+  ["reversed_journals", "قيود عُكِست"],
+  ["reinstated_journals", "قيود أُعيدت"],
+  ["zero_value_rows", "صفوف بقيمة صفرية"],
+  ["ledger_rows_reversed", "سجلات تنفيذ تراجعت"],
+  ["rows_marked_reversed", "صفوف صارت معكوسة"],
+];
+
+/**
+ * Turn a batch `result_summary` into a short, safe display list.
+ *
+ * Only the keys enumerated here are ever surfaced, and only when the stored value has the expected
+ * type — an unknown or malformed key is DROPPED, never guessed at and never rendered as a number it
+ * is not. `safe_locator` is deliberately excluded: it is a row-level locator, and §2.7's redaction
+ * discipline keeps row-level identifiers out of a batch-level summary.
+ */
+export function summarizeResultSummary(summary: unknown): ResultSummaryLine[] {
+  if (!summary || typeof summary !== "object" || Array.isArray(summary)) return [];
+  const source = summary as Record<string, unknown>;
+  const lines: ResultSummaryLine[] = [];
+
+  for (const [key, label] of RESULT_COUNT_LABELS) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      lines.push({ key, label, kind: "count", count: value });
+    }
+  }
+
+  const failure = source.failure_code;
+  if (typeof failure === "string" && failure.trim().length > 0) {
+    lines.push({
+      key: "failure_code",
+      label: "سبب الفشل",
+      kind: "text",
+      text: EXECUTION_FAILURE_AR[failure] ?? "فشل غير مصنَّف",
+    });
+  }
+
+  const reason = source.rollback_reason;
+  if (typeof reason === "string" && reason.trim().length > 0) {
+    lines.push({
+      key: "rollback_reason",
+      label: "سبب التراجع",
+      kind: "text",
+      text: reason.trim().slice(0, ROLLBACK_REASON_MAX),
+    });
+  }
+
+  return lines;
 }
 
 // ── Evidence provenance display (pure label building — no formatting side effects). ─────────────────

@@ -1399,8 +1399,41 @@ type ReconciliationBatchRowsTable = {
   Update: Record<string, never>;
   Relationships: [];
 };
-// The three authenticated client RPCs the review workspace calls. Staging/execution/rollback RPCs are
-// intentionally omitted here — Slice 4 never calls them.
+/**
+ * What the two owner-only money RPCs return.
+ *
+ * Both answer with a jsonb VERDICT, not with a bare void: fn_execute_reconciliation_batch catches a
+ * non-transient failure, records it on the batch, and returns `{status:'failed', failure_code,
+ * safe_locator}` WITHOUT raising, so `status` is the only truthful signal that anything was posted.
+ * Typing these as an opaque `Json` forced a caller to either ignore the body or cast it, which is
+ * exactly how a returned failure came to be reported as success.
+ *
+ * Every field is optional and nullable ON PURPOSE. This type says "here is the shape you may look
+ * for"; it does not assert the server sent it. `lib/reconciliation review.ts`'s parseExecuteOutcome /
+ * parseRollbackOutcome remain the authoritative runtime validation and fail closed on anything else.
+ */
+export type ReconciliationBatchOutcome = {
+  batch_id?: string | null;
+  status?: string | null;
+  idempotent?: boolean | null;
+  executed_rows?: number | null;
+  skipped_rows?: number | null;
+  /** Coarse execution failure class. Mapped to Arabic; never rendered raw. */
+  failure_code?: string | null;
+  // `safe_locator` IS on the wire and is deliberately NOT modelled here. It is a row-level locator,
+  // and §2.7's redaction discipline keeps row-level identifiers out of anything a user can see. Not
+  // declaring it makes that a COMPILE error rather than a convention: `data.safe_locator` does not
+  // typecheck, so a future caller cannot reach it without deliberately casting past this contract.
+  reversed_journals?: number | null;
+  reinstated_journals?: number | null;
+  zero_value_rows?: number | null;
+  ledger_rows_reversed?: number | null;
+  rows_marked_reversed?: number | null;
+};
+
+// The authenticated client RPCs the reconciliation workspace calls: the three review-stage ones plus
+// the two owner-only money RPCs the batch page now drives. The STAGING RPC stays omitted — no client
+// surface calls it.
 type ReconciliationFunctions = {
   fn_review_reconciliation_row: {
     Args: { p_row_id: string; p_decision: Json };
@@ -1413,6 +1446,22 @@ type ReconciliationFunctions = {
   fn_approve_reconciliation_batch: {
     Args: { p_batch_id: string };
     Returns: Json;
+  };
+  /**
+   * Owner-only, whole-batch atomic execution of an approved batch (20260726150000/20260726160000).
+   * Returns a verdict — a `failed` status arrives with NO PostgREST error, so the body must be read.
+   */
+  fn_execute_reconciliation_batch: {
+    Args: { p_batch_id: string };
+    Returns: ReconciliationBatchOutcome;
+  };
+  /**
+   * Owner-only, whole-batch atomic rollback of an executed batch (20260726170000). `p_reason` is
+   * MANDATORY at the RPC — it is typed non-optional here so a caller cannot omit it at compile time.
+   */
+  fn_rollback_reconciliation_batch: {
+    Args: { p_batch_id: string; p_reason: string };
+    Returns: ReconciliationBatchOutcome;
   };
 };
 

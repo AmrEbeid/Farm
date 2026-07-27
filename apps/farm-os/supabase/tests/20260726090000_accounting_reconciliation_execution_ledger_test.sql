@@ -26,7 +26,7 @@
 -- deletes it again afterward — no fixture or connection is left behind.
 
 begin;
-select plan(109);
+select plan(112);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set orgB 'b2000000-0000-0000-0000-000000000002'
@@ -332,11 +332,35 @@ select lives_ok(
             values (%L, '1b000000-0000-0000-0000-000000000001', '1b200000-0000-0000-0000-000000000001',
                     'zero_value_noop')$$, :'orgA'),
   'action_kind = zero_value_noop inserts with no target row and no journal_entry_id');
+-- On a DIFFERENT batch row than the bare no-op above: migration 20260726170000 §0b adds
+-- unique (batch_row_id, action_kind), so one row may carry a given kind exactly once. The claim being
+-- asserted is unchanged — a zero_value_noop MAY carry a populated target pair.
 select lives_ok(
   format($$insert into public.reconciliation_action_links (org_id, batch_id, batch_row_id, action_kind, target_table, target_id)
-            values (%L, '1b000000-0000-0000-0000-000000000001', '1b200000-0000-0000-0000-000000000001',
-                    'zero_value_noop', 'expenses', '1b300000-0000-0000-0000-000000000001')$$, :'orgA'),
+            values (%L, '1b000000-0000-0000-0000-000000000001', '1b200000-0000-0000-0000-000000000003',
+                    'zero_value_noop', 'sales', '1b400000-0000-0000-0000-000000000001')$$, :'orgA'),
   'action_kind = zero_value_noop MAY also carry a populated target pair (§11 item 3 leaves this open) as long as journal_entry_id stays null');
+-- ...and the same kind may NOT be recorded twice for one batch row (20260726170000 §0b): the rollback
+-- derives its undo from these links, so a duplicated action is a duplicated undo.
+select throws_ok(
+  format($$insert into public.reconciliation_action_links (org_id, batch_id, batch_row_id, action_kind)
+            values (%L, '1b000000-0000-0000-0000-000000000001', '1b200000-0000-0000-0000-000000000001',
+                    'zero_value_noop')$$, :'orgA'),
+  '23505', 'duplicate key value violates unique constraint "reconciliation_action_links_row_kind_uq"',
+  'one action_kind per batch row: a second link of the same kind is rejected by the unique index');
+-- The links are append-only from ANY role, including the table owner this test session runs as.
+select throws_ok(
+  $$update public.reconciliation_action_links set action_kind = 'addition'
+     where batch_row_id = '1b200000-0000-0000-0000-000000000001'
+       and action_kind = 'zero_value_noop'$$,
+  '22023', 'reconciliation_action_links: rows are append-only and cannot be updated',
+  'an action link cannot be updated (20260726170000 §0b)');
+select throws_ok(
+  $$delete from public.reconciliation_action_links
+     where batch_row_id = '1b200000-0000-0000-0000-000000000001'
+       and action_kind = 'zero_value_noop'$$,
+  '22023', 'reconciliation_action_links: rows are append-only and cannot be deleted',
+  'an action link cannot be deleted (20260726170000 §0b)');
 select throws_ok(
   format($$insert into public.reconciliation_action_links (org_id, batch_id, batch_row_id, action_kind, target_table, target_id, journal_entry_id)
             values (%L, '1b000000-0000-0000-0000-000000000001', '1b200000-0000-0000-0000-000000000001',

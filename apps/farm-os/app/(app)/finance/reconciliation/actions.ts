@@ -10,6 +10,9 @@ import { egp } from "@/lib/money";
 import {
   buildReviewDecision,
   isUuid,
+  parseExecuteOutcome,
+  parseRollbackOutcome,
+  validateRollbackReason,
 } from "@/lib/reconciliation review";
 
 export type ActionResult = { ok: boolean; error?: string };
@@ -92,6 +95,76 @@ export async function approveBatch(batchId: string): Promise<ActionResult> {
   if (error) return { ok: false, error: toArabicError(error, APPROVE_PERM, "تعذّر اعتماد الدفعة.") };
   revalidateReconciliation(batchId);
   return { ok: true };
+}
+
+// The two owner-only MONEY paths. Both map every SQLSTATE the RPC can raise to a specific Arabic
+// message: the shared default for 23514 ("المخزون غير كافٍ") belongs to the stock engine and would be
+// nonsense here, so both maps override it.
+const EXECUTE_PERM: Record<string, string> = {
+  "42501": "التنفيذ للمالك فقط ويتطلب صلاحية التسويات.",
+  "22023": "لا تُنفَّذ إلا دفعة معتمدة.",
+  "23514": "فشل تحقّق مالي أثناء التنفيذ؛ لم يُرحَّل أي شيء ولم تتغيّر أي أرقام.",
+  "23502": "بيانات المراجعة ناقصة؛ لم يُرحَّل أي شيء.",
+  "55000": "فترة محاسبية مقفلة؛ افتحها أو صحّح التواريخ قبل التنفيذ.",
+  P0002: "الدفعة المطلوبة غير موجودة.",
+};
+
+const ROLLBACK_PERM: Record<string, string> = {
+  "42501": "التراجع للمالك فقط ويتطلب صلاحية التسويات.",
+  "22023": "لا يمكن التراجع إلا عن دفعة مُنفَّذة، وبسبب لا يتجاوز ٥٠٠ حرف.",
+  "23502": "سبب التراجع مطلوب.",
+  "23514": "تعذّر إثبات التراجع بدقّة؛ لم يتغيّر أي قيد أو رقم.",
+  "55000": "فترة محاسبية مقفلة؛ لا يمكن عكس أو إعادة قيد داخلها. الدفعة ما زالت مُنفَّذة.",
+  P0002: "الدفعة المطلوبة غير موجودة.",
+};
+
+/**
+ * Execute an approved batch (owner only; the RPC re-verifies owner + reconciliation.write + approved
+ * + frozen + payload hashes, and is the authoritative gate). This MOVES REAL MONEY: it creates the
+ * reviewed expenses/sales and posts their journals in one atomic transaction.
+ */
+export async function executeBatch(batchId: string): Promise<ActionResult> {
+  if (!isUuid(batchId)) return { ok: false, error: "مُعرّف الدفعة غير صالح." };
+  await requireRole(["owner"]);
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_execute_reconciliation_batch", { p_batch_id: batchId });
+  if (error) return { ok: false, error: toArabicError(error, EXECUTE_PERM, "تعذّر تنفيذ الدفعة.") };
+  // A non-transient execution failure comes back as a RETURNED `failed` verdict with no PostgREST
+  // error, so the returned jsonb — not `error` — decides whether anything was posted. Both routes are
+  // revalidated either way: a `failed` execution still moved the batch's status and result_summary,
+  // and the owner must see that truthfully rather than a stale `approved`.
+  const outcome = parseExecuteOutcome(data);
+  revalidateReconciliation(batchId);
+  return outcome.ok ? { ok: true } : { ok: false, error: outcome.error };
+}
+
+/**
+ * Roll back an executed batch (owner only). Reverses every posting the batch created and reinstates
+ * every journal it reversed, atomically. The reason is mandatory and is validated here with the same
+ * trim-then-bound rule the RPC applies, so a bad reason never becomes a raw SQLSTATE.
+ */
+export async function rollbackBatch(input: unknown): Promise<ActionResult> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, error: "بيانات التراجع غير صالحة." };
+  }
+  const candidate = input as Record<string, unknown>;
+  if (!isUuid(candidate.batchId)) return { ok: false, error: "مُعرّف الدفعة غير صالح." };
+  const reason = validateRollbackReason(candidate.reason);
+  if (!reason.ok) return { ok: false, error: reason.error };
+
+  await requireRole(["owner"]);
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_rollback_reconciliation_batch", {
+    p_batch_id: candidate.batchId as string,
+    p_reason: reason.reason,
+  });
+  if (error) return { ok: false, error: toArabicError(error, ROLLBACK_PERM, "تعذّر التراجع عن الدفعة.") };
+  // Symmetrical with executeBatch. This RPC has no terminal failure state — it raises or it returns
+  // `rolled_back` — but the verdict is still read from the response rather than assumed, so an
+  // unexpected body can never be reported to the owner as "the money was put back".
+  const outcome = parseRollbackOutcome(data);
+  revalidateReconciliation(candidate.batchId as string);
+  return outcome.ok ? { ok: true } : { ok: false, error: outcome.error };
 }
 
 function normalizeArabicDigits(value: string): string {
