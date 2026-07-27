@@ -1,8 +1,18 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-27 (staged reconciliation queue filters live). Owner: Amr Ebeid.*
+*Updated: 2026-07-27 (data-authority gates live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-27 — full data audit + report authority gates: MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+Farm production migration `20260727145912 data_authority_status` applied before PR #931 merged at `7ce98f5`;
+deployment `dpl_DUtDwchLmRVfU9He4MjXMvoeNNJk` is READY. Seven org-scoped authority states now fail closed:
+ledger/inventory/operations partial; palms unverified; offshoots/budgets/payroll blocked. Palm, offshoot,
+operations, and budget reports suppress unsupported totals/exports; budget-vs-actual shows posted-GL actuals
+only, explicitly labeled partial, until both ledger and budget sources are verified. Verification is owner-only
+and requires source label, record count, and evidence notes. Live owner-session checks passed with no runtime
+errors. Financial rows remain 10,201 expenses / 162 sales / 10,365 journals. This protects report truthfulness;
+it does not fill the missing records. See `data coverage audit 2026 07 27.md`.
 
 **2026-07-27 — staged reconciliation review filters + read performance: MERGED / DEPLOYED / LIVE-VERIFIED.**
 PR #927 merged at `2d325fd`; production deployment `dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY.

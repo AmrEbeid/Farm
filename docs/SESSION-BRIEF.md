@@ -1,5 +1,22 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (review page faster)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (data authority gates live)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-27 (latest) — full data audit and authority gates — LIVE / VERIFIED
+
+The source audit found 2,221 indexed paths (1,249 unique hashes; 95.28% extraction/OCR). Production finance
+is internally balanced but incomplete against the pinned workbook: 660 expense rows and 19 sales remain
+unrepresented, with the 698-row batch still entirely unreviewed/hold. Palm sources conflict; offshoot and
+budget ledgers are absent; payroll remains security/wage-model blocked; inventory and operations are partial.
+
+Migration `20260727145912 data_authority_status` applied before PR #931 merged at `7ce98f5`; deployment
+`dpl_DUtDwchLmRVfU9He4MjXMvoeNNJk` is READY. Owner-only provenance states now suppress unsupported report
+totals and exports. Live owner-session checks passed for farm dashboard, offshoots, budgets, budget detail,
+and budget-vs-actual; no runtime errors were found. Financial rows stayed unchanged.
+
+**Exact resume point:** decide all 698 accounting rows and complete dual-run/accountant acceptance; resolve
+Stage 0 security; obtain a corrected palm registry or field count; approve the wage model; and capture real
+offshoot, budget, inventory-history, and operations ledgers. Do not mark any domain verified without source
+label, record count, and evidence notes.
 
 ## 2026-07-27 (latest) — reconciliation review read performance — LIVE / MEASURED
 

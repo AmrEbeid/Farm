@@ -1,7 +1,7 @@
 # Farm data coverage audit
 
 **Date:** 2026-07-27  
-**Mode:** source read-only, production read-only, no imports or record changes
+**Mode:** source read-only; production metadata gate applied; no transactional import or record change
 
 ## What was reviewed
 
