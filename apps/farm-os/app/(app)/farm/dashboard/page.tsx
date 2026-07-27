@@ -14,6 +14,7 @@ import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { OP_STATUS_AR, SUBTYPE_AR } from "@/lib/labels";
 import { buildPalmCountReconciliation } from "@/lib/palm-count-reconciliation";
+import { DATA_NOT_VERIFIED_AR, getDataAuthority, isAuthoritative } from "@/lib/data-authority";
 
 const ATTENTION_STATUS_AR: Record<string, string> = {
   watch: "تحت المراقبة",
@@ -48,6 +49,9 @@ export default async function FarmDashboardPage({
     { data: reconciliationHawshat, error: reconciliationHawshatError },
     { data: reconciliationLines, error: reconciliationLinesError },
     { data: reconciliationPalms, error: reconciliationPalmsError },
+    palmAuthority,
+    offshootAuthority,
+    operationsAuthority,
   ] = await Promise.all([
     sb
       .from("sectors")
@@ -90,6 +94,9 @@ export default async function FarmDashboardPage({
       .eq("type", "palm")
       .eq("archived", false)
       .in("status", ["active", "watch", "sick", "dead"]),
+    getDataAuthority(sb, m.orgId, "palm_registry"),
+    getDataAuthority(sb, m.orgId, "offshoots"),
+    getDataAuthority(sb, m.orgId, "operations"),
   ]);
   if (sectorsError) throw sectorsError;
   if (hawshatError) throw hawshatError;
@@ -99,6 +106,9 @@ export default async function FarmDashboardPage({
   if (reconciliationHawshatError) throw reconciliationHawshatError;
   if (reconciliationLinesError) throw reconciliationLinesError;
   if (reconciliationPalmsError) throw reconciliationPalmsError;
+  const palmVerified = isAuthoritative(palmAuthority.status);
+  const offshootVerified = isAuthoritative(offshootAuthority.status);
+  const operationsVerified = isAuthoritative(operationsAuthority.status);
 
   const tallied = (sectors ?? []).map((s) => {
     const liveHawshat = (
@@ -251,43 +261,61 @@ export default async function FarmDashboardPage({
 
       {/* First-run guidance: no palms registered yet on this page's own tally
           (totalBarhi, already computed above) — disappears once real data exists. */}
-      {totalBarhi === 0 && (
+      {!palmVerified && (
+        <Alert tone="warning" title="سجل النخيل غير موثق" description={DATA_NOT_VERIFIED_AR} />
+      )}
+      {canSeeOffshoots && !offshootVerified && (
+        <Alert tone="warning" title="سجل الفسائل غير موثق" description={DATA_NOT_VERIFIED_AR} />
+      )}
+      {!operationsVerified && (
+        <Alert tone="warning" title="سجل العمليات غير مكتمل" description={DATA_NOT_VERIFIED_AR} />
+      )}
+
+      {palmVerified && totalBarhi === 0 && (
         <div className="no-print">
           <OnboardingChecklist role={m.role} />
         </div>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-        <DashboardKpiLink href="/farm/dashboard?filter=sectors" active={filter === "sectors"}>
-          <KpiCard label="القطاعات" value={num((sectors ?? []).length)} />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/farm/dashboard?filter=hawshat" active={filter === "hawshat"}>
-          <KpiCard label="الحوشات" value={num(totalHawshat)} />
-        </DashboardKpiLink>
-        <KpiCard label="نخيل برحي" value={num(totalBarhi)} delta={`${num(totalMale)} ذكور`} />
-        <DashboardKpiLink href="/farm/dashboard?filter=attention" active={filter === "attention"}>
-          <KpiCard
-            label="نخيل يحتاج عناية"
-            value={num(totalAttention)}
-            delta={
-              totalAttention > attentionRows.length ? "يعرض الجدول أحدث ١٢" : totalAttention ? "يتطلب متابعة" : "لا توجد حالات"
-            }
-            deltaDirection={totalAttention ? "down" : "none"}
-          />
-        </DashboardKpiLink>
-        {canSeeOffshoots && (
-          <DashboardKpiLink href="/farm/offshoots" active={false}>
-            <KpiCard
-              label="فسائل متاحة"
-              value={num(offshootAvailable)}
-              delta={`${num(offshootProduced)} منتج`}
-              deltaDirection={offshootAvailable < 0 ? "down" : "none"}
-            />
-          </DashboardKpiLink>
-        )}
-      </section>
+      {(palmVerified || (canSeeOffshoots && offshootVerified)) && (
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          {palmVerified && (
+            <DashboardKpiLink href="/farm/dashboard?filter=sectors" active={filter === "sectors"}>
+              <KpiCard label="القطاعات" value={num((sectors ?? []).length)} />
+            </DashboardKpiLink>
+          )}
+          {palmVerified && (
+            <DashboardKpiLink href="/farm/dashboard?filter=hawshat" active={filter === "hawshat"}>
+              <KpiCard label="الحوشات" value={num(totalHawshat)} />
+            </DashboardKpiLink>
+          )}
+          {palmVerified && <KpiCard label="نخيل برحي" value={num(totalBarhi)} delta={`${num(totalMale)} ذكور`} />}
+          {palmVerified && (
+            <DashboardKpiLink href="/farm/dashboard?filter=attention" active={filter === "attention"}>
+              <KpiCard
+                label="نخيل يحتاج عناية"
+                value={num(totalAttention)}
+                delta={
+                  totalAttention > attentionRows.length ? "يعرض الجدول أحدث ١٢" : totalAttention ? "يتطلب متابعة" : "لا توجد حالات"
+                }
+                deltaDirection={totalAttention ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+          )}
+          {canSeeOffshoots && offshootVerified && (
+            <DashboardKpiLink href="/farm/offshoots" active={false}>
+              <KpiCard
+                label="فسائل متاحة"
+                value={num(offshootAvailable)}
+                delta={`${num(offshootProduced)} منتج`}
+                deltaDirection={offshootAvailable < 0 ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+          )}
+        </section>
+      )}
 
-      {palmCountReconciliation.mismatches.length > 0 && (
+      {palmVerified && palmCountReconciliation.mismatches.length > 0 && (
         <Card title="مطابقة عداد النخيل">
           <div className="flex flex-col gap-3">
             <Alert
@@ -314,7 +342,7 @@ export default async function FarmDashboardPage({
         </Card>
       )}
 
-      {(filter === "all" || filter === "sectors") && sectorPalmsData.length > 0 && (
+      {palmVerified && (filter === "all" || filter === "sectors") && sectorPalmsData.length > 0 && (
         <section className="grid gap-4 lg:grid-cols-2">
           <Card title="توزيع النخيل حسب القطاع">
             <CategoryBarChart
@@ -353,46 +381,46 @@ export default async function FarmDashboardPage({
 
       {(filter === "all" || filter === "attention" || filter === "events") && (
         <section className="grid gap-4 md:grid-cols-2">
-          {(filter === "all" || filter === "attention") && (
-        <Card title="نخيل يحتاج عناية">
-          {attentionRows.length === 0 ? (
-            <EmptyState title="لا يوجد نخيل يحتاج عناية" />
-          ) : (
-            <FilterableTable
-              columns={attentionColumns}
-              rows={attentionRows}
-              ariaLabel="نخيل يحتاج عناية"
-              empty="—"
-              searchColumns={["tag", "sector", "hawsha", "status"]}
-              placeholder="ابحث في النخيل الذي يحتاج عناية…"
-              minRowsForSearch={8}
-              exportFilename="farm-attention-palms"
-            />
+          {palmVerified && (filter === "all" || filter === "attention") && (
+            <Card title="نخيل يحتاج عناية">
+              {attentionRows.length === 0 ? (
+                <EmptyState title="لا يوجد نخيل يحتاج عناية" />
+              ) : (
+                <FilterableTable
+                  columns={attentionColumns}
+                  rows={attentionRows}
+                  ariaLabel="نخيل يحتاج عناية"
+                  empty="—"
+                  searchColumns={["tag", "sector", "hawsha", "status"]}
+                  placeholder="ابحث في النخيل الذي يحتاج عناية…"
+                  minRowsForSearch={8}
+                  exportFilename="farm-attention-palms"
+                />
+              )}
+            </Card>
           )}
-        </Card>
-          )}
-          {(filter === "all" || filter === "events") && (
-        <Card title="آخر العمليات">
-          {eventRows.length === 0 ? (
-            <EmptyState title="لا توجد عمليات مسجلة" />
-          ) : (
-            <FilterableTable
-              columns={eventColumns}
-              rows={eventRows}
-              ariaLabel="آخر العمليات"
-              empty="—"
-              searchColumns={["subtype", "status", "notes"]}
-              placeholder="ابحث في آخر العمليات…"
-              minRowsForSearch={8}
-              exportFilename="farm-recent-events"
-            />
-          )}
-        </Card>
+          {operationsVerified && (filter === "all" || filter === "events") && (
+            <Card title="آخر العمليات">
+              {eventRows.length === 0 ? (
+                <EmptyState title="لا توجد عمليات مسجلة" />
+              ) : (
+                <FilterableTable
+                  columns={eventColumns}
+                  rows={eventRows}
+                  ariaLabel="آخر العمليات"
+                  empty="—"
+                  searchColumns={["subtype", "status", "notes"]}
+                  placeholder="ابحث في آخر العمليات…"
+                  minRowsForSearch={8}
+                  exportFilename="farm-recent-events"
+                />
+              )}
+            </Card>
           )}
         </section>
       )}
 
-      {(filter === "all" || filter === "sectors") && (
+      {palmVerified && (filter === "all" || filter === "sectors") && (
         <Card title="القطاعات">
           <FilterableTable
             columns={sectorColumns}
@@ -407,7 +435,7 @@ export default async function FarmDashboardPage({
         </Card>
       )}
 
-      {(filter === "all" || filter === "hawshat") && (
+      {palmVerified && (filter === "all" || filter === "hawshat") && (
         <Card title="حوشات للمراجعة">
           <FilterableTable
             columns={hawshaColumns}

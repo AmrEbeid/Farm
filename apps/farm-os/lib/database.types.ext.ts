@@ -1216,6 +1216,42 @@ type OffshootFunctions = {
     Returns: Json;
   };
 };
+
+type DataAuthorityStatusTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    domain: "finance_ledger" | "palm_registry" | "offshoots" | "budgets" | "payroll" | "inventory" | "operations";
+    status: "verified" | "partial" | "unverified" | "blocked";
+    source_label: string | null;
+    source_sha256: string | null;
+    record_count: number | null;
+    notes: string | null;
+    verified_at: string | null;
+    verified_by: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
+type DataAuthorityFunctions = {
+  fn_set_data_authority_status: {
+    Args: {
+      p_org: string;
+      p_domain: DataAuthorityStatusTable["Row"]["domain"];
+      p_status: DataAuthorityStatusTable["Row"]["status"];
+      p_source_label?: string | null;
+      p_source_sha256?: string | null;
+      p_record_count?: number | null;
+      p_notes?: string | null;
+    };
+    Returns: DataAuthorityStatusTable["Row"];
+  };
+};
+
 // SPEC-0027 H-A — شاشة الميزان: one call = crates→net→pending sale + serialized بون.
 type HarvestDaysTable = {
   Row: {
@@ -1543,11 +1579,12 @@ export type Database = Omit<Generated, "public"> & {
       site_enquiries: SiteEnquiriesTable;
       offshoot_movements: OffshootMovementsTable;
       offshoot_valuation: OffshootValuationTable;
+      data_authority_status: DataAuthorityStatusTable;
       reconciliation_batches: ReconciliationBatchesTable;
       reconciliation_evidence_items: ReconciliationEvidenceItemsTable;
       reconciliation_batch_rows: ReconciliationBatchRowsTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions;
   };
 };
 
