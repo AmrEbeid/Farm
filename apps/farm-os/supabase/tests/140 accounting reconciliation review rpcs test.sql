@@ -322,7 +322,7 @@ select set_config('t.m_overbound', jsonb_build_object(
 -- typed review decisions
 select set_config('t.dec_include', jsonb_build_object('action','review','reason','valid addition',
   'target_table','expenses','expense', jsonb_build_object('category','تسميد','kind','operating',
-    'account_id', current_setting('t.account_id')))::text, false);
+    'account_id', current_setting('t.account_id'),'payment_decision','routed_now'))::text, false);
 select set_config('t.dec_hold',   jsonb_build_object('action','hold','reason','ambiguous — hold')::text, false);
 select set_config('t.dec_reject', jsonb_build_object('action','reject','reason','orphan — do not add')::text, false);
 select set_config('t.dec_noreason', jsonb_build_object('action','hold')::text, false);
@@ -340,7 +340,7 @@ select set_config('t.dec_sale', jsonb_build_object('action','review','reason','v
 select set_config('t.dec_exp_correction', jsonb_build_object('action','review','reason','valid expense correction',
   'target_table','expenses','corrects_expense_id',current_setting('t.expense_correction_id'),
   'expense',jsonb_build_object('category','تصحيح','kind','operating',
-    'account_id',current_setting('t.account_id')))::text, false);
+    'account_id',current_setting('t.account_id'),'payment_decision','routed_now'))::text, false);
 select set_config('t.dec_sale_correction', jsonb_build_object('action','review','reason','valid sale correction',
   'target_table','sales','corrects_sale_id',current_setting('t.sale_correction_id'),
   'sale',jsonb_build_object('crop','تمر','quantity',1,'unit_price',2,'recorded_total',2))::text, false);
@@ -627,10 +627,10 @@ insert into public.reconciliation_evidence_items (id, org_id, origin_kind, sourc
   values ('ee700000-0000-0000-0000-000000000001', :'orgA', 'source_workbook_row', repeat('a',64), 'المصروفات',
           'A700', 'fp-700', 'source_addition_candidate');
 insert into public.reconciliation_batch_rows (id, org_id, batch_id, evidence_item_id, target_table, disposition,
-  review_state, expense_category, expense_kind, expense_account_id)
+  review_state, expense_category, expense_kind, expense_account_id, expense_payment_decision)
   values ('bb700000-0000-0000-0000-000000000001', :'orgA', 'ba700000-0000-0000-0000-000000000001',
           'ee700000-0000-0000-0000-000000000001', 'expenses', 'include', 'unreviewed', 'c', 'operating',
-          current_setting('t.account_id')::uuid);
+          current_setting('t.account_id')::uuid, 'routed_now');
 select pg_temp.as_user(current_setting('t.acct'));
 select throws_ok(
   $q$ select public.fn_freeze_reconciliation_batch('ba700000-0000-0000-0000-000000000001'::uuid) $q$,
@@ -879,7 +879,8 @@ select result
     current_setting('t.race_row'),
     jsonb_build_object('action','review','reason','race setup','target_table','expenses',
       'expense',jsonb_build_object('category','race','kind','operating',
-        'account_id',current_setting('t.account_id')))::text)) as t(result jsonb);
+        'account_id',current_setting('t.account_id'),
+        'payment_decision','routed_now'))::text)) as t(result jsonb);
 select dblink_exec('stage_racer_1', 'begin');
 select is(
   (select result->>'status'

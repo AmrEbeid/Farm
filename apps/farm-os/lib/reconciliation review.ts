@@ -35,7 +35,7 @@ export type Classification =
 export type OriginKind = "source_workbook_row" | "production_snapshot_row";
 export type ExecutionResult = "pending" | "posted" | "reversed" | "skipped" | "failed";
 export type ExpenseKind = "operating" | "drawing" | "capex";
-export type ExpensePaymentDecision = "unrouted" | "routed_now";
+export type ExpensePaymentDecision = "routed_now";
 export type SaleHistoricalDateDecision =
   | "use_source_text_date"
   | "use_matched_production_date"
@@ -97,8 +97,7 @@ export const EXPENSE_KIND_AR: Record<ExpenseKind, string> = {
 };
 
 export const PAYMENT_DECISION_AR: Record<ExpensePaymentDecision, string> = {
-  unrouted: "بدون توجيه دفع",
-  routed_now: "توجيه للدفع الآن",
+  routed_now: "ترحيل تاريخي على خزينة المزرعة",
 };
 
 export const HISTORICAL_DATE_DECISION_AR: Record<SaleHistoricalDateDecision, string> = {
@@ -108,7 +107,7 @@ export const HISTORICAL_DATE_DECISION_AR: Record<SaleHistoricalDateDecision, str
 };
 
 const EXPENSE_KINDS: ExpenseKind[] = ["operating", "drawing", "capex"];
-const PAYMENT_DECISIONS: ExpensePaymentDecision[] = ["unrouted", "routed_now"];
+const PAYMENT_DECISIONS: ExpensePaymentDecision[] = ["routed_now"];
 const HISTORICAL_DATE_DECISIONS: SaleHistoricalDateDecision[] = [
   "use_source_text_date",
   "use_matched_production_date",
@@ -454,12 +453,13 @@ export function buildReviewDecision(input: unknown): BuildResult {
     const description = cleanText(exp.description);
     if (description) expense.description = description;
     const paymentDecision = cleanText(exp.payment_decision);
-    if (paymentDecision) {
-      if (!PAYMENT_DECISIONS.includes(paymentDecision as ExpensePaymentDecision)) {
-        return { ok: false, error: "قرار الدفع غير صالح." };
-      }
-      expense.payment_decision = paymentDecision;
+    if (!paymentDecision) {
+      return { ok: false, error: "قرار الترحيل على خزينة المزرعة مطلوب." };
     }
+    if (!PAYMENT_DECISIONS.includes(paymentDecision as ExpensePaymentDecision)) {
+      return { ok: false, error: "قرار الدفع غير صالح." };
+    }
+    expense.payment_decision = paymentDecision;
     for (const [key, label] of [
       ["cost_center_id", "مركز التكلفة"],
       ["supplier_id", "المورد"],

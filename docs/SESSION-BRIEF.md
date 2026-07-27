@@ -1,5 +1,36 @@
-# Session Brief — Farm OS      Updated: 2026-07-26 by Codex (reconciliation Slice 4/4A RELEASED)
+# Session Brief — Farm OS      Updated: 2026-07-27 by Codex (expense execution migrated)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-27 (latest) — expense reconciliation execution migrated; PR #919 open
+
+Branch `feat/accounting-reconciliation-expense-execution`, worktree
+`/Users/amrebeid/Projects/farm reconciliation expense execution`, base `41d1ea0` (`origin/main`).
+New migration `20260726150000 accounting reconciliation execute expense batch.sql` and pgTAP `200
+accounting reconciliation execute expense batch test.sql`; touched app review contract/types/labels,
+seed, and prior reconciliation test fixtures.
+
+Delivered: owner-only whole-batch atomic expense execution; Dr reviewed expense leaf / Cr treasury
+1010; explicit zero no-op; exact correction target/journal eligibility; immutable
+`historical_treasury` and `historical_reversed` lifecycle; owner-P&L consistency; alternate
+custody/request/payment-path rejection; frozen payload, baseline, aggregate, journal, inverse,
+cross-org, replay, and two-backend lock proofs; fixed-code redacted failures. No real data was staged
+or executed.
+
+Evidence: two independent reviews **APPROVE** on the first commit. PR #919 CodeRabbit findings were
+reviewed against the bytes; valid retry, zero-count, delete-guard, legacy-constraint, UI, and race
+cleanup issues are fixed with regressions. Full ESLint + TypeScript clean; Vitest 673 passed +
+13 controlled skips; build 65/65 pages; execution pgTAP 136/136; review 127/127; evidence guard 21/21;
+provenance 60/60; full pgTAP 2,193 passing, zero file failures, with only the two unchanged stock-engine
+baseline assertions. Production preflight is read-only and clean: Farm project confirmed, account 1010
+present, reconciliation counts 0/0/0, financial counts unchanged at 10,201 / 162 / 10,365 / 20,730.
+
+Release state at this checkpoint: the reviewed migration was applied first to Farm production as hosted
+migration `20260727063039 accounting_reconciliation_execute_expense_batch`. Production postflight
+confirms the executor and P&L RPC security boundary, private helper revokes, all three enabled guards,
+both validated constraints, one treasury 1010 account with no organization missing it, empty
+reconciliation tables, and unchanged financial counts. No real batch or financial row was executed.
+PR #919 remains open pending merge and Vercel deployment. Next accounting slices: sales execution,
+rollback/reinstatement, mixed-batch orchestration, then owner-facing execute/rollback UI.
 
 ## 2026-07-26 (latest) — reconciliation Slice 4/4A released
 

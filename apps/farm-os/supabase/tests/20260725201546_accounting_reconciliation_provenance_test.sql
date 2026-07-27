@@ -263,9 +263,10 @@ select throws_ok(
 -- ── typed expense/sale constraints; correction target/domain consistency ───────────────────────────────
 select throws_ok(
   format($$insert into public.reconciliation_batch_rows
-            (org_id, batch_id, evidence_item_id, target_table, disposition)
+          (org_id, batch_id, evidence_item_id, target_table, disposition,
+           expense_payment_decision)
             values (%L, 'a1000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001',
-                    'expenses', 'include')$$, :'orgA'),
+                    'expenses', 'include', 'routed_now')$$, :'orgA'),
   '23514', null, 'an included expenses row missing expense_category/kind/account is rejected');
 select throws_ok(
   format($$insert into public.reconciliation_batch_rows
@@ -305,9 +306,9 @@ select throws_ok(
 select throws_ok(
   format($$insert into public.reconciliation_batch_rows
             (org_id, batch_id, evidence_item_id, target_table, disposition,
-             expense_category, expense_kind, expense_account_id)
+             expense_category, expense_kind, expense_account_id, expense_payment_decision)
             values (%L, 'a1000000-0000-0000-0000-000000000003', 'e5000000-0000-0000-0000-000000000001',
-                    'expenses', 'include', 'seed', 'operating', %L)$$,
+                    'expenses', 'include', 'seed', 'operating', %L, 'routed_now')$$,
          :'orgA', current_setting('t.operating_leaf_account')::uuid),
   '23514', null,
   'an included amount_correction_candidate expenses row missing corrects_expense_id is rejected');
@@ -315,9 +316,10 @@ select throws_ok(
 select lives_ok(
   format($$insert into public.reconciliation_batch_rows
             (org_id, batch_id, evidence_item_id, target_table, disposition,
-             expense_category, expense_kind, expense_account_id, corrects_expense_id)
+             expense_category, expense_kind, expense_account_id, expense_payment_decision,
+             corrects_expense_id)
             values (%L, 'a1000000-0000-0000-0000-000000000003', 'e5000000-0000-0000-0000-000000000001',
-                    'expenses', 'include', 'seed', 'operating', %L, %L)$$,
+                    'expenses', 'include', 'seed', 'operating', %L, 'routed_now', %L)$$,
          :'orgA', current_setting('t.operating_leaf_account')::uuid,
          'f7000000-0000-0000-0000-000000000001'),
   'a valid included amount_correction_candidate expenses row with matching corrects_expense_id lives');
@@ -338,10 +340,11 @@ select is(
 -- ── freeze-immutability: frozen payload edit rejected; unfreeze rejected; bookkeeping update accepted ──
 insert into public.reconciliation_batch_rows
   (id, org_id, batch_id, evidence_item_id, target_table, disposition,
-   expense_category, expense_kind, expense_account_id, payload_hash, frozen, frozen_at)
+   expense_category, expense_kind, expense_account_id, expense_payment_decision,
+   payload_hash, frozen, frozen_at)
   values ('c2000000-0000-0000-0000-000000000001', :'orgA', 'a1000000-0000-0000-0000-000000000002',
           'e2000000-0000-0000-0000-000000000001', 'expenses', 'include', 'seed', 'operating',
-          current_setting('t.operating_leaf_account')::uuid,
+          current_setting('t.operating_leaf_account')::uuid, 'routed_now',
           'deadbeef', true, now());
 select throws_ok(
   $$update public.reconciliation_batch_rows set expense_category = 'changed'
@@ -404,9 +407,10 @@ reset role;
 -- ── redaction discipline: free-text review_reason never leaks into a raised error/notice ────────────────
 select throws_ok(
   format($$insert into public.reconciliation_batch_rows
-            (org_id, batch_id, evidence_item_id, target_table, disposition, review_reason)
+            (org_id, batch_id, evidence_item_id, target_table, disposition,
+             expense_payment_decision, review_reason)
             values (%L, 'a1000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001',
-                    'expenses', 'include', 'PRIVATE-REASON-TOKEN-XYZ')$$, :'orgA'),
+                    'expenses', 'include', 'routed_now', 'PRIVATE-REASON-TOKEN-XYZ')$$, :'orgA'),
   '23514', 'new row for relation "reconciliation_batch_rows" violates check constraint "reconciliation_batch_rows_target_required"',
   'a rejected insert error message does not echo the free-text review_reason value');
 

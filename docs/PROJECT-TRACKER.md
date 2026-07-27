@@ -1,4 +1,46 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-26 by Codex (reconciliation Slice 4/4A RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-07-27 by Codex (expense execution migrated)
+
+> **2026-07-27 (latest) — ACCOUNTING RECONCILIATION EXPENSE EXECUTION: MIGRATED, PR #919 OPEN.**
+> The isolated branch `feat/accounting-reconciliation-expense-execution` adds the owner-only,
+> whole-batch atomic `fn_execute_reconciliation_batch(uuid)` expense kernel and append-only migration
+> `20260726150000 accounting reconciliation execute expense batch.sql`. It posts approved/frozen
+> positive additions as Dr reviewed expense leaf / Cr general treasury `1010`, never custody `1000`;
+> zero additions are explicit no-ops. Corrections require an exact two-line expense/treasury journal
+> matching the original expense total, reject any custody/request/second-payment path, reverse the
+> original, mark it immutable `historical_reversed`, and create the reviewed replacement (or no
+> replacement for a zero correction). Owner P&L excludes verified historical reversals.
+>
+> Integrity controls: `routed_now` is mandatory before an expense row can be included; payload hashes
+> are rechecked; account/dimension/correction rows and journals are locked; account `1010` serializes
+> organization accounting baselines before capture; cross-batch evidence replay skips safely; exact
+> correction snapshots, aggregate deltas, balanced journals, and inverse reversals are postflight
+> checked. Failures roll back every baseline/money/link/ledger write and persist only a fixed failure
+> code plus safe row UUID; retryable serialization/deadlock/lock conflicts re-raise and leave the
+> batch approved. Historical postings cannot be rerouted, edited, or deleted. New organizations and
+> the trigger-disabled local seed both receive account `1010`.
+>
+> **Validation:** two independent review rounds ended **APPROVE**. CodeRabbit's PR review then found
+> additional retry, zero-count, delete-guard, legacy-constraint, and race-cleanup gaps; each valid
+> finding was fixed and regression-tested. The complete review history includes treasury/custody
+> classification, payment-state duplication, correction/P&L divergence, zero corrections, date and
+> business-field mutability, alternate payment paths, expense-vs-journal mismatch, baseline lock order,
+> nullable execution decisions, and retryable concurrency behavior. Full ESLint and TypeScript are
+> clean; Vitest **673 passed + 13 controlled skips**; production build **65/65 pages**; focused
+> execution pgTAP **136/136**, review **127/127**, evidence guard **21/21**, provenance **60/60**;
+> full pgTAP **2,193 passing**, zero file
+> failures, with only the two unchanged stock-engine baseline assertions. `git diff --check` is clean.
+>
+> **Current gate:** the reviewed migration was applied first to Farm production project
+> `veezkmytervjnpxcrbkw` as hosted migration `20260727063039
+> accounting_reconciliation_execute_expense_batch`; PR **#919** remains open pending merge and deploy.
+> Production postflight confirms the executor and P&L RPC are security-definer with empty search paths,
+> authenticated-only execution on the public executor, no authenticated/anonymous execution on private
+> helpers, all three guards enabled, both new constraints validated, one account `1010` with no
+> organization missing it, and zero reconciliation batches/evidence/rows. Financial counts are unchanged:
+> expenses `10,201`, sales `162`, journal entries `10,365`, journal lines `20,730`. No real manifest,
+> reconciliation batch, or financial row was written.
+> After this release, accounting reconciliation still needs the sale executor, rollback/reinstatement
+> kernel, mixed-batch orchestration, and owner-facing execute/rollback controls before daily-use 100%.
 
 > **2026-07-26 (latest) — ACCOUNTING RECONCILIATION SLICE 4/4A — MIGRATED, MERGED, DEPLOYED, VERIFIED.**
 > Follows the independent-review REQUEST CHANGES on the Slice 4 review UI. Added, on top of the

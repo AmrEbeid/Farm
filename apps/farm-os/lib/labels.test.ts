@@ -110,7 +110,14 @@ describe("EXPENSE_KIND_AR — completeness vs the expenses.kind CHECK", () => {
 
 describe("PAYMENT_STATUS_AR — completeness vs the expenses.payment_status CHECK", () => {
   // Must match expenses_payment_status_check so every persisted status renders instead of leaking a key.
-  it.each(["post_paid_unpaid", "paid_from_custody", "paid_by_owner", "cancelled"])(
+  it.each([
+    "post_paid_unpaid",
+    "paid_from_custody",
+    "paid_by_owner",
+    "historical_treasury",
+    "historical_reversed",
+    "cancelled",
+  ])(
     "has a non-empty Arabic label for payment status %s",
     (s) => expect(PAYMENT_STATUS_AR[s]).toBeTruthy(),
   );
