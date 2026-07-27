@@ -252,6 +252,7 @@ input is preserved on failure.
 has an explicit decision; approve is owner-only after freeze, with the RPC-enforced separation of
 duties (the creator and any row reviewer cannot approve) surfaced in Arabic. **Execute/post, rollback,
 and manifest staging are out of scope** and are left to separate, independently reviewed migrations.
+(Superseded in order: execute/rollback by §8.2, manifest staging by §8.3.)
 
 **Enforcement:** server actions use the RLS-scoped user-session Supabase client only (never the
 service role), re-require owner/accountant, validate UUIDs/payloads, call only
@@ -332,3 +333,46 @@ batch was executed.
 **Acceptance still pending:** controlled stage of the pinned 698-row manifest, owner/accountant review, dual-run
 comparison to the workbook, exception resolution, and signed accountant acceptance. The implementation workflow
 is live; Stage 7 must not be called 100% dependable daily use until that operating proof is complete.
+
+### 8.3 Manifest staging from the app (2026-07-27, IMPLEMENTED — pending review/release)
+
+§8 originally left manifest staging out of the UI: the Slice-3 RPC
+`fn_stage_reconciliation_manifest(uuid, jsonb)` was live and pgTAP-covered, but the only way to reach it
+was outside the application. This slice closes that gap with the missing authenticated application
+path. **No schema change and no migration: the RPC, its grants, and its contract are unchanged.**
+
+**Route:** `/finance/reconciliation` gains a compact Arabic-RTL control — a real file input, one explicit
+"تجهيز للمراجعة" command, a pending state, an inline safe error state, and navigation to the created
+batch's detail page on success. Copy states plainly that staging creates **review rows only** and does
+not create or modify any expense, sale, or journal. Page headers are unchanged.
+
+**Staging creates review rows only.** One `reconciliation_batches` row plus its evidence items and its
+`unreviewed`/`hold` batch rows. Nothing is posted. Money still moves only at owner execution, after
+per-row review, freeze, and approval.
+
+**Server action contract (`stageManifest`):**
+- Owner/accountant via `requireRole`, re-required **before** the upload is touched.
+- Exactly one JSON `File` from a `FormData` field. It is bounded **before it is read** — non-empty and
+  ≤ `RECONCILIATION_MANIFEST_MAX_BYTES` (900,000 bytes; the pinned 698-row manifest is well under it).
+  A wrong/missing field, malformed JSON, an array or non-object root, and a manifest whose
+  `batch.org_id` is not exactly the caller's `m.orgId` are all rejected before any DB call.
+- **`org_id` is never accepted from the client.** It is always the caller's own membership org, and it
+  is both the RPC's `p_org` and the value `batch.org_id` must equal. The RPC re-checks membership,
+  `authorize('reconciliation.write')`, and the same org equality — the app guard is the friendlier
+  message, not the gate.
+- The only DB call is `sb.rpc('fn_stage_reconciliation_manifest', {p_org, p_manifest})` through the
+  RLS-scoped **user-session** client. No direct DML, no admin client, no service role, no network
+  helper, no temp file, no new dependency.
+- The returned body is parsed defensively: only a valid UUID `batch_id` with a non-empty `status` is
+  reported or navigated to. An **idempotent replay is a success** (the RPC returns the same batch id
+  having written nothing).
+- SQLSTATEs map to fixed Arabic messages — 42501 permission, 22023 malformed manifest contract, 23505
+  deterministic replay conflict, 23502 missing org — with a generic Arabic fallback for anything else.
+  Nothing about the upload is logged or echoed: no filename, no contents, no amounts, no labels, no raw
+  DB message.
+
+Pure guards live in `apps/farm-os/lib/reconciliation staging.ts`; `database.types.ext.ts` gains the
+staging RPC signature and its return type (generated `database.types.ts` untouched). Coverage:
+`apps/farm-os/lib/reconciliation/tests/staging upload.ts` — validation, org binding, size cap, outcome
+parsing, the fixed error map, and source-contract guards proving the role requirement, the user-session
+RPC, the absence of direct DML/admin/service-role/network/temp-file, and the list-page integration.
