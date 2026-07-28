@@ -158,7 +158,7 @@ Any new concern in these areas must be assessed against the current definitions 
   Do not re-open the old exposed-key finding without fresh evidence. Leaked-password protection remains a separate
   dashboard action (1.4).
 
-### 4.2 Dependency advisories — Next.js patched 2026-07-28; `postcss`/`sharp` still open
+### 4.2 Dependency advisories — framework/root PostCSS/js-yaml patched 2026-07-28; residuals open
 - **Live patch.** PR #935 merged at `7b138ac`; production deployment
   `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW` is READY. `next` and `eslint-config-next` moved
   16.2.10 → **16.2.12** (patch-only; both kept aligned). This
@@ -180,6 +180,15 @@ Any new concern in these areas must be assessed against the current definitions 
   Next's private versions; npm retained PostCSS 8.4.31 and Sharp 0.34.5 and produced an invalid/extraneous
   dependency tree. All experiment edits were discarded. Do not force these packages in production; wait for
   or test a compatible upstream Next release, then reassess from a fresh audit.
+- **Live js-yaml fix.** PR #940 merged at `0f0708b`; production deployment
+  `dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm` is READY. Scoped overrides use patched `js-yaml` `4.3.0`
+  for Changesets/ESLint and `3.15.0` for `read-yaml-file`, preserving each parent's API generation.
+  The high-severity `js-yaml` category is removed; the audit is now 7 findings
+  (1 low, 2 moderate, 4 high).
+- **Residual dependency work.** Next-private PostCSS/Sharp remain upstream-blocked. Forced
+  `brace-expansion`/`esbuild` overrides crossed incompatible parent ranges and made the npm tree invalid,
+  so they were discarded. The `exceljs`/`uuid` chain needs a product-path and export regression review
+  before any major version decision. Dependabot PR #937 did not lower the audit and remains unmerged.
 
 ### 4.3 Stage M — finance complete; registry pending; privacy boundary remains
 - Real farm financial data is live, but the real palm registry is still pending. The old "current seed is synthetic"

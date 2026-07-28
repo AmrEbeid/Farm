@@ -1,5 +1,23 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (PostCSS security closeout)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (js-yaml security closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-28 (latest) — transitive js-yaml advisories patched — LIVE / VERIFIED
+
+PR #940 merged at `0f0708b`; matching Vercel production deployment
+`dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm` is READY. Scoped overrides move Changesets and ESLint to
+`js-yaml` `4.3.0` and the legacy `read-yaml-file` consumer to `3.15.0`. The high-severity
+`js-yaml` category is gone and `npm audit` falls from 8 findings to 7 (1 low, 2 moderate, 4 high).
+TypeScript, ESLint, Vitest 817 + 13 controlled skips, Changesets, both YAML API generations,
+production build 65/65 pages, app/shared CI, secret scan, preview, public load, and runtime-error
+review passed. The two pgTAP failures are the unchanged engine baseline assertions. No migration.
+
+The broad ten-package Dependabot PR #937 was replayed against current `main`; it produced the same
+8-finding audit while changing Storybook, Playwright, ESLint, Vite, Vitest, Tailwind, and the lockfile.
+It remains unmerged because it is maintenance churn, not a security fix. Attempts to force
+`brace-expansion` and `esbuild` across incompatible parent ranges produced an invalid npm tree and were
+discarded. **Exact security resume point:** review the actual `exceljs` spreadsheet paths before changing
+its `uuid` chain; wait for compatible parent/upstream releases for Next-private PostCSS/Sharp,
+`brace-expansion`, and `esbuild`; complete the Owner-only auth identity/toggle actions separately.
 
 ## 2026-07-28 (latest) — root PostCSS advisory patched — LIVE / VERIFIED
 
