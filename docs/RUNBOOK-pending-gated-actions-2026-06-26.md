@@ -76,19 +76,23 @@ The Supabase **DB password** and **`service_role` key** were pasted in the setup
 
 ## D. 🔴 Demo-account remediation — **CONFIRMED public exposure**
 
+> **2026-07-28 update:** the code-side exposure is removed on
+> `fix/remove-production-demo-auth`: blank login fields, no demo chooser/password,
+> and no provisioning route. Live identity replacement/rotation and leaked-password
+> protection remain Owner-gated; see `SECURITY-NOTES.md` §5.
+
 **Reproduced live 2026-06-26:** the committed demo password logs in as **owner (المالك)** on
 `farm-ui-one.vercel.app` — the login page pre-fills `owner@ebeid.test` + the password, and the
 password constant ships in the client bundle. Anyone visiting the live site can sign in as the owner.
 Mitigated only by synthetic data; **must close before any real Ebeid data.** Options (Owner decides):
 
-- **Minimal:** rotate the 6 demo-account passwords to a new out-of-band secret (Supabase → Auth →
-  Users → reset password) and remove the prefill/constant from `app/login/page.tsx` for production.
-- **Cleaner:** delete the demo `*@ebeid.test` users (Supabase → Auth) and create real per-user
-  accounts; gate the demo affordance (chips + prefill) behind a non-production check, mirroring the
-  `VERCEL_ENV !== 'production'` guard already on `/api/dev/seed-auth`.
+- **Minimal:** rotate the 6 demo-account passwords to unique out-of-band secrets (Supabase → Auth →
+  Users → reset password). The prefill/constant has now been removed from the production login.
+- **Cleaner:** delete the demo `*@ebeid.test` users (Supabase → Auth) and create real per-user,
+  recoverable accounts. Demo provisioning is now test-only and absent from the production app.
 
-> This is a product/security tradeoff for the pilot demo — Owner's call. (Code change to the login
-> surface is Owner-gated; not done autonomously.)
+> Live identity replacement remains the Owner's call because deleting or rotating every linked
+> account without recoverable replacements would lock all current users out.
 
 ---
 

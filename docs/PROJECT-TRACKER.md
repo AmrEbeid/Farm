@@ -1,4 +1,23 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-27 by Claude/Codex (data authority gates live)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Claude (demo-auth removal, local)
+
+> **2026-07-28 — PRODUCTION DEMO-CREDENTIAL SURFACE REMOVED: LOCAL / UNMERGED / VALIDATED.**
+> Branch `fix/remove-production-demo-auth` (base `97d3ab3`), implementation commit `a9a37da`, PR #933 open.
+> The login
+> page no longer ships the retired shared password, the four `*@ebeid.test` demo addresses, the
+> prefilled credentials, the demo chooser, or the «تفعيل حسابات العرض» action; `app/api/dev/seed-auth/route.ts`
+> and `lib/seed-auth.ts` are deleted and the `api/dev` proxy exclusion is gone. e2e provisioning now requires a
+> per-run `FARM_OS_E2E_PASSWORD` (no committed default, no fallback). New source-contract guard
+> `apps/farm-os/lib/login-auth-surface.test.ts`.
+> Evidence: focused auth guard 12/12; full Vitest 817 passed + 13 controlled skips; TypeScript and lint clean;
+> production build 65/65; built-output scan contains none of the retired credential/provisioning strings;
+> `git diff --check` clean. Codex review narrowed one overbroad guard and corrected dangling current references.
+> CodeRabbit review findings were addressed: filename-agnostic deletion guards, fail-closed e2e password
+> updates, read-only production smoke guidance, identity mapping/RLS verification, and current-doc redaction.
+> **Still Owner-gated (no live account was touched):** production has six signed-in, org-linked demo-email
+> identities and six unused/unlinked phone-only seed identities. Replace or rotate the linked identities,
+> remove the unused identities, confirm nothing still authenticates with the retired shared password, and enable
+> leaked-password protection (live advisor still WARN).
+> See `SECURITY-NOTES.md` §5/§5.1 and `STAGE-0-REMEDIATION-RUNBOOK.md` step D.
 
 > **2026-07-27 (latest) — FULL DATA AUDIT + REPORT AUTHORITY GATES: LIVE / VERIFIED.**
 > Production migration `20260727145912 data_authority_status`, PR #931 merge `7ce98f5`, and deployment
@@ -1745,7 +1764,7 @@
 > (`react`/`react-dom` → 19.2.7); #123/#125/#85/#139 merged earlier in the day. **Live verification:**
 > manager login OK; authenticated reads (`farms`/`plans`) HTTP 200; DELETE `expenses` as manager →
 > HTTP 403 (permission denied). Demo login fixed earlier — all 6 `@ebeid.test` accounts reset to
-> `farm-os-pilot`. **Prod hygiene:** dropped the stray `pgtap` extension from prod `public` (a Supabase
+> `[REDACTED RETIRED DEMO PASSWORD]`. **Prod hygiene:** dropped the stray `pgtap` extension from prod `public` (a Supabase
 > advisor WARN). **Dependabot majors DEFERRED** (open, commented): #128 TypeScript 6.0 (tsconfig
 > `baseUrl` deprecation hard-errors), #130 ESLint 10 (`eslint-plugin-react` incompatible with the v10
 > rule API), #131 Storybook 10 (ERESOLVE across the 8.6.x addon stack). **2026-06-29 correction:** Supabase

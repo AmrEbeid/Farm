@@ -58,8 +58,8 @@ Three Supabase clients, each with a deliberate privilege scope:
   session. Every query a Server Component / Server Action / Route Handler issues is therefore
   **RLS-scoped to the signed-in user**. The comment is explicit: *never use the service-role key here.*
 - **`lib/supabase/browser.ts`** — the client-side browser client (anon key) for `"use client"` islands.
-- **`lib/supabase/admin.ts`** — the **service-role** client, isolated to privileged server-only
-  paths (e.g. the dev seed-auth route `app/api/dev/seed-auth/route.ts`, excluded from the proxy matcher).
+- **`lib/supabase/admin.ts`** — the **service-role** client, isolated to explicitly privileged
+  server-only paths. The production app exposes no user-provisioning or password-reset route.
 
 **`proxy.ts`** refreshes the auth session on every request (Server Components cannot set
 cookies) and writes refreshed cookies onto the response. It is *resilience-first*: if the Supabase
