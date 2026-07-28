@@ -295,7 +295,7 @@ insert into public.responsibility_assignments (id, org_id, person_id, scope_type
 -- columns NULL, which GoTrue's Go scanner cannot read back (breaks signin AND
 -- the admin listUsers query). Coalesce them to empty strings so the seeded
 -- users are loadable. (Programmatic email+password sign-in is set up at runtime
--- by lib/seed-auth.ts / the e2e global-setup, which relink these people rows to
+-- by the explicitly local e2e global setup, which relinks these people rows to
 -- freshly-minted auth users.)
 update auth.users set
   confirmation_token        = coalesce(confirmation_token, ''),

@@ -1,7 +1,8 @@
 # Stage 0 — Legacy Secret Remediation Runbook
 
-**Status: OPEN (Critical).** Concerns the **legacy** system (the old repo + the accounting
-spreadsheet), NOT the new `apps/farm-os` build. Must close before real Ebeid data / production.
+**Status: OPEN (Critical).** Steps A–C concern the **legacy** system (the old repo + the accounting
+spreadsheet); step D (added 2026-07-28) covers the shared demo credential that was committed and
+client-bundled in the new `apps/farm-os` build. Must close before real Ebeid data / production.
 **Owner-executed** — these are irreversible and touch systems the agent has no access to. This is
 the exact runbook (referenced from `OWNER-DECISIONS-2026-06-24.md` §3).
 
@@ -33,10 +34,38 @@ the exact runbook (referenced from `OWNER-DECISIONS-2026-06-24.md` §3).
    credential) rather than copying them into the new system; keep owner drawings (مسحوبات)
    separate from operating expenses when this data is eventually migrated.
 
+### D. Retire the shared demo credential in the NEW app (added 2026-07-28)
+
+Unlike A–C this one starts in `apps/farm-os`, but it lands here because the remedy is the same shape:
+a shared password (`farm-os-pilot`) was committed to git **and** shipped in the production login
+bundle, together with the `*@ebeid.test` demo account addresses and a button that provisioned them
+via `POST /api/dev/seed-auth`.
+
+**Already done in code** (branch `fix/remove-production-demo-auth`, not merged/deployed at this
+writing): blank login fields; demo chooser, shared password, activation button and copy removed;
+`app/api/dev/seed-auth/route.ts` + `lib/seed-auth.ts` deleted; the `api/dev` proxy exclusion removed;
+e2e moved to a required per-run `FARM_OS_E2E_PASSWORD`; a source-contract regression test added.
+Detail in [`SECURITY-NOTES.md`](SECURITY-NOTES.md) §5.
+
+**Still Owner-executed — the code change did NOT touch any live account.** No live user was created,
+deleted, reset, or invited. In the production Supabase project (`veezkmytervjnpxcrbkw`):
+1. List the `*@ebeid.test` identities.
+2. For each, **rotate to a unique strong secret, delete it, or replace it with a real recoverable
+   account** for the actual person — then re-link `people.user_id` / `organization_member`.
+3. Confirm nothing still authenticates with `farm-os-pilot` (treat it as compromised everywhere it
+   was reused; it was in git history and in the client bundle, so removing it from HEAD does not
+   retract it).
+4. Enable Supabase Auth **leaked-password protection** (`SECURITY-NOTES.md` §1.4) so known secrets
+   are rejected on sign-up/reset.
+
+As in step B: history purge is hygiene; **rotation/deletion is the real fix**.
+
 ## Verification (Definition of Done)
 - [ ] Old anon/service keys rotated or project deleted; old keys no longer authenticate.
 - [ ] Secret scan of the old repo (e.g. `gitleaks detect`) is clean on the new HEAD.
 - [ ] Spreadsheet credential removed; Google password rotated + 2FA on.
+- [ ] Production `*@ebeid.test` demo identities rotated, deleted, or replaced with real recoverable
+      accounts; nothing authenticates with `farm-os-pilot`; leaked-password protection enabled (D).
 - [ ] Risk-register entry flipped from 🔴 OPEN → closed in `PROJECT-TRACKER.md` / `MASTER-PLAN.md`.
 
 ## Why it gates the rest

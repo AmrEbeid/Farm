@@ -1,7 +1,7 @@
 // Compile-time guard: importing this RLS-bypassing module into a Client Component
 // makes the build FAIL (stronger than the runtime window check below, and it no
-// longer relies on every importer remembering to mark itself server-only). Mirrors
-// lib/seed-auth.ts. The service-role key must never reach the browser bundle.
+// longer relies on every importer remembering to mark itself server-only). The
+// service-role key must never reach the browser bundle.
 import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types.ext";

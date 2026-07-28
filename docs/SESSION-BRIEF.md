@@ -1,7 +1,33 @@
-# Session Brief — Farm OS      Updated: 2026-07-27 by Claude/Codex (data authority gates live)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Claude (demo-auth removal, local)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-27 (latest) — full data audit and authority gates — LIVE / VERIFIED
+## 2026-07-28 (latest) — production demo-credential surface removed — LOCAL / UNMERGED / VALIDATED
+
+Branch `fix/remove-production-demo-auth` off `97d3ab3`. **Uncommitted working-tree change — nothing was
+committed, pushed, merged, deployed, or applied to Supabase.**
+
+The login page shipped four `*@ebeid.test` demo addresses and the shared password `farm-os-pilot` in the
+client bundle, prefilled both fields with them, and offered a «تفعيل حسابات العرض» button that POSTed to
+`/api/dev/seed-auth`. Both fields now start blank and every demo control is gone; the route and its
+`lib/seed-auth.ts` helper are deleted (no other consumer) and the `api/dev` exclusion is removed from the
+`proxy.ts` matcher. The Supabase `signInWithPassword` call, `/dashboard` redirect, Arabic error handling,
+RTL layout, and brand panel are unchanged. e2e provisioning stays entirely in `e2e/` and now demands a
+per-run `FARM_OS_E2E_PASSWORD` (≥16 chars, no committed default, no fallback). Guard:
+`apps/farm-os/lib/login-auth-surface.test.ts`.
+
+Validation: focused auth guard 12/12; full Vitest 817 passed + 13 controlled skips; TypeScript and lint
+clean; production build 65/65; built-output scan contains none of the retired credential/provisioning
+strings; `git diff --check` clean. Codex reviewed the diff, narrowed one overbroad test assertion, and
+corrected dangling current references to the deleted route/helper.
+
+**Exact resume point:** commit/push/open and review the PR, then merge/deploy/live-check the blank login
+surface. Separately — and **Owner-only** — production currently has six signed-in, org-linked demo-email
+identities and six unused/unlinked phone-only seed identities. Replace or rotate the linked identities,
+remove the unused identities, confirm nothing authenticates with `farm-os-pilot`, and enable
+leaked-password protection (the live advisor still reports it disabled). No live user was created,
+deleted, reset, or invited by this change; removing the code did not change any account.
+
+## 2026-07-27 — full data audit and authority gates — LIVE / VERIFIED
 
 The source audit found 2,221 indexed paths (1,249 unique hashes; 95.28% extraction/OCR). Production finance
 is internally balanced but incomplete against the pinned workbook: 660 expense rows and 19 sales remain

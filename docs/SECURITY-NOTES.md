@@ -1,4 +1,4 @@
-# SECURITY-NOTES — accepted findings & residual-risk register   (reconciled 2026-07-13)
+# SECURITY-NOTES — accepted findings & residual-risk register   (reconciled 2026-07-13; §5 added 2026-07-28)
 
 Purpose: a durable record of the **known, accepted, low-risk** security findings on Farm OS MVP-0,
 so future Supabase advisor runs and independent reviews have context and do not re-litigate settled
@@ -170,6 +170,63 @@ Any new concern in these areas must be assessed against the current definitions 
 ### 4.4 Current dashboard gates
 - Verify `custom_access_token_hook` before onboarding a second org (0.1).
 - Enable leaked-password protection and verify the advisor clears (1.4).
+- Rotate, delete, or replace the production `*@ebeid.test` demo identities; treat `farm-os-pilot` as
+  compromised (5.1). The code-side surface is removed, the live identities are not.
+
+---
+
+## 5. 2026-07-28 — production demo-credential surface removed (code landed locally; identities still Owner-gated)
+
+**What it was.** The production login page (`apps/farm-os/app/login/page.tsx`) is a client component, so
+everything in it shipped in the browser bundle. It carried four demo account addresses
+(`owner@`/`manager@`/`storekeeper@`/`supervisor@` … `ebeid.test`), the **shared password
+`farm-os-pilot` as a string literal**, prefilled both fields with the owner address and that password, and
+offered a "تفعيل حسابات العرض" button that `POST`ed to `/api/dev/seed-auth`. The error copy told users to
+try demo activation. The provisioning route (`app/api/dev/seed-auth/route.ts`) and its service-role helper
+(`lib/seed-auth.ts` — which also held `SEED_PASSWORD`) shipped in the production source even though the
+route was environment-gated (local-URL **and** `VERCEL_ENV !== 'production'`), and `proxy.ts` carried an
+`api/dev` matcher exclusion that existed only for it.
+
+The route's own gates held, so this was **credential and account-name disclosure plus a
+provisioning surface in the shipped source**, not a demonstrated production write path. It is no longer
+acceptable regardless: production now holds real farm financial data, so the superseded synthetic-pilot
+rationale recorded elsewhere in this register (§4.3) may not be used to defer it.
+
+**What changed (code, branch `fix/remove-production-demo-auth`, not merged or deployed at this entry):**
+- Login page: both fields start blank; the demo chooser, the shared password, the "تفعيل حسابات العرض"
+  action, and the demo-activation error copy are gone. The Supabase `signInWithPassword` call, the
+  `/dashboard` redirect, the error handling, the Arabic RTL layout, and the brand panel are unchanged.
+- `app/api/dev/seed-auth/route.ts` and `lib/seed-auth.ts` are **deleted** (the helper had no non-test
+  consumer). `app/api/dev/` no longer exists, and the `api/dev` exclusion is removed from the `proxy.ts`
+  matcher.
+- e2e user provisioning lives entirely in `e2e/global-setup.ts` + `e2e/wedge-loop.spec.ts` and now requires
+  a per-run, test-only `FARM_OS_E2E_PASSWORD` (≥16 chars). There is **no committed password and no
+  fallback** — a missing value aborts the run.
+- `apps/farm-os/lib/login-auth-surface.test.ts` is a source-contract regression guard: it fails if the login
+  page regains the known password, a demo address, the activation copy or endpoint, or a non-blank field
+  initialiser; if the deleted route/helper or the proxy special case return; or if the retired strings
+  reappear anywhere under `app/` or `lib/`.
+
+### 5.1 Follow-up condition — Owner action on the live demo identities (OPEN)
+
+**Removing the code does not change any live account.** The demo identities may still exist in the production
+Supabase project, and `farm-os-pilot` must be treated as compromised for any account that ever used it — it
+was committed to git history and shipped in the client bundle, so removal from HEAD does not retract it.
+
+Read-only production audit on 2026-07-28: six confirmed demo-email identities have signed in and are linked
+to the organization; six phone-only seed identities have never signed in and are not linked. The security
+advisor still reports leaked-password protection disabled.
+
+**Owner-only, not performed by this change (no live user was created, deleted, reset, or invited here):**
+1. Enumerate the `*@ebeid.test` identities in the production project (`veezkmytervjnpxcrbkw`).
+2. For each: rotate to a unique strong secret, delete it, or replace it with a **real, recoverable** account
+   for the actual person, and re-link `people.user_id` / `organization_member` accordingly.
+3. Confirm no remaining account authenticates with `farm-os-pilot`.
+4. Enable leaked-password protection (§1.4) so a reused/known secret is rejected at sign-up/reset.
+
+Do not record this item as closed until steps 1–4 have live evidence. Git-history purge of the literal is
+hygiene only; rotation/deletion is the real fix (same logic as
+[`STAGE-0-REMEDIATION-RUNBOOK.md`](STAGE-0-REMEDIATION-RUNBOOK.md) §B).
 
 ---
 

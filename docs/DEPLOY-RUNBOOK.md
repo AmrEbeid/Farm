@@ -113,8 +113,8 @@ supabase db push                  # applies pending versions in order
 - Sign in (email + password) as each seeded role; walk the wedge loop:
   coverage → PR(reserve) → budget gate → owner approve → receipt → execute → PvA.
 - Confirm RLS: a second org cannot see tenant-1 data (the pgTAP `01` isolation invariant in prod).
-- Optionally point the Playwright e2e at the deployed URL (set `baseURL`), though it assumes the
-  synthetic seed + the dev seed-auth route (local-only) — prefer a manual smoke for prod.
+- Do not point the mutating Playwright wedge loop at production. It is locked to an explicitly
+  approved local target and provisions test users from test-only environment values.
 
 ## 5. Rollback
 - **App:** Vercel → Deployments → previous deployment → **Promote/Rollback** (instant).
@@ -123,6 +123,6 @@ supabase db push                  # applies pending versions in order
 
 ## Security checklist (must hold in prod)
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only (no `NEXT_PUBLIC_`); confirm it is NOT in the client bundle.
-- `/api/dev/seed-auth` returns 403 in prod (URL guard) — confirm with a request.
+- The production build contains no account-provisioning or password-reset API route.
 - RLS deny-by-default verified (pgTAP `01` + the security remediation in `0010`/`0012`).
 - No secrets in the repo or build logs; rotate any key that ever appears in a log.

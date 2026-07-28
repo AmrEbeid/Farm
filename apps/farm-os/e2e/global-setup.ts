@@ -21,7 +21,31 @@ const POTASSIUM = "39e22867-fbe2-5cd9-8a76-ce5871a8e8f4";
 const FERT_OP = "37c9cce6-6ec4-570a-97a4-b263e2faf5d0";
 const PLAN = "5d5d302e-c385-5d0b-94f5-3dc2c9948e79";
 
-const SEED_PASSWORD = "farm-os-pilot";
+/**
+ * Test-only credential for the e2e users, shared with `wedge-loop.spec.ts` through
+ * the same variable name. There is deliberately NO committed default and NO
+ * fallback: the app itself no longer provisions or knows any demo password, so the
+ * operator supplies one per run (gitignored `.env.local` or the shell), e.g.
+ *
+ *   FARM_OS_E2E_PASSWORD="$(openssl rand -base64 24)"
+ *
+ * A missing or weak value aborts the run loudly rather than trying a known password.
+ */
+const E2E_PASSWORD_VAR = "FARM_OS_E2E_PASSWORD";
+const MIN_E2E_PASSWORD_LENGTH = 16;
+
+function requireE2EPassword(): string {
+  const value = process.env[E2E_PASSWORD_VAR] ?? "";
+  if (value.length < MIN_E2E_PASSWORD_LENGTH) {
+    throw new Error(
+      `Missing or too-short ${E2E_PASSWORD_VAR}. The e2e suite provisions its own users and has ` +
+        `no default password. Export at least ${MIN_E2E_PASSWORD_LENGTH} characters for this run, ` +
+        `e.g. ${E2E_PASSWORD_VAR}="$(openssl rand -base64 24)".`,
+    );
+  }
+  return value;
+}
+
 const SEED_USERS = [
   { role: "owner", email: "owner@ebeid.test", phone: "+201000000001", name: "عمرو عبيد" },
   { role: "farm_manager", email: "manager@ebeid.test", phone: "+201000000002", name: "عبد الجليل أسامة" },
@@ -46,15 +70,15 @@ async function findByEmail(admin: Admin, email: string): Promise<string | null> 
   return null;
 }
 
-async function ensureUsers(admin: Admin) {
+async function ensureUsers(admin: Admin, password: string) {
   for (const u of SEED_USERS) {
     let id: string | null = await findByEmail(admin, u.email);
     if (id) {
-      await admin.auth.admin.updateUserById(id, { password: SEED_PASSWORD });
+      await admin.auth.admin.updateUserById(id, { password });
     } else {
       const { data: created, error } = await admin.auth.admin.createUser({
         email: u.email,
-        password: SEED_PASSWORD,
+        password,
         email_confirm: true,
         user_metadata: { name: u.name, role: u.role },
       });
@@ -126,7 +150,8 @@ export default async function globalSetup() {
       "Refusing mutating Playwright setup. This legacy wedge loop may only run against an explicitly approved local target with FARM_OS_ALLOW_LOCAL_E2E_RESET=1.",
     );
   }
+  const password = requireE2EPassword();
   const admin = createClient(URL, SERVICE, { auth: { persistSession: false } });
-  await ensureUsers(admin);
+  await ensureUsers(admin, password);
   await resetLoopState(admin);
 }
