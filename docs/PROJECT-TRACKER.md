@@ -1,4 +1,13 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (demo-auth release closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (Next.js security patch closeout)
+
+> **2026-07-28 — NEXT.JS DIRECT ADVISORIES PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #935 merged at `7b138ac`; matching production deployment
+> `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW` is READY. `next` and `eslint-config-next` are aligned at
+> `16.2.12`, closing the nine direct Next.js advisories reported at `16.2.10`. TypeScript, ESLint,
+> Vitest 817 + 13 controlled skips, production build 65/65 pages, app/shared CI, secret scan, review,
+> preview, public login load, and runtime-error review passed. App-only: no migration.
+> **Still open:** `postcss` and `sharp` transitive advisories remain under Next.js and need a separately
+> validated compatibility decision; the overall npm audit is not clean.
 
 > **2026-07-28 — PRODUCTION DEMO-CREDENTIAL SURFACE REMOVED: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #933 merged at `a1d5834`; matching Vercel production deployment

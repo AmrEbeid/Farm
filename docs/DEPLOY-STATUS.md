@@ -2,6 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-28 (latest) — Next.js security patch DEPLOYED / LIVE-VERIFIED.**
+> PR #935 merged at `7b138ac`; production deployment `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW`
+> is READY. `next` and `eslint-config-next` are aligned at `16.2.12`; the nine direct framework
+> advisories present at `16.2.10` are gone. Full app/shared/secret/preview gates passed, the public
+> login loads, and Vercel reported no runtime errors in the preceding 30 minutes. App-only: no
+> migration. The `postcss`/`sharp` transitive findings remain open; npm audit is not clean.
+
 > **2026-07-28 (latest) — production demo-credential surface REMOVED / DEPLOYED / LIVE-VERIFIED.**
 > PR #933 merged at `a1d5834`; production deployment `dpl_8mLoTNzc81ikwoVjS8R9TQ45SQkF`
 > is READY. Login fields are blank and the demo chooser, demo activation action, client-bundled shared
