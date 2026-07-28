@@ -2,6 +2,12 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-28 (latest) — transitive js-yaml security patch DEPLOYED / LIVE-VERIFIED.**
+> PR #940 merged at `0f0708b`; production deployment `dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm`
+> is READY. Patched `js-yaml` versions remove the high-severity category and reduce npm audit
+> from 8 findings to 7. Full app/shared/secret/preview gates, focused Changesets/YAML compatibility
+> checks, public load, and runtime-error review passed. Package-only: no migration.
+
 > **2026-07-28 (latest) — root PostCSS security patch DEPLOYED / LIVE-VERIFIED.**
 > PR #938 merged at `ee91739`; production deployment `dpl_FdAAJeu3dYbBSjArViqBWMm5fcvo`
 > is READY. The build toolchain now resolves PostCSS `8.5.23`; the vulnerable root `8.5.15` node is gone.

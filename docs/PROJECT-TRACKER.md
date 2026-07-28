@@ -1,4 +1,14 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (PostCSS security closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (js-yaml security closeout)
+
+> **2026-07-28 — TRANSITIVE JS-YAML ADVISORIES PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #940 merged at `0f0708b`; matching production deployment
+> `dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm` is READY. Scoped npm overrides move the Changesets/ESLint
+> consumers to `js-yaml` `4.3.0` and the legacy `read-yaml-file` consumer to `3.15.0`, removing
+> the high-severity `js-yaml` category and reducing the audit from 8 findings to 7. TypeScript,
+> ESLint, Vitest 817 + 13 controlled skips, Changesets and both YAML API smoke checks, production
+> build 65/65 pages, app/shared CI, secret scan, preview, public load, and runtime-error review passed.
+> Package-only: no migration. The broad ten-package Dependabot PR #937 showed no audit reduction and
+> remains unmerged pending a separate maintenance justification.
 
 > **2026-07-28 — ROOT POSTCSS ADVISORY PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #938 merged at `ee91739`; matching production deployment
