@@ -2,6 +2,8 @@ import { it, expect, describe, vi, beforeEach, afterEach } from "vitest";
 import * as React from "react";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { axe } from "jest-axe";
 import { ThemeProvider } from "../theme";
 import { ToastProvider, useToast } from "./Toast";
@@ -82,5 +84,60 @@ describe("useToast / Toaster", () => {
     render(<App />);
     await user.click(screen.getByText("نجاح"));
     expect(await axe(document.body)).toHaveNoViolations();
+  });
+});
+
+// React #418: the Toaster used to createPortal into document.body on the FIRST client render,
+// mutating the DOM while the root was still hydrating. Records whether the portal already
+// existed during the hydration commit (layout phase runs right after DOM mutations).
+function PortalProbe({ seen }: { seen: boolean[] }) {
+  React.useLayoutEffect(() => {
+    seen.push(document.body.querySelector(".fos-toaster") != null);
+  }, [seen]);
+  return null;
+}
+
+describe("Toaster SSR hydration", () => {
+  it("does not portal into document.body until hydration has committed", async () => {
+    const seen: boolean[] = [];
+    const tree = (
+      <ThemeProvider>
+        <ToastProvider>
+          <Trigger />
+          <PortalProbe seen={seen} />
+        </ToastProvider>
+      </ThemeProvider>
+    );
+
+    const html = renderToString(tree);
+    expect(html).not.toContain("fos-toaster"); // server emits no toaster markup
+
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    const recoverable: unknown[] = [];
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    let root: ReturnType<typeof hydrateRoot>;
+    await act(async () => {
+      root = hydrateRoot(container, tree, {
+        onRecoverableError: (e) => recoverable.push(e),
+      });
+    });
+
+    expect(recoverable).toEqual([]);            // no recoverable hydration error
+    expect(errorSpy).not.toHaveBeenCalled();    // no hydration warning
+    expect(seen).toEqual([false]);              // body untouched while hydrating
+    errorSpy.mockRestore();
+
+    // ...and the portal works once mounted.
+    expect(document.body.querySelector(".fos-toaster")).not.toBeNull();
+    await act(async () => {
+      (container.querySelector("button") as HTMLButtonElement).click();
+    });
+    expect(document.body.querySelector(".fos-toaster")?.textContent).toContain("تم الحفظ");
+
+    await act(async () => root.unmount());
+    container.remove();
   });
 });

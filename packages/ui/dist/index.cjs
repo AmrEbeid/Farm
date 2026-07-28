@@ -1141,7 +1141,9 @@ function useToast() {
 function Toaster() {
   const ctx = React22__namespace.useContext(ToastContext);
   const theme = useTheme();
-  if (!ctx || typeof document === "undefined") return null;
+  const [mounted, setMounted] = React22__namespace.useState(false);
+  React22__namespace.useEffect(() => setMounted(true), []);
+  if (!ctx || !mounted) return null;
   const { toasts, api } = ctx;
   return reactDom.createPortal(
     /* @__PURE__ */ jsxRuntime.jsx(
