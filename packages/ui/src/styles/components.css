@@ -527,6 +527,9 @@
   padding: var(--card-pad);
   box-shadow: var(--shadow-card);
 }
+/* Reserved box for the Recharts visualization. Present (and the same size)
+   both before and after hydration, so mounting the chart causes no jump. */
+.fos-chart__canvas { position: relative; width: 100%; }
 /* Visually-hidden data-table fallback — stays in the a11y tree. */
 .fos-chart__table {
   position: absolute;

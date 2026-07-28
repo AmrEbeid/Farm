@@ -4,6 +4,7 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { useChartTokens } from "./useChartTokens";
+import { ChartCanvas } from "./ChartCanvas";
 import { formatChartNumber } from "./formatChartNumber";
 
 export interface ChartSeries {
@@ -68,39 +69,41 @@ export function BarChart({
       role="img"
       aria-label={ariaLabel}
     >
-      <ResponsiveContainer width="100%" height={height}>
-        <RBarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-          <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-          <XAxis
-            dataKey={categoryKey}
-            reversed={t.dir === "rtl"}
-            tick={{ fill: t.inkMuted, fontSize: 12 }}
-            stroke={t.line}
-          />
-          <YAxis
-            orientation={t.dir === "rtl" ? "right" : "left"}
-            tick={{ fill: t.inkMuted, fontSize: 12 }}
-            stroke={t.line}
-            tickFormatter={formatChartNumber}
-          />
-          <Tooltip
-            contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
-            labelStyle={{ color: t.ink }}
-            formatter={(value) => formatChartNumber(value)}
-          />
-          {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
-          {series.map((s, i) => (
-            <Bar
-              key={s.dataKey}
-              dataKey={s.dataKey}
-              name={s.name ?? s.dataKey}
-              stackId={stackId}
-              fill={s.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand}
-              radius={[4, 4, 0, 0]}
+      <ChartCanvas height={height}>
+        <ResponsiveContainer width="100%" height={height}>
+          <RBarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+            <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey={categoryKey}
+              reversed={t.dir === "rtl"}
+              tick={{ fill: t.inkMuted, fontSize: 12 }}
+              stroke={t.line}
             />
-          ))}
-        </RBarChart>
-      </ResponsiveContainer>
+            <YAxis
+              orientation={t.dir === "rtl" ? "right" : "left"}
+              tick={{ fill: t.inkMuted, fontSize: 12 }}
+              stroke={t.line}
+              tickFormatter={formatChartNumber}
+            />
+            <Tooltip
+              contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
+              labelStyle={{ color: t.ink }}
+              formatter={(value) => formatChartNumber(value)}
+            />
+            {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
+            {series.map((s, i) => (
+              <Bar
+                key={s.dataKey}
+                dataKey={s.dataKey}
+                name={s.name ?? s.dataKey}
+                stackId={stackId}
+                fill={s.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand}
+                radius={[4, 4, 0, 0]}
+              />
+            ))}
+          </RBarChart>
+        </ResponsiveContainer>
+      </ChartCanvas>
       {tableFallback && (
         <DataTable
           data={data}

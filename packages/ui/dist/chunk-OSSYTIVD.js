@@ -1,28 +1,6 @@
-'use strict';
-
-var React = require('react');
-var recharts = require('recharts');
-var jsxRuntime = require('react/jsx-runtime');
-
-function _interopNamespace(e) {
-  if (e && e.__esModule) return e;
-  var n = Object.create(null);
-  if (e) {
-    Object.keys(e).forEach(function (k) {
-      if (k !== 'default') {
-        var d = Object.getOwnPropertyDescriptor(e, k);
-        Object.defineProperty(n, k, d.get ? d : {
-          enumerable: true,
-          get: function () { return e[k]; }
-        });
-      }
-    });
-  }
-  n.default = e;
-  return Object.freeze(n);
-}
-
-var React__namespace = /*#__PURE__*/_interopNamespace(React);
+import * as React from 'react';
+import { ResponsiveContainer, BarChart as BarChart$1, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart as LineChart$1, Line, PieChart, Pie, Cell } from 'recharts';
+import { jsxs, jsx } from 'react/jsx-runtime';
 
 // src/components/useChartTokens.ts
 var EMPTY = {
@@ -62,8 +40,8 @@ function resolve(el) {
   };
 }
 function useChartTokens(ref) {
-  const [tokens, setTokens] = React__namespace.useState(EMPTY);
-  React__namespace.useEffect(() => {
+  const [tokens, setTokens] = React.useState(EMPTY);
+  React.useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const update = () => setTokens(resolve(el));
@@ -77,6 +55,19 @@ function useChartTokens(ref) {
     return () => mo.disconnect();
   }, [ref]);
   return tokens;
+}
+var subscribe = () => () => {
+};
+function useHydrated() {
+  return React.useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
+}
+function ChartCanvas({ height, children }) {
+  const hydrated = useHydrated();
+  return /* @__PURE__ */ jsx("div", { className: "fos-chart__canvas", style: { height }, children: hydrated ? children : null });
 }
 
 // src/components/formatChartNumber.ts
@@ -101,15 +92,15 @@ function DataTable({
   caption,
   columnHeader
 }) {
-  return /* @__PURE__ */ jsxRuntime.jsxs("table", { className: "fos-chart__table", children: [
-    /* @__PURE__ */ jsxRuntime.jsx("caption", { children: caption }),
-    /* @__PURE__ */ jsxRuntime.jsx("thead", { children: /* @__PURE__ */ jsxRuntime.jsxs("tr", { children: [
-      /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "col", children: columnHeader }),
-      series.map((s) => /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "col", children: s.name ?? s.dataKey }, s.dataKey))
+  return /* @__PURE__ */ jsxs("table", { className: "fos-chart__table", children: [
+    /* @__PURE__ */ jsx("caption", { children: caption }),
+    /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
+      /* @__PURE__ */ jsx("th", { scope: "col", children: columnHeader }),
+      series.map((s) => /* @__PURE__ */ jsx("th", { scope: "col", children: s.name ?? s.dataKey }, s.dataKey))
     ] }) }),
-    /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: data.map((row, i) => /* @__PURE__ */ jsxRuntime.jsxs("tr", { children: [
-      /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "row", children: String(row[categoryKey]) }),
-      series.map((s) => /* @__PURE__ */ jsxRuntime.jsx("td", { children: formatChartNumber(row[s.dataKey]) }, s.dataKey))
+    /* @__PURE__ */ jsx("tbody", { children: data.map((row, i) => /* @__PURE__ */ jsxs("tr", { children: [
+      /* @__PURE__ */ jsx("th", { scope: "row", children: String(row[categoryKey]) }),
+      series.map((s) => /* @__PURE__ */ jsx("td", { children: formatChartNumber(row[s.dataKey]) }, s.dataKey))
     ] }, i)) })
   ] });
 }
@@ -124,10 +115,10 @@ function BarChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React__namespace.useRef(null);
+  const ref = React.useRef(null);
   const t = useChartTokens(ref);
   const stackId = stacked ? "stack" : void 0;
-  return /* @__PURE__ */ jsxRuntime.jsxs(
+  return /* @__PURE__ */ jsxs(
     "div",
     {
       ref,
@@ -135,10 +126,10 @@ function BarChart({
       role: "img",
       "aria-label": ariaLabel,
       children: [
-        /* @__PURE__ */ jsxRuntime.jsx(recharts.ResponsiveContainer, { width: "100%", height, children: /* @__PURE__ */ jsxRuntime.jsxs(recharts.BarChart, { data, margin: { top: 8, right: 8, bottom: 8, left: 8 }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(recharts.CartesianGrid, { stroke: t.line, strokeDasharray: "3 3", vertical: false }),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.XAxis,
+        /* @__PURE__ */ jsx(ChartCanvas, { height, children: /* @__PURE__ */ jsx(ResponsiveContainer, { width: "100%", height, children: /* @__PURE__ */ jsxs(BarChart$1, { data, margin: { top: 8, right: 8, bottom: 8, left: 8 }, children: [
+          /* @__PURE__ */ jsx(CartesianGrid, { stroke: t.line, strokeDasharray: "3 3", vertical: false }),
+          /* @__PURE__ */ jsx(
+            XAxis,
             {
               dataKey: categoryKey,
               reversed: t.dir === "rtl",
@@ -146,8 +137,8 @@ function BarChart({
               stroke: t.line
             }
           ),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.YAxis,
+          /* @__PURE__ */ jsx(
+            YAxis,
             {
               orientation: t.dir === "rtl" ? "right" : "left",
               tick: { fill: t.inkMuted, fontSize: 12 },
@@ -155,17 +146,17 @@ function BarChart({
               tickFormatter: formatChartNumber
             }
           ),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.Tooltip,
+          /* @__PURE__ */ jsx(
+            Tooltip,
             {
               contentStyle: { background: t.surface, border: `1px solid ${t.line}`, color: t.ink },
               labelStyle: { color: t.ink },
               formatter: (value) => formatChartNumber(value)
             }
           ),
-          showLegend && /* @__PURE__ */ jsxRuntime.jsx(recharts.Legend, { wrapperStyle: { color: t.ink } }),
-          series.map((s, i) => /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.Bar,
+          showLegend && /* @__PURE__ */ jsx(Legend, { wrapperStyle: { color: t.ink } }),
+          series.map((s, i) => /* @__PURE__ */ jsx(
+            Bar,
             {
               dataKey: s.dataKey,
               name: s.name ?? s.dataKey,
@@ -175,8 +166,8 @@ function BarChart({
             },
             s.dataKey
           ))
-        ] }) }),
-        tableFallback && /* @__PURE__ */ jsxRuntime.jsx(
+        ] }) }) }),
+        tableFallback && /* @__PURE__ */ jsx(
           DataTable,
           {
             data,
@@ -197,15 +188,15 @@ function DataTable2({
   caption,
   columnHeader
 }) {
-  return /* @__PURE__ */ jsxRuntime.jsxs("table", { className: "fos-chart__table", children: [
-    /* @__PURE__ */ jsxRuntime.jsx("caption", { children: caption }),
-    /* @__PURE__ */ jsxRuntime.jsx("thead", { children: /* @__PURE__ */ jsxRuntime.jsxs("tr", { children: [
-      /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "col", children: columnHeader }),
-      series.map((s) => /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "col", children: s.name ?? s.dataKey }, s.dataKey))
+  return /* @__PURE__ */ jsxs("table", { className: "fos-chart__table", children: [
+    /* @__PURE__ */ jsx("caption", { children: caption }),
+    /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
+      /* @__PURE__ */ jsx("th", { scope: "col", children: columnHeader }),
+      series.map((s) => /* @__PURE__ */ jsx("th", { scope: "col", children: s.name ?? s.dataKey }, s.dataKey))
     ] }) }),
-    /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: data.map((row, i) => /* @__PURE__ */ jsxRuntime.jsxs("tr", { children: [
-      /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "row", children: String(row[categoryKey]) }),
-      series.map((s) => /* @__PURE__ */ jsxRuntime.jsx("td", { children: formatChartNumber(row[s.dataKey]) }, s.dataKey))
+    /* @__PURE__ */ jsx("tbody", { children: data.map((row, i) => /* @__PURE__ */ jsxs("tr", { children: [
+      /* @__PURE__ */ jsx("th", { scope: "row", children: String(row[categoryKey]) }),
+      series.map((s) => /* @__PURE__ */ jsx("td", { children: formatChartNumber(row[s.dataKey]) }, s.dataKey))
     ] }, i)) })
   ] });
 }
@@ -221,9 +212,9 @@ function LineChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React__namespace.useRef(null);
+  const ref = React.useRef(null);
   const t = useChartTokens(ref);
-  return /* @__PURE__ */ jsxRuntime.jsxs(
+  return /* @__PURE__ */ jsxs(
     "div",
     {
       ref,
@@ -231,10 +222,10 @@ function LineChart({
       role: "img",
       "aria-label": ariaLabel,
       children: [
-        /* @__PURE__ */ jsxRuntime.jsx(recharts.ResponsiveContainer, { width: "100%", height, children: /* @__PURE__ */ jsxRuntime.jsxs(recharts.LineChart, { data, margin: { top: 8, right: 8, bottom: 8, left: 8 }, children: [
-          /* @__PURE__ */ jsxRuntime.jsx(recharts.CartesianGrid, { stroke: t.line, strokeDasharray: "3 3", vertical: false }),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.XAxis,
+        /* @__PURE__ */ jsx(ChartCanvas, { height, children: /* @__PURE__ */ jsx(ResponsiveContainer, { width: "100%", height, children: /* @__PURE__ */ jsxs(LineChart$1, { data, margin: { top: 8, right: 8, bottom: 8, left: 8 }, children: [
+          /* @__PURE__ */ jsx(CartesianGrid, { stroke: t.line, strokeDasharray: "3 3", vertical: false }),
+          /* @__PURE__ */ jsx(
+            XAxis,
             {
               dataKey: categoryKey,
               reversed: t.dir === "rtl",
@@ -242,8 +233,8 @@ function LineChart({
               stroke: t.line
             }
           ),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.YAxis,
+          /* @__PURE__ */ jsx(
+            YAxis,
             {
               orientation: t.dir === "rtl" ? "right" : "left",
               tick: { fill: t.inkMuted, fontSize: 12 },
@@ -251,19 +242,19 @@ function LineChart({
               tickFormatter: formatChartNumber
             }
           ),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.Tooltip,
+          /* @__PURE__ */ jsx(
+            Tooltip,
             {
               contentStyle: { background: t.surface, border: `1px solid ${t.line}`, color: t.ink },
               labelStyle: { color: t.ink },
               formatter: (value) => formatChartNumber(value)
             }
           ),
-          showLegend && /* @__PURE__ */ jsxRuntime.jsx(recharts.Legend, { wrapperStyle: { color: t.ink } }),
+          showLegend && /* @__PURE__ */ jsx(Legend, { wrapperStyle: { color: t.ink } }),
           series.map((s, i) => {
             const color = s.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand;
-            return /* @__PURE__ */ jsxRuntime.jsx(
-              recharts.Line,
+            return /* @__PURE__ */ jsx(
+              Line,
               {
                 type: curve,
                 dataKey: s.dataKey,
@@ -276,8 +267,8 @@ function LineChart({
               s.dataKey
             );
           })
-        ] }) }),
-        tableFallback && /* @__PURE__ */ jsxRuntime.jsx(
+        ] }) }) }),
+        tableFallback && /* @__PURE__ */ jsx(
           DataTable2,
           {
             data,
@@ -300,11 +291,11 @@ function DoughnutChart({
   tableFallback,
   className = ""
 }) {
-  const ref = React__namespace.useRef(null);
+  const ref = React.useRef(null);
   const t = useChartTokens(ref);
   const outer = Math.round(height / 2 * 0.8);
   const inner = Math.round(outer * innerRatio);
-  return /* @__PURE__ */ jsxRuntime.jsxs(
+  return /* @__PURE__ */ jsxs(
     "div",
     {
       ref,
@@ -312,9 +303,9 @@ function DoughnutChart({
       role: "img",
       "aria-label": ariaLabel,
       children: [
-        /* @__PURE__ */ jsxRuntime.jsx(recharts.ResponsiveContainer, { width: "100%", height, children: /* @__PURE__ */ jsxRuntime.jsxs(recharts.PieChart, { children: [
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.Pie,
+        /* @__PURE__ */ jsx(ChartCanvas, { height, children: /* @__PURE__ */ jsx(ResponsiveContainer, { width: "100%", height, children: /* @__PURE__ */ jsxs(PieChart, { children: [
+          /* @__PURE__ */ jsx(
+            Pie,
             {
               data,
               dataKey: "value",
@@ -326,8 +317,8 @@ function DoughnutChart({
               stroke: t.surface,
               strokeWidth: 2,
               paddingAngle: 1,
-              children: data.map((d, i) => /* @__PURE__ */ jsxRuntime.jsx(
-                recharts.Cell,
+              children: data.map((d, i) => /* @__PURE__ */ jsx(
+                Cell,
                 {
                   fill: d.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand
                 },
@@ -335,25 +326,25 @@ function DoughnutChart({
               ))
             }
           ),
-          /* @__PURE__ */ jsxRuntime.jsx(
-            recharts.Tooltip,
+          /* @__PURE__ */ jsx(
+            Tooltip,
             {
               contentStyle: { background: t.surface, border: `1px solid ${t.line}`, color: t.ink },
               labelStyle: { color: t.ink },
               formatter: (value) => formatChartNumber(value)
             }
           ),
-          showLegend && /* @__PURE__ */ jsxRuntime.jsx(recharts.Legend, { wrapperStyle: { color: t.ink } })
-        ] }) }),
-        tableFallback && /* @__PURE__ */ jsxRuntime.jsxs("table", { className: "fos-chart__table", children: [
-          /* @__PURE__ */ jsxRuntime.jsx("caption", { children: tableFallback.caption }),
-          /* @__PURE__ */ jsxRuntime.jsx("thead", { children: /* @__PURE__ */ jsxRuntime.jsxs("tr", { children: [
-            /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "col", children: tableFallback.labelHeader }),
-            /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "col", children: tableFallback.valueHeader })
+          showLegend && /* @__PURE__ */ jsx(Legend, { wrapperStyle: { color: t.ink } })
+        ] }) }) }),
+        tableFallback && /* @__PURE__ */ jsxs("table", { className: "fos-chart__table", children: [
+          /* @__PURE__ */ jsx("caption", { children: tableFallback.caption }),
+          /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
+            /* @__PURE__ */ jsx("th", { scope: "col", children: tableFallback.labelHeader }),
+            /* @__PURE__ */ jsx("th", { scope: "col", children: tableFallback.valueHeader })
           ] }) }),
-          /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: data.map((d, i) => /* @__PURE__ */ jsxRuntime.jsxs("tr", { children: [
-            /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "row", children: d.name }),
-            /* @__PURE__ */ jsxRuntime.jsx("td", { children: formatChartNumber(d.value) })
+          /* @__PURE__ */ jsx("tbody", { children: data.map((d, i) => /* @__PURE__ */ jsxs("tr", { children: [
+            /* @__PURE__ */ jsx("th", { scope: "row", children: d.name }),
+            /* @__PURE__ */ jsx("td", { children: formatChartNumber(d.value) })
           ] }, i)) })
         ] })
       ]
@@ -361,7 +352,4 @@ function DoughnutChart({
   );
 }
 
-exports.BarChart = BarChart;
-exports.DoughnutChart = DoughnutChart;
-exports.LineChart = LineChart;
-exports.useChartTokens = useChartTokens;
+export { BarChart, DoughnutChart, LineChart, useChartTokens };
