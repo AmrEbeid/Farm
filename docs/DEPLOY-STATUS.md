@@ -2,6 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-28 (latest) — root PostCSS security patch DEPLOYED / LIVE-VERIFIED.**
+> PR #938 merged at `ee91739`; production deployment `dpl_FdAAJeu3dYbBSjArViqBWMm5fcvo`
+> is READY. The build toolchain now resolves PostCSS `8.5.23`; the vulnerable root `8.5.15` node is gone.
+> Full app/shared/secret/preview/review gates, public load, and runtime-error review passed. No migration.
+> Next's private PostCSS `8.4.31` and Sharp `0.34.5` remain upstream-blocked after both safe override forms
+> failed with an invalid dependency tree.
+
 > **2026-07-28 (latest) — Next.js security patch DEPLOYED / LIVE-VERIFIED.**
 > PR #935 merged at `7b138ac`; production deployment `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW`
 > is READY. `next` and `eslint-config-next` are aligned at `16.2.12`; the nine direct framework

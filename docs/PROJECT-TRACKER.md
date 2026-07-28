@@ -1,4 +1,14 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (Next.js security patch closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (PostCSS security closeout)
+
+> **2026-07-28 — ROOT POSTCSS ADVISORY PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #938 merged at `ee91739`; matching production deployment
+> `dpl_FdAAJeu3dYbBSjArViqBWMm5fcvo` is READY. Tailwind, Vite, Storybook, and design-system tooling
+> now resolve PostCSS `8.5.23`; the vulnerable root `8.5.15` node is gone. TypeScript, ESLint,
+> Vitest 817 + 13 controlled skips, production build 65/65 pages, app/shared CI, secret scan, review,
+> preview, public load, and runtime-error review passed. App-only: no migration.
+> **Upstream blocker:** both global and dependency-specific override experiments failed to replace
+> Next `16.2.12`'s private PostCSS `8.4.31` or Sharp `0.34.5` without an invalid dependency tree.
+> Those two advisories remain open pending a compatible upstream Next release.
 
 > **2026-07-28 — NEXT.JS DIRECT ADVISORIES PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #935 merged at `7b138ac`; matching production deployment
