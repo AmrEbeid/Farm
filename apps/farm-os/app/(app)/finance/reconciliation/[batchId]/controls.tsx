@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, Button, EmptyState, Field, Input, Select, Tag, Textarea } from "@/components/ui";
 import { AccountPicker } from "@/components/AccountPicker";
-import type { PickableAccount } from "@/lib/account-options";
 import { num } from "@/lib/money";
 import type { DecisionInput, ResultSummaryLine } from "@/lib/reconciliation review";
 // The ONE runtime value this client bundle takes from the (space-named) reconciliation module: the
@@ -14,6 +13,7 @@ import type { DecisionInput, ResultSummaryLine } from "@/lib/reconciliation revi
 import { ROLLBACK_REASON_MAX } from "@/lib/reconciliation review";
 import {
   reviewRow,
+  loadReviewOptions,
   freezeBatch,
   approveBatch,
   executeBatch,
@@ -21,28 +21,12 @@ import {
   searchCorrectionTargets,
   type ActionResult,
   type CorrectionTarget,
+  type Option,
+  type OptionList,
+  type ReviewOptionsResult,
 } from "../actions";
 
-export interface Option {
-  id: string;
-  label: string;
-}
-/** Sectors/hawshat carry their parent id so the sale form can filter descendants by the chosen parent. */
-export interface SectorOption extends Option {
-  farmId: string;
-}
-export interface HawshaOption extends Option {
-  sectorId: string;
-}
-export interface OptionList {
-  accounts: PickableAccount[];
-  costCenters: Option[];
-  suppliers: Option[];
-  buyers: Option[];
-  farms: Option[];
-  sectors: SectorOption[];
-  hawshat: HawshaOption[];
-}
+export type { OptionList } from "../actions";
 export interface RowExpensePrefill {
   category: string;
   description: string;
@@ -237,12 +221,18 @@ function RowCard({
   classification,
   editable,
   options,
+  ensureOptions,
+  invalidateOptions,
+  optionsPending,
 }: {
   row: RowVM;
   batchId: string;
   classification: string;
   editable: boolean;
-  options: OptionList;
+  options: OptionList | null;
+  ensureOptions: () => Promise<OptionList | null>;
+  invalidateOptions: () => void;
+  optionsPending: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -333,6 +323,7 @@ function RowCard({
     if (r.ok) {
       setMsg({ tone: "ok", text: "تم حفظ القرار." });
       setOpen(false);
+      invalidateOptions();
       router.refresh();
     } else {
       setMsg({ tone: "danger", text: r.error ?? "تعذّر حفظ القرار." });
@@ -379,13 +370,26 @@ function RowCard({
           )}
         </div>
         {editable && !row.frozen && (
-          <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={!open && optionsPending}
+            disabled={!open && optionsPending}
+            onClick={async () => {
+              if (open) {
+                setOpen(false);
+                return;
+              }
+              const loaded = await ensureOptions();
+              if (loaded) setOpen(true);
+            }}
+          >
             {open ? "إغلاق" : decided ? "تعديل القرار" : "مراجعة"}
           </Button>
         )}
       </div>
 
-      {open && editable && !row.frozen && (
+      {open && options && editable && !row.frozen && (
         <div className="flex flex-col gap-3 border-t pt-3" style={{ borderColor: "var(--line)" }}>
           <Field label="القرار" id={`action-${row.id}`}>
             <Select
@@ -939,7 +943,6 @@ export function ReconciliationControls({
   status,
   role,
   rows,
-  options,
   editable,
   canFreeze,
   freezeReason,
@@ -964,7 +967,6 @@ export function ReconciliationControls({
   status: string;
   role: string;
   rows: RowVM[];
-  options: OptionList;
   editable: boolean;
   canFreeze: boolean;
   freezeReason: string | null;
@@ -985,6 +987,51 @@ export function ReconciliationControls({
   previousHref: string;
   nextHref: string;
 }) {
+  const optionsRef = useRef<OptionList | null>(null);
+  const pendingOptionsRef = useRef<Promise<ReviewOptionsResult> | null>(null);
+  const [options, setOptions] = useState<OptionList | null>(null);
+  const [optionsPending, setOptionsPending] = useState(false);
+  const [optionsError, setOptionsError] = useState("");
+
+  async function ensureOptions(): Promise<OptionList | null> {
+    if (optionsRef.current) return optionsRef.current;
+
+    setOptionsError("");
+    let request = pendingOptionsRef.current;
+    if (!request) {
+      setOptionsPending(true);
+      request = loadReviewOptions(batchId);
+      pendingOptionsRef.current = request;
+    }
+
+    try {
+      const result = await request;
+      if (!result.ok) {
+        setOptionsError(result.error);
+        return null;
+      }
+      optionsRef.current = result.options;
+      setOptions(result.options);
+      return result.options;
+    } catch {
+      setOptionsError("تعذّر تحميل قوائم المراجعة. لم يُفتح النموذج؛ حاول مرة أخرى.");
+      return null;
+    } finally {
+      if (pendingOptionsRef.current === request) {
+        pendingOptionsRef.current = null;
+        setOptionsPending(false);
+      }
+    }
+  }
+
+  function invalidateOptions() {
+    optionsRef.current = null;
+    pendingOptionsRef.current = null;
+    setOptions(null);
+    setOptionsPending(false);
+    setOptionsError("");
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <BatchActionBar
@@ -1003,6 +1050,12 @@ export function ReconciliationControls({
         summaryLines={summaryLines}
       />
 
+      {optionsError && (
+        <div role="alert" aria-live="assertive">
+          <Alert tone="danger" title={optionsError} />
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         {rows.length === 0 && hasActiveFilters ? (
           <EmptyState title="لا توجد صفوف تطابق عوامل التصفية" />
@@ -1015,6 +1068,9 @@ export function ReconciliationControls({
               classification={row.classification}
               editable={editable}
               options={options}
+              ensureOptions={ensureOptions}
+              invalidateOptions={invalidateOptions}
+              optionsPending={optionsPending}
             />
           ))
         )}

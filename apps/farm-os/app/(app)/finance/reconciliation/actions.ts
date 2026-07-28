@@ -7,6 +7,7 @@ import { toArabicError } from "@/lib/errors";
 import type { Json } from "@/lib/database.types.ext";
 import { fmtDate } from "@/lib/dates";
 import { egp } from "@/lib/money";
+import { leafPostingAccounts, type PickableAccount } from "@/lib/account-options";
 import {
   buildReviewDecision,
   isUuid,
@@ -31,12 +32,166 @@ export type CorrectionTarget = { id: string; label: string };
 export type CorrectionSearchResult =
   | { ok: true; targets: CorrectionTarget[] }
   | { ok: false; error: string };
+export interface Option {
+  id: string;
+  label: string;
+}
+export interface SectorOption extends Option {
+  farmId: string;
+}
+export interface HawshaOption extends Option {
+  sectorId: string;
+}
+export interface OptionList {
+  accounts: PickableAccount[];
+  costCenters: Option[];
+  suppliers: Option[];
+  buyers: Option[];
+  farms: Option[];
+  sectors: SectorOption[];
+  hawshat: HawshaOption[];
+}
+export type ReviewOptionsResult =
+  | { ok: true; options: OptionList }
+  | { ok: false; error: string };
+
+const OPTION_LIMIT = 500;
+
+function assertNotTruncated<T>(rows: T[] | null, whatAr: string): T[] {
+  const list = rows ?? [];
+  if (list.length > OPTION_LIMIT) {
+    throw new Error(`تعذّر تحميل ${whatAr}: تجاوزت الحد (${OPTION_LIMIT}).`);
+  }
+  return list;
+}
 
 /** Both routes are revalidated so counts/status refresh after any write. */
 function revalidateReconciliation(batchId?: string) {
   revalidatePath("/finance/reconciliation");
   if (batchId && isUuid(batchId)) {
     revalidatePath(`/finance/reconciliation/${batchId}`);
+  }
+}
+
+/**
+ * Load the editable review pickers only when the reviewer opens a row.
+ *
+ * Role and tenant identity always come from the server session. Every list uses LIMIT+1 so an
+ * overflow fails closed instead of silently hiding a valid account or dimension.
+ */
+export async function loadReviewOptions(batchId: string): Promise<ReviewOptionsResult> {
+  if (!isUuid(batchId)) {
+    return { ok: false, error: "مُعرّف دفعة المراجعة غير صالح." };
+  }
+  const m = await requireRole(["owner", "accountant"]);
+  const sb = await createClient();
+
+  try {
+    const { data: batch, error: batchError } = await sb
+      .from("reconciliation_batches")
+      .select("id")
+      .eq("id", batchId)
+      .eq("org_id", m.orgId)
+      .eq("status", "staged")
+      .maybeSingle();
+    if (batchError || !batch) {
+      return {
+        ok: false,
+        error: "هذه الدفعة غير متاحة للمراجعة أو لم تعد قابلة للتعديل.",
+      };
+    }
+
+    const [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes] = await Promise.all([
+      sb
+        .from("accounts")
+        .select("id, code, name_ar, account_type, kind, parent_id, active")
+        .eq("org_id", m.orgId)
+        .order("code")
+        .limit(OPTION_LIMIT + 1),
+      sb
+        .from("cost_centers")
+        .select("id, code, name_ar")
+        .eq("org_id", m.orgId)
+        .eq("active", true)
+        .order("code")
+        .limit(OPTION_LIMIT + 1),
+      sb
+        .from("suppliers")
+        .select("id, name")
+        .eq("org_id", m.orgId)
+        .order("name")
+        .limit(OPTION_LIMIT + 1),
+      sb
+        .from("buyers")
+        .select("id, name")
+        .eq("org_id", m.orgId)
+        .eq("active", true)
+        .order("name")
+        .limit(OPTION_LIMIT + 1),
+      sb
+        .from("farms")
+        .select("id, name")
+        .eq("org_id", m.orgId)
+        .eq("archived", false)
+        .order("name")
+        .limit(OPTION_LIMIT + 1),
+      sb
+        .from("sectors")
+        .select("id, name, farm_id")
+        .eq("org_id", m.orgId)
+        .eq("archived", false)
+        .order("name")
+        .limit(OPTION_LIMIT + 1),
+      sb
+        .from("hawshat")
+        .select("id, code, name, sector_id")
+        .eq("org_id", m.orgId)
+        .eq("archived", false)
+        .order("code")
+        .limit(OPTION_LIMIT + 1),
+    ]);
+    for (const result of [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes]) {
+      if (result.error) throw result.error;
+    }
+
+    const accountRows = assertNotTruncated(accRes.data, "الحسابات");
+    return {
+      ok: true,
+      options: {
+        accounts: leafPostingAccounts(accountRows),
+        costCenters: assertNotTruncated(ccRes.data, "مراكز التكلفة").map((row) => ({
+          id: row.id,
+          label: `${row.code} · ${row.name_ar}`,
+        })),
+        suppliers: assertNotTruncated(supRes.data, "الموردين").map((row) => ({
+          id: row.id,
+          label: row.name,
+        })),
+        buyers: assertNotTruncated(buyRes.data, "المشترين").map((row) => ({
+          id: row.id,
+          label: row.name,
+        })),
+        farms: assertNotTruncated(farmRes.data, "المزارع").map((row) => ({
+          id: row.id,
+          label: row.name,
+        })),
+        sectors: assertNotTruncated(secRes.data, "القطاعات").map((row) => ({
+          id: row.id,
+          label: row.name,
+          farmId: row.farm_id,
+        })),
+        hawshat: assertNotTruncated(hawRes.data, "الحوش").map((row) => ({
+          id: row.id,
+          label: `${row.code} · ${row.name}`,
+          sectorId: row.sector_id,
+        })),
+      },
+    };
+  } catch {
+    return {
+      ok: false,
+      error: "تعذّر تحميل قوائم المراجعة. لم يُفتح النموذج؛ حاول مرة أخرى.",
+    };
   }
 }
 
