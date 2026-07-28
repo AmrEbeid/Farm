@@ -1,5 +1,34 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (reconciliation lazy-options closeout)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (reconciliation acceptance-package closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-28 (latest) — reconciliation acceptance package — LIVE / MIGRATED / VERIFIED
+
+PR #944 merged at `829b8f9`; Vercel production deployment
+`7pQ9nJX1nMXeUjA58BoL9DBRYqCq` completed successfully. Hosted migration
+`20260728112054 accounting_reconciliation_acceptance_snapshot` is recorded in Farm production.
+
+The new `/finance/reconciliation/[batchId]/acceptance` page and CSV annex provide the accountant's
+read-only dual-run and sign-off packet. They use one bounded database snapshot, preserve accounting
+decimals as exact text, bind the full lifecycle record and evidence to a deterministic digest, and use
+phase-correct language and totals for planned, posted, reversed, skipped, and unsettled rows. Any empty,
+overflowing, incomplete, malformed, count-mismatched, or unsettled execution snapshot refuses. The printed
+assertion explicitly requires source, period, source/system totals, difference or explanation, exceptions,
+accepted outcome, and dated accountant/owner names and signatures.
+
+The RPC is `STABLE`, `SECURITY INVOKER`, empty-search-path, active-org + `finance.read` gated, bounded to
+1,000 rows, executable by `authenticated`, and denied to `anon` and public. It has no service-role path and
+performs no write. Production pre/post counts are identical: one reconciliation batch, 698 batch rows,
+698 evidence items, 10,201 expenses, 162 sales, and 10,365 journals.
+
+Evidence: two independent reviews APPROVE; focused Vitest 145/145; full Vitest 959 passed + 13 controlled
+skips; TypeScript and ESLint clean; build 65/65; acceptance pgTAP 85/85; full pgTAP 2,961 passing with zero
+file failures and only the two unchanged stock-engine baseline assertions. App, design-system, secret,
+preview, and production-deployment gates passed.
+
+**Exact resume point remains human:** make explicit decisions on all 698 rows, run the real workbook-vs-system
+dual run, resolve every exception, and collect dated accountant and owner signatures. No decision, freeze,
+approval, execution, rollback, posting, or financial row changed in this slice. Do not call accounting
+dependable daily use 100% until that operating evidence exists.
 
 ## 2026-07-28 (latest) — reconciliation initial-load option reads removed — LIVE / VERIFIED
 

@@ -434,3 +434,37 @@ from surviving a review write while keeping untouched initial renders free of th
 review found and closed the missing staged-batch binding and stale-cache risks. No review decision or money
 gate changed. Merge `c6b0019`; production `dpl_2utZSFoGij4jJwCmSrA4Nje7wNX9` READY. Authenticated timing
 is intentionally unclaimed until an owner session is available.
+
+### 8.7 Dual-run acceptance package (2026-07-28, RELEASED)
+
+PR #944 adds the missing read-only evidence packet between row review and the human acceptance gate:
+`/finance/reconciliation/[batchId]/acceptance` plus
+`/api/finance/reconciliation/[batchId]/acceptance.csv`. The page and annex use the same immutable package
+builder and one database snapshot. They preserve source amounts as exact decimal text, classify every row
+into an explicit destination, distinguish planned / executed / reverted / unsettled phases, and exclude
+skipped or unresolved rows from posted totals. Posted and reversed execution results both remain visible as
+real money actions. A deterministic digest binds batch identity, status, lifecycle/result summary, evidence,
+row decisions, and the generated report.
+
+The printed assertion is intentionally not a software-generated approval. It requires the reviewer to record:
+the source and accounting period; source and system totals; difference or written explanation; exceptions;
+accepted outcome; and dated accountant and owner names/signatures. The CSV annex is UTF-8/BOM compatible and
+prevents formula injection, including whitespace/control-prefixed formula leaders, without changing valid
+canonical numeric literals.
+
+Migration `20260728120000 accounting reconciliation acceptance snapshot.sql` was applied to production as
+hosted `20260728112054 accounting_reconciliation_acceptance_snapshot`. Its sole RPC is read-only,
+`STABLE`, `SECURITY INVOKER`, `search_path = ''`, active-org + `finance.read` gated, executable by
+`authenticated` only, and bounded to 1,000 rows. It refuses empty, overflow, incomplete, malformed,
+count-mismatched, unknown-enum, wrong-batch, or unsettled execution snapshots. No service-role client, direct
+DML, decision, freeze, approval, execution, rollback, or posting path is present.
+
+Release evidence: merge `829b8f9`; production deployment `7pQ9nJX1nMXeUjA58BoL9DBRYqCq`; two independent
+reviews APPROVE; focused Vitest 145/145; full Vitest 959 + 13 controlled skips; TypeScript/ESLint clean;
+build 65/65; acceptance pgTAP 85/85; full pgTAP 2,961 passing, zero file failures, and only the two unchanged
+stock-engine baselines. Production catalog and grants match the contract. Pre/post counts remained exactly
+1 batch / 698 batch rows / 698 evidence items / 10,201 expenses / 162 sales / 10,365 journals.
+
+**Acceptance is still pending.** The owner/accountant must decide all 698 rows, perform the real workbook
+dual run, resolve every exception, and sign/date the assertion. Shipping this packet completes the software
+surface for that control; it does not itself make accounting dependable daily use 100%.
