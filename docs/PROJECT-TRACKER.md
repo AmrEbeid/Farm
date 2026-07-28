@@ -1,4 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (js-yaml security closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (reconciliation lazy-options closeout)
+
+> **2026-07-28 — RECONCILIATION OPTION READS MOVED OFF INITIAL LOAD: MERGED / DEPLOYED / VERIFIED.**
+> PR #942 merged at `c6b0019`; matching production deployment
+> `dpl_2utZSFoGij4jJwCmSrA4Nje7wNX9` is READY. The batch page no longer runs the seven
+> org-wide account/dimension option queries on initial render or every save refresh. A reviewer now
+> loads them on first row-open through a bounded, role-gated, same-org, `staged`-batch server action.
+> Concurrent opens share one request; successful data is reused until a row save, batch/status/role
+> change, or remount invalidates it. Failed loads keep the form closed with a safe Arabic error.
+> Independent review found two P2 issues (unbound action and stale cache); both were fixed and the
+> rereview approved. Focused 41/41, full Vitest 820 + 13 skips, TypeScript, ESLint, build 65/65,
+> app/shared/secret/preview CI, protected-route redirect, and runtime-error review passed. App-only:
+> no migration or financial state change. Authenticated timing remains to be captured in an owner session.
 
 > **2026-07-28 — TRANSITIVE JS-YAML ADVISORIES PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #940 merged at `0f0708b`; matching production deployment

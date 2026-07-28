@@ -1,5 +1,26 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (js-yaml security closeout)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (reconciliation lazy-options closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-28 (latest) — reconciliation initial-load option reads removed — LIVE / VERIFIED
+
+PR #942 merged at `c6b0019`; production deployment `dpl_2utZSFoGij4jJwCmSrA4Nje7wNX9`
+is READY. The 698-row batch page no longer fetches accounts, cost centers, suppliers, buyers, farms,
+sectors, and hawshat during every initial render and row-save refresh. The seven bounded lists load only
+when a reviewer opens a row, through an owner/accountant action that validates UUID, tenant, batch identity,
+and `status = staged` before reading. Concurrent opens share one promise. Cached data is invalidated before
+every successful row-save refresh, and batch/status/role changes remount the controls. Failure opens no
+incomplete form and surfaces a fixed Arabic error.
+
+Independent review initially requested changes for an action not bound to a staged batch and cache staleness
+across refreshes. Both were fixed; rereview: APPROVE with no P0-P2 findings. Focused tests 41/41; full Vitest
+820 passed + 13 controlled skips; TypeScript, touched ESLint, build 65/65, app/shared/secret/preview CI,
+protected-route redirect, and runtime-error review passed. The two pgTAP failures remain the unchanged engine
+baselines. No migration, RPC, decision, freeze, approval, execution, rollback, posting, or financial state changed.
+
+There was no authenticated owner browser session at release time, so no new live timing is claimed.
+**Exact accounting resume point remains human:** decide the 698 rows, dual-run against the workbook, resolve
+exceptions, and obtain signed accountant acceptance. The page is faster to enter; the system must still not
+make or bulk-apply financial judgments.
 
 ## 2026-07-28 (latest) — transitive js-yaml advisories patched — LIVE / VERIFIED
 

@@ -418,3 +418,19 @@ Release evidence: commit `19da7ed`, merge `0155c8e`, production deployment
 `dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev`. Focused tests 38/38; full Vitest 803 passed + 13 controlled skips;
 TypeScript/ESLint clean; build 65/65; app/shared/secret/Vercel green; DB baseline unchanged. Live owner-session
 measurements: 4.2s navigation and 2.8s immediate reload, with the same 698 rows and release gates.
+
+### 8.6 Lazy editable-option loading (2026-07-28, RELEASED)
+
+PR #942 removes seven account/dimension reads from every initial batch render and row-save refresh.
+Accounts, cost centers, suppliers, buyers, farms, sectors, and hawshat now load only when a reviewer
+first opens a row. The server action requires owner/accountant, derives the org from the session, validates
+the batch UUID, and proves the batch exists in the same org with `status = staged` before the seven bounded
+reads. Every list retains its previous org, active/archive, order, `LIMIT + 1`, overflow, and leaf-account
+rules. A load failure opens no form and returns only fixed Arabic copy.
+
+The client shares one in-flight request and reuses the result across rows, but invalidates it before every
+successful row-save refresh; batch/status/role changes remount the controls. This prevents stale dimensions
+from surviving a review write while keeping untouched initial renders free of the seven queries. Independent
+review found and closed the missing staged-batch binding and stale-cache risks. No review decision or money
+gate changed. Merge `c6b0019`; production `dpl_2utZSFoGij4jJwCmSrA4Nje7wNX9` READY. Authenticated timing
+is intentionally unclaimed until an owner session is available.
