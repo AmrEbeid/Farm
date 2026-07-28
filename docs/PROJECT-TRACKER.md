@@ -1,4 +1,26 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (reconciliation lazy-options closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (reconciliation acceptance-package closeout)
+
+> **2026-07-28 — RECONCILIATION DUAL-RUN ACCEPTANCE PACKAGE: MERGED / DEPLOYED / MIGRATED / VERIFIED.**
+> PR #944 merged at `829b8f9`; matching Vercel production deployment
+> `7pQ9nJX1nMXeUjA58BoL9DBRYqCq` completed successfully. Hosted migration
+> `20260728112054 accounting_reconciliation_acceptance_snapshot` adds one read-only, `STABLE`,
+> `SECURITY INVOKER` snapshot RPC with empty `search_path`, active-org + `finance.read` enforcement,
+> authenticated-only execute, exact decimal text, a 1,000-row bound, and fail-closed empty, overflow,
+> incomplete, malformed, count-mismatched, or unsettled outcomes.
+>
+> The new Arabic acceptance page and CSV annex bind the batch lifecycle and evidence into a deterministic
+> digest, distinguish planned / executed / reverted / unsettled states, and report posted, reversed, skipped,
+> and unresolved rows without overstating money moved. The printed assertion requires a named source and
+> period, source/system totals, difference or explanation, exceptions, accepted outcome, and dated
+> accountant/owner signatures. CSV export also blocks formula injection while preserving canonical numerics.
+>
+> Evidence: two independent reviews APPROVE; focused Vitest 145/145; full Vitest 959 + 13 controlled skips;
+> TypeScript/ESLint clean; build 65/65; acceptance pgTAP 85/85; full pgTAP 2,961 passing, zero file failures,
+> and only the same two stock-engine baseline assertions. Production catalog/grants match the contract.
+> Pre/post counts are unchanged: 1 batch / 698 batch rows / 698 evidence items / 10,201 expenses /
+> 162 sales / 10,365 journals. **No decision, freeze, approval, execution, rollback, or posting occurred.**
+> **Still human-gated:** decide all 698 rows, run the real workbook-vs-system dual run, resolve every
+> exception, and obtain dated accountant and owner signatures. Accounting is not yet 100% accepted.
 
 > **2026-07-28 — RECONCILIATION OPTION READS MOVED OFF INITIAL LOAD: MERGED / DEPLOYED / VERIFIED.**
 > PR #942 merged at `c6b0019`; matching production deployment
