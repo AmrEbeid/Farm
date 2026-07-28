@@ -2,6 +2,13 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-28 (latest) — reconciliation lazy option loading DEPLOYED / VERIFIED.**
+> PR #942 merged at `c6b0019`; production deployment `dpl_2utZSFoGij4jJwCmSrA4Nje7wNX9`
+> is READY. Seven org-wide option reads moved off initial batch render and row-save refresh into a
+> bounded, role/tenant/staged-batch-gated first-open action with cache invalidation after each saved row.
+> Independent rereview approved after two P2 fixes. Full app/shared/secret/preview gates, protected-route
+> redirect, and runtime-error review passed. App-only: no migration or financial state change.
+
 > **2026-07-28 (latest) — transitive js-yaml security patch DEPLOYED / LIVE-VERIFIED.**
 > PR #940 merged at `0f0708b`; production deployment `dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm`
 > is READY. Patched `js-yaml` versions remove the high-severity category and reduce npm audit
