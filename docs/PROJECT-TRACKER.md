@@ -1,4 +1,14 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (reconciliation acceptance-package closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (green pgTAP baseline closeout)
+
+> **2026-07-28 — DATABASE CI BASELINE RESTORED: 2,963 PASS / 0 FAIL / 0 FILE FAILURES.**
+> PR #946 merged at `cddf044`. The only two failing assertions used fixed July 1 / July 22 dates in
+> stock-coverage scenarios; after ENGINE-H3 correctly began clamping the bucket origin to today, calendar
+> drift eventually collapsed both demands into period 1. The fixtures now use transaction-stable
+> `current_date` and `current_date + 21`, preserving the original first-crossing shortfall 50, period-4
+> maximum deficit 1,050, recommendation 1,050, and matching Arabic message assertions.
+> Claude implemented the two-file test fix; Codex reviewed the bytes and independently ran the full harness.
+> Local and GitHub pgTAP are fully green. App, design-system, secret, review, and preview checks are also green.
+> Test-only: no engine code, migration, schema, application behavior, production data, or financial state changed.
 
 > **2026-07-28 — RECONCILIATION DUAL-RUN ACCEPTANCE PACKAGE: MERGED / DEPLOYED / MIGRATED / VERIFIED.**
 > PR #944 merged at `829b8f9`; matching Vercel production deployment
