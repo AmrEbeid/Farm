@@ -10,6 +10,12 @@
 --   message_ar must now print «نقص متوقع: 1050 كجم …» (the maxdef shortfall), NOT the shallow 50.
 --   The 'shortfall' JSON field stays 50 (first crossing) — display-only change, no behavior change.
 --
+-- Dates are RELATIVE to current_date, never absolute — same reason as test 55. ENGINE-H3
+-- (20260701200000) clamps the bucket origin to today (v_period_start := greatest(min(planned_at),
+-- current_date)), so a hardcoded past planned_at collapses BOTH ops into period 1 and the scenario
+-- degenerates to one 1150 kg period-1 demand (shortfall 1050, not 50). Anchoring op1 at current_date
+-- makes the clamp a no-op and keeps the period-1 / period-4 spread this test depends on.
+--
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
@@ -28,8 +34,8 @@ insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved)
 
 insert into public.plans (id, org_id, type, status) values (:'plan', :'orgA', 'monthly', 'draft');
 insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, status) values
-  (:'op1', :'orgA', :'plan', 'fertilization', date '2026-07-01', 'planned'),
-  (:'op2', :'orgA', :'plan', 'fertilization', date '2026-07-22', 'planned');  -- +21d = period 4
+  (:'op1', :'orgA', :'plan', 'fertilization', current_date,      'planned'),   -- origin = period 1
+  (:'op2', :'orgA', :'plan', 'fertilization', current_date + 21, 'planned');   -- +21d = period 4
 insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit) values
   (:'orgA', :'op1', :'item', 150,  'kg'),
   (:'orgA', :'op2', :'item', 1000, 'kg');
