@@ -1,4 +1,4 @@
-# SECURITY-NOTES — accepted findings & residual-risk register   (reconciled 2026-07-13; §5 added 2026-07-28)
+# SECURITY-NOTES — accepted findings & residual-risk register   (reconciled 2026-07-13; §5 added, §4.2 updated 2026-07-28)
 
 Purpose: a durable record of the **known, accepted, low-risk** security findings on Farm OS MVP-0,
 so future Supabase advisor runs and independent reviews have context and do not re-litigate settled
@@ -158,9 +158,21 @@ Any new concern in these areas must be assessed against the current definitions 
   Do not re-open the old exposed-key finding without fresh evidence. Leaked-password protection remains a separate
   dashboard action (1.4).
 
-### 4.2 Dependency advisory — resolved
-- The old `postcss < 8.5.10` item is no longer current; the lockfile resolves `postcss` 8.5.15. Reassess from a fresh
-  audit before recording any replacement dependency finding.
+### 4.2 Dependency advisories — Next.js patched 2026-07-28; `postcss`/`sharp` still open
+- **Local/unmerged patch.** `next` and `eslint-config-next` move 16.2.10 → **16.2.12** (patch-only; both kept aligned). This
+  clears all nine Next.js-specific advisories `npm audit` reported at 16.2.10 — middleware/proxy bypass, Server
+  Actions DoS, SSRF on custom servers and via rewrites, two cache-confusion items, unbounded Edge Server Action
+  payload, Image-Optimization SVG DoS, and unauthenticated Server Function endpoint disclosure. Do not re-flag these.
+- **Correction.** The superseded note here called `postcss` resolved at 8.5.15; the advisory range has since widened
+  to `<= 8.5.17`, so 8.5.15 is itself vulnerable.
+- **Still open — not fixable by a Next patch.** `next` remains listed, but now only as a *dependent* of two
+  transitive packages: it hard-pins `postcss` `8.4.31` and declares `sharp` `^0.34.5` (optional). The fixes need
+  `postcss > 8.5.17` and `sharp >= 0.35.0`, which those ranges cannot reach, and 16.2.12 is the newest Next release —
+  so no further patch bump helps.
+- **Follow-up condition (Owner-gated).** Clearing these needs nested `overrides` forcing Next's own pins; a verified
+  experiment confirmed plain root overrides (`postcss ^8.5.18`, `sharp ^0.35.0`) do **not** reach them. That
+  overrides versions Next pins and tests against (CSS pipeline, image optimization), so it is a deliberate dependency
+  decision, not a patch. Reassess from a fresh audit before recording any replacement finding.
 
 ### 4.3 Stage M — finance complete; registry pending; privacy boundary remains
 - Real farm financial data is live, but the real palm registry is still pending. The old "current seed is synthetic"
