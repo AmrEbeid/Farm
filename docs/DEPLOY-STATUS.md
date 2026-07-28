@@ -1,6 +1,13 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-27)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-28)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-07-28 (latest) — production demo-credential surface REMOVED / DEPLOYED / LIVE-VERIFIED.**
+> PR #933 merged at `a1d5834`; production deployment `dpl_8mLoTNzc81ikwoVjS8R9TQ45SQkF`
+> is READY. Login fields are blank and the demo chooser, demo activation action, client-bundled shared
+> credential, demo addresses, provisioning route/helper, and proxy exception are removed. All 12 loaded
+> production client scripts scanned clean for the retired surface; Vercel showed no runtime errors in the
+> preceding 30 minutes. App-only: no migration applied. Live demo identities remain an Owner-only follow-up.
 
 > **2026-07-27 (latest) — data authority gates MIGRATED / DEPLOYED / LIVE-VERIFIED.**
 > Farm migration `20260727145912 data_authority_status` applied migrate-first; PR #931 merged at `7ce98f5`;
@@ -1356,9 +1363,9 @@ backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
   **`fn_stock_coverage` works on prod** (potassium → available 300, shortage, recommend 300kg,
   Arabic message); dashboard reads correct (6 items / 1 plan / 1 budget / 1 farm); anon denied
   (GRANT-C1). DB = all 13 migrations + synthetic seed. Also CI now gates the app build (ci.yml `app` job).
-- **Auth:** email/password, **no SMS** (phone-OTP/Twilio dropped per Owner). Six demo accounts
-  exist (`<role>@ebeid.test`); ⚠️ **the password IS committed** (`lib/seed-auth.ts` + `app/login/page.tsx`,
-  client-bundled) — see "Security follow-ups" #4. Synthetic-only, but de-hardcode + rotate before real use.
+- **Auth:** email/password, **no SMS** (phone-OTP/Twilio dropped per Owner). The client-bundled demo
+  credential surface was removed in PR #933. Six linked demo-email identities remain in production and
+  require Owner-managed replacement/rotation; see "Security follow-ups."
 - **Build chain resolved (the saga):** Vercel Root Directory→`apps/farm-os`; committed `@amrebeid/ui`
   `dist/`; removed the root `.npmrc` (`${NODE_AUTH_TOKEN}` crashed the build); app-local CSS copy;
   `turbopack.root`+`outputFileTracingRoot`; **pinned Tailwind v4 Linux native binaries**
@@ -1394,6 +1401,6 @@ receipt-posting atomicity — closed by `0024`.)* No queued security caveats rem
 ## Security follow-ups
 - **Supabase DB password + `service_role` key rotation is complete** — Owner correction 2026-06-29. Do not list
   this as an open gate again unless the Owner reopens it.
-- The **demo login password is known** (shared in chat **and committed** in `lib/seed-auth.ts` +
-  `app/login/page.tsx`, client-bundled). Fine for the pilot (synthetic data only),
-  but reset it before any real Ebeid data, and consider per-user passwords.
+- The committed/client-bundled demo credential surface is removed from production as of PR #933.
+  The six linked demo-email identities still need Owner-managed replacement or rotation; six unused,
+  unlinked phone-only seed identities need removal; leaked-password protection still needs enabling.
