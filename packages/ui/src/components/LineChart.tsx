@@ -4,6 +4,7 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { useChartTokens } from "./useChartTokens";
+import { ChartCanvas } from "./ChartCanvas";
 import { formatChartNumber } from "./formatChartNumber";
 import type { ChartSeries } from "./BarChart";
 
@@ -61,44 +62,46 @@ export function LineChart({
       role="img"
       aria-label={ariaLabel}
     >
-      <ResponsiveContainer width="100%" height={height}>
-        <RLineChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-          <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
-          <XAxis
-            dataKey={categoryKey}
-            reversed={t.dir === "rtl"}
-            tick={{ fill: t.inkMuted, fontSize: 12 }}
-            stroke={t.line}
-          />
-          <YAxis
-            orientation={t.dir === "rtl" ? "right" : "left"}
-            tick={{ fill: t.inkMuted, fontSize: 12 }}
-            stroke={t.line}
-            tickFormatter={formatChartNumber}
-          />
-          <Tooltip
-            contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
-            labelStyle={{ color: t.ink }}
-            formatter={(value) => formatChartNumber(value)}
-          />
-          {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
-          {series.map((s, i) => {
-            const color = s.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand;
-            return (
-              <Line
-                key={s.dataKey}
-                type={curve}
-                dataKey={s.dataKey}
-                name={s.name ?? s.dataKey}
-                stroke={color}
-                strokeWidth={2}
-                dot={showDots ? { fill: color, r: 3 } : false}
-                activeDot={{ r: 5 }}
-              />
-            );
-          })}
-        </RLineChart>
-      </ResponsiveContainer>
+      <ChartCanvas height={height}>
+        <ResponsiveContainer width="100%" height={height}>
+          <RLineChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+            <CartesianGrid stroke={t.line} strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey={categoryKey}
+              reversed={t.dir === "rtl"}
+              tick={{ fill: t.inkMuted, fontSize: 12 }}
+              stroke={t.line}
+            />
+            <YAxis
+              orientation={t.dir === "rtl" ? "right" : "left"}
+              tick={{ fill: t.inkMuted, fontSize: 12 }}
+              stroke={t.line}
+              tickFormatter={formatChartNumber}
+            />
+            <Tooltip
+              contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
+              labelStyle={{ color: t.ink }}
+              formatter={(value) => formatChartNumber(value)}
+            />
+            {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
+            {series.map((s, i) => {
+              const color = s.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand;
+              return (
+                <Line
+                  key={s.dataKey}
+                  type={curve}
+                  dataKey={s.dataKey}
+                  name={s.name ?? s.dataKey}
+                  stroke={color}
+                  strokeWidth={2}
+                  dot={showDots ? { fill: color, r: 3 } : false}
+                  activeDot={{ r: 5 }}
+                />
+              );
+            })}
+          </RLineChart>
+        </ResponsiveContainer>
+      </ChartCanvas>
       {tableFallback && (
         <DataTable
           data={data}
