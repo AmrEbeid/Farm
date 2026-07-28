@@ -2,6 +2,26 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-07-28 (latest) — Recharts hydration gate DEPLOYED; AUTHENTICATED DASHBOARD CHECK NOT DONE.**
+> PR #951 merged at `2d56783` (`2d567831f3de2d2aa38ef98eef4adf9e2c5b3a2b`); the Vercel production
+> deployment for that exact commit completed successfully. Only the Recharts canvas subtree is deferred,
+> behind a `useSyncExternalStore` hydration gate; the accessible table fallbacks and the reserved fixed
+> chart height are unchanged in the server HTML. Focused chart hydration 6/6, UI 288/288, app 959 + 13
+> controlled skips, UI/app TypeScript, ESLint, UI build, app build 65/65, recharts code-split guard,
+> `git diff --check`, and GitHub app / design-system / pgTAP / gitleaks all passed. UI/app only: no
+> migration, and no schema, RPC, data, or financial state change.
+> **Not verified:** after the release went live the fresh browser was redirected to `/login` because the
+> authenticated session was no longer available, so **no authenticated owner-dashboard full-document check
+> was run and React #418 is not proven absent on production**. One fresh authenticated dashboard check and
+> an acceptance regression check are still owed.
+
+> **2026-07-28 (latest) — toast portal hydration fix DEPLOYED / PRODUCTION-CHECKED.**
+> PR #950 merged at `eef380e`. The toast portal now mounts only after the client commits, ending the
+> global mutation of `document.body` during hydration; an SSR/hydration regression test guards it.
+> Production full-document checks after this release were clean on finance/accounts, the reconciliation
+> list, the batch page, and acceptance — zero fresh errors and zero fresh warnings. The owner dashboard
+> still showed one React #418, handled by PR #951. UI-only: no migration and no financial state change.
+
 > **2026-07-28 (latest) — reconciliation lazy option loading DEPLOYED / VERIFIED.**
 > PR #942 merged at `c6b0019`; production deployment `dpl_2utZSFoGij4jJwCmSrA4Nje7wNX9`
 > is READY. Seven org-wide option reads moved off initial batch render and row-save refresh into a

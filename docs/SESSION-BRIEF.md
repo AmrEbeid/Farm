@@ -1,5 +1,38 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (green pgTAP baseline closeout)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (hydration production closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-28 (latest) — hydration closeout: toast portal + Recharts gate — MERGED / DEPLOYED; DASHBOARD CHECK PENDING
+
+Two UI-layer releases closed the hydration work in order: the global cause first, then the one remaining
+instance.
+
+PR #950 merged at `eef380e`. `Toaster` portalled into `document.body` on the first client render whenever
+`document` existed, mutating the root while it was still hydrating; the client tree then stopped matching
+the server HTML and streamed inserts lost their parent. It now gates on a real client commit, and
+`packages/ui/src/components/Toast.test.tsx` adds an SSR/hydration regression test. Production full-document
+checks after that release were clean — zero fresh errors and zero fresh warnings on finance/accounts, the
+reconciliation list, the batch page, and acceptance — but the owner dashboard still reported one React #418.
+
+PR #951 merged at `2d56783`, and the Vercel production deployment for that exact commit completed
+successfully. `ChartCanvas` defers **only** the Recharts canvas subtree until `useSyncExternalStore` reports
+the first commit, so the server snapshot is exactly what hydration renders — no `suppressHydrationWarning`
+and no new dependency. The accessible table fallbacks are rendered outside the gate and stay in the server
+HTML and the first client render, and the fixed chart height is reserved before and after mount, so nothing
+jumps and no-JS/screen-reader users are unaffected.
+
+Evidence: focused chart hydration 6/6; UI 288/288; app 959 passed + 13 controlled skips; UI and app
+TypeScript; ESLint; UI build; app build 65/65; recharts code-split guard; `git diff --check` clean; GitHub
+app / design-system / pgTAP / gitleaks and Vercel all green. CodeRabbit remained in processing and returned
+no finding. Claude reviewed the implementation independently; Codex reviewed the bytes and tests. No schema,
+RPC, data, or financial state changed, and neither release carried a migration.
+
+**Truth boundary — do not overstate this.** After #951 went live the fresh browser was redirected to
+`/login` because the authenticated session was no longer available. There is therefore **no authenticated
+owner-dashboard production runtime verification, and React #418 is not proven absent on production.**
+
+**Exact resume point:** one fresh authenticated full-document check of the owner dashboard on production,
+plus the acceptance regression check. Until both exist, record the dashboard as unverified and the #418
+outcome as unproven.
 
 ## 2026-07-28 (latest) — database CI baseline restored — MERGED / VERIFIED
 

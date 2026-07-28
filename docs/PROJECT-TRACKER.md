@@ -1,4 +1,31 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (green pgTAP baseline closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (hydration production closeout)
+
+> **2026-07-28 — RECHARTS HYDRATION GATE: MERGED / DEPLOYED; AUTHENTICATED DASHBOARD CHECK PENDING.**
+> PR #951 merged at `2d56783`; the Vercel production deployment for that exact commit completed
+> successfully. `ChartCanvas` withholds **only** the Recharts canvas subtree until `useSyncExternalStore`
+> reports the first client commit, so the server snapshot and React's hydration render are identical by
+> construction — no `suppressHydrationWarning` and no new dependency. The accessible table fallbacks stay
+> in the server HTML and in the first client render, and the fixed chart height is reserved before and
+> after mount, so no-JS and screen-reader users are unaffected and nothing jumps.
+> Evidence: focused chart hydration 6/6; UI 288/288; app 959 passed + 13 controlled skips; UI and app
+> TypeScript; ESLint; UI build; app build 65/65; recharts code-split guard; `git diff --check` clean;
+> GitHub app / design-system / pgTAP / gitleaks and Vercel all green. CodeRabbit remained in processing
+> and returned no finding; Claude reviewed the implementation independently and Codex reviewed the bytes
+> and tests. No schema, RPC, data, or financial state changed, and there is no migration.
+> **Not claimed / still pending:** once the release was live the fresh browser was redirected to `/login`
+> because the authenticated session was no longer available. **No authenticated owner-dashboard runtime
+> verification was performed, and React #418 is not proven absent on production.** One fresh authenticated
+> full-document dashboard check plus an acceptance regression check remain outstanding.
+
+> **2026-07-28 — TOAST PORTAL HYDRATION FIX: MERGED / PRODUCTION-CHECKED.**
+> PR #950 merged at `eef380e`. This fixed the **global** hydration/root-mutation cause: `Toaster` portalled
+> into `document.body` on the first client render whenever `document` existed, mutating the root while it
+> was still hydrating. It now gates on a real client commit, and an SSR/hydration regression test in
+> `packages/ui/src/components/Toast.test.tsx` holds that behaviour.
+> Production full-document checks after this release were clean on finance/accounts, the reconciliation
+> list, the batch page, and acceptance — **zero fresh errors and zero fresh warnings**. The owner dashboard
+> still reported one React #418, which PR #951 addresses. UI-only: no schema, RPC, data, or financial state
+> change and no migration.
 
 > **2026-07-28 — DATABASE CI BASELINE RESTORED: 2,963 PASS / 0 FAIL / 0 FILE FAILURES.**
 > PR #946 merged at `cddf044`. The only two failing assertions used fixed July 1 / July 22 dates in
