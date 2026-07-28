@@ -1,5 +1,21 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (reconciliation acceptance-package closeout)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (green pgTAP baseline closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-28 (latest) — database CI baseline restored — MERGED / VERIFIED
+
+PR #946 merged at `cddf044`. The two long-standing failures were not live engine defects: tests 55 and 80
+hardcoded July 1 / July 22 operations, while ENGINE-H3 correctly clamps a past plan origin to today. As the
+calendar moved, both demands entered period 1, so only the assertions expecting a shallow first-crossing
+shortfall of 50 drifted; the maximum-deficit recommendation and Arabic message remained correctly 1,050.
+
+Claude changed only those four fixture dates to transaction-stable `current_date` / `current_date + 21`.
+Codex reviewed the diff and independently ran the complete Docker-free harness: 2,963 passing, zero failures,
+zero TODO failures, and zero file failures. GitHub pgTAP, app, design-system, secret, review, and preview gates
+all passed. No assertion was weakened or skipped.
+
+This is test-only. No function, migration, schema, dependency, application behavior, production data, or
+financial state changed. Future PRs now receive a truthful green database signal instead of requiring a
+documented baseline exception.
 
 ## 2026-07-28 (latest) — reconciliation acceptance package — LIVE / MIGRATED / VERIFIED
 

@@ -465,6 +465,10 @@ build 65/65; acceptance pgTAP 85/85; full pgTAP 2,961 passing, zero file failure
 stock-engine baselines. Production catalog and grants match the contract. Pre/post counts remained exactly
 1 batch / 698 batch rows / 698 evidence items / 10,201 expenses / 162 sales / 10,365 journals.
 
+Current baseline note: subsequent test-only PR #946 (`cddf044`) removed calendar drift from those two stock
+fixtures without changing engine behavior. The full local and GitHub pgTAP baseline is now 2,963 passing,
+zero failures, and zero file failures.
+
 **Acceptance is still pending.** The owner/accountant must decide all 698 rows, perform the real workbook
 dual run, resolve every exception, and sign/date the assertion. Shipping this packet completes the software
 surface for that control; it does not itself make accounting dependable daily use 100%.
