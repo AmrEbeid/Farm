@@ -1484,8 +1484,39 @@ export type ReconciliationStageOutcome = {
   total_rows?: number | null;
 };
 
+/**
+ * What fn_reconciliation_acceptance_snapshot returns (migration
+ * "20260728120000 accounting reconciliation acceptance snapshot.sql").
+ *
+ * Every field is optional and nullable ON PURPOSE — same rationale as the two types above: this says
+ * "here is the shape you may look for", it does not assert the server sent it.
+ * `lib/reconciliation acceptance data.ts`'s parseAcceptanceSnapshot is the authoritative runtime
+ * validation and refuses anything it does not fully recognise.
+ *
+ * `batch` and `rows` are deliberately `Json`: the parser reads them field by field (including that no
+ * accounting amount arrived as a JSON number), so declaring a convenient shape here would only invite
+ * a caller to trust it without that check.
+ */
+export type ReconciliationAcceptanceSnapshot = {
+  /** Pins the payload contract; the reader refuses any other value. */
+  version?: string | null;
+  /** 'ok' | 'not_found' | 'empty' | 'overflow' | 'incomplete' | 'count_mismatch'. */
+  status?: string | null;
+  /** The whole-batch bound the DB enforced. Must equal the app's ACCEPTANCE_MAX_ROWS. */
+  max_rows?: number | null;
+  row_count?: number | null;
+  evidence_item_count?: number | null;
+  declared_row_count?: number | null;
+  rows_missing_evidence?: number | null;
+  staged_batch_row_count?: number | null;
+  staged_evidence_item_count?: number | null;
+  batch?: Json | null;
+  rows?: Json | null;
+};
+
 // The authenticated client RPCs the reconciliation workspace calls: the staging RPC, the three
-// review-stage ones, and the two owner-only money RPCs the batch page drives.
+// review-stage ones, the two owner-only money RPCs the batch page drives, and the read-only
+// acceptance snapshot.
 type ReconciliationFunctions = {
   /**
    * Stage an already-generated Slice-2 manifest as REVIEW ROWS ONLY (20260726120000, re-emitted by
@@ -1524,6 +1555,19 @@ type ReconciliationFunctions = {
   fn_rollback_reconciliation_batch: {
     Args: { p_batch_id: string; p_reason: string };
     Returns: ReconciliationBatchOutcome;
+  };
+  /**
+   * READ-ONLY, SECURITY INVOKER single-snapshot payload for the acceptance report (20260728120000).
+   *
+   * Owner/accountant via authorize('finance.read', p_org); `p_org` must be the caller's ACTIVE org.
+   * It reads the batch, every row, each row's evidence and the readable dimension labels in ONE
+   * database snapshot, serialises every `numeric` accounting field as canonical decimal TEXT, and
+   * refuses — never truncates — an over-large batch, an incomplete read, or a batch whose stored row
+   * count disagrees with what staging recorded. It calls no other RPC and writes nothing.
+   */
+  fn_reconciliation_acceptance_snapshot: {
+    Args: { p_org: string; p_batch_id: string };
+    Returns: ReconciliationAcceptanceSnapshot;
   };
 };
 

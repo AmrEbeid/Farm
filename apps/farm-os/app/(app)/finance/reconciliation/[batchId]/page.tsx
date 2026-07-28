@@ -28,6 +28,7 @@ import {
   type BatchStatus,
   type Classification,
   type RowStateCounts,
+  type Tone,
 } from "@/lib/reconciliation review";
 import { ReconciliationControls, type RowVM } from "./controls";
 
@@ -510,7 +511,8 @@ export default async function ReconciliationBatchPage({
     };
   });
 
-  const statusMeta = BATCH_STATUS_AR[batch.status as BatchStatus] ?? {
+  // Typed as Tone (the same union the design system's Tag accepts) so the tag needs no cast.
+  const statusMeta: { label: string; tone: Tone } = BATCH_STATUS_AR[batch.status as BatchStatus] ?? {
     label: batch.status,
     tone: "neutral" as const,
   };
@@ -531,13 +533,22 @@ export default async function ReconciliationBatchPage({
           back link all share a single row so the controls below stay above the fold. */}
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h1 className="text-lg font-bold">{sourceLabel}</h1>
-        <Tag tone={statusMeta.tone as never}>{statusMeta.label}</Tag>
+        <Tag tone={statusMeta.tone}>{statusMeta.label}</Tag>
         <span className="text-xs" style={{ color: "var(--ink-muted)" }}>
           قرار صريح لكل صف، ثم تجميد، ثم اعتماد المالك، ثم تنفيذ مالي يمكن التراجع عنه.
         </span>
+        {/* Plain links only: the acceptance report is a SEPARATE route that does its own whole-batch
+            read when opened, so this page adds no query and renders exactly as fast as before. */}
+        <Link
+          href={`/finance/reconciliation/${encodeURIComponent(batchId)}/acceptance`}
+          className="ms-auto rounded-md px-3 py-1 text-sm"
+          style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
+        >
+          تقرير القبول
+        </Link>
         <Link
           href="/finance/reconciliation"
-          className="ms-auto rounded-md px-3 py-1 text-sm"
+          className="rounded-md px-3 py-1 text-sm"
           style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
         >
           كل الدفعات
