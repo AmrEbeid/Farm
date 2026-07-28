@@ -321,6 +321,15 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "لا تُجمِّد قبل أن يكون لكل صف قرار صريح؛ ولا يعتمد الدفعة من أنشأها أو راجع صفوفها (فصل المهام)؛ والتنفيذ والتراجع للمالك فقط ويغيّران أرقام الأرباح والإيرادات فورًا.",
     related: ["reconciliation", "accounting", "expenses", "revenue-reports"],
   },
+  "reconciliation-acceptance": {
+    title: "تقرير قبول التسوية",
+    what: "تقرير للقراءة فقط عن دفعة تسوية واحدة كاملة: حالتها وبصمات مصدرها، وعدد الصفوف حسب القرار، وإجماليات مبالغ المصدر حسب التصنيف والوجهة، ومؤشرات الجودة — مع سجل صفوف كامل يُنزَّل كملف CSV.",
+    why: "ليكون للمحاسب والمالك ورقة واحدة قابلة للطباعة والتوقيع تلخّص ما هو مسجَّل فعلًا في الدفعة قبل قبولها، بدل الاعتماد على تصفّح الصفوف واحدًا واحدًا.",
+    when: "قبل توقيع قبول محاسبي على دفعة، أو عند مراجعة ما تبقّى فيها من صفوف بلا قرار أو استثناءات جودة.",
+    how: "افتحه من صفحة الدفعة عبر «تقرير القبول»، راجع الأرقام، نزّل ملف CSV لسجل الصفوف، اطبع التقرير، ثم املأ خانات التوقيع والتاريخ والملاحظات على النسخة المطبوعة واحفظها مع الدفعة.",
+    avoid: "لا تعتبره تشغيلًا مزدوجًا ولا قبولًا مسجَّلًا في النظام: النظام لا يحفظ مقارنة تشغيل مزدوج ولا توقيع قبول، والتوقيع يتم على الورق. ولا توقّع تقريرًا يظهر فيه اختلاف في عدد الصفوف أو صفوف بلا دليل مقروء.",
+    related: ["reconciliation", "accounting", "expenses", "revenue-reports"],
+  },
   "finance-dashboard": {
     title: "لوحة المالية",
     what: "لوحة تشغيلية تجمع الموازنة والمصروفات وطلبات الشراء التي تحتاج متابعة.",
@@ -736,6 +745,8 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/budgets\/[^/]+(?:\/)?$/, helpId: "budget-360" },
   { pattern: /^\/expenses\/[^/]+(?:\/)?$/, helpId: "expense-360" },
   { pattern: /^\/people\/(?!dashboard(?:\/|$)|attendance(?:\/|$))[^/]+(?:\/)?$/, helpId: "person-360" },
+  // More specific first: the acceptance report is its own route under a batch.
+  { pattern: /^\/finance\/reconciliation\/[^/]+\/acceptance(?:\/)?$/, helpId: "reconciliation-acceptance" },
   { pattern: /^\/finance\/reconciliation\/[^/]+(?:\/)?$/, helpId: "reconciliation-batch-360" },
 ];
 
