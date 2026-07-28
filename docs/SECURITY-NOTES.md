@@ -175,7 +175,7 @@ Any new concern in these areas must be assessed against the current definitions 
 
 ---
 
-## 5. 2026-07-28 — production demo-credential surface removed (code landed locally; identities still Owner-gated)
+## 5. 2026-07-28 — production demo-credential surface removed (live; identities still Owner-gated)
 
 **What it was.** The production login page (`apps/farm-os/app/login/page.tsx`) is a client component, so
 everything in it shipped in the browser bundle. It carried four demo account addresses
@@ -192,7 +192,8 @@ provisioning surface in the shipped source**, not a demonstrated production writ
 acceptable regardless: production now holds real farm financial data, so the superseded synthetic-pilot
 rationale recorded elsewhere in this register (§4.3) may not be used to defer it.
 
-**What changed (code, branch `fix/remove-production-demo-auth`, not merged or deployed at this entry):**
+**What changed (PR #933, merged `a1d5834`, production deployment
+`dpl_8mLoTNzc81ikwoVjS8R9TQ45SQkF` READY):**
 - Login page: both fields start blank; the demo chooser, the shared password, the "تفعيل حسابات العرض"
   action, and the demo-activation error copy are gone. The Supabase `signInWithPassword` call, the
   `/dashboard` redirect, the error handling, the Arabic RTL layout, and the brand panel are unchanged.
@@ -206,6 +207,10 @@ rationale recorded elsewhere in this register (§4.3) may not be used to defer i
   page regains the known password, a demo address, the activation copy or endpoint, or a non-blank field
   initialiser; if the deleted route/helper or the proxy special case return; or if the retired strings
   reappear anywhere under `app/` or `lib/`.
+
+Live verification on `ebeidfarm.business/login` found both fields blank and no demo controls. All 12 loaded
+client scripts were clean for the retired password, demo addresses, activation text, and provisioning
+endpoint. Vercel reported no runtime errors in the preceding 30 minutes. No migration was required.
 
 ### 5.1 Follow-up condition — Owner action on the live demo identities (OPEN)
 

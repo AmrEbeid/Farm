@@ -1,8 +1,8 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Claude (demo-auth removal, local)
+# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (demo-auth release closeout)
 
-> **2026-07-28 — PRODUCTION DEMO-CREDENTIAL SURFACE REMOVED: LOCAL / UNMERGED / VALIDATED.**
-> Branch `fix/remove-production-demo-auth` (base `97d3ab3`), implementation commit `a9a37da`, PR #933 open.
-> The login
+> **2026-07-28 — PRODUCTION DEMO-CREDENTIAL SURFACE REMOVED: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #933 merged at `a1d5834`; matching Vercel production deployment
+> `dpl_8mLoTNzc81ikwoVjS8R9TQ45SQkF` is READY. The login
 > page no longer ships the retired shared password, the four `*@ebeid.test` demo addresses, the
 > prefilled credentials, the demo chooser, or the «تفعيل حسابات العرض» action; `app/api/dev/seed-auth/route.ts`
 > and `lib/seed-auth.ts` are deleted and the `api/dev` proxy exclusion is gone. e2e provisioning now requires a
@@ -13,6 +13,9 @@
 > `git diff --check` clean. Codex review narrowed one overbroad guard and corrected dangling current references.
 > CodeRabbit review findings were addressed: filename-agnostic deletion guards, fail-closed e2e password
 > updates, read-only production smoke guidance, identity mapping/RLS verification, and current-doc redaction.
+> Live `ebeidfarm.business/login` verification: email/password fields blank, no demo controls, and all 12
+> loaded client scripts clean for the retired password, demo addresses, activation text, and provisioning
+> endpoint. Vercel reported no runtime errors in the preceding 30 minutes. App-only: no migration to apply.
 > **Still Owner-gated (no live account was touched):** production has six signed-in, org-linked demo-email
 > identities and six unused/unlinked phone-only seed identities. Replace or rotate the linked identities,
 > remove the unused identities, confirm nothing still authenticates with the retired shared password, and enable

@@ -1,11 +1,10 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Claude (demo-auth removal, local)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (demo-auth release closeout)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-28 (latest) — production demo-credential surface removed — LOCAL / UNMERGED / VALIDATED
+## 2026-07-28 (latest) — production demo-credential surface removed — LIVE / VERIFIED
 
-Branch `fix/remove-production-demo-auth` off `97d3ab3`. Implementation commit `a9a37da` is pushed in
-PR #933; review fixes are locally validated and pending their follow-up commit. Nothing is merged,
-deployed to production, or applied to Supabase.
+PR #933 merged at `a1d5834`. Matching Vercel production deployment
+`dpl_8mLoTNzc81ikwoVjS8R9TQ45SQkF` is READY. This was app-only; there was no migration to apply.
 
 The login page shipped four `*@ebeid.test` demo addresses and a shared password in the
 client bundle, prefilled both fields with them, and offered a «تفعيل حسابات العرض» button that POSTed to
@@ -24,8 +23,12 @@ deletion guards are filename-agnostic, e2e password updates fail closed, product
 read-only, live identity mapping/RLS verification is explicit, and the retired credential is redacted
 from current docs.
 
-**Exact resume point:** commit/push the review fixes to PR #933, then merge/deploy/live-check the blank login
-surface. Separately — and **Owner-only** — production currently has six signed-in, org-linked demo-email
+Live `ebeidfarm.business/login` verification found blank email/password fields and no demo controls. All
+12 loaded client scripts were clean for the retired password, demo addresses, activation text, and
+provisioning endpoint; Vercel showed no runtime errors in the preceding 30 minutes.
+
+**Exact resume point:** the code-side exposure is closed. Separately — and **Owner-only** — production
+currently has six signed-in, org-linked demo-email
 identities and six unused/unlinked phone-only seed identities. Replace or rotate the linked identities,
 remove the unused identities, confirm nothing authenticates with the retired shared password, and enable
 leaked-password protection (the live advisor still reports it disabled). No live user was created,
