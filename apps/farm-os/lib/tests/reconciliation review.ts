@@ -477,20 +477,17 @@ describe("reconciliation review — batch page read-concurrency contract", () =>
 
   const batchAwait = at("const { data: batch, error: batchError } = await sb");
   const wholeCountsStart = at("const wholeBatchCountsRead = started(loadWholeBatchCounts(");
-  const optionsStart = at("const optionsRead = started(loadEditableOptions(");
   const filteredCountAwait = at(
     "const { count: filteredCount, error: filteredCountError } = await filteredCountQuery;",
   );
   const rowPageAwait = at("const { data: rowData, error: rowError } = await rowQuery");
   const correctionsStart = at("const correctionTargetsRead = started(loadCorrectionTargets(");
-  const settleAll = at("const [counts, options, correctionTargets] = await Promise.all([");
+  const settleAll = at("const [counts, correctionTargets] = await Promise.all([");
   const render = at("return (");
 
-  it("starts the whole-batch counts and the option lists once the batch is known, BEFORE awaiting the filtered count", () => {
+  it("starts the whole-batch counts once the batch is known, BEFORE awaiting the filtered count", () => {
     expect(wholeCountsStart).toBeGreaterThan(batchAwait);
-    expect(optionsStart).toBeGreaterThan(batchAwait);
     expect(wholeCountsStart).toBeLessThan(filteredCountAwait);
-    expect(optionsStart).toBeLessThan(filteredCountAwait);
   });
 
   it("blocks on nothing between starting them and awaiting the filtered count", () => {
@@ -500,7 +497,7 @@ describe("reconciliation review — batch page read-concurrency contract", () =>
 
   it("lets them keep running across pagination, the row page, and the correction targets", () => {
     const whileInFlight = body.slice(filteredCountAwait, settleAll);
-    expect(whileInFlight).not.toMatch(/\bawait\s+(wholeBatchCountsRead|optionsRead)\b/);
+    expect(whileInFlight).not.toMatch(/\bawait\s+wholeBatchCountsRead\b/);
     expect(filteredCountAwait).toBeLessThan(rowPageAwait);
     // Correction targets need the row page, so they start after it — and still before the join.
     expect(correctionsStart).toBeGreaterThan(rowPageAwait);
@@ -511,7 +508,7 @@ describe("reconciliation review — batch page read-concurrency contract", () =>
     expect(settleAll).toBeGreaterThan(correctionsStart);
     expect(settleAll).toBeLessThan(render);
     const joined = body.slice(settleAll, body.indexOf("]);", settleAll));
-    for (const read of ["wholeBatchCountsRead", "optionsRead", "correctionTargetsRead"]) {
+    for (const read of ["wholeBatchCountsRead", "correctionTargetsRead"]) {
       expect(joined, `${read} must be awaited before render`).toContain(read);
       // Started exactly once and awaited exactly once — never re-read, never dropped.
       expect(body.match(new RegExp(read, "g")), `${read} start/await pair`).toHaveLength(2);
@@ -521,7 +518,7 @@ describe("reconciliation review — batch page read-concurrency contract", () =>
   it("keeps the whole-batch KPI definition free of the queue filters", () => {
     const loader = pageSource.slice(
       pageSource.indexOf("async function loadWholeBatchCounts"),
-      pageSource.indexOf("async function loadEditableOptions"),
+      pageSource.indexOf("async function loadCorrectionTargets"),
     );
     expect(loader).not.toMatch(/\bfilters\b|statePredicates|pagination/);
     expect(loader).toContain("const [total, unreviewed");
@@ -533,6 +530,84 @@ describe("reconciliation review — batch page read-concurrency contract", () =>
       pageSource.indexOf("export default async function ReconciliationBatchPage"),
     );
     expect(loaders).not.toMatch(/\.(insert|update|upsert|delete|rpc)\(/);
+  });
+});
+
+describe("reconciliation review — lazy option loading contract", () => {
+  const pageSource = readFileSync(
+    join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/page.tsx"),
+    "utf8",
+  );
+  const actionsSource = readFileSync(
+    join(process.cwd(), "app/(app)/finance/reconciliation/actions.ts"),
+    "utf8",
+  );
+  const controlsSource = readFileSync(
+    join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/controls.tsx"),
+    "utf8",
+  );
+  const actionStart = actionsSource.indexOf("export async function loadReviewOptions");
+  const actionEnd = actionsSource.indexOf("/**\n * Stage an already-generated", actionStart);
+  const actionSource = actionsSource.slice(actionStart, actionEnd);
+
+  it("keeps all seven option reads off the initial server render", () => {
+    expect(pageSource).not.toContain("loadEditableOptions");
+    expect(pageSource).not.toContain("optionsRead");
+    for (const table of [
+      "accounts",
+      "cost_centers",
+      "suppliers",
+      "buyers",
+      "farms",
+      "sectors",
+      "hawshat",
+    ]) {
+      expect(pageSource).not.toContain(`.from("${table}")`);
+    }
+  });
+
+  it("requires the finance role before creating a client and scopes every bounded option read", () => {
+    expect(actionStart).toBeGreaterThan(-1);
+    expect(actionSource).toContain("loadReviewOptions(batchId: string)");
+    expect(actionSource).toContain("if (!isUuid(batchId))");
+    expect(actionSource.indexOf('requireRole(["owner", "accountant"])')).toBeLessThan(
+      actionSource.indexOf("createClient()"),
+    );
+    expect(actionSource).toContain('.from("reconciliation_batches")');
+    expect(actionSource).toContain('.eq("id", batchId)');
+    expect(actionSource).toContain('.eq("status", "staged")');
+    expect(actionSource.indexOf(".maybeSingle()")).toBeLessThan(
+      actionSource.indexOf("await Promise.all(["),
+    );
+    expect(actionSource.match(/\.eq\("org_id", m\.orgId\)/g)).toHaveLength(8);
+    expect(actionSource.match(/\.limit\(OPTION_LIMIT \+ 1\)/g)).toHaveLength(7);
+    expect(actionSource).toContain("leafPostingAccounts(accountRows)");
+    expect(actionSource).toContain('.eq("active", true)');
+    expect(actionSource).toContain('.eq("archived", false)');
+    expect(actionSource).not.toMatch(/\.(insert|update|upsert|delete|rpc)\(/);
+  });
+
+  it("loads once on first open, reuses the client cache, and fails without opening the form", () => {
+    expect(controlsSource).toContain("const optionsRef = useRef<OptionList | null>(null)");
+    expect(controlsSource).toContain(
+      "const pendingOptionsRef = useRef<Promise<ReviewOptionsResult> | null>(null)",
+    );
+    expect(controlsSource).toContain("if (optionsRef.current) return optionsRef.current");
+    expect(controlsSource).toContain("if (!request)");
+    expect(controlsSource).toContain("request = loadReviewOptions(batchId)");
+    expect(controlsSource).toContain("if (loaded) setOpen(true)");
+    expect(controlsSource).toContain("open && options && editable");
+    expect(controlsSource).toContain("invalidateOptions()");
+    expect(controlsSource).toContain("optionsRef.current = null");
+    expect(controlsSource).toContain('role="alert" aria-live="assertive"');
+    expect(pageSource).toContain('key={`${batchId}:${batch.status}:${m.role}`}');
+    const saveSuccess = controlsSource.slice(
+      controlsSource.indexOf("if (r.ok) {"),
+      controlsSource.indexOf("} else {", controlsSource.indexOf("if (r.ok) {")),
+    );
+    expect(saveSuccess.indexOf("invalidateOptions()")).toBeLessThan(
+      saveSuccess.indexOf("router.refresh()"),
+    );
   });
 });
 

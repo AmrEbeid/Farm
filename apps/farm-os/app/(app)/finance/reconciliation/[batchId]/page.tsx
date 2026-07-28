@@ -5,7 +5,6 @@ import { requireRole } from "@/lib/auth";
 import { Alert, Button, EmptyState, Field, KpiCard, Select, Tag } from "@/components/ui";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
-import { leafPostingAccounts } from "@/lib/account-options";
 import {
   approveGate,
   BATCH_STATUS_AR,
@@ -30,11 +29,9 @@ import {
   type Classification,
   type RowStateCounts,
 } from "@/lib/reconciliation review";
-import { ReconciliationControls, type OptionList, type RowVM } from "./controls";
+import { ReconciliationControls, type RowVM } from "./controls";
 
 export const dynamic = "force-dynamic";
-
-const OPTION_LIMIT = 500;
 
 type EvidenceRow = {
   id: string;
@@ -154,18 +151,6 @@ async function executedRowCount(
 }
 
 /**
- * Fail LOUDLY when a bounded option list overflows its cap rather than silently truncating — a
- * truncated set would make the leaf-account computation and the hierarchy filters wrong.
- */
-function assertNotTruncated<T>(rows: T[] | null, cap: number, whatAr: string): T[] {
-  const list = rows ?? [];
-  if (list.length > cap) {
-    throw new Error(`تعذّر تحميل ${whatAr}: تجاوزت الحد (${cap}). لا يمكن عرض قائمة مقصوصة.`);
-  }
-  return list;
-}
-
-/**
  * Keep an already-in-flight read alive across an intervening `await` that may throw first.
  *
  * These reads are STARTED eagerly and AWAITED later, so a rejection can land while the render is
@@ -214,49 +199,6 @@ async function loadWholeBatchCounts(
     held,
     decided: total - unreviewed,
     allDecided: total > 0 && unreviewed === 0,
-  };
-}
-
-/**
- * Option lists for the editable pickers — only when the batch is still editable (staged); bounded +
- * active/non-archived. Depends only on the batch status, so it runs alongside the queue reads.
- */
-async function loadEditableOptions(
-  sb: Awaited<ReturnType<typeof createClient>>,
-  orgId: string,
-  editable: boolean,
-): Promise<OptionList> {
-  if (!editable) {
-    return { accounts: [], costCenters: [], suppliers: [], buyers: [], farms: [], sectors: [], hawshat: [] };
-  }
-  // Every bounded option query requests LIMIT+1 so an overflow is DETECTED (assertNotTruncated),
-  // never silently truncated — a truncated set would corrupt the leaf-account and hierarchy filters.
-  const [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes] = await Promise.all([
-    sb
-      .from("accounts")
-      .select("id, code, name_ar, account_type, kind, parent_id, active")
-      .eq("org_id", orgId)
-      .order("code")
-      .limit(OPTION_LIMIT + 1),
-    sb.from("cost_centers").select("id, code, name_ar").eq("org_id", orgId).eq("active", true).order("code").limit(OPTION_LIMIT + 1),
-    sb.from("suppliers").select("id, name").eq("org_id", orgId).order("name").limit(OPTION_LIMIT + 1),
-    sb.from("buyers").select("id, name").eq("org_id", orgId).eq("active", true).order("name").limit(OPTION_LIMIT + 1),
-    sb.from("farms").select("id, name").eq("org_id", orgId).eq("archived", false).order("name").limit(OPTION_LIMIT + 1),
-    sb.from("sectors").select("id, name, farm_id").eq("org_id", orgId).eq("archived", false).order("name").limit(OPTION_LIMIT + 1),
-    sb.from("hawshat").select("id, code, name, sector_id").eq("org_id", orgId).eq("archived", false).order("code").limit(OPTION_LIMIT + 1),
-  ]);
-  for (const res of [accRes, ccRes, supRes, buyRes, farmRes, secRes, hawRes]) {
-    if (res.error) throw res.error;
-  }
-  const accountRows = assertNotTruncated(accRes.data, OPTION_LIMIT, "الحسابات");
-  return {
-    accounts: leafPostingAccounts(accountRows),
-    costCenters: assertNotTruncated(ccRes.data, OPTION_LIMIT, "مراكز التكلفة").map((c) => ({ id: c.id, label: `${c.code} · ${c.name_ar}` })),
-    suppliers: assertNotTruncated(supRes.data, OPTION_LIMIT, "الموردين").map((s) => ({ id: s.id, label: s.name })),
-    buyers: assertNotTruncated(buyRes.data, OPTION_LIMIT, "المشترين").map((b) => ({ id: b.id, label: b.name })),
-    farms: assertNotTruncated(farmRes.data, OPTION_LIMIT, "المزارع").map((f) => ({ id: f.id, label: f.name })),
-    sectors: assertNotTruncated(secRes.data, OPTION_LIMIT, "القطاعات").map((s) => ({ id: s.id, label: s.name, farmId: s.farm_id })),
-    hawshat: assertNotTruncated(hawRes.data, OPTION_LIMIT, "الحوش").map((h) => ({ id: h.id, label: `${h.code} · ${h.name}`, sectorId: h.sector_id })),
   };
 }
 
@@ -336,11 +278,10 @@ export default async function ReconciliationBatchPage({
 
   const editable = batch.status === "staged";
 
-  // Everything below depends only on the batch (identity + status), never on the filters or on the
-  // page of rows — so START them all here and await them at the end. The filtered count is the only
+  // Everything below depends only on the batch identity, never on the filters or on the page of
+  // rows — so START it here and await it at the end. The filtered count is the only
   // read the render must block on next, because pagination and the row range derive from it.
   const wholeBatchCountsRead = started(loadWholeBatchCounts(sb, batchId, m.orgId));
-  const optionsRead = started(loadEditableOptions(sb, m.orgId, editable));
 
   const statePredicates = reconciliationQueueStatePredicates(filters.state);
   let filteredCountQuery = sb
@@ -438,9 +379,8 @@ export default async function ReconciliationBatchPage({
   const correctionTargetsRead = started(loadCorrectionTargets(sb, m.orgId, batchRows));
 
   // Nothing renders until every read has settled — no partial page, no stale or missing count.
-  const [counts, options, correctionTargets] = await Promise.all([
+  const [counts, correctionTargets] = await Promise.all([
     wholeBatchCountsRead,
-    optionsRead,
     correctionTargetsRead,
   ]);
   const { expenses: correctionExpenses, sales: correctionSales } = correctionTargets;
@@ -679,11 +619,11 @@ export default async function ReconciliationBatchPage({
         <EmptyState title="لا توجد صفوف في هذه الدفعة" />
       ) : (
         <ReconciliationControls
+          key={`${batchId}:${batch.status}:${m.role}`}
           batchId={batchId}
           status={batch.status}
           role={m.role}
           rows={rowVms}
-          options={options}
           editable={editable}
           canFreeze={freeze.canFreeze}
           freezeReason={freeze.reason}
