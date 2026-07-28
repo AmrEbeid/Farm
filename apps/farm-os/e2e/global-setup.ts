@@ -70,11 +70,16 @@ async function findByEmail(admin: Admin, email: string): Promise<string | null> 
   return null;
 }
 
+async function setPassword(admin: Admin, id: string, email: string, password: string) {
+  const { error } = await admin.auth.admin.updateUserById(id, { password });
+  if (error) throw new Error(`updateUserById ${email}: ${error.message}`);
+}
+
 async function ensureUsers(admin: Admin, password: string) {
   for (const u of SEED_USERS) {
     let id: string | null = await findByEmail(admin, u.email);
     if (id) {
-      await admin.auth.admin.updateUserById(id, { password });
+      await setPassword(admin, id, u.email, password);
     } else {
       const { data: created, error } = await admin.auth.admin.createUser({
         email: u.email,
@@ -86,6 +91,7 @@ async function ensureUsers(admin: Admin, password: string) {
         // race / already-exists: fall back to lookup
         id = await findByEmail(admin, u.email);
         if (!id) throw new Error(`createUser ${u.email}: ${error?.message}`);
+        await setPassword(admin, id, u.email, password);
       } else {
         id = created.user.id;
       }

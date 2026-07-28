@@ -3,10 +3,11 @@
 
 ## 2026-07-28 (latest) — production demo-credential surface removed — LOCAL / UNMERGED / VALIDATED
 
-Branch `fix/remove-production-demo-auth` off `97d3ab3`. **Uncommitted working-tree change — nothing was
-committed, pushed, merged, deployed, or applied to Supabase.**
+Branch `fix/remove-production-demo-auth` off `97d3ab3`. Implementation commit `a9a37da` is pushed in
+PR #933; review fixes are locally validated and pending their follow-up commit. Nothing is merged,
+deployed to production, or applied to Supabase.
 
-The login page shipped four `*@ebeid.test` demo addresses and the shared password `farm-os-pilot` in the
+The login page shipped four `*@ebeid.test` demo addresses and a shared password in the
 client bundle, prefilled both fields with them, and offered a «تفعيل حسابات العرض» button that POSTed to
 `/api/dev/seed-auth`. Both fields now start blank and every demo control is gone; the route and its
 `lib/seed-auth.ts` helper are deleted (no other consumer) and the `api/dev` exclusion is removed from the
@@ -18,12 +19,15 @@ per-run `FARM_OS_E2E_PASSWORD` (≥16 chars, no committed default, no fallback).
 Validation: focused auth guard 12/12; full Vitest 817 passed + 13 controlled skips; TypeScript and lint
 clean; production build 65/65; built-output scan contains none of the retired credential/provisioning
 strings; `git diff --check` clean. Codex reviewed the diff, narrowed one overbroad test assertion, and
-corrected dangling current references to the deleted route/helper.
+corrected dangling current references to the deleted route/helper. CodeRabbit findings were addressed:
+deletion guards are filename-agnostic, e2e password updates fail closed, production smoke guidance is
+read-only, live identity mapping/RLS verification is explicit, and the retired credential is redacted
+from current docs.
 
-**Exact resume point:** commit/push/open and review the PR, then merge/deploy/live-check the blank login
+**Exact resume point:** commit/push the review fixes to PR #933, then merge/deploy/live-check the blank login
 surface. Separately — and **Owner-only** — production currently has six signed-in, org-linked demo-email
 identities and six unused/unlinked phone-only seed identities. Replace or rotate the linked identities,
-remove the unused identities, confirm nothing authenticates with `farm-os-pilot`, and enable
+remove the unused identities, confirm nothing authenticates with the retired shared password, and enable
 leaked-password protection (the live advisor still reports it disabled). No live user was created,
 deleted, reset, or invited by this change; removing the code did not change any account.
 

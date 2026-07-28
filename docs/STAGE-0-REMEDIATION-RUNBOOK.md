@@ -2,9 +2,10 @@
 
 **Status: OPEN (Critical).** Steps A–C concern the **legacy** system (the old repo + the accounting
 spreadsheet); step D (added 2026-07-28) covers the shared demo credential that was committed and
-client-bundled in the new `apps/farm-os` build. Must close before real Ebeid data / production.
-**Owner-executed** — these are irreversible and touch systems the agent has no access to. This is
-the exact runbook (referenced from `OWNER-DECISIONS-2026-06-24.md` §3).
+client-bundled in the new `apps/farm-os` build. Production financial data is already live, so this
+remediation is overdue. Close it before any further real Ebeid/PII import or identity onboarding.
+**Owner-executed** where steps touch external systems or live identities. This is the exact runbook
+(referenced from `OWNER-DECISIONS-2026-06-24.md` §3).
 
 ## What's exposed (per the risk register)
 - An **anon key + project id** committed in the **old repo's** git history.
@@ -37,7 +38,7 @@ the exact runbook (referenced from `OWNER-DECISIONS-2026-06-24.md` §3).
 ### D. Retire the shared demo credential in the NEW app (added 2026-07-28)
 
 Unlike A–C this one starts in `apps/farm-os`, but it lands here because the remedy is the same shape:
-a shared password (`farm-os-pilot`) was committed to git **and** shipped in the production login
+a shared password (`[REDACTED RETIRED DEMO PASSWORD]`) was committed to git **and** shipped in the production login
 bundle, together with the `*@ebeid.test` demo account addresses and a button that provisioned them
 via `POST /api/dev/seed-auth`.
 
@@ -50,12 +51,15 @@ Detail in [`SECURITY-NOTES.md`](SECURITY-NOTES.md) §5.
 **Still Owner-executed — the code change did NOT touch any live account.** No live user was created,
 deleted, reset, or invited. In the production Supabase project (`veezkmytervjnpxcrbkw`):
 1. List the `*@ebeid.test` identities.
-2. For each, **rotate to a unique strong secret, delete it, or replace it with a real recoverable
+2. Capture a read-only mapping of each `auth.users.id`, `people.user_id`, organization membership,
+   and role before changing anything.
+3. For each, **rotate to a unique strong secret, delete it, or replace it with a real recoverable
    account** for the actual person — then re-link `people.user_id` / `organization_member`.
-3. Confirm nothing still authenticates with `farm-os-pilot` (treat it as compromised everywhere it
+4. After each change, verify login and RLS-scoped access for the intended role before proceeding.
+5. Confirm nothing still authenticates with `[REDACTED RETIRED DEMO PASSWORD]` (treat it as compromised everywhere it
    was reused; it was in git history and in the client bundle, so removing it from HEAD does not
    retract it).
-4. Enable Supabase Auth **leaked-password protection** (`SECURITY-NOTES.md` §1.4) so known secrets
+6. Enable Supabase Auth **leaked-password protection** (`SECURITY-NOTES.md` §1.4) so known secrets
    are rejected on sign-up/reset.
 
 As in step B: history purge is hygiene; **rotation/deletion is the real fix**.
@@ -65,7 +69,7 @@ As in step B: history purge is hygiene; **rotation/deletion is the real fix**.
 - [ ] Secret scan of the old repo (e.g. `gitleaks detect`) is clean on the new HEAD.
 - [ ] Spreadsheet credential removed; Google password rotated + 2FA on.
 - [ ] Production `*@ebeid.test` demo identities rotated, deleted, or replaced with real recoverable
-      accounts; nothing authenticates with `farm-os-pilot`; leaked-password protection enabled (D).
+      accounts; nothing authenticates with `[REDACTED RETIRED DEMO PASSWORD]`; leaked-password protection enabled (D).
 - [ ] Risk-register entry flipped from 🔴 OPEN → closed in `PROJECT-TRACKER.md` / `MASTER-PLAN.md`.
 
 ## Why it gates the rest

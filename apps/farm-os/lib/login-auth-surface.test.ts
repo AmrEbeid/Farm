@@ -92,18 +92,19 @@ describe("login page keeps the authentication contract", () => {
 
 describe("demo provisioning surface stays deleted", () => {
   it("has no dev seed-auth API route", () => {
-    expect(
-      existsSync(join(APP_ROOT, "app", "api", "dev", "seed-auth", "route.ts")),
-    ).toBe(false);
+    expect(existsSync(join(APP_ROOT, "app", "api", "dev", "seed-auth"))).toBe(false);
   });
 
   it("has no seed-auth helper module", () => {
-    expect(existsSync(join(APP_ROOT, "lib", "seed-auth.ts"))).toBe(false);
+    const helperExists = readdirSync(join(APP_ROOT, "lib")).some(
+      (entry) => entry.replace(/\.[^.]+$/, "") === "seed-auth",
+    );
+    expect(helperExists).toBe(false);
   });
 
   it("has no proxy special case for the removed route", () => {
     const proxy = readFileSync(join(APP_ROOT, "proxy.ts"), "utf8");
-    expect(proxy).not.toContain("api/dev");
+    expect(proxy).not.toContain("seed-auth");
   });
 });
 

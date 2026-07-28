@@ -110,11 +110,12 @@ supabase db push                  # applies pending versions in order
   needed).
 
 ## 4. Smoke test (post-deploy)
-- Sign in (email + password) as each seeded role; walk the wedge loop:
-  coverage → PR(reserve) → budget gate → owner approve → receipt → execute → PvA.
+- Production smoke is read-only: open the public site and login page, sign in with an approved
+  account, load representative role dashboards/reports, and review runtime errors.
 - Confirm RLS: a second org cannot see tenant-1 data (the pgTAP `01` isolation invariant in prod).
-- Do not point the mutating Playwright wedge loop at production. It is locked to an explicitly
-  approved local target and provisions test users from test-only environment values.
+- Run the full mutating wedge loop (coverage → reserve → approve → receive → execute → PvA)
+  only against an explicitly approved non-production target. The Playwright implementation is
+  locked to local and provisions test users from test-only environment values.
 
 ## 5. Rollback
 - **App:** Vercel → Deployments → previous deployment → **Promote/Rollback** (instant).

@@ -170,7 +170,7 @@ Any new concern in these areas must be assessed against the current definitions 
 ### 4.4 Current dashboard gates
 - Verify `custom_access_token_hook` before onboarding a second org (0.1).
 - Enable leaked-password protection and verify the advisor clears (1.4).
-- Rotate, delete, or replace the production `*@ebeid.test` demo identities; treat `farm-os-pilot` as
+- Rotate, delete, or replace the production `*@ebeid.test` demo identities; treat the retired shared password as
   compromised (5.1). The code-side surface is removed, the live identities are not.
 
 ---
@@ -180,7 +180,7 @@ Any new concern in these areas must be assessed against the current definitions 
 **What it was.** The production login page (`apps/farm-os/app/login/page.tsx`) is a client component, so
 everything in it shipped in the browser bundle. It carried four demo account addresses
 (`owner@`/`manager@`/`storekeeper@`/`supervisor@` … `ebeid.test`), the **shared password
-`farm-os-pilot` as a string literal**, prefilled both fields with the owner address and that password, and
+`[REDACTED RETIRED DEMO PASSWORD]` as a string literal**, prefilled both fields with the owner address and that password, and
 offered a "تفعيل حسابات العرض" button that `POST`ed to `/api/dev/seed-auth`. The error copy told users to
 try demo activation. The provisioning route (`app/api/dev/seed-auth/route.ts`) and its service-role helper
 (`lib/seed-auth.ts` — which also held `SEED_PASSWORD`) shipped in the production source even though the
@@ -210,7 +210,7 @@ rationale recorded elsewhere in this register (§4.3) may not be used to defer i
 ### 5.1 Follow-up condition — Owner action on the live demo identities (OPEN)
 
 **Removing the code does not change any live account.** The demo identities may still exist in the production
-Supabase project, and `farm-os-pilot` must be treated as compromised for any account that ever used it — it
+Supabase project, and the retired shared password must be treated as compromised for any account that ever used it — it
 was committed to git history and shipped in the client bundle, so removal from HEAD does not retract it.
 
 Read-only production audit on 2026-07-28: six confirmed demo-email identities have signed in and are linked
@@ -221,7 +221,7 @@ advisor still reports leaked-password protection disabled.
 1. Enumerate the `*@ebeid.test` identities in the production project (`veezkmytervjnpxcrbkw`).
 2. For each: rotate to a unique strong secret, delete it, or replace it with a **real, recoverable** account
    for the actual person, and re-link `people.user_id` / `organization_member` accordingly.
-3. Confirm no remaining account authenticates with `farm-os-pilot`.
+3. Confirm no remaining account authenticates with `[REDACTED RETIRED DEMO PASSWORD]`.
 4. Enable leaked-password protection (§1.4) so a reused/known secret is rejected at sign-up/reset.
 
 Do not record this item as closed until steps 1–4 have live evidence. Git-history purge of the literal is
