@@ -159,7 +159,9 @@ Any new concern in these areas must be assessed against the current definitions 
   dashboard action (1.4).
 
 ### 4.2 Dependency advisories — Next.js patched 2026-07-28; `postcss`/`sharp` still open
-- **Local/unmerged patch.** `next` and `eslint-config-next` move 16.2.10 → **16.2.12** (patch-only; both kept aligned). This
+- **Live patch.** PR #935 merged at `7b138ac`; production deployment
+  `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW` is READY. `next` and `eslint-config-next` moved
+  16.2.10 → **16.2.12** (patch-only; both kept aligned). This
   clears all nine Next.js-specific advisories `npm audit` reported at 16.2.10 — middleware/proxy bypass, Server
   Actions DoS, SSRF on custom servers and via rewrites, two cache-confusion items, unbounded Edge Server Action
   payload, Image-Optimization SVG DoS, and unauthenticated Server Function endpoint disclosure. Do not re-flag these.

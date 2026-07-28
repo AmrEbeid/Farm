@@ -1,5 +1,18 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (demo-auth release closeout)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (Next.js security patch closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-28 (latest) — Next.js direct advisories patched — LIVE / VERIFIED
+
+PR #935 merged at `7b138ac`; matching Vercel production deployment
+`dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW` is READY. `next` and `eslint-config-next` moved together from
+`16.2.10` to `16.2.12`, removing the nine direct framework advisories from the fresh audit. TypeScript,
+ESLint, Vitest 817 + 13 controlled skips, production build 65/65 pages, app/shared CI, secret scan,
+review, preview, public login load, and Vercel runtime-error review passed. No migration was required.
+
+The npm audit remains at eight findings because Next.js still carries vulnerable `postcss` and `sharp`
+transitives, while the other findings are tooling/transitive or the `exceljs`/`uuid` chain. Do not call
+the dependency audit clean. **Exact resume point:** test the `postcss`/`sharp` compatibility override in
+an isolated branch, including image optimization and CSS/build behavior, before any release.
 
 ## 2026-07-28 (latest) — production demo-credential surface removed — LIVE / VERIFIED
 
