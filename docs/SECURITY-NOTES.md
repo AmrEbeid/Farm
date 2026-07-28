@@ -167,6 +167,9 @@ Any new concern in these areas must be assessed against the current definitions 
   payload, Image-Optimization SVG DoS, and unauthenticated Server Function endpoint disclosure. Do not re-flag these.
 - **Correction.** The superseded note here called `postcss` resolved at 8.5.15; the advisory range has since widened
   to `<= 8.5.17`, so 8.5.15 is itself vulnerable.
+- **Local/unmerged root fix.** The repository-level override moves to `postcss ^8.5.23`; Tailwind, Vite,
+  Storybook, and the design-system toolchain resolve 8.5.23 without an invalid peer/range state. This removes
+  the vulnerable root node, but does not reach Next's private 8.4.31 copy.
 - **Still open — not fixable by a Next patch.** `next` remains listed, but now only as a *dependent* of two
   transitive packages: it hard-pins `postcss` `8.4.31` and declares `sharp` `^0.34.5` (optional). The fixes need
   `postcss > 8.5.17` and `sharp >= 0.35.0`, which those ranges cannot reach, and 16.2.12 is the newest Next release —
