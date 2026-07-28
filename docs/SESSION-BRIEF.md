@@ -1,5 +1,18 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (Next.js security patch closeout)
+# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (PostCSS security closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-28 (latest) — root PostCSS advisory patched — LIVE / VERIFIED
+
+PR #938 merged at `ee91739`; matching Vercel production deployment
+`dpl_FdAAJeu3dYbBSjArViqBWMm5fcvo` is READY. The repository override now resolves PostCSS `8.5.23`
+for Tailwind, Vite, Storybook, and design-system tooling, removing the vulnerable root `8.5.15` node.
+TypeScript, ESLint, Vitest 817 + 13 controlled skips, production build 65/65 pages, app/shared CI,
+secret scan, review, preview, public load, and Vercel runtime-error review passed. No migration.
+
+Both global and dependency-specific npm override experiments failed to replace Next `16.2.12`'s
+private PostCSS `8.4.31` and Sharp `0.34.5`: npm retained the vulnerable versions and produced an
+invalid/extraneous tree. All experiment edits were discarded. **Exact resume point:** wait for or test
+a compatible upstream Next release; do not force these private dependencies in production.
 
 ## 2026-07-28 (latest) — Next.js direct advisories patched — LIVE / VERIFIED
 

@@ -167,17 +167,19 @@ Any new concern in these areas must be assessed against the current definitions 
   payload, Image-Optimization SVG DoS, and unauthenticated Server Function endpoint disclosure. Do not re-flag these.
 - **Correction.** The superseded note here called `postcss` resolved at 8.5.15; the advisory range has since widened
   to `<= 8.5.17`, so 8.5.15 is itself vulnerable.
-- **Local/unmerged root fix.** The repository-level override moves to `postcss ^8.5.23`; Tailwind, Vite,
+- **Live root fix.** PR #938 merged at `ee91739`; production deployment
+  `dpl_FdAAJeu3dYbBSjArViqBWMm5fcvo` is READY. The repository-level override moved to
+  `postcss ^8.5.23`; Tailwind, Vite,
   Storybook, and the design-system toolchain resolve 8.5.23 without an invalid peer/range state. This removes
   the vulnerable root node, but does not reach Next's private 8.4.31 copy.
 - **Still open — not fixable by a Next patch.** `next` remains listed, but now only as a *dependent* of two
   transitive packages: it hard-pins `postcss` `8.4.31` and declares `sharp` `^0.34.5` (optional). The fixes need
   `postcss > 8.5.17` and `sharp >= 0.35.0`, which those ranges cannot reach, and 16.2.12 is the newest Next release —
   so no further patch bump helps.
-- **Follow-up condition (Owner-gated).** Clearing these needs nested `overrides` forcing Next's own pins; a verified
-  experiment confirmed plain root overrides (`postcss ^8.5.18`, `sharp ^0.35.0`) do **not** reach them. That
-  overrides versions Next pins and tests against (CSS pipeline, image optimization), so it is a deliberate dependency
-  decision, not a patch. Reassess from a fresh audit before recording any replacement finding.
+- **Upstream blocker.** Verified global and dependency-specific npm override experiments did **not** replace
+  Next's private versions; npm retained PostCSS 8.4.31 and Sharp 0.34.5 and produced an invalid/extraneous
+  dependency tree. All experiment edits were discarded. Do not force these packages in production; wait for
+  or test a compatible upstream Next release, then reassess from a fresh audit.
 
 ### 4.3 Stage M — finance complete; registry pending; privacy boundary remains
 - Real farm financial data is live, but the real palm registry is still pending. The old "current seed is synthetic"
