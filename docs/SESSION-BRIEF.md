@@ -1,7 +1,45 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll readiness slice closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll pilot-readiness slice closeout)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-29 (latest) — payroll readiness: compensation editor + mode-aware labor — MERGED / DEPLOYED / PUBLIC-SMOKED
+## 2026-07-29 (latest) — payroll pilot readiness: checklist + validation-only import templates — MERGED / DEPLOYED / PUBLIC-SMOKED
+
+PR #961 merged at `4bceea5d7a8a3bd08d76025c629711b3ed7c4501`; head commits were `f60977e` (pilot readiness
+validation) and `220909b` (targeted readiness validation errors). Vercel production deployment
+`dpl_98qxeC3BRj9tqGGYPfJ5RfQFwP7c` is READY on target production for that exact merge commit.
+**App-only: no schema, migration, RPC, payment, or journal change, and no authoritative payroll import** —
+the hosted payroll migration remains `20260729102938 payroll_run_persistence`.
+
+The slice delivers the owner/accountant `/people/payroll/readiness` page: a printable ten-gate payroll
+preparation checklist that is explicitly a **human** checklist — it records no state, claims no completion,
+and shows no percentage, and each gate is marked automated evidence or human gate. Under it sit three
+**validation-only** staff / compensation / labor import templates that produce a dry-run report and nothing
+else: the descriptors carry no RPC, and `app/api/import` enforces the owner/accountant role gate and refuses
+a commit for them **before `req.formData()`** (the descriptor and mode travel as query parameters precisely
+so that refusal runs ahead of parsing), so even a clean dry-run writes nothing. The compensation and labor
+shape validation is now reused from the live entry paths rather than duplicated, and validation errors are
+attributed to the correct cell. See `PILOT-READINESS.md` § Payroll preparation.
+
+Evidence: focused readiness tests 139/139, then 133/133 on the review fixes; full Vitest 1,218 passed + 13
+controlled skips; TypeScript, ESLint, production build with 64/64 static-generation units, the bundle guards,
+and `git diff --check` all clean. PR app CI, design-system CI, pgTAP, gitleaks, and Vercel are green.
+CodeRabbit reviewed the original commit and its findings were addressed in the review-fix commit; its final
+update was rate-limited. **The preview deployment is Vercel SSO protected, so no authenticated preview smoke
+was possible.** Production smoke was signed-out only: `/login` 200; `/people/payroll/readiness` 307 to
+`/login`; the template GET and a missing-mode POST both 401, i.e. auth is checked first; and Vercel reported
+no runtime errors on `/people/payroll/readiness` or `/api/import` in the queried 15-minute window.
+
+**Truth boundary — no authenticated owner/accountant workflow was exercised**, no real staff, rate, or labor
+data was imported, and no pilot close, report, or acceptance happened. **Payroll is not complete and not
+100%.** Still open: the Stage-M privacy/access review; an approved real roster/rate/labor source, with real
+data used only after that approval; an authenticated owner/accountant pilot and a dated signoff; and an
+explicit payment/journal scope decision.
+
+**Exact resume point:** run the Stage-M privacy/access review and obtain the approved real roster/rate/labor
+source, then the authenticated owner/accountant pilot and dated signoff, and decide the payment/journal scope
+explicitly. The accounting (698 row decisions, dual run, exceptions, dated accountant acceptance), security,
+and palm-registry blockers are unchanged. Do not fabricate real rates or staff.
+
+## 2026-07-29 — payroll readiness: compensation editor + mode-aware labor — MERGED / DEPLOYED / PUBLIC-SMOKED
 
 PR #959 merged at `d335f205d4d4c79bcc613b2e7e59dba2e46c4335`; head commits were `637cb4c` (wage setup and
 mode-aware labor) and `7f7af17` (wage editor state normalization). Vercel production deployment
@@ -47,6 +85,10 @@ import preparation**: write the dated owner/accountant pilot checklist covering 
 close, and report, and prepare the import path — templates, validation rules, and a dry-run — using
 **synthetic data only**. **No real PII yet:** no real staff, rates, or labor may be imported before the
 Stage-M privacy review clears. Do not fabricate real rates or staff.
+*(Superseded 2026-07-29 by the pilot-readiness entry above: the checklist and the validation-only import
+templates shipped in PR #961, so this resume point is closed and the current resume point is the top entry.
+Everything else here — no authenticated pilot, no real import, no acceptance/signoff, no payment or journal,
+Stage-M gated, payroll not 100% — remains true.)*
 
 ## 2026-07-29 — payroll close/report UI — MERGED / DEPLOYED / PUBLIC-SMOKED
 
