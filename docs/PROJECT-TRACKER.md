@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-29 by Codex (service-role exposure proof)
+# Project Tracker — Farm OS      Last updated: 2026-07-29 by Codex (provider security settings probe)
+
+> **2026-07-29 — PAYROLL PROVIDER SECURITY SETTINGS: READ-ONLY PROBE COMPLETE / FOUR GATES REMAIN OPEN.**
+> The production Supabase dashboard confirms `custom_access_token_hook` is **not configured** and
+> leaked-password protection is **disabled**. No setting was changed. Supabase organization
+> `zeluu` is Pro; current published defaults are seven-day logs and seven daily database backups.
+> The Farm branch inventory contains only default `main`, reports `with_data = false`, and contains
+> no data-bearing preview branch.
+>
+> This converts uncertainty into exact work but does not close a gate: L-5/G-T16 needs hook activation
+> plus fresh-token claim proof; L-10/G-T17 needs activation plus a clean advisor re-run; L-6/L-7/G-T18
+> remains partial pending named provider readers, Vercel plan/add-ons/log drains, backup access and
+> off-platform-copy confirmation. The Supabase CLI's only config operation is a broad whole-file push,
+> so it was deliberately not used for these scoped settings. No user rows, auth logs, payroll data,
+> credentials, schema, migration, RPC, payment or journal were read or changed. See
+> `docs/payroll privacy access review.md` §9.3.
 
 > **2026-07-29 — PAYROLL L-8 SERVICE-ROLE NON-EXPOSURE: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #965 merged at `f6369a6778671675bd28d66a46f0dc4e88d73fbb`; exact production deployment
