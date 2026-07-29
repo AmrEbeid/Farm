@@ -1,4 +1,26 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-28 by Codex (hydration production closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-29 by Codex (ExcelJS UUID security closeout)
+
+> **2026-07-29 — EXCELJS UUID ADVISORY PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #953 merged at `f36571b`; matching Vercel production deployment
+> `dpl_7LgzdhYYHqhm4QJrF4fm7H8jPt7V` is READY and aliased to `ebeidfarm.business`. The root override
+> scopes ExcelJS `4.4.0` to exact `uuid` `11.1.1`, closing `GHSA-w5hq-g745-h8pq` while upstream
+> ExcelJS issues #3041/#3055 remain open. A clean npm `11.12.0` install resolves one UUID runtime,
+> and resolution from ExcelJS itself returns `11.1.1`.
+>
+> Audit evidence: 7 findings (1 low / 2 moderate / 4 high) → 5 findings
+> (1 low / 0 moderate / 4 high); `exceljs` and `uuid` are absent after the change. The regression
+> test exercises ExcelJS's UUID-backed extended data-bar serializer, asserts the dependency version,
+> opens the generated XLSX archive, and validates the persisted `x14:cfRule` UUID in worksheet XML.
+> CodeRabbit requested that serialized-output proof; commit `8f6fbc4` supplied it and the discussion
+> is resolved. Final gates: focused 4/4; full Vitest 960 passed + 13 controlled skips; TypeScript,
+> ESLint, build 65/65, app/shared CI, pgTAP, gitleaks, preview, public Arabic login HTTP 200, and
+> production runtime-error review passed. Package/test only: no migration, schema, RPC, application
+> data, financial state, or production-auth state changed.
+>
+> **Still open:** `brace-expansion` (high), Next-private `postcss`/`sharp` (high), and `esbuild`
+> (low) remain blocked on compatible parent/upstream releases after prior force-override experiments
+> produced invalid trees. Owner-side leaked-password protection and demo-identity cleanup are separate
+> live-auth gates.
 
 > **2026-07-28 — RECHARTS HYDRATION GATE: MERGED / DEPLOYED; AUTHENTICATED DASHBOARD CHECK PENDING.**
 > PR #951 merged at `2d56783`; the Vercel production deployment for that exact commit completed
