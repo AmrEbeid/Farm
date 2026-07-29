@@ -1,7 +1,35 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (service-role exposure proof closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (provider security settings probe)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-29 (latest) — payroll L-8 service-role non-exposure — MERGED / DEPLOYED / LIVE-VERIFIED
+## 2026-07-29 (latest) — payroll provider settings — VERIFIED OPEN / NO CHANGE
+
+The authenticated production Supabase dashboard now answers two previously assumed settings:
+Auth Hooks has no configured hook and presents only **Add hook**, so
+`custom_access_token_hook` is disabled; Attack Protection explicitly marks leaked-password
+protection **DISABLED**. No setting was changed and no user row, auth log, token or credential was
+read. The source function, grant and `config.toml` remain activation-ready but are not live proof.
+
+The live Supabase organization is Pro. Current official provider documentation gives Pro seven-day
+Logs Explorer retention and seven daily database backups. The live Farm branch inventory has only
+the default `main` branch, reported `with_data = false`, with no data-bearing preview branch. Vercel
+project metadata does not expose the current plan/add-on, log drains or team member roles; Supabase
+connectors do not expose backup readers or off-platform exports. L-6/L-7/G-T18 therefore moves only
+to partial, not done.
+
+The authenticated Supabase CLI was checked as a possible scoped activation surface. Its only
+configuration command is a whole-`config.toml` push, so it was rejected as too broad. Claude was
+assigned a read-only activation audit but stalled during MCP startup despite explicit instructions
+and was stopped safely with no repository change. The next safe apply path is the two narrow
+dashboard settings, followed by fresh-token/advisor proof.
+
+**Exact resume point:** enable only the Postgres custom-access-token hook pointing at
+`pg-functions://postgres/public/custom_access_token_hook`, then mint a fresh test token and verify
+the membership-validated `active_org_id` claim without printing or persisting credentials. Enable
+leaked-password protection and re-run the security advisor. Separately inventory named provider
+readers and backup/export copies. L-5/G-T16, L-10/G-T17 and the remaining L-6/L-7/G-T18 questions
+stay open until that evidence exists.
+
+## 2026-07-29 — payroll L-8 service-role non-exposure — MERGED / DEPLOYED / LIVE-VERIFIED
 
 PR #965 merged at `f6369a6778671675bd28d66a46f0dc4e88d73fbb`; production deployment
 `dpl_9dqdVLVwaBhGWxqxHDZAtdhsCSaP` is READY for that exact merge SHA. There is no migration in this

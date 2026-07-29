@@ -543,12 +543,12 @@ asset scan recorded in §9.2.
 | **L-2** ✅ | Confirm `people_compensation`, `payroll_runs`, `payroll_run_lines`, `labor_logs`, `people` all report `rowsecurity` **and** `forcerowsecurity` true on the hosted project | Superuser bypass makes FORCE unverifiable locally | **DONE 2026-07-29** — `pg_class` probe: `relrowsecurity = true` **and** `relforcerowsecurity = true` on all five tables. See §9.1 |
 | **L-3** | Exercise the deny path against the **live PostgREST endpoint** with a real supervisor JWT: `GET /rest/v1/payroll_runs`, `payroll_run_lines`, `people_compensation`, and `select=phone` on `people` — all must return empty or 401/403, never data | PostgREST/GoTrue behaviour is not modelled locally | Authenticated smoke with a test account |
 | **L-4** ✅ | Confirm the hosted migration ledger head matches this repo's payroll migration and that no out-of-band schema change has widened a payroll policy | The repo is not the live database | **DONE 2026-07-29** — hosted migration head is `payroll_run_persistence` (hosted version `20260729102938`; repository source `20260729090000_payroll_run_persistence.sql`). The five `pg_policies` rows for `people`, `people_compensation`, `labor_logs`, `payroll_runs`, and `payroll_run_lines` match the repository's final predicates, commands, and authenticated-role scope. See §9.1 |
-| **L-5** | Verify `custom_access_token_hook` is enabled and a freshly minted token carries a membership-validated `active_org_id` | Dashboard setting; `config.toml` proves local config only. `SECURITY-NOTES.md` §0.1 | Required **before onboarding a second org**; matters for a two-farm accountant |
-| **L-6** | Determine what Vercel and Supabase logs retain from payroll requests, how long, and who can read them | Provider configuration | Feeds §11 retention questions |
-| **L-7** | Confirm no Supabase database backup, branch, or copy containing staff PII exists outside the production project, and that backup access is restricted | Provider configuration | Feeds §11 |
+| **L-5** | Verify `custom_access_token_hook` is enabled and a freshly minted token carries a membership-validated `active_org_id` | Dashboard setting; `config.toml` proves local config only. `SECURITY-NOTES.md` §0.1 | **VERIFIED OPEN 2026-07-29** — the authenticated production Auth Hooks page contains no configured hook and presents only **Add hook**. Enable the Postgres custom-access-token hook at `pg-functions://postgres/public/custom_access_token_hook`, then mint a fresh token and verify the membership-validated claim without logging the token. Required before a second org; see §9.3 |
+| **L-6** | Determine what Vercel and Supabase logs retain from payroll requests, how long, and who can read them | Provider configuration | **PARTIAL 2026-07-29** — the live Supabase organization is Pro; its published default is seven-day log retention. Supabase product logs can include API request/response metadata and Postgres statements. Vercel's current published runtime-log retention varies by plan/add-on (Hobby one hour; Pro one day; Pro + Observability Plus 30 days; Enterprise three days). The Farm Vercel plan/add-on and the named people who can read either provider's logs were not exposed by the read-only connectors, so this gate stays open. See §9.3 |
+| **L-7** | Confirm no Supabase database backup, branch, or copy containing staff PII exists outside the production project, and that backup access is restricted | Provider configuration | **PARTIAL 2026-07-29** — live branch inventory contains only the default `main` branch; it is reported `with_data = false`, and no data-bearing preview branch exists. The live Supabase organization is Pro, whose published default is daily database backups retained seven days. Backup access membership and any off-platform export/copy remain unverified, so this gate stays open. See §9.3 |
 | **L-8** ✅ | Confirm the production `service_role` key is not present in any client bundle or repository artefact | Non-exposure is a source, build and deployed-asset property | **DONE 2026-07-29** — self-testing guard scanned 1,251 tracked files (14,267,098 bytes), 77 client roots / 430 source files / 381 resolved edges, 155 local client assets (2,411,324 bytes), and all 13 JavaScript chunks referenced by the public production `/` and `/login` pages (962,463 downloaded bytes including the bounded HTML/manifest inputs). No elevated JWT, `sb_secret_` value, client-inline secret env name, server-role env name in browser output, or client path to a service-role reader was found. See §9.2 |
 | **L-9** | Enumerate every account currently holding `owner` or `accountant` in the production org, and confirm each is a real, named, recoverable, individually-owned account | Live identity state. Related open item: `SECURITY-NOTES.md` §5.1 (`*@ebeid.test` demo identities, retired shared password treated as compromised) | **Blocking** — see G-H4 |
-| **L-10** | Enable Supabase leaked-password protection and re-run the advisor | Dashboard toggle; `SECURITY-NOTES.md` §1.4 | **Confirmed still open 2026-07-29** — a fresh hosted security-advisor run returned `auth_leaked_password_protection` WARN / disabled. Owner configuration action remains required |
+| **L-10** | Enable Supabase leaked-password protection and re-run the advisor | Dashboard toggle; `SECURITY-NOTES.md` §1.4 | **VERIFIED OPEN 2026-07-29** — both the hosted security advisor and the authenticated production Attack Protection page report leaked-password protection **disabled**. Enable it, save, and re-run the advisor. No setting was changed during this read-only review; see §9.3 |
 | **L-11** ✅ | Confirm the two `private` payroll internals hold no client `EXECUTE` **on the hosted project**, not only in the migration ledger | pgTAP `142` asserts this against the local harness, which replays migrations; a hosted-only grant would not appear there. `tests/22` INV-1/INV-2 are scoped to `nspname = 'public'`, so nothing covered these at all before this review | **DONE 2026-07-29** — `has_function_privilege` probe: **false** for both `anon` and `authenticated` on `private.fn_payroll_run_report(uuid)` and `private.fn_payroll_run_mutex_key(uuid)`. See §9.1 |
 
 ### 9.1 Hosted metadata probe — results as returned (2026-07-29)
@@ -599,6 +599,37 @@ For the deployed arm, the reviewer fetched the public HTML for `/` and `/login` 
 `/_next/static/*.js` references, required downloaded count to equal referenced count, then scanned
 the resulting temporary directory. **13/13 referenced JavaScript chunks downloaded; the deployed
 arm passed.** No cookies, login, API key, staff data or private route was used.
+
+### 9.3 Provider configuration and retention probe — L-5, L-6, L-7, L-10 (2026-07-29)
+
+This was read-only. No hook, auth setting, user, password, branch, backup, log drain, project or data
+was created, changed, downloaded or deleted.
+
+| Surface | Live result | Consequence |
+|---|---|---|
+| Supabase Auth Hooks | Authenticated production page shows **no configured hooks** and only **Add hook** | L-5 is confirmed open. Source/config readiness does not substitute for provider activation or a freshly minted claim |
+| Supabase Attack Protection | **Prevent use of leaked passwords — DISABLED** | L-10 is confirmed open independently of the advisor warning |
+| Supabase organization | `zeluu`, **Pro** | Published Pro defaults apply unless a separately verified override/add-on says otherwise |
+| Supabase branch inventory | One default `main` branch; `with_data = false`; no preview branch | No data-bearing Supabase branch exists at this snapshot; backup/export copies are a separate question |
+| Supabase project inventory | Farm plus one unrelated project in the organization | The other named project is not evidence of a Farm data copy; no Farm table or user data was read |
+| Vercel project connector | Project/deployment metadata and runtime-error queries available; plan, Observability Plus, log drains and team-member roles not exposed | Retention and named-reader questions remain open |
+
+Provider defaults were checked against current official documentation:
+
+- [Supabase pricing](https://supabase.com/pricing) states Pro includes seven-day log retention and
+  daily backups retained seven days.
+- [Supabase logging](https://supabase.com/docs/guides/telemetry/logs) identifies the product-log
+  surfaces, including API request/response metadata and Postgres statements.
+- [Supabase database backups](https://supabase.com/features/database-backups) states Pro daily
+  backup retention is seven days.
+- [Vercel runtime logs](https://vercel.com/docs/logs/runtime) lists current retention by plan and
+  Observability Plus status.
+
+**Required next actions.** Activate only the custom-access-token Postgres hook, then prove a fresh
+token carries `active_org_id` without printing or persisting the token. Enable leaked-password
+protection and re-run the security advisor. Separately inventory named dashboard readers, Vercel
+plan/add-ons/log drains, Supabase backup access, and any off-platform database export. Until those
+checks are complete, L-5, L-6, L-7 and L-10 remain open.
 
 ---
 
@@ -787,9 +818,9 @@ payroll data may be imported only when **every** item in both columns is satisfi
 | G-T13 | Payroll snapshot immutable; closed periods freeze their labor rows | pgTAP `20260729090000` | ✅ verified locally |
 | G-T14 | Full suite green: pgTAP, Vitest, `tsc`, ESLint, `npm run build`, `git diff --check` | §8.3 + §14 | ✅ this run |
 | G-T15 | **Hosted** RLS/FORCE/grant/policy state matches the ledger; live deny path verified with a real supervisor JWT | L-1 … L-4, L-11 | ⚠️ **PARTIAL** — ✅ L-1 (`anon` grants), ✅ L-2 (RLS **and** FORCE true on all five tables), ✅ L-4 (migration head and five policy predicates match the ledger), ✅ L-11 (`private` payroll internals hold no client EXECUTE); ❌ **L-3 live JWT deny path NOT DONE**. The gate stays **open**: metadata is not behaviour |
-| G-T16 | `custom_access_token_hook` verified before any second org | L-5 | ❌ **NOT DONE** |
-| G-T17 | Leaked-password protection enabled; advisor clean | L-10 | ❌ **NOT DONE** |
-| G-T18 | Log/backup retention and access understood for payroll requests | L-6, L-7 | ❌ **NOT DONE** |
+| G-T16 | `custom_access_token_hook` verified before any second org | L-5 | ❌ **VERIFIED DISABLED** — source function/config are ready; production activation and fresh-token proof remain |
+| G-T17 | Leaked-password protection enabled; advisor clean | L-10 | ❌ **VERIFIED DISABLED** — dashboard and advisor agree; activation and clean re-run remain |
+| G-T18 | Log/backup retention and access understood for payroll requests | L-6, L-7 | ⚠️ **PARTIAL** — Supabase Pro defaults and no-data-branch state verified; named readers, Vercel plan/add-ons/drains, backup access and off-platform copies remain |
 | G-T19 | Service-role secret absent from repository artefacts, client import graph, local browser build and referenced production chunks | L-8; `scripts/check-service-role-exposure.mjs`; CI | ✅ **verified at the 2026-07-29 snapshot; repository/graph/local-build arms enforced in CI** |
 
 ### 12.2 Human gates — only the independent technical review is satisfied
