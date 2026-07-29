@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { createRequire } from "node:module";
 import { renderWorkbook, parseUpload, generateTemplate } from "./xlsx";
 import { DATA_SHEET, type WorkbookSpec } from "./workbook-spec";
 import type { ImportDescriptor } from "./types";
+
+const require = createRequire(import.meta.url);
 
 const d: ImportDescriptor = {
   key: "sample",
@@ -60,11 +63,20 @@ describe("xlsx adapter", () => {
     });
 
     const out = await wb.xlsx.writeBuffer();
-    const state = ws as unknown as {
-      conditionalFormattings: Array<{ rules: Array<{ x14Id?: string }> }>;
+    const exceljsPath = require.resolve("exceljs");
+    const uuidPackagePath = require.resolve("uuid/package.json", { paths: [exceljsPath] });
+    const uuidPackage = require(uuidPackagePath) as { version: string };
+    expect(uuidPackage.version).toBe("11.1.1");
+
+    const jszipPath = require.resolve("jszip", { paths: [exceljsPath] });
+    const JSZip = require(jszipPath) as {
+      loadAsync(data: unknown): Promise<{
+        file(path: string): { async(type: "string"): Promise<string> } | null;
+      }>;
     };
-    const rule = state.conditionalFormattings[0].rules[0];
-    expect(rule.x14Id).toMatch(/^\{[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}\}$/);
-    expect(out.byteLength).toBeGreaterThan(0);
+    const zip = await JSZip.loadAsync(out);
+    const sheetXml = await zip.file("xl/worksheets/sheet1.xml")?.async("string");
+    const x14Id = sheetXml?.match(/<x14:cfRule[^>]+id="(\{[^"]+\})"/)?.[1];
+    expect(x14Id).toMatch(/^\{[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}\}$/);
   });
 });
