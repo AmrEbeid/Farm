@@ -1,7 +1,54 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll close/report UI closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll readiness slice closeout)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-29 (latest) — payroll close/report UI — MERGED / DEPLOYED / PUBLIC-SMOKED
+## 2026-07-29 (latest) — payroll readiness: compensation editor + mode-aware labor — MERGED / DEPLOYED / PUBLIC-SMOKED
+
+PR #959 merged at `d335f205d4d4c79bcc613b2e7e59dba2e46c4335`; head commits were `637cb4c` (wage setup and
+mode-aware labor) and `7f7af17` (wage editor state normalization). Vercel production deployment
+`dpl_4Y3xR76wkA1fxbEsB8YsRC7M7gTD` is READY on target production for that exact merge commit.
+**App-only: no migration, schema, RPC, or data change in this slice** — the hosted payroll migration remains
+`20260729102938 payroll_run_persistence`, from source file
+`apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`.
+
+The slice delivers the owner/accountant compensation editor at `/people/payroll/compensation` across all four
+modes — hourly, daily, piece, and seasonal. Reads are org-scoped, bounded, and carry no PII. Inactive workers
+remain named on the wage rows that already reference them, so existing rate history stays legible, but they
+cannot be selected for a new rate. Writes are create and update only — there is no delete path. Attendance now
+records the compensation mode and the piece quantity and unit while still requiring hours, so the hourly
+baseline is never lost. Work dates are validated on the Cairo calendar with no future day. Selecting a
+free-text team shows an explicit warning that payroll close will refuse the period. Page headers are compact
+and the payroll links are role-gated. The
+people dashboard estimate is labelled explicitly as hourly-only. **The close RPC, payment execution, and
+journal posting are unchanged — none of them are in this slice.**
+
+Claude implemented and validated; Codex reviewed independently and fixed an inactive-worker identity ambiguity
+before the PR was opened, then addressed CodeRabbit's unknown-mode and help-copy findings. CodeRabbit's final
+rerun was rate-limited, but its status check passed and every required fresh-head check is green. Local
+evidence: full app Vitest 85 files, 1,125 passed + 13 controlled skips before the review fixes; focused
+review-fix run 106/106; TypeScript, touched-file ESLint, production build with static generation 64/64, the
+guards, and
+`git diff --check` all clean. Fresh GitHub app CI, design-system CI, pgTAP, gitleaks, and the Vercel preview
+are green. Post-release the public `/login` returned HTTP 200, signed-out `/people/payroll/compensation` and
+the signed-out attendance page each redirected once to `/login`, and Vercel found no runtime errors in the
+queried 15-minute window.
+
+**Truth boundary — no authenticated production owner/accountant UI workflow was exercised**, no real
+compensation or labor data was imported, and no pilot close or report was completed. **Do not claim pilot
+acceptance.** The readiness data-entry surface is now built and live, but **payroll is still NOT 100%:** the
+Stage-M real-PII review, an approved real staff/rate/labor import, an authenticated owner/accountant pilot of
+compensation, attendance, close, and report, dated acceptance/signoff, and any separately ratified
+payment/journal scope all remain open.
+
+**Exact resume point:** accounting is still human-gated on the 698 row decisions, the real workbook dual run,
+exception resolution, and dated accountant/owner acceptance; security remains open on the upstream/npm
+findings plus the Owner-only gates; and the palm registry remains blocked because the real source counts
+conflict. The next safe autonomous payroll work is a **payroll readiness/pilot checklist plus safe real-data
+import preparation**: write the dated owner/accountant pilot checklist covering compensation, attendance,
+close, and report, and prepare the import path — templates, validation rules, and a dry-run — using
+**synthetic data only**. **No real PII yet:** no real staff, rates, or labor may be imported before the
+Stage-M privacy review clears. Do not fabricate real rates or staff.
+
+## 2026-07-29 — payroll close/report UI — MERGED / DEPLOYED / PUBLIC-SMOKED
 
 PR #957 merged at `9300e473b0d67e72d1e0d96f5bdc683c2617f897`; head commits were `83be4f0` (close and report
 workflow) and `666e675` (Cairo-day close bounds review fix). Vercel production deployment
@@ -43,6 +90,10 @@ exception resolution, and dated accountant/owner acceptance; the security and pa
 unchanged. The next safe autonomous payroll work is to audit and improve the data-entry/readiness workflow for
 compensation and attendance using **synthetic data only**, and to prepare a pilot acceptance checklist. Do not
 fabricate real rates or staff.
+*(Superseded 2026-07-29 by the payroll readiness entry above: the compensation/attendance data-entry workflow
+shipped in PR #959, so this resume point is closed and the current resume point is the top entry. Everything
+else here — no authenticated pilot, no real import, no acceptance/signoff, no payment or journal, Stage-M
+gated, payroll not 100% — remains true.)*
 
 ## 2026-07-29 — payroll persistence kernel — MERGED / MIGRATED / DEPLOYED / PRODUCTION-VERIFIED
 

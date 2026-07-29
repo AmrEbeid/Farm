@@ -2,7 +2,38 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-29 (latest) — payroll close/report UI MERGED / DEPLOYED / PUBLIC-SMOKED.**
+> **2026-07-29 (latest) — payroll readiness (compensation editor + mode-aware labor) MERGED / DEPLOYED /
+> PUBLIC-SMOKED.**
+> PR #959 merged at `d335f205d4d4c79bcc613b2e7e59dba2e46c4335` (head commits `637cb4c` wage setup and
+> mode-aware labor, `7f7af17` wage editor state normalization); production deployment
+> `dpl_4Y3xR76wkA1fxbEsB8YsRC7M7gTD` is READY on target production for that exact merge commit.
+> **App-only: no migration, schema, RPC, or data change** — the hosted payroll migration remains
+> `20260729102938 payroll_run_persistence`, from source file
+> `apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`.
+> Delivered: an owner/accountant compensation editor at `/people/payroll/compensation` covering hourly, daily,
+> piece, and seasonal. Bounded org-scoped reads with no PII. Inactive workers remain named on the wage rows
+> that already reference them but cannot be selected for a new rate. Writes are create/update only — no delete
+> path. Attendance now records the compensation mode and the piece quantity and unit while still requiring
+> hours. Work dates are Cairo-calendar validated with no future day. Selecting a free-text team shows an
+> explicit warning that payroll close will refuse the period. Compact page headers and role-gated payroll
+> links. The people dashboard estimate is labelled explicitly as hourly-only. **The close RPC, payment
+> execution, and journal posting are unchanged.**
+> Evidence: full app Vitest 85 files, 1,125 passed + 13 controlled skips before the review fixes; focused
+> review-fix run 106/106; TypeScript, touched-file ESLint, production build with static generation 64/64, the
+> guards, and `git diff --check`
+> clean; fresh GitHub app CI, design-system CI, pgTAP, gitleaks, and Vercel preview green. Codex reviewed
+> independently and fixed an inactive-worker identity ambiguity before the PR opened, then addressed
+> CodeRabbit's unknown-mode and help-copy findings; CodeRabbit's final rerun was rate-limited but its status
+> check passed and all required fresh-head checks are green.
+> Post-release: public `/login` HTTP 200; signed-out `/people/payroll/compensation` and the signed-out
+> attendance page each redirect once to `/login`; no Vercel runtime errors in the queried 15-minute window.
+> **Not claimed:** no authenticated production owner/accountant UI workflow was exercised, no real
+> compensation or labor data was imported, and no pilot close or report was completed. **This is not pilot
+> acceptance.** Stage-M real-PII review, an approved real staff/rate/labor import, an authenticated
+> owner/accountant pilot of compensation/attendance/close/report, dated acceptance/signoff, and any separately
+> ratified payment/journal scope remain open. Payroll is not 100%.
+
+> **2026-07-29 — payroll close/report UI MERGED / DEPLOYED / PUBLIC-SMOKED.**
 > PR #957 merged at `9300e473b0d67e72d1e0d96f5bdc683c2617f897` (head commits `83be4f0` close/report workflow,
 > `666e675` Cairo-day close-bounds review fix); production deployment `dpl_7ac5VJrZABUaVaUSG7Pv6hwUgMH8` is
 > READY on target production for that exact merge commit. **App-only: no migration, schema, RPC, or data
