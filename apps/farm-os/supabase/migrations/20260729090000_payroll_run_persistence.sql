@@ -638,6 +638,7 @@ declare
   v_grosses      numeric[] := '{}';
   v_missing      text[]  := '{}';
   v_rate         numeric;
+  v_qty          numeric;
   r              record;
 begin
   if p_org is null or p_period_start is null or p_period_end is null then
@@ -756,9 +757,10 @@ begin
     v_person_ids := v_person_ids || r.person_id;
     v_modes      := v_modes      || r.mode;
     v_units      := v_units      || r.unit;
-    v_quantities := v_quantities || round(r.quantity, 2);
+    v_qty        := round(r.quantity, 2);
+    v_quantities := v_quantities || v_qty;
     v_rates      := v_rates      || v_rate;
-    v_grosses    := v_grosses    || round(r.quantity * v_rate, 2);
+    v_grosses    := v_grosses    || round(v_qty * v_rate, 2);
   end loop;
 
   if array_length(v_missing, 1) > 0 then

@@ -37,7 +37,7 @@
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
-select plan(101);
+select plan(104);
 
 \set orgA '00000000-0000-0000-0000-000000000001'
 \set orgP 'aaaa0729-0000-0000-0000-000000000001'
@@ -51,10 +51,12 @@ select plan(101);
 select has_table('public', 'payroll_runs', 'payroll_runs table exists');
 select has_table('public', 'payroll_run_lines', 'payroll_run_lines table exists');
 select is(
-  (select relforcerowsecurity from pg_class where relname = 'payroll_runs'),
+  (select c.relforcerowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = 'payroll_runs'),
   true, 'payroll_runs: FORCE row level security is on');
 select is(
-  (select relforcerowsecurity from pg_class where relname = 'payroll_run_lines'),
+  (select c.relforcerowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = 'payroll_run_lines'),
   true, 'payroll_run_lines: FORCE row level security is on');
 select ok(
   not has_function_privilege('anon', 'public.fn_close_payroll_run(uuid, date, date)', 'EXECUTE'),
@@ -85,10 +87,10 @@ select ok(
   not has_function_privilege('authenticated',
     'public.fn_guard_people_compensation_payroll_coordination()', 'EXECUTE'),
   'authenticated holds NO EXECUTE on fn_guard_people_compensation_payroll_coordination (internal only)');
-select is(
-  (select p.proconfig[1] from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+select ok(
+  (select 'search_path=""' = any(p.proconfig) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname = 'fn_guard_people_compensation_payroll_coordination'),
-  'search_path=""', 'the compensation close-coordination trigger pins an empty search_path');
+  'the compensation close-coordination trigger pins an empty search_path');
 
 -- ── fixture: dedicated org, reusing orgA's seeded auth users for role impersonation ─────────────────
 select set_config('t.owner', (select user_id::text from public.organization_member
@@ -130,6 +132,9 @@ insert into public.people_compensation (org_id, person_id, mode, unit, rate, con
 --   pPiece  piece/box: 20 + 30 = 50 × 15  = 750.00
 --   pSeasonal seasonal:       1    × 5000 = 5000.00
 --   TOTAL                                 = 7000.00 across 5 lines
+-- non-hourly rows carry deliberately non-zero `hours` (6 on the piece/tree row, 8 on the daily,
+-- piece/box, and seasonal rows) — pricing ignores `hours` outside mode='hourly', and the oracle above
+-- proves it: a future edit that zeroes these out would silently weaken that coverage.
 insert into public.labor_logs (org_id, person_id, work_date, hours, mode, quantity, unit) values
   (:'orgP', :'pHourly',   '2026-02-02', 8, 'hourly',   null, null),
   (:'orgP', :'pHourly',   '2026-02-03', 4, 'hourly',   null, null),
@@ -211,6 +216,10 @@ select throws_ok(
 reset role;
 
 -- ── denial: anon (no EXECUTE grant at all) ───────────────────────────────────────────────────────────
+-- '{}', not NULL: set_config(name, NULL, ...) sets the GUC to '' (not unset), and auth.uid()/auth.role()
+-- cast it via ::json, which fails on an empty string. '{}' clears the storekeeper's claims while staying
+-- valid JSON, so the anon case runs with NO claims (sub/role both null) rather than an inherited member.
+select set_config('request.jwt.claims', '{}', true);
 set local role anon;
 select throws_ok(
   format($$select public.fn_close_payroll_run(%L::uuid, '2026-09-01'::date, '2026-09-07'::date)$$, :'orgP'),
@@ -225,7 +234,8 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 select throws_ok(
   format($$select public.fn_close_payroll_run(%L::uuid, '2026-03-01'::date, '2026-03-07'::date)$$, :'orgP'),
-  '22023', null, 'a missing rate aborts the WHOLE close');
+  '22023', format('missing or invalid rate for (person:mode/unit): %s:hourly', :'pMissing'),
+  'a missing rate aborts the WHOLE close');
 reset role;
 select is(
   (select count(*)::int from public.payroll_runs where org_id = :'orgP' and period_start = '2026-03-01'),
@@ -241,7 +251,8 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 select throws_ok(
   format($$select public.fn_close_payroll_run(%L::uuid, '2026-04-01'::date, '2026-04-07'::date)$$, :'orgP'),
-  '22023', null, 'empty input (no labor logs in the period) aborts the close');
+  '22023', format('no labor logs found for org %s in period 2026-04-01 .. 2026-04-07', :'orgP'),
+  'empty input (no labor logs in the period) aborts the close');
 reset role;
 select is(
   (select count(*)::int from public.payroll_runs where org_id = :'orgP' and period_start = '2026-04-01'),
@@ -253,10 +264,11 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 select throws_ok(
   format($$select public.fn_close_payroll_run(%L::uuid, '2026-05-07'::date, '2026-05-01'::date)$$, :'orgP'),
-  '22023', null, 'period_start after period_end aborts the close');
+  '22023', 'invalid period: period_start (2026-05-07) is after period_end (2026-05-01)',
+  'period_start after period_end aborts the close');
 select throws_ok(
   $$select public.fn_close_payroll_run(null, null, null)$$,
-  '22023', null, 'null org/period bounds abort the close');
+  '22023', 'org, period_start and period_end are required', 'null org/period bounds abort the close');
 reset role;
 
 -- ── fail-closed: free-text crews ──────────────────────────────────────────────────────────────────────
@@ -267,15 +279,19 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 select throws_ok(
   format($$select public.fn_close_payroll_run(%L::uuid, '2026-05-08'::date, '2026-05-14'::date)$$, :'orgP'),
-  '22023', null, 'a free-text crew labor log aborts the whole close');
+  '22023', 'free-text crew labor logs exist in this period — assign a person before closing payroll',
+  'a free-text crew labor log aborts the whole close');
 reset role;
 select is(
   (select count(*)::int from public.payroll_runs where org_id = :'orgP' and period_start = '2026-05-08'),
   0, 'free-text-crew leaves ZERO payroll_runs rows');
 
 -- ── fail-closed: cross-org data reference (bypasses the upstream RLS/guard, superuser-inserted) ───────
-insert into public.labor_logs (org_id, person_id, work_date, hours, mode) values
-  (:'orgP', 'f2efd2ea-d861-59bd-9cf3-a0f24ffcfd9c', '2026-06-02', 8, 'hourly');
+-- a person belonging to orgA, deliberately referenced from an orgP labor log — derived from the current
+-- seed rather than hardcoded, so a reseed can never leave this fixture pointing at a nonexistent row.
+insert into public.labor_logs (org_id, person_id, work_date, hours, mode)
+select :'orgP', p.id, '2026-06-02', 8, 'hourly'
+  from public.people p where p.org_id = :'orgA' limit 1;
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.owner'), 'role', 'authenticated')::text, true);
 set local role authenticated;
@@ -370,7 +386,7 @@ select throws_ok(
   '55000', null,
   'a privileged cross-org UPDATE moving a row OUT of orgP''s closed Feb1-7 period into orgQ is rejected');
 select is(
-  (select org_id from public.labor_logs where org_id = :'orgP' and person_id = :'pHourly' and work_date = '2026-02-02' and hours = 8),
+  (select org_id from public.labor_logs where person_id = :'pHourly' and work_date = '2026-02-02' and hours = 8),
   :'orgP'::uuid, 'the rejected cross-org move leaves the row''s org_id UNCHANGED (still orgP)');
 select is(
   (select count(*)::int from public.labor_logs where org_id = :'orgQ'),
@@ -392,6 +408,16 @@ select is(
   (select gross from public.payroll_run_lines l join public.payroll_runs r on r.id = l.run_id
     where r.org_id = :'orgP' and r.period_start = '2026-02-01' and l.person_id = :'pSeasonal'),
   5000.00, 'compensation mutation consistency: the frozen seasonal line gross is UNCHANGED after the contract edit');
+-- the ACTUAL regression risk: a REPLAY of the close (not just a read of the stored snapshot) must also
+-- return the frozen 7000.00, never recompute against the just-edited rate (999) or contract (1).
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.owner'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select set_config('t.run_report_replay',
+  (select public.fn_close_payroll_run(:'orgP'::uuid, '2026-02-01'::date, '2026-02-07'::date)::text), false);
+reset role;
+select is((current_setting('t.run_report_replay')::jsonb->>'total_gross')::numeric, 7000.00,
+  'compensation mutation consistency: REPLAYING the closed Feb1-7 run after the rate/contract edits still returns 7000.00 (no recompute)');
 
 -- ── daily quantity counts DISTINCT work_date, not row count ──────────────────────────────────────────────
 \set pDailyDup 'aaaa0729-0000-0000-0000-0000000000b6'
@@ -434,7 +460,7 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 select throws_ok(
   format($$select public.fn_close_payroll_run(%L::uuid, '2026-10-01'::date, '2026-10-07'::date)$$, :'orgP'),
-  '22023', null,
+  '22023', format('missing or invalid rate for (person:mode/unit): %s:seasonal', :'pSeasonalBad'),
   'a seasonal rate whose contract bounds do not EXACTLY match the close period is treated as missing (never inferred)');
 reset role;
 select is(
@@ -451,22 +477,50 @@ select is(
   (current_setting('t.seasonal_exact_report')::jsonb->>'total_gross')::numeric, 4000.00,
   'seasonal exact-period match: closing the EXACT declared contract period (Oct1-14) resolves and pays 4000.00');
 
+-- ── gross-vs-stored-quantity rounding: a >2-decimal aggregate quantity must round ONCE, and gross must be
+-- computed from that SAME rounded value — never from the unrounded aggregate — or payroll_run_lines'
+-- OWN gross-exact CHECK (which re-derives gross from the STORED, rounded quantity) rejects the close.
+-- rate=3.00, aggregate quantity=5.002+5.002=10.004 rounds to 10.00; the OLD logic computed
+-- gross=round(10.004*3.00,2)=30.01, which the CHECK (round(10.00*3.00,2)=30.00) would have rejected.
+\set pFrac 'aaaa0729-0000-0000-0000-0000000000b8'
+insert into public.people (id, org_id, name, employment_type, active) values
+  (:'pFrac', :'orgP', 'عامل قطعة كسري', 'seasonal', true);
+insert into public.people_compensation (org_id, person_id, mode, unit, rate) values
+  (:'orgP', :'pFrac', 'piece', 'kg', 3.00);
+insert into public.labor_logs (org_id, person_id, work_date, hours, mode, quantity, unit) values
+  (:'orgP', :'pFrac', '2026-11-02', 8, 'piece', 5.002, 'kg'),
+  (:'orgP', :'pFrac', '2026-11-03', 8, 'piece', 5.002, 'kg');
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('t.owner'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select set_config('t.frac_qty_report',
+  (select public.fn_close_payroll_run(:'orgP'::uuid, '2026-11-01'::date, '2026-11-07'::date)::text), false);
+reset role;
+select is(
+  (select quantity from public.payroll_run_lines l join public.payroll_runs r on r.id = l.run_id
+    where r.org_id = :'orgP' and r.period_start = '2026-11-01' and l.person_id = :'pFrac'),
+  10.00::numeric, 'fractional-quantity close: the aggregate 10.004 is stored rounded ONCE to 10.00');
+select is(
+  (select gross from public.payroll_run_lines l join public.payroll_runs r on r.id = l.run_id
+    where r.org_id = :'orgP' and r.period_start = '2026-11-01' and l.person_id = :'pFrac'),
+  30.00, 'fractional-quantity close: gross is computed from the STORED rounded quantity (10.00 × 3.00 = 30.00), not the unrounded aggregate (which would compute 30.01 and violate payroll_run_lines_gross_exact)');
+
 -- ── immutable close (rejected even from the table-owning/superuser role) ────────────────────────────────
 select throws_ok(
   format($$update public.payroll_runs set total_gross = 0 where org_id = %L and period_start = '2026-02-01'$$,
     :'orgP'),
-  '22023', null, 'a closed payroll_runs row cannot be updated');
+  '22023', 'payroll_runs rows are immutable and cannot be updated', 'a closed payroll_runs row cannot be updated');
 select throws_ok(
   format($$delete from public.payroll_runs where org_id = %L and period_start = '2026-02-01'$$, :'orgP'),
-  '22023', null, 'a closed payroll_runs row cannot be deleted');
+  '22023', 'payroll_runs rows are immutable and cannot be deleted', 'a closed payroll_runs row cannot be deleted');
 select throws_ok(
   format($$update public.payroll_run_lines set gross = 0 where run_id =
            (select id from public.payroll_runs where org_id = %L and period_start = '2026-02-01')$$, :'orgP'),
-  '22023', null, 'a payroll_run_lines row cannot be updated');
+  '22023', 'payroll_run_lines rows are immutable and cannot be updated', 'a payroll_run_lines row cannot be updated');
 select throws_ok(
   format($$delete from public.payroll_run_lines where run_id =
            (select id from public.payroll_runs where org_id = %L and period_start = '2026-02-01')$$, :'orgP'),
-  '22023', null, 'a payroll_run_lines row cannot be deleted');
+  '22023', 'payroll_run_lines rows are immutable and cannot be deleted', 'a payroll_run_lines row cannot be deleted');
 
 -- ── confidential audit ────────────────────────────────────────────────────────────────────────────────
 select isnt(
@@ -517,24 +571,29 @@ select throws_ok(
 
 create extension if not exists dblink;
 
--- PID-free: proves the race by polling pg_catalog.pg_locks for an ungranted advisory lock
--- (locktype='advisory', granted=false) rather than matching a dblink backend's PID in
--- pg_stat_activity — those PIDs go stale under connection reuse/pooling. Returns true only if
--- EXACTLY ONE new ungranted advisory waiter appeared (the intended race's mutex, and nothing else).
-create or replace function pg_temp.wait_for_solo_advisory_waiter(p_before_count bigint)
+-- PID-free: proves the race by matching the SPECIFIC ungranted advisory waiter for this org's
+-- deterministic per-org mutex key — the same md5-derived classid/objid split
+-- private.fn_payroll_run_mutex_key uses (migration 20260729090000, section 3) — rather than an
+-- instance-wide waiter COUNT. pg_locks is instance-wide, so counting ungranted advisory waiters picks up
+-- every other database/session on the instance; matching the exact key means an unrelated advisory
+-- waiter elsewhere can no longer make this assertion flaky.
+create or replace function pg_temp.wait_for_solo_advisory_waiter(p_org uuid)
 returns boolean
 language plpgsql
 as $$
 declare
-  attempt int;
-  v_count bigint;
+  attempt   int;
+  v_key_hex text := substr(md5(p_org::text), 1, 16);
+  v_classid int  := ('x' || substr(v_key_hex, 1, 8))::bit(32)::int;
+  v_objid   int  := ('x' || substr(v_key_hex, 9, 8))::bit(32)::int;
 begin
   for attempt in 1..1000 loop
-    select count(*) into v_count
-      from pg_catalog.pg_locks
-     where locktype = 'advisory' and granted = false;
-    if v_count > p_before_count then
-      return v_count = p_before_count + 1;
+    if exists (
+      select 1 from pg_catalog.pg_locks
+       where locktype = 'advisory' and granted = false and objsubid = 1
+         and classid = v_classid and objid = v_objid
+    ) then
+      return true;
     end if;
     perform pg_sleep(0.01);
   end loop;
@@ -542,12 +601,39 @@ begin
 end;
 $$;
 
+-- self-healing race fixtures: a part that errors before its own teardown block runs would otherwise
+-- leave its org's rows committed forever (dblink-committed writes survive this file's outer ROLLBACK),
+-- poisoning every later invocation with a duplicate-key insert. This single helper is called both as
+-- idempotent PRE-setup cleanup (ahead of each part's fixture insert) and as the happy-path teardown, so
+-- a mid-part failure is recoverable rather than terminal.
+create or replace function pg_temp.reset_payroll_race_org(p_conn text, p_org uuid)
+returns void
+language plpgsql
+as $$
+begin
+  perform dblink_exec(p_conn, 'set session_replication_role = replica');
+  perform dblink_exec(p_conn, format($f$delete from public.payroll_run_lines where org_id = %L$f$, p_org));
+  perform dblink_exec(p_conn, format($f$delete from public.payroll_runs where org_id = %L$f$, p_org));
+  perform dblink_exec(p_conn, format($f$delete from public.labor_logs where org_id = %L$f$, p_org));
+  perform dblink_exec(p_conn, format($f$delete from public.people_compensation where org_id = %L$f$, p_org));
+  perform dblink_exec(p_conn, format($f$delete from public.people where org_id = %L$f$, p_org));
+  perform dblink_exec(p_conn, format($f$delete from public.organization_member where org_id = %L$f$, p_org));
+  perform dblink_exec(p_conn, format($f$delete from public.organization where id = %L$f$, p_org));
+end;
+$$;
+
 select set_config('t.dsn', format(
   'host=%s port=%s dbname=%s user=%s',
-  (select setting from pg_settings where name = 'unix_socket_directories'),
+  (select btrim(split_part(setting, ',', 1))
+     from pg_settings where name = 'unix_socket_directories'),
   (select setting from pg_settings where name = 'port'),
   current_database(), current_user
 ), false);
+
+-- idempotent pre-setup cleanup: recover from a prior run that errored before its own teardown ran.
+select dblink_connect('payroll_race_precleanup', current_setting('t.dsn'));
+select pg_temp.reset_payroll_race_org('payroll_race_precleanup', :'orgR');
+select dblink_disconnect('payroll_race_precleanup');
 
 select dblink_connect('payroll_race_setup', current_setting('t.dsn'));
 select dblink_exec('payroll_race_setup',
@@ -585,27 +671,30 @@ select is(
      ) as race_one(result jsonb)),
   200.00, 'race backend 1 closes the period while holding the per-(org,period) mutex (4h × 50 = 200)');
 
-select set_config('t.race_lockcount_before', (
-  select count(*)::text from pg_catalog.pg_locks where locktype = 'advisory' and granted = false
-), false);
-
 select is(
   dblink_send_query('payroll_racer_2',
     format($$select public.fn_close_payroll_run(%L::uuid, '2026-07-01'::date, '2026-07-07'::date)$$, :'orgR')),
   1, 'race backend 2 dispatches the concurrent close');
 
 select ok(
-  pg_temp.wait_for_solo_advisory_waiter(current_setting('t.race_lockcount_before')::bigint),
-  'race backend 2 blocks on the SAME per-(org,period) payroll mutex (exactly one new ungranted advisory waiter)');
+  pg_temp.wait_for_solo_advisory_waiter(:'orgR'::uuid),
+  'race backend 2 blocks on the SAME per-(org,period) payroll mutex');
 
 select dblink_exec('payroll_racer_1', 'commit');
 
 do $$
 declare
   v_result jsonb;
+  v_state  text;
 begin
-  select result into v_result from dblink_get_result('payroll_racer_2') as race_two(result jsonb);
-  perform set_config('t.payroll_race_result', coalesce(v_result::text, '{"status":"missing"}'), false);
+  begin
+    select result into v_result from dblink_get_result('payroll_racer_2') as race_two(result jsonb);
+    perform set_config('t.payroll_race_result', coalesce(v_result::text, '{"status":"missing"}'), false);
+  exception when others then
+    get stacked diagnostics v_state = returned_sqlstate;
+    perform set_config('t.payroll_race_result',
+      json_build_object('status', 'error', 'sqlstate', v_state)::text, false);
+  end;
   begin
     perform * from dblink_get_result('payroll_racer_2') as drained(result jsonb);
   exception when others then
@@ -635,21 +724,7 @@ select dblink_disconnect('payroll_racer_2');
 -- accounting reconciliation execute expense batch test.sql"'s own teardown) — the outer rollback below
 -- cannot remove rows another backend already committed.
 select dblink_connect('payroll_race_cleanup', current_setting('t.dsn'));
-select dblink_exec('payroll_race_cleanup', 'set session_replication_role = replica');
-select dblink_exec('payroll_race_cleanup',
-  format($$delete from public.payroll_run_lines where org_id = %L$$, :'orgR'));
-select dblink_exec('payroll_race_cleanup',
-  format($$delete from public.payroll_runs where org_id = %L$$, :'orgR'));
-select dblink_exec('payroll_race_cleanup',
-  format($$delete from public.labor_logs where org_id = %L$$, :'orgR'));
-select dblink_exec('payroll_race_cleanup',
-  format($$delete from public.people_compensation where org_id = %L$$, :'orgR'));
-select dblink_exec('payroll_race_cleanup',
-  format($$delete from public.people where org_id = %L$$, :'orgR'));
-select dblink_exec('payroll_race_cleanup',
-  format($$delete from public.organization_member where org_id = %L$$, :'orgR'));
-select dblink_exec('payroll_race_cleanup',
-  format($$delete from public.organization where id = %L$$, :'orgR'));
+select pg_temp.reset_payroll_race_org('payroll_race_cleanup', :'orgR');
 select dblink_disconnect('payroll_race_cleanup');
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -659,6 +734,11 @@ select dblink_disconnect('payroll_race_cleanup');
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
 \set orgR2 'aaaa0729-0000-0000-0000-0000000000d0'
 \set pRace2 'aaaa0729-0000-0000-0000-0000000000d1'
+
+-- idempotent pre-setup cleanup: recover from a prior run that errored before its own teardown ran.
+select dblink_connect('payroll_race2_precleanup', current_setting('t.dsn'));
+select pg_temp.reset_payroll_race_org('payroll_race2_precleanup', :'orgR2');
+select dblink_disconnect('payroll_race2_precleanup');
 
 select dblink_connect('payroll_race2_setup', current_setting('t.dsn'));
 select dblink_exec('payroll_race2_setup',
@@ -696,18 +776,14 @@ select is(
      ) as race_one(result jsonb)),
   200.00, 'overlap race: racer 1 closes days 1-7 while holding the per-org payroll mutex (4h × 50 = 200)');
 
-select set_config('t.race2_lockcount_before', (
-  select count(*)::text from pg_catalog.pg_locks where locktype = 'advisory' and granted = false
-), false);
-
 select is(
   dblink_send_query('payroll_racer2_2',
     format($$select public.fn_close_payroll_run(%L::uuid, '2026-07-05'::date, '2026-07-11'::date)$$, :'orgR2')),
   1, 'overlap race: racer 2 dispatches a concurrent close for an OVERLAPPING-but-different period (5-11)');
 
 select ok(
-  pg_temp.wait_for_solo_advisory_waiter(current_setting('t.race2_lockcount_before')::bigint),
-  'overlap race: racer 2 blocks on the SAME per-org payroll mutex racer 1 holds (exactly one new ungranted advisory waiter)');
+  pg_temp.wait_for_solo_advisory_waiter(:'orgR2'::uuid),
+  'overlap race: racer 2 blocks on the SAME per-org payroll mutex racer 1 holds');
 
 select dblink_exec('payroll_racer2_1', 'commit');
 
@@ -739,21 +815,7 @@ select dblink_disconnect('payroll_racer2_1');
 select dblink_disconnect('payroll_racer2_2');
 
 select dblink_connect('payroll_race2_cleanup', current_setting('t.dsn'));
-select dblink_exec('payroll_race2_cleanup', 'set session_replication_role = replica');
-select dblink_exec('payroll_race2_cleanup',
-  format($$delete from public.payroll_run_lines where org_id = %L$$, :'orgR2'));
-select dblink_exec('payroll_race2_cleanup',
-  format($$delete from public.payroll_runs where org_id = %L$$, :'orgR2'));
-select dblink_exec('payroll_race2_cleanup',
-  format($$delete from public.labor_logs where org_id = %L$$, :'orgR2'));
-select dblink_exec('payroll_race2_cleanup',
-  format($$delete from public.people_compensation where org_id = %L$$, :'orgR2'));
-select dblink_exec('payroll_race2_cleanup',
-  format($$delete from public.people where org_id = %L$$, :'orgR2'));
-select dblink_exec('payroll_race2_cleanup',
-  format($$delete from public.organization_member where org_id = %L$$, :'orgR2'));
-select dblink_exec('payroll_race2_cleanup',
-  format($$delete from public.organization where id = %L$$, :'orgR2'));
+select pg_temp.reset_payroll_race_org('payroll_race2_cleanup', :'orgR2');
 select dblink_disconnect('payroll_race2_cleanup');
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -763,6 +825,11 @@ select dblink_disconnect('payroll_race2_cleanup');
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
 \set orgR3 'aaaa0729-0000-0000-0000-0000000000e0'
 \set pRace3 'aaaa0729-0000-0000-0000-0000000000e1'
+
+-- idempotent pre-setup cleanup: recover from a prior run that errored before its own teardown ran.
+select dblink_connect('payroll_race3_precleanup', current_setting('t.dsn'));
+select pg_temp.reset_payroll_race_org('payroll_race3_precleanup', :'orgR3');
+select dblink_disconnect('payroll_race3_precleanup');
 
 select dblink_connect('payroll_race3_setup', current_setting('t.dsn'));
 select dblink_exec('payroll_race3_setup',
@@ -801,18 +868,14 @@ select ok(
   ) = 'INSERT 0 1',
   'write race: the writer inserts a LATE labor_logs row and holds the SHARE mutex open (uncommitted)');
 
-select set_config('t.race3_lockcount_before', (
-  select count(*)::text from pg_catalog.pg_locks where locktype = 'advisory' and granted = false
-), false);
-
 select is(
   dblink_send_query('payroll_closer_3',
     format($$select public.fn_close_payroll_run(%L::uuid, '2026-07-01'::date, '2026-07-07'::date)$$, :'orgR3')),
   1, 'write race: the closer dispatches a concurrent close for the SAME period');
 
 select ok(
-  pg_temp.wait_for_solo_advisory_waiter(current_setting('t.race3_lockcount_before')::bigint),
-  'write race: the closer blocks on the per-org mutex the writer holds (exactly one new ungranted advisory waiter)');
+  pg_temp.wait_for_solo_advisory_waiter(:'orgR3'::uuid),
+  'write race: the closer blocks on the per-org mutex the writer holds');
 
 select dblink_exec('payroll_writer_3', 'commit');
 
@@ -846,21 +909,7 @@ select dblink_disconnect('payroll_writer_3');
 select dblink_disconnect('payroll_closer_3');
 
 select dblink_connect('payroll_race3_cleanup', current_setting('t.dsn'));
-select dblink_exec('payroll_race3_cleanup', 'set session_replication_role = replica');
-select dblink_exec('payroll_race3_cleanup',
-  format($$delete from public.payroll_run_lines where org_id = %L$$, :'orgR3'));
-select dblink_exec('payroll_race3_cleanup',
-  format($$delete from public.payroll_runs where org_id = %L$$, :'orgR3'));
-select dblink_exec('payroll_race3_cleanup',
-  format($$delete from public.labor_logs where org_id = %L$$, :'orgR3'));
-select dblink_exec('payroll_race3_cleanup',
-  format($$delete from public.people_compensation where org_id = %L$$, :'orgR3'));
-select dblink_exec('payroll_race3_cleanup',
-  format($$delete from public.people where org_id = %L$$, :'orgR3'));
-select dblink_exec('payroll_race3_cleanup',
-  format($$delete from public.organization_member where org_id = %L$$, :'orgR3'));
-select dblink_exec('payroll_race3_cleanup',
-  format($$delete from public.organization where id = %L$$, :'orgR3'));
+select pg_temp.reset_payroll_race_org('payroll_race3_cleanup', :'orgR3');
 select dblink_disconnect('payroll_race3_cleanup');
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -870,6 +919,11 @@ select dblink_disconnect('payroll_race3_cleanup');
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
 \set orgR4 'aaaa0729-0000-0000-0000-0000000000f0'
 \set pRace4 'aaaa0729-0000-0000-0000-0000000000f1'
+
+-- idempotent pre-setup cleanup: recover from a prior run that errored before its own teardown ran.
+select dblink_connect('payroll_race4_precleanup', current_setting('t.dsn'));
+select pg_temp.reset_payroll_race_org('payroll_race4_precleanup', :'orgR4');
+select dblink_disconnect('payroll_race4_precleanup');
 
 select dblink_connect('payroll_race4_setup', current_setting('t.dsn'));
 select dblink_exec('payroll_race4_setup',
@@ -908,10 +962,6 @@ select is(
      ) as race_close(result jsonb)),
   200.00, 'freeze race: the closer closes days 1-7 (4h × 50 = 200) and holds the EXCLUSIVE mutex open');
 
-select set_config('t.race4_lockcount_before', (
-  select count(*)::text from pg_catalog.pg_locks where locktype = 'advisory' and granted = false
-), false);
-
 select is(
   dblink_send_query('payroll_writer_4',
     format($$insert into public.labor_logs(org_id, person_id, work_date, hours, mode)
@@ -919,8 +969,8 @@ select is(
   1, 'freeze race: a concurrent labor_logs write for the SAME (now-closing) period is dispatched');
 
 select ok(
-  pg_temp.wait_for_solo_advisory_waiter(current_setting('t.race4_lockcount_before')::bigint),
-  'freeze race: the write blocks on the per-org mutex the closer holds (exactly one new ungranted advisory waiter)');
+  pg_temp.wait_for_solo_advisory_waiter(:'orgR4'::uuid),
+  'freeze race: the write blocks on the per-org mutex the closer holds');
 
 select dblink_exec('payroll_closer_4', 'commit');
 
@@ -951,21 +1001,7 @@ select dblink_disconnect('payroll_closer_4');
 select dblink_disconnect('payroll_writer_4');
 
 select dblink_connect('payroll_race4_cleanup', current_setting('t.dsn'));
-select dblink_exec('payroll_race4_cleanup', 'set session_replication_role = replica');
-select dblink_exec('payroll_race4_cleanup',
-  format($$delete from public.payroll_run_lines where org_id = %L$$, :'orgR4'));
-select dblink_exec('payroll_race4_cleanup',
-  format($$delete from public.payroll_runs where org_id = %L$$, :'orgR4'));
-select dblink_exec('payroll_race4_cleanup',
-  format($$delete from public.labor_logs where org_id = %L$$, :'orgR4'));
-select dblink_exec('payroll_race4_cleanup',
-  format($$delete from public.people_compensation where org_id = %L$$, :'orgR4'));
-select dblink_exec('payroll_race4_cleanup',
-  format($$delete from public.people where org_id = %L$$, :'orgR4'));
-select dblink_exec('payroll_race4_cleanup',
-  format($$delete from public.organization_member where org_id = %L$$, :'orgR4'));
-select dblink_exec('payroll_race4_cleanup',
-  format($$delete from public.organization where id = %L$$, :'orgR4'));
+select pg_temp.reset_payroll_race_org('payroll_race4_cleanup', :'orgR4');
 select dblink_disconnect('payroll_race4_cleanup');
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -978,6 +1014,11 @@ select dblink_disconnect('payroll_race4_cleanup');
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════════
 \set orgR5 'aaaa0729-0000-0000-0000-0000000000a0'
 \set pRace5 'aaaa0729-0000-0000-0000-0000000000a1'
+
+-- idempotent pre-setup cleanup: recover from a prior run that errored before its own teardown ran.
+select dblink_connect('payroll_race5_precleanup', current_setting('t.dsn'));
+select pg_temp.reset_payroll_race_org('payroll_race5_precleanup', :'orgR5');
+select dblink_disconnect('payroll_race5_precleanup');
 
 select dblink_connect('payroll_race5_setup', current_setting('t.dsn'));
 select dblink_exec('payroll_race5_setup',
@@ -1016,18 +1057,14 @@ select ok(
   ) = 'UPDATE 1',
   'rate race: the writer raises the hourly rate 50->80 and holds the SHARE mutex open (uncommitted)');
 
-select set_config('t.race5_lockcount_before', (
-  select count(*)::text from pg_catalog.pg_locks where locktype = 'advisory' and granted = false
-), false);
-
 select is(
   dblink_send_query('payroll_closer_5',
     format($$select public.fn_close_payroll_run(%L::uuid, '2026-07-01'::date, '2026-07-07'::date)$$, :'orgR5')),
   1, 'rate race: the closer dispatches a concurrent close for the period covering the raced rate');
 
 select ok(
-  pg_temp.wait_for_solo_advisory_waiter(current_setting('t.race5_lockcount_before')::bigint),
-  'rate race: the closer blocks on the per-org mutex the rate writer holds (exactly one new ungranted advisory waiter)');
+  pg_temp.wait_for_solo_advisory_waiter(:'orgR5'::uuid),
+  'rate race: the closer blocks on the per-org mutex the rate writer holds');
 
 select dblink_exec('payroll_rate_writer_5', 'commit');
 
@@ -1079,21 +1116,7 @@ select is(
   320.00, 'rate race: the already-closed run''s snapshot line gross is UNCHANGED by the post-close rate edit');
 
 select dblink_connect('payroll_race5_cleanup', current_setting('t.dsn'));
-select dblink_exec('payroll_race5_cleanup', 'set session_replication_role = replica');
-select dblink_exec('payroll_race5_cleanup',
-  format($$delete from public.payroll_run_lines where org_id = %L$$, :'orgR5'));
-select dblink_exec('payroll_race5_cleanup',
-  format($$delete from public.payroll_runs where org_id = %L$$, :'orgR5'));
-select dblink_exec('payroll_race5_cleanup',
-  format($$delete from public.labor_logs where org_id = %L$$, :'orgR5'));
-select dblink_exec('payroll_race5_cleanup',
-  format($$delete from public.people_compensation where org_id = %L$$, :'orgR5'));
-select dblink_exec('payroll_race5_cleanup',
-  format($$delete from public.people where org_id = %L$$, :'orgR5'));
-select dblink_exec('payroll_race5_cleanup',
-  format($$delete from public.organization_member where org_id = %L$$, :'orgR5'));
-select dblink_exec('payroll_race5_cleanup',
-  format($$delete from public.organization where id = %L$$, :'orgR5'));
+select pg_temp.reset_payroll_race_org('payroll_race5_cleanup', :'orgR5');
 select dblink_disconnect('payroll_race5_cleanup');
 
 select * from finish();
