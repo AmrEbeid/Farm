@@ -1,6 +1,19 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-28)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-29)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-07-29 (latest) — ExcelJS UUID advisory PATCHED / DEPLOYED / LIVE-VERIFIED.**
+> PR #953 merged at `f36571b`; production deployment
+> `dpl_7LgzdhYYHqhm4QJrF4fm7H8jPt7V` is READY on `ebeidfarm.business`. ExcelJS `4.4.0`
+> now resolves exact `uuid` `11.1.1` through a parent-scoped npm override. A clean install and
+> ExcelJS-relative resolution prove the runtime; a focused test proves the serialized XLSX worksheet
+> XML carries the UUID-backed extended conditional-formatting ID. Audit moves from 7 findings
+> (1 low / 2 moderate / 4 high) to 5 (1 low / 0 moderate / 4 high), with no remaining
+> ExcelJS/UUID finding. Full app/shared/pgTAP/secret/preview gates passed; public Arabic login returned
+> HTTP 200 and Vercel found no runtime errors in the preceding 15 minutes. Package/test only: no
+> migration, schema, RPC, data, financial state, or auth state change.
+> Remaining audit categories are `brace-expansion`, Next-private `postcss`/`sharp`, and `esbuild`;
+> they require compatible parent/upstream releases, not force-installed invalid trees.
 
 > **2026-07-28 (latest) — Recharts hydration gate DEPLOYED; AUTHENTICATED DASHBOARD CHECK NOT DONE.**
 > PR #951 merged at `2d56783` (`2d567831f3de2d2aa38ef98eef4adf9e2c5b3a2b`); the Vercel production

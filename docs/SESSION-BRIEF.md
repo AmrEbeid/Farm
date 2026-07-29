@@ -1,5 +1,41 @@
-# Session Brief — Farm OS      Updated: 2026-07-28 by Codex (hydration production closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (ExcelJS UUID security closeout)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-29 (latest) — ExcelJS UUID advisory — LIVE / VERIFIED
+
+PR #953 merged at `f36571b74522603cc1b35fd22741ad866e7bd068`. Matching Vercel production
+deployment `dpl_7LgzdhYYHqhm4QJrF4fm7H8jPt7V` is READY and aliases `ebeidfarm.business`.
+The package change is deliberately narrow: ExcelJS `4.4.0` resolves exact `uuid` `11.1.1`
+through a parent-scoped root override. Upstream ExcelJS issues #3041/#3055 remain open; no maintained
+ExcelJS release has yet updated its declared UUID range.
+
+A clean npm `11.12.0` install produced one UUID runtime, and resolution from ExcelJS's own dependency
+path returned `11.1.1`. `npm audit` moved from 7 findings (1 low / 2 moderate / 4 high) to 5
+(1 low / 0 moderate / 4 high); neither `exceljs` nor `uuid` remains in the audit result.
+
+The first test draft proved workbook serialization but did not enter ExcelJS's UUID path. Codex review
+replaced it with an extended data-bar rule (`gradient: false`), which calls ExcelJS's CommonJS
+`uuid.v4` serializer. CodeRabbit then correctly requested stronger persisted-output evidence. Commit
+`8f6fbc4` now asserts the ExcelJS-relative package version, opens the generated XLSX archive, reads
+`xl/worksheets/sheet1.xml`, and verifies the persisted `x14:cfRule` UUID. The review discussion is
+resolved.
+
+Final evidence: focused Vitest 4/4; full Vitest 960 passed + 13 controlled skips; TypeScript and ESLint
+clean; production build 65/65; app CI, design-system CI, pgTAP, gitleaks, CodeRabbit, and Vercel preview
+green. The public Arabic login returned HTTP 200 after release, and Vercel found no production runtime
+errors in the preceding 15 minutes. This was package/test only: no migration, schema, RPC, application
+data, financial state, or production-auth state changed.
+
+**Security truth boundary:** five npm findings remain — `brace-expansion` (high), Next-private
+`postcss`/`sharp` (high), and `esbuild` (low). Prior forced override experiments created invalid trees;
+wait for compatible parent/upstream releases. Live leaked-password protection and demo-identity cleanup
+remain Owner-action gates. Do not delete or relink the active legacy owner identity.
+
+**Exact resume point:** accounting still requires human decisions on 698 rows, workbook dual-run,
+exception resolution, and dated accountant/owner acceptance. Continue autonomous engineering with the
+ratified synthetic-only payroll persistence slice: closed/idempotent payroll runs, per-period concurrency
+serialization, owner/accountant RLS, payroll audit-row confidentiality, AI exclusion, and reconciliation
+tests. Keep real staff PII out until the Stage-M privacy review.
 
 ## 2026-07-28 (latest) — hydration closeout: toast portal + Recharts gate — MERGED / DEPLOYED; DASHBOARD CHECK PENDING
 
