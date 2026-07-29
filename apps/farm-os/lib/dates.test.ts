@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtDate, daysSince } from "./dates";
+import { fmtDate, fmtDateTime, daysSince } from "./dates";
 
 // Anchor valid-date assertions to the module's own formatter so they stay stable
 // across ICU/Node versions; assert the dash sentinel exactly for invalid input.
@@ -45,6 +45,23 @@ describe("fmtDate", () => {
     const epoch = new Date(0);
     expect(fmtDate(epoch)).toBe(FMT.format(epoch));
     expect(fmtDate(epoch)).not.toBe("—");
+  });
+});
+
+describe("fmtDateTime", () => {
+  it("formats a stored instant in the Cairo operating timezone", () => {
+    const expected = new Intl.DateTimeFormat("ar-EG", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Africa/Cairo",
+    }).format(new Date("2026-07-01T22:30:00.000Z"));
+
+    expect(fmtDateTime("2026-07-01T22:30:00.000Z")).toBe(expected);
+  });
+
+  it("renders missing and invalid instants as unknown", () => {
+    expect(fmtDateTime(null)).toBe("—");
+    expect(fmtDateTime("not-a-date")).toBe("—");
   });
 });
 

@@ -1571,6 +1571,63 @@ type ReconciliationFunctions = {
   };
 };
 
+// Payroll persistence (SPEC-0006 slice 3, migration 20260729090000_payroll_run_persistence.sql —
+// already live). Not yet in the generated types. Both tables are FORCE RLS with a SELECT-only grant
+// gated on authorize('payroll.read', org_id) (owner/accountant); the ONLY write path is the
+// SECURITY DEFINER RPC below, and both tables are additionally immutable through an unconditional
+// BEFORE UPDATE OR DELETE trigger. Insert/Update are therefore closed (Record<string, never>),
+// matching the accounting/reconciliation tables above — a stray `.insert()` fails to compile.
+type PayrollRunsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    period_start: string;
+    period_end: string;
+    closed_by: string | null;
+    closed_at: string;
+    total_gross: number;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type PayrollRunLinesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    run_id: string;
+    person_id: string;
+    mode: string;
+    /** Set iff mode = 'piece' (payroll_run_lines_piece_shape). */
+    unit: string | null;
+    quantity: number;
+    rate: number;
+    /** round(quantity * rate, 2) — pinned by the payroll_run_lines_gross_exact CHECK. */
+    gross: number;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type PayrollFunctions = {
+  /**
+   * Close a payroll period: freeze one immutable run + its snapshot lines for the caller's own org
+   * (owner/accountant via authorize('payroll.read', p_org)). Idempotent on an exact replay, and it
+   * takes a per-org EXCLUSIVE advisory lock BEFORE deciding, so a concurrent second caller never
+   * races it — an app-side pre-check would only reintroduce the race the RPC already closes.
+   *
+   * NO PAYMENT EXECUTION and NO JOURNAL: it snapshots gross pay for reporting only.
+   *
+   * Every failure arrives as a raised SQLSTATE whose message embeds raw identifiers (person/org
+   * UUIDs). Callers MUST route it through lib/payroll-close.ts' `payrollCloseFailure`, never render
+   * `error.message`.
+   */
+  fn_close_payroll_run: {
+    Args: { p_org: string; p_period_start: string; p_period_end: string };
+    Returns: Json;
+  };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
     Views: Public["Views"] & {
@@ -1627,8 +1684,10 @@ export type Database = Omit<Generated, "public"> & {
       reconciliation_batches: ReconciliationBatchesTable;
       reconciliation_evidence_items: ReconciliationEvidenceItemsTable;
       reconciliation_batch_rows: ReconciliationBatchRowsTable;
+      payroll_runs: PayrollRunsTable;
+      payroll_run_lines: PayrollRunLinesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions;
   };
 };
 

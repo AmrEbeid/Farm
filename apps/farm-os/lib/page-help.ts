@@ -717,6 +717,24 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "لا تؤجل الذمم فوق ٣٠ يومًا — كل أسبوع تأخير يصعّب التحصيل.",
     related: ["record", "season-dashboard", "transactions"],
   },
+  payroll: {
+    title: "إقفال الرواتب",
+    what: "إقفال فترة رواتب: يحسب النظام أجر كل عامل من ساعاته أو أيامه أو قطعه المسجّلة وأجره المحفوظ، ويجمّد النتيجة كلقطة لا تتغيّر، مع سجل بالفترات المقفلة سابقًا.",
+    why: "ليصبح للأجور رقم واحد ثابت يمكن الرجوع إليه ومراجعته، بدل تقدير متحرّك يتغيّر كلما عُدِّلت ساعة قديمة.",
+    when: "بعد اكتمال تسجيل حضور الفترة ومراجعته، وقبل إعداد تقارير التكلفة عنها.",
+    how: "اختر تاريخي البداية والنهاية، راجع نص التحذير، ثم أكّد؛ افتح تقرير أي فترة من السجل لطباعته.",
+    avoid: "الإقفال نهائي: لا يمكن التراجع عنه، ولن تستطيع بعده تسجيل أو تعديل أو حذف ساعات داخل نفس الفترة، ولا يمكن إقفال فترة تتقاطع مع فترة سبق إقفالها. وهو لا يصرف أي مبلغ ولا يُنشئ أي قيد محاسبي.",
+    related: ["people", "attendance", "people-dashboard"],
+  },
+  "payroll-run-360": {
+    title: "تقرير إقفال الرواتب",
+    what: "تقرير مطبوع لفترة رواتب مُقفلة: كل عامل بطريقة أجره ووحدته وكميته وسعر وحدته وإجماليه، مع إجمالي الفترة.",
+    why: "ليكون لكل إقفال مستند ثابت يُراجَع ويُطبَع، مأخوذ من اللقطة المجمّدة نفسها لا من إعادة حساب لاحقة.",
+    when: "عند مراجعة فترة مقفلة، أو تسليم كشف الأجور للمراجعة، أو تحليل تكلفة العمالة لفترة بعينها.",
+    how: "افتح الفترة من سجل الإقفالات، راجع السطور والإجمالي، ثم اطبع.",
+    avoid: "هذه أرقام مجمّدة لحظة الإقفال ولا تتأثر بأي تعديل لاحق على الأجور؛ وهي ليست إذن صرف ولا قيدًا محاسبيًا.",
+    related: ["payroll", "people", "people-dashboard"],
+  },
 };
 
 const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
@@ -744,7 +762,13 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/suppliers\/[^/]+(?:\/)?$/, helpId: "supplier-360" },
   { pattern: /^\/budgets\/[^/]+(?:\/)?$/, helpId: "budget-360" },
   { pattern: /^\/expenses\/[^/]+(?:\/)?$/, helpId: "expense-360" },
-  { pattern: /^\/people\/(?!dashboard(?:\/|$)|attendance(?:\/|$))[^/]+(?:\/)?$/, helpId: "person-360" },
+  // More specific first: a payroll RUN id lives one level under /people/payroll, and /people/payroll
+  // itself is a nav page — neither is a person, so both are excluded from the person-360 pattern.
+  { pattern: /^\/people\/payroll\/[^/]+(?:\/)?$/, helpId: "payroll-run-360" },
+  {
+    pattern: /^\/people\/(?!dashboard(?:\/|$)|attendance(?:\/|$)|payroll(?:\/|$))[^/]+(?:\/)?$/,
+    helpId: "person-360",
+  },
   // More specific first: the acceptance report is its own route under a batch.
   { pattern: /^\/finance\/reconciliation\/[^/]+\/acceptance(?:\/)?$/, helpId: "reconciliation-acceptance" },
   { pattern: /^\/finance\/reconciliation\/[^/]+(?:\/)?$/, helpId: "reconciliation-batch-360" },
