@@ -22,6 +22,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types.ext";
 import { moneyNumber } from "@/lib/money";
+import { WAGE_MODE_AR, WAGE_UNIT_AR } from "@/lib/wage-modes";
 import { isUuid } from "@/lib/reconciliation review";
 
 export { isUuid };
@@ -42,24 +43,16 @@ export const PAYROLL_RUN_LINES_FETCH = PAYROLL_RUN_LINES_MAX + 1;
 export const PAYROLL_HISTORY_LINE_MAX = 2000;
 export const PAYROLL_HISTORY_LINE_FETCH = PAYROLL_HISTORY_LINE_MAX + 1;
 
-/** Wage modes (#388), as they are stored. */
-export const PAYROLL_MODE_AR: Record<string, string> = {
-  hourly: "بالساعة",
-  daily: "باليوم",
-  piece: "بالقطعة",
-  seasonal: "موسمي",
-};
+/**
+ * Wage modes (#388) and piece units, as they are stored. Both label maps come from
+ * `lib/wage-modes.ts` — the same source the attendance form and the compensation editor read — so a
+ * mode can never be labelled one way where it is ENTERED and another way on the frozen report that
+ * prices it.
+ */
+export const PAYROLL_MODE_AR: Readonly<Record<string, string>> = WAGE_MODE_AR;
 
 /** Piece-rate units — the CHECK-constrained set on both people_compensation and payroll_run_lines. */
-export const PAYROLL_UNIT_AR: Record<string, string> = {
-  tree: "نخلة",
-  box: "صندوق",
-  crate: "قفص",
-  kg: "كيلوجرام",
-  bucket: "جردل",
-  bin: "صندوق كبير",
-  row: "خط",
-};
+export const PAYROLL_UNIT_AR: Readonly<Record<string, string>> = WAGE_UNIT_AR;
 
 /** What the frozen `quantity` counts, per mode. A piece line names its own unit instead. */
 const PAYROLL_QUANTITY_UNIT_AR: Record<string, string> = {
