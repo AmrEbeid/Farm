@@ -1,7 +1,50 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll persistence kernel closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll close/report UI closeout)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-29 (latest) — payroll persistence kernel — MERGED / MIGRATED / DEPLOYED / PRODUCTION-VERIFIED
+## 2026-07-29 (latest) — payroll close/report UI — MERGED / DEPLOYED / PUBLIC-SMOKED
+
+PR #957 merged at `9300e473b0d67e72d1e0d96f5bdc683c2617f897`; head commits were `83be4f0` (close and report
+workflow) and `666e675` (Cairo-day close bounds review fix). Vercel production deployment
+`dpl_7ac5VJrZABUaVaUSG7Pv6hwUgMH8` is READY on target production for that exact merge commit.
+**App-only: no migration, schema, RPC, or data change** — the hosted payroll migration remains
+`20260729102938 payroll_run_persistence`.
+
+The slice delivers the owner/accountant-only Arabic close page at `/people/payroll` and the printable run
+report at `/people/payroll/[runId]`; navigation exposes them to owner and accountant only. Period entry uses
+strict real-date validation, a 366-day maximum, and no future day, with the current day resolved on the Cairo
+calendar on both client and server. Close requires an explicit immutable/freeze confirmation and is protected
+by a synchronous duplicate-submit lock, then calls the idempotent RPC directly with the session org — there is
+no application-layer precheck race. Errors map to fixed Arabic messages that never expose raw database
+identifiers. Reads are org-scoped and bounded: recent history is capped at 20 runs, report lines at 500 with
+explicit overflow detection, and names resolve in one query with no phone or email. Missing runs, read
+failures, overflow, and empty reports all fail closed. Close date and time render on the Cairo calendar.
+**There is no payment execution and no journal posting in this slice.**
+
+Claude implemented and validated; Codex reviewed the final bytes. Codex found a date-only close-time display
+and a same-tick duplicate-submit risk, both fixed. CodeRabbit found a Cairo-versus-UTC current-day mismatch,
+fixed across the shared client/server validator in `666e675` with the thread resolved. No actionable review
+comments remain; one docstring warning is non-blocking. Final local evidence: focused 71/71; full app Vitest
+1,020 passed + 13 controlled skips; TypeScript and ESLint clean; production build 65/65 with both payroll
+routes dynamic; Recharts and client-function guards green; `git diff --check` clean. Fresh GitHub app,
+design-system, pgTAP, gitleaks, and Vercel checks are green. Post-release the public `/login` returned HTTP
+200, a signed-out `/people/payroll` redirected to `/login` and ended HTTP 200, and Vercel found no runtime
+errors in the following ten minutes.
+
+**Truth boundary — no authenticated production payroll screen, close, or report was exercised**, because no
+session was available. Production `people_compensation`, `labor_logs`, `payroll_runs`, and `payroll_run_lines`
+were all zero as of the kernel release and no real data was inserted in this UI slice. **Do not claim pilot
+acceptance.** The staff-facing close/report workflow is now built and live, but **payroll is still NOT 100%:**
+the Stage-M real-PII review, an approved staff/rate/labor import, an authenticated owner/accountant pilot
+close and report, payroll acceptance/signoff, and any separately ratified payment/journal scope all remain
+open.
+
+**Exact resume point:** accounting is still human-gated on the 698 row decisions, the real workbook dual run,
+exception resolution, and dated accountant/owner acceptance; the security and palm-registry blockers are
+unchanged. The next safe autonomous payroll work is to audit and improve the data-entry/readiness workflow for
+compensation and attendance using **synthetic data only**, and to prepare a pilot acceptance checklist. Do not
+fabricate real rates or staff.
+
+## 2026-07-29 — payroll persistence kernel — MERGED / MIGRATED / DEPLOYED / PRODUCTION-VERIFIED
 
 PR #955 merged at `7672f3142375d092d33b7b36d13c9d55c63106bb`; head commits were `4e15d0d` (initial kernel)
 and `1f876bf` (review fixes). The production migration is recorded by Supabase as `20260729102938
@@ -32,11 +75,12 @@ following ten minutes. CodeRabbit's first review raised six actionable items inc
 fractional-quantity rounding mismatch; all were fixed in `1f876bf`. Its final rerun was rate-limited, but the
 required check was green, and Codex independently reviewed the final bytes and reran all 3,067 pgTAP tests.
 
-**Truth boundary — this completes the payroll persistence/reporting DATABASE KERNEL only.** No staff-facing
-payroll UI or report workflow consumes it yet, no real approved staff/rate/labor import has occurred, no pilot
-close/acceptance/signoff has occurred, and there is no payment execution or journal integration — do not imply
-one is due without a separately ratified scope. No real staff PII, rates, labor, or payroll runs were inserted;
-the Stage-M real-PII/privacy review remains gated. **Payroll is NOT 100%.**
+**Truth boundary — this completes the payroll persistence/reporting DATABASE KERNEL only.** At the time of
+this release no staff-facing payroll UI or report workflow consumed it; no real approved staff/rate/labor
+import has occurred, no pilot close/acceptance/signoff has occurred, and there is no payment execution or
+journal integration — do not imply one is due without a separately ratified scope. No real staff PII, rates,
+labor, or payroll runs were inserted; the Stage-M real-PII/privacy review remains gated. **Payroll is NOT
+100%.**
 
 **Exact resume point:** accounting is still NOT 100% — human decisions on the 698 rows, the real workbook dual
 run, exception resolution, and dated accountant/owner acceptance all remain. Security is NOT 100% (five
@@ -44,6 +88,10 @@ upstream npm findings plus the Owner-only leaked-password toggle and demo-identi
 registry is NOT 100% because the real source counts conflict. The next autonomous payroll engineering slice is
 the owner/accountant payroll close-and-report UI over the released RPC: synthetic fixtures only, Arabic
 usability, bounded reads, fail-closed errors, tests, and no real PII.
+*(Superseded 2026-07-29 by the payroll close/report UI entry above: that UI slice is merged and deployed, so
+the "no staff-facing payroll UI/report workflow" line no longer holds and this resume point is closed. The
+current resume point is the top entry. Everything else here — no real import, no pilot close/acceptance, no
+payment or journal, Stage-M gated, payroll not 100% — remains true.)*
 
 ## 2026-07-29 — ExcelJS UUID advisory — LIVE / VERIFIED
 

@@ -2,7 +2,34 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-29 (latest) — payroll persistence KERNEL MIGRATED / MERGED / DEPLOYED / PRODUCTION-VERIFIED.**
+> **2026-07-29 (latest) — payroll close/report UI MERGED / DEPLOYED / PUBLIC-SMOKED.**
+> PR #957 merged at `9300e473b0d67e72d1e0d96f5bdc683c2617f897` (head commits `83be4f0` close/report workflow,
+> `666e675` Cairo-day close-bounds review fix); production deployment `dpl_7ac5VJrZABUaVaUSG7Pv6hwUgMH8` is
+> READY on target production for that exact merge commit. **App-only: no migration, schema, RPC, or data
+> change** — the hosted payroll migration remains `20260729102938 payroll_run_persistence`.
+> Delivered: owner/accountant-only compact Arabic close page at `/people/payroll` and printable report at
+> `/people/payroll/[runId]`, with navigation exposed to owner/accountant only. Strict real-date validation,
+> 366-day maximum, and no-future-day, all resolved on the Cairo calendar on client and server. Explicit
+> immutable/freeze confirmation, a synchronous duplicate-submit lock, and a direct idempotent RPC call with the
+> session org — no application-layer precheck race. Fixed Arabic error mapping with no raw DB identifiers.
+> Org-scoped bounded reads: recent history 20, report lines 500 with overflow detection, one-query name
+> resolution, no phone/email. Missing runs, read failures, overflow, and empty reports fail closed. Close date
+> and time render on the Cairo calendar. **No payment execution and no journal posting.**
+> Evidence: focused 71/71; full app Vitest 1,020 passed + 13 controlled skips; TypeScript and ESLint clean;
+> build 65/65 with both payroll routes dynamic; Recharts and client-function guards green; `git diff --check`
+> clean; fresh GitHub app/design-system/pgTAP/gitleaks/Vercel checks green. Codex reviewed the final bytes and
+> its two findings (date-only close-time display, same-tick duplicate submit) are fixed; CodeRabbit's
+> Cairo-vs-UTC current-day finding is fixed in `666e675` and the thread is resolved. No actionable review
+> comments remain (one non-blocking docstring warning).
+> Post-release: public `/login` HTTP 200; signed-out `/people/payroll` redirects to `/login` and ends HTTP 200;
+> no Vercel runtime errors in the following ten minutes.
+> **Not claimed:** no authenticated production payroll screen, close, or report was exercised — no session was
+> available. Production `people_compensation`/`labor_logs`/`payroll_runs`/`payroll_run_lines` were zero as of
+> the kernel release and no real data was inserted here. **This is not pilot acceptance.** Stage-M real-PII
+> review, approved staff/rate/labor import, an authenticated pilot close/report, payroll acceptance/signoff,
+> and any separately ratified payment/journal scope remain open. Payroll is not 100%.
+
+> **2026-07-29 — payroll persistence KERNEL MIGRATED / MERGED / DEPLOYED / PRODUCTION-VERIFIED.**
 > Hosted migration `20260729102938 payroll_run_persistence` is recorded in Farm production, from source file
 > `apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`. PR #955 merged at
 > `7672f3142375d092d33b7b36d13c9d55c63106bb` (head commits `4e15d0d` initial kernel, `1f876bf` review fixes);
@@ -23,9 +50,11 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > Vitest 12/12; TypeScript, ESLint, `git diff --check` clean; post-merge app CI, design-system CI, pgTAP,
 > gitleaks, changesets, Supabase integration, and Vercel all green. Public `ebeidfarm.business/login` returned
 > HTTP 200 after deployment and Vercel found no runtime errors in the following ten minutes.
-> **Not claimed:** this is the database kernel only — no staff-facing payroll UI/report workflow consumes it,
-> no real staff/rate/labor import happened, and no pilot close or acceptance signoff exists. Stage-M real-PII
-> review remains gated. Payroll is not 100%.
+> **Not claimed:** this is the database kernel only — at the time of this release no staff-facing payroll
+> UI/report workflow consumed it, no real staff/rate/labor import happened, and no pilot close or acceptance
+> signoff exists. Stage-M real-PII review remains gated. Payroll is not 100%.
+> *(Superseded 2026-07-29 by the payroll close/report UI note above: the staff-facing close/report workflow is
+> now built and live. Every other line here still holds.)*
 
 > **2026-07-29 — ExcelJS UUID advisory PATCHED / DEPLOYED / LIVE-VERIFIED.**
 > PR #953 merged at `f36571b`; production deployment
