@@ -109,12 +109,13 @@ closed payroll snapshot**. Availability is not a primary concern for this review
 | T8 | **Privileged/internal path** | A SECURITY DEFINER function, a `bypassrls` owner, or service-role code | Bypassing RLS through a definer routine or an owner-context write | FORCE RLS on every tenant table; internal functions have client EXECUTE revoked; immutability triggers fire even for the table owner |
 | T9 | **Insider with legitimate payroll.read** | Owner or accountant | Exfiltrating the whole wage table | **Partially mitigated only.** Audit records writes, not reads. See F-4. |
 
-**Explicitly assumed, not proven here:** the Supabase service-role key is not exposed to any client
-bundle (asserted by repo convention and `SECURITY-NOTES.md` §4.1 rotation) — a §9 live check (L-8).
+The Supabase service-role key's non-exposure was verified at the 2026-07-29 source, local-build and
+deployed-bundle snapshot by the self-testing CI guard described in §9.2 (L-8). This is a continuing
+property, so CI repeats the repository, module-graph and local browser-bundle arms on every change.
 The hosted project's row-level security was **partly** verified on 2026-07-29: RLS is enabled **and
 forced** on all five payroll/PII tables, and `anon` holds no DML there (§9.1, L-1/L-2). The hosted
-The hosted **policy predicates** and migration head match the ledger (L-4); the live request path is
-still unverified (L-3).
+**policy predicates** and migration head match the ledger (L-4); the live request path is still
+unverified (L-3).
 
 ---
 
@@ -523,17 +524,18 @@ set-difference count); the vocabulary is now complete.
 
 ---
 
-## 9. Live and operator checks — L-1, L-2, L-4 and L-11 **DONE**; the rest **NOT PERFORMED** (open)
+## 9. Live and operator checks — L-1, L-2, L-4, L-8 and L-11 **DONE**; the rest **open**
 
 These cannot be established from source or from the local harness. Each is a required verification
 before real payroll data, with the reason it cannot be answered here.
 
-**Four of them have now been run.** On 2026-07-29 the independent reviewer (Codex) executed
+**Five of them have now been run.** On 2026-07-29 the independent reviewer (Codex) executed
 **read-only metadata SQL** against the hosted project `veezkmytervjnpxcrbkw` — catalog and
 `information_schema` queries only, no table data read, no schema change, no write. Their verbatim
 results are recorded in §9.1 and are the basis for closing **F-1**. They remain *metadata* checks:
 they establish the hosted ACL, RLS flags and function privileges, **not** the live PostgREST/GoTrue
-deny behaviour, which stays open as **L-3**.
+deny behaviour, which stays open as **L-3**. L-8 used a separate read-only source/build/deployed-
+asset scan recorded in §9.2.
 
 | # | Check | Why it is not answerable from source | Owner/operator action |
 |---|---|---|---|
@@ -544,7 +546,7 @@ deny behaviour, which stays open as **L-3**.
 | **L-5** | Verify `custom_access_token_hook` is enabled and a freshly minted token carries a membership-validated `active_org_id` | Dashboard setting; `config.toml` proves local config only. `SECURITY-NOTES.md` §0.1 | Required **before onboarding a second org**; matters for a two-farm accountant |
 | **L-6** | Determine what Vercel and Supabase logs retain from payroll requests, how long, and who can read them | Provider configuration | Feeds §11 retention questions |
 | **L-7** | Confirm no Supabase database backup, branch, or copy containing staff PII exists outside the production project, and that backup access is restricted | Provider configuration | Feeds §11 |
-| **L-8** | Confirm the production `service_role` key is not present in any client bundle or repository artefact | Asserted by convention; rotation is complete per `SECURITY-NOTES.md` §4.1, but non-exposure is a live property | Bundle/secret scan against the deployed site |
+| **L-8** ✅ | Confirm the production `service_role` key is not present in any client bundle or repository artefact | Non-exposure is a source, build and deployed-asset property | **DONE 2026-07-29** — self-testing guard scanned 1,251 tracked files (14,267,098 bytes), 77 client roots / 430 source files / 381 resolved edges, 155 local client assets (2,411,324 bytes), and all 13 JavaScript chunks referenced by the public production `/` and `/login` pages (962,463 downloaded bytes including the bounded HTML/manifest inputs). No elevated JWT, `sb_secret_` value, client-inline secret env name, server-role env name in browser output, or client path to a service-role reader was found. See §9.2 |
 | **L-9** | Enumerate every account currently holding `owner` or `accountant` in the production org, and confirm each is a real, named, recoverable, individually-owned account | Live identity state. Related open item: `SECURITY-NOTES.md` §5.1 (`*@ebeid.test` demo identities, retired shared password treated as compromised) | **Blocking** — see G-H4 |
 | **L-10** | Enable Supabase leaked-password protection and re-run the advisor | Dashboard toggle; `SECURITY-NOTES.md` §1.4 | **Confirmed still open 2026-07-29** — a fresh hosted security-advisor run returned `auth_leaked_password_protection` WARN / disabled. Owner configuration action remains required |
 | **L-11** ✅ | Confirm the two `private` payroll internals hold no client `EXECUTE` **on the hosted project**, not only in the migration ledger | pgTAP `142` asserts this against the local harness, which replays migrations; a hosted-only grant would not appear there. `tests/22` INV-1/INV-2 are scoped to `nspname = 'public'`, so nothing covered these at all before this review | **DONE 2026-07-29** — `has_function_privilege` probe: **false** for both `anon` and `authenticated` on `private.fn_payroll_run_report(uuid)` and `private.fn_payroll_run_mutex_key(uuid)`. See §9.1 |
@@ -573,6 +575,30 @@ establish that a live request is denied — that is L-3, still open. L-4 establi
 policy predicates and migration head match this repository at this point in time. A metadata probe is a snapshot: it
 must be re-run as a standing check, because the platform default ACL applies to the **next** new
 table too (see F-1's standing-check action).
+
+### 9.2 Service-role exposure proof — L-8 (2026-07-29)
+
+`scripts/check-service-role-exposure.mjs` is a four-arm, fail-closed guard:
+
+1. every git-tracked repository artefact is scanned for elevated Supabase JWTs, current-format
+   `sb_secret_` keys, and `NEXT_PUBLIC_` secret/service-role env names;
+2. every `"use client"` static import graph is walked, with `"use server"` treated as the framework
+   boundary, and must not reach any source module that reads `SUPABASE_SERVICE_ROLE_KEY`;
+3. `.next/static` is scanned after a production build, and an optional `--bundle-dir` scans downloaded
+   production chunks with separate non-vacuity floors; and
+4. every detector must match an in-memory positive fixture and reject a benign fixture.
+
+The graph arm derives service-role readers from executable `process.env` references instead of
+maintaining an allow-list, and requires every reader to import `server-only`. Two positive controls
+prove import resolution and the `"use server"` boundary are actually exercised. The guard never
+reads local env files and reports only detector id, file and byte offset, never a matched value. CI
+runs it immediately after `next build`.
+
+For the deployed arm, the reviewer fetched the public HTML for `/` and `/login` from both
+`ebeidfarm.business` and `farm-ui-one.vercel.app`, extracted the same-origin
+`/_next/static/*.js` references, required downloaded count to equal referenced count, then scanned
+the resulting temporary directory. **13/13 referenced JavaScript chunks downloaded; the deployed
+arm passed.** No cookies, login, API key, staff data or private route was used.
 
 ---
 
@@ -764,6 +790,7 @@ payroll data may be imported only when **every** item in both columns is satisfi
 | G-T16 | `custom_access_token_hook` verified before any second org | L-5 | ❌ **NOT DONE** |
 | G-T17 | Leaked-password protection enabled; advisor clean | L-10 | ❌ **NOT DONE** |
 | G-T18 | Log/backup retention and access understood for payroll requests | L-6, L-7 | ❌ **NOT DONE** |
+| G-T19 | Service-role secret absent from repository artefacts, client import graph, local browser build and referenced production chunks | L-8; `scripts/check-service-role-exposure.mjs`; CI | ✅ **verified at the 2026-07-29 snapshot; repository/graph/local-build arms enforced in CI** |
 
 ### 12.2 Human gates — only the independent technical review is satisfied
 
@@ -784,7 +811,7 @@ payroll data may be imported only when **every** item in both columns is satisfi
 | G-H13 | Dated acceptance signoff by Owner **and** accountant after the pilot | Owner + accountant | ❌ **NOT DONE** |
 
 **Decision rule.** Real staff PII may enter any environment only when: every G-T item is ✅ *including*
-G-T15…G-T18; **and** every G-H item is signed; **and** §13 below carries two real signatures on two
+G-T15…G-T19; **and** every G-H item is signed; **and** §13 below carries two real signatures on two
 real dates. Until then the standing answer is **NO-GO**. G-H1 is complete; the next approval action is
 G-H2, while the remaining technical and operator gates must also close.
 
@@ -815,7 +842,7 @@ fill any field on behalf of another person.**
 | L-1 hosted `anon` grant probe run? | Yes — no rows for `labor_logs`, `payroll_runs`, `payroll_run_lines`; `people_compensation` has only the documented non-read/non-DML `REFERENCES` and `TRIGGER` residual |
 | Verdict on F-1 | No migration needed; hosted state verified clean |
 | Findings added or disputed | Required per-reader scanner non-vacuity and direct `people_compensation` RLS coverage for all six roles; both corrected and re-verified. Closed F-2 by reconciling the permissions matrix. |
-| Overall verdict | **Access design accepted with conditions** — L-3, L-5…L-10, G-T16…G-T18, and G-H2…G-H13 remain open; no real payroll data authorised |
+| Overall verdict | **Access design accepted with conditions** — L-3, L-5…L-7, L-9…L-10, G-T16…G-T18, and G-H2…G-H13 remain open; no real payroll data authorised |
 | Date | 2026-07-29 |
 | Signature | OpenAI Codex independent review attestation (not Owner/data-approver approval) |
 
