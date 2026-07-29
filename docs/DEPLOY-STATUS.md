@@ -2,7 +2,32 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-29 (latest) — ExcelJS UUID advisory PATCHED / DEPLOYED / LIVE-VERIFIED.**
+> **2026-07-29 (latest) — payroll persistence KERNEL MIGRATED / MERGED / DEPLOYED / PRODUCTION-VERIFIED.**
+> Hosted migration `20260729102938 payroll_run_persistence` is recorded in Farm production, from source file
+> `apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`. PR #955 merged at
+> `7672f3142375d092d33b7b36d13c9d55c63106bb` (head commits `4e15d0d` initial kernel, `1f876bf` review fixes);
+> production deployment `dpl_BjjVxj5TCo7qripX1f1d3dmwdKfy` is READY on target production for that exact commit.
+> The kernel persists immutable mixed-mode runs — hourly/daily/piece/seasonal, distinct daily work dates,
+> supported piece units, exact declared seasonal contract period — with idempotent exact-period replay,
+> rejected overlapping periods, per-org advisory serialization of close against labor/compensation writes
+> (including cross-org moves), covered-labor freeze after close, and mode/rate/rounded-quantity/unit/gross
+> snapshots. Close/report is owner/accountant only; payroll audit rows are confidential; the assistant is
+> excluded. **No payment execution and no journal posting.**
+> Preflight: `people_compensation` 0, `labor_logs` 0, `payroll_runs` absent, `payroll_run_lines` absent.
+> Postflight: both tables exist with RLS enabled and forced; authenticated SELECT only, authenticated writes
+> denied, anon denied; `payroll_read` policies exist; the seven expected coordination/audit/immutability
+> triggers exist; public `fn_close_payroll_run` is authenticated-executable and anon-denied; helper functions
+> are not `authenticated`/`anon` executable and pin an empty `search_path`; all four payroll data counts remain
+> zero. No real staff PII, rates, labor, or payroll runs were inserted.
+> Evidence: focused payroll pgTAP 104/104; independent full Docker-free pgTAP 3,067/3,067; assistant-policy
+> Vitest 12/12; TypeScript, ESLint, `git diff --check` clean; post-merge app CI, design-system CI, pgTAP,
+> gitleaks, changesets, Supabase integration, and Vercel all green. Public `ebeidfarm.business/login` returned
+> HTTP 200 after deployment and Vercel found no runtime errors in the following ten minutes.
+> **Not claimed:** this is the database kernel only — no staff-facing payroll UI/report workflow consumes it,
+> no real staff/rate/labor import happened, and no pilot close or acceptance signoff exists. Stage-M real-PII
+> review remains gated. Payroll is not 100%.
+
+> **2026-07-29 — ExcelJS UUID advisory PATCHED / DEPLOYED / LIVE-VERIFIED.**
 > PR #953 merged at `f36571b`; production deployment
 > `dpl_7LgzdhYYHqhm4QJrF4fm7H8jPt7V` is READY on `ebeidfarm.business`. ExcelJS `4.4.0`
 > now resolves exact `uuid` `11.1.1` through a parent-scoped npm override. A clean install and
@@ -1285,7 +1310,8 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `20260705150000` (current; see latest ledger entry at the top of this file).**
+  - **Migrations now at `20260729102938 payroll_run_persistence` (current; see the latest ledger entry at the
+    top of this file).**
     The live ledger includes the SPEC-0004 Slice A accounting/reporting migrations through
     budget-vs-actual. Historical note: by
     2026-06-27, Stages 2/3/4 had been applied via the Supabase MCP:
