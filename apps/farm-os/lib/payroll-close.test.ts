@@ -6,6 +6,7 @@ import {
   PAYROLL_PERIOD_FUTURE_AR,
   PAYROLL_PERIOD_ORDER_AR,
   PAYROLL_PERIOD_TOO_LONG_AR,
+  cairoTodayIso,
   classifyPayrollCloseError,
   isCalendarDate,
   parsePayrollPeriod,
@@ -15,6 +16,18 @@ import {
 const TODAY = new Date("2026-07-29T09:00:00.000Z");
 
 describe("payroll period validation (strict calendar)", () => {
+  it("derives today from Cairo at the UTC day boundary", () => {
+    expect(cairoTodayIso(new Date("2026-07-01T20:59:59.000Z"))).toBe("2026-07-01");
+    expect(cairoTodayIso(new Date("2026-07-01T21:00:00.000Z"))).toBe("2026-07-02");
+    expect(
+      parsePayrollPeriod(
+        "2026-07-02",
+        "2026-07-02",
+        new Date("2026-07-01T21:00:00.000Z"),
+      ).ok,
+    ).toBe(true);
+  });
+
   it("accepts a real period and reports its inclusive day count", () => {
     expect(parsePayrollPeriod("2026-06-01", "2026-06-30", TODAY)).toEqual({
       ok: true,

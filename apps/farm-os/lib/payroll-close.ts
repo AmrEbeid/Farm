@@ -23,6 +23,12 @@ export const PAYROLL_MAX_PERIOD_DAYS = 366;
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MS_PER_DAY = 86_400_000;
+const CAIRO_DATE_PARTS = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Africa/Cairo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 /** A validated bound: the caller's own YYYY-MM-DD text, plus its UTC day number for arithmetic. */
 interface CalendarDate {
@@ -59,6 +65,15 @@ export function isCalendarDate(value: unknown): value is string {
   return readCalendarDate(value) !== null;
 }
 
+/** Current farm calendar day, independent of the browser/server UTC timezone. */
+export function cairoTodayIso(now: Date = new Date()): string {
+  if (Number.isNaN(now.getTime())) return "";
+  const parts = new Map(
+    CAIRO_DATE_PARTS.formatToParts(now).map((part) => [part.type, part.value]),
+  );
+  return `${parts.get("year")}-${parts.get("month")}-${parts.get("day")}`;
+}
+
 export const PAYROLL_PERIOD_FORMAT_AR =
   "التاريخ غير صالح — أدخل تاريخًا ميلاديًا حقيقيًا بصيغة سنة-شهر-يوم.";
 export const PAYROLL_PERIOD_ORDER_AR = "تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.";
@@ -89,9 +104,9 @@ export function parsePayrollPeriod(
   const days = end.dayNumber - start.dayNumber + 1;
   if (days > PAYROLL_MAX_PERIOD_DAYS) return { ok: false, error: PAYROLL_PERIOD_TOO_LONG_AR };
 
-  const todayMs = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-  if (Number.isNaN(todayMs)) return { ok: false, error: PAYROLL_PERIOD_FORMAT_AR };
-  if (end.dayNumber > Math.floor(todayMs / MS_PER_DAY)) {
+  const todayBound = readCalendarDate(cairoTodayIso(today));
+  if (!todayBound) return { ok: false, error: PAYROLL_PERIOD_FORMAT_AR };
+  if (end.dayNumber > todayBound.dayNumber) {
     return { ok: false, error: PAYROLL_PERIOD_FUTURE_AR };
   }
 

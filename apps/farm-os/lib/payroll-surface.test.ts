@@ -192,4 +192,8 @@ describe("payroll pages stay fail-closed and PII-free", () => {
       expect(read(path), path).toContain("fmtDateTime(run.closedAt)");
     }
   });
+
+  it("uses the shared Cairo calendar day for the close-form bound", () => {
+    expect(read(LIST_PAGE)).toContain("const todayIso = cairoTodayIso()");
+  });
 });

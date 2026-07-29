@@ -19,6 +19,7 @@ import { fmtDate, fmtDateTime } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { PrintButton } from "@/components/print-button";
 import { Alert, EmptyState } from "@/components/ui";
+import { cairoTodayIso } from "@/lib/payroll-close";
 import { PAYROLL_RUN_HISTORY_LIMIT, loadPayrollRunHistory } from "@/lib/payroll-report";
 import { PayrollCloseForm } from "./close-form";
 
@@ -41,7 +42,7 @@ export default async function PayrollPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
   const history = await loadPayrollRunHistory(sb, m.orgId);
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = cairoTodayIso();
 
   return (
     <div className="flex flex-col gap-4 p-4">
