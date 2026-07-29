@@ -345,6 +345,18 @@ export const APP_MODULES: AppModule[] = [
         href: "/people/payroll",
         roles: ["owner", "accountant"],
       },
+      {
+        // SPEC-0006 slice 4: the wage rates the close prices against. SAME two roles as the close
+        // itself — `people_compensation`'s comp_rw policy gates both read and write on
+        // authorize('payroll.read', org_id) (owner/accountant, migrations 0046/0074), so any other
+        // role would see an empty table and be redirected by the page. Wage data appears on no
+        // other nav surface.
+        id: "payroll-compensation",
+        label: "أجور الفريق",
+        icon: "🧮",
+        href: "/people/payroll/compensation",
+        roles: ["owner", "accountant"],
+      },
     ],
   },
   {

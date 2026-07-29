@@ -52,6 +52,33 @@ type WithIrrigationBasis<T extends { Row: object; Insert: object; Update: object
   Relationships: T["Relationships"];
 };
 
+/** Add the wage-mode columns migration 20260729090000 put on `people_compensation` — ALREADY LIVE,
+ *  just not yet in the generated types. `mode` is `not null default 'hourly'` (optional on Insert);
+ *  `unit` is set iff mode='piece' (people_compensation_piece_shape); the two contract bounds are set
+ *  iff mode='seasonal' (people_compensation_seasonal_shape). Nullable/optional everywhere else so an
+ *  existing hourly row keeps EXACTLY its pre-migration meaning. */
+type WithWageMode<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & {
+    mode: string;
+    unit: string | null;
+    contract_period_start: string | null;
+    contract_period_end: string | null;
+  };
+  Insert: T["Insert"] & {
+    mode?: string;
+    unit?: string | null;
+    contract_period_start?: string | null;
+    contract_period_end?: string | null;
+  };
+  Update: T["Update"] & {
+    mode?: string;
+    unit?: string | null;
+    contract_period_start?: string | null;
+    contract_period_end?: string | null;
+  };
+  Relationships: T["Relationships"];
+};
+
 /** Add the labor-cost-basis person_id FK (migration 20260701250000) to an existing table entry. */
 type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
   Row: T["Row"] & { person_id: string | null };
@@ -1078,6 +1105,11 @@ type SignoffFunctions = {
 
 // ── SPEC-0006 slice 2 — `labor_logs` (ACTUAL day-to-day attendance), migration 20260701310000. ──
 // Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
+//
+// `mode`/`quantity`/`unit` were added by 20260729090000_payroll_run_persistence.sql, which is ALREADY
+// LIVE — this is a narrow catch-up on columns that exist, not a forward declaration of a draft.
+// `mode` is `not null default 'hourly'` so it is optional on Insert; `quantity`/`unit` are set iff
+// mode = 'piece' (labor_logs_piece_shape). `hours` stays required for EVERY mode.
 type LaborLogsTable = {
   Row: {
     id: string;
@@ -1086,6 +1118,9 @@ type LaborLogsTable = {
     team_name: string | null;
     work_date: string;
     hours: number;
+    mode: string;
+    quantity: number | null;
+    unit: string | null;
     plan_op_id: string | null;
     note: string | null;
     created_at: string;
@@ -1097,6 +1132,9 @@ type LaborLogsTable = {
     team_name?: string | null;
     work_date: string;
     hours: number;
+    mode?: string;
+    quantity?: number | null;
+    unit?: string | null;
     plan_op_id?: string | null;
     note?: string | null;
     created_at?: string;
@@ -1108,6 +1146,9 @@ type LaborLogsTable = {
     team_name?: string | null;
     work_date?: string;
     hours?: number;
+    mode?: string;
+    quantity?: number | null;
+    unit?: string | null;
     plan_op_id?: string | null;
     note?: string | null;
     created_at?: string;
@@ -1645,7 +1686,9 @@ export type Database = Omit<Generated, "public"> & {
       | "plan_operations"
       | "plan_labor_requirements"
       | "plan_material_requirements"
+      | "people_compensation"
     > & {
+      people_compensation: WithWageMode<Tables["people_compensation"]>;
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;

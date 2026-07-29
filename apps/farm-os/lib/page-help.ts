@@ -726,6 +726,15 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "الإقفال نهائي: لا يمكن التراجع عنه، ولن تستطيع بعده تسجيل أو تعديل أو حذف ساعات داخل نفس الفترة، ولا يمكن إقفال فترة تتقاطع مع فترة سبق إقفالها. وهو لا يصرف أي مبلغ ولا يُنشئ أي قيد محاسبي.",
     related: ["people", "attendance", "people-dashboard"],
   },
+  "payroll-compensation": {
+    title: "أجور الفريق",
+    what: "تحديد أجر كل عامل: بالساعة أو باليوم أو بالقطعة (مع وحدتها) أو موسمي (بمدة عقد محددة)، أجر واحد لكل طريقة.",
+    why: "إقفال الرواتب يرفض الفترة بالكامل إذا كان أي عامل فيها بلا أجر محفوظ، فهذه الصفحة هي التي تجعل الإقفال ممكنًا أصلًا.",
+    when: "عند تعيين عامل جديد، أو تغيير أجره، أو قبل أول إقفال رواتب للفترة.",
+    how: "اختر العامل وطريقة الأجر وأدخل القيمة؛ للأجر بالقطعة اختر الوحدة، وللموسمي أدخل تاريخَي العقد ثم احفظ. اضغط «تعديل» بجوار أي سطر لتغييره.",
+    avoid: "الأجور تظهر للمالك والمحاسب فقط ولا تظهر في أي صفحة أخرى. لا يوجد حذف. الأجر الموسمي لا يُحتسب إلا إذا طابقت فترة الإقفال تاريخَي العقد بالضبط، وتعديل الأجر لا يغيّر أي فترة سبق إقفالها.",
+    related: ["payroll", "attendance", "people"],
+  },
   "payroll-run-360": {
     title: "تقرير إقفال الرواتب",
     what: "تقرير مطبوع لفترة رواتب مُقفلة: كل عامل بطريقة أجره ووحدته وكميته وسعر وحدته وإجماليه، مع إجمالي الفترة.",
@@ -764,7 +773,10 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/expenses\/[^/]+(?:\/)?$/, helpId: "expense-360" },
   // More specific first: a payroll RUN id lives one level under /people/payroll, and /people/payroll
   // itself is a nav page — neither is a person, so both are excluded from the person-360 pattern.
-  { pattern: /^\/people\/payroll\/[^/]+(?:\/)?$/, helpId: "payroll-run-360" },
+  // `/people/payroll/compensation` is a STATIC nav route sitting at the same depth as a run id, so it
+  // is excluded here too — otherwise the wage editor would inherit the closed-run report's help.
+  { pattern: /^\/people\/payroll\/compensation(?:\/)?$/, helpId: "payroll-compensation" },
+  { pattern: /^\/people\/payroll\/(?!compensation(?:\/|$))[^/]+(?:\/)?$/, helpId: "payroll-run-360" },
   {
     pattern: /^\/people\/(?!dashboard(?:\/|$)|attendance(?:\/|$)|payroll(?:\/|$))[^/]+(?:\/)?$/,
     helpId: "person-360",

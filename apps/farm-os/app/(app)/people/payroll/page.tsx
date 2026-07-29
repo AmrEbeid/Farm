@@ -11,6 +11,7 @@
 // The history is bounded (PAYROLL_RUN_HISTORY_LIMIT), org-scoped to the SERVER session's active org,
 // and reads its line counts in ONE extra query — never one per run.
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { requireRole } from "@/lib/auth";
@@ -38,11 +39,22 @@ const HISTORY_COLUMNS = [
   { key: "report", label: "التقرير", visuallyHidden: true },
 ] as const;
 
+const linkStyle = { border: "1px solid var(--line)", color: "var(--ink)" } as const;
+
+function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} className="rounded-md px-3 py-1 text-sm" style={linkStyle}>
+      {children}
+    </Link>
+  );
+}
+
 export default async function PayrollPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
   const history = await loadPayrollRunHistory(sb, m.orgId);
   const todayIso = cairoTodayIso();
+  const canOpenAttendance = m.role === "owner";
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -51,8 +63,13 @@ export default async function PayrollPage() {
         <span className="text-xs" style={mutedStyle}>
           آخر {num(PAYROLL_RUN_HISTORY_LIMIT)} فترة مُقفلة في هذه المؤسسة.
         </span>
-        <div className="no-print ms-auto">
+        <div className="no-print ms-auto flex flex-wrap items-center gap-2">
           <PrintButton label="طباعة سجل الإقفالات" />
+          {/* The close prices against saved rates and recorded attendance; both are one click away,
+              and a missing rate is the single most common reason a close is refused. Attendance is a
+              labor.write surface, so an accountant would be redirected — only the owner is offered it. */}
+          <HeaderLink href="/people/payroll/compensation">أجور الفريق</HeaderLink>
+          {canOpenAttendance && <HeaderLink href="/people/attendance">تسجيل الحضور</HeaderLink>}
         </div>
       </header>
 
