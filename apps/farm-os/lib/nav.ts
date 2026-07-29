@@ -334,6 +334,17 @@ export const APP_MODULES: AppModule[] = [
         href: "/people",
         roles: ["owner", "farm_manager", "agri_engineer", "accountant"],
       },
+      {
+        // SPEC-0006 slice 3 (migration 20260729090000): close a payroll period into an immutable
+        // gross-pay snapshot. Roles match the payroll.read RLS on payroll_runs/payroll_run_lines and
+        // fn_close_payroll_run's own authorize() gate — owner/accountant only — so the entry never
+        // appears to a role the page would redirect.
+        id: "payroll",
+        label: "إقفال الرواتب",
+        icon: "💵",
+        href: "/people/payroll",
+        roles: ["owner", "accountant"],
+      },
     ],
   },
   {
