@@ -249,7 +249,7 @@ describe("payroll run tables are read only from the owner/accountant surface", (
   it("gates every route that loads a payroll run on owner/accountant", () => {
     expect(routeConsumers.length).toBeGreaterThan(0);
     for (const path of routeConsumers) {
-      expect(OWNER_ACCOUNTANT.test(read(path)), rel(path)).toBe(true);
+      expect(OWNER_ACCOUNTANT.test(code(path)), rel(path)).toBe(true);
     }
   });
 });
