@@ -2,6 +2,8 @@
 
 > **2026-07-29 — PAYROLL STAGE-M ACCESS DESIGN REVIEW: INDEPENDENT TECHNICAL REVIEW COMPLETE /
 > REAL-DATA NO-GO REMAINS.**
+> PR #963 merged at `5e4e69d9ad973b5fc6ca8f6bafab1616ac375157`; production deployment
+> `dpl_9sMwkdrVVSd45AA6DCCmxNBCutD1` is READY for that exact merge SHA. No migration was required.
 > Claude authored the review packet and evidence harness; Codex independently reviewed it, required
 > per-reader static-scan non-vacuity and direct `people_compensation` RLS coverage for all six roles,
 > and re-ran the corrected evidence. The access design is **accepted with conditions**.

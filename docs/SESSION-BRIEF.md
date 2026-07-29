@@ -1,7 +1,42 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll pilot-readiness slice closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (payroll Stage-M access review closeout)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-29 (latest) — payroll pilot readiness: checklist + validation-only import templates — MERGED / DEPLOYED / PUBLIC-SMOKED
+## 2026-07-29 (latest) — payroll Stage-M access design review — MERGED / DEPLOYED / INDEPENDENTLY ACCEPTED WITH CONDITIONS
+
+PR #963 merged at `5e4e69d9ad973b5fc6ca8f6bafab1616ac375157`; head commits were `79a0b6e`
+(review packet and evidence), `dd3ab6f` (comment-safe route-gate scanner), and `744a77d` (review/approval
+state clarification). Vercel production deployment `dpl_9sMwkdrVVSd45AA6DCCmxNBCutD1` is READY on target
+production for that exact merge commit. **There is no migration in this slice:** no schema, policy, grant,
+RPC, application behavior, payroll data, payment, or journal changed.
+
+Claude authored the Stage-M review packet and evidence harness. Codex independently reviewed it, required
+per-reader static-scan non-vacuity and direct `people_compensation` RLS evidence for all six application
+roles, re-ran the full evidence, and recorded an **accepted with conditions** technical verdict. CodeRabbit
+then found one valid scanner weakness: a raw-source route-gate match could be satisfied by a comment. That
+was fixed in `dd3ab6f`; the governance comment requesting Owner approval was not converted into a false
+approval because the packet explicitly keeps the Owner/data-approver gate unsigned and Stage M NO-GO.
+
+Evidence: Docker-free pgTAP **3101 ok / 0 not_ok / 0 file failures**; full Vitest **1232 passed + 13
+controlled skips**; TypeScript and touched ESLint clean; production build 64/64; `git diff --check` clean;
+fresh-head app CI, design-system CI, pgTAP, gitleaks, Vercel, and CodeRabbit status green. Read-only hosted
+metadata verified no anonymous read/DML on the payroll tables, RLS and FORCE RLS on all five payroll/PII
+tables, no client EXECUTE on the two private payroll helpers, the hosted `payroll_run_persistence` migration
+at the ledger head, and all five hosted policy definitions matching the repository. A fresh security-advisor
+run confirmed leaked-password protection remains disabled.
+
+Post-release signed-out smoke: `/login` HTTP 200 and `/people/payroll/readiness` HTTP 307 to `/login`; Vercel
+reported no runtime errors in the queried 15-minute window. **Independent review gate G-H1 is complete, but
+Stage M remains NO-GO and payroll is not 100%.** Still open: live supervisor-JWT denial; auth-hook, logs,
+backups, account hygiene, service-role bundle, and leaked-password checks; Owner privacy approval and policy
+ratifications; a qualified legal review; an approved real roster/rate/labor source; the authenticated
+owner/accountant synthetic pilot; payment/journal scope; and dated Owner+accountant acceptance.
+
+**Exact resume point:** close the remaining agent-verifiable operator checks without reading real payroll
+data, then obtain the Owner decisions and run the authenticated synthetic pilot before any real import.
+Accounting remains human-gated on 698 row decisions and acceptance; security and palm-registry blockers are
+otherwise unchanged.
+
+## 2026-07-29 — payroll pilot readiness: checklist + validation-only import templates — MERGED / DEPLOYED / PUBLIC-SMOKED
 
 PR #961 merged at `4bceea5d7a8a3bd08d76025c629711b3ed7c4501`; head commits were `f60977e` (pilot readiness
 validation) and `220909b` (targeted readiness validation errors). Vercel production deployment

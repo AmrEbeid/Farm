@@ -2,7 +2,28 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-29 (latest) — payroll pilot readiness (checklist + validation-only import templates) MERGED /
+> **2026-07-29 (latest) — payroll Stage-M access design review MERGED / DEPLOYED / INDEPENDENTLY
+> ACCEPTED WITH CONDITIONS.**
+> PR #963 merged at `5e4e69d9ad973b5fc6ca8f6bafab1616ac375157` (head commits `79a0b6e` review evidence,
+> `dd3ab6f` comment-safe scanner, `744a77d` review/approval-state clarification); production deployment
+> `dpl_9sMwkdrVVSd45AA6DCCmxNBCutD1` is READY on target production for that exact merge commit.
+> **Evidence-only: no migration, schema, policy, grant, RPC, application behavior, payroll data, payment, or
+> journal change.**
+> Delivered: the independently reviewed Stage-M payroll privacy/access packet; 34 new pgTAP assertions for
+> six-role direct RLS, cross-org denial, private payroll helpers, contact-column denial, and the money-free
+> labor classification; 13 repository-wide people/payroll read-surface cases; confidential-audit vocabulary
+> coverage for payroll runs/lines; and a permissions-matrix reconciliation.
+> Evidence: pgTAP 3101/0/0; Vitest 1232 passed + 13 controlled skips; TypeScript and touched ESLint clean;
+> production build 64/64; whitespace clean; all fresh-head GitHub/Vercel checks green. Hosted read-only
+> metadata matched the repository migration/policy state and confirmed the payroll grant/RLS/private-helper
+> boundaries. The security advisor still reports leaked-password protection disabled.
+> Post-release signed-out smoke: `/login` 200; `/people/payroll/readiness` 307 to `/login`; no Vercel runtime
+> errors in the queried 15-minute window.
+> **Not claimed:** Owner privacy approval is unsigned; no live supervisor JWT or authenticated
+> owner/accountant pilot was exercised; no real data was read or imported. Stage M remains NO-GO and payroll
+> is not 100%.
+
+> **2026-07-29 — payroll pilot readiness (checklist + validation-only import templates) MERGED /
 > DEPLOYED / PUBLIC-SMOKED.**
 > PR #961 merged at `4bceea5d7a8a3bd08d76025c629711b3ed7c4501` (head commits `f60977e` pilot readiness
 > validation, `220909b` targeted readiness validation errors); production deployment
