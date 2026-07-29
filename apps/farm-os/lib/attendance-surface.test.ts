@@ -38,7 +38,9 @@ const navIds = (role: Role) =>
 /** The body of `createLaborLog`, so the assertions cannot accidentally match `createPerson`. */
 function createLaborLogBody(): string {
   const source = read(ACTIONS);
-  return source.slice(source.indexOf("export async function createLaborLog"));
+  const start = source.indexOf("export async function createLaborLog");
+  expect(start, "createLaborLog not found in actions.ts").toBeGreaterThan(-1);
+  return source.slice(start);
 }
 
 describe("attendance nav entry", () => {

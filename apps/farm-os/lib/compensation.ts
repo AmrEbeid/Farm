@@ -46,6 +46,11 @@ export {
 export type CompensationMode = LaborMode;
 export type CompensationUnit = LaborUnit;
 
+/** Stored values are untrusted at the UI boundary; unknown modes use the legacy-safe default. */
+export function normalizeCompensationMode(value: unknown): CompensationMode {
+  return isLaborMode(value) ? value : "hourly";
+}
+
 /** The largest rate this editor will store. A defensive typo bound, not a market judgement. */
 export const COMPENSATION_RATE_MAX = 10_000_000;
 /** The longest seasonal contract a single rate may declare — one leap year, matching the close bound. */

@@ -33,6 +33,7 @@ import {
   COMPENSATION_UNITS,
   COMPENSATION_UNIT_AR,
   compensationBasisLabel,
+  normalizeCompensationMode,
   parseCompensationInput,
   type CompensationMode,
 } from "@/lib/compensation";
@@ -115,7 +116,7 @@ export function CompensationEditor({
     setForm({
       rowId: row.id,
       personId: row.personId,
-      mode: (row.mode as CompensationMode) ?? "hourly",
+      mode: normalizeCompensationMode(row.mode),
       rate: row.rate === null ? "" : String(row.rate),
       unit: row.unit ?? "",
       start: row.contractPeriodStart ?? "",

@@ -49,10 +49,10 @@ export const PAYROLL_HISTORY_LINE_FETCH = PAYROLL_HISTORY_LINE_MAX + 1;
  * mode can never be labelled one way where it is ENTERED and another way on the frozen report that
  * prices it.
  */
-export const PAYROLL_MODE_AR: Record<string, string> = WAGE_MODE_AR;
+export const PAYROLL_MODE_AR: Readonly<Record<string, string>> = WAGE_MODE_AR;
 
 /** Piece-rate units — the CHECK-constrained set on both people_compensation and payroll_run_lines. */
-export const PAYROLL_UNIT_AR: Record<string, string> = WAGE_UNIT_AR;
+export const PAYROLL_UNIT_AR: Readonly<Record<string, string>> = WAGE_UNIT_AR;
 
 /** What the frozen `quantity` counts, per mode. A piece line names its own unit instead. */
 const PAYROLL_QUANTITY_UNIT_AR: Record<string, string> = {

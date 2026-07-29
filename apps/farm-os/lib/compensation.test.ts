@@ -22,6 +22,7 @@ import {
   classifyCompensationError,
   compensationBasisLabel,
   compensationFailure,
+  normalizeCompensationMode,
   parseCompensationInput,
 } from "./compensation";
 
@@ -227,6 +228,12 @@ describe("compensation — seasonal contract bounds are exact, ordered and bound
 });
 
 describe("compensation — normalized output", () => {
+  it("normalizes an unknown stored mode before it reaches the editor", () => {
+    expect(normalizeCompensationMode("daily")).toBe("daily");
+    expect(normalizeCompensationMode("unsupported")).toBe("hourly");
+    expect(normalizeCompensationMode(null)).toBe("hourly");
+  });
+
   it("returns exactly the people_compensation columns, and nothing the caller smuggled in", () => {
     const result = parseCompensationInput({
       ...comp({ mode: "piece", unit: "tree", rate: "12.5" }),
