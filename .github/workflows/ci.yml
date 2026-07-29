@@ -124,6 +124,15 @@ jobs:
       - name: Build (next build --webpack)
         run: npm run build --workspace farm-os
 
+      - name: Guard · Service-role secret stays server-only
+        # Scan every tracked repository artefact, the static import graph rooted at
+        # every "use client" module, and the emitted browser chunks. Detector
+        # self-tests and coverage floors make a clean result non-vacuous. This
+        # complements gitleaks: gitleaks covers committed history, while this guard
+        # covers the current client graph and build output without reading local env
+        # files or printing matched values.
+        run: cd apps/farm-os && node scripts/check-service-role-exposure.mjs
+
       - name: Guard · Recharts stays code-split (off the global bundle)
         # Recharts is heavy and only two routes render a chart. A code-split keeps it
         # out of the always-loaded shared/framework chunk and off the other 16/18
