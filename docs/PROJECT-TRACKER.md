@@ -1,4 +1,45 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-29 by Codex (ExcelJS UUID security closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-29 by Claude (payroll persistence kernel closeout)
+
+> **2026-07-29 — PAYROLL PERSISTENCE KERNEL: MERGED / MIGRATED / DEPLOYED / PRODUCTION-VERIFIED.**
+> PR #955 merged at `7672f3142375d092d33b7b36d13c9d55c63106bb`; head commits `4e15d0d` (initial kernel) and
+> `1f876bf` (review fixes). Production migration `20260729102938 payroll_run_persistence` — source
+> `apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql` — is recorded in Farm
+> production, and Vercel deployment `dpl_BjjVxj5TCo7qripX1f1d3dmwdKfy` is READY on target production for that
+> exact commit.
+>
+> The kernel persists immutable payroll runs and lines across mixed hourly / daily / piece / seasonal
+> compensation: daily requires distinct work dates, piece requires supported units, and seasonal requires the
+> exact declared contract period. An exact-period replay is idempotent, overlapping periods are rejected, a
+> per-org advisory lock serializes close against labor and compensation races (including cross-org moves), and
+> covered labor freezes after close. Lines snapshot mode, rate, rounded quantity, unit, and gross. Close and
+> report are owner/accountant only, payroll audit rows stay confidential, and the AI assistant is excluded.
+> **There is no payment execution and no journal posting in this slice.**
+>
+> Production preflight: `people_compensation` 0, `labor_logs` 0, `payroll_runs` absent, `payroll_run_lines`
+> absent. Postflight: both tables exist with RLS enabled and forced; authenticated has SELECT only,
+> authenticated writes are denied, anon is denied; the `payroll_read` policies exist; the seven expected
+> coordination/audit/immutability triggers exist; public `fn_close_payroll_run` is authenticated-executable and
+> anon-denied; helper functions are not `authenticated`/`anon` executable and pin an empty `search_path`; and
+> all four payroll data counts remain zero.
+>
+> Evidence: local focused payroll pgTAP 104/104; independent full Docker-free pgTAP 3,067/3,067;
+> assistant-policy Vitest 12/12; TypeScript, ESLint, and `git diff --check` clean. Post-merge GitHub app CI,
+> design-system CI, pgTAP, gitleaks, changesets, Supabase integration, and Vercel all succeeded. Public
+> `ebeidfarm.business/login` returned HTTP 200 after deployment, with no Vercel runtime errors in the following
+> ten minutes. CodeRabbit's first review raised six actionable items including a real fractional-quantity
+> rounding mismatch; all were fixed in `1f876bf`. Its final rerun was rate-limited but the required check was
+> green, and Codex independently reviewed the final bytes and reran all 3,067 pgTAP tests.
+>
+> **Payroll is NOT 100% — this completes the persistence/reporting DATABASE KERNEL only.** No staff-facing
+> payroll UI or report workflow consumes it, no real approved staff/rate/labor import has occurred, no pilot
+> close/acceptance/signoff exists, and no payment execution or journal integration exists (do not imply one is
+> due without a separately ratified scope). No real staff PII, rates, labor, or payroll runs were inserted; the
+> Stage-M real-PII/privacy review remains gated.
+> **Also still open:** accounting (698 row decisions, real workbook dual run, exception resolution, dated
+> accountant/owner acceptance); security (five upstream npm findings plus the Owner-only leaked-password toggle
+> and demo-identity cleanup); and the palm registry, because real source counts conflict.
+> **Next payroll engineering slice:** the owner/accountant payroll close-and-report UI over the released RPC —
+> synthetic fixtures only, Arabic usability, bounded reads, fail-closed errors, tests, no real PII.
 
 > **2026-07-29 — EXCELJS UUID ADVISORY PATCHED: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #953 merged at `f36571b`; matching Vercel production deployment
@@ -1958,7 +1999,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
 | 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot bank + revenue/A-R backend live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`); PR #672 ships `/farm/offshoots` UI/reporting/import over it. PR #676 ships S-10 revenue/A-R backend (`20260701500000`): delivery-before-price sales, buyer master, partial/final collections, and A/R/cash journals. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next money slice is S-10b revenue reports + A/R aging, then close/period lock, while S-6 waits for Stage-M. |
-| 8 | People & labor/payroll | Execution | **High** | **SPEC-0006 RATIFIED (2026-06-27); engine built, full build review-gated** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Ratify unblocks the synthetic `labor_logs` + payroll-run RPC build — NOT YET BUILT; needs independent access review + real PII behind Stage M.** |
+| 8 | People & labor/payroll | Execution | **High** | **Persistence KERNEL live (2026-07-29, PR #955, migration `20260729102938`); staff-facing workflow NOT built** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Synthetic-only `payroll_runs`/`payroll_run_lines` persistence + `fn_close_payroll_run` are now merged, migrated, deployed, and production-verified:** mixed hourly/daily/piece/seasonal, immutable closed runs and lines, idempotent exact-period replay, rejected overlapping periods, per-org advisory serialization of close/labor/compensation races, covered-labor freeze, owner/accountant-only close/report, audit confidentiality, AI exclusion. **Still NOT built:** the staff-facing payroll UI/report workflow (next slice), any real approved staff/rate/labor import, a pilot close + acceptance signoff, and any payment execution or journal posting. Real PII stays behind Stage M. |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
 | 11 | AI assistant عبدالجليل | Execution | **High** | **SPEC-0005 RATIFIED (2026-06-27); boundary built, AI build review-gated** | Trifecta capability boundary (`lib/assistant-policy.ts`, draft PR #356) — deny-by-default, read-only/RLS-scoped/no-PII/no-outbound. **The AI itself (chat route, model, ingest) is NOT built — it requires independent security review per slice (highest risk).** |

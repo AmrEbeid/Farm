@@ -1,7 +1,51 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (ExcelJS UUID security closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Claude (payroll persistence kernel closeout)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-29 (latest) — ExcelJS UUID advisory — LIVE / VERIFIED
+## 2026-07-29 (latest) — payroll persistence kernel — MERGED / MIGRATED / DEPLOYED / PRODUCTION-VERIFIED
+
+PR #955 merged at `7672f3142375d092d33b7b36d13c9d55c63106bb`; head commits were `4e15d0d` (initial kernel)
+and `1f876bf` (review fixes). The production migration is recorded by Supabase as `20260729102938
+payroll_run_persistence`, from source file
+`apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`. Vercel production deployment
+`dpl_BjjVxj5TCo7qripX1f1d3dmwdKfy` is READY on target production for that exact commit.
+
+The kernel persists one run across mixed hourly / daily / piece / seasonal compensation: daily requires
+distinct work dates, piece requires supported units, and seasonal requires the exact declared contract period.
+Closed runs and their lines are immutable, an exact-period replay is idempotent, and overlapping periods are
+rejected. A per-org advisory lock serializes close against labor and compensation writes — including cross-org
+moves — and covered labor freezes once the run closes. Each line snapshots mode, rate, rounded quantity, unit,
+and gross. Close and report are owner/accountant only, payroll audit rows stay confidential, and the assistant
+is excluded. There is no payment execution and no journal posting.
+
+Production preflight: `people_compensation` 0, `labor_logs` 0, `payroll_runs` absent, `payroll_run_lines`
+absent. Postflight: both tables exist with RLS enabled and forced; authenticated has SELECT only, authenticated
+writes are denied, and anon is denied; the `payroll_read` policies exist; the seven expected
+coordination/audit/immutability triggers exist; public `fn_close_payroll_run` is authenticated-executable and
+anon-denied; helper functions are not executable by `authenticated` or `anon` and pin an empty `search_path`;
+and all four payroll data counts remain zero.
+
+Evidence: local focused payroll pgTAP 104/104; an independent full Docker-free pgTAP run of 3,067/3,067;
+assistant-policy Vitest 12/12; TypeScript, ESLint, and `git diff --check` clean. Post-merge GitHub app CI,
+design-system CI, pgTAP, gitleaks, changesets, Supabase integration, and Vercel all succeeded. Public
+`https://ebeidfarm.business/login` returned HTTP 200 after deployment and Vercel found no runtime errors in the
+following ten minutes. CodeRabbit's first review raised six actionable items including a real
+fractional-quantity rounding mismatch; all were fixed in `1f876bf`. Its final rerun was rate-limited, but the
+required check was green, and Codex independently reviewed the final bytes and reran all 3,067 pgTAP tests.
+
+**Truth boundary — this completes the payroll persistence/reporting DATABASE KERNEL only.** No staff-facing
+payroll UI or report workflow consumes it yet, no real approved staff/rate/labor import has occurred, no pilot
+close/acceptance/signoff has occurred, and there is no payment execution or journal integration — do not imply
+one is due without a separately ratified scope. No real staff PII, rates, labor, or payroll runs were inserted;
+the Stage-M real-PII/privacy review remains gated. **Payroll is NOT 100%.**
+
+**Exact resume point:** accounting is still NOT 100% — human decisions on the 698 rows, the real workbook dual
+run, exception resolution, and dated accountant/owner acceptance all remain. Security is NOT 100% (five
+upstream npm findings plus the Owner-only leaked-password toggle and demo-identity cleanup), and the palm
+registry is NOT 100% because the real source counts conflict. The next autonomous payroll engineering slice is
+the owner/accountant payroll close-and-report UI over the released RPC: synthetic fixtures only, Arabic
+usability, bounded reads, fail-closed errors, tests, and no real PII.
+
+## 2026-07-29 — ExcelJS UUID advisory — LIVE / VERIFIED
 
 PR #953 merged at `f36571b74522603cc1b35fd22741ad866e7bd068`. Matching Vercel production
 deployment `dpl_7LgzdhYYHqhm4QJrF4fm7H8jPt7V` is READY and aliases `ebeidfarm.business`.
@@ -36,6 +80,8 @@ exception resolution, and dated accountant/owner acceptance. Continue autonomous
 ratified synthetic-only payroll persistence slice: closed/idempotent payroll runs, per-period concurrency
 serialization, owner/accountant RLS, payroll audit-row confidentiality, AI exclusion, and reconciliation
 tests. Keep real staff PII out until the Stage-M privacy review.
+*(Superseded 2026-07-29 by the payroll persistence kernel entry above: that slice is merged, migrated, and
+deployed. The current resume point is the top entry; the accounting and Stage-M lines below remain true.)*
 
 ## 2026-07-28 (latest) — hydration closeout: toast portal + Recharts gate — MERGED / DEPLOYED; DASHBOARD CHECK PENDING
 
