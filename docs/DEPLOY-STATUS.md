@@ -2,7 +2,34 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-29 (latest) — payroll readiness (compensation editor + mode-aware labor) MERGED / DEPLOYED /
+> **2026-07-29 (latest) — payroll pilot readiness (checklist + validation-only import templates) MERGED /
+> DEPLOYED / PUBLIC-SMOKED.**
+> PR #961 merged at `4bceea5d7a8a3bd08d76025c629711b3ed7c4501` (head commits `f60977e` pilot readiness
+> validation, `220909b` targeted readiness validation errors); production deployment
+> `dpl_98qxeC3BRj9tqGGYPfJ5RfQFwP7c` is READY on target production for that exact merge commit.
+> **App-only: no schema, migration, RPC, payment, or journal change, and no authoritative payroll import** —
+> the hosted payroll migration remains `20260729102938 payroll_run_persistence`.
+> Delivered: the owner/accountant `/people/payroll/readiness` page with a printable ten-gate **human**
+> checklist that records no state and claims no completion; three validation-only staff / compensation / labor
+> import templates that only produce a dry-run report (no RPC on the descriptors); server-side role gates and
+> commit denial that run **before `req.formData()`**; reusable compensation/labor shape validation; and correct
+> error-cell attribution.
+> Evidence: focused readiness tests 139/139 then 133/133 on the review fixes; full Vitest 1,218 passed + 13
+> controlled skips; TypeScript, ESLint, production build 64/64 static-generation units, the bundle guards, and
+> `git diff --check` clean; PR app CI, design-system CI, pgTAP, gitleaks, and Vercel green. CodeRabbit reviewed
+> the original commit and its findings were addressed in the review-fix commit; its final update was
+> rate-limited.
+> Post-release (signed-out only): `/login` HTTP 200; `/people/payroll/readiness` 307 to `/login`; the template
+> GET and a missing-mode POST both 401 (auth checked first); no Vercel runtime errors on
+> `/people/payroll/readiness` or `/api/import` in the queried 15-minute window. **The preview deployment is
+> Vercel SSO protected, so no authenticated preview smoke was possible.**
+> **Not claimed:** no authenticated owner/accountant workflow was exercised, no real staff/rate/labor data was
+> imported, and no pilot close, report, or acceptance happened. **This is not pilot acceptance and payroll is
+> not 100%.** Still open: Stage-M privacy/access review; an approved real roster/rate/labor source, with real
+> data used only after approval; an authenticated owner/accountant pilot and dated signoff; and an explicit
+> payment/journal scope decision.
+
+> **2026-07-29 — payroll readiness (compensation editor + mode-aware labor) MERGED / DEPLOYED /
 > PUBLIC-SMOKED.**
 > PR #959 merged at `d335f205d4d4c79bcc613b2e7e59dba2e46c4335` (head commits `637cb4c` wage setup and
 > mode-aware labor, `7f7af17` wage editor state normalization); production deployment
