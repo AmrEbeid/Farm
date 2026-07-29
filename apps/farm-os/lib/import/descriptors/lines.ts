@@ -5,9 +5,9 @@
  * lineCode — line_code is optional/nullable so it can't anchor a match, but line_no is
  * required and stable (SPEC-0020).
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const linesDescriptor: ImportDescriptor = {
+export const linesDescriptor: WriteImportDescriptor = {
   key: "lines",
   titleAr: "الخطوط",
   rpc: "fn_save_line",

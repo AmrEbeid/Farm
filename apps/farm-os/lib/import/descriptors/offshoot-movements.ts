@@ -2,9 +2,9 @@
  * SPEC-0024 S-7 import descriptor for بنك الفسائل movements.
  * Writes through fn_record_offshoot_movement, the same plan.write-gated RPC used by the UI.
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const offshootMovementsDescriptor: ImportDescriptor = {
+export const offshootMovementsDescriptor: WriteImportDescriptor = {
   key: "offshoot-movements",
   titleAr: "حركات بنك الفسائل",
   rpc: "fn_record_offshoot_movement",

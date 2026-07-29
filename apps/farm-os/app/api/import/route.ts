@@ -1,7 +1,14 @@
 /**
- * Bulk-import route (spec §4, §6). Two modes via the `mode` form field:
+ * Bulk-import route (spec §4, §6). Two modes, named in the `mode` QUERY PARAMETER:
  *  - "dry-run": parse + validate the uploaded .xlsx, return per-row results, WRITE NOTHING.
  *  - "commit":  validate, then write each valid row through the descriptor's gated fn_* RPC.
+ *
+ * REQUEST CONTRACT. Both verbs take `?descriptor=<key>`; POST additionally takes `?mode=<dry-run|
+ * commit>`. They are query parameters and NOT form fields because the two gates below must decide
+ * the request before the multipart body is parsed — see "TWO GATES" and lib/import/access.ts. The
+ * POST body carries only the upload (`file`) and `confirmArchive`. Neither `descriptor` nor `mode`
+ * is ever read from the body for routing; if a client sends them there anyway they must agree with
+ * the query, or the request is refused (400).
  *
  * Uses the USER-SESSION server client (createClient), NOT the service-role admin client, so
  * each row honors the RPC's own role/RLS gate exactly as single-record entry does — service
@@ -10,10 +17,34 @@
  *
  * SECURITY: this is the framework's write surface. Per the operating method, money/authoritative
  * imports require independent review + runtime verification before production use.
+ *
+ * TWO GATES RUN BEFORE ANYTHING ELSE (lib/import/access.ts), in BOTH verbs:
+ *
+ *   - DESCRIPTOR ROLE. A descriptor may name the app roles allowed to use it at all. The check runs
+ *     immediately after the membership and the descriptor are resolved — before the template's
+ *     existing-rows query in GET, and in POST before `req.formData()`, so a wrong role's upload is
+ *     never even taken off the wire. A wrong role therefore learns nothing about the org's data or
+ *     about its own upload.
+ *
+ *   - NO COMMIT PATH. A validation-only descriptor is refused a `commit` POST outright, before
+ *     `req.formData()`, before `file.arrayBuffer()`, before `parseUpload`, before every
+ *     ref/existing-row query and before `planCommit`. The panel also hides the commit control, but
+ *     that is convenience: hiding a button is not a control, and this route is where the answer is
+ *     actually decided.
+ *
+ * Ordering is not a style preference here, and the toolchain cannot see it — it is pinned by the
+ * source-order assertions in lib/import/access.test.ts.
  */
 import "server-only";
 import { NextResponse } from "next/server";
 import { getActiveMembership } from "@/lib/auth";
+import {
+  IMPORT_DESCRIPTOR_UNKNOWN_AR,
+  commitDenial,
+  descriptorRoleDenial,
+  importBodyDisagreement,
+  importRequestFromQuery,
+} from "@/lib/import/access";
 import { createClient } from "@/lib/supabase/server";
 import { toArabicError } from "@/lib/errors";
 import { getDescriptor } from "@/lib/import/registry";
@@ -34,6 +65,16 @@ const MAX_BYTES = 5 * 1024 * 1024; // 5 MB upload cap
 // the templates only provision dropdowns for 1000 rows (lib/import/xlsx.ts).
 const MAX_ROWS = 1000;
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+/**
+ * A form field as a plain string, or null when the field is absent. Used only to CROSS-CHECK the
+ * query-resolved routing metadata, never to derive it. A File value stringifies to something that
+ * matches no descriptor key and no mode, so it reads as a disagreement — which is the right answer.
+ */
+function formString(form: FormData, key: string): string | null {
+  const value = form.get(key);
+  return value === null ? null : String(value);
+}
 
 /**
  * Fetch a descriptor's current active rows (RLS-scoped to the caller's active org), mapped
@@ -89,8 +130,16 @@ export async function GET(req: Request): Promise<Response> {
   const member = await getActiveMembership();
   if (!member) return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
 
+  // GET has no body and no mode: a template download is a dry-run by nature. Its descriptor already
+  // comes from the query, so the role gate below has always been able to run before any read.
   const descriptor = getDescriptor(new URL(req.url).searchParams.get("descriptor") ?? "");
-  if (!descriptor) return NextResponse.json({ error: "نوع استيراد غير معروف" }, { status: 400 });
+  if (!descriptor) return NextResponse.json({ error: IMPORT_DESCRIPTOR_UNKNOWN_AR }, { status: 400 });
+
+  // ROLE GATE — before the org's existing rows are read and before the workbook is built.
+  const roleDenied = descriptorRoleDenial(descriptor, member.role);
+  if (roleDenied) {
+    return NextResponse.json({ error: roleDenied.error }, { status: roleDenied.status });
+  }
 
   const sb = await createClient();
   let existing: { id: string; row: Record<string, unknown> }[];
@@ -113,10 +162,43 @@ export async function POST(req: Request): Promise<Response> {
   const member = await getActiveMembership();
   if (!member) return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
 
+  // PRE-BODY ROUTING METADATA. `descriptor` and `mode` come from the query string, so both gates
+  // below run while the multipart body is still an unread stream. Fail-closed: absent or
+  // unrecognised metadata is a 400 with a fixed Arabic sentence, decided here — a mode the route
+  // does not recognise is never quietly downgraded to a dry-run.
+  const request = importRequestFromQuery(new URL(req.url).searchParams, getDescriptor);
+  if ("error" in request) {
+    return NextResponse.json({ error: request.error }, { status: request.status });
+  }
+  const { descriptor, mode } = request;
+
+  // ROLE GATE — before the upload is taken off the wire at all.
+  const roleDenied = descriptorRoleDenial(descriptor, member.role);
+  if (roleDenied) {
+    return NextResponse.json({ error: roleDenied.error }, { status: roleDenied.status });
+  }
+
+  // NO-COMMIT-PATH GATE — a validation-only descriptor can never reach body parsing, ref resolution
+  // or `planCommit` in commit mode. Refused here, at the top, with a fixed Arabic sentence: the
+  // answer does not depend on the file, so the file is never even received to produce it.
+  const commitDenied = commitDenial(descriptor, mode);
+  if (commitDenied) {
+    return NextResponse.json({ error: commitDenied.error }, { status: commitDenied.status });
+  }
+
+  // ── Everything above is decided without the body. Only now is the upload parsed. ──
   const form = await req.formData();
-  const mode = String(form.get("mode") ?? "dry-run");
-  const descriptor = getDescriptor(String(form.get("descriptor") ?? ""));
-  if (!descriptor) return NextResponse.json({ error: "نوع استيراد غير معروف" }, { status: 400 });
+
+  // The body is not a routing input, but a client may still echo the metadata into it. If it does
+  // and it disagrees with what the gates just ran on, the request is contradictory — refuse it
+  // rather than pick a winner.
+  const bodyDenied = importBodyDisagreement(
+    { descriptor: formString(form, "descriptor"), mode: formString(form, "mode") },
+    { descriptorKey: descriptor.key, mode },
+  );
+  if (bodyDenied) {
+    return NextResponse.json({ error: bodyDenied.error }, { status: bodyDenied.status });
+  }
 
   const file = form.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "لم يتم رفع ملف" }, { status: 400 });

@@ -1,7 +1,7 @@
 /** SPEC-0024 S-9 — suppliers import (fn_save_supplier, inventory.write). Matched by NAME (LIMITATION: names are not DB-unique per org — if two rows share a name, a re-upload updates an arbitrary one of them; keep names unique): re-upload updates. */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const suppliersDescriptor: ImportDescriptor = {
+export const suppliersDescriptor: WriteImportDescriptor = {
   key: "suppliers",
   titleAr: "الموردون",
   rpc: "fn_save_supplier",

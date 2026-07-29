@@ -4,9 +4,9 @@
  * app/(app)/farm/structure-actions.ts. The parent sector is given by its CODE,
  * resolved to sector_id via the ref lookup (RLS-scoped).
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const hawshatDescriptor: ImportDescriptor = {
+export const hawshatDescriptor: WriteImportDescriptor = {
   key: "hawshat",
   titleAr: "الأحواش",
   rpc: "fn_save_hawsha",

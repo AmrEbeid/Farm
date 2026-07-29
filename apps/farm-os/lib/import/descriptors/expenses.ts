@@ -1,9 +1,9 @@
 /** SPEC-0024 S-9 — expenses import (fn_save_expense, budget.write). INSERT-only: imported expenses
  *  arrive UNROUTED (no payment status) — a bulk import can never move cash (#1); routing stays a
  *  one-by-one UI act. Supplier by NAME, account by CODE, cost center by CODE. */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const expensesDescriptor: ImportDescriptor = {
+export const expensesDescriptor: WriteImportDescriptor = {
   key: "expenses",
   titleAr: "المصروفات",
   rpc: "fn_save_expense",

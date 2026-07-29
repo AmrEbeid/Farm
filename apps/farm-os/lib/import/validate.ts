@@ -62,9 +62,15 @@ function coerce(col: ImportColumn, raw: unknown): { value: unknown } | { reason:
   }
 }
 
+/**
+ * `now` is injected only so a descriptor's `crossFieldCheck` can apply a calendar-day rule (e.g.
+ * "no future work date, on the Cairo clock") deterministically under test. Nothing else reads it,
+ * and a descriptor without a `crossFieldCheck` behaves exactly as before.
+ */
 export function validateRows(
   descriptor: ImportDescriptor,
   rows: Record<string, unknown>[],
+  now: Date = new Date(),
 ): DryRunResult {
   const okRows: Record<string, unknown>[] = [];
   const errors: RowError[] = [];
@@ -90,6 +96,16 @@ export function validateRows(
         rowHasError = true;
       } else {
         coerced[col.key] = result.value;
+      }
+    }
+
+    // The cross-field hook runs only on a row that already coerced cleanly, so it never has to
+    // re-check types — and it can never RESCUE a row, only add errors. A row it rejects is counted
+    // exactly once, like any other bad row.
+    if (!rowHasError && descriptor.crossFieldCheck) {
+      for (const extra of descriptor.crossFieldCheck(coerced, now)) {
+        errors.push({ row: rowNum, column: extra.column, reason: extra.reason });
+        rowHasError = true;
       }
     }
 

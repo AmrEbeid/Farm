@@ -4,8 +4,9 @@
  * dropdowns, sanitized cells) and maps a parsed cell matrix back to row objects. No
  * `exceljs` here — the thin rendering/parsing adapter lives in `xlsx.ts`.
  */
+import { VALIDATION_ONLY_TEMPLATE_NOTES_AR } from "./access";
 import { sanitizeCell } from "./sanitize";
-import type { ImportDescriptor } from "./types";
+import { isValidationOnly, type ImportDescriptor } from "./types";
 
 export interface SheetSpec {
   name: string;
@@ -32,8 +33,16 @@ export function buildTemplateSpec(
   d: ImportDescriptor,
   existingRows: Record<string, unknown>[] = [],
 ): WorkbookSpec {
+  // A validation-only template says so IN THE FILE. The workbook outlives the page it was
+  // downloaded from, and someone filling it in a week later must not have to remember which surface
+  // it came from to know that it writes nothing and takes synthetic data only.
+  const modeNotes = isValidationOnly(d)
+    ? VALIDATION_ONLY_TEMPLATE_NOTES_AR.map((note) => [sanitizeCell(note)])
+    : [];
+
   const instructions: string[][] = [
     [sanitizeCell(d.titleAr)],
+    ...modeNotes,
     [sanitizeCell("الأعمدة المطلوبة معلّمة بنجمة (*). صيغة التاريخ: " + DATE_HINT)],
     [],
     [

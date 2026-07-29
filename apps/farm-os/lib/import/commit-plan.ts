@@ -4,7 +4,7 @@
  * splits the calls into chunks for the background writer. No DB here — the server route
  * (`app/api/import`) executes these calls through the signed-in user's gated RPC path per row.
  */
-import { getSourceRow, type ImportDescriptor } from "./types";
+import { getSourceRow, isValidationOnly, type ImportDescriptor } from "./types";
 
 export interface RpcCall {
   rpc: string;
@@ -26,6 +26,17 @@ export function planCommit(
   okRows: Record<string, unknown>[],
   opts: { chunkSize?: number; matchedIds?: Map<number, string> } = {},
 ): CommitPlan {
+  // LAST-DITCH GUARD. The route already refuses a commit for a validation-only descriptor before it
+  // reads the upload, and the union type makes an rpc/toRpcArgs on one a compile error. This throws
+  // anyway: a commit plan is the point of no return, so it must not be constructible from a
+  // descriptor that has no write path — a future caller that skips the route gate gets an exception,
+  // not a silently empty (or worse, half-built) plan.
+  if (isValidationOnly(descriptor) || !descriptor.rpc || !descriptor.toRpcArgs) {
+    throw new Error(`import descriptor "${descriptor.key}" has no commit path`);
+  }
+  const toRpcArgs = descriptor.toRpcArgs;
+  const rpcName = descriptor.rpc;
+
   const chunkSize = opts.chunkSize && opts.chunkSize > 0 ? opts.chunkSize : DEFAULT_CHUNK;
   const dedupe = descriptor.dedupeKey ?? [];
   const matchedIds = opts.matchedIds ?? new Map<number, string>();
@@ -45,8 +56,8 @@ export function planCommit(
       seen.add(key);
     }
     calls.push({
-      rpc: descriptor.rpc,
-      args: descriptor.toRpcArgs(row, matchedIds.get(rowNum) ?? null),
+      rpc: rpcName,
+      args: toRpcArgs(row, matchedIds.get(rowNum) ?? null),
       sourceRow: rowNum,
     });
   });
