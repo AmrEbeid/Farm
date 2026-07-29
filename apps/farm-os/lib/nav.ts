@@ -357,6 +357,17 @@ export const APP_MODULES: AppModule[] = [
         href: "/people/payroll/compensation",
         roles: ["owner", "accountant"],
       },
+      {
+        // SPEC-0006 / docs/PILOT-READINESS.md: the pre-pilot preparation sheet + three
+        // VALIDATION-ONLY templates. Same owner/accountant pair as the close and the wage editor —
+        // the templates rehearse wage/labor shapes, and their descriptors carry the identical
+        // allowedRoles which the import API re-enforces server-side. It imports nothing.
+        id: "payroll-readiness",
+        label: "جاهزية الرواتب",
+        icon: "🧷",
+        href: "/people/payroll/readiness",
+        roles: ["owner", "accountant"],
+      },
     ],
   },
   {

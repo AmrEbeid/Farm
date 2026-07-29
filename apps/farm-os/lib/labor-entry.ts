@@ -131,6 +131,90 @@ function readText(value: unknown): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
+/** The work columns themselves — everything about a labor row except WHO did it. */
+export interface LaborShape {
+  workDate: string;
+  hours: number;
+  mode: LaborMode;
+  quantity: number | null;
+  unit: LaborUnit | null;
+  note: string | null;
+}
+
+/** Which input field a shape rejection belongs to, so a caller can attach it to its own column. */
+export type LaborShapeField = "workDate" | "hours" | "mode" | "quantity" | "unit" | "note";
+
+export type LaborShapeParse =
+  | { ok: true; value: LaborShape }
+  | { ok: false; field: LaborShapeField; error: string };
+
+/**
+ * THE ONE COPY of the date/hours/mode/quantity/unit/note rules — extracted verbatim from
+ * `parseLaborLogInput`, which now calls it, so the attendance form and the readiness import template
+ * cannot drift apart. Everything person/team-related stays out: this half knows nothing about
+ * identity.
+ *
+ * Order is load-bearing and unchanged: date → hours → mode → mode-dependent shape → note.
+ * `today` is injected so the "no future date" rule is deterministic under test; both sides are Cairo
+ * calendar days, so a server running a few hours ahead of the farm cannot turn today into tomorrow.
+ */
+export function parseLaborShape(
+  candidate: Record<string, unknown>,
+  today: Date = new Date(),
+): LaborShapeParse {
+  const workDate = candidate.workDate;
+  if (!isCalendarDate(workDate)) {
+    return { ok: false, field: "workDate", error: LABOR_DATE_INVALID_AR };
+  }
+  // Both operands are validated YYYY-MM-DD, which sorts lexicographically in calendar order.
+  if (workDate > cairoTodayIso(today)) {
+    return { ok: false, field: "workDate", error: LABOR_DATE_FUTURE_AR };
+  }
+
+  // Hours stay required and positive for EVERY mode — attendance evidence, not a pricing input.
+  const hours = readNumber(candidate.hours);
+  if (hours === null || hours <= 0 || hours > LABOR_HOURS_MAX) {
+    return { ok: false, field: "hours", error: LABOR_HOURS_AR };
+  }
+
+  const mode = candidate.mode;
+  if (!isWageMode(mode)) return { ok: false, field: "mode", error: LABOR_MODE_INVALID_AR };
+
+  const rawQuantity = candidate.quantity;
+  const rawUnit = candidate.unit;
+  const quantityGiven = rawQuantity !== null && rawQuantity !== undefined && rawQuantity !== "";
+  const unitGiven = rawUnit !== null && rawUnit !== undefined && rawUnit !== "";
+
+  let quantity: number | null = null;
+  let unit: LaborUnit | null = null;
+
+  if (mode === "piece") {
+    const parsedQuantity = readNumber(rawQuantity);
+    if (parsedQuantity === null || parsedQuantity <= 0 || parsedQuantity > LABOR_QUANTITY_MAX) {
+      return { ok: false, field: "quantity", error: LABOR_QUANTITY_AR };
+    }
+    if (!isWageUnit(rawUnit)) return { ok: false, field: "unit", error: LABOR_UNIT_REQUIRED_AR };
+    quantity = parsedQuantity;
+    unit = rawUnit;
+  } else if (quantityGiven || unitGiven) {
+    // Never silently drop them: a caller that sent a quantity for an hourly row misunderstood the
+    // row it is writing, and the close would price it differently than they expect.
+    //
+    // The rejection names the column that was actually filled in — `unit` when only a unit was
+    // supplied, `quantity` otherwise (alone, or alongside a unit, since the quantity is then the
+    // pricing-relevant half). The form callers discard `field`, but the readiness import descriptor
+    // maps it onto a spreadsheet column, and pointing at an empty cell helps nobody.
+    return { ok: false, field: quantityGiven ? "quantity" : "unit", error: LABOR_PIECE_ONLY_AR };
+  }
+
+  const note = readText(candidate.note);
+  if (note && note.length > LABOR_NOTE_MAX) {
+    return { ok: false, field: "note", error: LABOR_NOTE_TOO_LONG_AR };
+  }
+
+  return { ok: true, value: { workDate, hours, mode, quantity, unit, note } };
+}
+
 /**
  * Validate and normalize one attendance row. `today` is injected so the "no future date" rule is
  * deterministic under test; both sides are Cairo calendar days, so a server running a few hours
@@ -156,49 +240,10 @@ export function parseLaborLogInput(input: unknown, today: Date = new Date()): La
     return { ok: false, error: LABOR_TEAM_TOO_LONG_AR };
   }
 
-  const workDate = candidate.workDate;
-  if (!isCalendarDate(workDate)) return { ok: false, error: LABOR_DATE_INVALID_AR };
-  // Both operands are validated YYYY-MM-DD, which sorts lexicographically in calendar order.
-  if (workDate > cairoTodayIso(today)) return { ok: false, error: LABOR_DATE_FUTURE_AR };
+  const shape = parseLaborShape(candidate, today);
+  if (!shape.ok) return { ok: false, error: shape.error };
 
-  // Hours stay required and positive for EVERY mode — attendance evidence, not a pricing input.
-  const hours = readNumber(candidate.hours);
-  if (hours === null || hours <= 0 || hours > LABOR_HOURS_MAX) {
-    return { ok: false, error: LABOR_HOURS_AR };
-  }
-
-  const mode = candidate.mode;
-  if (!isWageMode(mode)) return { ok: false, error: LABOR_MODE_INVALID_AR };
-
-  const rawQuantity = candidate.quantity;
-  const rawUnit = candidate.unit;
-  const quantityGiven = rawQuantity !== null && rawQuantity !== undefined && rawQuantity !== "";
-  const unitGiven = rawUnit !== null && rawUnit !== undefined && rawUnit !== "";
-
-  let quantity: number | null = null;
-  let unit: LaborUnit | null = null;
-
-  if (mode === "piece") {
-    const parsedQuantity = readNumber(rawQuantity);
-    if (parsedQuantity === null || parsedQuantity <= 0 || parsedQuantity > LABOR_QUANTITY_MAX) {
-      return { ok: false, error: LABOR_QUANTITY_AR };
-    }
-    if (!isWageUnit(rawUnit)) return { ok: false, error: LABOR_UNIT_REQUIRED_AR };
-    quantity = parsedQuantity;
-    unit = rawUnit;
-  } else if (quantityGiven || unitGiven) {
-    // Never silently drop them: a caller that sent a quantity for an hourly row misunderstood the
-    // row it is writing, and the close would price it differently than they expect.
-    return { ok: false, error: LABOR_PIECE_ONLY_AR };
-  }
-
-  const note = readText(candidate.note);
-  if (note && note.length > LABOR_NOTE_MAX) return { ok: false, error: LABOR_NOTE_TOO_LONG_AR };
-
-  return {
-    ok: true,
-    value: { personId, teamName, workDate, hours, mode, quantity, unit, note },
-  };
+  return { ok: true, value: { personId, teamName, ...shape.value } };
 }
 
 // ── FIELD-SAFE ERROR MAPPING (non-negotiable #2). The write path can now fail in ways the previous

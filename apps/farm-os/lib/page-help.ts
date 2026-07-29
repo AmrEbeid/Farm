@@ -744,6 +744,15 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     avoid: "هذه أرقام مجمّدة لحظة الإقفال ولا تتأثر بأي تعديل لاحق على الأجور؛ وهي ليست إذن صرف ولا قيدًا محاسبيًا.",
     related: ["payroll", "people", "people-dashboard"],
   },
+  "payroll-readiness": {
+    title: "جاهزية الرواتب",
+    what: "ورقة تحضير مطبوعة قبل تشغيل الرواتب في التجربة، ومعها ثلاثة قوالب تحقق فقط لكشف الفريق والأجور وسجل العمل.",
+    why: "إقفال الرواتب يرفض الفترة بالكامل إذا كان صف واحد غير قابل للتسعير، واكتشاف ذلك لحظة الإقفال هو أغلى وقت لاكتشافه؛ هذه الصفحة تكشفه مبكرًا على ملف Excel.",
+    when: "قبل أول إقفال رواتب حقيقي للمزرعة، وكلما تغيّر مصدر كشف الفريق أو جدول الأجور.",
+    how: "نزّل القالب، املأه ببيانات تجريبية، اضغط «تحقّق»، صحّح الأخطاء حتى تفرغ القائمة، ثم اطبع القائمة ووقّعها أنت والمحاسب بتاريخين.",
+    avoid: "القوالب هنا لا تكتب شيئًا في قاعدة البيانات ولا يوجد لها زر استيراد، حتى بعد تحقّق خالٍ من الأخطاء. التحقق يثبت شكل البيانات فقط لا صحتها. ولا تُدخل أسماء أو أجورًا أو ساعات حقيقية قبل اعتماد مراجعة الخصوصية (المرحلة M). الصفحة لا تحسب نسبة إنجاز ولا تمنح اعتمادًا.",
+    related: ["payroll", "payroll-compensation", "attendance", "people"],
+  },
 };
 
 const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
@@ -773,10 +782,15 @@ const ROUTE_HELP: { pattern: RegExp; helpId: string }[] = [
   { pattern: /^\/expenses\/[^/]+(?:\/)?$/, helpId: "expense-360" },
   // More specific first: a payroll RUN id lives one level under /people/payroll, and /people/payroll
   // itself is a nav page — neither is a person, so both are excluded from the person-360 pattern.
-  // `/people/payroll/compensation` is a STATIC nav route sitting at the same depth as a run id, so it
-  // is excluded here too — otherwise the wage editor would inherit the closed-run report's help.
+  // `/people/payroll/compensation` and `/people/payroll/readiness` are STATIC nav routes sitting at
+  // the same depth as a run id, so both are excluded here — otherwise the wage editor and the
+  // readiness sheet would inherit the closed-run report's help.
   { pattern: /^\/people\/payroll\/compensation(?:\/)?$/, helpId: "payroll-compensation" },
-  { pattern: /^\/people\/payroll\/(?!compensation(?:\/|$))[^/]+(?:\/)?$/, helpId: "payroll-run-360" },
+  { pattern: /^\/people\/payroll\/readiness(?:\/)?$/, helpId: "payroll-readiness" },
+  {
+    pattern: /^\/people\/payroll\/(?!compensation(?:\/|$)|readiness(?:\/|$))[^/]+(?:\/)?$/,
+    helpId: "payroll-run-360",
+  },
   {
     pattern: /^\/people\/(?!dashboard(?:\/|$)|attendance(?:\/|$)|payroll(?:\/|$))[^/]+(?:\/)?$/,
     helpId: "person-360",

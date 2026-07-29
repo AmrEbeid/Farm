@@ -3,9 +3,9 @@
  * so bulk edits use the same budget.write-gated RPC path as the cost-center editor.
  * Parent cost center and linked physical sector are typed as human codes, then resolved to ids.
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const costCentersDescriptor: ImportDescriptor = {
+export const costCentersDescriptor: WriteImportDescriptor = {
   key: "cost-centers",
   titleAr: "مراكز التكلفة",
   rpc: "fn_save_cost_center",

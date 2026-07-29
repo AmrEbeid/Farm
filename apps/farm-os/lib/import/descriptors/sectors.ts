@@ -6,9 +6,9 @@
  * The parent farm is given by its CODE (resolved to farm_id via the ref lookup, RLS-scoped),
  * so users never paste UUIDs.
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const sectorsDescriptor: ImportDescriptor = {
+export const sectorsDescriptor: WriteImportDescriptor = {
   key: "sectors",
   titleAr: "القطاعات",
   rpc: "fn_save_sector",

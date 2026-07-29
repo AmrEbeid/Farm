@@ -5,9 +5,9 @@
  * never fabricate revenue (#1). Insert-only — finalized sales are immutable and never matched/updated.
  * Buyer and cost center are given by NAME/CODE and resolved to ids (users never paste UUIDs).
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const salesDescriptor: ImportDescriptor = {
+export const salesDescriptor: WriteImportDescriptor = {
   key: "sales",
   titleAr: "المبيعات (تسليمات بسعر لاحق)",
   rpc: "fn_save_sale",

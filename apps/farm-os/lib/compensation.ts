@@ -132,6 +132,103 @@ function inclusiveDays(startIso: string, endIso: string): number {
   return Math.floor((end - start) / MS_PER_DAY) + 1;
 }
 
+/** The wage columns themselves — everything about a rate except WHOSE rate it is. */
+export interface CompensationShape {
+  mode: CompensationMode;
+  rate: number;
+  unit: CompensationUnit | null;
+  contractPeriodStart: string | null;
+  contractPeriodEnd: string | null;
+}
+
+/**
+ * Which input field a shape rejection belongs to, so a caller can attach it to its own column.
+ *
+ * The two seasonal bounds are named SEPARATELY on purpose. The form callers discard `field`, but the
+ * readiness import descriptor maps it straight onto a spreadsheet column — so a bad END date that
+ * reported `contractPeriodStart` would underline the wrong cell and send the accountant to fix a date
+ * that was already correct.
+ */
+export type CompensationShapeField =
+  | "mode"
+  | "rate"
+  | "unit"
+  | "contractPeriodStart"
+  | "contractPeriodEnd";
+
+export type CompensationShapeParse =
+  | { ok: true; value: CompensationShape }
+  | { ok: false; field: CompensationShapeField; error: string };
+
+/**
+ * THE ONE COPY of the mode/rate/unit/season rules — extracted verbatim from
+ * `parseCompensationInput`, which now calls it, so the wage editor and the readiness import template
+ * cannot drift apart. Everything person-related stays out: this half knows nothing about identity.
+ *
+ * Order is load-bearing and unchanged: mode → rate → unit → season. A row with two problems reports
+ * the first one, and it is the same first one on both surfaces.
+ */
+export function parseCompensationShape(candidate: Record<string, unknown>): CompensationShapeParse {
+  const mode = candidate.mode;
+  if (!isLaborMode(mode)) return { ok: false, field: "mode", error: COMPENSATION_MODE_INVALID_AR };
+
+  const rate = readNumber(candidate.rate);
+  if (rate === null || rate <= 0 || rate > COMPENSATION_RATE_MAX) {
+    return { ok: false, field: "rate", error: COMPENSATION_RATE_INVALID_AR };
+  }
+
+  const rawUnit = candidate.unit;
+  const unitGiven = rawUnit !== null && rawUnit !== undefined && rawUnit !== "";
+  let unit: CompensationUnit | null = null;
+  if (mode === "piece") {
+    if (!isLaborUnit(rawUnit)) {
+      return { ok: false, field: "unit", error: COMPENSATION_UNIT_REQUIRED_AR };
+    }
+    unit = rawUnit;
+  } else if (unitGiven) {
+    return { ok: false, field: "unit", error: COMPENSATION_UNIT_FORBIDDEN_AR };
+  }
+
+  const rawStart = candidate.contractPeriodStart;
+  const rawEnd = candidate.contractPeriodEnd;
+  const startGiven = rawStart !== null && rawStart !== undefined && rawStart !== "";
+  const endGiven = rawEnd !== null && rawEnd !== undefined && rawEnd !== "";
+  let contractPeriodStart: string | null = null;
+  let contractPeriodEnd: string | null = null;
+
+  if (mode === "seasonal") {
+    // Checked one bound at a time so the rejection names the bound that is actually wrong. The
+    // MESSAGE is unchanged either way — the same sentence the wage editor has always shown.
+    if (!isCalendarDate(rawStart)) {
+      return { ok: false, field: "contractPeriodStart", error: COMPENSATION_SEASON_REQUIRED_AR };
+    }
+    if (!isCalendarDate(rawEnd)) {
+      return { ok: false, field: "contractPeriodEnd", error: COMPENSATION_SEASON_REQUIRED_AR };
+    }
+    // Both are validated YYYY-MM-DD, which sorts lexicographically in calendar order. An inverted
+    // pair is attributed to the END: the start of a contract is the date the user is sure of, and
+    // the end is the one they mistyped or carried over from last season.
+    if (rawStart > rawEnd) {
+      return { ok: false, field: "contractPeriodEnd", error: COMPENSATION_SEASON_ORDER_AR };
+    }
+    if (inclusiveDays(rawStart, rawEnd) > COMPENSATION_MAX_SEASON_DAYS) {
+      return { ok: false, field: "contractPeriodStart", error: COMPENSATION_SEASON_TOO_LONG_AR };
+    }
+    contractPeriodStart = rawStart;
+    contractPeriodEnd = rawEnd;
+  } else if (startGiven || endGiven) {
+    // Same reasoning as the seasonal bounds: name the bound the user actually filled in. A
+    // non-seasonal row carrying ONLY an end date must not underline the empty start column.
+    return {
+      ok: false,
+      field: startGiven ? "contractPeriodStart" : "contractPeriodEnd",
+      error: COMPENSATION_SEASON_FORBIDDEN_AR,
+    };
+  }
+
+  return { ok: true, value: { mode, rate, unit, contractPeriodStart, contractPeriodEnd } };
+}
+
 /**
  * Validate and normalize one compensation row.
  *
@@ -157,50 +254,10 @@ export function parseCompensationInput(input: unknown): CompensationParse {
   const personId = readText(candidate.personId);
   if (!personId || !isUuid(personId)) return { ok: false, error: COMPENSATION_PERSON_INVALID_AR };
 
-  const mode = candidate.mode;
-  if (!isLaborMode(mode)) return { ok: false, error: COMPENSATION_MODE_INVALID_AR };
+  const shape = parseCompensationShape(candidate);
+  if (!shape.ok) return { ok: false, error: shape.error };
 
-  const rate = readNumber(candidate.rate);
-  if (rate === null || rate <= 0 || rate > COMPENSATION_RATE_MAX) {
-    return { ok: false, error: COMPENSATION_RATE_INVALID_AR };
-  }
-
-  const rawUnit = candidate.unit;
-  const unitGiven = rawUnit !== null && rawUnit !== undefined && rawUnit !== "";
-  let unit: CompensationUnit | null = null;
-  if (mode === "piece") {
-    if (!isLaborUnit(rawUnit)) return { ok: false, error: COMPENSATION_UNIT_REQUIRED_AR };
-    unit = rawUnit;
-  } else if (unitGiven) {
-    return { ok: false, error: COMPENSATION_UNIT_FORBIDDEN_AR };
-  }
-
-  const rawStart = candidate.contractPeriodStart;
-  const rawEnd = candidate.contractPeriodEnd;
-  const startGiven = rawStart !== null && rawStart !== undefined && rawStart !== "";
-  const endGiven = rawEnd !== null && rawEnd !== undefined && rawEnd !== "";
-  let contractPeriodStart: string | null = null;
-  let contractPeriodEnd: string | null = null;
-
-  if (mode === "seasonal") {
-    if (!isCalendarDate(rawStart) || !isCalendarDate(rawEnd)) {
-      return { ok: false, error: COMPENSATION_SEASON_REQUIRED_AR };
-    }
-    // Both are validated YYYY-MM-DD, which sorts lexicographically in calendar order.
-    if (rawStart > rawEnd) return { ok: false, error: COMPENSATION_SEASON_ORDER_AR };
-    if (inclusiveDays(rawStart, rawEnd) > COMPENSATION_MAX_SEASON_DAYS) {
-      return { ok: false, error: COMPENSATION_SEASON_TOO_LONG_AR };
-    }
-    contractPeriodStart = rawStart;
-    contractPeriodEnd = rawEnd;
-  } else if (startGiven || endGiven) {
-    return { ok: false, error: COMPENSATION_SEASON_FORBIDDEN_AR };
-  }
-
-  return {
-    ok: true,
-    value: { rowId, personId, mode, rate, unit, contractPeriodStart, contractPeriodEnd },
-  };
+  return { ok: true, value: { rowId, personId, ...shape.value } };
 }
 
 /** How a stored rate reads in the list: «٢٥ ج.م / نخلة», «٢٠٠ ج.م / يوم» … */
