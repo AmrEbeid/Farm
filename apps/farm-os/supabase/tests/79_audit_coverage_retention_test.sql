@@ -15,7 +15,8 @@ select plan(2);
 with must_audit(tbl) as (values
   ('purchase_requests'), ('purchase_request_items'), ('budgets'), ('budget_lines'), ('expenses'),
   ('farm_event'), ('inventory_items'), ('inventory_movements'), ('suppliers'), ('people'),
-  ('people_compensation'), ('organization_member'), ('responsibility_assignments')
+  ('people_compensation'), ('organization_member'), ('responsibility_assignments'),
+  ('payroll_runs'), ('payroll_run_lines')
 )
 select is(
   (select coalesce(string_agg(m.tbl, ', ' order by m.tbl), '(none)')
@@ -34,8 +35,9 @@ select cmp_ok(
   (select count(*)::int from (values
     ('purchase_requests'),('purchase_request_items'),('budgets'),('budget_lines'),('expenses'),
     ('farm_event'),('inventory_items'),('inventory_movements'),('suppliers'),('people'),
-    ('people_compensation'),('organization_member'),('responsibility_assignments')) v(t)),
-  '>=', 13, 'audit retention: the must-audit set is populated (>=13 tables)');
+    ('people_compensation'),('organization_member'),('responsibility_assignments'),
+    ('payroll_runs'),('payroll_run_lines')) v(t)),
+  '>=', 15, 'audit retention: the must-audit set is populated (>=15 tables)');
 
 select * from finish();
 rollback;
