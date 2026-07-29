@@ -41,4 +41,30 @@ describe("xlsx adapter", () => {
     const parsed = await parseUpload(buf, d);
     expect(parsed).toEqual([{ name: "أحمد", kind: "a" }]);
   });
+
+  it("writes conditional formatting with the overridden uuid runtime", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("uuid");
+    ws.getCell("A1").value = 1;
+    ws.addConditionalFormatting({
+      ref: "A1",
+      rules: [
+        {
+          type: "dataBar",
+          priority: 1,
+          gradient: false,
+          cfvo: [{ type: "min" }, { type: "max" }],
+        },
+      ],
+    });
+
+    const out = await wb.xlsx.writeBuffer();
+    const state = ws as unknown as {
+      conditionalFormattings: Array<{ rules: Array<{ x14Id?: string }> }>;
+    };
+    const rule = state.conditionalFormattings[0].rules[0];
+    expect(rule.x14Id).toMatch(/^\{[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}\}$/);
+    expect(out.byteLength).toBeGreaterThan(0);
+  });
 });
