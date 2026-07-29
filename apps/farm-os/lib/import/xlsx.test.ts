@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { createRequire } from "node:module";
 import { renderWorkbook, parseUpload, generateTemplate } from "./xlsx";
 import { DATA_SHEET, type WorkbookSpec } from "./workbook-spec";
 import type { ImportDescriptor } from "./types";
+
+const require = createRequire(import.meta.url);
 
 const d: ImportDescriptor = {
   key: "sample",
@@ -40,5 +43,40 @@ describe("xlsx adapter", () => {
     const buf = await generateTemplate(d, [{ name: "أحمد", kind: "a" }]);
     const parsed = await parseUpload(buf, d);
     expect(parsed).toEqual([{ name: "أحمد", kind: "a" }]);
+  });
+
+  it("writes conditional formatting with the overridden uuid runtime", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("uuid");
+    ws.getCell("A1").value = 1;
+    ws.addConditionalFormatting({
+      ref: "A1",
+      rules: [
+        {
+          type: "dataBar",
+          priority: 1,
+          gradient: false,
+          cfvo: [{ type: "min" }, { type: "max" }],
+        },
+      ],
+    });
+
+    const out = await wb.xlsx.writeBuffer();
+    const exceljsPath = require.resolve("exceljs");
+    const uuidPackagePath = require.resolve("uuid/package.json", { paths: [exceljsPath] });
+    const uuidPackage = require(uuidPackagePath) as { version: string };
+    expect(uuidPackage.version).toBe("11.1.1");
+
+    const jszipPath = require.resolve("jszip", { paths: [exceljsPath] });
+    const JSZip = require(jszipPath) as {
+      loadAsync(data: unknown): Promise<{
+        file(path: string): { async(type: "string"): Promise<string> } | null;
+      }>;
+    };
+    const zip = await JSZip.loadAsync(out);
+    const sheetXml = await zip.file("xl/worksheets/sheet1.xml")?.async("string");
+    const x14Id = sheetXml?.match(/<x14:cfRule[^>]+id="(\{[^"]+\})"/)?.[1];
+    expect(x14Id).toMatch(/^\{[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}\}$/);
   });
 });
