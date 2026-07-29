@@ -2,7 +2,7 @@
 
 *Farm OS · SPEC-0006 (People, labor & payroll) · MASTER-PLAN Stage 8 + Stage M · prepared 2026-07-29*
 
-**Status: DRAFT FOR INDEPENDENT REVIEW — NOT APPROVED, NOT SIGNED, NOT CLEARED.**
+**Status: INDEPENDENT TECHNICAL REVIEW COMPLETE — OWNER PRIVACY APPROVAL NOT SIGNED — STAGE M NOT CLEARED.**
 
 This document is the reviewable packet for the independent access review that SPEC-0006 §4.1 and
 MASTER-PLAN Stage 8 make a **hard requirement**, and for the privacy review that gates Stage M. It is
