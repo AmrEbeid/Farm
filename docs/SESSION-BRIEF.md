@@ -1,7 +1,43 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (payroll Stage-M access review closeout)
+# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (service-role exposure proof closeout)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-29 (latest) — payroll Stage-M access design review — MERGED / DEPLOYED / INDEPENDENTLY ACCEPTED WITH CONDITIONS
+## 2026-07-29 (latest) — payroll L-8 service-role non-exposure — MERGED / DEPLOYED / LIVE-VERIFIED
+
+PR #965 merged at `f6369a6778671675bd28d66a46f0dc4e88d73fbb`; production deployment
+`dpl_9dqdVLVwaBhGWxqxHDZAtdhsCSaP` is READY for that exact merge SHA. There is no migration in this
+slice: no schema, policy, grant, RPC, database data, credential, payment or journal changed.
+
+The new `scripts/check-service-role-exposure.mjs` guard closes payroll privacy check L-8 at the dated
+snapshot and repeats its source/local-build proof in CI. It scans every tracked repository artefact,
+derives all application modules that read `SUPABASE_SERVICE_ROLE_KEY`, requires their `server-only`
+boundary, walks the static graph from every `"use client"` root while respecting `"use server"`,
+and scans `.next/static`. Every detector self-tests, all scan arms have non-vacuity floors, tracked
+symlinks are not dereferenced, and findings never print the matched value. An optional bounded
+`--bundle-dir` arm scans downloaded production chunks.
+
+Independent review corrected five weaknesses before merge: side-effect imports were added to the
+graph parser; sensitive readers became source-derived instead of hardcoded; downloaded-chunk floors
+became mandatory; symlink dereferencing was removed; and a documentation-table break plus stale
+gate wording were fixed. CodeRabbit was rate-limited and did not perform a review, so its green
+status is not counted as evidence.
+
+Evidence: full Vitest **1232 passed + 13 controlled skips**; TypeScript, ESLint, production build
+64/64 and `git diff --check` clean; GitHub app/design-system/pgTAP/gitleaks/Vercel checks green. The
+guard scanned 1,251 tracked files, 77 client roots, 430 source files, 381 resolved edges and 155 local
+browser assets. A synthetic leak failed nonzero and remained redacted. After the exact production
+release, all **13/13** JavaScript chunks referenced by the public `/` and `/login` pages downloaded
+and scanned clean. `/login` returned 200; signed-out `/people/payroll/readiness` returned 307 to
+`/login`; Vercel reported no runtime errors in the queried 15-minute window.
+
+**Standing boundary:** L-8 / G-T19 is done at this snapshot, but Stage M remains NO-GO. Still open:
+L-3 live supervisor-JWT denial; L-5 auth-hook state; L-6/L-7 logs and backups; L-9 privileged-account
+hygiene; L-10 leaked-password protection; G-T16...G-T18; and G-H2...G-H13. No real payroll data is
+authorised.
+
+**Exact resume point:** continue with the remaining agent-verifiable Stage-M operator checks without
+reading real payroll data. Provider settings and human/privacy approvals stay Owner-gated.
+
+## 2026-07-29 — payroll Stage-M access design review — MERGED / DEPLOYED / INDEPENDENTLY ACCEPTED WITH CONDITIONS
 
 PR #963 merged at `5e4e69d9ad973b5fc6ca8f6bafab1616ac375157`; head commits were `79a0b6e`
 (review packet and evidence), `dd3ab6f` (comment-safe route-gate scanner), and `744a77d` (review/approval
