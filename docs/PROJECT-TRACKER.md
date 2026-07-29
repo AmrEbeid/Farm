@@ -1,4 +1,48 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-29 by Claude (payroll close/report UI closeout)
+# Project Tracker — Farm OS      Last updated: 2026-07-29 by Claude (payroll readiness slice closeout)
+
+> **2026-07-29 — PAYROLL READINESS (COMPENSATION EDITOR + MODE-AWARE LABOR): MERGED / DEPLOYED /
+> PUBLIC-SMOKED.**
+> PR #959 merged at `d335f205d4d4c79bcc613b2e7e59dba2e46c4335`; head commits `637cb4c` (wage setup and
+> mode-aware labor) and `7f7af17` (wage editor state normalization). Vercel deployment
+> `dpl_4Y3xR76wkA1fxbEsB8YsRC7M7gTD` is READY on target production for that exact merge commit.
+> **App-only: no migration, schema, RPC, or data change** — the hosted payroll migration remains
+> `20260729102938 payroll_run_persistence`, from source file
+> `apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`.
+>
+> Delivered: an owner/accountant compensation editor at `/people/payroll/compensation` covering all four modes
+> — hourly, daily, piece, and seasonal. Reads are org-scoped, bounded, and carry no PII. Inactive workers
+> remain named on the wage rows that already reference them, so existing rate history stays legible, but they
+> cannot be selected for a new rate. Writes are create and update only — there is no delete path. Attendance
+> now records the compensation mode and the piece quantity and unit while still requiring hours, so the hourly
+> baseline is never lost. Work dates are validated on the Cairo calendar with no future day. Selecting a
+> free-text team shows an explicit warning that payroll close will refuse the period. Page headers are compact,
+> payroll links are role-gated, and the people dashboard estimate is labelled explicitly as hourly-only.
+> **The close RPC, payment execution, and journal posting are unchanged — none of them are in this slice.**
+>
+> Claude implemented and validated; Codex reviewed independently and fixed an inactive-worker identity
+> ambiguity before the PR was opened, then addressed CodeRabbit's unknown-mode and help-copy findings.
+> CodeRabbit's final rerun was rate-limited, but its status check passed and every required fresh-head check is
+> green. Evidence: full app Vitest 85 files, 1,125 passed + 13 controlled skips before the review fixes;
+> focused review-fix run 106/106; TypeScript, touched-file ESLint, production build with static generation
+> 64/64, the guards, and
+> `git diff --check` all clean; fresh GitHub app CI, design-system CI, pgTAP, gitleaks, and Vercel preview
+> green. Post-release the public `/login` returned HTTP 200, signed-out `/people/payroll/compensation` and the
+> signed-out attendance page each redirected once to `/login`, and Vercel found no runtime errors in the
+> queried 15-minute window.
+>
+> **Truth boundary: no authenticated production owner/accountant UI workflow was exercised**, no real
+> compensation or labor data was imported, and no pilot close or report was completed. **Do not claim pilot
+> acceptance.** The readiness data-entry surface is now built and live, but **payroll is still NOT 100%:** the
+> Stage-M real-PII review, an approved real staff/rate/labor import, an authenticated owner/accountant pilot of
+> compensation, attendance, close, and report, dated acceptance/signoff, and any separately ratified
+> payment/journal scope remain open.
+> **Also still open, unchanged:** accounting is human-gated on the 698 row decisions, the real workbook dual
+> run, exception resolution, and dated accountant/owner acceptance; the security (upstream/npm findings plus
+> the Owner-only gates) and palm-registry (conflicting real source counts) blockers are unchanged.
+> **Next payroll engineering slice:** a payroll readiness/pilot checklist plus safe real-data import
+> preparation — write the dated owner/accountant pilot checklist covering compensation, attendance, close, and
+> report, and prepare the import path (templates, validation rules, dry-run) using synthetic data only. **No
+> real PII yet:** no real staff, rates, or labor may be imported before the Stage-M privacy review clears.
 
 > **2026-07-29 — PAYROLL CLOSE/REPORT UI: MERGED / DEPLOYED / PUBLIC-SMOKED.**
 > PR #957 merged at `9300e473b0d67e72d1e0d96f5bdc683c2617f897`; head commits `83be4f0` (close and report
@@ -41,6 +85,10 @@
 > **Next payroll engineering slice:** audit and improve the data-entry/readiness workflow for compensation and
 > attendance using synthetic data only, and prepare a pilot acceptance checklist. Do not fabricate real rates
 > or staff.
+> *(Superseded 2026-07-29 by the payroll readiness entry above: the compensation/attendance data-entry
+> workflow shipped in PR #959, so this next-slice line is closed. Everything else here — no authenticated
+> pilot close/report, no real import, no acceptance/signoff, no payment or journal, Stage-M gated, payroll not
+> 100% — remains true.)*
 
 > **2026-07-29 — PAYROLL PERSISTENCE KERNEL: MERGED / MIGRATED / DEPLOYED / PRODUCTION-VERIFIED.**
 > PR #955 merged at `7672f3142375d092d33b7b36d13c9d55c63106bb`; head commits `4e15d0d` (initial kernel) and
@@ -2045,7 +2093,7 @@ One private monorepo `github.com/AmrEbeid/Farm` (`packages/ui` + `apps/farm-os` 
 | 5 | Inventory + **stock-coverage engine** | Execution | Medium | Todo | The wedge — define checks first (SPEC-0001) |
 | 6 | Budget + approvals + purchase requests | Execution | **High** | Todo | Approval/entitlement logic |
 | 7 | Accounting (expenses/sales/vouchers) | Execution | **High** | **Cash-method custody ledger + SPEC-0024 COA tree + cost centers + reports + owner insights + offshoot bank + revenue/A-R backend live; full P&L still gated** | PR #568 shipped the source-linked custody/payment-request ledger (`20260701220000 accounting_cash_custody_settlement`). PR #654/#661 ship the editable COA-tree backend+UI (`20260701440000` + no-migration UI): account hierarchy, default farm COA seed, expense `account_id`, selected-leaf posting, and account import support. PR #659 ships S-3 cost centers migrate-first as `20260701460000`: 18 real Ebeid cost centers, `CC-UNALLOC`, expense/journal `cost_center_id`, rollup + reconciliation views, and cost-center import support. PR #667 ships `/finance/reports` with cost-center KPIs, rollup, reconciliation flags, charts, and the account×year×center matrix. PR #670 ships `/finance/insights` plus owner-dashboard insight adoption over posted data only. PR #663 ships the S-7a offshoot quantity ledger + display-only valuation backend (`20260701470000`); PR #672 ships `/farm/offshoots` UI/reporting/import over it. PR #676 ships S-10 revenue/A-R backend (`20260701500000`): delivery-before-price sales, buyer master, partial/final collections, and A/R/cash journals. Older #368 synthetic P&L remains behind real Excel reconciliation + Stage-M privacy review; next money slice is S-10b revenue reports + A/R aging, then close/period lock, while S-6 waits for Stage-M. |
-| 8 | People & labor/payroll | Execution | **High** | **Persistence kernel + staff-facing close/report UI both live (2026-07-29, PR #955 migration `20260729102938`, PR #957 app-only); NO authenticated pilot close/acceptance** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Synthetic-only `payroll_runs`/`payroll_run_lines` persistence + `fn_close_payroll_run` are merged, migrated, deployed, and production-verified:** mixed hourly/daily/piece/seasonal, immutable closed runs and lines, idempotent exact-period replay, rejected overlapping periods, per-org advisory serialization of close/labor/compensation races, covered-labor freeze, owner/accountant-only close/report, audit confidentiality, AI exclusion. **The owner/accountant close/report UI is now built and live (PR #957):** compact Arabic `/people/payroll` close page + printable `/people/payroll/[runId]` report, owner/accountant-only nav, Cairo-calendar strict date validation (real dates, ≤366 days, no future day, client+server), explicit immutable/freeze confirmation, synchronous duplicate-submit lock, direct idempotent RPC call with the session org and no precheck race, fixed Arabic errors with no raw DB identifiers, bounded org-scoped reads (history 20, lines 500 + overflow detection, one-query names, no phone/email), and fail-closed missing/read/overflow/empty paths. **Still NOT done:** any real approved staff/rate/labor import, an authenticated owner/accountant pilot close + report (none was exercised — no session was available), payroll acceptance/signoff, and any payment execution or journal posting. Real PII stays behind Stage M. Payroll is not 100%. |
+| 8 | People & labor/payroll | Execution | **High** | **Persistence kernel + staff-facing close/report UI + compensation/attendance readiness surface all live (2026-07-29, PR #955 migration `20260729102938`, PR #957 and PR #959 app-only); NO authenticated pilot, NO real data, NO acceptance** | **PII-1 #173 FULLY DONE** (`0046` wage slice + `0048` contact slice). Payroll computation engine + reconciliation oracle (`lib/payroll.ts`, draft PR #352). **Synthetic-only `payroll_runs`/`payroll_run_lines` persistence + `fn_close_payroll_run` are merged, migrated, deployed, and production-verified:** mixed hourly/daily/piece/seasonal, immutable closed runs and lines, idempotent exact-period replay, rejected overlapping periods, per-org advisory serialization of close/labor/compensation races, covered-labor freeze, owner/accountant-only close/report, audit confidentiality, AI exclusion. **The owner/accountant close/report UI is now built and live (PR #957):** compact Arabic `/people/payroll` close page + printable `/people/payroll/[runId]` report, owner/accountant-only nav, Cairo-calendar strict date validation (real dates, ≤366 days, no future day, client+server), explicit immutable/freeze confirmation, synchronous duplicate-submit lock, direct idempotent RPC call with the session org and no precheck race, fixed Arabic errors with no raw DB identifiers, bounded org-scoped reads (history 20, lines 500 + overflow detection, one-query names, no phone/email), and fail-closed missing/read/overflow/empty paths. **The compensation/attendance readiness surface is now built and live (PR #959, app-only):** an owner/accountant compensation editor at `/people/payroll/compensation` for hourly/daily/piece/seasonal, bounded org-scoped no-PII reads, inactive workers still named on existing wage rows but unselectable for new rates, safe create/update with no delete, attendance recording mode plus piece quantity/unit while still requiring hours, Cairo-calendar no-future work dates, an explicit free-text-team close warning, compact headers with role-gated payroll links, and a dashboard estimate labelled explicitly hourly-only — with the close RPC, payment execution, and journal posting unchanged. **Still NOT done:** any real approved staff/rate/labor import, an authenticated owner/accountant pilot of compensation, attendance, close, and report (none was exercised), dated payroll acceptance/signoff, and any payment execution or journal posting. Real PII stays behind Stage M. Payroll is not 100%. **Next slice:** the payroll readiness/pilot checklist plus safe real-data import preparation (templates, validation, dry-run) on synthetic data only — no real PII yet. |
 | 9 | Weather integration | Execution | Medium | **Built (2026-06-27, PR #350 ready); SPEC-0007 RATIFIED** | Untrusted-safe forecast ingest (`lib/weather.ts`) + advisory operation gates + `/weather`. **Go-live = Owner sets server-side `WEATHER_API_KEY`/`WEATHER_API_URL` in Vercel.** |
 | 10 | Care Academy content | Documentation | Med/High | **Editor built on synthetic (2026-06-27, draft PR #366)** | Content store + the **#4 authoritativeness gate** (`lib/academy.ts`) + sign-off workflow + `/academy` editor. Migration `0087` draft. pgTAP 666/666. **GATE STILL OPEN:** a **licensed agronomist + current Egyptian pesticide-registration sign-off** — content stays advisory ("قالب استرشادي") until then; editing content RESETS any sign-off. |
 | 11 | AI assistant عبدالجليل | Execution | **High** | **SPEC-0005 RATIFIED (2026-06-27); boundary built, AI build review-gated** | Trifecta capability boundary (`lib/assistant-policy.ts`, draft PR #356) — deny-by-default, read-only/RLS-scoped/no-PII/no-outbound. **The AI itself (chat route, model, ingest) is NOT built — it requires independent security review per slice (highest risk).** |
