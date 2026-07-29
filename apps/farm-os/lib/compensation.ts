@@ -141,8 +141,20 @@ export interface CompensationShape {
   contractPeriodEnd: string | null;
 }
 
-/** Which input field a shape rejection belongs to, so a caller can attach it to its own column. */
-export type CompensationShapeField = "mode" | "rate" | "unit" | "contractPeriodStart";
+/**
+ * Which input field a shape rejection belongs to, so a caller can attach it to its own column.
+ *
+ * The two seasonal bounds are named SEPARATELY on purpose. The form callers discard `field`, but the
+ * readiness import descriptor maps it straight onto a spreadsheet column — so a bad END date that
+ * reported `contractPeriodStart` would underline the wrong cell and send the accountant to fix a date
+ * that was already correct.
+ */
+export type CompensationShapeField =
+  | "mode"
+  | "rate"
+  | "unit"
+  | "contractPeriodStart"
+  | "contractPeriodEnd";
 
 export type CompensationShapeParse =
   | { ok: true; value: CompensationShape }
@@ -185,12 +197,19 @@ export function parseCompensationShape(candidate: Record<string, unknown>): Comp
   let contractPeriodEnd: string | null = null;
 
   if (mode === "seasonal") {
-    if (!isCalendarDate(rawStart) || !isCalendarDate(rawEnd)) {
+    // Checked one bound at a time so the rejection names the bound that is actually wrong. The
+    // MESSAGE is unchanged either way — the same sentence the wage editor has always shown.
+    if (!isCalendarDate(rawStart)) {
       return { ok: false, field: "contractPeriodStart", error: COMPENSATION_SEASON_REQUIRED_AR };
     }
-    // Both are validated YYYY-MM-DD, which sorts lexicographically in calendar order.
+    if (!isCalendarDate(rawEnd)) {
+      return { ok: false, field: "contractPeriodEnd", error: COMPENSATION_SEASON_REQUIRED_AR };
+    }
+    // Both are validated YYYY-MM-DD, which sorts lexicographically in calendar order. An inverted
+    // pair is attributed to the END: the start of a contract is the date the user is sure of, and
+    // the end is the one they mistyped or carried over from last season.
     if (rawStart > rawEnd) {
-      return { ok: false, field: "contractPeriodStart", error: COMPENSATION_SEASON_ORDER_AR };
+      return { ok: false, field: "contractPeriodEnd", error: COMPENSATION_SEASON_ORDER_AR };
     }
     if (inclusiveDays(rawStart, rawEnd) > COMPENSATION_MAX_SEASON_DAYS) {
       return { ok: false, field: "contractPeriodStart", error: COMPENSATION_SEASON_TOO_LONG_AR };
@@ -198,7 +217,13 @@ export function parseCompensationShape(candidate: Record<string, unknown>): Comp
     contractPeriodStart = rawStart;
     contractPeriodEnd = rawEnd;
   } else if (startGiven || endGiven) {
-    return { ok: false, field: "contractPeriodStart", error: COMPENSATION_SEASON_FORBIDDEN_AR };
+    // Same reasoning as the seasonal bounds: name the bound the user actually filled in. A
+    // non-seasonal row carrying ONLY an end date must not underline the empty start column.
+    return {
+      ok: false,
+      field: startGiven ? "contractPeriodStart" : "contractPeriodEnd",
+      error: COMPENSATION_SEASON_FORBIDDEN_AR,
+    };
   }
 
   return { ok: true, value: { mode, rate, unit, contractPeriodStart, contractPeriodEnd } };

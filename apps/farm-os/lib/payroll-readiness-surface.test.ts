@@ -204,9 +204,16 @@ describe("the checklist itself tells the truth", () => {
     expect(READINESS_PURPOSE_AR).toContain("لا تحسب نسبة إنجاز");
     expect(READINESS_PURPOSE_AR).toContain("لا تمنح اعتمادًا");
     expect(READINESS_UNSIGNED_AR).toBe("لم تُغلق بعد");
-    // No progress/percentage rendering on the page either.
+    // No progress/percentage rendering on the page either. A bare `not.toContain("%")` was broader
+    // than the intent: a Tailwind arbitrary value (`w-[100%]`) renders no percentage at all, yet
+    // would fail it. So the arbitrary-value brackets are dropped first, and what is refused is a
+    // percent sign in RENDERED position — directly after a digit (ASCII or Arabic-Indic), or after
+    // the `)`/`}` that closes a `num(...)` or a JSX expression. `pct()` is refused outright: it
+    // renders a percentage with no literal `%` anywhere in the source.
     expect(source).not.toContain("Progress");
-    expect(source).not.toContain("%");
+    const renderedText = source.replace(/\[[^\]\s]*%[^\]\s]*\]/g, "");
+    expect(renderedText).not.toMatch(/[\d٠-٩)}]\s*[%٪]/);
+    expect(source).not.toMatch(/\bpct\s*\(/);
   });
 
   it("states the no-write, synthetic-only and out-of-scope boundaries, and the page shows them", () => {

@@ -22,6 +22,7 @@
  */
 import { useState } from "react";
 import { num } from "@/lib/money";
+import type { ImportMode } from "@/lib/import/access";
 import { importPanelControls } from "@/lib/import/panel-mode";
 
 interface DryRunResult {
@@ -65,7 +66,9 @@ export function ImportPanel({
   const [error, setError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
 
-  async function send(mode: "dry-run" | "commit") {
+  // `ImportMode` is the route's own spelling of the two modes (lib/import/access.ts). Restating the
+  // literals here would let the panel drift from the gate the day a third mode is added.
+  async function send(mode: ImportMode) {
     if (!file) return;
     // Belt and braces: a commit request is never even formed when this panel has no commit control.
     // The server refuses it regardless — this only keeps the client from asking.

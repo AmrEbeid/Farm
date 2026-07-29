@@ -61,6 +61,23 @@ function columnsWithErrors(
   return validateRows(descriptor, [row], now).errors.map((e) => e.column);
 }
 
+/**
+ * The (column, reason) pairs one row produces — i.e. the exact CELL the reader is sent to, and the
+ * exact sentence they read there. Asserted together because these templates are filled in on a
+ * spreadsheet: a correct message against the wrong column sends the accountant to re-type a value
+ * that was already right, which is the mistake this rehearsal exists to catch, not to commit.
+ */
+function cellErrorsFor(
+  descriptor: (typeof PAYROLL_READINESS_DESCRIPTORS)[number],
+  row: Record<string, unknown>,
+  now: Date = CAIRO_SAME_DAY,
+): { column: string; reason: string }[] {
+  return validateRows(descriptor, [row], now).errors.map((e) => ({
+    column: e.column,
+    reason: e.reason,
+  }));
+}
+
 const validStaff = {
   name: "عامل تجريبي ١",
   position: "وظيفة تجريبية",
@@ -195,11 +212,13 @@ describe("compensation readiness — the wage editor's own rules, not a second c
     expect(validateRows(payrollReadinessCompensationDescriptor, [validComp], CAIRO_SAME_DAY).okCount).toBe(1);
   });
 
-  it("rejects an unknown mode with the editor's message", () => {
+  it("rejects an unknown mode at column coercion, before the shape validator runs", () => {
     expect(reasonsFor(payrollReadinessCompensationDescriptor, { ...validComp, mode: "monthly" })).toContain(
       "قيمة غير مسموح بها",
     );
-    // …and the shape validator's own message when the mode is absent from the coerced row entirely.
+    // A BLANK mode is caught earlier still, by the required-column check, which short-circuits the
+    // row before `crossFieldCheck` ever calls `parseCompensationShape` — so the editor's own
+    // COMPENSATION_MODE_INVALID_AR is reported by neither case, and the row is refused regardless.
     expect(reasonsFor(payrollReadinessCompensationDescriptor, { ...validComp, mode: "" })).not.toContain(
       COMPENSATION_MODE_INVALID_AR,
     );
@@ -294,6 +313,46 @@ describe("compensation readiness — the wage editor's own rules, not a second c
     ).toContain(COMPENSATION_SEASON_TOO_LONG_AR);
   });
 
+  it("blames the contract bound that is actually wrong, not always the start", () => {
+    const seasonal = { ...validComp, mode: "seasonal" };
+    // A real start with NO end is an end error. (An impossible end like 2026-02-30 never reaches the
+    // shape validator at all — the date column refuses to coerce it, and already names its own
+    // column — so the missing bound is the case that exercises the split.)
+    expect(
+      cellErrorsFor(payrollReadinessCompensationDescriptor, {
+        ...seasonal,
+        contractPeriodStart: "2026-01-01",
+      }),
+    ).toEqual([{ column: "contractPeriodEnd", reason: COMPENSATION_SEASON_REQUIRED_AR }]);
+    // …and a missing START stays on the start.
+    expect(
+      cellErrorsFor(payrollReadinessCompensationDescriptor, {
+        ...seasonal,
+        contractPeriodEnd: "2026-03-31",
+      }),
+    ).toEqual([{ column: "contractPeriodStart", reason: COMPENSATION_SEASON_REQUIRED_AR }]);
+    // Neither given: the start is the first bound missing, so it is the one reported.
+    expect(cellErrorsFor(payrollReadinessCompensationDescriptor, seasonal)).toEqual([
+      { column: "contractPeriodStart", reason: COMPENSATION_SEASON_REQUIRED_AR },
+    ]);
+    // An inverted pair is attributed to the END — the start is the date the user is sure of.
+    expect(
+      cellErrorsFor(payrollReadinessCompensationDescriptor, {
+        ...seasonal,
+        contractPeriodStart: "2026-04-01",
+        contractPeriodEnd: "2026-03-31",
+      }),
+    ).toEqual([{ column: "contractPeriodEnd", reason: COMPENSATION_SEASON_ORDER_AR }]);
+    // An over-long span keeps reporting the start (unchanged), and keeps its own sentence.
+    expect(
+      cellErrorsFor(payrollReadinessCompensationDescriptor, {
+        ...seasonal,
+        contractPeriodStart: "2026-01-01",
+        contractPeriodEnd: "2027-01-02",
+      }),
+    ).toEqual([{ column: "contractPeriodStart", reason: COMPENSATION_SEASON_TOO_LONG_AR }]);
+  });
+
   it("forbids contract dates on every non-seasonal mode", () => {
     expect(
       reasonsFor(payrollReadinessCompensationDescriptor, {
@@ -307,6 +366,31 @@ describe("compensation readiness — the wage editor's own rules, not a second c
         contractPeriodEnd: "2026-03-31",
       }),
     ).toContain(COMPENSATION_SEASON_FORBIDDEN_AR);
+  });
+
+  it("blames the contract bound the user actually filled in on a non-seasonal row", () => {
+    // An END alone lands on the END cell. It used to land on `contractPeriodStart` — an empty cell,
+    // which told the reader to clear a column they had never typed into.
+    expect(
+      cellErrorsFor(payrollReadinessCompensationDescriptor, {
+        ...validComp,
+        contractPeriodEnd: "2026-03-31",
+      }),
+    ).toEqual([{ column: "contractPeriodEnd", reason: COMPENSATION_SEASON_FORBIDDEN_AR }]);
+    // A start — alone, or alongside an end — stays on `contractPeriodStart`.
+    expect(
+      cellErrorsFor(payrollReadinessCompensationDescriptor, {
+        ...validComp,
+        contractPeriodStart: "2026-01-01",
+      }),
+    ).toEqual([{ column: "contractPeriodStart", reason: COMPENSATION_SEASON_FORBIDDEN_AR }]);
+    expect(
+      cellErrorsFor(payrollReadinessCompensationDescriptor, {
+        ...validComp,
+        contractPeriodStart: "2026-01-01",
+        contractPeriodEnd: "2026-03-31",
+      }),
+    ).toEqual([{ column: "contractPeriodStart", reason: COMPENSATION_SEASON_FORBIDDEN_AR }]);
   });
 });
 
@@ -355,6 +439,22 @@ describe("labor readiness — the attendance form's own rules, not a second copy
     expect(reasonsFor(payrollReadinessLaborDescriptor, { ...validLabor, unit: "box" })).toContain(
       LABOR_PIECE_ONLY_AR,
     );
+  });
+
+  it("blames the piece column the user actually filled in on a non-piece row", () => {
+    // Unit alone lands on the UNIT cell. It used to land on `quantity` — an empty cell, which told
+    // the reader to fix something they had not written.
+    expect(cellErrorsFor(payrollReadinessLaborDescriptor, { ...validLabor, unit: "box" })).toEqual([
+      { column: "unit", reason: LABOR_PIECE_ONLY_AR },
+    ]);
+    // A quantity — alone, or alongside a unit — lands on `quantity`: it is the half the close would
+    // have priced, so it is the one to delete.
+    expect(cellErrorsFor(payrollReadinessLaborDescriptor, { ...validLabor, quantity: "40" })).toEqual([
+      { column: "quantity", reason: LABOR_PIECE_ONLY_AR },
+    ]);
+    expect(
+      cellErrorsFor(payrollReadinessLaborDescriptor, { ...validLabor, quantity: "40", unit: "box" }),
+    ).toEqual([{ column: "quantity", reason: LABOR_PIECE_ONLY_AR }]);
   });
 
   it("refuses a future work date on the CAIRO day, not the server's UTC day", () => {

@@ -199,7 +199,12 @@ export function parseLaborShape(
   } else if (quantityGiven || unitGiven) {
     // Never silently drop them: a caller that sent a quantity for an hourly row misunderstood the
     // row it is writing, and the close would price it differently than they expect.
-    return { ok: false, field: "quantity", error: LABOR_PIECE_ONLY_AR };
+    //
+    // The rejection names the column that was actually filled in — `unit` when only a unit was
+    // supplied, `quantity` otherwise (alone, or alongside a unit, since the quantity is then the
+    // pricing-relevant half). The form callers discard `field`, but the readiness import descriptor
+    // maps it onto a spreadsheet column, and pointing at an empty cell helps nobody.
+    return { ok: false, field: quantityGiven ? "quantity" : "unit", error: LABOR_PIECE_ONLY_AR };
   }
 
   const note = readText(candidate.note);

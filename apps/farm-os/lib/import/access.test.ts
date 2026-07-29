@@ -265,24 +265,32 @@ describe("the body is never a routing input", () => {
   });
 });
 
+/**
+ * These are INTENT-level regexes, not exact literals. What the panel must do is put the routing
+ * metadata in the query string and keep it out of the body; a Prettier rewrap or an added argument
+ * changes neither, and an exact-literal assertion would fail on both. (The route-ordering checks
+ * below stay exact-ish for the opposite reason: nothing else in the suite can see ordering, so the
+ * call spellings there ARE the contract.)
+ */
 describe("the panel speaks the pre-body contract", () => {
   it("sends descriptor and mode in the query string, encoded", () => {
-    expect(panelSource).toContain(
-      'const query = new URLSearchParams({ descriptor: descriptorKey, mode });',
+    expect(panelSource).toMatch(
+      /new URLSearchParams\(\s*\{\s*descriptor:\s*descriptorKey\s*,\s*mode\s*,?\s*\}\s*\)/,
     );
-    expect(panelSource).toContain("fetch(`/api/import?${query}`");
+    expect(panelSource).toMatch(/fetch\(\s*`\/api\/import\?\$\{query\}`/);
   });
 
   it("puts neither descriptor nor mode in the POST body", () => {
-    expect(panelSource).not.toContain('fd.set("mode"');
-    expect(panelSource).not.toContain('fd.set("descriptor"');
+    // Tolerant of quote style and spacing, so a reformat cannot smuggle either one into the body.
+    expect(panelSource).not.toMatch(/fd\.set\(\s*["']mode["']/);
+    expect(panelSource).not.toMatch(/fd\.set\(\s*["']descriptor["']/);
   });
 
   it("encodes the descriptor in the GET template link too", () => {
-    expect(panelSource).toContain(
-      'const templateHref = `/api/import?${new URLSearchParams({ descriptor: descriptorKey })}`;',
+    expect(panelSource).toMatch(
+      /templateHref\s*=\s*`\/api\/import\?\$\{\s*new URLSearchParams\(\s*\{\s*descriptor:\s*descriptorKey\s*,?\s*\}\s*\)\s*\}`/,
     );
-    expect(panelSource).not.toContain("/api/import?descriptor=${");
+    expect(panelSource).not.toMatch(/\/api\/import\?descriptor=\$\{/);
   });
 });
 
