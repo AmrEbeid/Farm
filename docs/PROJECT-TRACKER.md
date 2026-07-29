@@ -1,4 +1,28 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-29 by Codex (independent payroll access review)
+# Project Tracker — Farm OS      Last updated: 2026-07-29 by Codex (service-role exposure proof)
+
+> **2026-07-29 — PAYROLL L-8 SERVICE-ROLE NON-EXPOSURE: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #965 merged at `f6369a6778671675bd28d66a46f0dc4e88d73fbb`; exact production deployment
+> `dpl_9dqdVLVwaBhGWxqxHDZAtdhsCSaP` is READY for that merge SHA. No migration was required.
+>
+> A fail-closed CI guard now scans every tracked repository artefact, derives every application
+> source module that reads `SUPABASE_SERVICE_ROLE_KEY`, walks the static graph from all `"use client"`
+> roots with the real `"use server"` boundary, requires each service-role reader to import
+> `server-only`, and scans emitted browser chunks. All detectors self-test on synthetic positive and
+> benign fixtures; file, byte, source, edge, client-root and service-reader floors prevent empty
+> success. Symlinks are not dereferenced, and findings report only detector, path and byte offset.
+>
+> Evidence: full Vitest **1232 passed + 13 controlled skips**; TypeScript, ESLint, 64/64 production
+> build and `git diff --check` clean; all GitHub app/design-system/pgTAP/gitleaks/Vercel checks green.
+> The reviewed guard scanned 1,251 tracked files, 77 client roots, 430 source files, 381 resolved
+> edges and 155 local browser assets. A synthetic secret caused the required nonzero failure without
+> printing its value. After production release, **13/13** JavaScript chunks referenced by public `/`
+> and `/login` were downloaded and scanned clean. `/login` returned 200; signed-out payroll readiness
+> returned 307 to `/login`; Vercel showed no runtime errors in the queried 15-minute window.
+>
+> This closes technical gate **L-8 / G-T19 at the dated snapshot** and enforces its repository,
+> graph and local-build arms on every CI run. **Stage M remains NO-GO**: L-3, L-5...L-7, L-9...L-10,
+> G-T16...G-T18, and G-H2...G-H13 remain open. No schema, RPC, database data, credential, payment,
+> journal, authenticated request or private-route request changed.
 
 > **2026-07-29 — PAYROLL STAGE-M ACCESS DESIGN REVIEW: INDEPENDENT TECHNICAL REVIEW COMPLETE /
 > REAL-DATA NO-GO REMAINS.**
