@@ -1,5 +1,27 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (palm source reconciliation)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (explicit journal entry dates)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — explicit journal entry dates — MIGRATED / HOSTED-VERIFIED
+
+Farm production migration `20260730075952 accounting_journal_entry_date_required` is applied. The internal
+two-line journal choke point now rejects a null `p_entry_date` with SQLSTATE 23502 instead of silently using
+`current_date`. The caller audit found every active sale, collection, custody, settlement, opening-balance,
+backfill, reconciliation, and rollback path already supplies a resolved business date. Valid-date retries
+still return the existing posted journal before the period-lock check.
+
+Independent review returned APPROVE and requested one stronger idempotency regression, which was added.
+Docker-free pgTAP is **3,108 ok / 0 not_ok / 0 file failures**; test 143 is 7/7. Hosted postflight confirms
+the exact 14-argument function, null guard, no fallback, `SECURITY DEFINER`, volatile, empty `search_path`,
+and no public/anon/authenticated execute. No financial or other business row changed.
+
+GitHub queued the exact-head workflows late. One intermediate app run was canceled, as configured, when the
+final docs commit superseded it. Current head `a311fcc` then passed app typecheck, lint, unit tests, production
+build and bundle guards; design-system tests/build/Storybook; gitleaks; and db-tests. Vercel and integrations
+also passed.
+
+**Exact resume point:** finish the repository merge/release verification for the journal-date slice, then
+return to accounting acceptance. The remaining 100% gate is human: decide all 698 staged reconciliation
+rows, resolve exceptions, run the workbook dual-run, and obtain dated accountant and Owner acceptance.
 
 ## 2026-07-30 — palm source reconciliation — LOCAL / FAIL-CLOSED / NO DATA CHANGE
 

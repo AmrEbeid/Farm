@@ -1,4 +1,22 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-29 by Codex (provider security settings probe)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (explicit journal entry dates)
+
+> **2026-07-30 — ACCOUNTING #719 ITEM 3: MIGRATED / HOSTED-VERIFIED.**
+> Farm production migration `20260730075952 accounting_journal_entry_date_required` makes an explicit
+> accounting date mandatory at `fn_post_two_line_journal`. The previous null-to-`current_date` fallback
+> could place an unknown historical transaction in today's period; it is gone. All active callers were
+> audited and already resolve a non-null business date. Valid-date retries remain idempotent before the
+> period-lock check.
+>
+> Evidence: independent review APPROVE; Docker-free pgTAP **3,108/3,108**, including seven direct regression
+> assertions; hosted catalog postflight confirms the exact signature, null guard, no fallback, empty
+> `search_path`, unchanged volatility/security-definer posture, and no public/anon/authenticated execute.
+> No business row changed. Exact-head GitHub app, design-system, build, guard, gitleaks, and db-tests
+> checks are green. GitHub queued them late; one intermediate app run was canceled by the final docs
+> commit through the configured concurrency group, and the current-head replacement passed.
+>
+> Accounting remains **~99.5%, not 100%**. The software workflow is complete; dependable daily-use acceptance
+> still requires decisions on all 698 staged reconciliation rows, exception resolution, workbook dual-run,
+> and dated accountant/Owner acceptance. #719 item 5 remains optional defense-in-depth.
 
 > **2026-07-29 — PAYROLL PROVIDER SECURITY SETTINGS: READ-ONLY PROBE COMPLETE / FOUR GATES REMAIN OPEN.**
 > The production Supabase dashboard confirms `custom_access_token_hook` is **not configured** and
