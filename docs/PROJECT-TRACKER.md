@@ -1,4 +1,74 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (acceptance amount-correction totals)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LOCAL CANDIDATE)
+
+> **2026-07-30 — RECONCILIATION REVIEW FORM DISCARDS ABANDONED EDITS: LOCAL CANDIDATE / REVIEW APPROVED /
+> NOT PUSHED / NOT MERGED / NOT DEPLOYED.**
+> Local commit only, on `audit/accounting-acceptance-next` in an isolated worktree off `cfdfb40`. No push, no
+> PR, no merge, no deploy, no migration, no production access. **Independent Codex review is APPROVE after
+> one blocking finding was fixed and re-reviewed.**
+>
+> The defect (`app/(app)/finance/reconciliation/[batchId]/controls.tsx`). `RowCard` is keyed by row id and
+> never unmounts while the batch page is open, and every form field lived in a `useState` **initialiser**,
+> which React runs once. «إلغاء» and the header close button only called `setOpen(false)`. So an abandoned
+> edit survived the cancel: reopening the same row showed the abandoned action/target/payload/correction
+> target as if it were the stored decision — contradicting the read-only decision summary printed in the same
+> card from the server — and a subsequent save wrote those abandoned values back. On a batch whose next stage
+> is a financial posting that turns an included expense into a rejection with one unnoticed click. The same
+> initialiser-once behaviour also meant a row changed by the other reviewer (owner and accountant both work
+> one batch) kept showing its pre-change decision after `router.refresh()`.
+>
+> The fix (two files, no SQL). Two module-scope helpers, `initialActionOf` / `saleFormOf`, are now the single
+> definition of how a row seeds the form, used by both the initial mount and a new `resetForm()`. `resetForm`
+> re-seeds action, target, reason, the expense payload, the sale payload and both correction links from the
+> row **as the server currently renders it**, clears the last message, and bumps a nonce that remounts
+> `CorrectionTargetPicker` — which owns its own query, results and chosen label, so a corrected-record label
+> that was never saved cannot survive. `discard()` = `resetForm()` + close, and is what both «إلغاء» and the
+> header close call. The form is also re-seeded immediately before every open, and opening is blocked while
+> the post-save refresh is still in flight (see review round 1 below), so it always opens on the decision the
+> server currently holds.
+>
+> Deliberately unchanged: the save path (a successful save still just closes; it is not a discard), the
+> decision payload contract, the gates, pagination, the lazy option cache, every server read, and every
+> acceptance-report byte. No schema, RPC, grant, migration, dependency, access-control or acceptance-digest
+> change. **No row was decided and no financial figure moved.**
+>
+> **Review round 1 — Codex REQUEST CHANGES, one blocking race, fixed in this same commit.** The first
+> implementation left a window in which the re-seed was itself stale. `router.refresh()` returns void and
+> commits the refreshed RSC payload later, while `resetForm()` seeds from the `row` **prop** — so between a
+> successful save and that commit the prop is still the PRE-save row, and the open button was already
+> re-enabled. A fast reopen re-seeded the form from the OLD stored decision and would write it back on the
+> next save: the same defect, moved into the refresh window. The refresh now runs inside a
+> `useTransition`, and the open path is gated on **that** transition's `refreshPending` flag — both the
+> button's `loading`/`disabled` and an in-handler `if (refreshPending) return;` guard before the seed. Every
+> state change in the save path is batched with the transition start, so there is no intermediate render in
+> which the card is closed and the open button is not yet gated. Closing/discarding stays available while the
+> refresh is in flight, and the save path's own semantics are otherwise untouched.
+>
+> Regression check first, both rounds: `lib/tests/reconciliation review.ts` gains a "review form discard
+> contract" suite in the repo's existing source-contract style (there is no jsdom here —
+> `@testing-library/react` is a dependency hard-stop). Round 1's four tests were run against the pre-fix bytes
+> and **failed 3 of 4** (the fourth is the non-regression guard on the save path, green both ways). The two
+> added "post-save refresh window" tests were run against the round-1 bytes and **both failed**. They resolve
+> the pending identifier out of the `useTransition()` destructuring rather than hardcoding a name, and assert
+> that same identifier appears in the open button's gate and guard — so an unrelated `pending` /
+> `optionsPending` cannot satisfy them — and that `router.refresh()` appears exactly once in the card's CODE
+> (comments stripped), inside the transition callback.
+>
+> **Review round 2 — Codex APPROVE.** The amended bytes tie the same `useTransition` pending flag to the
+> only card-local refresh, both visible open-button states, and the in-handler guard before re-seeding.
+> Current Next.js 16 documentation/source confirms that `router.refresh()` fetches and merges a refreshed
+> RSC payload and that transition-wrapped router work is the supported pattern for exposing pending UI state.
+> No remaining code-review finding.
+>
+> Local evidence: focused Vitest **47/47**; full Vitest **1,283 passed + 13 controlled skips across 91 files**
+> (baseline 1,277 + 13 across 91 — exactly the six new tests); `tsc --noEmit` clean; ESLint clean on both
+> touched files; production build **64/64** static pages, compiled successfully; `git diff --check` clean.
+> **pgTAP was NOT run — zero SQL bytes changed**, which is also why no migration or DB gate is implicated.
+> `node_modules` was installed in this worktree with `npm ci` from the committed lockfile; no dependency
+> changed.
+>
+> **Human gate is unchanged and untouched by this slice:** decide all 698 staged reconciliation rows, resolve
+> every exception, run the real workbook dual run, and record dated accountant and Owner acceptance. Never
+> auto-decide held financial evidence.
 
 > **2026-07-30 — ACCEPTANCE AMOUNT-CORRECTION TOTALS: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #977 merged at `002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact production deployment

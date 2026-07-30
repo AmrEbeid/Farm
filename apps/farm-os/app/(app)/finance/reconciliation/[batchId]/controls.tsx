@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, Button, EmptyState, Field, Input, Select, Tag, Textarea } from "@/components/ui";
@@ -123,6 +123,28 @@ function toNum(value: string): number | null {
   return Number.isFinite(n) ? n : Number.NaN;
 }
 
+// ── Seeding the review form from the row's CURRENT server state. ───────────────────────────────────
+//
+// Both helpers exist so the initial mount and every later re-seed read the row the SAME way. A form
+// that opened with values from an older render would show a decision the batch no longer holds — and
+// on save would write it back — which is exactly the failure `resetForm` below prevents.
+
+/** The decision the row already carries, as the form's action. */
+function initialActionOf(row: RowVM): "review" | "hold" | "reject" {
+  if (row.reviewState === "rejected") return "reject";
+  return row.disposition === "include" ? "review" : "hold";
+}
+
+/** The sale prefill as the form holds it: the three numeric fields as the strings the inputs bind to. */
+function saleFormOf(sale: RowSalePrefill) {
+  return {
+    ...sale,
+    quantity: sale.quantity == null ? "" : String(sale.quantity),
+    unit_price: sale.unit_price == null ? "" : String(sale.unit_price),
+    recorded_total: sale.recorded_total == null ? "" : String(sale.recorded_total),
+  };
+}
+
 function CorrectionTargetPicker({
   id,
   targetTable,
@@ -240,25 +262,61 @@ function RowCard({
   const [msg, setMsg] = useState<Msg>(null);
 
   const decided = row.reviewState !== "unreviewed";
-  const initialAction: "review" | "hold" | "reject" =
-    row.reviewState === "rejected" ? "reject" : row.disposition === "include" ? "review" : "hold";
-  const [action, setAction] = useState<"review" | "hold" | "reject">(initialAction);
+  const [action, setAction] = useState<"review" | "hold" | "reject">(() => initialActionOf(row));
   const [target, setTarget] = useState<"expenses" | "sales">(
     (row.targetTable as "expenses" | "sales" | null) ?? "expenses",
   );
   const [reason, setReason] = useState(row.reviewReason ?? "");
   const [exp, setExp] = useState<RowExpensePrefill>(row.expense);
-  const [sale, setSale] = useState({
-    ...row.sale,
-    quantity: row.sale.quantity == null ? "" : String(row.sale.quantity),
-    unit_price: row.sale.unit_price == null ? "" : String(row.sale.unit_price),
-    recorded_total: row.sale.recorded_total == null ? "" : String(row.sale.recorded_total),
-  });
+  const [sale, setSale] = useState(() => saleFormOf(row.sale));
   const [correctsExpenseId, setCorrectsExpenseId] = useState(row.correctsExpenseId);
   const [correctsSaleId, setCorrectsSaleId] = useState(row.correctsSaleId);
+  // Bumped by resetForm so the correction picker — which holds its own query/results/chosen label —
+  // remounts on a discard instead of keeping the label of a record that was never saved.
+  const [formNonce, setFormNonce] = useState(0);
+  /**
+   * True from the moment a successful save starts the post-save refresh until the REFRESHED RSC payload
+   * has committed and `row` carries the decision that was just written.
+   *
+   * `router.refresh()` returns void and resolves later, so without this the card became reopenable the
+   * instant the save returned — and `resetForm()` seeds from the `row` PROP, which in that window is
+   * still the PRE-save row. A fast reopen would therefore show the OLD stored decision and write it back
+   * on the next save: the same defect this card was fixed for, just moved into the refresh window. The
+   * refresh runs inside a transition so this flag stays true for exactly that window, and the open path
+   * is gated on it.
+   */
+  const [refreshPending, startRefreshTransition] = useTransition();
 
   const isCorrection = classification === "amount_correction_candidate";
   const state = REVIEW_STATE[row.reviewState] ?? { label: row.reviewState, tone: "neutral" };
+
+  /**
+   * Re-seed every field from the row as the SERVER currently renders it, and clear the last message.
+   *
+   * This card is keyed by row id and never unmounts while the page is open: `router.refresh()` after a
+   * save re-renders it with fresh props but does NOT re-run the state initialisers above. Without this,
+   * abandoned edits survived «إلغاء» and the next open showed them as if they were the stored decision
+   * — contradicting the read-only decision summary printed in the same card, and writing the abandoned
+   * values back if the reviewer then saved. On a money batch that silently flips a decision, so the
+   * form is re-seeded on every open and on every discard.
+   */
+  function resetForm() {
+    setAction(initialActionOf(row));
+    setTarget((row.targetTable as "expenses" | "sales" | null) ?? "expenses");
+    setReason(row.reviewReason ?? "");
+    setExp(row.expense);
+    setSale(saleFormOf(row.sale));
+    setCorrectsExpenseId(row.correctsExpenseId);
+    setCorrectsSaleId(row.correctsSaleId);
+    setMsg(null);
+    setFormNonce((nonce) => nonce + 1);
+  }
+
+  /** Close the form and throw away everything unsaved — what «إلغاء» says it does. */
+  function discard() {
+    resetForm();
+    setOpen(false);
+  }
 
   function buildDecision(): DecisionInput {
     if (action === "hold") return { action: "hold", reason };
@@ -324,7 +382,13 @@ function RowCard({
       setMsg({ tone: "ok", text: "تم حفظ القرار." });
       setOpen(false);
       invalidateOptions();
-      router.refresh();
+      // Inside a transition on purpose: `refreshPending` must stay true until the refreshed row commits,
+      // and the open path is gated on it. A bare router.refresh() would leave the card reopenable
+      // against the pre-save row. Every state change above is batched with this one, so there is no
+      // intermediate render in which the card is closed and the open button is not yet gated.
+      startRefreshTransition(() => {
+        router.refresh();
+      });
     } else {
       setMsg({ tone: "danger", text: r.error ?? "تعذّر حفظ القرار." });
     }
@@ -373,15 +437,24 @@ function RowCard({
           <Button
             variant="ghost"
             size="sm"
-            loading={!open && optionsPending}
-            disabled={!open && optionsPending}
+            // Closing is never blocked; OPENING is, until the options are loaded AND the post-save
+            // refresh has committed, because resetForm() seeds from the row prop.
+            loading={!open && (optionsPending || refreshPending)}
+            disabled={!open && (optionsPending || refreshPending)}
             onClick={async () => {
               if (open) {
-                setOpen(false);
+                discard();
                 return;
               }
+              // Defence in depth behind the disabled state above: never seed from a row the pending
+              // refresh is about to replace.
+              if (refreshPending) return;
               const loaded = await ensureOptions();
-              if (loaded) setOpen(true);
+              // Seed from the row as it is rendered right now, then show the form.
+              if (loaded) {
+                resetForm();
+                setOpen(true);
+              }
             }}
           >
             {open ? "إغلاق" : decided ? "تعديل القرار" : "مراجعة"}
@@ -481,6 +554,7 @@ function RowCard({
               {isCorrection && (
                 <Field label="المصروف المراد تصحيحه" id={`exp-corr-${row.id}`} required>
                   <CorrectionTargetPicker
+                    key={`exp-corr-${formNonce}`}
                     id={`exp-corr-${row.id}`}
                     targetTable="expenses"
                     value={correctsExpenseId}
@@ -625,6 +699,7 @@ function RowCard({
               {isCorrection && (
                 <Field label="البيع المراد تصحيحه" id={`sl-corr-${row.id}`} required>
                   <CorrectionTargetPicker
+                    key={`sl-corr-${formNonce}`}
                     id={`sl-corr-${row.id}`}
                     targetTable="sales"
                     value={correctsSaleId}
@@ -652,7 +727,7 @@ function RowCard({
             <Button onClick={submit} loading={pending} disabled={pending}>
               حفظ القرار
             </Button>
-            <Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
+            <Button variant="ghost" onClick={discard} disabled={pending}>
               إلغاء
             </Button>
           </div>

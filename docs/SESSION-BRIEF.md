@@ -1,5 +1,83 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (acceptance amount-correction totals)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LOCAL CANDIDATE)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — reconciliation review form discards abandoned edits — LOCAL CANDIDATE / REVIEW APPROVED / NOT PUSHED
+
+Isolated worktree `farm accounting acceptance audit`, branch `audit/accounting-acceptance-next`, based on
+exact `origin/main` `cfdfb40`. **Local commit only.** No push, no PR, no merge, no deploy, no migration, no
+production/network/database access, no row decided, no financial figure moved. Independent Codex review is
+APPROVE after one blocking race was fixed and re-reviewed; the candidate is not released yet.
+
+I audited the 698-row acceptance workflow read-only first. The acceptance report, its CSV annex, the
+single-snapshot read RPC and the batch-page reads are already hardened well past the point where I could
+prove a defect in them. The one provable defect is upstream, in the surface where the 698 human decisions
+are actually made.
+
+**The defect** — `app/(app)/finance/reconciliation/[batchId]/controls.tsx`. `RowCard` is keyed by row id and
+never unmounts while the batch page is open, and every editable field lived in a `useState` **initialiser**,
+which React runs once per mount. Both close paths — the «إلغاء» button and the header toggle — only called
+`setOpen(false)`. So cancelling discarded nothing: reopening the same row showed the abandoned action,
+target, payload and correction target as if they were the stored decision, while the read-only decision
+summary printed from the server in the same card still showed the truth. A reviewer who then edited one
+field and saved wrote the whole abandoned form back — turning, for example, an included expense into a
+rejection with no warning. Same root cause, second path: a row changed by the other reviewer (owner and
+accountant both work one batch) kept rendering its pre-change decision in the form after `router.refresh()`,
+because refresh updates props, not initialisers.
+
+**The fix** — two files, no SQL. `initialActionOf` / `saleFormOf` are now the single definition of how a row
+seeds the form, shared by the initial mount and a new `resetForm()`. `resetForm()` re-seeds action, target,
+reason, expense payload, sale payload and both `corrects_*` links from the row as the server currently
+renders it, clears the last message, and bumps a nonce that remounts `CorrectionTargetPicker` (it owns its
+own query/results/chosen label, so an unsaved corrected-record label must not survive). `discard()` =
+`resetForm()` + close, used by both close paths; the form is also re-seeded immediately before every open.
+A successful save is deliberately not a discard — it still just closes.
+
+**Codex independent review round 1 returned REQUEST CHANGES on one blocking race; it is fixed in this same
+amended commit.** My first implementation left a window where the re-seed was itself stale. `resetForm()`
+seeds from the `row` **prop**, and `router.refresh()` returns void and commits the refreshed RSC payload
+later — so between a successful save and that commit the prop is still the PRE-save row, while the open
+button had already re-enabled. A fast reopen therefore re-seeded the OLD stored decision and would have
+written it back on the next save: the same defect, relocated into the refresh window. My original commit
+message claim that "every open seeds current server state" was not true in that window. The refresh now runs
+inside a `useTransition`, and opening is gated on **that** transition's `refreshPending` flag — the open
+button's `loading`/`disabled` plus an in-handler `if (refreshPending) return;` before the seed. Every state
+change in the save path is batched with the transition start, so no intermediate render leaves the card
+closed and ungated. Closing/discarding stays available while the refresh is in flight.
+
+**Codex independent review round 2 returned APPROVE.** The amended bytes tie the same `useTransition`
+pending flag to the only card-local refresh, both visible open-button states, and the in-handler guard
+before re-seeding. Current Next.js 16 documentation/source confirms that `router.refresh()` fetches and
+merges a refreshed RSC payload and that transition-wrapped router work is the supported pattern for exposing
+pending UI state. No remaining code-review finding.
+
+Unchanged on purpose: the decision payload contract, every gate, pagination, the lazy option cache (still
+invalidated before the refresh, as its existing contract test requires), every server read, the acceptance
+report/CSV/digest bytes, schema, RPCs, grants, dependencies and access control.
+
+**Regression checks written to fail first, both rounds.** `lib/tests/reconciliation review.ts` gains a
+"review form discard contract" suite in this repo's existing source-contract style (no jsdom here —
+`@testing-library/react` is a dependency hard-stop, per the standing A3 note). Round 1's four tests, run
+against the pre-fix bytes, **failed 3 of 4** — the fourth is the non-regression guard on the save path and is
+green both ways. The two added "post-save refresh window" tests, run against the round-1 bytes, **both
+failed**. They deliberately resist being satisfied by an unrelated pending variable: the pending identifier
+is resolved out of the `useTransition()` destructuring rather than hardcoded, and that same identifier must
+appear in both the open button's gate and the in-handler guard, with the guard ahead of the seed. They also
+assert `router.refresh()` appears exactly once in the card's CODE (comments stripped) and inside the
+transition callback.
+
+**Local evidence (post-fix):** focused Vitest **47/47**; full Vitest **1,283 passed + 13 controlled skips
+across 91 files** (baseline 1,277 + 13 across 91 — exactly the six new tests); `tsc --noEmit` clean; ESLint
+clean on both touched files; production build compiled successfully, **64/64** static pages; `git diff
+--check` clean. **pgTAP was NOT run — zero SQL bytes changed.** `node_modules` was installed in this worktree
+with `npm ci` from the committed lockfile; no dependency changed.
+
+**Exact resume point:** push the reviewed local commit, open the PR, pass exact-head checks, merge, and
+live-verify the authenticated discard/reopen and post-save refresh behavior. The transition gate is a
+source-level contract and has not yet been exercised in a browser. Correction Phase 2 (the
+old-amount / net `new − old` design) remains out of scope and gated on human selection and linkage of each
+correction to its production record plus accountant policy. The 100% acceptance gate is unchanged and
+entirely human: decide all 698 staged reconciliation rows, resolve every exception, run the real workbook
+dual run, and record dated accountant and Owner acceptance. Never auto-decide held financial evidence.
 
 ## 2026-07-30 — acceptance amount-correction totals — MERGED / DEPLOYED / LIVE-VERIFIED
 

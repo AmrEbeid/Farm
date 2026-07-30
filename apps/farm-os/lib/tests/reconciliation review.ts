@@ -595,7 +595,8 @@ describe("reconciliation review — lazy option loading contract", () => {
     expect(controlsSource).toContain("if (optionsRef.current) return optionsRef.current");
     expect(controlsSource).toContain("if (!request)");
     expect(controlsSource).toContain("request = loadReviewOptions(batchId)");
-    expect(controlsSource).toContain("if (loaded) setOpen(true)");
+    expect(controlsSource).toContain("const loaded = await ensureOptions();");
+    expect(controlsSource).toContain("setOpen(true);");
     expect(controlsSource).toContain("open && options && editable");
     expect(controlsSource).toContain("invalidateOptions()");
     expect(controlsSource).toContain("optionsRef.current = null");
@@ -608,6 +609,120 @@ describe("reconciliation review — lazy option loading contract", () => {
     expect(saveSuccess.indexOf("invalidateOptions()")).toBeLessThan(
       saveSuccess.indexOf("router.refresh()"),
     );
+  });
+});
+
+// The review card is keyed by row id and never unmounts while the batch page is open, so its form
+// state is NOT re-created by `router.refresh()`. Whether the form re-seeds itself from the row is a
+// SOURCE property — there is no jsdom in this suite (adding @testing-library/react is a dependency
+// hard-stop), so it is pinned here exactly as the read-concurrency and lazy-option contracts above
+// are. A regression that drops the re-seed lets an abandoned edit reappear as the stored decision and
+// be written back on the next save, which on a money batch silently flips a reviewed row.
+describe("reconciliation review — review form discard contract", () => {
+  const controlsSource = readFileSync(
+    join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/controls.tsx"),
+    "utf8",
+  );
+  const card = controlsSource.slice(
+    controlsSource.indexOf("function RowCard({"),
+    controlsSource.indexOf("export type MoneyAction"),
+  );
+  const resetBody = card.slice(card.indexOf("function resetForm() {"), card.indexOf("/** Close the form"));
+
+  it("seeds the initial mount through the same helpers the re-seed uses", () => {
+    expect(controlsSource).toContain("function initialActionOf(row: RowVM)");
+    expect(controlsSource).toContain("function saleFormOf(sale: RowSalePrefill)");
+    expect(card).toContain("useState<\"review\" | \"hold\" | \"reject\">(() => initialActionOf(row))");
+    expect(card).toContain("useState(() => saleFormOf(row.sale))");
+  });
+
+  it("re-seeds EVERY editable field, and the last message, from the current row", () => {
+    expect(resetBody).not.toBe("");
+    for (const seed of [
+      "setAction(initialActionOf(row));",
+      'setTarget((row.targetTable as "expenses" | "sales" | null) ?? "expenses");',
+      'setReason(row.reviewReason ?? "");',
+      "setExp(row.expense);",
+      "setSale(saleFormOf(row.sale));",
+      "setCorrectsExpenseId(row.correctsExpenseId);",
+      "setCorrectsSaleId(row.correctsSaleId);",
+      "setMsg(null);",
+    ]) {
+      expect(resetBody, `resetForm must re-seed: ${seed}`).toContain(seed);
+    }
+    // The picker owns its own query/results/chosen label, so it must remount rather than be re-seeded.
+    expect(resetBody).toContain("setFormNonce((nonce) => nonce + 1);");
+    expect(card).toContain("key={`exp-corr-${formNonce}`}");
+    expect(card).toContain("key={`sl-corr-${formNonce}`}");
+  });
+
+  it("discards on «إلغاء» and on closing the card, and re-seeds before every open", () => {
+    expect(card).toContain("function discard() {\n    resetForm();\n    setOpen(false);\n  }");
+    // Both close paths go through discard; neither may collapse the form on its own.
+    expect(card).toContain("onClick={discard}");
+    expect(card).toContain("if (open) {\n                discard();\n                return;\n              }");
+    const openPath = card.slice(card.indexOf("const loaded = await ensureOptions();"));
+    expect(openPath.indexOf("resetForm();")).toBeLessThan(openPath.indexOf("setOpen(true);"));
+  });
+
+  it("keeps the save path unchanged — a successful save is not a discard", () => {
+    const saveSuccess = card.slice(card.indexOf("if (r.ok) {"), card.indexOf("} else {", card.indexOf("if (r.ok) {")));
+    expect(saveSuccess).toContain("setOpen(false);");
+    expect(saveSuccess).not.toContain("discard()");
+    expect(saveSuccess).not.toContain("resetForm()");
+  });
+
+  // resetForm() seeds from the `row` PROP. router.refresh() returns void and commits the refreshed RSC
+  // payload LATER, so between a successful save and that commit the prop is still the PRE-save row.
+  // Unless opening is blocked for exactly that window, a fast reopen re-seeds the form from the old
+  // stored decision and writes it back on the next save. The window is closed by running the refresh in
+  // a transition and gating the open path on that transition's pending flag — so the two must be the
+  // SAME flag. The identifier is read out of the useTransition destructuring below rather than
+  // hardcoded, so an unrelated `pending`/`optionsPending` in the gate cannot satisfy this suite.
+  describe("post-save refresh window", () => {
+    const transition = card.match(/const \[(\w+), (\w+)\] = useTransition\(\);/);
+    const [, pendingFlag, startTransition] = transition ?? [];
+    const saveSuccess = card.slice(card.indexOf("if (r.ok) {"), card.indexOf("} else {", card.indexOf("if (r.ok) {")));
+    const openButton = card.slice(card.indexOf("{editable && !row.frozen && ("), card.indexOf("{open && options && editable"));
+    // Comments in this card discuss router.refresh() by name, so the "only through the transition"
+    // assertion below counts CODE occurrences, not prose.
+    const cardCode = card.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+
+    it("drives the post-save refresh through a transition, and only through it", () => {
+      expect(transition, "RowCard must own a useTransition for the post-save refresh").not.toBeNull();
+      expect(controlsSource).toContain('import { useRef, useState, useTransition } from "react";');
+      // The refresh is started inside the transition callback...
+      expect(saveSuccess).toContain(`${startTransition}(() => {`);
+      expect(saveSuccess).toContain("router.refresh();");
+      expect(saveSuccess.indexOf(`${startTransition}(() => {`)).toBeLessThan(
+        saveSuccess.indexOf("router.refresh();"),
+      );
+      // ...and nowhere else in this card, so no path can reopen against a stale row.
+      expect(cardCode.match(/router\.refresh\(\)/g)).toHaveLength(1);
+      expect(cardCode).toMatch(
+        new RegExp(`${startTransition}\\(\\(\\) => \\{\\s*router\\.refresh\\(\\);\\s*\\}\\);`),
+      );
+      // The existing ordering contract still holds: the option cache is dropped before the refresh.
+      expect(saveSuccess.indexOf("invalidateOptions()")).toBeLessThan(
+        saveSuccess.indexOf("router.refresh();"),
+      );
+    });
+
+    it("gates opening on THAT transition's pending flag, not on any other pending variable", () => {
+      expect(pendingFlag).toBeTruthy();
+      // The flag must be the transition's own, and it must reach both the visible state and the guard.
+      expect(openButton).toContain(`loading={!open && (optionsPending || ${pendingFlag})}`);
+      expect(openButton).toContain(`disabled={!open && (optionsPending || ${pendingFlag})}`);
+      expect(openButton).toContain(`if (${pendingFlag}) return;`);
+      // The guard must precede the seed-and-open, or it gates nothing.
+      expect(openButton.indexOf(`if (${pendingFlag}) return;`)).toBeLessThan(
+        openButton.indexOf("resetForm();"),
+      );
+      // Closing/discarding stays available while the refresh is in flight.
+      expect(openButton.indexOf("discard();")).toBeLessThan(
+        openButton.indexOf(`if (${pendingFlag}) return;`),
+      );
+    });
   });
 });
 
