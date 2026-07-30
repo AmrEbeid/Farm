@@ -1,10 +1,10 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (read-only accounting role-acceptance harness local candidate). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (read-only accounting role-acceptance harness released). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-07-30 — read-only accounting role-acceptance harness: LOCAL CANDIDATE / NOT LIVE-RUN.**
+**2026-07-30 — read-only accounting role-acceptance harness: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 A separate Playwright configuration now covers owner and accountant access to the reconciliation list,
 pinned batch, GET-only evidence-quality filter, acceptance report and CSV, plus the non-finance redirect.
 It uses explicit environment credentials only, blocks service workers, and aborts every non-GET/HEAD/OPTIONS
@@ -16,7 +16,10 @@ fails before browser launch. The authenticated suite was **not run** because thi
 credentials. Independent safety review: APPROVE after three rounds. No migration, dependency, app workflow or
 data changed. Stage 7 remains ~99.5%: all 698 rows are
 still unreviewed/hold, 0 frozen; the human dual run, exception decisions and signed accountant/Owner acceptance
-remain required.
+remain required. PR #983 merged at `3962e8caea3cff062e00c46085a2146d069f3729`; exact production deployment
+`dpl_DmWDiUSzmoid9cX5txnqX4PdMx1J` is READY. Main CI, release and pgTAP are green; `/login` is 200, signed-out
+reconciliation routes redirect to login, and the release has no 5xx runtime logs. The credentialed suite remains
+unrun.
 
 **2026-07-30 — review-state and evidence-quality fixes: MERGED / DEPLOYED / LIVE-VERIFIED.**
 PR #979 merged at `93806f838af6102ed8b09e9dd8830fb5bf11e2ff`; deployment

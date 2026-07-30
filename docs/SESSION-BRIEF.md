@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — LOCAL CANDIDATE)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — RELEASED)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-30 — read-only accounting role-acceptance harness — LOCAL CANDIDATE / NOT LIVE-RUN
+## 2026-07-30 — read-only accounting role-acceptance harness — MERGED / DEPLOYED / SIGNED-OUT SMOKED
 
 The current accounting goal needed authenticated owner/accountant acceptance evidence, but the only existing
 Playwright suite was the legacy wedge loop: it provisions users and resets operational data with the service
@@ -41,14 +41,20 @@ destinations, verifies reconciliation content is absent, and applies the request
 so new pages cannot bypass it. Traces are disabled because they can persist form inputs. The source contract
 pins each safeguard and its ordering. Independent safety review: APPROVE after three rounds.
 
+Release closeout: PR #983 merged at `3962e8caea3cff062e00c46085a2146d069f3729`; exact production deployment
+`dpl_DmWDiUSzmoid9cX5txnqX4PdMx1J` is READY. Main app/design CI, release, gitleaks and pgTAP are green.
+Production `/login` is HTTP 200; signed-out reconciliation list and acceptance routes return 307 to login; the
+deployment has no 5xx runtime logs. No migration existed and no business row changed. The credentialed
+owner/accountant/denied-role suite remains unrun.
+
 Separate docs debt: canonical `STATUS.md` was already 179 lines at this slice's base despite its ~100-line
-target and is now 203. Compact historical detail into the append-only tracker/session archives in a later
+target and is now 206. Compact historical detail into the append-only tracker/session archives in a later
 docs-only cleanup; do not hide or delete current-state gates to satisfy a line count.
 
-**Exact resume point:** commit and open a PR for this reviewed slice. After release, run the read-only suite
-with approved owner/accountant/denied-role credentials; do not store or print them. That browser proof still
-does not decide the batch. Accounting reaches 100% only after humans decide all 698 rows, resolve every
-exception, run the real workbook dual run, and record dated accountant and Owner acceptance.
+**Exact resume point:** run the released read-only suite with approved owner/accountant/denied-role credentials;
+do not store or print them. That browser proof still does not decide the batch. Accounting reaches 100% only
+after humans decide all 698 rows, resolve every exception, run the real workbook dual run, and record dated
+accountant and Owner acceptance.
 
 ## 2026-07-30 — queue route to the acceptance report's evidence-quality exceptions — MERGED / DEPLOYED / LIVE-SMOKED
 

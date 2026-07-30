@@ -737,7 +737,7 @@ invalid-date flags in this staged queue, and 15 correction rows; no identifiers,
 values were read. No authenticated browser session was available, so the UI controls were not exercised
 against a real row.
 
-### 8.13 Read-only authenticated role-acceptance harness (2026-07-30, LOCAL CANDIDATE / NOT LIVE-RUN)
+### 8.13 Read-only authenticated role-acceptance harness (2026-07-30, MERGED / DEPLOYED / SIGNED-OUT SMOKED)
 
 The legacy wedge-loop Playwright suite provisions users with the service role and resets operational data,
 so its enforced local-only guard is correct and remains unchanged. Farm no longer has a Docker-backed local
@@ -760,3 +760,8 @@ and touched-file ESLint clean; build 64/64; missing configuration fails before b
 suite was not run because no role credentials were present. This is not accountant acceptance and does not
 change the 698 unreviewed/hold rows, the 0 frozen count, the dual-run requirement or Stage 7's ~99.5% status.
 Independent safety review is APPROVE after three rounds.
+
+PR #983 merged at `3962e8caea3cff062e00c46085a2146d069f3729`; exact production deployment
+`dpl_DmWDiUSzmoid9cX5txnqX4PdMx1J` is READY. Main app/design CI, release, gitleaks and pgTAP are green.
+`/login` is 200, signed-out reconciliation routes redirect to login, and the deployment has no 5xx runtime
+logs. No migration existed. The credentialed owner/accountant/denied-role suite remains unrun.
