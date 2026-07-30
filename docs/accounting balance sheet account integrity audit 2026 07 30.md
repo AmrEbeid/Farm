@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-30
 **Issue:** #719 item 5
-**State:** production migration applied and hosted-verified; PR #973 release candidate
+**State:** merged, migrated, deployed, and live-verified
 
 ## Finding
 
@@ -41,6 +41,10 @@ account behavior, posted-only filter, and as-of behavior are unchanged.
   **0** entry-line mismatches across **20,730** posted lines.
 - Exact-head PR #973 app, design-system, db-tests, gitleaks, and Vercel checks: green.
 - Independent review: **APPROVE**, including an independent 3,118/3,118 rerun.
+- PR #973 merge: `4a051030c7b246b3126c04a4a609e857c1ad6e20`.
+- Exact production deployment: `dpl_GVgRWZCojujLYzF1qgK4GDT7jDms`, READY.
+- Exact-merge main CI, release, and db-tests: green; public `/login`: HTTP 200; post-release runtime errors:
+  none in the queried 15-minute window.
 - `git diff --check`: clean.
 
 ## Boundaries
