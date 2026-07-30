@@ -833,3 +833,30 @@ expense rows. Final evidence: pgTAP 3,158/3,158; Vitest 1,317 + 13 controlled sk
 ESLint, build, exact-main CI, release and db-tests green. Independent review approved after the capex,
 lifecycle, active-org and bounded-export findings were corrected. This does not complete the 698 human row
 decisions, exception resolution, real workbook dual run or dated accountant/Owner acceptance.
+
+### 8.16 Recent-journal exact amounts and bounded details (2026-07-30, MERGED / DEPLOYED)
+
+`/accounting` selected the latest 20 journal entries independently from a global latest-80
+`journal_lines` sample, then grouped that unrelated sample by entry. Production showed the consequence:
+all 20 displayed entries appeared as zero although their exact debit was non-zero.
+
+The page now selects the active organization's 20 entries first and then fetches only lines whose
+`journal_entry_id` is in that displayed set, again under explicit active-organization scope. Entry and line
+ordering is deterministic, null-last and id-tied. The explicit 500-row line bound is below the configured
+PostgREST 1,000-row maximum; landing at the bound fails closed rather than treating a potentially truncated
+response as complete. A displayed entry with no matched lines renders an unknown amount instead of a
+fabricated zero. The detail table states that it covers only the displayed entries.
+
+The pure grouping/amount helper is tested, and a page-source contract pins the entry-ID filter, organization
+filter, single `journal_lines` query and fail-closed cap guard so the historical global-sample defect cannot
+silently return. Independent review initially requested this page-level guard and removal of an inaccurate
+two-line invariant claim; the final verdict was APPROVE with no P0-P3 findings.
+
+PR #991 merged at `9ee71d6a62439705dfec568707fb3115c2c09489`; production deployment
+`5677028615` succeeded. Read-only aggregate validation found 20 displayed entries, 40 matching lines, no
+entry without lines and EGP 201,132 displayed debit. `EXPLAIN ANALYZE` measured the entry-scoped line query
+at about 6.4 ms using the existing journal-entry index, so no index or migration was added. Final evidence:
+focused Vitest 7/7; full Vitest 1,324 + 13 controlled skips; TypeScript, touched ESLint, 63-page build,
+pgTAP 3,158/3,158 and exact-main CI/release/db-tests green. No schema, dependency or business row changed.
+This removes a live money-display defect but does not complete the 698 human decisions, exceptions, real
+workbook dual run or dated accountant/Owner acceptance.
