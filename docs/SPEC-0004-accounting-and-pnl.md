@@ -809,3 +809,27 @@ the exact full count whenever truncated. RPC/list/parser failures fail closed. P
 ESLint, 64-page build and exact-main gates are green; independent review approved after all findings were
 fixed. No tenant or financial row changed. This removes a money-display defect but does not satisfy the
 human reconciliation oracle or change the ~99.5% accounting status.
+
+### 8.15 Expense-register exact summary and bounded loading (2026-07-30, MIGRATED / MERGED / DEPLOYED)
+
+`/expenses` previously relied on an unbounded PostgREST query for both its table and headline counts.
+Production proved that only 1,000 of 10,201 rows reached the page, understating the all-row count by 9,201
+and the operating/drawing chips by 8,009/681. `fn_expense_register_summary` is now the exact source for
+active-organization counts and current-month money. It is read-only, stable, `SECURITY DEFINER` with an
+empty search path, rejects cross-org and unauthorized-role calls, grants execute only to `authenticated`,
+and returns drawing fields as null to farm managers. Monthly non-drawing money includes operating and capex;
+historical-treasury remains included; cancelled and historical-reversed money and unknown counts are excluded;
+eligible null amounts are disclosed rather than zeroed.
+
+The register query, supplier options and posting-account options are explicitly active-org scoped. The table
+loads only the latest 200 rows matching the selected filter, ordered by date null-last then id. When the exact
+matching count exceeds 200, Arabic copy states that search covers only displayed rows and CSV export is
+disabled rather than producing a partial file that looks complete. RPC/list/parser failures fail closed.
+
+PR #989 merged at `087c0be2e7007ac1dec6e3333da2e5b8fc576c41`; migration
+`expense_register_summary` and production deployment `5676508008` succeeded. Production postflight proved
+the function contract for owner and farm-manager contexts, authenticated-only grants and an unchanged 10,201
+expense rows. Final evidence: pgTAP 3,158/3,158; Vitest 1,317 + 13 controlled skips; TypeScript, touched
+ESLint, build, exact-main CI, release and db-tests green. Independent review approved after the capex,
+lifecycle, active-org and bounded-export findings were corrected. This does not complete the 698 human row
+decisions, exception resolution, real workbook dual run or dated accountant/Owner acceptance.

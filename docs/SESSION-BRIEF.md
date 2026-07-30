@@ -4412,3 +4412,20 @@ ordering; all were fixed and the second verdict was APPROVE. Final evidence: pgT
 and db-tests green; production login aliases 200; signed-out cost-center route redirects to login. No tenant
 or financial row changed. Resume from the unchanged human acceptance gate: all 698 decisions and exceptions,
 the real workbook dual run, and dated accountant/Owner sign-off. Accounting remains ~99.5%.
+
+## 2026-07-30 — expense-register exact summary released
+
+PR #989 merged at `087c0be2e7007ac1dec6e3333da2e5b8fc576c41`; production migration
+`expense_register_summary` and deployment `5676508008` succeeded. The old expenses page received 1,000 of
+10,201 production rows and understated its all-row count by 9,201. It now uses an exact active-org summary
+RPC for counts and current-month money while rendering only the latest 200 matching rows. Capex and
+historical-treasury stay included; cancelled/reversed money is excluded; unknown amounts remain explicit;
+farm managers receive no drawing figures. Expense, supplier and account queries are explicitly active-org
+scoped. Truncated search is disclosed and partial CSV export is disabled.
+
+Independent review requested corrections for capex semantics, cancelled/reversed money, multi-org mixing and
+bounded export; all were fixed and the final verdict was APPROVE. Evidence: pgTAP 3,158/3,158; Vitest 1,317
+passed + 13 controlled skips; TypeScript, ESLint, build and exact-main CI/release/db-tests green; production
+role/grant verification passed; expense rows remained 10,201; login aliases return 200 and signed-out
+`/expenses` redirects to login. Resume from the unchanged human gate: all 698 decisions and exceptions, the
+real workbook dual run, and dated accountant/Owner acceptance. Accounting remains ~99.5%.
