@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (expense-register exact summary — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (recent-journal exact amounts — RELEASED)
+
+> **2026-07-30 — RECENT-JOURNAL EXACT AMOUNTS: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+> PR #991 merged at `9ee71d6a62439705dfec568707fb3115c2c09489`; production deployment
+> `5677028615` succeeded. `/accounting` had paired the latest 20 entries with an unrelated latest-80
+> global line sample, rendering every displayed recent amount as zero. It now fetches only lines belonging
+> to the displayed entry IDs and active organization, uses deterministic null-last ordering, fails closed
+> at the explicit 500-line bound, renders absent line data as unknown, and labels the detail table's bounded
+> scope. Production aggregate proof: 20 entries, 40 matching lines, 0 entries without lines, EGP 201,132
+> exact debit; measured query time about 6.4 ms. Independent review APPROVE after the page-level regression
+> guard and invariant-comment findings were fixed. Focused Vitest 7/7; full Vitest 1,324 + 13 controlled
+> skips; TypeScript, ESLint, 63-page build, pgTAP 3,158/3,158, exact-main CI, release and db-tests green.
+> Login aliases are 200 and signed-out `/accounting` redirects. No migration, schema, dependency or business
+> row changed. Accounting remains ~99.5% pending the 698 human decisions, exceptions, real workbook dual run
+> and dated accountant/Owner acceptance.
 
 > **2026-07-30 — EXPENSE-REGISTER EXACT SUMMARY: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 > PR #989 merged at `087c0be2e7007ac1dec6e3333da2e5b8fc576c41`; production deployment

@@ -1,8 +1,22 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (expense-register exact summary released). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (recent-journal exact amounts released). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — recent-journal exact amounts: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+PR #991 merged at `9ee71d6a62439705dfec568707fb3115c2c09489`; production deployment
+`5677028615` completed successfully. `/accounting` previously paired its latest 20 journal entries with an
+unrelated latest-80 global line sample, causing every displayed recent amount to appear as zero. The page now
+loads lines only for the displayed entry IDs and active organization, uses deterministic null-last ordering,
+fails closed at its explicit 500-row bound, renders missing line data as unknown, and labels the detail table
+as the displayed-entry subset. Production aggregate proof found 20 entries, 40 exact matching lines, no
+line-less entry and EGP 201,132 debit; the entry-scoped query completed in about 6.4 ms. Independent review:
+APPROVE after a page-source regression guard and comment correction. Evidence: focused Vitest 7/7; full
+Vitest 1,324 passed + 13 controlled skips; TypeScript, ESLint, 63-page build, pgTAP 3,158/3,158 and exact-main
+CI/release/db-tests green. Both login aliases return 200 and signed-out `/accounting` redirects to login.
+No migration, dependency, schema or business-row change. Accounting remains ~99.5%; the 698 decisions,
+exceptions, real dual run and dated accountant/Owner acceptance remain.
 
 **2026-07-30 — expense-register exact summary: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 PR #989 merged at `087c0be2e7007ac1dec6e3333da2e5b8fc576c41`; production deployment

@@ -4429,3 +4429,26 @@ passed + 13 controlled skips; TypeScript, ESLint, build and exact-main CI/releas
 role/grant verification passed; expense rows remained 10,201; login aliases return 200 and signed-out
 `/expenses` redirects to login. Resume from the unchanged human gate: all 698 decisions and exceptions, the
 real workbook dual run, and dated accountant/Owner acceptance. Accounting remains ~99.5%.
+
+## 2026-07-30 — recent-journal exact amounts released
+
+PR #991 merged at `9ee71d6a62439705dfec568707fb3115c2c09489`; production deployment
+`5677028615` succeeded. `/accounting` had selected its latest 20 journal entries independently from a global
+latest-80 line sample, so every displayed recent amount was zero despite non-zero exact debit. The page now
+loads only lines for the displayed entry IDs under explicit active-organization scope, uses deterministic
+null-last order, fails closed at the explicit 500-line bound, shows missing line data as unknown, and states
+that the detail table covers only the displayed entries.
+
+Independent review first requested a page-level regression guard and correction of an over-broad two-line
+invariant comment. Both were fixed; final verdict: APPROVE, no P0-P3 findings. Production read-only proof found
+20 displayed entries, 40 matching lines, zero entries without lines and EGP 201,132 exact debit. The query
+completed in about 6.4 ms using the existing index, so no migration or new index was needed. Evidence:
+focused Vitest 7/7; full Vitest 1,324 passed + 13 controlled skips; TypeScript and touched ESLint clean;
+production build generated 63 static pages; pgTAP 3,158/3,158; exact-main CI, release and db-tests green.
+Both login aliases return 200 and signed-out `/accounting` redirects to login. No schema, dependency or
+business row changed.
+
+**Exact resume point:** continue the next decision-free accounting usability/correctness audit on current
+`main`; do not change the pinned reconciliation batch automatically. Accounting remains ~99.5% until humans
+decide all 698 rows, resolve exceptions, perform the real workbook dual run, and record dated accountant and
+Owner acceptance.
