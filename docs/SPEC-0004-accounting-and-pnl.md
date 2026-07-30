@@ -265,6 +265,28 @@ Pure logic (payload build/validate, pagination, status summaries) lives in
 drift tests were added; the editable `database.types.ext.ts` gained the three reconciliation tables and
 the three RPC signatures (generated `database.types.ts` untouched).
 
+**Form seeding & discard (2026-07-30 — LOCAL CANDIDATE, review approved, not merged, not deployed).** The
+row card never unmounts while the page is open, so the form is re-seeded from the row **as the server
+currently renders it** on every open, and «إلغاء» / closing the card discards every unsaved edit rather
+than keeping it. Before this, React ran the field initialisers once and the two close paths only hid the
+form: an abandoned edit reappeared on the next open looking like the stored decision — contradicting the
+read-only decision summary in the same card — and was written back if the reviewer then saved, which on a
+money batch flips a reviewed row silently. The re-seed also covers a row changed by the other reviewer,
+which `router.refresh()` alone did not. The correction-target picker holds its own query/results/chosen
+label, so it is remounted on discard rather than re-seeded. A successful save is deliberately **not** a
+discard: it still just closes, leaving the saved values.
+
+Because the re-seed reads the row **prop**, the post-save `router.refresh()` runs inside a `useTransition`
+and the card cannot be reopened until that transition commits. `router.refresh()` returns void and applies
+the refreshed RSC payload later, so without the gate the card was reopenable during that window against the
+pre-save row — re-seeding the OLD stored decision and writing it back on the next save. The open button's
+`loading`/`disabled` and an in-handler guard both read the transition's own pending flag; closing and
+discarding stay available throughout. No RPC, payload contract, gate, read, or
+acceptance-report byte changed. Pinned by the "review form discard contract" suite in
+`lib/tests/reconciliation review.ts` — a source contract, because this repo has no jsdom
+(`@testing-library/react` is a dependency hard-stop). Codex review found and rejected an initial
+post-save stale-prop window; the transition-gated amendment passed re-review.
+
 ### 8.1 Slice 4A — DB/data-contract hardening (2026-07-26, RELEASED)
 
 From the independent-review REQUEST CHANGES. Append-only migration
