@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -12,6 +12,7 @@ import { BudgetDoughnut, VarianceChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { PR_STATUS_AR, EXPENSE_KIND_AR, REQUEST_STATUS_AR } from "@/lib/labels";
+import { DATA_NOT_VERIFIED_AR, getDataAuthority, isAuthoritative } from "@/lib/data-authority";
 
 type SupplierEmbed = { name?: string | null };
 type CustodyLedgerHolder = {
@@ -55,10 +56,12 @@ export default async function FinanceDashboardPage({
     { data: budgets, error: budgetsError },
     { data: expenses, error: expensesError },
     { data: prs, error: prsError },
+    budgetAuthority,
   ] = await Promise.all([
     sb
       .from("budgets")
       .select("id, name, period, category, planned, approved, committed, actual, status")
+      .eq("org_id", m.orgId)
       .order("period", { ascending: false }),
     sb
       .from("expenses")
@@ -71,10 +74,12 @@ export default async function FinanceDashboardPage({
       .in("status", ["submitted", "approved", "partially_received"])
       .order("needed_by", { ascending: true })
       .limit(12),
+    getDataAuthority(sb, m.orgId, "budgets"),
   ]);
   if (budgetsError) throw budgetsError;
   if (expensesError) throw expensesError;
   if (prsError) throw prsError;
+  const budgetsVerified = isAuthoritative(budgetAuthority.status);
 
   const [
     custodyAccountsRes,
@@ -391,22 +396,39 @@ export default async function FinanceDashboardPage({
         </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
-          <KpiCard label="المعتمد" value={egp(budgetTotals.approved)} />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
-          <KpiCard label="ملتزم + فعلي" value={egp(spentOrCommitted)} />
-        </DashboardKpiLink>
-        <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
-          <KpiCard label="المتاح" value={egp(available)} deltaDirection={available < 0 ? "down" : "none"} />
-        </DashboardKpiLink>
-        {canSeeAccounting && (
-          <DashboardKpiLink href="/finance/dashboard?filter=drawings" active={filter === "drawings"}>
-            <KpiCard label="مسحوبات مالك معروضة" value={egp(ownerDrawingsTotal)} />
-          </DashboardKpiLink>
-        )}
-      </section>
+      {budgetsVerified && (
+        <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">
+          «الملتزم» و«الفعلي» و«المتاح» أدناه أرقام موازنة موثقة المصدر، لكنها لا تتحدّث تلقائيًا من الاعتمادات
+          والمصروفات. لا تعتمد عليها كرقابة صرف حية. راجع{" "}
+          <Link href="/finance/budget-vs-actual" className="font-semibold underline underline-offset-4">
+            الموازنة مقابل الفعلي من القيود المُرحّلة
+          </Link>
+          .
+        </Alert>
+      )}
+
+      {(budgetsVerified || canSeeAccounting) && (
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {budgetsVerified && (
+            <>
+              <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
+                <KpiCard label="المعتمد (لقطة)" value={egp(budgetTotals.approved)} />
+              </DashboardKpiLink>
+              <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
+                <KpiCard label="ملتزم + فعلي (لقطة)" value={egp(spentOrCommitted)} />
+              </DashboardKpiLink>
+              <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
+                <KpiCard label="المتاح (لقطة)" value={egp(available)} deltaDirection={available < 0 ? "down" : "none"} />
+              </DashboardKpiLink>
+            </>
+          )}
+          {canSeeAccounting && (
+            <DashboardKpiLink href="/finance/dashboard?filter=drawings" active={filter === "drawings"}>
+              <KpiCard label="مسحوبات مالك معروضة" value={egp(ownerDrawingsTotal)} />
+            </DashboardKpiLink>
+          )}
+        </section>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/finance/dashboard?filter=operating" active={filter === "operating"}>
@@ -465,13 +487,13 @@ export default async function FinanceDashboardPage({
         </section>
       )}
 
-      {(filter === "all" || filter === "budgets") && budgetTotals.approved > 0 && (
+      {budgetsVerified && (filter === "all" || filter === "budgets") && budgetTotals.approved > 0 && (
         <section className="grid gap-4 lg:grid-cols-2">
-          <Card title="استخدام الموازنة">
+          <Card title="استخدام لقطة الموازنة">
             <BudgetDoughnut used={spentOrCommitted} available={Math.max(0, available)} />
           </Card>
           {varianceByCategory.length > 0 && (
-            <Card title="المعتمد مقابل الفعلي حسب الفئة">
+            <Card title="المعتمد مقابل لقطة الملتزم والفعلي حسب الفئة">
               <VarianceChart data={varianceByCategory} />
             </Card>
           )}
@@ -487,19 +509,26 @@ export default async function FinanceDashboardPage({
       </div>
 
       {(filter === "all" || filter === "budgets") && (
-        <Card title="ضغط الموازنة">
-          {budgetRows.length === 0 ? (
-            <EmptyState title="لا توجد موازنات" />
-          ) : (
-            <FilterableTable
-              columns={budgetColumns}
-              rows={budgetRows}
-              ariaLabel="ضغط الموازنة"
-              exportFilename="finance-dashboard-budget-pressure"
-              empty="—"
-            />
+        <>
+          {!budgetsVerified && (
+            <Alert tone="warning" title="لا توجد موازنة موثقة" description={DATA_NOT_VERIFIED_AR} />
           )}
-        </Card>
+          {budgetsVerified && (
+            <Card title="ضغط الموازنة (لقطة)">
+              {budgetRows.length === 0 ? (
+                <EmptyState title="لا توجد موازنات" />
+              ) : (
+                <FilterableTable
+                  columns={budgetColumns}
+                  rows={budgetRows}
+                  ariaLabel="ضغط الموازنة"
+                  exportFilename="finance-dashboard-budget-pressure"
+                  empty="—"
+                />
+              )}
+            </Card>
+          )}
+        </>
       )}
 
       {(filter === "all" ||
