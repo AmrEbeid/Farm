@@ -1,16 +1,18 @@
 # Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (acceptance amount-correction totals)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-30 — acceptance amount-correction totals — LOCAL CANDIDATE (Phase 1 of the resume point below)
+## 2026-07-30 — acceptance amount-correction totals — MERGED / DEPLOYED / LIVE-VERIFIED
 
 Claude implemented the approved Phase 1 fix in the isolated worktree
-`farm accounting acceptance correction totals` on `fix/accounting-acceptance-correction-totals`. **Nothing is
-committed, pushed, merged, deployed or applied; no PR exists.** Codex is the reviewer and must inspect the
-actual bytes before any of that.
+`farm accounting acceptance correction totals` on `fix/accounting-acceptance-correction-totals`; Codex
+reviewed and corrected the actual bytes. PR #977 merged at
+`002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact production deployment
+`dpl_7G5oxX4nd7JswTUnsPiBAjShVAcf` is READY.
 
 The defect: an included amount-correction row's full source amount was counted as an ordinary posting, but
 execution reverses the journal of the record the row names and posts a REPLACEMENT only for a positive amount;
-zero is reversal-only. It writes `execution_result='reversed'`. Ordinary posting totals were therefore overstated by every reversed amount, and
+zero is reversal-only. It writes `execution_result='reversed'`. Ordinary posting totals were therefore
+overstated by every reversed amount, and
 `reversed` was being labelled "unsettled" in an executed phase.
 
 The fix (three files, no SQL): `included_correction` is a new phase-aware acceptance destination that says the
@@ -58,11 +60,14 @@ Independent review ended **APPROVE** after three correction rounds: align the or
 reported destinations; state zero-value reversal-only behavior; segregate malformed correction shapes; and
 exclude those malformed shapes from executed/readiness counts.
 
-**Exact resume point:** commit/push/PR/merge/release this
-no-migration slice. **Phase 2 stays gated** on human selection and linkage of each correction to its production
-record plus accountant policy; no migration and no data change are in scope. The 100% acceptance gate remains
-human and unchanged: decide all 698 staged rows, resolve exceptions, run the workbook dual run, record dated
-accountant/Owner acceptance. Never auto-decide held financial evidence.
+Exact-head checks and exact-merge main CI, release, and db-tests are green. Public `/login` is HTTP 200, the
+signed-out acceptance route redirects to `/login`, and no runtime errors appeared in the queried 15-minute
+post-release window. No migration or business row changed.
+
+**Exact resume point:** Phase 2 stays gated on human selection and linkage of each correction to its
+production record plus accountant policy. The 100% acceptance gate remains human and unchanged: decide all
+698 staged rows, resolve exceptions, run the workbook dual run, and record dated accountant/Owner acceptance.
+Never auto-decide held financial evidence.
 
 ## 2026-07-30 — accounting acceptance control totals — MERGED / DEPLOYED / LIVE-VERIFIED
 

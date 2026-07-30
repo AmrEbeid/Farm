@@ -561,7 +561,7 @@ Public `/login` is 200, the signed-out acceptance route redirects to `/login`, a
 runtime-error window is empty. Authenticated real-route print was unavailable; Chrome A4 portrait replica
 validation and print-contract regressions passed. No migration or business row changed.
 
-### 8.11 Acceptance amount-correction totals (2026-07-30, LOCAL CANDIDATE — not committed, not released)
+### 8.11 Acceptance amount-correction totals (2026-07-30, RELEASED)
 
 An included row that names the production record it corrects does not simply post its source amount. Both
 execution RPCs — `fn_..._execute_expense_batch` and `..._execute_sale_batch` — first reverse the named
@@ -627,5 +627,8 @@ test file, and the acceptance page); production build compiled with 64/64 static
 columns, 2,675 bytes) are unchanged and passing, since the pinned fixture holds no correction row. pgTAP was
 NOT run for this slice: no SQL byte changed. Independent review is APPROVE after three correction rounds; no
 migration or data change is part of this slice. **Phase 2 remains gated:** computing the net (new − old)
-effect requires human
-selection and linkage of each correction to its production record, plus accountant policy.
+effect requires human selection and linkage of each correction to its production record, plus accountant
+policy. PR #977 merged at `002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact production deployment
+`dpl_7G5oxX4nd7JswTUnsPiBAjShVAcf` is READY. Exact-head checks and exact-merge main CI, release, and db-tests
+are green. Public `/login` is 200, the signed-out acceptance route redirects to `/login`, and the post-release
+runtime-error window is empty. No migration or business row changed.

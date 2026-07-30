@@ -4,16 +4,20 @@
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-07-30 — acceptance amount-correction totals: LOCAL CANDIDATE (not committed, not pushed, no PR).**
+**2026-07-30 — acceptance amount-correction totals: MERGED / DEPLOYED / LIVE-VERIFIED.**
+PR #977 merged at `002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact production deployment
+`dpl_7G5oxX4nd7JswTUnsPiBAjShVAcf` is READY.
 The acceptance report counted an included amount-correction row's full source amount as a posting, but
-execution reverses the record the row names and posts a replacement only for a positive amount, so ordinary posting totals were
+execution reverses the record the row names and posts a replacement only for a positive amount, so ordinary
+posting totals were
 overstated by every reversed amount. Healthy correction rows carry both correction evidence and the
 dataset-matched `corrects_*_id` link; the report treats either signal as a correction so malformed rows fail
 closed into an integrity group instead of entering ordinary totals or receiving a normal execution claim.
 Valid correction rows now form their own phase-aware destination and
 are excluded from `plannedPostingTotal` and from every period/sheet
 `postingAmount`; their gross replacement amount is reported separately as `correctionReplacementTotal`
-with an unconditional caveat that zero is reversal-only, the net ledger effect is new minus old, and it is not computed anywhere in
+with an unconditional caveat that zero is reversal-only, the net ledger effect is new minus old, and it is
+not computed anywhere in
 this report, and is not a P&L figure. `execution_result='reversed'` is now read as the expected result for
 an executed correction instead of "unsettled". The ordinary headline now uses the same reported-destination
 basis as the destination and control tables. No migration,
@@ -24,8 +28,9 @@ between addition and correction changes the package digest without a format chan
 acceptance Vitest 157/157; full Vitest 1,277 + 13 controlled skips across 91 files; TypeScript clean;
 ESLint clean on the three touched files; build 64/64 static pages; `git diff --check` clean. pgTAP was NOT
 run — no SQL byte changed. Independent review: APPROVE after three correction rounds. Phase 2
-(net-effect computation) stays gated
-on human selection/linkage plus accountant policy.
+(net-effect computation) stays gated on human selection/linkage plus accountant policy. Exact-head checks and
+exact-merge main CI, release, and db-tests are green. Public `/login` is 200, the signed-out acceptance route
+redirects to `/login`, and the post-release runtime-error window is empty. No migration or business row changed.
 
 **2026-07-30 — accounting acceptance control totals: MERGED / DEPLOYED / LIVE-VERIFIED.**
 PR #975 merged at `bf0895ef3bf61cef11cda12f1b6d90a0a1edf033`; exact production deployment

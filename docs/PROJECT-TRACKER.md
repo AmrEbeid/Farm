@@ -1,9 +1,12 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (acceptance amount-correction totals)
 
-> **2026-07-30 — ACCEPTANCE AMOUNT-CORRECTION TOTALS: LOCAL CANDIDATE (not committed, not pushed, no PR).**
+> **2026-07-30 — ACCEPTANCE AMOUNT-CORRECTION TOTALS: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #977 merged at `002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact production deployment
+> `dpl_7G5oxX4nd7JswTUnsPiBAjShVAcf` is READY.
 > An included amount-correction row does not simply post its source amount: both execution RPCs reverse the
 > journal of the record the row names and post a REPLACEMENT only when that amount is positive; zero is
-> reversal-only. They write `execution_result='reversed'`. The report was counting that replacement inside ordinary posting totals —
+> reversal-only. They write `execution_result='reversed'`. The report was counting that replacement inside
+> ordinary posting totals —
 > overstating them by every reversed amount — and was labelling `reversed` as "unsettled" in an executed
 > phase.
 >
@@ -48,9 +51,10 @@
 >
 > Independent review: **APPROVE** after three correction rounds (headline/control-total parity, zero-value
 > wording, malformed-shape integrity group, and executed-count parity). **Still gated:** Phase 2 (computing
-> the net (new − old) effect) needs human
-> selection/linkage of each correction to its production record plus accountant policy; no migration and no
-> data change are part of this slice.
+> the net (new − old) effect) needs human selection/linkage of each correction to its production record plus
+> accountant policy. Exact-head checks and exact-merge main CI, release, and db-tests are green. Public
+> `/login` is 200, the signed-out acceptance route redirects to `/login`, and the post-release runtime-error
+> window is empty. No migration or business row changed.
 
 > **2026-07-30 — ACCOUNTING ACCEPTANCE CONTROL TOTALS: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #975 merged at `bf0895ef3bf61cef11cda12f1b6d90a0a1edf033`; exact production deployment
