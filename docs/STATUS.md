@@ -1,8 +1,25 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (read-only accounting role-acceptance harness released). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (finance-dashboard budget authority guard released). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — finance-dashboard budget truthfulness: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+PR #985 merged at `22428eac6bb2a7bf4666819e8f4c160b6e7e7bbc`; production deployment
+`9jXcmKy6NBeYuhLuRwtVH4kjTSYD` completed successfully. The active-org budget query is explicit, and the
+existing parallel query wave now also reads budget authority. Unless that authority is `verified`, the
+dashboard renders no budget money KPIs, charts, pressure table, print content or CSV control; it shows the
+standard source warning instead. If verified later, these foundation-maintained figures are labelled
+**snapshot**, with an explicit not-live-control warning and a link to posted-ledger budget-vs-actual.
+Read-only production preflight confirms `budgets=blocked` and `finance_ledger=partial`, so no unsupported
+budget figure is exposed. Local evidence: focused Vitest 3/3; full Vitest 1,301 passed + 13 controlled skips
+across 92 files; TypeScript and touched-file ESLint clean; build 64/64; independent money-surface review
+APPROVE after one correction round. Exact-merge CI, release and pgTAP are green; `/login` is 200 and signed-out
+`/finance/dashboard` redirects to login. No migration, schema, RPC, dependency, authority row, financial row
+or budget value changed. Issue #905 was also closed as superseded after read-only production proof found the
+private `1010` helper + trigger present, 0 eligible organizations missing `1010`, and 0 non-single `1010`
+organizations. Accounting remains ~99.5%; the 698 row decisions, exceptions, real dual run and signatures
+remain human work.
 
 **2026-07-30 — read-only accounting role-acceptance harness: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 A separate Playwright configuration now covers owner and accountant access to the reconciliation list,

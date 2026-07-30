@@ -1,5 +1,42 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (finance-dashboard budget authority guard — RELEASED)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — finance-dashboard budget authority guard — MERGED / DEPLOYED / SIGNED-OUT SMOKED
+
+Issue #534 F2 remained real on current `main`: the budget list, budget detail and budget-vs-actual routes
+already failed closed on unverified budget authority, but `/finance/dashboard` still rendered the foundation
+`budgets.committed` / `actual` fields as live spend, available balance, charts and an exportable pressure
+table. Read-only Farm production preflight confirmed the impact premise: budget authority is `blocked` and
+finance-ledger authority is `partial`.
+
+PR #985 now reads active-org budget authority in the dashboard's existing parallel query wave and explicitly
+scopes the budget query by org. Unless authority is `verified`, all budget-derived KPIs, charts, pressure
+table, printed content and CSV control are absent and the standard source warning is shown. If the source is
+verified later, those fields are still not a live control: every KPI/table/chart is labelled as a snapshot,
+and a visible warning says approvals and expenses do not update it automatically and links to posted-ledger
+budget-vs-actual. Non-budget sections and owner/accountant/farm-manager role behavior are unchanged.
+
+Independent review first requested three corrections: do not equate verified source with live budget control,
+strengthen tests from gate-presence to unique sink containment, and update the user manual as well as page
+help. All three were fixed; second review: APPROVE with no P1-P3 finding. Focused Vitest 3/3; full Vitest
+1,301 passed + 13 controlled skips across 92 files; TypeScript and touched-file ESLint clean; production build
+64/64; `git diff --check` clean. Exact-head PR checks and exact-merge CI, release and pgTAP are green.
+
+Release: PR #985 merged at `22428eac6bb2a7bf4666819e8f4c160b6e7e7bbc`; production deployment
+`9jXcmKy6NBeYuhLuRwtVH4kjTSYD` completed successfully. Public `/login` is HTTP 200 and signed-out
+`/finance/dashboard` returns 307 to `/login`. No runtime-log claim is made because the connected Vercel
+project listing was unavailable. No migration, schema, RPC, dependency, authority row, financial row or
+budget value changed.
+
+Issue reconciliation: #534 stays open for F3/F4/F5, with F2 recorded complete. #905 is closed as superseded:
+current production contains the private `1010` helper, trigger function and organization trigger; read-only
+counts found 0 eligible organizations missing `1010` and 0 organizations with a non-single `1010`.
+
+**Exact resume point:** continue the highest-impact decision-free accounting gap. Do not auto-decide the 698
+held reconciliation rows. Accounting remains ~99.5% until the human exception decisions, real workbook dual
+run, and dated accountant/Owner acceptance are complete. #534 F4 needs an Owner decision on valid budget
+status semantics before filtering; #779 finance-surface consolidation and #89 pricing source also remain
+decision-gated.
 
 ## 2026-07-30 — read-only accounting role-acceptance harness — MERGED / DEPLOYED / SIGNED-OUT SMOKED
 
