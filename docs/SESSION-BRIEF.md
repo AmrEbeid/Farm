@@ -4395,3 +4395,20 @@ Build is done; the remaining gates are **review + validation + infra**, all Owne
 - Docs: `docs/01–10`, `MASTER-PLAN.md`, `SPEC-0001`; agentic specs/plans under `docs/superpowers/`.
 - Source data verified: palm registry (docx), offshoot jard (pdf), 7-yr accounting (xlsx).
 - **Security review (2026-06-23):** branch `fix/mvp0-security-remediation` — migration `0010` + test `05`; **59/59 pgTAP** (36 existing + 23 new) via `apps/farm-os/supabase/test-shims/run-pgtap-local.sh` (Docker-free harness); full findings in `docs/SECURITY-REVIEW-MVP0-2026-06-23.md`. **Not merged/pushed** — awaiting Owner sign-off + the e2e on Docker.
+
+## 2026-07-30 — cost-center exact totals released
+
+PR #987 merged at `fc6b7f97af1a504b766217fa47d859fc7cb09097`; production migration
+`cost_center_direct_summary` and Vercel deployment `FKzRYqjsH4VJZXe6Bx9iHLBxNBZV` succeeded. The cost-center
+360 no longer presents a latest-200 sample as a complete money total. Production read-only evidence found
+16 affected centers, a maximum 1,140 expense rows and approximately EGP 10.27m omitted across the prior
+capped views. Exact direct totals now come from an org-scoped, `finance.read`-gated RPC; unknown expense
+amounts remain explicit, current historical/reversal semantics are pinned, and bounded tables disclose
+truncation with deterministic null-last order.
+
+Independent review requested changes for nullable-money honesty, historical lifecycle coverage and null-date
+ordering; all were fixed and the second verdict was APPROVE. Final evidence: pgTAP 3,132/3,132; Vitest
+1,305 passed + 13 controlled skips; TypeScript and touched ESLint clean; build 64/64; exact-main CI, release
+and db-tests green; production login aliases 200; signed-out cost-center route redirects to login. No tenant
+or financial row changed. Resume from the unchanged human acceptance gate: all 698 decisions and exceptions,
+the real workbook dual run, and dated accountant/Owner sign-off. Accounting remains ~99.5%.

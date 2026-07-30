@@ -1,8 +1,23 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (finance-dashboard budget authority guard released). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (cost-center exact totals released). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — cost-center exact totals: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+PR #987 merged at `fc6b7f97af1a504b766217fa47d859fc7cb09097`; production deployment
+`FKzRYqjsH4VJZXe6Bx9iHLBxNBZV` completed successfully. The cost-center 360 had presented sums of its
+latest 200 detail rows as complete totals. Read-only production evidence found 16 affected centers,
+up to 1,140 expense rows, with approximately EGP 10.27m omitted across the capped views. The page now
+uses the exact, org-scoped, `finance.read`-gated `fn_cost_center_direct_summary`; cancelled and
+historical-reversed expenses are excluded, historical-treasury rows retain their current contract, sale
+revenue requires a still-posted journal, and unknown expense amounts are disclosed rather than zeroed.
+Detail tables remain bounded and now disclose truncation with null-last deterministic ordering. Production
+migration and authenticated owner-context aggregate verification succeeded; no tenant or financial row
+changed. Independent review: APPROVE after one correction round. Evidence: pgTAP 3,132/3,132; Vitest
+1,305 passed + 13 controlled skips; TypeScript, ESLint, build 64/64 and exact-main CI/release/db-tests green.
+Both production login aliases return 200 and a signed-out cost-center route redirects to login. Accounting
+remains ~99.5%; the 698 decisions, exceptions, real dual run and dated accountant/Owner acceptance remain.
 
 **2026-07-30 — finance-dashboard budget truthfulness: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 PR #985 merged at `22428eac6bb2a7bf4666819e8f4c160b6e7e7bbc`; production deployment

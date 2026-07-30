@@ -787,3 +787,25 @@ PR #983 merged at `3962e8caea3cff062e00c46085a2146d069f3729`; exact production d
 `dpl_DmWDiUSzmoid9cX5txnqX4PdMx1J` is READY. Main app/design CI, release, gitleaks and pgTAP are green.
 `/login` is 200, signed-out reconciliation routes redirect to login, and the deployment has no 5xx runtime
 logs. No migration existed. The credentialed owner/accountant/denied-role suite remains unrun.
+
+### 8.14 Cost-center exact direct totals (2026-07-30, MIGRATED / MERGED / DEPLOYED)
+
+The cost-center 360 kept its expense and sale detail tables bounded at 200 rows but also reduced those same
+arrays into the headline KPIs and story sentence. Those figures therefore became silently partial when a
+center crossed the display cap. Production already had 16 such centers, with as many as 1,140 expenses.
+
+`fn_cost_center_direct_summary` is the single exact source for direct totals and full row counts. It is
+read-only, `SECURITY DEFINER` with an empty search path, rejects cross-org calls, requires organization
+membership plus `finance.read`, and is executable only by `authenticated`. Direct expense money excludes
+cancelled and historical-reversed rows while retaining historical-treasury rows; nullable eligible amounts
+are counted separately and displayed as unknown rather than coerced to zero. Sale revenue requires both a
+finalized sale and a still-posted `source_type='sale'` journal, so pending and reversed revenue cannot enter.
+Historical-reversed sales are excluded from both the list population and its full count.
+
+The page still fetches only 200 detail rows per table, now ordered by date null-last and then id, and discloses
+the exact full count whenever truncated. RPC/list/parser failures fail closed. PR #987 merged at
+`fc6b7f97af1a504b766217fa47d859fc7cb09097`; migration `cost_center_direct_summary` and production deployment
+`FKzRYqjsH4VJZXe6Bx9iHLBxNBZV` are live. pgTAP 3,132/3,132, Vitest 1,305 + 13 controlled skips, TypeScript,
+ESLint, 64-page build and exact-main gates are green; independent review approved after all findings were
+fixed. No tenant or financial row changed. This removes a money-display defect but does not satisfy the
+human reconciliation oracle or change the ~99.5% accounting status.
