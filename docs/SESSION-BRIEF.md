@@ -1,5 +1,54 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LIVE)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — LOCAL CANDIDATE)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — read-only accounting role-acceptance harness — LOCAL CANDIDATE / NOT LIVE-RUN
+
+The current accounting goal needed authenticated owner/accountant acceptance evidence, but the only existing
+Playwright suite was the legacy wedge loop: it provisions users and resets operational data with the service
+role, and correctly refuses non-local Supabase. Farm no longer uses a Docker-backed local Supabase stack. This
+isolated worktree also has no `.env.local` or role credentials, so no authenticated browser result can be
+claimed.
+
+A separate accounting-only config and spec now provide the safe path. They require explicit environment
+credentials for owner, accountant and one denied non-finance role, plus an explicit batch UUID. Local app URLs
+must include a port. Any remote run requires `FARM_OS_ALLOW_REMOTE_READONLY_E2E=1`, and the only allowlisted
+origin is `https://ebeidfarm.business`. Login finishes before the request guard is installed; after login,
+service workers are blocked and POST/PUT/PATCH/DELETE are aborted and fail the test. The suite uses only GET
+navigation to verify the reconciliation list, pinned batch, missing-source-amount quality filter, acceptance
+report and CSV for owner/accountant, then follows the denied role through `/dashboard` to its role-specific
+manager, field or inventory destination and verifies reconciliation content is absent. It imports no
+service-role/admin/Supabase client, performs no database query, and never interacts with staging, row decisions,
+freeze, approval, execution or rollback.
+
+The pure policy is independently covered for target allowlisting, explicit local port, credential-free URLs,
+batch UUID, mandatory credential names and allowed HTTP methods. A source contract pins the absence of
+privileged/direct database clients and financial-action interactions. Validation: focused Vitest 8/8; full
+Vitest 1,300 passed + 13 controlled skips across 92 files; TypeScript clean; ESLint clean on the four touched
+TypeScript files; production build 64/64. A collection-only invocation without secrets failed before browser
+launch on the missing batch variable, proving the fail-closed configuration path. pgTAP was not run because no
+SQL byte changed. The authenticated browser suite was not run because credentials are absent.
+
+Canonical `STATUS.md` was also brought current for the already-live #979 discarded-edit fix and #981
+evidence-quality routes. Production aggregate truth remains: all 698 rows unreviewed/hold, 0 frozen, 15
+correction rows, 2 missing-source-amount production snapshots and 0 invalid-date staged rows. Neither those
+releases nor this local harness changed business data.
+
+Independent review initially found four blocking proof/safety defects: local server reuse, no final-origin
+check before entering credentials, no role-identity/distinct-account proof, and an incorrect denied-role final
+URL. The corrected suite refuses server reuse, checks the approved origin before credential entry and after
+login, requires three distinct accounts, asserts the owner/accountant role labels, follows actual denied-role
+destinations, verifies reconciliation content is absent, and applies the request guard to the browser context
+so new pages cannot bypass it. Traces are disabled because they can persist form inputs. The source contract
+pins each safeguard and its ordering. Independent safety review: APPROVE after three rounds.
+
+Separate docs debt: canonical `STATUS.md` was already 179 lines at this slice's base despite its ~100-line
+target and is now 203. Compact historical detail into the append-only tracker/session archives in a later
+docs-only cleanup; do not hide or delete current-state gates to satisfy a line count.
+
+**Exact resume point:** commit and open a PR for this reviewed slice. After release, run the read-only suite
+with approved owner/accountant/denied-role credentials; do not store or print them. That browser proof still
+does not decide the batch. Accounting reaches 100% only after humans decide all 698 rows, resolve every
+exception, run the real workbook dual run, and record dated accountant and Owner acceptance.
 
 ## 2026-07-30 — queue route to the acceptance report's evidence-quality exceptions — MERGED / DEPLOYED / LIVE-SMOKED
 

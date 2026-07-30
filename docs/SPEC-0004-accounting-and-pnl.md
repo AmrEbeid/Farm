@@ -736,3 +736,27 @@ production postflight found 698 joined rows, 2 rows with no source amount (both 
 invalid-date flags in this staged queue, and 15 correction rows; no identifiers, descriptions, or financial
 values were read. No authenticated browser session was available, so the UI controls were not exercised
 against a real row.
+
+### 8.13 Read-only authenticated role-acceptance harness (2026-07-30, LOCAL CANDIDATE / NOT LIVE-RUN)
+
+The legacy wedge-loop Playwright suite provisions users with the service role and resets operational data,
+so its enforced local-only guard is correct and remains unchanged. Farm no longer has a Docker-backed local
+Supabase workflow, leaving no safe current browser path to prove the owner/accountant reconciliation surface.
+
+The separate `playwright accounting readonly.config.ts` and `e2e/accounting readonly.spec.ts` close the
+engineering part of that gap without creating a data path. Owner, accountant and denied-role credentials plus
+the batch UUID come only from explicit environment variables. Remote execution requires an acknowledgement
+flag and the exact production origin allowlist. After login, Playwright blocks service workers and intercepts
+all page traffic: POST, PUT, PATCH and DELETE are aborted and fail the test; only GET, HEAD and OPTIONS remain.
+The finance-role checks cover the reconciliation list, pinned batch, GET evidence-quality filter, acceptance
+report and CSV. The denied-role check follows the existing `/dashboard` router to the role-specific manager,
+field or inventory destination and verifies reconciliation content is absent. No test touches staging, review
+decisions, freeze, approval, execution or rollback.
+
+The pure policy lives in `lib/accounting e2e safety.ts`, with target, UUID, credential and HTTP-method tests
+plus a source contract that rejects privileged clients/direct database access and financial-action locators.
+Local evidence: focused Vitest 8/8; full Vitest 1,300 passed + 13 controlled skips across 92 files; TypeScript
+and touched-file ESLint clean; build 64/64; missing configuration fails before browser launch. The authenticated
+suite was not run because no role credentials were present. This is not accountant acceptance and does not
+change the 698 unreviewed/hold rows, the 0 frozen count, the dual-run requirement or Stage 7's ~99.5% status.
+Independent safety review is APPROVE after three rounds.

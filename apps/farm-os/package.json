@@ -10,7 +10,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e:accounting:readonly": "playwright test --config='playwright accounting readonly.config.ts'"
   },
   "dependencies": {
     "@amrebeid/ui": "*",
