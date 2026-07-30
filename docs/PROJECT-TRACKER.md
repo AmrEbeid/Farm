@@ -1,4 +1,56 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (acceptance control totals)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (acceptance amount-correction totals)
+
+> **2026-07-30 — ACCEPTANCE AMOUNT-CORRECTION TOTALS: LOCAL CANDIDATE (not committed, not pushed, no PR).**
+> An included amount-correction row does not simply post its source amount: both execution RPCs reverse the
+> journal of the record the row names and post a REPLACEMENT only when that amount is positive; zero is
+> reversal-only. They write `execution_result='reversed'`. The report was counting that replacement inside ordinary posting totals —
+> overstating them by every reversed amount — and was labelling `reversed` as "unsettled" in an executed
+> phase.
+>
+> Correction rows now form their own phase-aware acceptance destination that states plainly that the row is a
+> correction, that the old record is reversed, and that the amount shown is the replacement — never that a
+> correction posts nothing. They are excluded from `plannedPostingTotal`/`plannedPostingRowCount` and from
+> every period/sheet/subtotal `postingAmount`/`postingRowCount`, and reported separately as an exact
+> `correctionReplacementTotal` + `correctionRowCount`, rendered on the Arabic RTL page with an unconditional
+> caveat that zero creates no replacement row/journal, the net ledger effect is (new − old), is computed
+> nowhere in this report, and that the figure is
+> a gross replacement-source amount which may span drawings, capex, operating expenses and sales and is
+> therefore not any P&L line. Lifecycle mapping fixed: planned/executed-`reversed`/rolled-back-`reversed` →
+> correction group (with rolled-back wording that it executed then rolled back), `skipped` → skipped, and any
+> other result — including `posted`, which the executor never writes for a correction — → unsettled. The
+> ordinary headline uses the same reported destination as the destination/control tables.
+>
+> Healthy included correction rows carry both `amount_correction_candidate` evidence and the dataset-matched
+> `corrects_expense_id`/`corrects_sale_id` link the execution RPCs branch on. Database guards enforce that
+> contract. The report is deliberately fail-closed: either correction evidence or any correction link keeps a
+> malformed row out of ordinary posting totals and places it in a dedicated integrity group with no execution
+> claim, while the existing linked/unlinked quality counts expose the broken shape.
+>
+> No migration, RPC, schema, grant, gate, decision, write, extra read, canonical row order, or CSV
+> column/order/header/count changed. A correction row's destination cells intentionally change. Per the digest
+> decision, `ACCEPTANCE_DIGEST_VERSION` is **NOT** bumped
+> and no v1 compatibility builder was added: the per-row destination cell is already digested content, so a
+> row moving between ordinary addition and amount correction changes the digested bytes and therefore the
+> package digest — proven by test — while unaffected v1 packets stay valid. Comments were corrected so
+> they no longer imply the computed aggregates are themselves hashed.
+>
+> Local evidence: focused acceptance Vitest **157/157**; full Vitest **1,277 + 13 controlled skips** across 91
+> files; TypeScript clean; ESLint clean on the three touched files; production build **64/64** static pages;
+> `git diff --check` clean; the pinned 73-column CSV contract, its byte length/SHA-256 and the payload-digest
+> pin for the existing non-correction fixture all unchanged and passing. pgTAP was NOT run: no SQL byte changed
+> in this slice.
+>
+> Production aggregate preflight (read-only, no row identifiers): one staged 698-row batch; 15
+> amount-correction candidates, all held, unreviewed, unlinked, pending and not frozen; no
+> reviewed/approved/executed/rolled-back batch exists; zero rows carry a payload hash or frozen state. So no
+> production figure moves today — every correction candidate is unlinked and unincluded — and this fix is what
+> keeps the totals honest the moment one is linked and included.
+>
+> Independent review: **APPROVE** after three correction rounds (headline/control-total parity, zero-value
+> wording, malformed-shape integrity group, and executed-count parity). **Still gated:** Phase 2 (computing
+> the net (new − old) effect) needs human
+> selection/linkage of each correction to its production record plus accountant policy; no migration and no
+> data change are part of this slice.
 
 > **2026-07-30 — ACCOUNTING ACCEPTANCE CONTROL TOTALS: MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #975 merged at `bf0895ef3bf61cef11cda12f1b6d90a0a1edf033`; exact production deployment

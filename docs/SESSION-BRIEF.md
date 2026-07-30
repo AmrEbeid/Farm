@@ -1,5 +1,68 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (accounting acceptance control totals)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (acceptance amount-correction totals)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — acceptance amount-correction totals — LOCAL CANDIDATE (Phase 1 of the resume point below)
+
+Claude implemented the approved Phase 1 fix in the isolated worktree
+`farm accounting acceptance correction totals` on `fix/accounting-acceptance-correction-totals`. **Nothing is
+committed, pushed, merged, deployed or applied; no PR exists.** Codex is the reviewer and must inspect the
+actual bytes before any of that.
+
+The defect: an included amount-correction row's full source amount was counted as an ordinary posting, but
+execution reverses the journal of the record the row names and posts a REPLACEMENT only for a positive amount;
+zero is reversal-only. It writes `execution_result='reversed'`. Ordinary posting totals were therefore overstated by every reversed amount, and
+`reversed` was being labelled "unsettled" in an executed phase.
+
+The fix (three files, no SQL): `included_correction` is a new phase-aware acceptance destination that says the
+row is a correction, that the old record is reversed, and that the displayed amount is the replacement — never
+that a correction posts nothing. Correction rows leave `plannedPostingTotal`/`plannedPostingRowCount` and every
+period/year-subtotal/sheet/footer `postingAmount`/`postingRowCount`; their gross replacement amount is reported
+separately and exactly as `correctionReplacementTotal` + `correctionRowCount` and rendered on the Arabic RTL
+page under its own heading with an **unconditional** caveat that zero creates no replacement row/journal, the
+net ledger effect is (new − old), is
+computed nowhere in this report, and that the figure is a gross replacement-source total spanning drawings,
+capex, operating expenses and sales — not any P&L line. Lifecycle: planned → correction group; `reversed` in
+executed/reverted/unsettled → correction group (reverted wording adds "executed then rolled back"); `skipped`
+→ skipped; anything else, `posted` included, → unsettled. The ordinary headline now uses the same
+reported-destination basis as the destination and control tables.
+
+Healthy included correction rows carry both `amount_correction_candidate` evidence and the dataset-matched
+`corrects_expense_id`/`corrects_sale_id` link the executor uses. Database guards enforce that shape. Codex
+changed Claude's first link-only implementation to fail closed at the report boundary: either correction
+evidence or any correction link keeps a malformed row out of ordinary posting totals and places it in a
+dedicated integrity group that makes no execution claim. The existing quality counts also expose missing
+linkage.
+
+Per the digest decision, `ACCEPTANCE_DIGEST_VERSION` is **not** bumped and no v1 compatibility builder was
+added — the recipe, canonicalisation, and the 73-column CSV schema are byte-unchanged, and a test proves that a
+row moving between addition and correction changes the already-digested destination cells and so the package
+digest. Comments were corrected so they no longer imply the computed aggregates are hashed themselves. One
+snapshot read, exact destination partition, canonical row order, CSV schema, database/RPC/schema, grants,
+gates, decisions and all writes are untouched. Correction-row destination bytes intentionally change; the
+pinned non-correction fixture remains byte-identical.
+
+Local evidence: focused acceptance Vitest **157/157**; full Vitest **1,277 + 13 controlled skips** across 91
+files; TypeScript clean; ESLint clean on the three touched files; production build **64/64** static pages;
+`git diff --check` clean; the pinned format guards (payload digest `961c74b6…`, CSV `4339720a…`, 73 columns,
+2,675 bytes) unchanged and passing. **pgTAP was not run — no SQL byte changed.** One existing CSV-annex
+assertion was updated on purpose: its fixture names a corrected expense, so its destination is now the
+correction group.
+
+Production aggregate preflight (read-only, aggregates only, no row identifiers): one staged 698-row batch; 15
+amount-correction candidates, all held, unreviewed, unlinked, pending, not frozen; no
+reviewed/approved/executed/rolled-back batch; zero rows with a payload hash or frozen state. **No production
+figure moves today** — every candidate is unlinked and unincluded — so this is a correctness fix ahead of the
+first linked correction, not a restatement.
+
+Independent review ended **APPROVE** after three correction rounds: align the ordinary headline with
+reported destinations; state zero-value reversal-only behavior; segregate malformed correction shapes; and
+exclude those malformed shapes from executed/readiness counts.
+
+**Exact resume point:** commit/push/PR/merge/release this
+no-migration slice. **Phase 2 stays gated** on human selection and linkage of each correction to its production
+record plus accountant policy; no migration and no data change are in scope. The 100% acceptance gate remains
+human and unchanged: decide all 698 staged rows, resolve exceptions, run the workbook dual run, record dated
+accountant/Owner acceptance. Never auto-decide held financial evidence.
 
 ## 2026-07-30 — accounting acceptance control totals — MERGED / DEPLOYED / LIVE-VERIFIED
 

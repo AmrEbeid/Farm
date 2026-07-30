@@ -18,9 +18,16 @@
 //   • `frozen` / `executed` are counted from the executor's own bookkeeping columns (the `frozen`
 //     flag and `execution_result`), NOT inferred from `review_state` or the batch status — so these
 //     numbers agree exactly with the batch page's KPI strip.
-//   • Destination totals separate the rows whose destination is a posting (included → expenses /
-//     included → sales) from those that post nothing (held, rejected, undecided). A held row's amount
-//     is never shown inside a posting total. The WORDING of the two posting groups follows the
+//   • Destination totals separate the rows whose destination is an ordinary posting (included →
+//     expenses / included → sales) from those that post nothing (held, rejected, undecided). A held
+//     row's amount is never shown inside a posting total. An included AMOUNT CORRECTION is a third
+//     thing and gets its own group and its own figures: it does post, but execution first REVERSES the
+//     record it names, so its source amount is a replacement and its net effect on the books is
+//     `new − old`. Putting it in an ordinary posting total would overstate that total by the whole
+//     reversed amount, so it is excluded from plannedPostingTotal and from every control-total
+//     postingAmount, and reported as correctionReplacementTotal — labelled a gross replacement amount,
+//     never a net effect and never a P&L figure (ACCEPTANCE_CORRECTION_CAVEAT_AR). The WORDING of the
+//     posting groups follows the
 //     batch's own status: "will be recorded" is only ever said about a batch that has not executed
 //     yet — an executed batch says "was recorded", a rolled-back one says "was recorded then
 //     reversed", and an interrupted/unknown one claims nothing at all (see AcceptancePhase).
@@ -30,6 +37,14 @@
 // ONE CONTENT FORMAT, ONE DIGEST. The page and CSV endpoint each build a package from their own
 // complete read. Matching SHA-256 digests prove that the two requests returned the same captured
 // content; a later, different read cannot silently be filed against a signed report.
+//
+// WHAT THE DIGEST COVERS — AND WHAT IT DOES NOT. It is taken over the batch record and the per-row
+// CONTENT CELLS only (acceptancePayloadDocument). The computed aggregates on this report — the
+// classification/destination totals, the control totals, the posting and correction figures — are NOT
+// hashed themselves; they are derived views over rows the digest already binds. That is enough,
+// because every input those aggregates read is a digested cell: a row's `destination` cell is one of
+// them, so the same row moving between an ordinary addition and an amount correction changes the
+// digested bytes and therefore the package digest, even though no aggregate is hashed directly.
 
 import { createHash } from "node:crypto";
 
@@ -333,6 +348,16 @@ export const ACCEPTANCE_DATASET_AR: Record<AcceptanceDataset, string> = {
 export type AcceptanceDestination =
   | "included_expenses"
   | "included_sales"
+  /**
+   * An included row that NAMES the production record it corrects. It is a posting group like the two
+   * above — it is emphatically NOT "posts nothing" — but its money shape is different: execution
+   * reverses the named record's journal and posts a REPLACEMENT at the row's own source amount, so the
+   * row's net effect on the books is `replacement − reversed`, not `replacement`. Adding a replacement
+   * amount into an ordinary posting total would overstate that total by the whole reversed amount,
+   * which is why this group is its own destination and is excluded from every posting figure.
+   */
+  | "included_correction"
+  | "correction_invalid"
   | "execution_skipped"
   | "execution_unsettled"
   | "held"
@@ -372,9 +397,11 @@ export function acceptancePhase(status: string): AcceptancePhase {
  * not get recorded" is true before, during and after execution, so these need no phase variant.
  */
 const ACCEPTANCE_NON_POSTING_AR: Record<
-  Exclude<AcceptanceDestination, "included_expenses" | "included_sales">,
+  Exclude<AcceptanceDestination, "included_expenses" | "included_sales" | "included_correction">,
   string
 > = {
+  correction_invalid:
+    "مُضمَّنة كتصحيح لكن دليل التصحيح ورابط السجل غير متطابقين — لا يُحتسب لها تنفيذ",
   execution_skipped: "مُضمَّنة لكن تخطّاها التنفيذ — لم تُسجَّل بهذه الدفعة",
   execution_unsettled: "مُضمَّنة لكن نتيجة تنفيذها غير محسومة — لا تُحتسب كمُسجَّلة",
   held: "مُعلَّقة — لا تُسجَّل",
@@ -383,53 +410,121 @@ const ACCEPTANCE_NON_POSTING_AR: Record<
   included_no_target: "مُضمَّنة بلا وجهة مقروءة — غير محسوبة في أي إجمالي",
 };
 
-/** The phase-dependent wording: the two posting groups, the two posting figures, and the note. */
+/** The phase-dependent wording: the posting groups, their figures, and the notes that qualify them. */
 export interface AcceptancePhaseCopy {
   includedExpenses: string;
   includedSales: string;
-  /** Heading of the "rows that post" figure on the report. */
+  /**
+   * The amount-correction group's destination label. It must say THREE things in every phase: that the
+   * row is a correction, that the old record is reversed, and that the amount shown is the REPLACEMENT
+   * — never that a correction records nothing.
+   */
+  includedCorrection: string;
+  /** Heading of the "rows that post" figure on the report. Ordinary additions only. */
   postingRowsLabel: string;
-  /** Heading of the "amount that posts" figure on the report. */
+  /** Heading of the "amount that posts" figure on the report. Ordinary additions only. */
   postingTotalLabel: string;
   /** The clause that states what the posting total means in THIS phase. */
   postingNote: string;
+  /** Heading of the "correction rows" figure on the report. */
+  correctionRowsLabel: string;
+  /** Heading of the correction REPLACEMENT amount — never the net effect on the books. */
+  correctionTotalLabel: string;
+  /** The clause that states what the correction figures mean in THIS phase. */
+  correctionNote: string;
 }
 
 export const ACCEPTANCE_PHASE_COPY: Record<AcceptancePhase, AcceptancePhaseCopy> = {
   planned: {
     includedExpenses: "مُضمَّنة — وجهتها المصروفات، ستُسجَّل عند التنفيذ",
     includedSales: "مُضمَّنة — وجهتها المبيعات، ستُسجَّل عند التنفيذ",
-    postingRowsLabel: "صفوف ستُسجَّل عند التنفيذ",
-    postingTotalLabel: "إجمالي ما سيُسجَّل عند التنفيذ",
+    includedCorrection:
+      "مُضمَّنة — تصحيح مبلغ: سيَعكس التنفيذ السجل القديم، ويسجّل بديلًا إذا كان مبلغ الاستبدال " +
+      "أكبر من صفر؛ والصفر يعني عكس السجل القديم بلا بديل",
+    postingRowsLabel: "صفوف إضافة ستُسجَّل عند التنفيذ",
+    postingTotalLabel: "إجمالي ما سيُسجَّل عند التنفيذ (إضافات فقط)",
     postingNote: "لم تُنفَّذ هذه الدفعة بعد، فالمبلغ أدناه متوقَّع عند التنفيذ ولم يدخل الدفاتر.",
+    correctionRowsLabel: "صفوف تصحيح مبلغ ستُنفَّذ",
+    correctionTotalLabel: "إجمالي مبالغ الاستبدال لصفوف التصحيح — لا الأثر الصافي",
+    correctionNote:
+      "لم تُنفَّذ هذه الدفعة بعد. عند التنفيذ سيَعكس كل صف تصحيح السجل القديم الذي يسمّيه، ثم يسجّل " +
+      "بديلًا فقط إذا كان مبلغ الاستبدال أكبر من صفر.",
   },
   executed: {
     includedExpenses: "مُضمَّنة — سُجِّلت مصروفًا بالتنفيذ",
     includedSales: "مُضمَّنة — سُجِّلت بيعًا بالتنفيذ",
-    postingRowsLabel: "صفوف مُضمَّنة سُجِّلت بالتنفيذ",
-    postingTotalLabel: "إجمالي ما سُجِّل بالتنفيذ",
+    includedCorrection:
+      "مُضمَّنة — تصحيح مبلغ: عَكَس التنفيذ السجل القديم، وسجّل بديلًا عندما كان مبلغ الاستبدال " +
+      "أكبر من صفر؛ والصفر يعني عكس السجل القديم بلا بديل",
+    postingRowsLabel: "صفوف إضافة سُجِّلت بالتنفيذ",
+    postingTotalLabel: "إجمالي ما سُجِّل بالتنفيذ (إضافات فقط)",
     postingNote: "نُفِّذت هذه الدفعة بالفعل، فالمبلغ أدناه سُجِّل في الدفاتر ولم يعد متوقَّعًا.",
+    correctionRowsLabel: "صفوف تصحيح مبلغ نُفِّذت",
+    correctionTotalLabel: "إجمالي مبالغ الاستبدال المُسجَّلة لصفوف التصحيح — لا الأثر الصافي",
+    correctionNote:
+      "نُفِّذت هذه الدفعة بالفعل: عُكِس السجل القديم لكل صف تصحيح، وسُجِّل بديل فقط عندما كان مبلغ " +
+      "الاستبدال أكبر من صفر.",
   },
   reverted: {
     includedExpenses: "مُضمَّنة — سُجِّلت مصروفًا ثم عُكِست بالتراجع",
     includedSales: "مُضمَّنة — سُجِّلت بيعًا ثم عُكِست بالتراجع",
-    postingRowsLabel: "صفوف مُضمَّنة سُجِّلت ثم عُكِست",
-    postingTotalLabel: "إجمالي ما سُجِّل ثم عُكِس",
+    includedCorrection:
+      "مُضمَّنة — تصحيح مبلغ: نُفِّذ (عكس السجل القديم، وتسجيل مبلغ الاستبدال إذا كان أكبر من " +
+      "صفر) ثم تراجعت الدفعة؛ والصفر كان عكسًا بلا بديل",
+    postingRowsLabel: "صفوف إضافة سُجِّلت ثم عُكِست",
+    postingTotalLabel: "إجمالي ما سُجِّل ثم عُكِس (إضافات فقط)",
     postingNote:
       "تراجَعت هذه الدفعة بعد تنفيذها، فالمبلغ أدناه سُجِّل ثم عُكِس، وأثره الصافي في الدفاتر صفر.",
+    correctionRowsLabel: "صفوف تصحيح مبلغ نُفِّذت ثم تراجعت",
+    correctionTotalLabel: "إجمالي مبالغ الاستبدال التي نُفِّذت ثم تراجعت — لا الأثر الصافي",
+    correctionNote:
+      "نُفِّذت هذه الدفعة ثم تراجَعت: عُكِس السجل القديم لكل صف تصحيح، وسُجِّل بديل للمبلغ الأكبر " +
+      "من صفر، ثم تراجع ذلك كله. لا يحسب هذا التقرير أثر التصحيح ولا أثر التراجع عليه.",
   },
   unsettled: {
     includedExpenses: "مُضمَّنة — وجهتها المصروفات، وحالة تسجيلها غير محسومة",
     includedSales: "مُضمَّنة — وجهتها المبيعات، وحالة تسجيلها غير محسومة",
-    postingRowsLabel: "صفوف مُضمَّنة — حالة تسجيلها غير محسومة",
-    postingTotalLabel: "إجمالي الصفوف المُضمَّنة — حالة تسجيلها غير محسومة",
+    includedCorrection:
+      "مُضمَّنة — تصحيح مبلغ سُجِّلت له نتيجة تنفيذ «معكوس»، وحالة الدفعة نفسها غير محسومة، " +
+      "والمعروض هو مبلغ الاستبدال لا الأثر الصافي",
+    postingRowsLabel: "صفوف إضافة مُضمَّنة — حالة تسجيلها غير محسومة",
+    postingTotalLabel: "إجمالي صفوف الإضافة المُضمَّنة — حالة تسجيلها غير محسومة",
     // Deliberately free of any tense claim about the posting: this batch is mid-flight, and the only
     // truthful source for a given row is its own `execution_result`.
     postingNote:
       "حالة هذه الدفعة لا تحسم ما إذا كان التسجيل قد تم من عدمه، فلا يقرّر هذا التقرير أثر المبلغ " +
       "أدناه في الدفاتر. راجع «نتيجة التنفيذ» لكل صف في ملف CSV قبل أي قبول.",
+    correctionRowsLabel: "صفوف تصحيح مبلغ — حالة الدفعة غير محسومة",
+    correctionTotalLabel: "إجمالي مبالغ الاستبدال لصفوف التصحيح — غير محسومة، ولا الأثر الصافي",
+    correctionNote:
+      "حالة هذه الدفعة لا تحسم ما إذا كان تنفيذ التصحيحات قد تم من عدمه. لا تظهر هنا إلا صفوف " +
+      "التصحيح التي سُجِّلت لها نتيجة «معكوس»؛ وما نتيجته «قيد الانتظار» أو «فاشل» أو «مُسجَّل» " +
+      "يظهر في مجموعة «نتيجة تنفيذها غير محسومة». راجع «نتيجة التنفيذ» لكل صف في ملف CSV قبل أي قبول.",
   },
 };
+
+/**
+ * Printed with the correction figures, ALWAYS — including on a batch that holds no correction row at
+ * all, because the fact this report never computes a net ledger effect is exactly what a signer needs
+ * to know before signing.
+ *
+ * Three claims it must make and one it must refuse to make: a correction reverses the named record and
+ * posts a replacement only for a positive amount; zero is reversal-only. The figure is the gross
+ * REPLACEMENT source amount;
+ * the net effect is `new − old` and is NOT computed anywhere in this report. And it is not a P&L line:
+ * these rows span owner drawings, capital spend, operating expenses and sales, which CLAUDE.md #6
+ * forbids adding into one claimed result.
+ */
+export const ACCEPTANCE_CORRECTION_CAVEAT_AR =
+  "صف تصحيح المبلغ هو الصف المُضمَّن الذي يسمّي سجل الإنتاج الذي يصحّحه. تنفيذه لا يسجّل شيئًا " +
+  "جديدًا فحسب: هو يعكس قيد السجل القديم أولًا ثم يسجّل بديلًا عندما يكون مبلغ المصدر أكبر من صفر؛ " +
+  "أما مبلغ الاستبدال صفر فيعني عكس السجل القديم بلا إنشاء سجل أو قيد بديل. لذلك أُخرجت " +
+  "صفوف التصحيح من «إجمالي ما يُسجَّل» ومن عمود إجمالي التسجيل في جداول الرقابة، وإلا لكان ذلك " +
+  "الإجمالي أكبر من الحقيقة بمقدار كل مبلغ معكوس. والمبلغ المعروض هنا هو مبلغ الاستبدال الإجمالي " +
+  "فقط: الأثر الصافي في الدفاتر هو (الجديد ناقص القديم) لكل صف على حدة، ولا يحسبه هذا التقرير ولا " +
+  "يخزّنه النظام — يُحتسب من السجل المُصحَّح نفسه بعد ربط كل صف تصحيح بسجله. وهذا الرقم ليس بندًا في " +
+  "قائمة نتائج: هو مجموع مبالغ مصدر إجمالية قد تخلط مسحوبات المالك ومصروفات رأسمالية ومصروفات " +
+  "تشغيلية ومبيعات، فلا يُقرأ كربح ولا كمصروف ولا كإيراد.";
 
 /** The destination labels for one batch phase — the ONLY source of a destination's Arabic wording. */
 export function acceptanceDestinationLabels(
@@ -439,17 +534,29 @@ export function acceptanceDestinationLabels(
   return {
     included_expenses: copy.includedExpenses,
     included_sales: copy.includedSales,
+    included_correction: copy.includedCorrection,
     ...ACCEPTANCE_NON_POSTING_AR,
   };
 }
 
-/** The two groups whose amounts are genuinely "what will post". */
+/**
+ * The groups whose amounts are genuinely "what gets recorded", and whose source amount IS that amount.
+ *
+ * `included_correction` is deliberately NOT here. A correction row does post — that is why it has its
+ * own destination and its own figures — but its source amount is a REPLACEMENT for a reversed record,
+ * so adding it to this total would overstate the total by the reversed amount. Its own subtotal is
+ * `AcceptanceReport.correctionReplacementTotal`.
+ */
 export const ACCEPTANCE_PLANNED_DESTINATIONS: AcceptanceDestination[] = [
   "included_expenses",
   "included_sales",
 ];
 
-/** Fixed display order. `included_no_target` is appended only when such a row actually exists. */
+/**
+ * Fixed display order for the groups that are ALWAYS shown. `included_correction`,
+ * `execution_skipped`, `execution_unsettled` and `included_no_target` are inserted only when such a
+ * row actually exists, so a batch with no correction row prints exactly the table it printed before.
+ */
 const ACCEPTANCE_DESTINATION_ORDER: AcceptanceDestination[] = [
   "included_expenses",
   "included_sales",
@@ -457,6 +564,34 @@ const ACCEPTANCE_DESTINATION_ORDER: AcceptanceDestination[] = [
   "rejected",
   "undecided",
 ];
+
+/**
+ * Whether this row must be treated as an amount correction by the acceptance report.
+ *
+ * Healthy included rows satisfy both halves: the evidence is classified as a correction candidate
+ * and the reviewed row names the corrected record for its target dataset. Database guards enforce
+ * that contract. This reader is deliberately more conservative: either signal is enough to keep a
+ * malformed row out of ordinary posting totals. The existing correction-linked quality counts then
+ * expose the missing-link case instead of silently restating it as an addition.
+ */
+export function isAcceptanceCorrectionRow(row: AcceptanceRow): boolean {
+  return (
+    row.evidence?.classification === "amount_correction_candidate" ||
+    row.corrects_expense_id !== null ||
+    row.corrects_sale_id !== null
+  );
+}
+
+function hasValidAcceptanceCorrectionShape(row: AcceptanceRow): boolean {
+  if (row.evidence?.classification !== "amount_correction_candidate") return false;
+  if (row.target_table === "expenses") {
+    return row.corrects_expense_id !== null && row.corrects_sale_id === null;
+  }
+  if (row.target_table === "sales") {
+    return row.corrects_sale_id !== null && row.corrects_expense_id === null;
+  }
+  return false;
+}
 
 /**
  * Exactly one destination per row, checked in decision order: a rejection is final; an explicit
@@ -467,6 +602,13 @@ const ACCEPTANCE_DESTINATION_ORDER: AcceptanceDestination[] = [
 export function destinationOf(row: AcceptanceRow): AcceptanceDestination {
   if (row.review_state === "rejected") return "rejected";
   if (row.disposition === "include") {
+    // Checked first, and safe to: isAcceptanceCorrectionRow is false for any target_table that is not
+    // one of the two datasets, so an unreadable target still falls through to `included_no_target`.
+    if (isAcceptanceCorrectionRow(row)) {
+      return hasValidAcceptanceCorrectionShape(row)
+        ? "included_correction"
+        : "correction_invalid";
+    }
     if (row.target_table === "expenses") return "included_expenses";
     if (row.target_table === "sales") return "included_sales";
     return "included_no_target";
@@ -475,18 +617,37 @@ export function destinationOf(row: AcceptanceRow): AcceptanceDestination {
   return "held";
 }
 
+/** The included destinations that execution refines — the ordinary postings AND the corrections. */
+const ACCEPTANCE_EXECUTED_DESTINATIONS: AcceptanceDestination[] = [
+  ...ACCEPTANCE_PLANNED_DESTINATIONS,
+  "included_correction",
+];
+
 /**
  * Refine an included destination with the row's actual execution result. A terminal batch can contain
  * included rows that were skipped because another batch already executed their evidence; those rows
  * must never inherit "was posted by this batch" wording or enter its posted amount.
+ *
+ * A CORRECTION's expected result is `reversed`, not `posted`: both execution RPCs write `reversed` for
+ * a row that names a corrected record, because the row reversed a journal as well as posting one.
+ * `reversed` is therefore the only result that keeps a correction in its own group — a `posted`,
+ * `pending` or `failed` correction is a result this build does not expect from the executor, so it
+ * falls to `execution_unsettled` and claims nothing rather than being read as a completed correction.
  */
 export function reportedDestinationOf(
   row: AcceptanceRow,
   phase: AcceptancePhase,
 ): AcceptanceDestination {
   const destination = destinationOf(row);
-  if (!ACCEPTANCE_PLANNED_DESTINATIONS.includes(destination)) return destination;
+  if (!ACCEPTANCE_EXECUTED_DESTINATIONS.includes(destination)) return destination;
   if (phase === "planned") return destination;
+  if (destination === "included_correction") {
+    if (row.execution_result === "skipped") return "execution_skipped";
+    // Holds for all three settled/unsettled phases alike: `reversed` is the executor's own record that
+    // this correction ran. In `reverted` the phase copy adds that the batch then rolled back.
+    if (row.execution_result === "reversed") return destination;
+    return "execution_unsettled";
+  }
   if (row.execution_result === "skipped") return "execution_skipped";
   if (phase === "executed" && row.execution_result !== "posted") return "execution_unsettled";
   if (phase === "reverted" && row.execution_result !== "reversed") return "execution_unsettled";
@@ -564,9 +725,28 @@ export interface AcceptanceReport {
   byDestination: AcceptanceTotal[];
   /** The same rows re-grouped by calendar period and by workbook sheet, for dual-run preparation. */
   controlTotals: AcceptanceControlTotals;
-  /** The rows whose destination IS a posting, summed. Never includes held/rejected/undecided. */
+  /**
+   * The ORDINARY-ADDITION posting rows, summed. Never includes held/rejected/undecided — and never an
+   * amount correction, whose source amount is a replacement for a reversed record and would overstate
+   * this figure by the reversed amount.
+   */
   plannedPostingTotal: DecimalSummary;
   plannedPostingRowCount: number;
+  /**
+   * The amount-correction rows in the `included_correction` group, summed — the GROSS REPLACEMENT
+   * source amount only.
+   *
+   * NOT a net ledger effect and not a P&L figure. Each correction's net effect is `replacement −
+   * reversed`, computable only from the corrected record itself, which this report never reads; and
+   * these rows may span owner drawings, capital spend, operating expenses and sales at once, which
+   * CLAUDE.md #6 forbids adding into any one claimed result. The report states both, unconditionally
+   * (ACCEPTANCE_CORRECTION_CAVEAT_AR).
+   *
+   * Exactly the rows of the `included_correction` destination group, so the figure and the group's row
+   * in the destination table always agree.
+   */
+  correctionReplacementTotal: DecimalSummary;
+  correctionRowCount: number;
   /** Every row's source amount, whatever its destination — the batch-wide evidence total. */
   sourceTotal: DecimalSummary;
   quality: AcceptanceQualityCounts;
@@ -732,9 +912,14 @@ export function acceptanceSheetBucket(row: AcceptanceRow): AcceptanceSheetBucket
 export interface AcceptanceControlTotal extends AcceptanceTotal {
   /** Rows in this group with NO recorded source amount. Never counted as zero (== amount.unknownCount). */
   unknownCount: number;
-  /** Rows in this group whose reported destination is one of the two posting groups. */
+  /** Rows in this group whose reported destination is one of the two ORDINARY posting groups. */
   postingRowCount: number;
-  /** Their source amount. Held/rejected/undecided/skipped/unsettled rows are never inside it. */
+  /**
+   * Their source amount. Held/rejected/undecided/skipped/unsettled rows are never inside it — and
+   * neither are amount corrections, whose source amount is a replacement for a reversed record rather
+   * than the amount the books move by (see `included_correction`). A correction's amount is still
+   * inside this group's `amount` (the source total), which partitions the whole batch.
+   */
   postingAmount: DecimalSummary;
 }
 
@@ -882,7 +1067,16 @@ export function buildAcceptanceReport(
   const counts: RowStateCounts = {
     ...summarizeRowStates(rows),
     frozen: rows.filter((row) => row.frozen === true).length,
-    executed: rows.filter((row) => EXECUTED_RESULTS.has(row.execution_result)).length,
+    executed: rows.filter((row) => {
+      const destination = reportedDestinationOf(row, phase);
+      if (destination === "included_correction") {
+        return row.execution_result === "reversed";
+      }
+      return (
+        ACCEPTANCE_PLANNED_DESTINATIONS.includes(destination) &&
+        EXECUTED_RESULTS.has(row.execution_result)
+      );
+    }).length,
   };
 
   const seenClassifications = new Set(rows.map((row) => row.evidence?.classification ?? ""));
@@ -906,6 +1100,14 @@ export function buildAcceptanceReport(
   const reportedDestinations = rows.map((row) => reportedDestinationOf(row, phase));
   const destinations = [
     ...ACCEPTANCE_DESTINATION_ORDER.slice(0, 2),
+    // Shown right after the two ordinary posting groups it is deliberately kept out of, so the reason
+    // the posting total excludes it is visible in the same table.
+    ...(reportedDestinations.includes("included_correction")
+      ? (["included_correction"] as AcceptanceDestination[])
+      : []),
+    ...(reportedDestinations.includes("correction_invalid")
+      ? (["correction_invalid"] as AcceptanceDestination[])
+      : []),
     ...(reportedDestinations.includes("execution_skipped")
       ? (["execution_skipped"] as AcceptanceDestination[])
       : []),
@@ -927,12 +1129,13 @@ export function buildAcceptanceReport(
     ),
   );
 
-  const plannedRows = rows.filter((row) => {
-    if (!ACCEPTANCE_PLANNED_DESTINATIONS.includes(destinationOf(row))) return false;
-    if (phase === "executed") return EXECUTED_RESULTS.has(row.execution_result);
-    if (phase === "reverted") return row.execution_result === "reversed";
-    return true;
-  });
+  const plannedRows = rows.filter((row) =>
+    ACCEPTANCE_PLANNED_DESTINATIONS.includes(reportedDestinationOf(row, phase)),
+  );
+  // Exactly the rows the `included_correction` group prints, so the two figures can never disagree.
+  const correctionRows = rows.filter(
+    (row) => reportedDestinationOf(row, phase) === "included_correction",
+  );
   const sourceTotal = sumDecimals(sourceAmountsOf(rows));
   const correctionCandidates = rows.filter(
     (row) => row.evidence?.classification === "amount_correction_candidate",
@@ -960,6 +1163,8 @@ export function buildAcceptanceReport(
     controlTotals: buildAcceptanceControlTotals(rows, phase),
     plannedPostingTotal: sumDecimals(sourceAmountsOf(plannedRows)),
     plannedPostingRowCount: plannedRows.length,
+    correctionReplacementTotal: sumDecimals(sourceAmountsOf(correctionRows)),
+    correctionRowCount: correctionRows.length,
     sourceTotal,
     quality: {
       unresolved: counts.unreviewed,
