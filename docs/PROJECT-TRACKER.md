@@ -1,6 +1,8 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (acceptance control totals)
 
-> **2026-07-30 — ACCOUNTING ACCEPTANCE CONTROL TOTALS: PR #975 RELEASE CANDIDATE.**
+> **2026-07-30 — ACCOUNTING ACCEPTANCE CONTROL TOTALS: MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #975 merged at `bf0895ef3bf61cef11cda12f1b6d90a0a1edf033`; exact production deployment
+> `dpl_A7fXs2LWRVZEzzyYgS99tFPwK6rR` is READY.
 > The existing one-read, read-only acceptance packet now groups its same bounded rows by validated
 > calendar month/year and recorded workbook sheet. Invalid dates, absent dates/evidence/sheet names, and
 > unknown amounts remain explicit; each table closes on the unchanged batch source total. Calendar buckets
@@ -10,7 +12,10 @@
 > Independent review APPROVE followed fixes for portrait-print clipping and Arabic/Persian numeral ordering.
 > Evidence: focused Vitest **144/144**; full Vitest **1,264 + 13 controlled skips**; build **64/64**;
 > Docker-free pgTAP **3,118/3,118**; exact-head app, design-system, db-tests, gitleaks, and Vercel green.
-> Authenticated real-route print was unavailable; Chrome A4 replica and source/CSS print regressions passed.
+> Exact-merge main CI, release, and db-tests are green. Public `/login` is 200, the signed-out acceptance
+> route redirects to `/login`, and the post-release runtime-error window is empty. Authenticated real-route
+> print was unavailable; Chrome A4 replica and source/CSS print regressions passed. No migration or business
+> row changed.
 
 > **2026-07-30 — ACCOUNTING #719 ITEM 5: MERGED / MIGRATED / LIVE-VERIFIED.**
 > PR #973 merged at `4a051030c7b246b3126c04a4a609e857c1ad6e20`; exact production deployment

@@ -1,9 +1,11 @@
 # Session Brief — Farm OS      Updated: 2026-07-30 by Codex (accounting acceptance control totals)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-30 — accounting acceptance control totals — PR #975 RELEASE CANDIDATE
+## 2026-07-30 — accounting acceptance control totals — MERGED / DEPLOYED / LIVE-VERIFIED
 
 Claude implemented the bounded acceptance-support slice and Codex reviewed the actual bytes and validation.
+PR #975 merged at `bf0895ef3bf61cef11cda12f1b6d90a0a1edf033`; exact production deployment
+`dpl_A7fXs2LWRVZEzzyYgS99tFPwK6rR` is READY.
 The existing read-only acceptance packet now partitions its one bounded snapshot by validated calendar
 month/year and recorded workbook sheet. Invalid or absent source dates, missing evidence/sheet names, and
 unknown amounts remain separate and visible; both tables close on the unchanged batch source total. The
@@ -17,10 +19,15 @@ Evidence: focused Vitest **144/144**; full Vitest **1,264 + 13 controlled skips*
 and touched ESLint clean; production build **64/64**; Docker-free pgTAP **3,118/3,118**; exact-head PR #975
 app, design-system, db-tests, gitleaks, and Vercel checks green. Authenticated real-route printing was not
 available; Chrome A4 portrait replica validation used the actual print CSS, and print-contract regressions
-passed.
+passed. Exact-merge main CI, release, and db-tests are green. Public `/login` is HTTP 200, the signed-out
+acceptance route redirects to `/login`, and no runtime errors appeared in the queried 15-minute post-release
+window. No migration or business row changed.
 
-**Exact resume point:** merge PR #975 after the documentation-only replacement checks pass, verify the exact
-merge deployment and main workflows, then continue acceptance support. The remaining 100% gate is still
+**Exact resume point:** audit the 15 amount-correction rows against the current snapshot and execution
+contract. The acceptance packet currently reports the replacement source amount, while the execution path
+reverses the prior record; determine how to expose and bind the old amount so the packet can show the true
+net GL effect (`new - old`) without weakening digest/CSV versioning, grants, organization scope, or query
+bounds. Do not implement until that design is independently reviewed. The remaining 100% gate is still
 human: decide all 698 staged rows, resolve exceptions, perform the workbook dual-run, and record dated
 accountant/Owner acceptance. Never auto-decide held financial evidence.
 
