@@ -509,7 +509,7 @@ Independent review is APPROVE. Production migration
 three predicates, unchanged metadata/grants, and zero account-org or entry-line mismatches across those
 20,730 posted lines. No business row changed.
 
-### 8.10 Acceptance source control totals by period and sheet (2026-07-30, IN WORKTREE — not released)
+### 8.10 Acceptance source control totals by period and sheet (2026-07-30, PR #975 RELEASE CANDIDATE)
 
 The acceptance report summarized a batch by classification and by destination, but a dual run is performed
 one accounting period and one workbook sheet at a time. Preparing it therefore meant re-adding the CSV annex
@@ -549,8 +549,10 @@ read. `ACCEPTANCE_CSV_COLUMNS`, `acceptancePayloadDocument`, the CSV route outpu
 regression tests (payload digest `961c74b6…`, CSV SHA-256 `4339720a…`, 73 columns), so a later format change
 must be an explicit versioning decision rather than an incidental edit.
 
-Local evidence: focused acceptance Vitest 144/144; full Vitest 1,264 passing with 13 controlled skips across
+Evidence: focused acceptance Vitest 144/144; full Vitest 1,264 passing with 13 controlled skips across
 91 files; TypeScript clean; ESLint clean on the four touched TS/TSX files; production build compiled with
-64/64 static pages generated; `git diff --check` clean. The Docker-free pgTAP shim is unchanged at 3,118/3,118
-with zero file failures — this slice touches no SQL. Release evidence (merge, deployment, independent
-review) is recorded at release, not here.
+64/64 static pages generated; `git diff --check` clean. The Docker-free pgTAP shim is unchanged at
+3,118/3,118 with zero file failures — this slice touches no SQL. Independent review is APPROVE after
+print-fit and Arabic/Persian numeral-order corrections. Exact-head PR #975 app, design-system, db-tests,
+gitleaks, and Vercel checks are green. Authenticated real-route print was unavailable; Chrome A4 portrait
+replica validation and print-contract regressions passed.

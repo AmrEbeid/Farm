@@ -1,5 +1,28 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (balance-sheet organization integrity)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (accounting acceptance control totals)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — accounting acceptance control totals — PR #975 RELEASE CANDIDATE
+
+Claude implemented the bounded acceptance-support slice and Codex reviewed the actual bytes and validation.
+The existing read-only acceptance packet now partitions its one bounded snapshot by validated calendar
+month/year and recorded workbook sheet. Invalid or absent source dates, missing evidence/sheet names, and
+unknown amounts remain separate and visible; both tables close on the unchanged batch source total. The
+calendar buckets are not fiscal periods, and fiscal mapping plus dual-run selection remain accountant acts.
+
+No migration, RPC, extra query, write, row decision, execution gate, CSV column/byte, payload digest/version,
+or signed-row order changed. Independent review returned REQUEST CHANGES for portrait-print clipping and
+Arabic/Persian numeral ordering; Claude corrected both, and the same reviewer returned APPROVE.
+
+Evidence: focused Vitest **144/144**; full Vitest **1,264 + 13 controlled skips** across 91 files; TypeScript
+and touched ESLint clean; production build **64/64**; Docker-free pgTAP **3,118/3,118**; exact-head PR #975
+app, design-system, db-tests, gitleaks, and Vercel checks green. Authenticated real-route printing was not
+available; Chrome A4 portrait replica validation used the actual print CSS, and print-contract regressions
+passed.
+
+**Exact resume point:** merge PR #975 after the documentation-only replacement checks pass, verify the exact
+merge deployment and main workflows, then continue acceptance support. The remaining 100% gate is still
+human: decide all 698 staged rows, resolve exceptions, perform the workbook dual-run, and record dated
+accountant/Owner acceptance. Never auto-decide held financial evidence.
 
 ## 2026-07-30 — balance-sheet organization integrity — MERGED / MIGRATED / LIVE-VERIFIED
 

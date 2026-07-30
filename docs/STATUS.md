@@ -1,8 +1,17 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (balance-sheet organization integrity). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (accounting acceptance control totals). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — accounting acceptance control totals: PR #975 RELEASE CANDIDATE.**
+The read-only acceptance packet now partitions the same bounded snapshot by validated calendar month/year
+and recorded workbook sheet, with unknown amounts and every invalid/missing source group explicit. Both
+tables close on the unchanged batch source total; fiscal mapping and dual-run selection remain accountant
+decisions. The one snapshot read, decisions, gates, CSV bytes, digest/version, and database are unchanged.
+Independent review: APPROVE after print-fit and Arabic/Persian numeral-order fixes. Focused Vitest 144/144;
+full Vitest 1,264 + 13 controlled skips; build 64/64; pgTAP 3,118/3,118; exact-head checks green.
+Authenticated real-route print remains unexercised; Chrome A4 replica and print-contract tests are green.
 
 **2026-07-30 — balance-sheet organization integrity: MERGED / MIGRATED / LIVE-VERIFIED.**
 PR #973 merged at `4a051030c7b246b3126c04a4a609e857c1ad6e20`; exact production deployment
