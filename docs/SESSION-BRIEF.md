@@ -1,5 +1,24 @@
-# Session Brief — Farm OS      Updated: 2026-07-29 by Codex (provider security settings probe)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (palm source reconciliation)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — palm source reconciliation — LOCAL / FAIL-CLOSED / NO DATA CHANGE
+
+The read-only KINGSTON Ezzba evidence was reconciled into a pure, hash-pinned source oracle. The 2026
+workbook's Barhi row values total **4,638**, contradicting its stated **4,539** total; male rows total 370.
+The claimed 28 units depend on Shafaa having two Barhi columns but four male columns. The same workbook
+duplicates sector number 3 and contains malformed planting dates. Two 2021 18-feddan workbooks both number
+palms 1–759, but headings total 782 and disagree with the numbered ranges in hawsha 3 and 6.
+
+`apps/farm-os/lib/palm-source-reconciliation.ts` stores only non-PII structural facts with relative
+locators and SHA-256 hashes. It reports exact blocking issue codes, returns `authorityState = blocked`,
+and emits `importPayload = null`; full Vitest is 1,239 passed + 13 controlled skips. Raw workbooks were
+not committed. No
+migration, database row, production setting, deploy, or registry authority state changed.
+
+**Exact resume point:** obtain a corrected unit-level registry or fresh field count signed by the Owner
+and farm manager. Re-run the oracle until every blocking issue is gone, independently review it, then
+prepare a separate Owner-gated dry-run/import. The old 4,380/299/28 baseline and the later workbook are
+both non-authoritative.
 
 ## 2026-07-29 (latest) — payroll provider settings — VERIFIED OPEN / NO CHANGE
 

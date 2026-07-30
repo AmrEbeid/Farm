@@ -2223,7 +2223,10 @@ Status legend: Todo / Active / Blocked / In review / Done
 - [x] **Merge PRs #75 and #77** — done earlier; the prod DB has since advanced to `0028` (see banner). — owner: Amr
 - [x] **AUTHZ-1 Option B + AP-5 insert-side SoD + ENGINE-DC DB-constraint — RESOLVED (2026-06-25).** AUTHZ-1 Option B = migration `0025` (#146, REST-layer role gate on `plan_operations`/`farm_event`/`event_locations`/`quantities`); ENGINE-DC = migration `0026` (#144, BEFORE INSERT receipt-vs-open-PO trigger); AP-5 insert-side SoD confirmed already merged (migration `0023`, test `21`). All applied to prod (`0028`), pgTAP 217 green. — owner: Amr
 - [x] **DELETE/role posture for tenant tables — RESOLVED (2026-06-25):** migration `0027` (#140) `REVOKE DELETE` from `authenticated,anon` on the **27** exposed tenant tables (keeping `plan_checks` deletable for the plan builder); migration `0028` (#142) also `FORCE`s RLS on all 35 RLS tables. Live-verified: DELETE `expenses` as manager → HTTP 403. Full finding in [`SECURITY-FINDING-delete-exposure-2026-06-25.md`](SECURITY-FINDING-delete-exposure-2026-06-25.md). — owner: Amr
-- [ ] **Owner sign-off on canonical palm count** (registry says 4,380/299) — owner: Amr
+- [ ] **Correct and sign off the palm registry** — current evidence is blocked: 2026 rows total
+  4,638 Barhi vs stated 4,539, with 370 male and structural/2021 numbering contradictions. Require a
+  corrected unit-level registry or fresh field count signed by Owner + farm manager; do not select
+  4,380/299 or import any count. See `palm registry source reconciliation 2026 07 30.md`. — owner: Amr
 - [ ] **Approve remaining Stage 0 security remediation** (non-Supabase legacy key/history purge cleanup; Supabase DB password + service-role key rotation is complete) — owner: Amr
 - [ ] **Confirm 4-vs-5 sector labels** and enterprise/crop list — owner: Amr
 - [ ] **Engage a local agronomist** to sign off Academy numbers + Egyptian pesticide registrations — owner: Amr

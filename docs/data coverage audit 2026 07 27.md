@@ -43,10 +43,13 @@ or retain the opening-balance treatment is an accounting-policy decision.
 ## Palm registry blocker
 
 The previous baseline states 4,380 Barhi, 299 male palms, and 28 hawshat. A later workbook states 4,539
-Barhi and implies 370 male palms while still stating 28 hawshat. It also duplicates a sector number and
-contains internally inconsistent rows. Production contains 796 materialized palm assets, no male assets,
-and duplicated tags. No count is approved for import. The next gate is a corrected owner-approved registry
-or a fresh field count.
+Barhi, but its row values total **4,638**; its male rows total 370, while 28 units are only implied through
+an unmatched Shafaa shape. It also duplicates a sector number and contains malformed dates. Two 2021
+numbering sources agree on explicit palms 1–759 but conflict on hawsha headings and ranges. Production
+contains 796 materialized palm assets, no male assets, and duplicated tags. No count is approved for import.
+The next gate is a corrected unit-level registry or fresh field count signed by both the Owner and farm
+manager, followed by independent review of a clean reconciliation result. See
+`palm registry source reconciliation 2026 07 30.md`.
 
 ## Report validation
 
