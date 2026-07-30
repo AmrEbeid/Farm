@@ -1,9 +1,10 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LOCAL CANDIDATE)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LIVE)
 
-> **2026-07-30 — QUEUE ROUTE TO THE ACCEPTANCE REPORT'S EVIDENCE-QUALITY EXCEPTIONS: LOCAL CANDIDATE.**
-> **Committed locally on `audit/accounting-acceptance-next-two` only. Independent Codex review APPROVE;
-> NOT pushed, NOT merged, NOT deployed. No migration, no SQL byte, no dependency, no production row, and
-> no row decided.** See [`SPEC-0004` §8.12](SPEC-0004-accounting-and-pnl.md) for the full record.
+> **2026-07-30 — QUEUE ROUTE TO THE ACCEPTANCE REPORT'S EVIDENCE-QUALITY EXCEPTIONS: MERGED / DEPLOYED /
+> LIVE-SMOKED.** PR #981 merged at `7566402c1ca8757cb4e609ee9e35d3f0d949a932`; exact Vercel deployment
+> `5XWz8F9CE29VcyTq4bWLbRaHySm2` completed successfully. Independent Codex review APPROVE. No migration,
+> dependency, production row decision, or financial figure changed. See
+> [`SPEC-0004` §8.12](SPEC-0004-accounting-and-pnl.md) for the full record.
 >
 > **The gap.** The acceptance packet prints a quality panel of exception figures the accountant must resolve
 > before signing, two of which — «تواريخ مصدر غير صالحة» and «صفوف بلا مبلغ مصدر مسجَّل» — the review queue
@@ -40,14 +41,16 @@
 > PostgREST cannot express across an embedded relation or an unbounded whole-batch read, so it cannot be
 > done inside a bounded server filter.
 >
-> **Local evidence.** Regression checks written first: nine new assertions in `lib/tests/reconciliation
+> **Evidence.** Regression checks written first: nine new assertions in `lib/tests/reconciliation
 > review.ts` **failed 9/9 against the pre-fix bytes**; a tenth non-regression guard is green both ways by
 > design. Focused Vitest 56/56; full Vitest **1,292 passed + 13 controlled skips across 91 files** (baseline
 > 1,283 + 13 — exactly the nine new tests); `tsc --noEmit` clean; ESLint clean on all three touched files;
 > production build **64/64** static pages; `git diff --check` clean. **pgTAP NOT run — zero SQL bytes
-> changed.** No authenticated session was available, so neither filter was exercised against the real
-> 698-row batch; the embedded-column `is`-null filter is verified by source contract and type only, and an
-> authenticated read-only smoke is the outstanding check before this can be called more than a candidate.
+> changed.** Exact-head checks and exact-merge main CI/release/db-tests are green. Aggregate-only production
+> postflight found 698 joined rows, 2 rows with no source amount (both production snapshots), 0 invalid-date
+> flags in the staged queue, and 15 correction rows; no identifiers, descriptions, or financial values were
+> read. No authenticated browser session was available, so the UI filter controls themselves were not
+> exercised against a real row.
 > Independent review verified the current Supabase `!inner` embedded-filter and `is null` contracts and
 > found no remaining code issue.
 >
