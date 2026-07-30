@@ -859,6 +859,16 @@ type CostCenterSummaryFunctions = {
   };
 };
 
+// ── "/expenses" exact register summary, migration 20260730140000. Read-only, STABLE, SECURITY
+// DEFINER, org/finance.read-gated; drawing-scoped fields are JSON null for a caller without
+// finance.read (never a fabricated zero). ──
+type ExpenseRegisterSummaryFunctions = {
+  fn_expense_register_summary: {
+    Args: { p_org: string; p_month_start: string; p_month_end: string };
+    Returns: Json;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -1737,7 +1747,7 @@ export type Database = Omit<Generated, "public"> & {
       payroll_runs: PayrollRunsTable;
       payroll_run_lines: PayrollRunLinesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & ExpenseRegisterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions;
   };
 };
 
