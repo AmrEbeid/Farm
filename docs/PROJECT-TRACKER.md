@@ -1,6 +1,6 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — LOCAL CANDIDATE)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — RELEASED)
 
-> **2026-07-30 — READ-ONLY ACCOUNTING ROLE-ACCEPTANCE HARNESS: LOCAL CANDIDATE / NOT LIVE-RUN.**
+> **2026-07-30 — READ-ONLY ACCOUNTING ROLE-ACCEPTANCE HARNESS: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 > The old Playwright wedge loop remains intentionally local-only, mutating and service-role-backed; Farm's
 > current non-Docker workflow therefore had no safe authenticated browser gate for reconciliation. A separate
 > config/spec now requires explicit owner, accountant, denied-role and batch environment variables, permits a
@@ -19,8 +19,13 @@
 > read-only suite with approved role accounts, then complete the separate human work of deciding all 698 held
 > rows, resolving exceptions, dual-running the workbook and signing accountant/Owner acceptance.
 > Independent safety review: APPROVE after three rounds. Separate docs debt: canonical `STATUS.md` was already
-> 179 lines at this slice's base despite its ~100-line target and is now 203; compact historical detail into the
+> 179 lines at this slice's base despite its ~100-line target and is now 206; compact historical detail into the
 > append-only archives without deleting current state in a later docs-only cleanup.
+>
+> PR #983 merged at `3962e8caea3cff062e00c46085a2146d069f3729`; exact production deployment
+> `dpl_DmWDiUSzmoid9cX5txnqX4PdMx1J` is READY. Main app/design CI, release, gitleaks and pgTAP are green.
+> Production `/login` is HTTP 200; signed-out reconciliation list and acceptance routes return 307 to login;
+> the deployment has no 5xx logs. No migration existed. The authenticated suite remains unrun.
 
 > **2026-07-30 — QUEUE ROUTE TO THE ACCEPTANCE REPORT'S EVIDENCE-QUALITY EXCEPTIONS: MERGED / DEPLOYED /
 > LIVE-SMOKED.** PR #981 merged at `7566402c1ca8757cb4e609ee9e35d3f0d949a932`; exact Vercel deployment
