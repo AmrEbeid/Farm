@@ -1,8 +1,32 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (acceptance amount-correction totals). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (read-only accounting role-acceptance harness local candidate). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — read-only accounting role-acceptance harness: LOCAL CANDIDATE / NOT LIVE-RUN.**
+A separate Playwright configuration now covers owner and accountant access to the reconciliation list,
+pinned batch, GET-only evidence-quality filter, acceptance report and CSV, plus the non-finance redirect.
+It uses explicit environment credentials only, blocks service workers, and aborts every non-GET/HEAD/OPTIONS
+request after login; it imports no service-role/admin/database client and cannot stage, decide, freeze, approve,
+execute or roll back a row. Remote execution requires an explicit acknowledgement and the exact
+`https://ebeidfarm.business` allowlist. Local evidence: focused Vitest 8/8; full Vitest 1,300 passed + 13
+controlled skips across 92 files; TypeScript and touched-file ESLint clean; build 64/64; missing configuration
+fails before browser launch. The authenticated suite was **not run** because this worktree has no role
+credentials. Independent safety review: APPROVE after three rounds. No migration, dependency, app workflow or
+data changed. Stage 7 remains ~99.5%: all 698 rows are
+still unreviewed/hold, 0 frozen; the human dual run, exception decisions and signed accountant/Owner acceptance
+remain required.
+
+**2026-07-30 — review-state and evidence-quality fixes: MERGED / DEPLOYED / LIVE-VERIFIED.**
+PR #979 merged at `93806f838af6102ed8b09e9dd8830fb5bf11e2ff`; deployment
+`Fcy2Dq2PviGUD2kVmaegqiN92fyZ` is READY. Cancelling or closing a row form now discards every abandoned
+field, and reopening is gated until the post-save refresh commits. PR #981 merged at
+`7566402c1ca8757cb4e609ee9e35d3f0d949a932`; deployment `5XWz8F9CE29VcyTq4bWLbRaHySm2` is READY.
+The queue can now route directly to invalid-source-date and missing-source-amount exceptions. Aggregate-only
+production evidence: 698 unreviewed/hold rows, 0 frozen, 15 correction rows, 2 missing-source-amount rows
+(both `production_snapshot`), and 0 invalid-date rows in the staged queue. Neither release carried a migration
+or changed a business row. These controls support the human acceptance gate; they do not complete it.
 
 **2026-07-30 — acceptance amount-correction totals: MERGED / DEPLOYED / LIVE-VERIFIED.**
 PR #977 merged at `002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact production deployment

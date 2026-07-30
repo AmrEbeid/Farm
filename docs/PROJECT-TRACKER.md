@@ -1,4 +1,26 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LIVE)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — LOCAL CANDIDATE)
+
+> **2026-07-30 — READ-ONLY ACCOUNTING ROLE-ACCEPTANCE HARNESS: LOCAL CANDIDATE / NOT LIVE-RUN.**
+> The old Playwright wedge loop remains intentionally local-only, mutating and service-role-backed; Farm's
+> current non-Docker workflow therefore had no safe authenticated browser gate for reconciliation. A separate
+> config/spec now requires explicit owner, accountant, denied-role and batch environment variables, permits a
+> local origin by default, and requires both an acknowledgement flag and the exact
+> `https://ebeidfarm.business` allowlist for remote execution. Login completes before the guard is installed;
+> after that point service workers are blocked and every method except GET/HEAD/OPTIONS is aborted and fails
+> the test. The suite is designed to read the list, pinned detail, missing-source-amount filter, acceptance
+> report and CSV for owner/accountant, and verify a non-finance role reaches its role-specific destination
+> without reconciliation content. It contains no service
+> role, admin client, database query, provisioning or financial action interaction.
+>
+> Local evidence: focused safety Vitest 8/8; full Vitest 1,300 passed + 13 controlled skips across 92 files;
+> `tsc --noEmit` clean; ESLint clean on four touched TypeScript files; build 64/64; missing configuration
+> refuses collection before browser launch. The authenticated suite was not run because this isolated worktree
+> has no credentials. No migration, dependency, app route behavior or data changed. Remaining gate: run this
+> read-only suite with approved role accounts, then complete the separate human work of deciding all 698 held
+> rows, resolving exceptions, dual-running the workbook and signing accountant/Owner acceptance.
+> Independent safety review: APPROVE after three rounds. Separate docs debt: canonical `STATUS.md` was already
+> 179 lines at this slice's base despite its ~100-line target and is now 203; compact historical detail into the
+> append-only archives without deleting current state in a later docs-only cleanup.
 
 > **2026-07-30 — QUEUE ROUTE TO THE ACCEPTANCE REPORT'S EVIDENCE-QUALITY EXCEPTIONS: MERGED / DEPLOYED /
 > LIVE-SMOKED.** PR #981 merged at `7566402c1ca8757cb4e609ee9e35d3f0d949a932`; exact Vercel deployment
