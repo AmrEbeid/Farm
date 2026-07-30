@@ -1,7 +1,7 @@
 # Accounting journal entry-date audit
 
-**Date:** 2026-07-30  
-**Issue:** #719 item 3  
+**Date:** 2026-07-30
+**Issue:** #719 item 3
 **Initial state:** local migration prepared; no production change at the time of this audit
 
 ## Finding
@@ -38,14 +38,16 @@ Migration `20260730110000_accounting_journal_entry_date_required.sql` re-emits t
 2. checks `fn_period_locked` against the supplied date directly; and
 3. inserts the supplied date directly.
 
-The signature, mutex order, idempotency return, source sequencing, account/organization validation,
-cost-center propagation, two-line journal shape, and privilege revocations are unchanged.
+The signature, mutex order, valid-date idempotency return, source sequencing, account/organization
+validation, cost-center propagation, two-line journal shape, and privilege revocations are unchanged.
+Null-date retries are intentionally rejected before lookup.
 
 ## Evidence
 
-- Full Docker-free pgTAP: **3,107 ok / 0 not_ok / 0 file failures**.
-- New test 143: **6/6** for signature preservation, null refusal, no-write-on-refusal, explicit-date
-  success, exact date preservation, and no authenticated execute privilege.
+- Full Docker-free pgTAP: **3,108 ok / 0 not_ok / 0 file failures**.
+- New test 143: **7/7** for signature preservation, null refusal, no-write-on-refusal, explicit-date
+  success, exact date preservation, valid-date idempotency after locking, and no authenticated execute
+  privilege.
 - Semantic diff against the current `20260726170000` function body shows only the three date-handling
   changes above plus comments.
 - `git diff --check`: clean.

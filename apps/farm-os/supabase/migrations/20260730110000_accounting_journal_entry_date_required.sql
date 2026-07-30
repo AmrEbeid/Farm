@@ -2,7 +2,8 @@
 --
 -- Every active caller already resolves its business date before this call. Rejecting NULL here prevents
 -- a future caller from silently converting an unknown historical date to current_date and bypassing a
--- locked period. The signature, idempotency, mutex, account/org checks, line shape, and grants are unchanged.
+-- locked period. The signature, valid-date idempotency, mutex, account/org checks, line shape, and grants
+-- are unchanged. A NULL retry is intentionally rejected before lookup.
 --
 -- Rollback: restore the fn_post_two_line_journal body from migration 20260726170000.
 
@@ -46,6 +47,8 @@ begin
   if p_source_id is null then raise exception 'source_id required' using errcode = '23502'; end if;
   if coalesce(p_amount, 0) <= 0 then raise exception 'journal amount must be positive' using errcode = '22023'; end if;
 
+  -- Per-org period mutex, SHARE. Taken before journal row locks and the period check so the lock state
+  -- cannot change between the check and insert. SHARE does not conflict with concurrent postings.
   perform pg_catalog.pg_advisory_xact_lock_shared(private.fn_accounting_period_mutex_key(p_org));
 
   perform 1
@@ -74,6 +77,8 @@ begin
      and source_type = v_source_type
      and source_id = p_source_id;
 
+  -- Keep the period-lock guard after the idempotency return: valid-date retries remain harmless no-ops,
+  -- while corrected re-posts after a reversal count as genuinely new postings.
   if public.fn_period_locked(p_org, p_entry_date) then
     raise exception 'الفترة المحاسبية مقفلة — لا يمكن ترحيل قيد بتاريخ %', p_entry_date
       using errcode = '55000';
