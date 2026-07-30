@@ -116,7 +116,8 @@ select is(
         'fn_execute_reconciliation_batch', -- owner-only reconciliation expense execution (migration 20260726150000)
         'fn_rollback_reconciliation_batch', -- owner-only reconciliation batch rollback (migration 20260726170000)
         'fn_set_data_authority_status', -- owner-only report-source authority metadata (migration 20260727143000)
-        'fn_close_payroll_run' -- owner/accountant-only payroll close/report RPC (SPEC-0006 slice 3, migration 20260729090000)
+        'fn_close_payroll_run', -- owner/accountant-only payroll close/report RPC (SPEC-0006 slice 3, migration 20260729090000)
+        'fn_cost_center_direct_summary' -- read-only exact cost-center totals (migration 20260730130000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

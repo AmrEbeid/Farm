@@ -852,6 +852,13 @@ type OwnerPnlFunctions = {
   fn_owner_pnl_summary: { Args: { p_org: string; p_from: string; p_to: string }; Returns: Json };
 };
 
+type CostCenterSummaryFunctions = {
+  fn_cost_center_direct_summary: {
+    Args: { p_org: string; p_cost_center: string };
+    Returns: Json;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -1730,7 +1737,7 @@ export type Database = Omit<Generated, "public"> & {
       payroll_runs: PayrollRunsTable;
       payroll_run_lines: PayrollRunLinesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions;
   };
 };
 
