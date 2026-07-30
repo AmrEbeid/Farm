@@ -508,3 +508,49 @@ Independent review is APPROVE. Production migration
 `20260730083902 accounting_balance_sheet_account_integrity` is applied; hosted postflight confirms all
 three predicates, unchanged metadata/grants, and zero account-org or entry-line mismatches across those
 20,730 posted lines. No business row changed.
+
+### 8.10 Acceptance source control totals by period and sheet (2026-07-30, IN WORKTREE — not released)
+
+The acceptance report summarized a batch by classification and by destination, but a dual run is performed
+one accounting period and one workbook sheet at a time. Preparing it therefore meant re-adding the CSV annex
+by hand before any comparison could start.
+
+The report now carries two further breakdowns of the SAME rows: by calendar period (`YYYY-MM`, with a
+subtotal per calendar year) and by source workbook sheet. Each group states its row count, how many of those
+rows carry a recorded source amount, how many carry none, the exact source total, and the part of that total
+whose reported destination is a posting — the same basis the existing destination table uses, so held,
+rejected, undecided, skipped and unsettled rows never enter it. Both breakdowns are exact partitions of the
+batch and close visibly on the report's own batch-wide source total.
+
+Period keys come only from `evidence.source_date_parsed`, and only when `invalid_calendar_quality_flag` is
+false and the recorded value is a real calendar day. The raw `source_date_text` is never parsed. Three fixed
+non-period groups are always printed and never merged: an unreadable/flagged source date, no recorded source
+date (production-snapshot rows and anything else undated), and no readable evidence. Sheets use the report's
+own natural order widened to Arabic-Indic and Persian digits by a local comparator, so «ورقة ١٠» follows
+«ورقة ٢» and the shared locator comparator behind the signed row order and the CSV annex is untouched; two
+names that differ only in digit script stay two sheets, tied deterministically by the raw comparator. Two
+fixed fallbacks cover a blank sheet name and unreadable evidence, so no row is dropped from either table.
+
+Both breakdowns are six columns wide and the report is signed on paper, so the wrapper's horizontal scroll —
+which prints as a silently clipped column — is disabled in `@media print` only: the table drops its screen
+minimum width, fits the portrait page with fixed column shares, wraps every cell, and repeats its header if
+it spans pages. Screen behaviour is unchanged. A headless-Chrome A4 portrait render of the table at realistic
+print geometry clips the last money column without the rule and fits all six columns with it.
+
+The page prints an unconditional caveat: these are calendar buckets taken from source dates, a calendar month
+is not a fiscal period, and mapping the buckets onto accounting periods — like choosing what the dual run is
+performed against — remains the accountant's decision. Nothing is stored, decided, or claimed about the
+workbook's own totals.
+
+Scope limits held: no migration, schema, RPC, extra query, server action, write, bulk decision, fiscal
+assignment, or stored acceptance. The page and CSV route each still perform exactly one acceptance snapshot
+read. `ACCEPTANCE_CSV_COLUMNS`, `acceptancePayloadDocument`, the CSV route output and
+`ACCEPTANCE_DIGEST_VERSION` are unchanged, and the annex/digest bytes for a fixed fixture are now pinned by
+regression tests (payload digest `961c74b6…`, CSV SHA-256 `4339720a…`, 73 columns), so a later format change
+must be an explicit versioning decision rather than an incidental edit.
+
+Local evidence: focused acceptance Vitest 144/144; full Vitest 1,264 passing with 13 controlled skips across
+91 files; TypeScript clean; ESLint clean on the four touched TS/TSX files; production build compiled with
+64/64 static pages generated; `git diff --check` clean. The Docker-free pgTAP shim is unchanged at 3,118/3,118
+with zero file failures — this slice touches no SQL. Release evidence (merge, deployment, independent
+review) is recorded at release, not here.

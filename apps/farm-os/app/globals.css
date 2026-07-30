@@ -278,4 +278,53 @@ body {
   tr {
     break-inside: avoid;
   }
+
+  /* Wide breakdown tables on a SIGNED report (the acceptance control totals). On screen they scroll
+     horizontally inside their wrapper; on paper a horizontal scroll is a CLIPPED column, and a
+     clipped column on a signed control total is a wrong figure. So on paper only: the wrapper stops
+     scrolling, the table drops its screen min-width and fits the portrait page exactly, the columns
+     get fixed shares (a long Arabic group label needs more room than a count), every cell wraps
+     instead of overflowing, and a table too tall for one page breaks with its header repeated rather
+     than being cut off. */
+  .print-fit-table {
+    overflow: visible !important;
+  }
+
+  .print-fit-table > table {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed;
+    font-size: 8pt;
+    line-height: 1.3;
+    break-inside: auto;
+  }
+
+  .print-fit-table thead {
+    display: table-header-group;
+  }
+
+  .print-fit-table th,
+  .print-fit-table td {
+    padding: 2pt 3pt !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* The label column carries wrapped Arabic phrases; the two money columns carry a full exact amount
+     plus its «+ غير معروف» remainder. The three count columns need the least. */
+  .print-fit-table th:nth-child(1),
+  .print-fit-table td:nth-child(1) {
+    width: 28%;
+  }
+
+  .print-fit-table th:nth-child(5),
+  .print-fit-table td:nth-child(5) {
+    width: 16%;
+  }
+
+  .print-fit-table th:nth-child(6),
+  .print-fit-table td:nth-child(6) {
+    width: 16%;
+  }
 }
