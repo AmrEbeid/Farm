@@ -659,11 +659,11 @@ policy. PR #977 merged at `002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact prod
 are green. Public `/login` is 200, the signed-out acceptance route redirects to `/login`, and the post-release
 runtime-error window is empty. No migration or business row changed.
 
-### 8.12 Queue route to the acceptance report's evidence-quality exceptions (2026-07-30, LOCAL CANDIDATE / REVIEW APPROVED)
+### 8.12 Queue route to the acceptance report's evidence-quality exceptions (2026-07-30, MERGED / DEPLOYED / LIVE-SMOKED)
 
-**Status: LOCAL CANDIDATE — committed locally on `audit/accounting-acceptance-next-two`. Independent Codex
-review APPROVE; not pushed, not merged, not deployed. No migration, no SQL byte, no dependency, no
-production row.**
+**Status: PR #981 merged at `7566402c1ca8757cb4e609ee9e35d3f0d949a932`; exact deployment
+`5XWz8F9CE29VcyTq4bWLbRaHySm2` completed. Independent Codex review APPROVE. No migration, dependency,
+production row decision, or financial figure changed.**
 
 **The gap.** The acceptance packet (§8.7, §8.10) prints a quality panel of named exception figures the
 accountant is expected to resolve before signing, among them «تواريخ مصدر غير صالحة» and «صفوف بلا مبلغ
@@ -731,6 +731,8 @@ whole-batch KPI loader never sees the quality filter, is green both ways by desi
 full Vitest **1,292 passed + 13 controlled skips across 91 files** (baseline 1,283 + 13 across 91 —
 exactly the nine new tests); `tsc --noEmit` clean; ESLint clean on all three touched files; production
 build compiled successfully with **64/64** static pages; `git diff --check` clean. **pgTAP was NOT run:
-zero SQL bytes changed.** No authenticated session was available, so the two filters were not exercised
-against the real 698-row batch — the PostgREST embedded-column `is`-null filter is verified by source
-contract and type only, and an authenticated read-only smoke remains the outstanding check.
+zero SQL bytes changed.** Exact-head checks and exact-merge main CI/release/db-tests are green. Aggregate-only
+production postflight found 698 joined rows, 2 rows with no source amount (both production snapshots), 0
+invalid-date flags in this staged queue, and 15 correction rows; no identifiers, descriptions, or financial
+values were read. No authenticated browser session was available, so the UI controls were not exercised
+against a real row.

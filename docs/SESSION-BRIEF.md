@@ -1,11 +1,11 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LOCAL CANDIDATE)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LIVE)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-30 — queue route to the acceptance report's evidence-quality exceptions — LOCAL CANDIDATE
+## 2026-07-30 — queue route to the acceptance report's evidence-quality exceptions — MERGED / DEPLOYED / LIVE-SMOKED
 
-**Committed locally on `audit/accounting-acceptance-next-two` only. Independent Codex review APPROVE; NOT
-pushed, NOT merged, NOT deployed. No migration, no SQL byte, no dependency, no production row, and no row
-decided.**
+PR #981 merged at `7566402c1ca8757cb4e609ee9e35d3f0d949a932`; exact Vercel deployment
+`5XWz8F9CE29VcyTq4bWLbRaHySm2` completed successfully. Independent Codex review APPROVE. No migration,
+dependency, production row decision, or financial figure changed.
 
 I audited the 698-row review queue and the acceptance evidence paths read-only first, against the current
 bytes and tests, treating the three prior hypotheses as unproven. Two of them did not survive. Correction and
@@ -74,10 +74,16 @@ touched files; production build compiled successfully, **64/64** static pages; `
 queries, the whole-batch KPI remains isolated, and current Supabase documentation supports `!inner`
 embedded-relation filtering plus `.is(column, null)` for SQL `IS NULL`. No remaining code-review finding.
 
-**Exact resume point.** Push, open the PR, pass exact-head checks, merge, then run an authenticated read-only
-smoke if an existing session is available. No session was available locally, so neither filter was exercised
-against the real 698-row batch before push. That smoke must only read; it must not save or alter any financial
-decision. The queue/CSV order mismatch stays open and needs a design decision, not a filter. Correction Phase
+**Release evidence.** Exact-head checks and exact-merge main CI/release/db-tests are green. Production
+`/login` is HTTP 200 and the signed-out reconciliation route redirects to `/login`. Aggregate-only production
+postflight found 698 joined rows, 2 rows with no source amount (both production snapshots), 0 invalid-date
+flags in this staged queue, and 15 correction rows; no identifiers, descriptions, or financial values were
+read. No authenticated browser session was available, so the UI controls were not exercised against a real
+row.
+
+**Exact resume point.** Continue agent-verifiable acceptance support. An authenticated read-only filter smoke
+remains useful when an existing session is available; it must not save or alter any financial decision. The
+queue/CSV order mismatch stays open and needs a design decision, not a filter. Correction Phase
 2 (the old-amount / net `new − old` design) remains out of scope and gated on human selection and linkage of
 each correction to its production record plus accountant policy. The 100% acceptance gate is unchanged and
 entirely human: decide all 698 staged reconciliation rows, resolve every exception, run the real workbook
