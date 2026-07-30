@@ -1,5 +1,24 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (explicit journal entry dates)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (balance-sheet organization integrity)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — balance-sheet organization integrity — MIGRATED / HOSTED-VERIFIED
+
+PR #973 makes the balance-sheet RPC fail closed when posted, as-of-bounded journal entry, line, and account
+organizations disagree. This closes the last agent-verifiable accounting integrity item in #719 without
+changing the valid-ledger JSON contract, totals, report date/status behavior, archived-account handling,
+function metadata, or grants.
+
+Production migration `20260730083902 accounting_balance_sheet_account_integrity` is applied. Hosted
+postflight confirms all three predicates, `STABLE`, `SECURITY DEFINER`, empty `search_path`,
+authenticated-only execution, and zero account-org or entry-line mismatches across 20,730 posted lines.
+Focused pgTAP is **10/10** and full Docker-free pgTAP is **3,118/3,118**. Independent review is APPROVE,
+including an independent full-suite rerun. Exact-head app, design-system, db-tests, gitleaks, and Vercel
+checks are green. No business row changed.
+
+**Exact resume point:** merge PR #973 after its final documentation checks settle, verify the exact merge
+deployment and main workflows, close #719, then return to accounting acceptance. The remaining 100% gate
+is human: decide all 698 staged reconciliation rows, resolve exceptions, run the workbook dual-run, and
+obtain dated accountant and Owner acceptance.
 
 ## 2026-07-30 — explicit journal entry dates — MIGRATED / HOSTED-VERIFIED
 
