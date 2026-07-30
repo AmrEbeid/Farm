@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-30
 **Issue:** #719 item 5
-**State:** local migration prepared; no production change
+**State:** production migration applied and hosted-verified; PR #973 release candidate
 
 ## Finding
 
@@ -36,6 +36,11 @@ account behavior, posted-only filter, and as-of behavior are unchanged.
 - Hosted read-only `EXPLAIN ANALYZE`: the three targeted checks measured about **5 ms**, **2.8 ms**, and
   **2.2 ms** on the current ledger. A single broad join measured about 90 ms and an initial left-join form
   measured about 166 ms; both were rejected.
+- Hosted migration: `20260730083902 accounting_balance_sheet_account_integrity`.
+- Hosted postflight: all three predicates present; metadata and grants unchanged; **0** account-org and
+  **0** entry-line mismatches across **20,730** posted lines.
+- Exact-head PR #973 app, design-system, db-tests, gitleaks, and Vercel checks: green.
+- Independent review: **APPROVE**, including an independent 3,118/3,118 rerun.
 - `git diff --check`: clean.
 
 ## Boundaries

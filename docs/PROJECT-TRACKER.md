@@ -1,4 +1,17 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (explicit journal entry dates)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (balance-sheet organization integrity)
+
+> **2026-07-30 — ACCOUNTING #719 ITEM 5: MIGRATED / HOSTED-VERIFIED.**
+> PR #973 makes `fn_accounting_balance_sheet(uuid,date)` fail closed when any posted, as-of-bounded
+> journal entry, line, and account organizations disagree. Production migration
+> `20260730083902 accounting_balance_sheet_account_integrity` is applied. No business row changed.
+>
+> Evidence: independent review APPROVE; focused pgTAP **10/10** and full Docker-free pgTAP
+> **3,118/3,118**; hosted postflight confirms all three predicates, unchanged signature/report contract,
+> `STABLE`, `SECURITY DEFINER`, empty `search_path`, authenticated-only execution, and zero account-org or
+> entry-line mismatches across 20,730 posted lines. Exact-head app, design-system, db-tests, gitleaks, and
+> Vercel checks are green. This completes all five agent-verifiable #719 integrity items. Accounting remains
+> ~99.5% until the 698 staged rows are decided, exceptions resolved, workbook dual-run completed, and dated
+> accountant/Owner acceptance is recorded.
 
 > **2026-07-30 — ACCOUNTING #719 ITEM 3: MIGRATED / HOSTED-VERIFIED.**
 > Farm production migration `20260730075952 accounting_journal_entry_date_required` makes an explicit
@@ -16,7 +29,8 @@
 >
 > Accounting remains **~99.5%, not 100%**. The software workflow is complete; dependable daily-use acceptance
 > still requires decisions on all 698 staged reconciliation rows, exception resolution, workbook dual-run,
-> and dated accountant/Owner acceptance. #719 item 5 remains optional defense-in-depth.
+> and dated accountant/Owner acceptance. #719 item 5 is now shipped through PR #973 and hosted migration
+> `20260730083902`.
 
 > **2026-07-29 — PAYROLL PROVIDER SECURITY SETTINGS: READ-ONLY PROBE COMPLETE / FOUR GATES REMAIN OPEN.**
 > The production Supabase dashboard confirms `custom_access_token_hook` is **not configured** and

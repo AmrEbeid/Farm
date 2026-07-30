@@ -1,8 +1,17 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (accounting journal-date hardening). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (balance-sheet organization integrity). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — balance-sheet organization integrity: MIGRATED / HOSTED-VERIFIED.**
+PR #973 adds a fail-closed check to the balance-sheet RPC when posted journal entry, line, and account
+organizations disagree. Production migration `20260730083902 accounting_balance_sheet_account_integrity`
+is applied. Postflight confirms all three guards, unchanged `STABLE` / `SECURITY DEFINER` / empty
+`search_path` metadata, authenticated-only execution, and zero account-org or entry-line mismatches across
+20,730 posted lines. Focused pgTAP is 10/10; full Docker-free pgTAP is 3,118/3,118; independent review is
+APPROVE; exact-head app, design-system, db-tests, gitleaks, and Vercel checks are green. No business row
+changed. This closes #719 item 5 at the database gate; accounting acceptance remains human-gated.
 
 **2026-07-30 — explicit journal entry dates: MIGRATED / HOSTED-VERIFIED.**
 Farm production migration `20260730075952 accounting_journal_entry_date_required` removes the internal
