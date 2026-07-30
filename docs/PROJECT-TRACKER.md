@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (recent-journal exact amounts — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (transaction-ledger exact counts — RELEASED)
+
+> **2026-07-30 — TRANSACTION-LEDGER EXACT COUNTS AND BOUNDED DISPLAY: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+> PR #993 merged at `393523d09cb413c7e2e46fe437c76778b70fdf08`; production deployment
+> `5677632065` succeeded. `/transactions` had used capped source-array lengths for its chips, showing 563
+> rows instead of the exact 10,364 current rows and omitting 9,801 expenses from the All count. It now reads
+> exact active-org metadata for 10,201 expenses, 162 sales, 0 collections and 1 custody movement while
+> rendering at most the latest 400 rows from each type. The UI discloses that per-type bound and displayed-row
+> search scope, disables partial CSV, counts pending prices exactly, excludes cancelled/reversed positive
+> money, orders null dates deterministically, fails closed on source and lookup errors, and resolves only
+> referenced party IDs. Independent review APPROVE after the All-view wording and unbounded-lookup findings
+> were fixed. Focused Vitest 37/37; full Vitest 1,361 + 13 controlled skips; TypeScript, ESLint, 63-page build,
+> pgTAP 3,158/3,158, exact-main CI, release and db-tests green. Login aliases are 200 and signed-out
+> `/transactions` redirects. No migration, schema, RPC, dependency or business row changed. Accounting
+> remains ~99.5% pending the 698 human decisions, exceptions, real workbook dual run and dated
+> accountant/Owner acceptance.
 
 > **2026-07-30 — RECENT-JOURNAL EXACT AMOUNTS: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 > PR #991 merged at `9ee71d6a62439705dfec568707fb3115c2c09489`; production deployment
