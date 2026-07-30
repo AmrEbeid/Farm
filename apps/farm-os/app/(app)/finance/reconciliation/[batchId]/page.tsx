@@ -17,7 +17,9 @@ import {
   paginate,
   parsePageParam,
   parseReconciliationQueueFilters,
+  QUEUE_QUALITY_AR,
   reconciliationQueueHref,
+  reconciliationQueueQualityPredicates,
   reconciliationQueueStatePredicates,
   rollbackGate,
   summarizeResultSummary,
@@ -256,6 +258,7 @@ export default async function ReconciliationBatchPage({
     page?: string | string[];
     classification?: string | string[];
     state?: string | string[];
+    quality?: string | string[];
   }>;
 }) {
   const m = await requireRole(["owner", "accountant"]);
@@ -285,6 +288,10 @@ export default async function ReconciliationBatchPage({
   const wholeBatchCountsRead = started(loadWholeBatchCounts(sb, batchId, m.orgId));
 
   const statePredicates = reconciliationQueueStatePredicates(filters.state);
+  // Evidence-quality predicates ride the SAME `!inner` evidence relation the classification filter
+  // already uses, so they add no query and no round trip. Applied to both the count and the row page
+  // below — filtering only one would page a narrowed list against an unnarrowed total.
+  const qualityPredicates = reconciliationQueueQualityPredicates(filters.quality);
   let filteredCountQuery = sb
     .from("reconciliation_batch_rows")
     .select(
@@ -302,6 +309,12 @@ export default async function ReconciliationBatchPage({
   }
   for (const predicate of statePredicates) {
     filteredCountQuery = filteredCountQuery.eq(predicate.column, predicate.value);
+  }
+  for (const predicate of qualityPredicates) {
+    filteredCountQuery =
+      predicate.op === "is"
+        ? filteredCountQuery.is(predicate.column, null)
+        : filteredCountQuery.eq(predicate.column, predicate.value);
   }
   const { count: filteredCount, error: filteredCountError } = await filteredCountQuery;
   if (filteredCountError) throw filteredCountError;
@@ -367,6 +380,12 @@ export default async function ReconciliationBatchPage({
   }
   for (const predicate of statePredicates) {
     rowQuery = rowQuery.eq(predicate.column, predicate.value);
+  }
+  for (const predicate of qualityPredicates) {
+    rowQuery =
+      predicate.op === "is"
+        ? rowQuery.is(predicate.column, null)
+        : rowQuery.eq(predicate.column, predicate.value);
   }
   const { data: rowData, error: rowError } = await rowQuery
     .order("evidence_item_id", { ascending: true })
@@ -612,10 +631,23 @@ export default async function ReconciliationBatchPage({
             ]}
           />
         </Field>
+        {/* The two acceptance-report exceptions that are neither a state nor a classification. */}
+        <Field label="استثناءات الدليل" id="quality">
+          <Select
+            id="quality"
+            name="quality"
+            selectSize="sm"
+            defaultValue={filters.quality ?? ""}
+            options={[
+              { value: "", label: "كل الصفوف" },
+              ...Object.entries(QUEUE_QUALITY_AR).map(([value, label]) => ({ value, label })),
+            ]}
+          />
+        </Field>
         <Button type="submit" size="sm" variant="primary">
           تطبيق
         </Button>
-        {(filters.classification || filters.state) && (
+        {(filters.classification || filters.state || filters.quality) && (
           <Link
             href={`/finance/reconciliation/${batchId}`}
             className="rounded-md px-3 py-1.5 text-sm"
@@ -651,7 +683,7 @@ export default async function ReconciliationBatchPage({
           from={pagination.from}
           to={pagination.to}
           total={pagination.total}
-          hasActiveFilters={Boolean(filters.classification || filters.state)}
+          hasActiveFilters={Boolean(filters.classification || filters.state || filters.quality)}
           previousHref={reconciliationQueueHref(batchId, pagination.page - 1, filters)}
           nextHref={reconciliationQueueHref(batchId, pagination.page + 1, filters)}
         />

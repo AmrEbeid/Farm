@@ -1,4 +1,58 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LIVE)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LOCAL CANDIDATE)
+
+> **2026-07-30 — QUEUE ROUTE TO THE ACCEPTANCE REPORT'S EVIDENCE-QUALITY EXCEPTIONS: LOCAL CANDIDATE.**
+> **Committed locally on `audit/accounting-acceptance-next-two` only. Independent Codex review APPROVE;
+> NOT pushed, NOT merged, NOT deployed. No migration, no SQL byte, no dependency, no production row, and
+> no row decided.** See [`SPEC-0004` §8.12](SPEC-0004-accounting-and-pnl.md) for the full record.
+>
+> **The gap.** The acceptance packet prints a quality panel of exception figures the accountant must resolve
+> before signing, two of which — «تواريخ مصدر غير صالحة» and «صفوف بلا مبلغ مصدر مسجَّل» — the review queue
+> could not isolate. §8.4 gave the queue two filter dimensions, evidence `classification` and decision
+> `state`; neither of those exceptions is either one, because `invalid_calendar_quality_flag` and a null
+> `source_amount` cut across all five classifications and all five review states. The row card already shows
+> the «تاريخ غير صالح» tag, so the fact was on screen but unnavigable: at 50 rows per page, enumerating
+> those rows in the staged 698-row batch meant opening all fourteen pages and reading every card. The report
+> named a number it gave no way to reach.
+>
+> **The fix (two source files, no SQL).** A third bounded filter dimension, `quality`, with a closed
+> two-value allowlist: `invalid_source_date` → `evidence.invalid_calendar_quality_flag eq true`, and
+> `missing_source_amount` → `evidence.source_amount is null`. `reconciliationQueueQualityPredicates()` is
+> the closed mapping, mirroring the existing `reconciliationQueueStatePredicates()`. Its predicate carries
+> its own **operator**, because the two are not both equalities — "no recorded source amount" is a NULL
+> test, and an `eq`-with-null would have matched nothing and reported an empty exception list.
+> `parseReconciliationQueueFilters()` stays the single URL allowlist: unknown, empty, injected
+> (`source_amount.is.null`) or repeated values resolve to the unfiltered queue and never reach PostgREST as
+> syntax. Both columns are already joined and already selected by the queue, so the filter adds no query and
+> no round trip, and it is applied to the exact filtered count and the 50-row page identically.
+>
+> **Unchanged on purpose:** the whole-batch 698 KPI strip stays independent and unfiltered (pinned by test),
+> along with the freeze/approve/execute/rollback gates, the 50-row pagination bound, `batch_id` + `org_id`
+> scoping, the tenant-safe evidence join, row order, the decision payload contract, read concurrency, the
+> lazy option cache, and every acceptance report/CSV/digest byte. **The slice adds no decision path: it
+> changes which rows are listed, never what a row says or what happens to it.**
+>
+> **Stated limits.** `missing_source_amount` structurally includes every production-orphan row (their
+> locator CHECK forbids a source amount) — a faithful route to the reported population, not a smaller set.
+> The report's third exception, «صفوف تصحيح بلا سجل مُصحَّح», is deliberately not a `quality` value: it is
+> already reachable via `classification=amount_correction_candidate` (15 rows, one page), and a predicate
+> for it would collide with the caller's own classification choice. The queue/CSV **order** mismatch
+> (`evidence_item_id` vs evidence locator) is real and left open: reconciling it needs either an ordering
+> PostgREST cannot express across an embedded relation or an unbounded whole-batch read, so it cannot be
+> done inside a bounded server filter.
+>
+> **Local evidence.** Regression checks written first: nine new assertions in `lib/tests/reconciliation
+> review.ts` **failed 9/9 against the pre-fix bytes**; a tenth non-regression guard is green both ways by
+> design. Focused Vitest 56/56; full Vitest **1,292 passed + 13 controlled skips across 91 files** (baseline
+> 1,283 + 13 — exactly the nine new tests); `tsc --noEmit` clean; ESLint clean on all three touched files;
+> production build **64/64** static pages; `git diff --check` clean. **pgTAP NOT run — zero SQL bytes
+> changed.** No authenticated session was available, so neither filter was exercised against the real
+> 698-row batch; the embedded-column `is`-null filter is verified by source contract and type only, and an
+> authenticated read-only smoke is the outstanding check before this can be called more than a candidate.
+> Independent review verified the current Supabase `!inner` embedded-filter and `is null` contracts and
+> found no remaining code issue.
+>
+> **The 100% acceptance gate is unchanged and entirely human:** decide all 698 staged rows, resolve every
+> exception, run the real workbook dual run, and record dated accountant and Owner acceptance.
 
 > **2026-07-30 — RECONCILIATION REVIEW FORM DISCARDS ABANDONED EDITS: MERGED / DEPLOYED / LIVE-SMOKED.**
 > PR #979 merged at `93806f838af6102ed8b09e9dd8830fb5bf11e2ff`; exact Vercel deployment
