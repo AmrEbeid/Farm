@@ -16,6 +16,7 @@ import {
   ACCEPTANCE_CLASSIFICATION_ORDER,
   ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR,
   ACCEPTANCE_CONTENT_COLUMNS,
+  ACCEPTANCE_CORRECTION_CAVEAT_AR,
   ACCEPTANCE_COUNT_MISMATCH_AR,
   ACCEPTANCE_CSV_COLUMNS,
   ACCEPTANCE_DATASET_AR,
@@ -48,7 +49,9 @@ import {
   compareControlSheetNames,
   compareLocatorText,
   destinationOf,
+  isAcceptanceCorrectionRow,
   orderByEvidenceLocator,
+  reportedDestinationOf,
   type AcceptanceBatchIdentity,
   type AcceptanceEvidence,
   type AcceptancePhase,
@@ -383,11 +386,15 @@ describe("reconciliation acceptance — whole-batch summary", () => {
 
   it("counts as executed only the results that actually moved money", () => {
     const report = buildReport([
-      row({ execution_result: "posted" }),
-      row({ execution_result: "reversed" }),
-      row({ execution_result: "skipped" }),
-      row({ execution_result: "failed" }),
-      row({ execution_result: "pending" }),
+      includedExpenseRow({ execution_result: "posted" }),
+      includedExpenseRow({
+        execution_result: "reversed",
+        corrects_expense_id: "abcd1111-1111-4111-8111-111111111111",
+        evidence: evidence({ classification: "amount_correction_candidate" }),
+      }),
+      includedExpenseRow({ execution_result: "skipped" }),
+      includedExpenseRow({ execution_result: "failed" }),
+      includedExpenseRow({ execution_result: "pending" }),
     ]);
     expect(report.counts.executed).toBe(2);
     expect(report.readiness.executed).toBe(2);
@@ -937,7 +944,7 @@ describe("reconciliation acceptance — destination wording follows the batch's 
     expect(staged).not.toBe(executed);
   });
 
-  it("counts posted and reversed money actions while excluding skipped rows from settled totals", () => {
+  it("keeps the ordinary headline on the same reported-destination basis as the control totals", () => {
     const posted = includedExpenseRow({
       execution_result: "posted",
       evidence: evidence({ source_amount: "100" }),
@@ -951,8 +958,14 @@ describe("reconciliation acceptance — destination wording follows the batch's 
       evidence: evidence({ source_amount: "900" }),
     });
     const executed = buildAcceptanceReport([posted, reversedDuringExecution, skipped], "executed");
-    expect(executed.plannedPostingRowCount).toBe(2);
-    expect(executed.plannedPostingTotal.total).toBe("150");
+    expect(executed.plannedPostingRowCount).toBe(1);
+    expect(executed.plannedPostingTotal.total).toBe("100");
+    expect(executed.controlTotals.total.postingRowCount).toBe(1);
+    expect(executed.controlTotals.total.postingAmount.total).toBe("100");
+    expect(executed.byDestination.find((total) => total.key === "execution_unsettled")).toMatchObject({
+      rowCount: 1,
+      amount: { total: "50" },
+    });
     expect(executed.byDestination.find((total) => total.key === "execution_skipped")).toMatchObject({
       rowCount: 1,
       amount: { total: "900" },
@@ -973,6 +986,337 @@ describe("reconciliation acceptance — destination wording follows the batch's 
     const reverted = buildAcceptanceReport([reversed, skipped], "reverted");
     expect(reverted.plannedPostingRowCount).toBe(1);
     expect(reverted.plannedPostingTotal.total).toBe("100");
+  });
+
+  it("keeps the correction wording free of future tense once the batch has settled", () => {
+    for (const phase of ["executed", "reverted"] as const) {
+      const copy = ACCEPTANCE_PHASE_COPY[phase];
+      for (const text of [
+        acceptanceDestinationLabels(phase).included_correction,
+        copy.correctionRowsLabel,
+        copy.correctionTotalLabel,
+        copy.correctionNote,
+      ]) {
+        expect(text).not.toContain("ستُسجَّل");
+        expect(text).not.toContain("سيُسجَّل");
+        expect(text).not.toContain("سيَعكس");
+      }
+    }
+  });
+});
+
+// ── AMOUNT CORRECTIONS. An included row that names the production record it corrects does not simply
+//    post its source amount: execution REVERSES the named record's journal and posts a REPLACEMENT at
+//    that amount (fn_..._execute_expense_batch / _sale_batch, which write execution_result='reversed'
+//    for exactly these rows). So the row's net effect on the books is `replacement − reversed`, and
+//    adding the replacement into an ordinary posting total overstates it by the whole reversed amount.
+//    These tests pin: its own destination, its exclusion from every posting figure, its own exact
+//    replacement subtotal, the per-phase mapping, the exact partition, and the digest consequence.
+describe("reconciliation acceptance — included amount corrections", () => {
+  const CORRECTED_EXPENSE = "abcd1111-1111-4111-8111-111111111111";
+  const CORRECTED_SALE = "abcd2222-2222-4222-8222-222222222222";
+
+  /** Evidence the staging tool classified as an amount-correction candidate. */
+  const correctionEvidence = (overrides: Partial<AcceptanceEvidence> = {}) =>
+    evidence({ classification: "amount_correction_candidate", ...overrides });
+
+  /** An included expense correction: it NAMES the expense it replaces, so execution reverses that. */
+  const correctionExpenseRow = (overrides: Partial<AcceptanceRow> = {}) =>
+    includedExpenseRow({
+      corrects_expense_id: CORRECTED_EXPENSE,
+      evidence: correctionEvidence(),
+      ...overrides,
+    });
+
+  const correctionSaleRow = (overrides: Partial<AcceptanceRow> = {}) =>
+    includedSaleRow({
+      corrects_sale_id: CORRECTED_SALE,
+      evidence: correctionEvidence({ sheet_name: "المبيعات" }),
+      ...overrides,
+    });
+
+  it("keeps correction evidence or correction links out of ordinary posting totals", () => {
+    expect(isAcceptanceCorrectionRow(correctionExpenseRow())).toBe(true);
+    expect(isAcceptanceCorrectionRow(correctionSaleRow())).toBe(true);
+    expect(destinationOf(correctionExpenseRow())).toBe("included_correction");
+    expect(destinationOf(correctionSaleRow())).toBe("included_correction");
+
+    // The database refuses an included correction candidate without a target. If a malformed snapshot
+    // nevertheless contains one, fail closed: do not restate it as an ordinary addition.
+    const unlinked = includedExpenseRow({ evidence: correctionEvidence() });
+    expect(isAcceptanceCorrectionRow(unlinked)).toBe(true);
+    expect(destinationOf(unlinked)).toBe("correction_invalid");
+
+    // Cross-domain links are also forbidden by database constraints. Conservatively segregate either
+    // malformed shape instead of allowing it into an ordinary posting total.
+    expect(
+      isAcceptanceCorrectionRow(includedExpenseRow({ corrects_sale_id: CORRECTED_SALE })),
+    ).toBe(true);
+    expect(destinationOf(includedExpenseRow({ corrects_sale_id: CORRECTED_SALE }))).toBe(
+      "correction_invalid",
+    );
+    expect(isAcceptanceCorrectionRow(includedSaleRow({ corrects_expense_id: CORRECTED_EXPENSE }))).toBe(
+      true,
+    );
+    expect(destinationOf(includedSaleRow({ corrects_expense_id: CORRECTED_EXPENSE }))).toBe(
+      "correction_invalid",
+    );
+
+    // A link never overrides a decision: an unincluded row posts nothing at all.
+    expect(
+      destinationOf(
+        row({ review_state: "reviewed", disposition: "hold", corrects_expense_id: CORRECTED_EXPENSE }),
+      ),
+    ).toBe("held");
+    expect(
+      destinationOf(
+        row({ review_state: "rejected", disposition: "include", target_table: "expenses", corrects_expense_id: CORRECTED_EXPENSE }),
+      ),
+    ).toBe("rejected");
+  });
+
+  it("keeps the replacement amount OUT of the planned posting total and in its own exact total", () => {
+    const rows = [
+      includedExpenseRow({ evidence: evidence({ source_amount: "100.10" }) }),
+      includedSaleRow({ evidence: evidence({ source_amount: "50.30" }) }),
+      correctionExpenseRow({ evidence: correctionEvidence({ source_amount: "700.05" }) }),
+      correctionSaleRow({ evidence: correctionEvidence({ source_amount: "0.95" }) }),
+      row({ review_state: "reviewed", disposition: "hold", evidence: evidence({ source_amount: "999" }) }),
+    ];
+    const report = buildReport(rows);
+
+    // The ordinary additions alone — byte-for-byte the figure a correction-free batch would print.
+    expect(report.plannedPostingRowCount).toBe(2);
+    expect(report.plannedPostingTotal.total).toBe("150.4");
+    // The corrections, summed exactly and separately.
+    expect(report.correctionRowCount).toBe(2);
+    expect(report.correctionReplacementTotal.total).toBe("701");
+    // Everything still adds up to the batch: nothing was dropped to achieve the exclusion.
+    expect(report.sourceTotal.total).toBe("1850.4");
+  });
+
+  it("excludes corrections from EVERY period and sheet postingAmount while keeping their source amount", () => {
+    const report = buildReport([
+      includedExpenseRow({
+        evidence: evidence({ source_amount: "100", source_date_parsed: "2024-01-05" }),
+      }),
+      correctionExpenseRow({
+        evidence: correctionEvidence({ source_amount: "700", source_date_parsed: "2024-01-06" }),
+      }),
+    ]);
+    const january = report.controlTotals.years[0].periods[0];
+    expect(january.rowCount).toBe(2);
+    expect(january.amount.total).toBe("800");
+    expect(january.postingRowCount).toBe(1);
+    expect(january.postingAmount.total).toBe("100");
+    // The year subtotal, the sheet group and the batch footer all use the same basis.
+    expect(report.controlTotals.years[0].subtotal.postingAmount.total).toBe("100");
+    const expensesSheet = report.controlTotals.sheets.find((s) => s.key === "sheet:المصروفات");
+    expect(expensesSheet?.amount.total).toBe("800");
+    expect(expensesSheet?.postingAmount.total).toBe("100");
+    expect(report.controlTotals.total.postingAmount.total).toBe("100");
+    expect(report.controlTotals.total.postingRowCount).toBe(1);
+    expect(report.controlTotals.total.amount).toEqual(report.sourceTotal);
+  });
+
+  it("maps a correction to its own group per phase — reversed is the executor's own expected result", () => {
+    const correction = (result: AcceptanceRow["execution_result"]) =>
+      correctionExpenseRow({ execution_result: result });
+
+    expect(reportedDestinationOf(correction("pending"), "planned")).toBe("included_correction");
+    // Even an odd result claims nothing in the planned phase: the batch has not executed.
+    expect(reportedDestinationOf(correction("skipped"), "planned")).toBe("included_correction");
+
+    for (const phase of ["executed", "reverted", "unsettled"] as const) {
+      // `reversed` is what BOTH execution RPCs write for a row that names a corrected record.
+      expect(reportedDestinationOf(correction("reversed"), phase)).toBe("included_correction");
+      // Skipped because another batch already executed this evidence — never "this batch corrected it".
+      expect(reportedDestinationOf(correction("skipped"), phase)).toBe("execution_skipped");
+      // Anything else — including `posted`, which the executor never writes for a correction — is
+      // ambiguous, so the report claims nothing rather than reading it as a completed correction.
+      for (const ambiguous of ["posted", "pending", "failed"] as const) {
+        expect(reportedDestinationOf(correction(ambiguous), phase)).toBe("execution_unsettled");
+      }
+    }
+  });
+
+  it("says the correction executed then rolled back on a reverted batch, and never that it posts nothing", () => {
+    const reverted = acceptanceDestinationLabels("reverted").included_correction;
+    expect(reverted).toContain("تصحيح مبلغ");
+    expect(reverted).toContain("تراجعت");
+    expect(reverted).toContain("مبلغ الاستبدال");
+    for (const phase of ["planned", "executed", "reverted", "unsettled"] as const) {
+      const label = acceptanceDestinationLabels(phase).included_correction;
+      expect(label).toContain("تصحيح مبلغ");
+      // The three things every phase must say, and the one it must never say.
+      expect(label).toContain("مبلغ الاستبدال");
+      expect(label).not.toContain("لا تُسجَّل");
+      expect(label).not.toContain("لم تُسجَّل");
+    }
+  });
+
+  it("reports the correction figures for exactly the rows its destination group holds", () => {
+    const reversed = correctionExpenseRow({
+      execution_result: "reversed",
+      evidence: correctionEvidence({ source_amount: "700" }),
+    });
+    const ambiguous = correctionExpenseRow({
+      execution_result: "pending",
+      evidence: correctionEvidence({ source_amount: "40" }),
+    });
+    for (const phase of ["planned", "executed", "reverted", "unsettled"] as const) {
+      const report = buildAcceptanceReport([reversed, ambiguous], phase);
+      const group = report.byDestination.find((total) => total.key === "included_correction");
+      // Asserted present first: comparing against a `?? report.…` fallback would pass vacuously if the
+      // group ever stopped being emitted, which is exactly the regression this test exists to catch.
+      expect(group).toBeDefined();
+      expect(report.correctionRowCount).toBe(group?.rowCount);
+      expect(report.correctionReplacementTotal).toEqual(group?.amount);
+      expect(report.correctionRowCount).toBe(phase === "planned" ? 2 : 1);
+      expect(report.correctionReplacementTotal.total).toBe(phase === "planned" ? "740" : "700");
+    }
+  });
+
+  it("never reads a missing replacement amount as zero, and reports an exact zero as a known zero", () => {
+    const unknown = buildReport([
+      correctionExpenseRow({ evidence: correctionEvidence({ source_amount: null }) }),
+      correctionExpenseRow({ evidence: correctionEvidence({ source_amount: "700" }) }),
+    ]);
+    expect(unknown.correctionRowCount).toBe(2);
+    expect(unknown.correctionReplacementTotal.total).toBe("700");
+    expect(unknown.correctionReplacementTotal.knownCount).toBe(1);
+    expect(unknown.correctionReplacementTotal.unknownCount).toBe(1);
+    expect(unknown.correctionReplacementTotal.hasUnknown).toBe(true);
+
+    // A zero-value correction still reverses a real journal (the executor keeps it as `reversed`), so
+    // it is a correction with a recorded replacement of zero — not an unknown, and not skipped.
+    const zero = buildReport([correctionExpenseRow({ evidence: correctionEvidence({ source_amount: "0" }) })]);
+    expect(zero.correctionRowCount).toBe(1);
+    expect(zero.correctionReplacementTotal.total).toBe("0");
+    expect(zero.correctionReplacementTotal.knownCount).toBe(1);
+    expect(zero.correctionReplacementTotal.hasUnknown).toBe(false);
+    expect(zero.plannedPostingRowCount).toBe(0);
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("بلا إنشاء سجل أو قيد بديل");
+  });
+
+  it("keeps the destination partition exact, with the correction group next to the postings", () => {
+    const rows = [
+      includedExpenseRow(),
+      includedSaleRow(),
+      correctionExpenseRow(),
+      row({ review_state: "reviewed", disposition: "hold" }),
+      row({ review_state: "rejected" }),
+      row(),
+    ];
+    const report = buildReport(rows);
+    expect(report.byDestination.map((total) => total.key)).toEqual([
+      "included_expenses",
+      "included_sales",
+      "included_correction",
+      "held",
+      "rejected",
+      "undecided",
+    ]);
+    expect(report.byDestination.reduce((sum, total) => sum + total.rowCount, 0)).toBe(rows.length);
+    for (const total of report.byDestination) {
+      expect(total.label).toBe(PLANNED_LABELS[total.key as keyof typeof PLANNED_LABELS]);
+    }
+    // A batch with no correction row prints exactly the table it printed before this group existed.
+    expect(
+      buildReport([includedExpenseRow(), row()]).byDestination.map((total) => total.key),
+    ).not.toContain("included_correction");
+  });
+
+  it("segregates malformed correction shapes without making an execution claim", () => {
+    const rows = [
+      includedExpenseRow({
+        evidence: correctionEvidence(),
+        execution_result: "reversed",
+      }),
+      includedExpenseRow({
+        corrects_sale_id: CORRECTED_SALE,
+        evidence: correctionEvidence(),
+        execution_result: "reversed",
+      }),
+    ];
+    const report = buildReport(rows);
+    expect(report.plannedPostingRowCount).toBe(0);
+    expect(report.correctionRowCount).toBe(0);
+    expect(report.counts.executed).toBe(0);
+    expect(report.readiness.executed).toBe(0);
+    expect(report.byDestination.find((total) => total.key === "correction_invalid")).toMatchObject({
+      rowCount: 2,
+      amount: { total: "200" },
+    });
+    expect(PLANNED_LABELS.correction_invalid).toContain("غير متطابقين");
+    expect(PLANNED_LABELS.correction_invalid).not.toContain("سيَعكس");
+  });
+
+  it("labels the correction row in the CSV annex in the same tense as the page", () => {
+    const annex = csvRowsOf([correctionExpenseRow()]);
+    expect(annex[0]).toMatchObject({
+      destination: "included_correction",
+      destination_ar: PLANNED_LABELS.included_correction,
+      corrects_expense_id: CORRECTED_EXPENSE,
+      classification: "amount_correction_candidate",
+    });
+    const executed = acceptanceCsvRows(
+      [correctionExpenseRow({ execution_result: "reversed" })],
+      "executed",
+    );
+    expect(executed[0].destination_ar).toBe(
+      acceptanceDestinationLabels("executed").included_correction,
+    );
+  });
+
+  it("changes the digested destination cells — and so the package digest — when a row becomes a correction", () => {
+    const asAddition = includedExpenseRow({
+      evidence: evidence({ classification: "source_addition_candidate" }),
+    });
+    const asCorrection: AcceptanceRow = {
+      ...asAddition,
+      corrects_expense_id: CORRECTED_EXPENSE,
+      evidence: correctionEvidence(),
+    };
+    const batch = batchIdentity({ result_summary: stagedSummary([asAddition]) });
+
+    const addition = buildAcceptancePackage(batch, [asAddition]);
+    const correction = buildAcceptancePackage(batch, [asCorrection]);
+
+    // The digest covers per-row CONTENT CELLS, not the computed aggregates. The `destination` /
+    // `destination_ar` cells ARE content, so this move is digest-visible with no format change.
+    expect(addition.csvRows[0].destination).toBe("included_expenses");
+    expect(correction.csvRows[0].destination).toBe("included_correction");
+    expect(correction.digest).not.toBe(addition.digest);
+    expect(acceptancePayloadDocument(batch, csvRowsOf([asCorrection]))).not.toBe(
+      acceptancePayloadDocument(batch, csvRowsOf([asAddition])),
+    );
+    // And the aggregates the digest does NOT hash still moved with it.
+    expect(addition.report.plannedPostingTotal.total).toBe("100");
+    expect(correction.report.plannedPostingTotal.total).toBe("0");
+    expect(correction.report.correctionReplacementTotal.total).toBe("100");
+  });
+
+  it("states the correction caveat unconditionally: replacement, not net effect, and not a P&L figure", () => {
+    // Reversal is asserted (it does NOT post nothing) …
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("يعكس قيد السجل القديم");
+    // … the figure is named a replacement …
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("مبلغ الاستبدال");
+    // … the net effect is stated as new − old AND as not computed here …
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("الجديد ناقص القديم");
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("ولا يحسبه هذا التقرير");
+    // … the exclusion from the posting total is explained, not silent …
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("أُخرجت");
+    // … and it refuses to be read as any one accounting result (CLAUDE.md #6).
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("مسحوبات المالك");
+    expect(ACCEPTANCE_CORRECTION_CAVEAT_AR).toContain("فلا يُقرأ كربح");
+    // Every phase carries its own correction wording — no phase falls back to a shared claim.
+    const notes = new Set(
+      (["planned", "executed", "reverted", "unsettled"] as const).map(
+        (phase) => ACCEPTANCE_PHASE_COPY[phase].correctionNote,
+      ),
+    );
+    expect(notes.size).toBe(4);
   });
 });
 
@@ -1155,8 +1499,10 @@ describe("reconciliation acceptance — CSV annex", () => {
       review_reason: "مطابق للدفتر",
       target_table: "expenses",
       target_table_ar: ACCEPTANCE_DATASET_AR.expenses,
-      destination: "included_expenses",
-      destination_ar: PLANNED_LABELS.included_expenses,
+      // This fixture NAMES the expense it corrects, so its destination is the correction group, not
+      // the ordinary expenses posting — the link is what execution branches on.
+      destination: "included_correction",
+      destination_ar: PLANNED_LABELS.included_correction,
       frozen: "نعم",
       execution_result: "posted",
       execution_result_ar: "مُرحَّل",

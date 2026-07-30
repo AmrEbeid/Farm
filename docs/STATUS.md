@@ -1,8 +1,31 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (accounting acceptance control totals). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (acceptance amount-correction totals). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — acceptance amount-correction totals: LOCAL CANDIDATE (not committed, not pushed, no PR).**
+The acceptance report counted an included amount-correction row's full source amount as a posting, but
+execution reverses the record the row names and posts a replacement only for a positive amount, so ordinary posting totals were
+overstated by every reversed amount. Healthy correction rows carry both correction evidence and the
+dataset-matched `corrects_*_id` link; the report treats either signal as a correction so malformed rows fail
+closed into an integrity group instead of entering ordinary totals or receiving a normal execution claim.
+Valid correction rows now form their own phase-aware destination and
+are excluded from `plannedPostingTotal` and from every period/sheet
+`postingAmount`; their gross replacement amount is reported separately as `correctionReplacementTotal`
+with an unconditional caveat that zero is reversal-only, the net ledger effect is new minus old, and it is not computed anywhere in
+this report, and is not a P&L figure. `execution_result='reversed'` is now read as the expected result for
+an executed correction instead of "unsettled". The ordinary headline now uses the same reported-destination
+basis as the destination and control tables. No migration,
+RPC, schema, grant, gate, decision, write, CSV schema, or digest recipe/version changed
+(`farm-os.reconciliation-acceptance.v1` stands); correction destination cells intentionally change and are
+already digested, so a row moving
+between addition and correction changes the package digest without a format change. Local evidence: focused
+acceptance Vitest 157/157; full Vitest 1,277 + 13 controlled skips across 91 files; TypeScript clean;
+ESLint clean on the three touched files; build 64/64 static pages; `git diff --check` clean. pgTAP was NOT
+run — no SQL byte changed. Independent review: APPROVE after three correction rounds. Phase 2
+(net-effect computation) stays gated
+on human selection/linkage plus accountant policy.
 
 **2026-07-30 — accounting acceptance control totals: MERGED / DEPLOYED / LIVE-VERIFIED.**
 PR #975 merged at `bf0895ef3bf61cef11cda12f1b6d90a0a1edf033`; exact production deployment

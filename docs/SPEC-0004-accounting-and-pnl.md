@@ -560,3 +560,72 @@ gitleaks, and Vercel checks are green. PR #975 merged at
 Public `/login` is 200, the signed-out acceptance route redirects to `/login`, and the post-release
 runtime-error window is empty. Authenticated real-route print was unavailable; Chrome A4 portrait replica
 validation and print-contract regressions passed. No migration or business row changed.
+
+### 8.11 Acceptance amount-correction totals (2026-07-30, LOCAL CANDIDATE — not committed, not released)
+
+An included row that names the production record it corrects does not simply post its source amount. Both
+execution RPCs — `fn_..._execute_expense_batch` and `..._execute_sale_batch` — first reverse the named
+record's journal (`fn_reverse_journal_entry`, a `correction_reversal` action link, the corrected row moved to
+`historical_reversed`), then post a REPLACEMENT only when the batch row's source amount is positive. A zero
+amount creates no replacement row or journal. The executor writes
+`execution_result='reversed'` for that row. The acceptance report treated the replacement as an ordinary
+posting: it entered `plannedPostingTotal` and every control-total `postingAmount`, which overstated those
+figures by the whole reversed amount. It also labelled `reversed` as "execution unsettled" in an executed
+phase, even though `reversed` is precisely the result a correction is expected to carry.
+
+**What a correction row is, for this purpose.** A healthy included correction carries both
+`amount_correction_candidate` evidence and the dataset-matched `corrects_expense_id`/`corrects_sale_id` link
+the executor uses. Database guards require that shape and reject missing or cross-domain linkage. The report
+also defends against a malformed snapshot: either correction evidence or any correction link is enough to
+segregate the row from ordinary posting totals into `correction_invalid`, whose wording makes no execution
+claim. The existing `correctionCandidates`, `correctionLinked`, and `correctionUnlinked` quality counts also
+expose missing linkage.
+
+**What changed.** `included_correction` is a new phase-aware acceptance destination. Its label says, in every
+phase, that the row is a correction, that the old record is reversed, and that the displayed amount is the
+replacement — and never that a correction posts nothing. Correction rows are excluded from
+`plannedPostingTotal`, `plannedPostingRowCount`, and every period / year-subtotal / sheet / batch-footer
+`postingAmount` and `postingRowCount`; the posting labels now say "additions only". Their gross replacement
+amount is reported separately and exactly as `correctionReplacementTotal` + `correctionRowCount` — the same
+rows the destination group prints — and rendered on the Arabic RTL acceptance page under its own heading with
+`ACCEPTANCE_CORRECTION_CAVEAT_AR`, printed unconditionally (including at zero correction rows). That caveat
+states that zero creates no replacement row or journal, the net ledger effect is (new − old) per row, is
+computed nowhere in this report and stored
+nowhere in the system, and that the figure is a gross replacement-source total which may span owner drawings,
+capital spend, operating expenses and sales at once and is therefore not a profit, expense or revenue line
+(CLAUDE.md #6). Lifecycle mapping: planned → correction group; `reversed` in the executed, reverted and
+unsettled phases → correction group (the reverted wording adds that it executed then rolled back);
+`skipped` → skipped; anything else, including a `posted` correction the executor never writes → unsettled.
+The ordinary posting headline now derives from the same reported destination used by every control total.
+A missing replacement amount stays unknown (never zero); an exact `0` replacement is a known zero, because a
+zero-value correction still reverses a real journal and the executor keeps it `reversed`.
+
+**Digest decision — deliberately NO version bump and no v1 compatibility builder.** The digest recipe,
+canonicalisation, and the 73-column CSV schema (ids, order, headers) are byte-unchanged, so
+`ACCEPTANCE_DIGEST_VERSION` stays `farm-os.reconciliation-acceptance.v1` and unaffected already-signed
+v1 packet stays valid. The per-row `destination`/`destination_ar` cells are already digested CONTENT, so the
+same row moving between an ordinary addition and an amount correction changes the digested bytes and therefore
+the package digest — asserted by test rather than assumed. The computed aggregates (classification,
+destination and control totals, the posting and correction figures) are not themselves hashed; they are
+derived views over rows the digest already binds, and the comments were corrected to say so.
+
+The read stays one bounded, org-scoped snapshot; the destination partition stays exact (every row in exactly
+one group); canonical row order, CSV columns, database/RPC/schema, grants, gates, decisions and all writes are
+untouched. Included correction rows intentionally receive different destination cells; the pinned
+non-correction fixture remains byte-identical.
+
+Production aggregate preflight (read-only; no row identifiers recorded): one staged batch of 698 rows, with 15
+amount-correction candidates — all held, unreviewed, unlinked, pending, not frozen. No reviewed, approved,
+executed or rolled-back batch exists, and no row carries a payload hash or frozen state. No production figure
+therefore moves today; the fix is what keeps the totals honest the first time a correction is linked and
+included.
+
+Local evidence: focused acceptance Vitest 157/157; full Vitest 1,277 passing with 13 controlled skips across
+91 files; TypeScript clean; ESLint clean on the three touched files (`lib/reconciliation acceptance.ts`, its
+test file, and the acceptance page); production build compiled with 64/64 static pages generated;
+`git diff --check` clean. The pinned format guards (payload digest `961c74b6…`, CSV SHA-256 `4339720a…`, 73
+columns, 2,675 bytes) are unchanged and passing, since the pinned fixture holds no correction row. pgTAP was
+NOT run for this slice: no SQL byte changed. Independent review is APPROVE after three correction rounds; no
+migration or data change is part of this slice. **Phase 2 remains gated:** computing the net (new − old)
+effect requires human
+selection and linkage of each correction to its production record, plus accountant policy.

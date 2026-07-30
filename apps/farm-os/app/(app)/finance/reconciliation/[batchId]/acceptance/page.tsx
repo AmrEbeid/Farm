@@ -40,6 +40,7 @@ import {
   ACCEPTANCE_ASSERTION_FIELDS,
   ACCEPTANCE_ASSERTION_PROHIBITION_AR,
   ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR,
+  ACCEPTANCE_CORRECTION_CAVEAT_AR,
   ACCEPTANCE_DIGEST_ALGORITHM,
   ACCEPTANCE_DIGEST_NOTE_AR,
   ACCEPTANCE_MAX_ROWS,
@@ -536,10 +537,28 @@ export default async function ReconciliationAcceptancePage({
         <p className="text-xs" style={mutedStyle}>
           {report.copy.postingNote} كل صف يقع في مجموعة واحدة فقط، ومجموع الصفوف أعلاه يساوي إجمالي
           صفوف الدفعة. المُعلَّق والمرفوض وبلا قرار لا يُسجَّل منها شيء، فلا تدخل مبالغها في هذا
-          الإجمالي. ويساوي الإجمالي مبالغ المصدر للصفوف المُضمَّنة لأن التنفيذ يسجّل مبلغ المصدر نفسه؛
-          وصفوف تصحيح المبلغ تعكس أيضًا سجلًا قديمًا لا يظهر أثره فيه. تُجمع المبالغ من الأدلة التي
-          سجّلت مبلغًا فقط، والصف بلا مبلغ مسجَّل لا يُحسب صفرًا بل يظهر في «+ غير معروف». هذه
-          إجماليات أدلة، وليست قائمة مالية ولا رصيدًا مُرحّلًا.
+          الإجمالي. ويساوي الإجمالي مبالغ المصدر لصفوف الإضافة المُضمَّنة لأن التنفيذ يسجّل مبلغ
+          المصدر نفسه؛ أمّا صفوف تصحيح المبلغ فمُستبعدة من هذا الإجمالي ولها إجماليها المنفصل أدناه.
+          تُجمع المبالغ من الأدلة التي سجّلت مبلغًا فقط، والصف بلا مبلغ مسجَّل لا يُحسب صفرًا بل يظهر
+          في «+ غير معروف». هذه إجماليات أدلة، وليست قائمة مالية ولا رصيدًا مُرحّلًا.
+        </p>
+      </Section>
+
+      {/* Amount corrections, ALWAYS printed — including at zero rows. A correction posts a replacement
+          AND reverses the record it names, so its amount belongs in neither an ordinary posting total
+          nor a "posts nothing" group. The caveat is unconditional because the fact that this report
+          never computes the net ledger effect (new − old) is what a signer needs before signing. */}
+      <Section title="صفوف تصحيح المبلغ — مبالغ الاستبدال">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Figure label={report.copy.correctionRowsLabel} value={num(report.correctionRowCount)} />
+          <Figure
+            label={report.copy.correctionTotalLabel}
+            value={egpDecimalSummary(report.correctionReplacementTotal)}
+            className="sm:col-span-2"
+          />
+        </div>
+        <p className="text-xs" style={mutedStyle}>
+          {report.copy.correctionNote} {ACCEPTANCE_CORRECTION_CAVEAT_AR}
         </p>
       </Section>
 
@@ -577,8 +596,9 @@ export default async function ReconciliationAcceptancePage({
           كل صف من صفوف الدفعة يقع في مجموعة فترة واحدة وفي مجموعة ورقة واحدة، فيغلق الجدولان كلاهما
           على إجمالي مبالغ مصدر الدفعة نفسه المعروض في السطر الأخير. أسماء الأوراق كما سجّلها الدليل
           حرفيًا، وما لا يحمل اسم ورقة يظهر في مجموعة ثابتة ولا يسقط من الإجمالي. عمود «
-          {report.copy.postingTotalLabel}» هو مبالغ الصفوف التي مآلها تسجيل حسب جدول «مآل الصفوف»
-          أعلاه فقط. والصف بلا مبلغ مسجَّل لا يُحسب صفرًا: يظهر في عمود «صفوف بلا مبلغ مسجَّل» وفي «+
+          {report.copy.postingTotalLabel}» هو مبالغ صفوف الإضافة التي مآلها تسجيل حسب جدول «مآل
+          الصفوف» أعلاه فقط، ولا تدخل فيه صفوف تصحيح المبلغ — لها إجماليها المنفصل في قسم «صفوف تصحيح
+          المبلغ». والصف بلا مبلغ مسجَّل لا يُحسب صفرًا: يظهر في عمود «صفوف بلا مبلغ مسجَّل» وفي «+
           غير معروف».
         </p>
       </Section>
