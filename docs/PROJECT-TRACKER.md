@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (finance-dashboard budget authority guard — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (cost-center exact totals — RELEASED)
+
+> **2026-07-30 — COST-CENTER EXACT TOTALS: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+> PR #987 merged at `fc6b7f97af1a504b766217fa47d859fc7cb09097`; production deployment
+> `FKzRYqjsH4VJZXe6Bx9iHLBxNBZV` completed successfully. `/finance/cost-centers/[id]` had reduced
+> latest-200 detail arrays into apparently complete KPIs. Read-only production evidence found 16 affected
+> centers, a 1,140-row maximum and approximately EGP 10.27m omitted across those capped views. The new
+> read-only `fn_cost_center_direct_summary` computes exact org-scoped totals under `finance.read`, preserves
+> the current cancelled/reversed/historical/posted-ledger contracts, and separately reports unknown expense
+> amounts. The two detail tables stay at 200 rows but disclose full counts and use deterministic null-last
+> order. Migration postflight proved authenticated-owner execution and exact aggregation; no business row
+> changed. Independent review APPROVE after the nullable-money, lifecycle-test and ordering findings were
+> fixed. pgTAP 3,132/3,132; Vitest 1,305 + 13 controlled skips; TypeScript, touched ESLint, 64-page build,
+> exact-main CI, release and db-tests green. Login aliases are 200 and signed-out route access redirects.
+> Accounting remains ~99.5% pending the 698 human decisions, exceptions, real workbook dual run and dated
+> accountant/Owner acceptance.
 
 > **2026-07-30 — FINANCE-DASHBOARD BUDGET AUTHORITY GUARD: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 > PR #985 merged at `22428eac6bb2a7bf4666819e8f4c160b6e7e7bbc`; production deployment
