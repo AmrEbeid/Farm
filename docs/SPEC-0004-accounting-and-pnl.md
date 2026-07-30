@@ -265,7 +265,7 @@ Pure logic (payload build/validate, pagination, status summaries) lives in
 drift tests were added; the editable `database.types.ext.ts` gained the three reconciliation tables and
 the three RPC signatures (generated `database.types.ts` untouched).
 
-**Form seeding & discard (2026-07-30 — LOCAL CANDIDATE, review approved, not merged, not deployed).** The
+**Form seeding & discard (2026-07-30 — MERGED / DEPLOYED / LIVE-SMOKED, PR #979).** The
 row card never unmounts while the page is open, so the form is re-seeded from the row **as the server
 currently renders it** on every open, and «إلغاء» / closing the card discards every unsaved edit rather
 than keeping it. Before this, React ran the field initialisers once and the two close paths only hid the
@@ -286,6 +286,10 @@ acceptance-report byte changed. Pinned by the "review form discard contract" sui
 `lib/tests/reconciliation review.ts` — a source contract, because this repo has no jsdom
 (`@testing-library/react` is a dependency hard-stop). Codex review found and rejected an initial
 post-save stale-prop window; the transition-gated amendment passed re-review.
+PR #979 merged at `93806f838af6102ed8b09e9dd8830fb5bf11e2ff`; exact deployment
+`Fcy2Dq2PviGUD2kVmaegqiN92fyZ` completed, main CI/release/db-tests are green, and signed-out route health
+passed. Authenticated row interaction was not used for smoke because no existing session was available.
+No migration or business row change.
 
 ### 8.1 Slice 4A — DB/data-contract hardening (2026-07-26, RELEASED)
 
