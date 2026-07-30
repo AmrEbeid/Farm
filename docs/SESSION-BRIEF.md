@@ -11,7 +11,8 @@ palms 1–759, but headings total 782 and disagree with the numbered ranges in h
 
 `apps/farm-os/lib/palm-source-reconciliation.ts` stores only non-PII structural facts with relative
 locators and SHA-256 hashes. It reports exact blocking issue codes, returns `authorityState = blocked`,
-and emits `importPayload = null`; focused Vitest is 6/6 green. Raw workbooks were not committed. No
+and emits `importPayload = null`; full Vitest is 1,239 passed + 13 controlled skips. Raw workbooks were
+not committed. No
 migration, database row, production setting, deploy, or registry authority state changed.
 
 **Exact resume point:** obtain a corrected unit-level registry or fresh field count signed by the Owner

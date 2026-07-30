@@ -5,24 +5,24 @@ the old count premise: its Barhi rows total 4,638 while its stated total is 4,53
 structural contradictions. The 2026-06-27 ratification remains historical evidence for the five-sector
 product structure only; it does not authorize a real registry count or import. See
 [`palm registry source reconciliation 2026 07 30.md`](palm%20registry%20source%20reconciliation%202026%2007%2030.md).
-Real-data import (slice 4 / Stage M) remains an Owner-gated action after source correction.
+Real-data work remains Stage M after source correction: aggregate import is slice 2; optional per-tree
+materialization is slice 4. Both remain gated.
 Originally: design + decision-support only. No code, no migration, no data
 import is performed by this document. Importing real Ebeid data is an Owner-gated apply-layer action
 (PROJECT RULES hard stop), and Stage 2 must not start before the Stage 1 gate is closed. This spec
 exists so the Owner can ratify scope + the open decisions before any import migration is written.*
 
-> **Historical status — 2026-06-26.** The Stage-1 (AUTHZ-1) gate is **closed** (migration `0025` live,
-> pgTAP `26` green), so Stage 2 may proceed. Investigation found the canonical registry **structure
-> is already loaded in the seed** (and prod) — 4,380 برحي / 299 ذكور / 28 حوش across **5** sectors with
-> the correct per-sector distribution — so Stage 2's "import" is already satisfied for aggregate
-> counts. Built + CI-verified (PR **#186**): **slice 1** (reconciliation oracle, pgTAP
+> **Historical status — 2026-06-26; non-actionable and superseded.** Stage-1 AUTHZ-1 closed at migration
+> `0025`. The then-current investigation recorded 4,380 برحي / 299 ذكور / 28 حوش across five seeded
+> sectors and treated matching aggregate seed values as satisfying import. Built + CI-verified
+> (PR **#186**): **slice 1** (reconciliation oracle, pgTAP
 > `34_registry_reconciliation_oracle_test.sql`, 18 assertions) and **slice 3** (farm grid + sector
 > file + **new hawsha file** + farm-level event roll-up). The two §6 open decisions have **recommendations**
 > below (5 sectors; aggregate-only) — **pending Owner ratification** (merging #186 = deploy = the Owner gate). Slice 2 (a standalone import migration) is **not needed** for
 > aggregate counts; slice 4 (per-tree `assets`) stays **deferred**. Merge of #186 = deploy = Owner gate.
 >
-> **2026-07-30 correction:** the quoted counts are synthetic/historical and non-authoritative. Loading
-> matching aggregate seed values did not satisfy real-data import.
+> **2026-07-30 correction:** the quoted counts are synthetic/historical and non-authoritative. Nothing
+> in this historical paragraph authorizes current import.
 
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 2, [`03-architecture-and-data-model.md`](03-architecture-and-data-model.md),
 and the disputed **Nov-2025 palm-registry baseline**. Follows the pattern of [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md)
@@ -128,8 +128,8 @@ all of these (Stage 1 / migrations `0010`/`0028`).
 - The import runs through the **Owner-gated apply layer** (not a client), idempotent, with the
   before/after reconciliation report as evidence — same posture as the prod migration push.
 - RLS already enforces tenant isolation on these tables; the import writes only the reference tenant.
-- **Gate:** Owner (independent review not required for structural data, but the reconciliation
-  evidence is mandatory). Real-data handling = the Owner's go-ahead per PROJECT RULES.
+- **Gate:** corrected unit-level evidence signed by the Owner and farm manager, then mandatory independent
+  review of the clean reconciliation result. Real-data apply remains Owner-gated per PROJECT RULES.
 
 ## 8. Slices (small, independently gateable)
 
@@ -169,5 +169,6 @@ deferred" recommendation. **The Owner can add / edit / remove sub-farm (sector),
 
 **Remaining (Owner / apply-layer):** apply `0051`–`0053` to prod (after the standing `0049`–`0050` push),
 apply `storage-policies.sql`, then **regenerate `database.types.ts` from prod** — at which point
-`lib/database.types.ext.ts` (the augmentation bridging the as-yet-unpushed objects) becomes a no-op. Bulk
-import of any corrected real registry stays Stage-2 slice-4 / Stage M (real data + privacy review).
+`lib/database.types.ext.ts` (the augmentation bridging the as-yet-unpushed objects) becomes a no-op.
+Corrected aggregate sector/hawsha/count import stays Stage-2 slice 2; optional per-tree `assets`
+materialization stays slice 4. Both remain Stage M real-data work behind the privacy review and gates above.

@@ -57,8 +57,19 @@ describe("buildPalmSourceReconciliation", () => {
 
     expect(issue).toMatchObject({
       expected: "4380/299/28",
-      actual: "4539/370/28",
+      actual: "4638/370/28",
     });
+  });
+
+  it("rejects normalized calendar overflows as malformed dates", () => {
+    const manifest = structuredClone(EBEID_PALM_SOURCE_MANIFEST);
+    manifest.source2026.blocks[0].plantingDateValues = ["2026-02-30"];
+
+    expect(
+      buildPalmSourceReconciliation(manifest).issues.some(
+        (issue) => issue.code === "MALFORMED_PLANTING_DATE" && issue.actual === "2026-02-30",
+      ),
+    ).toBe(true);
   });
 
   it("fails closed and never emits an import payload", () => {

@@ -182,7 +182,9 @@ function sum(values: readonly number[]): number {
 }
 
 function validIsoDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const timestamp = Date.parse(`${value}T00:00:00Z`);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value;
 }
 
 export function buildPalmSourceReconciliation(
@@ -294,7 +296,7 @@ export function buildPalmSourceReconciliation(
   }
 
   if (
-    disputedBaseline.barhi !== source2026.statedBarhiTotal ||
+    disputedBaseline.barhi !== barhiRowTotal2026 ||
     disputedBaseline.male !== maleRowTotal2026 ||
     disputedBaseline.hawshat !== impliedUnitColumns2026
   ) {
@@ -304,7 +306,7 @@ export function buildPalmSourceReconciliation(
       locator: `${source2026.locator}#comparison`,
       message: "The historical baseline conflicts with later source evidence and remains non-authoritative.",
       expected: `${disputedBaseline.barhi}/${disputedBaseline.male}/${disputedBaseline.hawshat}`,
-      actual: `${source2026.statedBarhiTotal}/${maleRowTotal2026}/${impliedUnitColumns2026}`,
+      actual: `${barhiRowTotal2026}/${maleRowTotal2026}/${impliedUnitColumns2026}`,
     });
   }
 
