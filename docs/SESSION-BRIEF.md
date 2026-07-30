@@ -1,12 +1,12 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LOCAL CANDIDATE)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LIVE)
 *Updated LAST, after meaningful work.*
 
-## 2026-07-30 — reconciliation review form discards abandoned edits — LOCAL CANDIDATE / REVIEW APPROVED / NOT PUSHED
+## 2026-07-30 — reconciliation review form discards abandoned edits — MERGED / DEPLOYED / LIVE-SMOKED
 
-Isolated worktree `farm accounting acceptance audit`, branch `audit/accounting-acceptance-next`, based on
-exact `origin/main` `cfdfb40`. **Local commit only.** No push, no PR, no merge, no deploy, no migration, no
-production/network/database access, no row decided, no financial figure moved. Independent Codex review is
-APPROVE after one blocking race was fixed and re-reviewed; the candidate is not released yet.
+Claude implemented the slice in isolated worktree `farm accounting acceptance audit`; Codex reviewed the
+actual bytes. PR #979 merged at `93806f838af6102ed8b09e9dd8830fb5bf11e2ff`; exact Vercel deployment
+`Fcy2Dq2PviGUD2kVmaegqiN92fyZ` completed successfully. No migration, production row decision, or financial
+figure changed. Independent Codex review is APPROVE after one blocking race was fixed and re-reviewed.
 
 I audited the 698-row acceptance workflow read-only first. The acceptance report, its CSV annex, the
 single-snapshot read RPC and the batch-page reads are already hardened well past the point where I could
@@ -65,15 +65,17 @@ appear in both the open button's gate and the in-handler guard, with the guard a
 assert `router.refresh()` appears exactly once in the card's CODE (comments stripped) and inside the
 transition callback.
 
-**Local evidence (post-fix):** focused Vitest **47/47**; full Vitest **1,283 passed + 13 controlled skips
+**Evidence (post-fix):** focused Vitest **47/47**; full Vitest **1,283 passed + 13 controlled skips
 across 91 files** (baseline 1,277 + 13 across 91 — exactly the six new tests); `tsc --noEmit` clean; ESLint
 clean on both touched files; production build compiled successfully, **64/64** static pages; `git diff
---check` clean. **pgTAP was NOT run — zero SQL bytes changed.** `node_modules` was installed in this worktree
-with `npm ci` from the committed lockfile; no dependency changed.
+--check` clean. Exact-head PR checks and exact-merge main CI, release, and db-tests are green. Production
+`/login` is HTTP 200 and the signed-out reconciliation route redirects to `/login`. No authenticated browser
+session was available, so discard/reopen was not exercised against a real row. **No migration was required:
+zero SQL bytes changed.** No dependency changed.
 
-**Exact resume point:** push the reviewed local commit, open the PR, pass exact-head checks, merge, and
-live-verify the authenticated discard/reopen and post-save refresh behavior. The transition gate is a
-source-level contract and has not yet been exercised in a browser. Correction Phase 2 (the
+**Exact resume point:** continue agent-verifiable acceptance support without deciding held rows. An
+authenticated discard/reopen smoke remains useful when an existing session is available, but must not save
+or alter a financial decision merely for testing. Correction Phase 2 (the
 old-amount / net `new − old` design) remains out of scope and gated on human selection and linkage of each
 correction to its production record plus accountant policy. The 100% acceptance gate is unchanged and
 entirely human: decide all 698 staged reconciliation rows, resolve every exception, run the real workbook

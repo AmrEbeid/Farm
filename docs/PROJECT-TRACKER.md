@@ -1,10 +1,9 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LOCAL CANDIDATE)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LIVE)
 
-> **2026-07-30 — RECONCILIATION REVIEW FORM DISCARDS ABANDONED EDITS: LOCAL CANDIDATE / REVIEW APPROVED /
-> NOT PUSHED / NOT MERGED / NOT DEPLOYED.**
-> Local commit only, on `audit/accounting-acceptance-next` in an isolated worktree off `cfdfb40`. No push, no
-> PR, no merge, no deploy, no migration, no production access. **Independent Codex review is APPROVE after
-> one blocking finding was fixed and re-reviewed.**
+> **2026-07-30 — RECONCILIATION REVIEW FORM DISCARDS ABANDONED EDITS: MERGED / DEPLOYED / LIVE-SMOKED.**
+> PR #979 merged at `93806f838af6102ed8b09e9dd8830fb5bf11e2ff`; exact Vercel deployment
+> `Fcy2Dq2PviGUD2kVmaegqiN92fyZ` completed successfully. Independent Codex review is APPROVE after one
+> blocking stale-refresh race was fixed and re-reviewed.
 >
 > The defect (`app/(app)/finance/reconciliation/[batchId]/controls.tsx`). `RowCard` is keyed by row id and
 > never unmounts while the batch page is open, and every form field lived in a `useState` **initialiser**,
@@ -59,12 +58,13 @@
 > RSC payload and that transition-wrapped router work is the supported pattern for exposing pending UI state.
 > No remaining code-review finding.
 >
-> Local evidence: focused Vitest **47/47**; full Vitest **1,283 passed + 13 controlled skips across 91 files**
+> Evidence: focused Vitest **47/47**; full Vitest **1,283 passed + 13 controlled skips across 91 files**
 > (baseline 1,277 + 13 across 91 — exactly the six new tests); `tsc --noEmit` clean; ESLint clean on both
 > touched files; production build **64/64** static pages, compiled successfully; `git diff --check` clean.
-> **pgTAP was NOT run — zero SQL bytes changed**, which is also why no migration or DB gate is implicated.
-> `node_modules` was installed in this worktree with `npm ci` from the committed lockfile; no dependency
-> changed.
+> Exact-head PR checks and exact-merge main CI, release, and db-tests are green. Production `/login` is
+> HTTP 200 and the signed-out reconciliation route redirects to `/login`; no authenticated browser session
+> was available, so discard/reopen was not exercised against a real row. **No migration was required**:
+> zero SQL bytes changed. No dependency, production row decision, or financial figure changed.
 >
 > **Human gate is unchanged and untouched by this slice:** decide all 698 staged reconciliation rows, resolve
 > every exception, run the real workbook dual run, and record dated accountant and Owner acceptance. Never
