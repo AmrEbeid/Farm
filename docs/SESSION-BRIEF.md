@@ -1,5 +1,87 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (review-form discard + post-save refresh gate — LIVE)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Claude/Codex (queue route to acceptance evidence-quality exceptions — LOCAL CANDIDATE)
 *Updated LAST, after meaningful work.*
+
+## 2026-07-30 — queue route to the acceptance report's evidence-quality exceptions — LOCAL CANDIDATE
+
+**Committed locally on `audit/accounting-acceptance-next-two` only. Independent Codex review APPROVE; NOT
+pushed, NOT merged, NOT deployed. No migration, no SQL byte, no dependency, no production row, and no row
+decided.**
+
+I audited the 698-row review queue and the acceptance evidence paths read-only first, against the current
+bytes and tests, treating the three prior hypotheses as unproven. Two of them did not survive. Correction and
+integrity exceptions are NOT hard to isolate — `classification=amount_correction_candidate` already narrows
+the batch to the 15 correction rows, one page. The queue/CSV order mismatch IS real — the queue orders by
+`evidence_item_id` (`app/(app)/finance/reconciliation/[batchId]/page.tsx`) while the report and its CSV annex
+order by evidence locator (`orderByEvidenceLocator`, whose own comment records that PostgREST cannot express
+that order across an embedded relation) — but it cannot be fixed inside a bounded server filter: it needs
+either an ordering PostgREST cannot express or an unbounded whole-batch read that would break the pagination
+bound. I left it open rather than half-done.
+
+**The defect I did prove** is the first hypothesis, and it is broader than "invalid dates are hard to find".
+The acceptance packet prints a quality panel of named exception figures the accountant must resolve before
+signing (`AcceptanceQualityCounts`, rendered on the acceptance page). Two of them — «تواريخ مصدر غير صالحة»
+and «صفوف بلا مبلغ مصدر مسجَّل» — had **no route at all** from the surface where the 698 decisions are
+actually made. §8.4 gave the queue exactly two filter dimensions, evidence `classification` and decision
+`state`, and neither exception is either one: `invalid_calendar_quality_flag` and a null `source_amount` cut
+across all five classifications and all five review states. The row card already renders the «تاريخ غير صالح»
+tag, so the fact was on screen but unnavigable — at 50 rows per page, enumerating those rows meant opening
+all fourteen pages and reading every card. The report named a number and gave no way to reach it. That
+outranks the alternatives because it is the only one of the three that is both unreachable today and fixable
+entirely inside the existing bounded filter contract.
+
+**The fix (two source files, no SQL).** A third bounded filter dimension, `quality`, with a closed two-value
+allowlist: `invalid_source_date` → `evidence.invalid_calendar_quality_flag eq true`, and
+`missing_source_amount` → `evidence.source_amount is null`. `reconciliationQueueQualityPredicates()` is the
+closed mapping, in the same shape as the existing `reconciliationQueueStatePredicates()`. Its predicate
+carries its own **operator**, because the two are not both equalities: "no recorded source amount" is a NULL
+test, which PostgREST expresses as `is`, and an `eq`-with-null would have matched nothing and reported an
+empty exception list rather than a real one. `parseReconciliationQueueFilters()` remains the single URL
+allowlist — an unknown, empty, injected (`source_amount.is.null`) or repeated value resolves to the
+unfiltered queue and is never forwarded as PostgREST syntax. Both columns are already joined and already
+selected by the queue, so the filter adds no query, no round trip and no new relation, and it is applied to
+the exact filtered count and the 50-row page identically (filtering only one would page a narrowed list
+against an unnarrowed total).
+
+Unchanged on purpose: the whole-batch 698 KPI strip stays independent and unfiltered (pinned by test), plus
+the freeze/approve/execute/rollback gates, the 50-row pagination bound, `batch_id` + `org_id` scoping, the
+tenant-safe evidence join, row order, the decision payload contract, read concurrency, the lazy option cache,
+schema, RPCs, grants, dependencies, access control, and every acceptance report/CSV/digest byte. **The slice
+adds no decision path of any kind: it changes which rows are listed, never what a row says or what happens to
+it.**
+
+**Two limits I state rather than paper over.** `missing_source_amount` structurally includes every
+production-orphan row, because the evidence locator CHECK forbids a `production_snapshot_row` from carrying a
+source amount — it is a faithful route to the reported population, not a smaller "surprising rows only" set,
+and it does not cover the report's separate `missingEvidence` alarm (those rows cannot appear in an
+`!inner`-joined queue at all). The report's third exception, «صفوف تصحيح بلا سجل مُصحَّح», is deliberately
+NOT a `quality` value: its rows are already reachable via the classification filter, and a predicate for it
+would have to pin `evidence.classification` itself, colliding with the caller's own choice.
+
+**Regression checks written to fail first.** Nine new assertions in `lib/tests/reconciliation review.ts` — a
+five-test "evidence-quality queue filter" suite plus four additions to the existing "queue source contract"
+suite — **failed 9/9 against the pre-fix bytes**. A tenth, the non-regression guard that the whole-batch KPI
+loader never sees the quality filter, is green both ways by design. The source-contract tests resist being
+satisfied loosely: they require the predicate helper to be the only thing reaching PostgREST, the applying
+loop to appear on **both** filtered queries, and the `is` operator to be honoured rather than collapsed into
+`eq`.
+
+**Evidence:** focused Vitest **56/56**; full Vitest **1,292 passed + 13 controlled skips across 91 files**
+(baseline 1,283 + 13 across 91 — exactly the nine new tests); `tsc --noEmit` clean; ESLint clean on all three
+touched files; production build compiled successfully, **64/64** static pages; `git diff --check` clean.
+**pgTAP was NOT run: zero SQL bytes changed.** No dependency changed.
+
+**Independent review: APPROVE.** Codex verified that the same closed predicate set reaches both bounded
+queries, the whole-batch KPI remains isolated, and current Supabase documentation supports `!inner`
+embedded-relation filtering plus `.is(column, null)` for SQL `IS NULL`. No remaining code-review finding.
+
+**Exact resume point.** Push, open the PR, pass exact-head checks, merge, then run an authenticated read-only
+smoke if an existing session is available. No session was available locally, so neither filter was exercised
+against the real 698-row batch before push. That smoke must only read; it must not save or alter any financial
+decision. The queue/CSV order mismatch stays open and needs a design decision, not a filter. Correction Phase
+2 (the old-amount / net `new − old` design) remains out of scope and gated on human selection and linkage of
+each correction to its production record plus accountant policy. The 100% acceptance gate is unchanged and
+entirely human: decide all 698 staged reconciliation rows, resolve every exception, run the real workbook
+dual run, and record dated accountant and Owner acceptance. Never auto-decide held financial evidence.
 
 ## 2026-07-30 — reconciliation review form discards abandoned edits — MERGED / DEPLOYED / LIVE-SMOKED
 

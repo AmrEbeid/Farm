@@ -40,9 +40,26 @@ export type ReconciliationQueueState =
   | "held"
   | "rejected"
   | "frozen";
+/**
+ * Evidence-quality exceptions the acceptance report raises but neither `review_state` nor
+ * `classification` can reach.
+ *
+ * The acceptance packet prints «تواريخ مصدر غير صالحة» and «صفوف بلا مبلغ مصدر مسجَّل» as named
+ * figures the accountant must resolve before signing. Both cut ACROSS every classification and every
+ * review state, so without their own filter the only way to find them in a several-hundred-row batch
+ * is to page through the whole queue looking for the warning tag on each card.
+ *
+ * Deliberately NOT here: the report's third exception, «صفوف تصحيح بلا سجل مُصحَّح». Its rows are
+ * already reachable — `classification=amount_correction_candidate` narrows the batch to the
+ * correction population — and a predicate for it would have to pin `evidence.classification` too,
+ * colliding with the caller's own classification choice. Isolating the *unlinked* subset within that
+ * population stays a visual step for now.
+ */
+export type ReconciliationQueueQuality = "invalid_source_date" | "missing_source_amount";
 export interface ReconciliationQueueFilters {
   classification: Classification | null;
   state: ReconciliationQueueState | null;
+  quality: ReconciliationQueueQuality | null;
 }
 export type OriginKind = "source_workbook_row" | "production_snapshot_row";
 export type ExecutionResult = "pending" | "posted" | "reversed" | "skipped" | "failed";
@@ -139,6 +156,19 @@ const QUEUE_STATES = new Set<ReconciliationQueueState>([
   "rejected",
   "frozen",
 ]);
+const QUEUE_QUALITIES = new Set<ReconciliationQueueQuality>([
+  "invalid_source_date",
+  "missing_source_amount",
+]);
+
+/**
+ * The filter options, worded to match the acceptance report's own exception figures so an accountant
+ * reading «صفوف بلا مبلغ مصدر مسجَّل» there can find the same rows here without translating.
+ */
+export const QUEUE_QUALITY_AR: Record<ReconciliationQueueQuality, string> = {
+  invalid_source_date: "صفوف بتاريخ مصدر غير صالح",
+  missing_source_amount: "صفوف بلا مبلغ مصدر مسجَّل",
+};
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -198,6 +228,7 @@ export function parsePageParam(raw: string | string[] | undefined): number {
 export function parseReconciliationQueueFilters(raw: {
   classification?: string | string[];
   state?: string | string[];
+  quality?: string | string[];
 }): ReconciliationQueueFilters {
   const classification =
     typeof raw.classification === "string" &&
@@ -208,7 +239,11 @@ export function parseReconciliationQueueFilters(raw: {
     typeof raw.state === "string" && QUEUE_STATES.has(raw.state as ReconciliationQueueState)
       ? (raw.state as ReconciliationQueueState)
       : null;
-  return { classification, state };
+  const quality =
+    typeof raw.quality === "string" && QUEUE_QUALITIES.has(raw.quality as ReconciliationQueueQuality)
+      ? (raw.quality as ReconciliationQueueQuality)
+      : null;
+  return { classification, state, quality };
 }
 
 export type ReconciliationQueuePredicate = {
@@ -239,6 +274,40 @@ export function reconciliationQueueStatePredicates(
   }
 }
 
+/**
+ * An evidence-quality predicate. It carries its own OPERATOR because the two exceptions are not both
+ * equalities: "no recorded source amount" is a NULL test, which PostgREST expresses as `is`, and an
+ * `eq`-with-null would match nothing at all and silently report an empty exception list.
+ *
+ * Both columns live on the evidence relation the queue already `!inner`-joins and already selects —
+ * so applying one adds no query, no round trip, and no widening of what the page reads.
+ */
+export type ReconciliationQueueQualityPredicate =
+  | { column: "evidence.invalid_calendar_quality_flag"; op: "eq"; value: true }
+  | { column: "evidence.source_amount"; op: "is"; value: null };
+
+/**
+ * Exact quality predicates. Like the state predicates, these are a closed mapping from an allowlisted
+ * URL value to a fixed column/operator/value triple — a raw query param never becomes PostgREST
+ * input. The whole-batch KPI counts stay deliberately independent of this, exactly as they are of the
+ * other two filters: a filter narrows the visible page, never the batch totals.
+ */
+export function reconciliationQueueQualityPredicates(
+  quality: ReconciliationQueueQuality | null,
+): ReconciliationQueueQualityPredicate[] {
+  switch (quality) {
+    case "invalid_source_date":
+      // The flag the staging tool wrote when a source cell was not a readable calendar day. It is
+      // the SAME flag the acceptance report counts, and the same one the row card tags.
+      return [{ column: "evidence.invalid_calendar_quality_flag", op: "eq", value: true }];
+    case "missing_source_amount":
+      // Rows whose evidence records no source amount at all — never a row whose amount is zero.
+      return [{ column: "evidence.source_amount", op: "is", value: null }];
+    default:
+      return [];
+  }
+}
+
 export function reconciliationQueueHref(
   batchId: string,
   page: number,
@@ -247,6 +316,7 @@ export function reconciliationQueueHref(
   const params = new URLSearchParams();
   if (filters.classification) params.set("classification", filters.classification);
   if (filters.state) params.set("state", filters.state);
+  if (filters.quality) params.set("quality", filters.quality);
   if (page > 1) params.set("page", String(page));
   const query = params.toString();
   return `/finance/reconciliation/${encodeURIComponent(batchId)}${query ? `?${query}` : ""}`;

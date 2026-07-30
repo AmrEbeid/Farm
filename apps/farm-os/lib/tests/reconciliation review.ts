@@ -7,8 +7,10 @@ import {
   parsePageParam,
   parseReconciliationQueueFilters,
   reconciliationQueueHref,
+  reconciliationQueueQualityPredicates,
   reconciliationQueueStatePredicates,
   summarizeRowStates,
+  QUEUE_QUALITY_AR,
   freezeGate,
   approveGate,
   isUuid,
@@ -117,13 +119,17 @@ describe("reconciliation review — read-only queue filters", () => {
         classification: "source_addition_candidate",
         state: "unreviewed",
       }),
-    ).toEqual({ classification: "source_addition_candidate", state: "unreviewed" });
+    ).toEqual({
+      classification: "source_addition_candidate",
+      state: "unreviewed",
+      quality: null,
+    });
     expect(
       parseReconciliationQueueFilters({
         classification: ["source_addition_candidate"],
         state: "review_state.eq.executed",
       }),
-    ).toEqual({ classification: null, state: null });
+    ).toEqual({ classification: null, state: null, quality: null });
   });
 
   it("maps each state to its exact fixed predicates", () => {
@@ -150,11 +156,88 @@ describe("reconciliation review — read-only queue filters", () => {
     const filters = {
       classification: "amount_correction_candidate" as const,
       state: "held" as const,
+      quality: null,
     };
     expect(reconciliationQueueHref(UUID_A, 2, filters)).toBe(
       `/finance/reconciliation/${UUID_A}?classification=amount_correction_candidate&state=held&page=2`,
     );
     expect(reconciliationQueueHref(UUID_A, 1, filters)).not.toContain("page=");
+  });
+});
+
+// The acceptance report raises `تواريخ مصدر غير صالحة` and `صفوف بلا مبلغ مصدر مسجَّل` as named
+// exception figures the accountant must resolve before signing, but neither is a review_state nor a
+// classification — so before this filter existed the ONLY way to find those rows in a 698-row batch
+// was to eyeball all 14 pages. These lock the queue route to each of them.
+describe("reconciliation review — evidence-quality queue filter", () => {
+  it("accepts only the two allowlisted quality values", () => {
+    expect(parseReconciliationQueueFilters({ quality: "invalid_source_date" }).quality).toBe(
+      "invalid_source_date",
+    );
+    expect(parseReconciliationQueueFilters({ quality: "missing_source_amount" }).quality).toBe(
+      "missing_source_amount",
+    );
+  });
+
+  it("treats an unknown, injected, or repeated quality value as «all»", () => {
+    for (const raw of [
+      "source_amount.is.null",
+      "correction_unlinked",
+      "",
+      "INVALID_SOURCE_DATE",
+    ] as const) {
+      expect(parseReconciliationQueueFilters({ quality: raw }).quality).toBeNull();
+    }
+    expect(
+      parseReconciliationQueueFilters({ quality: ["invalid_source_date"] }).quality,
+    ).toBeNull();
+    expect(parseReconciliationQueueFilters({}).quality).toBeNull();
+  });
+
+  it("maps each quality value to its exact fixed predicate, operator included", () => {
+    // `is` is not interchangeable with `eq`: PostgREST cannot express "no recorded amount" as an
+    // equality, and an `eq`-with-null would silently match nothing.
+    expect(reconciliationQueueQualityPredicates("invalid_source_date")).toEqual([
+      { column: "evidence.invalid_calendar_quality_flag", op: "eq", value: true },
+    ]);
+    expect(reconciliationQueueQualityPredicates("missing_source_amount")).toEqual([
+      { column: "evidence.source_amount", op: "is", value: null },
+    ]);
+    expect(reconciliationQueueQualityPredicates(null)).toEqual([]);
+  });
+
+  it("labels exactly the allowlisted values and nothing else", () => {
+    expect(Object.keys(QUEUE_QUALITY_AR).sort()).toEqual([
+      "invalid_source_date",
+      "missing_source_amount",
+    ]);
+    for (const label of Object.values(QUEUE_QUALITY_AR)) {
+      expect(label.trim().length).toBeGreaterThan(0);
+      // Arabic-RTL first: no Western digits and no raw column name leaking into the option.
+      expect(label).not.toMatch(/[0-9]|source_|evidence\./);
+    }
+  });
+
+  it("carries the quality filter across pagination alongside the other two", () => {
+    const href = reconciliationQueueHref(UUID_A, 3, {
+      classification: "amount_correction_candidate",
+      state: "unreviewed",
+      quality: "invalid_source_date",
+    });
+    expect(href).toBe(
+      `/finance/reconciliation/${UUID_A}?classification=amount_correction_candidate` +
+        `&state=unreviewed&quality=invalid_source_date&page=3`,
+    );
+    expect(
+      reconciliationQueueHref(UUID_A, 2, {
+        classification: null,
+        state: null,
+        quality: "missing_source_amount",
+      }),
+    ).toBe(`/finance/reconciliation/${UUID_A}?quality=missing_source_amount&page=2`);
+    expect(
+      reconciliationQueueHref(UUID_A, 2, { classification: null, state: null, quality: null }),
+    ).toBe(`/finance/reconciliation/${UUID_A}?page=2`);
   });
 });
 
@@ -188,6 +271,45 @@ describe("reconciliation review — queue source contract", () => {
   it("adds no write or RPC path to the filtered queue", () => {
     expect(queueSource).not.toMatch(/\.(insert|update|upsert|delete|rpc)\(/);
     expect(queueSource).toContain(".range(pagination.offset");
+  });
+
+  // The count drives pagination and the row read drives the page: applying the quality predicate to
+  // only one of them would page a filtered list against an unfiltered total.
+  it("applies the quality predicates to BOTH filtered queries, from the shared allowlist", () => {
+    expect(queueSource).toContain("reconciliationQueueQualityPredicates(filters.quality)");
+    expect(queueSource.match(/for \(const predicate of qualityPredicates\)/g)).toHaveLength(2);
+    // No FILTER ever names one of those columns literally — the allowlisted predicate object is the
+    // only thing that reaches PostgREST. (`invalid_calendar_quality_flag` still appears in the row
+    // `select()` list, which is a read of the column, not a filter on it.)
+    expect(queueSource).not.toMatch(
+      /\.(eq|is|neq|in|filter)\(\s*"evidence\.(invalid_calendar_quality_flag|source_amount)"/,
+    );
+  });
+
+  it("honours each predicate's own operator instead of forcing equality", () => {
+    const applications = queueSource.match(/predicate\.op === "is"/g);
+    expect(applications).toHaveLength(2);
+    expect(queueSource.match(/\.is\(predicate\.column, null\)/g)).toHaveLength(2);
+    expect(queueSource.match(/\.eq\(predicate\.column, predicate\.value\)/g)).toHaveLength(4);
+  });
+
+  it("keeps the quality filter out of the whole-batch 698 KPI strip", () => {
+    const loader = pageSource.slice(
+      pageSource.indexOf("async function loadWholeBatchCounts"),
+      pageSource.indexOf("async function loadCorrectionTargets"),
+    );
+    expect(loader).not.toMatch(/quality|filters/);
+  });
+
+  it("exposes the filter as an allowlisted GET control that resets to page one", () => {
+    const form = pageSource.slice(
+      pageSource.indexOf('<form\n        method="get"'),
+      pageSource.indexOf("</form>"),
+    );
+    expect(form).toContain('name="quality"');
+    expect(form).toContain("QUEUE_QUALITY_AR");
+    // A GET form carrying no `page` input is what resets the queue to page one on every apply.
+    expect(form).not.toContain('name="page"');
   });
 });
 
