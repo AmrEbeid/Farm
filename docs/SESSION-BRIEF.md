@@ -1,4 +1,4 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (finance-dashboard budget authority guard — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (transaction-ledger exact counts — RELEASED)
 *Updated LAST, after meaningful work.*
 
 ## 2026-07-30 — finance-dashboard budget authority guard — MERGED / DEPLOYED / SIGNED-OUT SMOKED
@@ -4452,3 +4452,26 @@ business row changed.
 `main`; do not change the pinned reconciliation batch automatically. Accounting remains ~99.5% until humans
 decide all 698 rows, resolve exceptions, perform the real workbook dual run, and record dated accountant and
 Owner acceptance.
+
+## 2026-07-30 — transaction-ledger exact counts and bounded display released
+
+PR #993 merged at `393523d09cb413c7e2e46fe437c76778b70fdf08`; production deployment
+`5677632065` succeeded. `/transactions` had derived its filter chips from capped source arrays, reporting 563
+rows instead of the exact 10,364 current rows and omitting 9,801 expenses from the All count. The page now
+uses exact active-organization count metadata for 10,201 expenses, 162 sales, 0 collections and 1 custody
+movement while displaying at most the latest 400 rows from each type.
+
+The All view now describes its per-type union honestly; truncated search is labelled as displayed-row search
+and partial CSV is disabled. Pending prices are counted exactly. Cancelled/reversed positive money is
+excluded, null dates order last with stable IDs, all source/count/lookup errors fail closed, and party queries
+resolve only deduplicated referenced IDs under explicit organization scope. Independent review first found
+the inaccurate All-view wording and unbounded party lookups; both were fixed. Final verdict: APPROVE, no
+P0-P3 findings. Evidence: focused Vitest 37/37; full Vitest 1,361 passed + 13 controlled skips; TypeScript,
+touched ESLint, 63-page build, pgTAP 3,158/3,158 and exact-main CI/release/db-tests green. Both login aliases
+return 200 and signed-out `/transactions` redirects to login. No migration, schema, RPC, dependency or
+business row changed.
+
+**Exact resume point:** audit the next decision-free accounting correctness/performance surface on current
+`main`. Do not auto-decide the pinned reconciliation batch. Accounting remains ~99.5% until humans decide all
+698 rows, resolve exceptions, complete the real workbook dual run, and record dated accountant and Owner
+acceptance.

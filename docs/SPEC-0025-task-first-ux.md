@@ -110,6 +110,22 @@ receipts) as one filterable/sortable/exportable table (the S-8a primitives): typ
 KPI cards on top act as filters (existing `DashboardKpiLink` pattern). **This kills the hunt** — "أين
 أجد العملية؟" has one answer.
 
+### 3a. U-3 production truth contract (released 2026-07-30)
+
+PR #993 released the ledger count and bounded-display correction. Filter chips use exact active-organization
+counts across the four implemented money-event sources; the table deliberately renders at most the latest
+400 rows from each type. The All view therefore describes a per-type union, not a globally latest-N merge.
+When a selected view is truncated, search is explicitly limited to displayed rows and CSV export is disabled.
+Pending-price count metadata is exact. Expense and sale lifecycle exclusions prevent cancelled or reversed
+positive money from reappearing, null dates sort last with IDs as stable tie-breakers, and every source/count/
+party-lookup error fails closed. Party lookups are limited to deduplicated non-null IDs referenced by the
+displayed rows and are explicitly organization-scoped.
+
+Production evidence at release: 10,201 expenses + 162 sales + 0 collections + 1 custody movement = 10,364
+exact rows, versus the prior displayed count of 563. The page remains read-only; no migration, schema, RPC,
+dependency or business row changed. Independent review APPROVE; focused Vitest 37/37, full Vitest 1,361 +
+13 controlled skips, TypeScript, ESLint, build, pgTAP and exact-main release checks green.
+
 ## 4. Part C — «التقارير» one hub
 
 One `/reports` page where **every report in the system is a card**: ميزان المراجعة، مصروفات حسب

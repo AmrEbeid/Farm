@@ -1,8 +1,23 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (recent-journal exact amounts released). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (transaction-ledger exact counts released). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — transaction-ledger exact counts and bounded display: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+PR #993 merged at `393523d09cb413c7e2e46fe437c76778b70fdf08`; production deployment
+`5677632065` completed successfully. `/transactions` had derived its filter counts from capped source arrays,
+reporting 563 rows instead of the exact 10,364 current rows and omitting 9,801 expenses from the All count.
+The page now uses exact active-organization count metadata for 10,201 expenses, 162 sales, 0 collections and
+1 custody movement while displaying at most the latest 400 rows from each type. It discloses that bound and
+the displayed-row search scope, disables CSV for any truncated selection, counts pending prices exactly,
+excludes cancelled/reversed positive money, orders null dates deterministically, fails closed on every source
+or lookup error, and resolves only referenced party IDs. Independent review: APPROVE after the All-view
+wording and lookup-cap findings were corrected. Evidence: focused Vitest 37/37; full Vitest 1,361 passed +
+13 controlled skips; TypeScript, ESLint, 63-page build, pgTAP 3,158/3,158 and exact-main CI/release/db-tests
+green. Both login aliases return 200 and signed-out `/transactions` redirects to login. No migration,
+dependency, schema, RPC or business-row change. Accounting remains ~99.5%; the 698 human decisions,
+exceptions, real workbook dual run and dated accountant/Owner acceptance remain.
 
 **2026-07-30 — recent-journal exact amounts: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 PR #991 merged at `9ee71d6a62439705dfec568707fb3115c2c09489`; production deployment
