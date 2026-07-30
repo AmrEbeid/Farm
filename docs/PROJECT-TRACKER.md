@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (cost-center exact totals — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (expense-register exact summary — RELEASED)
+
+> **2026-07-30 — EXPENSE-REGISTER EXACT SUMMARY: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+> PR #989 merged at `087c0be2e7007ac1dec6e3333da2e5b8fc576c41`; production deployment
+> `5676508008` succeeded. `/expenses` previously received only 1,000 of 10,201 production rows, so its
+> all-row count omitted 9,201 records and its operating/drawing chips omitted 8,009/681. The page now
+> uses exact active-org summary counts and monthly money from a hardened read-only RPC while displaying
+> only the latest 200 matching rows. Capex and historical-treasury stay included; cancelled/reversed
+> money is excluded; unknown amounts and drawing confidentiality remain explicit. Active-org scoping
+> now also covers supplier/account support data. Truncated search is disclosed and CSV is unavailable
+> until the selected view is complete. Production postflight proved the grants, owner/farm-manager
+> behavior and unchanged 10,201 expense rows. Independent review APPROVE after two correction rounds.
+> pgTAP 3,158/3,158; Vitest 1,317 + 13 controlled skips; TypeScript, ESLint, build, exact-main CI,
+> release and db-tests green. Login aliases are 200 and signed-out `/expenses` redirects. Accounting
+> remains ~99.5% pending the same 698 human decisions, exceptions, real dual run and dated acceptance.
 
 > **2026-07-30 — COST-CENTER EXACT TOTALS: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 > PR #987 merged at `fc6b7f97af1a504b766217fa47d859fc7cb09097`; production deployment

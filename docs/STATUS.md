@@ -1,8 +1,23 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (cost-center exact totals released). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (expense-register exact summary released). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — expense-register exact summary: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+PR #989 merged at `087c0be2e7007ac1dec6e3333da2e5b8fc576c41`; production deployment
+`5676508008` completed successfully. The old `/expenses` page received only 1,000 of 10,201 production
+rows, understating the all-row count by 9,201 and the operating/drawing chips by 8,009/681 while rendering
+an unnecessarily large table. The new authenticated-only, org-scoped `fn_expense_register_summary`
+computes exact register counts and monthly money; capex and historical-treasury remain included,
+cancelled/historical-reversed money is excluded, unknown amounts remain explicit, and drawings stay hidden
+from farm managers. The active-org list is limited to the latest 200 deterministic rows with an honest
+disclosure; truncated search is labelled and partial CSV export is disabled. Production verification proved
+owner/farm-manager role behavior, hardened grants and unchanged 10,201 expense rows. Independent review:
+APPROVE after two correction rounds. Evidence: pgTAP 3,158/3,158; Vitest 1,317 passed + 13 controlled skips;
+TypeScript, ESLint, build and exact-main CI/release/db-tests green. Both login aliases return 200 and signed-out
+`/expenses` redirects to login. Accounting remains ~99.5%; the 698 decisions, exceptions, real dual run and
+dated accountant/Owner acceptance remain.
 
 **2026-07-30 — cost-center exact totals: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 PR #987 merged at `fc6b7f97af1a504b766217fa47d859fc7cb09097`; production deployment
