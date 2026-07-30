@@ -215,8 +215,30 @@ or fair-value remeasurement** (accountant/statutory territory) — but **capture
 cost + a maturity flag per hawsha/sector** (ties to Stage 2 palm registry) so an accountant can later
 capitalize/depreciate. It's cheap now and expensive to retrofit.
 
-*All of §7 is design only — no enforcement changes here. Slices land via the gated flow (independent
-review + Owner gate); the real-data reconciliation stays behind Stage M.*
+### 7.6 Finance-dashboard budget authority guard (2026-07-30, RELEASED)
+PR #985 merged at `22428eac6bb2a7bf4666819e8f4c160b6e7e7bbc`; production deployment
+`9jXcmKy6NBeYuhLuRwtVH4kjTSYD` completed successfully. This is an app-layer truthfulness guard, not the
+live-posting design in §7.3. The dashboard reads budget authority for the active organization in the same
+parallel wave as its existing reads and explicitly scopes the budget query by `org_id`.
+
+If budget authority is not `verified`, every budget-value sink fails closed: approved/committed/actual/
+available KPIs, charts, pressure table, printed DOM and CSV control are absent, and the standard unverified
+source warning is rendered. If verified later, the current foundation-maintained fields remain visible only
+as labelled snapshots; a warning states that they do not update automatically from approvals or expenses and
+links to the posted-ledger budget-vs-actual report. No status semantics, hard budget cap, live posting or
+automatic budget mutation was introduced.
+
+The source contract pins the authority lookup in the parallel wave, explicit org scope, unique and
+authority-contained KPI/chart/export sinks, the warning paths and the existing owner/accountant/farm-manager
+route roles. Local evidence: focused Vitest 3/3; full Vitest 1,301 passed + 13 controlled skips across 92
+files; TypeScript and touched-file ESLint clean; build 64/64; independent review APPROVE after one correction
+round. Production preflight was read-only and found `budgets=blocked`, `finance_ledger=partial`. Exact-merge
+CI, release and pgTAP are green; signed-out live smoke redirects the dashboard to login. No migration, schema,
+RPC, dependency, authority row, financial row or budget value changed. #534 F2 is complete; F3/F4/F5 remain
+open.
+
+*Except for the released §7.6 display safeguard, §7 remains design only. Slices land via the gated flow
+(independent review + Owner gate); the real-data reconciliation stays behind Stage M.*
 
 ---
 

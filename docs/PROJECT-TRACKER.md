@@ -1,4 +1,20 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (read-only accounting role-acceptance harness — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (finance-dashboard budget authority guard — RELEASED)
+
+> **2026-07-30 — FINANCE-DASHBOARD BUDGET AUTHORITY GUARD: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
+> PR #985 merged at `22428eac6bb2a7bf4666819e8f4c160b6e7e7bbc`; production deployment
+> `9jXcmKy6NBeYuhLuRwtVH4kjTSYD` completed successfully. The dashboard now reads active-org budget authority
+> in its existing parallel query wave. When authority is not verified it exposes no budget-derived KPI,
+> chart, pressure table, print content or CSV control and shows the standard source warning. Verified figures
+> remain available only as explicitly labelled, non-live snapshots with a route to posted-ledger
+> budget-vs-actual. Production read-only preflight found `budgets=blocked` and `finance_ledger=partial`.
+> Focused Vitest 3/3; full Vitest 1,301 + 13 controlled skips across 92 files; TypeScript, touched ESLint and
+> diff checks clean; build 64/64; independent review APPROVE after one correction round. Exact-merge CI,
+> release and pgTAP are green; public login is 200 and signed-out dashboard access redirects to login.
+> No migration, schema, RPC, dependency, authority row, financial row or budget value changed. #534 F2 is
+> resolved; F3/F4/F5 remain open. #905 is closed as superseded after production proof of the private `1010`
+> helper/trigger and zero missing or duplicate eligible organization accounts. The 100% accounting gate is
+> unchanged: human decisions on all 698 held rows, exception resolution, real workbook dual run, and dated
+> accountant/Owner acceptance.
 
 > **2026-07-30 — READ-ONLY ACCOUNTING ROLE-ACCEPTANCE HARNESS: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 > The old Playwright wedge loop remains intentionally local-only, mutating and service-role-backed; Farm's
