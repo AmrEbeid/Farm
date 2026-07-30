@@ -19,6 +19,12 @@
 // CONTENT BINDING. This page and the separately requested CSV each compute a SHA-256 digest from
 // their complete read. Matching digests prove matching captured content; a later CSV is visibly not
 // the annex of this signed page when its digest differs.
+//
+// CONTROL TOTALS PREPARE A DUAL RUN; THEY DO NOT PERFORM ONE. The period/sheet breakdowns re-group
+// the rows this same read already returned — no extra query, no stored figure. A calendar month is
+// not a fiscal period and these are not the workbook's own totals: the report says so unconditionally
+// (ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR), and mapping the buckets onto accounting periods — like
+// choosing what to run the comparison against — stays the accountant's decision.
 
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -33,6 +39,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   ACCEPTANCE_ASSERTION_FIELDS,
   ACCEPTANCE_ASSERTION_PROHIBITION_AR,
+  ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR,
   ACCEPTANCE_DIGEST_ALGORITHM,
   ACCEPTANCE_DIGEST_NOTE_AR,
   ACCEPTANCE_MAX_ROWS,
@@ -42,6 +49,7 @@ import {
   acceptanceCsvHref,
   buildAcceptancePackage,
   type AcceptanceAssertionField,
+  type AcceptanceControlTotal,
   type AcceptanceTotal,
 } from "@/lib/reconciliation acceptance";
 import { loadAcceptanceBatch } from "@/lib/reconciliation acceptance data";
@@ -146,6 +154,108 @@ function TotalsTable({
             </tr>
           </tfoot>
         )}
+      </table>
+    </div>
+  );
+}
+
+/**
+ * One control-total section: a run of groups, optionally closed by its own subtotal row. `ltrLabels`
+ * is for the ISO period keys (`2024-01`), which must not be re-ordered by the RTL paragraph
+ * direction; sheet names are ordinary Arabic text and stay in the page direction.
+ */
+interface ControlSection {
+  key: string;
+  totals: AcceptanceControlTotal[];
+  subtotal?: AcceptanceControlTotal;
+  ltrLabels?: boolean;
+}
+
+/**
+ * Control totals: the same five figures per group — rows, rows carrying a source amount, rows with
+ * none, the exact source total, and the part of it whose reported destination is a posting. The
+ * footer is the whole batch, so the groups are visibly an exact partition of it.
+ */
+function ControlTotalsTable({
+  caption,
+  postingHeader,
+  sections,
+  footer,
+}: {
+  caption: string;
+  postingHeader: string;
+  sections: ControlSection[];
+  footer: AcceptanceControlTotal;
+}) {
+  const cells = (total: AcceptanceControlTotal) => [
+    num(total.rowCount),
+    num(total.withSourceAmount),
+    num(total.unknownCount),
+    egpDecimalSummary(total.amount),
+    egpDecimalSummary(total.postingAmount),
+  ];
+  return (
+    // `print-fit-table` (globals.css) is what keeps all six columns ON the portrait page: on paper the
+    // wrapper stops scrolling and the table drops `min-w` for fixed, wrapping columns. Without it a
+    // horizontal scrollbar prints as a silently clipped column of a signed control total.
+    <div className="print-fit-table overflow-x-auto">
+      <table className="w-full min-w-[44rem] text-xs" style={boxStyle}>
+        <caption className="sr-only">{caption}</caption>
+        <thead>
+          <tr>
+            {["المجموعة", "عدد الصفوف", "صفوف بمبلغ مصدر", "صفوف بلا مبلغ مسجَّل", "إجمالي مبلغ المصدر", postingHeader].map(
+              (header) => (
+                <th key={header} className="p-1.5 text-start font-semibold" style={cellStyle}>
+                  {header}
+                </th>
+              ),
+            )}
+          </tr>
+        </thead>
+        {sections.map((section) => (
+          <tbody key={section.key}>
+            {section.totals.map((total) => (
+              <tr key={total.key}>
+                <td className="p-1.5" style={cellStyle}>
+                  {section.ltrLabels ? (
+                    <span className="tabular-nums" dir="ltr">
+                      {total.label}
+                    </span>
+                  ) : (
+                    total.label
+                  )}
+                </td>
+                {cells(total).map((value, index) => (
+                  <td key={index} className="p-1.5 tabular-nums" style={cellStyle}>
+                    {value}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {section.subtotal && (
+              <tr className="font-semibold">
+                <td className="p-1.5" style={cellStyle}>
+                  {section.subtotal.label}
+                </td>
+                {cells(section.subtotal).map((value, index) => (
+                  <td key={index} className="p-1.5 tabular-nums" style={cellStyle}>
+                    {value}
+                  </td>
+                ))}
+              </tr>
+            )}
+          </tbody>
+        ))}
+        <tfoot>
+          <tr className="font-semibold">
+            <td className="p-1.5">{footer.label}</td>
+            {cells(footer).map((value, index) => (
+              <td key={index} className="p-1.5 tabular-nums">
+                {value}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
@@ -430,6 +540,46 @@ export default async function ReconciliationAcceptancePage({
           وصفوف تصحيح المبلغ تعكس أيضًا سجلًا قديمًا لا يظهر أثره فيه. تُجمع المبالغ من الأدلة التي
           سجّلت مبلغًا فقط، والصف بلا مبلغ مسجَّل لا يُحسب صفرًا بل يظهر في «+ غير معروف». هذه
           إجماليات أدلة، وليست قائمة مالية ولا رصيدًا مُرحّلًا.
+        </p>
+      </Section>
+
+      {/* Dual-run PREPARATION, not a dual run: the same rows this read already returned, re-grouped
+          so the accountant can pick a comparison unit. No row is decided, no period is assigned, and
+          nothing here is stored. */}
+      <Section title="إجماليات الرقابة للمصدر — حسب الفترة التقويمية">
+        <p className="text-xs" style={mutedStyle}>
+          {ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR}
+        </p>
+        <ControlTotalsTable
+          caption="إجماليات مبالغ المصدر حسب الفترة التقويمية، مع مجاميع كل سنة والمجموعات بلا فترة"
+          postingHeader={report.copy.postingTotalLabel}
+          sections={[
+            ...report.controlTotals.years.map((year) => ({
+              key: year.key,
+              totals: year.periods,
+              subtotal: year.subtotal,
+              ltrLabels: true,
+            })),
+            { key: "undated", totals: report.controlTotals.undated },
+          ]}
+          footer={report.controlTotals.total}
+        />
+      </Section>
+
+      <Section title="إجماليات الرقابة للمصدر — حسب ورقة الدفتر">
+        <ControlTotalsTable
+          caption="إجماليات مبالغ المصدر حسب ورقة الدفتر المصدر"
+          postingHeader={report.copy.postingTotalLabel}
+          sections={[{ key: "sheets", totals: report.controlTotals.sheets }]}
+          footer={report.controlTotals.total}
+        />
+        <p className="text-xs" style={mutedStyle}>
+          كل صف من صفوف الدفعة يقع في مجموعة فترة واحدة وفي مجموعة ورقة واحدة، فيغلق الجدولان كلاهما
+          على إجمالي مبالغ مصدر الدفعة نفسه المعروض في السطر الأخير. أسماء الأوراق كما سجّلها الدليل
+          حرفيًا، وما لا يحمل اسم ورقة يظهر في مجموعة ثابتة ولا يسقط من الإجمالي. عمود «
+          {report.copy.postingTotalLabel}» هو مبالغ الصفوف التي مآلها تسجيل حسب جدول «مآل الصفوف»
+          أعلاه فقط. والصف بلا مبلغ مسجَّل لا يُحسب صفرًا: يظهر في عمود «صفوف بلا مبلغ مسجَّل» وفي «+
+          غير معروف».
         </p>
       </Section>
 

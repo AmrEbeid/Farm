@@ -36,6 +36,7 @@ import { createHash } from "node:crypto";
 import { parseDecimal, sumDecimals, type DecimalString, type DecimalSummary } from "./decimal";
 import type { CsvColumn, CsvRow } from "./export-csv";
 import { num } from "./money";
+import { isCalendarDate } from "./payroll-close";
 import {
   CLASSIFICATION_AR,
   DISPOSITION_AR,
@@ -561,6 +562,8 @@ export interface AcceptanceReport {
   byClassification: AcceptanceTotal[];
   /** Included-to-expenses / included-to-sales / held / rejected / undecided — an exact partition. */
   byDestination: AcceptanceTotal[];
+  /** The same rows re-grouped by calendar period and by workbook sheet, for dual-run preparation. */
+  controlTotals: AcceptanceControlTotals;
   /** The rows whose destination IS a posting, summed. Never includes held/rejected/undecided. */
   plannedPostingTotal: DecimalSummary;
   plannedPostingRowCount: number;
@@ -584,6 +587,282 @@ function totalFor(key: string, label: string, rows: AcceptanceRow[]): Acceptance
     rowCount: rows.length,
     withSourceAmount: amount.knownCount,
     amount,
+  };
+}
+
+// ── Source control totals: the SAME rows, re-grouped by calendar period and by workbook sheet. ─────
+//
+// WHY. Preparing a dual run means comparing this batch against the source workbook one period and one
+// sheet at a time. Both breakdowns are computed from the rows this one snapshot ALREADY loaded — no
+// extra read, no stored figure, no decision taken on any row.
+//
+// WHAT A PERIOD KEY IS, EXACTLY. `YYYY-MM` sliced from `evidence.source_date_parsed` — the `date`
+// column the staging tool wrote — and ONLY when `invalid_calendar_quality_flag` is false AND the
+// recorded value is a real calendar day. `source_date_text` is the raw workbook cell; it is NEVER
+// parsed here, because inventing a date from free text is precisely the fabrication CLAUDE.md #1
+// forbids, and the flag exists because the staging tool already found some of those cells unreadable.
+//
+// WHAT IT IS NOT. A calendar month is not a fiscal period, and these totals are not the workbook's
+// own totals. Mapping these buckets onto the accounting periods a dual run is filed against — and
+// choosing which of them to run — remains the accountant's decision. The report says so
+// unconditionally (ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR).
+
+/** Printed above the breakdowns, always — never conditional on what the data happens to contain. */
+export const ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR =
+  "مجموعات الفترة أدناه تقويمية بحتة: مفتاح كل مجموعة (YYYY-MM) مأخوذ من تاريخ المصدر المُحلَّل " +
+  "المسجَّل على الدليل — وهو العمود «تاريخ المصدر (مُحلَّل)» نفسه في ملف CSV — ولا يُستنتج أبدًا من " +
+  "نص التاريخ الخام. الشهر التقويمي ليس فترة محاسبية: ربط هذه المجموعات بالفترات المالية، واختيار " +
+  "ما يجري عليه التشغيل المزدوج وترتيبه، قرار المحاسب وحده؛ لا يقرّره هذا التقرير ولا يخزّنه النظام. " +
+  "وهذه إعادة تجميع لصفوف هذه القراءة نفسها فقط، ولا تدّعي مطابقة أي إجمالي في الدفتر المصدر.";
+
+/** The three fixed groups holding every row whose calendar period cannot be read. */
+export type AcceptanceUndatedGroup = "invalid_source_date" | "no_source_date" | "no_evidence";
+
+/**
+ * Fixed order, and all three are ALWAYS present — an empty group is itself a printable fact ("no row
+ * carries an unreadable source date"), and merging any two would hide one data problem behind
+ * another: a flagged-invalid date, a row that records no date at all, and a row whose evidence did
+ * not come back are three different reasons, with three different next steps.
+ */
+export const ACCEPTANCE_UNDATED_ORDER: AcceptanceUndatedGroup[] = [
+  "invalid_source_date",
+  "no_source_date",
+  "no_evidence",
+];
+
+const ACCEPTANCE_UNDATED_AR: Record<AcceptanceUndatedGroup, string> = {
+  invalid_source_date: "بلا فترة — تاريخ المصدر ليس يومًا تقويميًا صالحًا",
+  no_source_date: "بلا فترة — لا تاريخ مصدر مسجَّل (صفوف لقطة الإنتاج وما لا يحمل تاريخًا)",
+  no_evidence: "بلا فترة — لا دليل مقروء لهذا الصف",
+};
+
+/** The two fixed groups holding every row that carries no readable workbook sheet name. */
+export type AcceptanceSheetFallback = "no_sheet_name" | "no_evidence";
+
+/** Fixed order, always present, always AFTER the named sheets. */
+export const ACCEPTANCE_SHEET_FALLBACK_ORDER: AcceptanceSheetFallback[] = [
+  "no_sheet_name",
+  "no_evidence",
+];
+
+const ACCEPTANCE_SHEET_FALLBACK_AR: Record<AcceptanceSheetFallback, string> = {
+  no_sheet_name: "بلا اسم ورقة مسجَّل (صفوف لقطة الإنتاج وما لا يحمل ورقة)",
+  no_evidence: "بلا دليل مقروء لهذا الصف",
+};
+
+/** Which calendar bucket one row falls in. Exactly one, for every row, always. */
+export type AcceptancePeriodBucket =
+  | { kind: "period"; period: string; year: string }
+  | { kind: "undated"; group: AcceptanceUndatedGroup };
+
+/** Which sheet bucket one row falls in. Exactly one, for every row, always. */
+export type AcceptanceSheetBucket =
+  | { kind: "sheet"; sheet: string }
+  | { kind: "fallback"; group: AcceptanceSheetFallback };
+
+/**
+ * The calendar bucket of one row, checked in the only order that keeps each reason distinct:
+ * no readable evidence at all, then a date the staging tool itself flagged as not a calendar date,
+ * then no recorded date, then a recorded value that is not a real calendar day (2026-02-30 and
+ * "not a date" alike). Only what survives all four yields a `YYYY-MM` key.
+ */
+export function acceptancePeriodBucket(row: AcceptanceRow): AcceptancePeriodBucket {
+  const ev = row.evidence;
+  if (!ev) return { kind: "undated", group: "no_evidence" };
+  if (ev.invalid_calendar_quality_flag === true) {
+    return { kind: "undated", group: "invalid_source_date" };
+  }
+  const parsed = ev.source_date_parsed;
+  if (parsed === null || parsed.trim() === "") return { kind: "undated", group: "no_source_date" };
+  // The column is a `date`, so this can only fail on a damaged payload — which is reported as an
+  // unreadable date, never quietly re-read as "no date recorded" or guessed from source_date_text.
+  if (!isCalendarDate(parsed)) return { kind: "undated", group: "invalid_source_date" };
+  return { kind: "period", period: parsed.slice(0, 7), year: parsed.slice(0, 4) };
+}
+
+/**
+ * Arabic-Indic (٠-٩, U+0660..U+0669) and Persian/Urdu (۰-۹, U+06F0..U+06F9) digits, mapped to ASCII
+ * for COMPARISON ONLY. Nothing displayed, exported, or hashed is ever rewritten by this.
+ */
+const AR_INDIC_DIGITS = /[٠-٩۰-۹]/g;
+
+function toAsciiDigits(text: string): string {
+  return text.replace(AR_INDIC_DIGITS, (digit) => {
+    const code = digit.charCodeAt(0);
+    return String(code - (code >= 0x06f0 ? 0x06f0 : 0x0660));
+  });
+}
+
+/**
+ * Sheet-name order for THIS breakdown only.
+ *
+ * A workbook written in Arabic numbers («ورقة ١٠») must sort after «ورقة ٢», exactly as «ورقة 10»
+ * sorts after «ورقة 2». `compareLocatorText` compares digit runs by value, but only recognises ASCII
+ * digits — and it is the comparator the signed row order and the CSV annex depend on, so it is left
+ * exactly as it is. This wrapper normalises the digit SCRIPT first, then defers to it.
+ *
+ * Two different names that normalise to the same text («ورقة ٢» and «ورقة 2») are still two recorded
+ * sheets: they fall back to the raw comparator, which is a total order, so their relative position is
+ * deterministic and reload-stable rather than dependent on the input order.
+ */
+export function compareControlSheetNames(a: string, b: string): number {
+  if (a === b) return 0;
+  const normalised = compareLocatorText(toAsciiDigits(a), toAsciiDigits(b));
+  return normalised !== 0 ? normalised : compareLocatorText(a, b);
+}
+
+/**
+ * The sheet bucket of one row. The recorded name is used VERBATIM (two names differing only in
+ * spacing are two recorded names, and merging them would be a claim about the workbook); a blank or
+ * absent one falls to a fixed group rather than dropping the row from the breakdown.
+ */
+export function acceptanceSheetBucket(row: AcceptanceRow): AcceptanceSheetBucket {
+  const ev = row.evidence;
+  if (!ev) return { kind: "fallback", group: "no_evidence" };
+  const sheet = ev.sheet_name;
+  if (sheet === null || sheet.trim() === "") return { kind: "fallback", group: "no_sheet_name" };
+  return { kind: "sheet", sheet };
+}
+
+/**
+ * One control-total group: the same three figures every other total on this report carries, plus the
+ * part of the amount whose REPORTED destination is a posting — the one subtotal a dual run compares
+ * against the books rather than against the workbook.
+ */
+export interface AcceptanceControlTotal extends AcceptanceTotal {
+  /** Rows in this group with NO recorded source amount. Never counted as zero (== amount.unknownCount). */
+  unknownCount: number;
+  /** Rows in this group whose reported destination is one of the two posting groups. */
+  postingRowCount: number;
+  /** Their source amount. Held/rejected/undecided/skipped/unsettled rows are never inside it. */
+  postingAmount: DecimalSummary;
+}
+
+/** One calendar year: its months in ascending order, and the year's own subtotal (which is labelled). */
+export interface AcceptanceControlYear {
+  key: string;
+  /** Ascending `YYYY-MM`. */
+  periods: AcceptanceControlTotal[];
+  subtotal: AcceptanceControlTotal;
+}
+
+export interface AcceptanceControlTotals {
+  /** Ascending calendar years, each with its ascending months. */
+  years: AcceptanceControlYear[];
+  /** The three fixed non-period groups, in ACCEPTANCE_UNDATED_ORDER, always all three. */
+  undated: AcceptanceControlTotal[];
+  /** Named sheets in `compareControlSheetNames` order, then the two fixed fallbacks — always both. */
+  sheets: AcceptanceControlTotal[];
+  /**
+   * Every row of the batch, exactly once. Both breakdowns partition the SAME rows, so this single
+   * footer closes both of them — and its `amount` is the report's own `sourceTotal`.
+   */
+  total: AcceptanceControlTotal;
+}
+
+function controlTotalFor(
+  key: string,
+  label: string,
+  rows: AcceptanceRow[],
+  phase: AcceptancePhase,
+): AcceptanceControlTotal {
+  const base = totalFor(key, label, rows);
+  const posting = rows.filter((row) =>
+    ACCEPTANCE_PLANNED_DESTINATIONS.includes(reportedDestinationOf(row, phase)),
+  );
+  return {
+    ...base,
+    unknownCount: base.amount.unknownCount,
+    postingRowCount: posting.length,
+    postingAmount: sumDecimals(sourceAmountsOf(posting)),
+  };
+}
+
+/** Append `row` to its group, creating the group on first sight. */
+function collect<K>(groups: Map<K, AcceptanceRow[]>, key: K, row: AcceptanceRow): void {
+  const bucket = groups.get(key);
+  if (bucket) bucket.push(row);
+  else groups.set(key, [row]);
+}
+
+/**
+ * The two breakdowns, both exact partitions of the same rows.
+ *
+ * Ordering is deterministic end to end: `YYYY-MM` and `YYYY` are fixed-width, so a plain string
+ * compare IS calendar order; sheets use the report's own natural compare, widened to Arabic-Indic and
+ * Persian digits (compareControlSheetNames), so «ورقة ١٠» follows «ورقة ٢»; and every fixed group
+ * keeps its declared position whether or not it holds a row. Two reads of the same rows therefore
+ * print identically.
+ */
+export function buildAcceptanceControlTotals(
+  rows: AcceptanceRow[],
+  phase: AcceptancePhase,
+): AcceptanceControlTotals {
+  const periodRows = new Map<string, AcceptanceRow[]>();
+  const undatedRows = new Map<AcceptanceUndatedGroup, AcceptanceRow[]>();
+  const sheetRows = new Map<string, AcceptanceRow[]>();
+  const fallbackRows = new Map<AcceptanceSheetFallback, AcceptanceRow[]>();
+
+  // ONE pass, TWO placements per row: every row lands in exactly one period bucket and exactly one
+  // sheet bucket, because both bucket functions are total (every branch returns a group).
+  for (const row of rows) {
+    const period = acceptancePeriodBucket(row);
+    if (period.kind === "period") collect(periodRows, period.period, row);
+    else collect(undatedRows, period.group, row);
+
+    const sheet = acceptanceSheetBucket(row);
+    if (sheet.kind === "sheet") collect(sheetRows, sheet.sheet, row);
+    else collect(fallbackRows, sheet.group, row);
+  }
+
+  const years = new Map<string, string[]>();
+  for (const period of [...periodRows.keys()].sort()) {
+    const year = period.slice(0, 4);
+    const months = years.get(year);
+    if (months) months.push(period);
+    else years.set(year, [period]);
+  }
+
+  return {
+    // The years map was filled from already-sorted period keys, so its insertion order IS calendar
+    // order — sorted again here so the guarantee does not depend on that.
+    years: [...years.keys()].sort().map((year) => {
+      const periods = years.get(year) ?? [];
+      return {
+        key: `year:${year}`,
+        periods: periods.map((period) =>
+          controlTotalFor(`period:${period}`, period, periodRows.get(period) ?? [], phase),
+        ),
+        subtotal: controlTotalFor(
+          `year-subtotal:${year}`,
+          `إجمالي سنة ${year}`,
+          periods.flatMap((period) => periodRows.get(period) ?? []),
+          phase,
+        ),
+      };
+    }),
+    undated: ACCEPTANCE_UNDATED_ORDER.map((group) =>
+      controlTotalFor(
+        `undated:${group}`,
+        ACCEPTANCE_UNDATED_AR[group],
+        undatedRows.get(group) ?? [],
+        phase,
+      ),
+    ),
+    sheets: [
+      ...[...sheetRows.keys()]
+        .sort(compareControlSheetNames)
+        .map((sheet) => controlTotalFor(`sheet:${sheet}`, sheet, sheetRows.get(sheet) ?? [], phase)),
+      ...ACCEPTANCE_SHEET_FALLBACK_ORDER.map((group) =>
+        controlTotalFor(
+          `sheet-fallback:${group}`,
+          ACCEPTANCE_SHEET_FALLBACK_AR[group],
+          fallbackRows.get(group) ?? [],
+          phase,
+        ),
+      ),
+    ],
+    total: controlTotalFor("all", "الإجمالي — كل صفوف الدفعة", rows, phase),
   };
 }
 
@@ -678,6 +957,7 @@ export function buildAcceptanceReport(
     },
     byClassification,
     byDestination,
+    controlTotals: buildAcceptanceControlTotals(rows, phase),
     plannedPostingTotal: sumDecimals(sourceAmountsOf(plannedRows)),
     plannedPostingRowCount: plannedRows.length,
     sourceTotal,

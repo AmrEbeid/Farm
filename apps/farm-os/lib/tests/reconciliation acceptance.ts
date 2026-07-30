@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 // The report loader and the CSV endpoint are server modules; `server-only` is provided by the Next
@@ -6,18 +7,21 @@ import { join } from "node:path";
 vi.mock("server-only", () => ({}));
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types.ext";
+import { sumDecimals } from "../decimal";
 import { rowsToCsv } from "../export-csv";
 import { num } from "../money";
 import {
   ACCEPTANCE_ASSERTION_FIELDS,
   ACCEPTANCE_ASSERTION_PROHIBITION_AR,
   ACCEPTANCE_CLASSIFICATION_ORDER,
+  ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR,
   ACCEPTANCE_CONTENT_COLUMNS,
   ACCEPTANCE_COUNT_MISMATCH_AR,
   ACCEPTANCE_CSV_COLUMNS,
   ACCEPTANCE_DATASET_AR,
   ACCEPTANCE_DIGEST_COLUMN,
   ACCEPTANCE_DIGEST_NOTE_AR,
+  ACCEPTANCE_DIGEST_VERSION,
   ACCEPTANCE_EMPTY_AR,
   ACCEPTANCE_INCOMPLETE_AR,
   ACCEPTANCE_MAX_ROWS,
@@ -41,6 +45,7 @@ import {
   buildAcceptanceReport,
   canonicalJson,
   compareAcceptanceRows,
+  compareControlSheetNames,
   compareLocatorText,
   destinationOf,
   orderByEvidenceLocator,
@@ -541,6 +546,325 @@ describe("reconciliation acceptance — destination totals mean what they say", 
       // Present tense: "does not get recorded" is true before, during and after execution.
       expect(PLANNED_LABELS[key]).toContain("لا تُسجَّل");
     }
+  });
+});
+
+// ── Control totals: the SAME rows re-grouped for dual-run preparation. Two exact partitions, no new
+//    read, no decision — so every test here is about closure, order, and refusing to guess a date.
+describe("reconciliation acceptance — source control totals by calendar period", () => {
+  /** A workbook row whose evidence carries exactly this parsed source date. */
+  const dated = (date: string | null, overrides: Partial<AcceptanceEvidence> = {}) =>
+    row({ evidence: evidence({ source_date_parsed: date, ...overrides }) });
+
+  it("keys a period as YYYY-MM from the parsed source date, ascending, grouped by year", () => {
+    const report = buildReport([
+      dated("2025-01-31"),
+      dated("2024-03-02"),
+      dated("2024-01-05"),
+      dated("2024-01-28"),
+      dated("2024-10-09"),
+    ]);
+    const { years } = report.controlTotals;
+    expect(years.map((year) => year.key)).toEqual(["year:2024", "year:2025"]);
+    expect(years[0].periods.map((period) => period.label)).toEqual([
+      "2024-01",
+      "2024-03",
+      "2024-10",
+    ]);
+    expect(years[1].periods.map((period) => period.label)).toEqual(["2025-01"]);
+    // Two rows share 2024-01; the month row counts them once each and the year subtotal adds up.
+    expect(years[0].periods[0].rowCount).toBe(2);
+    expect(years[0].subtotal.rowCount).toBe(4);
+    expect(years[0].subtotal.amount.total).toBe("400");
+    expect(years[1].subtotal.rowCount).toBe(1);
+  });
+
+  it("prints the same breakdown from any input permutation", () => {
+    const rows = [dated("2024-05-01"), dated("2023-12-31"), dated("2024-01-01"), dated(null)];
+    const expected = buildReport(rows).controlTotals;
+    for (const order of [
+      [3, 2, 1, 0],
+      [1, 3, 0, 2],
+      [2, 0, 3, 1],
+    ]) {
+      expect(buildReport(order.map((index) => rows[index])).controlTotals).toEqual(expected);
+    }
+  });
+
+  it("never reads a period from the raw source-date text", () => {
+    // A readable-looking raw cell with NO parsed date is «بلا تاريخ مصدر مسجَّل», never 2024-07.
+    const report = buildReport([
+      row({ evidence: evidence({ source_date_parsed: null, source_date_text: "2024-07-14" }) }),
+    ]);
+    expect(report.controlTotals.years).toEqual([]);
+    const byKey = Object.fromEntries(report.controlTotals.undated.map((total) => [total.key, total]));
+    expect(byKey["undated:no_source_date"].rowCount).toBe(1);
+  });
+
+  it("keeps a flagged or unreadable calendar date OUT of every month", () => {
+    const report = buildReport([
+      dated("2024-01-05"),
+      // Flagged by the staging tool: its parsed value is not to be trusted as a calendar date.
+      dated("2024-02-05", { invalid_calendar_quality_flag: true }),
+      // Impossible days and non-dates can only arrive from a damaged payload — still never a month.
+      dated("2026-02-30"),
+      dated("not-a-date"),
+      dated("   "),
+    ]);
+    expect(report.controlTotals.years.map((year) => year.key)).toEqual(["year:2024"]);
+    expect(report.controlTotals.years[0].periods.map((period) => period.label)).toEqual(["2024-01"]);
+    const byKey = Object.fromEntries(report.controlTotals.undated.map((total) => [total.key, total]));
+    expect(byKey["undated:invalid_source_date"].rowCount).toBe(3);
+    // A blank string records no date at all; it is not an unreadable one.
+    expect(byKey["undated:no_source_date"].rowCount).toBe(1);
+  });
+
+  it("keeps the three non-period groups fixed, ordered, and never merged", () => {
+    const report = buildReport([
+      dated("2024-01-05"),
+      dated("2024-02-05", { invalid_calendar_quality_flag: true }),
+      dated(null, { origin_kind: "production_snapshot_row", sheet_name: null }),
+      row({ evidence: null }),
+    ]);
+    expect(report.controlTotals.undated.map((total) => total.key)).toEqual([
+      "undated:invalid_source_date",
+      "undated:no_source_date",
+      "undated:no_evidence",
+    ]);
+    expect(report.controlTotals.undated.map((total) => total.rowCount)).toEqual([1, 1, 1]);
+    for (const total of report.controlTotals.undated) {
+      expect(total.label).toContain("بلا فترة");
+    }
+  });
+
+  it("prints all three non-period groups even when the batch has none of them", () => {
+    const report = buildReport([dated("2024-01-05")]);
+    expect(report.controlTotals.undated.map((total) => total.rowCount)).toEqual([0, 0, 0]);
+    expect(report.controlTotals.undated.map((total) => total.amount.total)).toEqual(["0", "0", "0"]);
+    expect(report.controlTotals.undated.map((total) => total.amount.hasUnknown)).toEqual([
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it("counts a row with no recorded amount instead of calling it zero", () => {
+    const report = buildReport([
+      dated("2024-01-05"),
+      row({ evidence: evidence({ source_date_parsed: "2024-01-09", source_amount: null }) }),
+      row({ evidence: null }),
+    ]);
+    const january = report.controlTotals.years[0].periods[0];
+    expect(january.rowCount).toBe(2);
+    expect(january.withSourceAmount).toBe(1);
+    expect(january.unknownCount).toBe(1);
+    expect(january.amount.total).toBe("100");
+    expect(january.amount.hasUnknown).toBe(true);
+    const noEvidence = report.controlTotals.undated[2];
+    expect(noEvidence.rowCount).toBe(1);
+    expect(noEvidence.unknownCount).toBe(1);
+    expect(noEvidence.withSourceAmount).toBe(0);
+    // The unknown count is exactly the amount summary's own — one number, never two.
+    for (const total of [january, noEvidence, report.controlTotals.total]) {
+      expect(total.unknownCount).toBe(total.amount.unknownCount);
+    }
+  });
+});
+
+describe("reconciliation acceptance — source control totals by workbook sheet", () => {
+  it("orders named sheets naturally, then the two fixed fallbacks", () => {
+    const report = buildReport([
+      row({ evidence: evidence({ sheet_name: "ورقة 10" }) }),
+      row({ evidence: evidence({ sheet_name: "ورقة 2" }) }),
+      row({ evidence: evidence({ sheet_name: "المبيعات" }) }),
+      row({ evidence: evidence({ sheet_name: null, origin_kind: "production_snapshot_row" }) }),
+      row({ evidence: evidence({ sheet_name: "  " }) }),
+      row({ evidence: null }),
+    ]);
+    expect(report.controlTotals.sheets.map((sheet) => sheet.key)).toEqual([
+      "sheet:المبيعات",
+      "sheet:ورقة 2", // row 2 before row 10 — the same natural order the report's rows use
+      "sheet:ورقة 10",
+      "sheet-fallback:no_sheet_name",
+      "sheet-fallback:no_evidence",
+    ]);
+    expect(report.controlTotals.sheets.map((sheet) => sheet.rowCount)).toEqual([1, 1, 1, 2, 1]);
+    expect(report.controlTotals.sheets[0].label).toBe("المبيعات");
+  });
+
+  it("keeps a row whose sheet name is missing rather than dropping it", () => {
+    const rows = [
+      row({ evidence: evidence({ sheet_name: null }) }),
+      row({ evidence: evidence({ sheet_name: "" }) }),
+      row({ evidence: null }),
+    ];
+    const report = buildReport(rows);
+    expect(report.controlTotals.sheets).toHaveLength(2);
+    expect(report.controlTotals.sheets.reduce((sum, sheet) => sum + sheet.rowCount, 0)).toBe(
+      rows.length,
+    );
+    // The unreadable-evidence row carries no amount, so its group sums nothing and says so.
+    expect(report.controlTotals.sheets.map((sheet) => sheet.amount.total)).toEqual(["200", "0"]);
+    expect(report.controlTotals.sheets.map((sheet) => sheet.unknownCount)).toEqual([0, 1]);
+  });
+
+  it("orders numbered sheets by VALUE in Arabic-Indic and Persian digits too", () => {
+    // «ورقة ١٠» must follow «ورقة ٢» exactly as «ورقة 10» follows «ورقة 2» — an Arabic workbook is
+    // the normal case here, so code-point order would put every ١٠..١٩ sheet before ٢.
+    for (const [two, ten] of [
+      ["ورقة 2", "ورقة 10"],
+      ["ورقة ٢", "ورقة ١٠"], // Arabic-Indic U+0660..U+0669
+      ["ورقة ۲", "ورقة ۱۰"], // Persian/Urdu U+06F0..U+06F9
+    ]) {
+      expect(compareControlSheetNames(two, ten)).toBeLessThan(0);
+      expect(compareControlSheetNames(ten, two)).toBeGreaterThan(0);
+      expect(compareControlSheetNames(two, two)).toBe(0);
+    }
+  });
+
+  it("keeps two sheets that differ only in digit SCRIPT apart, deterministically", () => {
+    // Same value, two recorded names: never merged, and never order-dependent.
+    expect(compareControlSheetNames("ورقة ٢", "ورقة 2")).not.toBe(0);
+    expect(compareControlSheetNames("ورقة ٢", "ورقة 2")).toBe(
+      -compareControlSheetNames("ورقة 2", "ورقة ٢"),
+    );
+    const rows = [
+      row({ evidence: evidence({ sheet_name: "ورقة ١٠" }) }),
+      row({ evidence: evidence({ sheet_name: "ورقة 2" }) }),
+      row({ evidence: evidence({ sheet_name: "ورقة ٢" }) }),
+      row({ evidence: evidence({ sheet_name: "ورقة ۱۰" }) }),
+    ];
+    const expected = buildReport(rows).controlTotals.sheets.map((sheet) => sheet.key);
+    expect(expected.slice(0, 4)).toEqual([
+      "sheet:ورقة 2",
+      "sheet:ورقة ٢",
+      "sheet:ورقة ١٠",
+      "sheet:ورقة ۱۰",
+    ]);
+    for (const order of [
+      [3, 2, 1, 0],
+      [1, 3, 0, 2],
+      [2, 0, 3, 1],
+    ]) {
+      expect(
+        buildReport(order.map((index) => rows[index])).controlTotals.sheets.map((sheet) => sheet.key),
+      ).toEqual(expected);
+    }
+  });
+
+  it("leaves the shared locator comparator — the signed row order — untouched", () => {
+    // compareLocatorText orders the report AND the CSV annex. The sheet breakdown widens digits in
+    // its OWN comparator instead, so this stays exactly as the signed order has always been.
+    expect(compareLocatorText("ورقة ٢", "ورقة ١٠")).toBeGreaterThan(0);
+    expect(compareControlSheetNames("ورقة ٢", "ورقة ١٠")).toBeLessThan(0);
+  });
+
+  it("uses the recorded sheet name verbatim — it never normalises two names into one", () => {
+    const report = buildReport([
+      row({ evidence: evidence({ sheet_name: "المصروفات" }) }),
+      row({ evidence: evidence({ sheet_name: "المصروفات " }) }),
+    ]);
+    expect(report.controlTotals.sheets.map((sheet) => sheet.rowCount)).toEqual([1, 1, 0, 0]);
+  });
+});
+
+describe("reconciliation acceptance — control totals close on the batch", () => {
+  const rows = () => [
+    includedExpenseRow({ evidence: evidence({ source_amount: "100.10", sheet_name: "المصروفات" }) }),
+    includedSaleRow({
+      evidence: evidence({
+        source_amount: "50.30",
+        sheet_name: "المبيعات",
+        source_date_parsed: "2025-02-11",
+      }),
+    }),
+    row({
+      review_state: "reviewed",
+      disposition: "hold",
+      evidence: evidence({ source_amount: "999", sheet_name: "المصروفات" }),
+    }),
+    row({ evidence: evidence({ source_amount: null, source_date_parsed: null }) }),
+    row({ evidence: null }),
+  ];
+
+  it("partitions the batch exactly once per breakdown, and both close on the source total", () => {
+    const report = buildReport(rows());
+    const { years, undated, sheets, total } = report.controlTotals;
+    const periodGroups = [...years.flatMap((year) => year.periods), ...undated];
+
+    for (const groups of [periodGroups, sheets]) {
+      expect(groups.reduce((sum, group) => sum + group.rowCount, 0)).toBe(report.rowCount);
+      expect(groups.reduce((sum, group) => sum + group.withSourceAmount, 0)).toBe(
+        report.sourceTotal.knownCount,
+      );
+      expect(groups.reduce((sum, group) => sum + group.unknownCount, 0)).toBe(
+        report.sourceTotal.unknownCount,
+      );
+      expect(sumDecimals(groups.map((group) => group.amount.total)).total).toBe(
+        report.sourceTotal.total,
+      );
+    }
+    // The printed footer IS the report's own batch-wide total, so the table closes visibly.
+    expect(total.rowCount).toBe(report.rowCount);
+    expect(total.amount).toEqual(report.sourceTotal);
+    expect(total.withSourceAmount).toBe(report.sourceTotal.knownCount);
+    // Year subtotals close on their own months.
+    for (const year of years) {
+      expect(year.subtotal.rowCount).toBe(
+        year.periods.reduce((sum, period) => sum + period.rowCount, 0),
+      );
+      expect(sumDecimals(year.periods.map((period) => period.amount.total)).total).toBe(
+        year.subtotal.amount.total,
+      );
+    }
+  });
+
+  it("subtotals ONLY the amounts whose reported destination is a posting", () => {
+    const report = buildReport(rows());
+    const posting = report.byDestination
+      .filter((total) => total.key === "included_expenses" || total.key === "included_sales")
+      .map((total) => total.amount.total);
+    // Same basis as the «مآل الصفوف» table: held / rejected / undecided never enter it.
+    expect(report.controlTotals.total.postingAmount.total).toBe(sumDecimals(posting).total);
+    expect(report.controlTotals.total.postingAmount.total).toBe("150.4");
+    expect(report.controlTotals.total.postingRowCount).toBe(2);
+
+    const sheets = Object.fromEntries(
+      report.controlTotals.sheets.map((sheet) => [sheet.key, sheet]),
+    );
+    // The expenses sheet holds an included row AND a held one: only the included amount posts.
+    expect(sheets["sheet:المصروفات"].amount.total).toBe("1099.1");
+    expect(sheets["sheet:المصروفات"].postingAmount.total).toBe("100.1");
+    expect(sheets["sheet:المصروفات"].postingRowCount).toBe(1);
+    expect(sheets["sheet:المبيعات"].postingAmount.total).toBe("50.3");
+  });
+
+  it("drops a skipped row out of the posted subtotal once the batch has executed", () => {
+    const included = [
+      includedExpenseRow({
+        execution_result: "posted",
+        evidence: evidence({ source_amount: "100", source_date_parsed: "2024-01-05" }),
+      }),
+      includedExpenseRow({
+        execution_result: "skipped",
+        evidence: evidence({ source_amount: "70", source_date_parsed: "2024-01-06" }),
+      }),
+    ];
+    const report = buildReport(included, "executed");
+    const january = report.controlTotals.years[0].periods[0];
+    expect(january.rowCount).toBe(2);
+    expect(january.amount.total).toBe("170");
+    // The skipped row is still a row of this batch and still a source amount — it is simply not
+    // something this batch recorded.
+    expect(january.postingRowCount).toBe(1);
+    expect(january.postingAmount.total).toBe("100");
+  });
+
+  it("states the calendar caveat unconditionally, and claims no fiscal mapping", () => {
+    expect(ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR).toContain("YYYY-MM");
+    expect(ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR).toContain("ليس فترة محاسبية");
+    expect(ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR).toContain("قرار المحاسب");
+    expect(ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR).toContain("لا يخزّنه النظام");
   });
 });
 
@@ -1149,6 +1473,126 @@ describe("reconciliation acceptance — the package digest binds the report to i
     expect(pkg.rows.map((r) => r.id)).toEqual(orderByEvidenceLocator(rows).map((r) => r.id));
     expect(pkg.staged).toEqual({ kind: "recorded", counts: { evidenceItemCount: 2, batchRowCount: 2 } });
     expect(pkg.hashes.map((h) => h.value)).toEqual([SHA_A, SHA_B, SHA_C, SHA_D]);
+  });
+});
+
+// ── PINNED BYTES. A signed acceptance is a signature on a digest, and every already-signed report was
+//    signed on the bytes this format produces TODAY. Any later change to the annex columns, the
+//    payload document, or the digest recipe would silently invalidate those signatures — so the exact
+//    bytes of one fixed fixture are pinned here. These figures are not a preference: they were taken
+//    from the format as it shipped, and a diff in any of them is a versioning decision
+//    (ACCEPTANCE_DIGEST_VERSION), never an incidental edit.
+describe("reconciliation acceptance — the annex/digest bytes are pinned to the shipped format", () => {
+  /** Fixed ids, so the fixture is byte-identical on every machine and in any test order. */
+  const pinnedEvidence = (n: number, overrides: Partial<AcceptanceEvidence> = {}) =>
+    evidence({
+      id: `eeeeeeee-0000-4000-8000-${String(n).padStart(12, "0")}`,
+      row_locator: String(n),
+      ...overrides,
+    });
+  const pinnedRow = (n: number, overrides: Partial<AcceptanceRow> = {}) =>
+    row({
+      id: `11111111-0000-4000-8000-${String(n).padStart(12, "0")}`,
+      evidence: pinnedEvidence(n),
+      ...overrides,
+    });
+
+  const pinnedBatch = () =>
+    batchIdentity({
+      result_summary: {
+        evidence_item_count: 3,
+        batch_row_count: 3,
+        staging_manifest_sha256: SHA_B,
+        tool_metadata: {
+          production_snapshot_sha256: SHA_C,
+          exception_evidence_sha256: SHA_D,
+        },
+      },
+    });
+
+  /** An included expense, an included sale on another sheet and in another year, and a rejected row
+   *  whose source date is flagged unreadable — one row for each shape the breakdowns treat apart. */
+  const pinnedRows = (): AcceptanceRow[] => [
+    pinnedRow(1, {
+      review_state: "frozen",
+      disposition: "include",
+      target_table: "expenses",
+      expense_category: "أسمدة",
+      expense_kind: "operating",
+      payload_hash: SHA_B,
+      frozen: true,
+      frozen_at: "2026-07-01T10:00:00.000Z",
+      expense_account: { code: "5100", name_ar: "مصروفات أسمدة" },
+    }),
+    pinnedRow(2, {
+      review_state: "frozen",
+      disposition: "include",
+      target_table: "sales",
+      sale_crop: "برحي",
+      sale_quantity: "12.500",
+      sale_unit_price: "1500.25",
+      sale_recorded_total: "18753.125",
+      frozen: true,
+      evidence: pinnedEvidence(2, {
+        sheet_name: "المبيعات",
+        source_amount: "18753.125",
+        source_date_parsed: "2025-02-11",
+        source_date_text: "11/02/2025",
+      }),
+    }),
+    pinnedRow(3, {
+      review_state: "rejected",
+      evidence: pinnedEvidence(3, {
+        source_amount: null,
+        source_date_parsed: null,
+        source_date_text: "غير مقروء",
+        invalid_calendar_quality_flag: true,
+      }),
+    }),
+  ];
+
+  const sha256 = (text: string) => createHash("sha256").update(text, "utf8").digest("hex");
+
+  it("keeps the digest recipe and its version exactly as signed reports assume", () => {
+    expect(ACCEPTANCE_DIGEST_VERSION).toBe("farm-os.reconciliation-acceptance.v1");
+    const document = acceptancePayloadDocument(pinnedBatch(), csvRowsOf(pinnedRows()));
+    expect(sha256(document)).toBe(
+      "961c74b63917c71706c0dc8e049ed95f16bbf1e99a0ce4e707128c9c0ebf5925",
+    );
+    expect(buildAcceptancePackage(pinnedBatch(), pinnedRows()).digest).toBe(sha256(document));
+  });
+
+  it("keeps the annex columns and the CSV bytes exactly as signed annexes assume", () => {
+    // Every id AND every header, in order — one hash so a single changed word fails loudly.
+    expect(ACCEPTANCE_CSV_COLUMNS).toHaveLength(73);
+    expect(ACCEPTANCE_CSV_COLUMNS[0]).toBe(ACCEPTANCE_DIGEST_COLUMN);
+    expect(sha256(JSON.stringify(ACCEPTANCE_CSV_COLUMNS))).toBe(
+      "1b69d94c6dc085b1060ba165c5a3bae5e11203898a1f7d8107408757ea2aca49",
+    );
+    const csv = rowsToCsv(
+      buildAcceptancePackage(pinnedBatch(), pinnedRows()).csvRows,
+      ACCEPTANCE_CSV_COLUMNS,
+    );
+    expect(csv).toHaveLength(2675);
+    expect(sha256(csv)).toBe(
+      "4339720ad99e525809429de67ea64edef9ae618904e2f4ee206cfca59e647733",
+    );
+  });
+
+  it("re-grouping the same rows changes NOTHING the signature covers", () => {
+    // The control totals are a view over rows the package already contains: they are computed from
+    // the report, never fed into the payload document, so the digest cannot depend on them.
+    const pkg = buildAcceptancePackage(pinnedBatch(), pinnedRows());
+    expect(pkg.report.controlTotals.years.map((year) => year.key)).toEqual([
+      "year:2024",
+      "year:2025",
+    ]);
+    expect(pkg.report.controlTotals.total.amount).toEqual(pkg.report.sourceTotal);
+    // The annex rows are the content rows plus the digest stamp — no new cell, no reordering.
+    const content = csvRowsOf(pinnedRows());
+    expect(pkg.csvRows).toEqual(
+      content.map((row) => ({ [ACCEPTANCE_DIGEST_COLUMN.id]: pkg.digest, ...row })),
+    );
   });
 });
 
@@ -1854,6 +2298,7 @@ const BATCH_PAGE_SOURCE = readFileSync(
   join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/page.tsx"),
   "utf8",
 );
+const GLOBALS_CSS = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
 const MIGRATION_SOURCE = readFileSync(
   join(
     process.cwd(),
@@ -2038,8 +2483,27 @@ describe("reconciliation acceptance — page source contract", () => {
 
   it("reads through the one shared bounded loader and never queries or writes on its own", () => {
     expect(PAGE_SOURCE).toContain("loadAcceptanceBatch(sb, batchId, m.orgId)");
+    // EXACTLY one snapshot read per render — every figure on the page, the breakdowns included, is
+    // derived from that single load and never from a second one.
+    expect(PAGE_SOURCE.match(/loadAcceptanceBatch\(/g)).toHaveLength(1);
+    expect(PAGE_SOURCE.match(/buildAcceptancePackage\(/g)).toHaveLength(1);
+    expect(PAGE_SOURCE).not.toMatch(/\.rpc\(/);
     expect(PAGE_SOURCE).not.toMatch(/\.from\(/);
     expect(PAGE_SOURCE).not.toMatch(MUTATION);
+  });
+
+  it("prints both control-total breakdowns, with the calendar caveat unconditional", () => {
+    expect(PAGE_SOURCE).toContain("report.controlTotals.years.map((year) => ({");
+    expect(PAGE_SOURCE).toContain("totals: report.controlTotals.undated");
+    expect(PAGE_SOURCE).toContain("totals: report.controlTotals.sheets");
+    // Both tables close on the SAME batch-wide footer, so neither can appear to add up on its own.
+    expect(PAGE_SOURCE.match(/footer=\{report\.controlTotals\.total\}/g)).toHaveLength(2);
+    // Rendered as a bare expression: no `&&`, no ternary, nothing the data can switch off.
+    expect(
+      PAGE_SOURCE.split("\n").filter(
+        (line) => line.trim() === "{ACCEPTANCE_CONTROL_TOTALS_CAVEAT_AR}",
+      ),
+    ).toHaveLength(1);
   });
 
   it("renders the refusal BEFORE any figure is computed", () => {
@@ -2085,6 +2549,84 @@ describe("reconciliation acceptance — page source contract", () => {
   });
 });
 
+// ── The report is a PRINTED artifact: a column that scrolls on screen is a column that is CUT OFF on
+//    paper, and a cut-off control total is a wrong figure on a signed page. The print behaviour is
+//    therefore pinned as a contract, extracted by brace-matching so a reordered stylesheet still
+//    passes and a moved-out-of-@media-print rule still fails.
+/** The body of the stylesheet's `@media print { … }` block. */
+function printMediaBlock(css: string): string {
+  const start = css.indexOf("@media print");
+  if (start < 0) return "";
+  const open = css.indexOf("{", start);
+  let depth = 0;
+  for (let index = open; index < css.length; index += 1) {
+    if (css[index] === "{") depth += 1;
+    else if (css[index] === "}") {
+      depth -= 1;
+      if (depth === 0) return css.slice(open + 1, index);
+    }
+  }
+  return "";
+}
+
+/** The declarations of one rule, found by its selector (the last selector of a list is enough). */
+function ruleBody(css: string, selector: string): string {
+  const start = css.indexOf(`${selector} {`);
+  if (start < 0) return "";
+  const open = start + selector.length + 2;
+  const close = css.indexOf("}", open);
+  return close < 0 ? "" : css.slice(open, close);
+}
+
+describe("reconciliation acceptance — the control totals fit the printed page", () => {
+  const printBlock = printMediaBlock(GLOBALS_CSS);
+
+  it("routes both breakdowns through the print-fit wrapper, screen behaviour unchanged", () => {
+    expect(PAGE_SOURCE).toContain('<div className="print-fit-table overflow-x-auto">');
+    // One shared component renders both breakdown tables, so one wrapper covers both.
+    expect(PAGE_SOURCE.match(/className="print-fit-table/g)).toHaveLength(1);
+    expect(PAGE_SOURCE.match(/<ControlTotalsTable/g)).toHaveLength(2);
+    // On SCREEN the table still scrolls inside its wrapper exactly as before.
+    expect(PAGE_SOURCE).toContain('<table className="w-full min-w-[44rem] text-xs"');
+  });
+
+  it("keeps every print-fit rule inside @media print — and nothing of it on screen", () => {
+    expect(printBlock).not.toBe("");
+    expect(printBlock).toContain(".print-fit-table {");
+    // Removing the print block must remove every trace of the class: it is paper-only by construction.
+    expect(GLOBALS_CSS.replace(printBlock, "")).not.toContain("print-fit-table");
+  });
+
+  it("pins each behaviour a clipped column would need: no scroll, no min-width, wrapping cells", () => {
+    // The wrapper stops scrolling — a horizontal scrollbar is what prints as a cut-off column.
+    expect(ruleBody(printBlock, ".print-fit-table")).toContain("overflow: visible !important");
+    const table = ruleBody(printBlock, ".print-fit-table > table");
+    expect(table).toContain("min-width: 0 !important"); // the 44rem screen floor is dropped
+    expect(table).toContain("width: 100% !important"); // …and replaced by the page width
+    expect(table).toContain("table-layout: fixed"); // columns share that width by declared ratio
+    expect(table).toMatch(/font-size: \d+(?:\.\d+)?pt/); // an absolute print size, not a screen rem
+    expect(table).toContain("break-inside: auto"); // a long breakdown may span pages…
+    expect(ruleBody(printBlock, ".print-fit-table thead")).toContain("display: table-header-group"); // …with its header repeated
+    const cell = ruleBody(printBlock, ".print-fit-table td");
+    expect(cell).toContain("white-space: normal"); // a long Arabic label wraps…
+    expect(cell).toContain("overflow-wrap: anywhere"); // …instead of pushing a column off the page
+  });
+
+  it("gives the label and money columns a bigger share, and still leaves room for the counts", () => {
+    const share = (selector: string) =>
+      Number(ruleBody(printBlock, selector).match(/width: (\d+(?:\.\d+)?)%/)?.[1]);
+    const label = share(".print-fit-table td:nth-child(1)");
+    const amount = share(".print-fit-table td:nth-child(5)");
+    const posting = share(".print-fit-table td:nth-child(6)");
+    // The label wraps Arabic phrases and the money columns carry an exact amount plus «+ غير معروف».
+    expect(label).toBeGreaterThan(20);
+    expect(amount).toBeGreaterThan(10);
+    expect(posting).toBeGreaterThan(10);
+    // The three remaining count columns must still get a positive share of the page.
+    expect(label + amount + posting).toBeLessThan(100);
+  });
+});
+
 describe("reconciliation acceptance — CSV endpoint source contract", () => {
   it("authenticates and role-gates before touching the database", () => {
     const membership = ROUTE_SOURCE.indexOf("await getActiveMembership()");
@@ -2099,6 +2641,8 @@ describe("reconciliation acceptance — CSV endpoint source contract", () => {
 
   it("reuses the shared bounded loader and the shared CSV serializer", () => {
     expect(ROUTE_SOURCE).toContain("loadAcceptanceBatch(sb, batchId, member.orgId)");
+    // One snapshot read per download, exactly as on the page.
+    expect(ROUTE_SOURCE.match(/loadAcceptanceBatch\(/g)).toHaveLength(1);
     expect(ROUTE_SOURCE).toContain('from "@/lib/export-csv"');
     expect(ROUTE_SOURCE).toContain("rowsToCsv(pkg.csvRows, ACCEPTANCE_CSV_COLUMNS)");
     expect(ROUTE_SOURCE).not.toMatch(/\.from\(/);
