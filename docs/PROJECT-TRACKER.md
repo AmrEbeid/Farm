@@ -1,7 +1,8 @@
 # Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (balance-sheet organization integrity)
 
-> **2026-07-30 — ACCOUNTING #719 ITEM 5: MIGRATED / HOSTED-VERIFIED.**
-> PR #973 makes `fn_accounting_balance_sheet(uuid,date)` fail closed when any posted, as-of-bounded
+> **2026-07-30 — ACCOUNTING #719 ITEM 5: MERGED / MIGRATED / LIVE-VERIFIED.**
+> PR #973 merged at `4a051030c7b246b3126c04a4a609e857c1ad6e20`; exact production deployment
+> `dpl_GVgRWZCojujLYzF1qgK4GDT7jDms` is READY. `fn_accounting_balance_sheet(uuid,date)` fails closed when any posted, as-of-bounded
 > journal entry, line, and account organizations disagree. Production migration
 > `20260730083902 accounting_balance_sheet_account_integrity` is applied. No business row changed.
 >
@@ -9,9 +10,10 @@
 > **3,118/3,118**; hosted postflight confirms all three predicates, unchanged signature/report contract,
 > `STABLE`, `SECURITY DEFINER`, empty `search_path`, authenticated-only execution, and zero account-org or
 > entry-line mismatches across 20,730 posted lines. Exact-head app, design-system, db-tests, gitleaks, and
-> Vercel checks are green. This completes all five agent-verifiable #719 integrity items. Accounting remains
-> ~99.5% until the 698 staged rows are decided, exceptions resolved, workbook dual-run completed, and dated
-> accountant/Owner acceptance is recorded.
+> Vercel checks are green. Exact-merge main CI, release, and db-tests are green; public `/login` is 200 and
+> no runtime errors appeared in the post-release 15-minute window. This completes all five #719 integrity
+> items. Accounting remains ~99.5% until the 698 staged rows are decided, exceptions resolved, workbook
+> dual-run completed, and dated accountant/Owner acceptance is recorded.
 
 > **2026-07-30 — ACCOUNTING #719 ITEM 3: MIGRATED / HOSTED-VERIFIED.**
 > Farm production migration `20260730075952 accounting_journal_entry_date_required` makes an explicit
