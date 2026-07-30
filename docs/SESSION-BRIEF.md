@@ -14,10 +14,10 @@ Docker-free pgTAP is **3,108 ok / 0 not_ok / 0 file failures**; test 143 is 7/7.
 the exact 14-argument function, null guard, no fallback, `SECURITY DEFINER`, volatile, empty `search_path`,
 and no public/anon/authenticated execute. No financial or other business row changed.
 
-GitHub did not enqueue exact-head `ci` or `db-tests` after the review commit, close/reopen replacement PR,
-or a no-content synchronize retry. The earlier app and database CI runs passed; the exact SQL passed the
-full local database suite; Vercel and integrations passed; no application byte changed. This is recorded as
-a release-system evidence limitation, not hidden as a green exact-head CI claim.
+GitHub queued the exact-head workflows late. One intermediate app run was canceled, as configured, when the
+final docs commit superseded it. Current head `a311fcc` then passed app typecheck, lint, unit tests, production
+build and bundle guards; design-system tests/build/Storybook; gitleaks; and db-tests. Vercel and integrations
+also passed.
 
 **Exact resume point:** finish the repository merge/release verification for the journal-date slice, then
 return to accounting acceptance. The remaining 100% gate is human: decide all 698 staged reconciliation

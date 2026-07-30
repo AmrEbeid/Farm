@@ -60,9 +60,9 @@ Null-date retries are intentionally rejected before lookup.
 - Catalog postflight: `SECURITY DEFINER`, volatile, `search_path = ''`, null guard present, no
   `coalesce(p_entry_date, current_date)`, and no public/anon/authenticated execute.
 - The migration changes function code only. It inserts, updates, and deletes no business row.
-- GitHub did not enqueue exact-head `ci` or `db-tests` after repeated PR events. Earlier CI was green,
-  the exact SQL passed the full local pgTAP suite, and no application byte changed. This is an explicit
-  release-evidence limitation.
+- Exact-head GitHub app typecheck, lint, unit tests, production build, bundle guards, design-system
+  tests/build/Storybook, gitleaks, and db-tests passed. GitHub queued the workflows late; an intermediate
+  run was canceled by the final docs commit through the configured concurrency group.
 
 ## Rollback
 

@@ -10,9 +10,9 @@ journal helper's silent `current_date` fallback and rejects a null accounting da
 lookup. Every active caller already supplies a resolved business date. Valid-date idempotency remains before
 the period-lock check. Postflight confirms the exact 14-argument function is `SECURITY DEFINER`, volatile,
 `search_path = ''`, contains no current-date fallback, and grants no execute privilege to public, anon, or
-authenticated. Full Docker-free pgTAP: 3,108/3,108. Independent review: APPROVE. GitHub did not enqueue fresh
-`ci`/`db-tests` runs for the review-only head despite two PR events and a no-content retry; the earlier app
-CI was green and no app byte changed. No business row changed. See
+authenticated. Full Docker-free pgTAP: 3,108/3,108. Independent review: APPROVE. Exact-head GitHub app,
+design-system, build, guard, gitleaks, and db-tests checks are green; the first run was delayed and an
+intermediate run was correctly canceled by the final docs commit. No business row changed. See
 `accounting journal entry date audit 2026 07 30.md`.
 
 **2026-07-30 — palm source reconciliation: LOCAL / FAIL-CLOSED / NO DATA CHANGE.**

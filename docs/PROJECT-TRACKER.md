@@ -10,9 +10,9 @@
 > Evidence: independent review APPROVE; Docker-free pgTAP **3,108/3,108**, including seven direct regression
 > assertions; hosted catalog postflight confirms the exact signature, null guard, no fallback, empty
 > `search_path`, unchanged volatility/security-definer posture, and no public/anon/authenticated execute.
-> No business row changed. GitHub integrations passed, but GitHub did not enqueue exact-head `ci` or
-> `db-tests` after two PR events and a no-content synchronize retry; the earlier app CI was green and the
-> review changes touched only SQL comments, the regression test, and evidence wording.
+> No business row changed. Exact-head GitHub app, design-system, build, guard, gitleaks, and db-tests
+> checks are green. GitHub queued them late; one intermediate app run was canceled by the final docs
+> commit through the configured concurrency group, and the current-head replacement passed.
 >
 > Accounting remains **~99.5%, not 100%**. The software workflow is complete; dependable daily-use acceptance
 > still requires decisions on all 698 staged reconciliation rows, exception resolution, workbook dual-run,
