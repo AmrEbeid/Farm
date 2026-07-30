@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (palm source reconciliation). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (accounting journal-date hardening). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — explicit journal entry dates: MIGRATED / HOSTED-VERIFIED.**
+Farm production migration `20260730075952 accounting_journal_entry_date_required` removes the internal
+journal helper's silent `current_date` fallback and rejects a null accounting date before posting or retry
+lookup. Every active caller already supplies a resolved business date. Valid-date idempotency remains before
+the period-lock check. Postflight confirms the exact 14-argument function is `SECURITY DEFINER`, volatile,
+`search_path = ''`, contains no current-date fallback, and grants no execute privilege to public, anon, or
+authenticated. Full Docker-free pgTAP: 3,108/3,108. Independent review: APPROVE. GitHub did not enqueue fresh
+`ci`/`db-tests` runs for the review-only head despite two PR events and a no-content retry; the earlier app
+CI was green and no app byte changed. No business row changed. See
+`accounting journal entry date audit 2026 07 30.md`.
 
 **2026-07-30 — palm source reconciliation: LOCAL / FAIL-CLOSED / NO DATA CHANGE.**
 The hash-pinned oracle proves the 2026 workbook's Barhi rows total 4,638, not its stated 4,539; male

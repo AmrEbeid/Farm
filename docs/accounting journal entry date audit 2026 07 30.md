@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-30
 **Issue:** #719 item 3
-**Initial state:** local migration prepared; no production change at the time of this audit
+**Release state:** production migration applied and hosted catalog verified; no business-row change
 
 ## Finding
 
@@ -51,6 +51,18 @@ Null-date retries are intentionally rejected before lookup.
 - Semantic diff against the current `20260726170000` function body shows only the three date-handling
   changes above plus comments.
 - `git diff --check`: clean.
+
+## Production release
+
+- Hosted migration: `20260730075952 accounting_journal_entry_date_required`.
+- Exact signature remains
+  `fn_post_two_line_journal(uuid,date,text,uuid,text,uuid,uuid,numeric,text,text,uuid,uuid,uuid,uuid)`.
+- Catalog postflight: `SECURITY DEFINER`, volatile, `search_path = ''`, null guard present, no
+  `coalesce(p_entry_date, current_date)`, and no public/anon/authenticated execute.
+- The migration changes function code only. It inserts, updates, and deletes no business row.
+- GitHub did not enqueue exact-head `ci` or `db-tests` after repeated PR events. Earlier CI was green,
+  the exact SQL passed the full local pgTAP suite, and no application byte changed. This is an explicit
+  release-evidence limitation.
 
 ## Rollback
 

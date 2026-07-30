@@ -472,3 +472,21 @@ zero failures, and zero file failures.
 **Acceptance is still pending.** The owner/accountant must decide all 698 rows, perform the real workbook
 dual run, resolve every exception, and sign/date the assertion. Shipping this packet completes the software
 surface for that control; it does not itself make accounting dependable daily use 100%.
+
+### 8.8 Explicit journal entry dates (2026-07-30, MIGRATED)
+
+Production migration `20260730075952 accounting_journal_entry_date_required` removes the last silent
+date default from the internal two-line posting choke point. `fn_post_two_line_journal` now raises SQLSTATE
+23502 when `p_entry_date` is null, checks the period lock against the supplied date, and stores that date
+directly. The signature and all valid-date posting behavior remain unchanged.
+
+The active caller audit covers sale finalization, collections, custody, payment settlement, opening balance,
+historical backfill, reconciliation execution, and reconciliation rollback. Every caller resolves a non-null
+business date before reaching the helper. A seven-assertion regression proves null refusal with no write,
+exact explicit-date preservation, valid-date idempotency after period lock, signature stability, and grant
+hygiene. Full Docker-free pgTAP is 3,108/3,108; independent review is APPROVE. Hosted catalog postflight
+confirms the guard, removal of the `current_date` fallback, empty `search_path`, and no client execute grant.
+
+This closes issue #719 item 3. It does not complete accounting acceptance: all 698 staged reconciliation
+rows still require human decisions, exception resolution, workbook dual-run, and dated accountant/Owner
+acceptance.
