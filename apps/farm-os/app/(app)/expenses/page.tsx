@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ImportPanel } from "@/components/import/ImportPanel";
 import { requireRole } from "@/lib/auth";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { egpSummary, num } from "@/lib/money";
 import { KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -10,6 +10,17 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { PrintButton } from "@/components/print-button";
 import { AddExpense } from "@/components/AddExpense";
 import { accountOptionLabel, leafPostingAccounts } from "@/components/AccountPicker";
+import {
+  EXPENSE_REGISTER_DISPLAY_CAP,
+  currentMonthBounds,
+  expenseFilterCount,
+  isExpenseRegisterTruncated,
+  parseExpenseFilter,
+  parseExpenseRegisterSummary,
+  type ExpenseFilter,
+} from "@/lib/expense-register-summary";
+
+export const dynamic = "force-dynamic";
 
 // Roles that pass authorize('budget.write') — the gate the expenses RLS WITH CHECK enforces.
 const WRITE_ROLES = ["owner", "accountant"];
@@ -22,19 +33,6 @@ const KIND_LABELS: Record<string, string> = {
   capex: "رأسمالي",
 };
 
-type ExpenseFilter = "all" | "month" | "operating" | "drawing" | "unrouted" | "unclassified" | "uncentered";
-
-function parseExpenseFilter(raw: string | undefined): ExpenseFilter {
-  return raw === "month" ||
-    raw === "operating" ||
-    raw === "drawing" ||
-    raw === "unrouted" ||
-    raw === "unclassified" ||
-    raw === "uncentered"
-    ? raw
-    : "all";
-}
-
 export default async function ExpensesListPage({
   searchParams,
 }: {
@@ -44,57 +42,91 @@ export default async function ExpensesListPage({
   const sb = await createClient();
   const filter = parseExpenseFilter((await searchParams).filter);
   const canSeeOwnerDrawings = m.role === "owner" || m.role === "accountant";
-  const effectiveFilter = !canSeeOwnerDrawings && filter === "drawing" ? "all" : filter;
+  const effectiveFilter: ExpenseFilter =
+    !canSeeOwnerDrawings && filter === "drawing" ? "all" : filter;
+  const { start: monthStart, end: monthEnd } = currentMonthBounds();
 
-  const [{ data: expenses, error }, { data: suppliers }, { data: accounts }] = await Promise.all([
-    sb
-      .from("expenses")
-      .select("id, date, category, description, total, kind, supplier_id, payment_status, account_id, cost_center_id")
-      .order("date", { ascending: false }),
-    sb.from("suppliers").select("id, name").order("name"),
+  // Bounded to the latest 200 rows MATCHING THE SELECTED FILTER — PostgREST caps unbounded result
+  // sets, so an unbounded fetch silently understates both the displayed count and any in-memory
+  // sum once a register crosses that cap. The exact chip/KPI figures below come from
+  // fn_expense_register_summary (over the FULL register), not from this bounded page.
+  let listQuery = sb
+    .from("expenses")
+    .select("id, date, category, description, total, kind, supplier_id, payment_status, account_id, cost_center_id")
+    .eq("org_id", m.orgId)
+    .order("date", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: false })
+    .limit(EXPENSE_REGISTER_DISPLAY_CAP);
+  if (effectiveFilter === "month") {
+    listQuery = listQuery.gte("date", monthStart).lt("date", monthEnd);
+  } else if (effectiveFilter === "operating") {
+    listQuery = listQuery.eq("kind", "operating");
+  } else if (effectiveFilter === "drawing") {
+    listQuery = listQuery.eq("kind", "drawing");
+  } else if (effectiveFilter === "unrouted") {
+    listQuery = listQuery.is("payment_status", null);
+  } else if (effectiveFilter === "unclassified") {
+    listQuery = listQuery.is("account_id", null);
+  } else if (effectiveFilter === "uncentered") {
+    listQuery = listQuery.is("cost_center_id", null);
+  }
+
+  const [summaryRes, listRes, { data: suppliers }, { data: accounts }] = await Promise.all([
+    sb.rpc("fn_expense_register_summary", {
+      p_org: m.orgId,
+      p_month_start: monthStart,
+      p_month_end: monthEnd,
+    }),
+    listQuery,
+    sb.from("suppliers").select("id, name").eq("org_id", m.orgId).order("name"),
     sb
       .from("accounts")
       .select("id, code, name_ar, account_type, kind, parent_id, active")
+      .eq("org_id", m.orgId)
       .order("code", { ascending: true }),
   ]);
-  if (error) throw error;
+  // Fail closed: an RPC/list error or a malformed summary payload must not render a page that
+  // silently understates the register (CLAUDE.md #1) — surface the error instead.
+  if (summaryRes.error) throw summaryRes.error;
+  if (listRes.error) throw listRes.error;
+  const summary = parseExpenseRegisterSummary(summaryRes.data);
 
-  const all = (expenses ?? []).filter((e) => canSeeOwnerDrawings || e.kind !== "drawing");
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  const monthStartStr = monthStart.toISOString().slice(0, 10);
-  const isThisMonth = (e: (typeof all)[number]) => (e.date ?? "") >= monthStartStr;
-  // «غير موجّهة للسداد»: payment_status is NULL — recorded but routed nowhere in the custody/
-  // payment pipeline (FINANCE-ACCOUNTANT-360 gap #1: the routing control has no UI yet). Surfacing
-  // the backlog honestly instead of letting it hide.
-  const isUnrouted = (e: (typeof all)[number]) => e.payment_status == null;
-  const isUnclassified = (e: (typeof all)[number]) => e.account_id == null;
-  // «بلا مركز تكلفة»: cost_center_id is NULL — recorded but not allocated to a cost center, so it can't be
-  // attributed in per-center P&L. This is the third «مصروفات بلا…» month-close item's fixing surface.
-  const isUncentered = (e: (typeof all)[number]) => e.cost_center_id == null;
-
-  const chips: { key: ExpenseFilter; label: string; value: number; danger?: boolean }[] = [
-    { key: "all", label: "كل المصروفات", value: all.length },
-    { key: "month", label: "هذا الشهر", value: all.filter(isThisMonth).length },
-    { key: "operating", label: "تشغيلي", value: all.filter((e) => (e.kind ?? "operating") === "operating").length },
-    ...(canSeeOwnerDrawings
-      ? [{ key: "drawing" as ExpenseFilter, label: "مسحوبات", value: all.filter((e) => e.kind === "drawing").length }]
-      : []),
-    { key: "unrouted", label: "غير موجّهة للسداد", value: all.filter(isUnrouted).length, danger: true },
-    { key: "unclassified", label: "بدون حساب", value: all.filter(isUnclassified).length, danger: true },
-    { key: "uncentered", label: "بدون مركز تكلفة", value: all.filter(isUncentered).length, danger: true },
-  ];
-  // Real SUMs over the full ledger (not a row-capped sample): this month, split per non-negotiable #6.
-  const monthOperating = all
-    .filter((e) => isThisMonth(e) && (e.kind ?? "operating") !== "drawing")
-    .reduce((s, e) => s + Number(e.total ?? 0), 0);
-  const monthDrawings = all
-    .filter((e) => isThisMonth(e) && e.kind === "drawing")
-    .reduce((s, e) => s + Number(e.total ?? 0), 0);
+  const expenses = listRes.data ?? [];
+  const matchingCount = expenseFilterCount(effectiveFilter, summary);
+  const isTruncated = isExpenseRegisterTruncated(matchingCount);
 
   const supMap = new Map((suppliers ?? []).map((s) => [s.id, s.name]));
   const postingAccounts = leafPostingAccounts(accounts ?? []);
   const accountMap = new Map(postingAccounts.map((account) => [account.id, accountOptionLabel(account)]));
+
+  const chips: { key: ExpenseFilter; label: string; value: number; danger?: boolean }[] = [
+    { key: "all", label: "كل المصروفات", value: summary.expenseCount },
+    { key: "month", label: "هذا الشهر", value: summary.monthCount },
+    { key: "operating", label: "تشغيلي", value: summary.operatingCount },
+    ...(canSeeOwnerDrawings
+      ? [{ key: "drawing" as ExpenseFilter, label: "مسحوبات", value: summary.drawingCount ?? 0 }]
+      : []),
+    { key: "unrouted", label: "غير موجّهة للسداد", value: summary.unroutedCount, danger: true },
+    { key: "unclassified", label: "بدون حساب", value: summary.unclassifiedCount, danger: true },
+    { key: "uncentered", label: "بدون مركز تكلفة", value: summary.uncenteredCount, danger: true },
+  ];
+  // Exact SUMs over the full ledger (fn_expense_register_summary), not the bounded 200-row page:
+  // this month, split per non-negotiable #6. "بدون مسحوبات" means every non-drawing row — operating
+  // AND capex — never operating-only; a null-total row is disclosed as unknown, never coerced into
+  // the sum as zero.
+  const monthNonDrawingDisplay = egpSummary({
+    total: summary.monthNonDrawingTotal,
+    unknownCount: summary.monthNonDrawingUnknownCount,
+    hasUnknown: summary.monthNonDrawingUnknownCount > 0,
+  });
+  const monthDrawingDisplay =
+    summary.monthDrawingTotal == null
+      ? null
+      : egpSummary({
+          total: summary.monthDrawingTotal,
+          unknownCount: summary.monthDrawingUnknownCount ?? 0,
+          hasUnknown: (summary.monthDrawingUnknownCount ?? 0) > 0,
+        });
 
   const columns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
@@ -106,33 +138,17 @@ export default async function ExpensesListPage({
     { id: "total", header: "المبلغ", numeric: true, kind: "money" },
   ];
 
-  const rows = all
-    .filter((e) =>
-      effectiveFilter === "month"
-        ? isThisMonth(e)
-        : effectiveFilter === "operating"
-          ? (e.kind ?? "operating") === "operating"
-          : effectiveFilter === "drawing"
-            ? e.kind === "drawing"
-            : effectiveFilter === "unrouted"
-              ? isUnrouted(e)
-              : effectiveFilter === "unclassified"
-                ? isUnclassified(e)
-                : effectiveFilter === "uncentered"
-                  ? isUncentered(e)
-              : true,
-    )
-    .map((e) => ({
-      id: e.id,
-      href: `/expenses/${e.id}`,
-      date: e.date ? fmtDate(e.date) : "—",
-      category: e.category ?? "—",
-      kind: KIND_LABELS[e.kind ?? "operating"] ?? "—",
-      account: e.account_id ? accountMap.get(e.account_id) ?? "—" : "بدون حساب",
-      description: e.description ?? "—",
-      supplier: e.supplier_id ? supMap.get(e.supplier_id) ?? "—" : "—",
-      total: e.total != null ? Number(e.total) : undefined,
-    }));
+  const rows = expenses.map((e) => ({
+    id: e.id,
+    href: `/expenses/${e.id}`,
+    date: e.date ? fmtDate(e.date) : "—",
+    category: e.category ?? "—",
+    kind: KIND_LABELS[e.kind ?? "operating"] ?? "—",
+    account: e.account_id ? accountMap.get(e.account_id) ?? "—" : "بدون حساب",
+    description: e.description ?? "—",
+    supplier: e.supplier_id ? supMap.get(e.supplier_id) ?? "—" : "—",
+    total: e.total != null ? Number(e.total) : undefined,
+  }));
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -158,9 +174,11 @@ export default async function ExpensesListPage({
             />
           </DashboardKpiLink>
         ))}
-        {/* Display-only real SUMs (full ledger, not a sample); drawings stay separate (#6). */}
-        <KpiCard label="مصروفات هذا الشهر (بدون مسحوبات)" value={egp(monthOperating)} />
-        {canSeeOwnerDrawings && <KpiCard label="مسحوبات هذا الشهر" value={egp(monthDrawings)} />}
+        {/* Display-only exact SUMs (full ledger via the RPC, not the bounded page); drawings stay separate (#6). */}
+        <KpiCard label="مصروفات هذا الشهر (بدون مسحوبات)" value={monthNonDrawingDisplay} />
+        {canSeeOwnerDrawings && monthDrawingDisplay != null && (
+          <KpiCard label="مسحوبات هذا الشهر" value={monthDrawingDisplay} />
+        )}
       </div>
 
       {WRITE_ROLES.includes(m.role) && (
@@ -171,14 +189,23 @@ export default async function ExpensesListPage({
           />
         </div>
       )}
+
+      {isTruncated && (
+        <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+          يظهر أحدث {num(EXPENSE_REGISTER_DISPLAY_CAP)} صف من إجمالي {num(matchingCount)} مطابق لهذا
+          الفلتر — الجدول غير مكتمل. العدّادات والإجماليات أعلاه محسوبة على السجل الكامل. البحث
+          أدناه يقتصر على الصفوف المعروضة فقط، وتصدير CSV غير متاح هنا لتفادي ملف يبدو كاملاً بينما
+          هو جزء من السجل.
+        </p>
+      )}
       <FilterableTable
         ariaLabel="المصروفات"
         columns={columns}
         rows={rows}
         empty={effectiveFilter === "all" ? "لا توجد مصروفات مسجّلة" : "لا مصروفات مطابقة لهذا الفلتر"}
         searchColumns={["category", "kind", "account", "description", "supplier"]}
-        placeholder="ابحث في المصروفات…"
-        exportFilename="expenses"
+        placeholder={isTruncated ? "ابحث ضمن أحدث الصفوف المعروضة…" : "ابحث في المصروفات…"}
+        exportFilename={isTruncated ? undefined : "expenses"}
       />
 
       {/* SPEC-0024 S-9 (D.1): template download + Excel/CSV import for this entry. Imported expenses arrive unrouted — cash never moves in bulk (#1). */}
