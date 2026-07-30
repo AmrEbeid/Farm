@@ -490,3 +490,18 @@ confirms the guard, removal of the `current_date` fallback, empty `search_path`,
 This closes issue #719 item 3. It does not complete accounting acceptance: all 698 staged reconciliation
 rows still require human decisions, exception resolution, workbook dual-run, and dated accountant/Owner
 acceptance.
+
+### 8.9 Balance-sheet account-integrity refusal (2026-07-30, PREPARED)
+
+The balance-sheet RPC must not silently discard posted activity when journal entry, line, and account
+organizations disagree. Although the normal posting helper prevents these shapes, the legacy single-column
+foreign keys permit privileged or historical cross-organization references.
+
+Migration `20260730120000 accounting balance sheet account integrity.sql` adds a fail-closed precheck over
+posted, as-of-bounded records touching the requested organization. A mismatch raises a fixed SQLSTATE 23514
+error without exposing identifiers. It changes no totals or JSON for valid ledgers and does not mutate or
+repair data.
+
+Evidence before release: hosted aggregate preflight found 0 mismatches across 20,730 posted lines; the
+three targeted plans measured about 5 ms, 2.8 ms, and 2.2 ms; focused pgTAP is 10/10 and full pgTAP is
+3,118/3,118. Production migration and release evidence remain pending.
