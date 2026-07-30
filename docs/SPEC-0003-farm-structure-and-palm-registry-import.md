@@ -1,14 +1,17 @@
 # SPEC-0003 — Farm structure + real palm-registry import (Stage 2)
 
-*Status: **RATIFIED — Owner (Amr Ebeid), 2026-06-27 (in-session).** Scope + both §6 open decisions
-ratified; **§6.1 settled → 5 sectors** (S22 / HSW / BAB / SHF / KHT, matching prod + the registry).
-Real-data import beyond aggregate counts (slice 4 / Stage M) remains an Owner-gated apply-layer action.
+*Status: **BLOCKED ON SOURCE AUTHORITY — 2026-07-30.** The 2026 source reconciliation supersedes
+the old count premise: its Barhi rows total 4,638 while its stated total is 4,539, with additional
+structural contradictions. The 2026-06-27 ratification remains historical evidence for the five-sector
+product structure only; it does not authorize a real registry count or import. See
+[`palm registry source reconciliation 2026 07 30.md`](palm%20registry%20source%20reconciliation%202026%2007%2030.md).
+Real-data import (slice 4 / Stage M) remains an Owner-gated action after source correction.
 Originally: design + decision-support only. No code, no migration, no data
 import is performed by this document. Importing real Ebeid data is an Owner-gated apply-layer action
 (PROJECT RULES hard stop), and Stage 2 must not start before the Stage 1 gate is closed. This spec
 exists so the Owner can ratify scope + the open decisions before any import migration is written.*
 
-> **Status update — 2026-06-26.** The Stage-1 (AUTHZ-1) gate is **closed** (migration `0025` live,
+> **Historical status — 2026-06-26.** The Stage-1 (AUTHZ-1) gate is **closed** (migration `0025` live,
 > pgTAP `26` green), so Stage 2 may proceed. Investigation found the canonical registry **structure
 > is already loaded in the seed** (and prod) — 4,380 برحي / 299 ذكور / 28 حوش across **5** sectors with
 > the correct per-sector distribution — so Stage 2's "import" is already satisfied for aggregate
@@ -17,9 +20,12 @@ exists so the Owner can ratify scope + the open decisions before any import migr
 > file + **new hawsha file** + farm-level event roll-up). The two §6 open decisions have **recommendations**
 > below (5 sectors; aggregate-only) — **pending Owner ratification** (merging #186 = deploy = the Owner gate). Slice 2 (a standalone import migration) is **not needed** for
 > aggregate counts; slice 4 (per-tree `assets`) stays **deferred**. Merge of #186 = deploy = Owner gate.
+>
+> **2026-07-30 correction:** the quoted counts are synthetic/historical and non-authoritative. Loading
+> matching aggregate seed values did not satisfy real-data import.
 
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 2, [`03-architecture-and-data-model.md`](03-architecture-and-data-model.md),
-and the canonical **Nov-2025 palm registry**. Follows the pattern of [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md)
+and the disputed **Nov-2025 palm-registry baseline**. Follows the pattern of [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md)
 (engine) and [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) (authz).*
 
 ---
@@ -29,31 +35,33 @@ and the canonical **Nov-2025 palm registry**. Follows the pattern of [`SPEC-0001
 The MVP-0 wedge is built, deployed, security-reviewed, and hardened — but it runs on a **synthetic
 seed**. The product's moat (tree-level records + Arabic/RTL + the stock-coverage wedge) only becomes
 *real* for the reference tenant when the **actual Ebeid farm structure** is loaded. Stage 2 replaces
-the synthetic structure with the canonical registry and lights up the palm/hawsha/sector/farm
+the synthetic structure with a corrected, approved registry and lights up the palm/hawsha/sector/farm
 **file** views and the grid. It is **Medium risk** (structural data — no money, no payroll/PII), with
 a crisp, mechanical acceptance oracle, which makes it the lowest-risk high-leverage next stage.
 
-## 2. The canonical source (non-negotiable #5)
+## 2. Source authority is unresolved (non-negotiable #5)
 
-The **Nov-2025 palm registry** is the single source of truth for counts:
+The previously ratified Nov-2025 figures are now a **disputed baseline**, not a source of truth:
 
-| Metric | Canonical value |
+| Metric | Historical baseline |
 |---|---|
 | Barhi palms (برحي) | **4,380** |
 | Male palms (ذكور) | **299** |
 | Hawshat (حوش) | **28** |
 | Sectors | **5** — **RATIFIED 2026-06-27** (S22 / HSW / BAB / SHF / KHT) |
 
-Every other document (the 7-yr accounting sheet, prior tallies) reconciles **to** the registry, never
-the reverse. If the registry file itself is internally inconsistent, **stop and report** — do not pick
-a number.
+The later 2026 workbook states 4,539 Barhi, but its row values total 4,638; its male rows total 370,
+and its implied 28-unit shape depends on unmatched Shafaa columns. It also duplicates a sector number
+and contains malformed dates. Two 2021 numbering workbooks agree on explicit palms 1–759 but disagree
+on hawsha headings and ranges. Therefore the original fail-closed rule is active: **stop and report;
+do not pick or import a number.**
 
 > **⚠️ Addendum (Owner fact, 2026-07-02 — issue #595): intercropping (زراعات بينية).** The farm grows
 > other crops **between the palms in SOME hawshat** (not all). The current schema cannot express this
 > (crop exists only as `sectors.crop` single-text; hawshat have no crop composition). **The Stage-M
 > import must capture per-hawsha crop composition** — proposed `hawsha_crops` (hawsha_id, crop,
 > planted_count/area, planting_date, notes) — collected during the same ground-truth pass as the palm
-> counts. Palm counts above remain the canonical registry; intercrop composition is additive and does
+> counts. Palm-count source authority remains blocked; intercrop composition is additive and does
 > not alter them. Cost-allocation and ops implications are decision-gated in issue #595 (D1–D3).
 
 ## 3. The schema already exists (migration `0003`)
@@ -71,9 +79,9 @@ all of these (Stage 1 / migrations `0010`/`0028`).
 ## 4. Scope
 
 **Allowed:**
-1. A **reconciliation script** (the oracle, written FIRST): parse the registry → assert
-   Σ(barhi)=4,380, Σ(male)=299, 28 hawshat, sectors=N; emit a before/after report. Fail loudly on
-   any mismatch.
+1. A **reconciliation script** (the oracle, written FIRST): parse source evidence, validate row
+   arithmetic, shape, identifiers, dates and cross-source ranges, and emit a locator/hash-backed report.
+   Fail loudly on any mismatch and emit no import payload.
 2. An **idempotent import** (re-runnable; keyed on hawsha/sector codes) that loads the real
    sector/hawsha rows + their `palm_count_barhi`/`palm_count_male` (+ `lines.palm_count` if the
    registry has line granularity) into the reference tenant — **replacing** the synthetic seed rows.
@@ -87,15 +95,15 @@ all of these (Stage 1 / migrations `0010`/`0028`).
 - Importing **financial or PII** data (owner/manager names beyond what's structural) — that is
   **Stage M**, behind a separate privacy review.
 - Committing the raw registry file if it carries any personal data.
-- Materializing individual `assets` rows **unless** the Owner opts in (§6) — aggregate counts satisfy
-  the wedge today.
+- Materializing individual `assets` rows **unless** the Owner opts in (§6). Existing aggregate values
+  keep the UI operable but do not satisfy real-data authority.
 
 ## 5. Acceptance (the oracle — define the check first)
 
-- **Reconciliation:** `Σ(hawshat.palm_count_barhi) = 4,380`, `Σ(hawshat.palm_count_male) = 299`,
-  `count(hawshat) = 28`, `count(sectors) = N` (the ratified value) — asserted by a pgTAP test against
-  the imported reference tenant (mirrors the existing `03_seed_invariants` test, retargeted to the
-  real numbers).
+- **Reconciliation:** every source row, stated total, unit shape, sector identifier, date and numbered
+  range reconciles without a blocking issue; the corrected unit-level registry carries dated Owner and
+  farm-manager signoff. Only then may a separate import acceptance target be derived and asserted against
+  the reference tenant.
 - **Structural integrity:** every hawsha ∈ a sector; every line ∈ a hawsha; (if materialized) every
   palm `asset` ∈ a hawsha; no orphans.
 - **Roll-up:** opening a hawsha/sector/farm file shows its palm counts and any events recorded
@@ -104,15 +112,12 @@ all of these (Stage 1 / migrations `0010`/`0028`).
 
 ## 6. Open decisions for the Owner (RATIFIED 2026-06-27)
 
-1. **4 vs 5 sectors** — **RATIFIED: 5 sectors** (S22 / HSW / BAB / SHF / KHT), matching the seed
-   structure and the registry; the enterprise/crop list is نخيل برحي for all five. (Was: the import
-   can't proceed without the agreed sector partition.)
-2. **Materialize individual palm `assets`?** — **RECOMMENDED: aggregate-only this stage; per-tree
-   deferred** (slice 4) per the recommendation below. Aggregate counts (28 hawshat × barhi/male) fully serve
-   the current wedge + files. Materializing ~4,679 individual `assets` rows enables per-tree status
-   history (the full moat) but is a larger import + more UI. **Recommendation:** ship aggregate-count
-   import + the file/grid views first (this stage); make per-tree `assets` a follow-up slice once the
-   tree-file UX is validated.
+1. **4 vs 5 sectors** — **RATIFIED: 5 product sectors** (S22 / HSW / BAB / SHF / KHT), matching the
+   seed structure. This does not resolve the later source's duplicated/expanded sector numbering; the
+   corrected registry must map every structural unit to the approved five-sector model.
+2. **Materialize individual palm `assets`?** — the historical recommendation was aggregate-only with
+   per-tree deferred. It remains deferred, but no aggregate count is approved now. A corrected registry
+   must settle the real total before either aggregate import or individual materialization is scoped.
 3. **Registry handling:** confirm the registry file location and that it carries no PII before it
    touches the repo/import tooling.
 
@@ -165,4 +170,4 @@ deferred" recommendation. **The Owner can add / edit / remove sub-farm (sector),
 **Remaining (Owner / apply-layer):** apply `0051`–`0053` to prod (after the standing `0049`–`0050` push),
 apply `storage-policies.sql`, then **regenerate `database.types.ts` from prod** — at which point
 `lib/database.types.ext.ts` (the augmentation bridging the as-yet-unpushed objects) becomes a no-op. Bulk
-import of the real 4,680 palms stays Stage-2 slice-4 / Stage M (real data + privacy review).
+import of any corrected real registry stays Stage-2 slice-4 / Stage M (real data + privacy review).

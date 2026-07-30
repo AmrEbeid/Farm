@@ -1,8 +1,16 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-27 (data-authority gates live). Owner: Amr Ebeid.*
+*Updated: 2026-07-30 (palm source reconciliation). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-07-30 — palm source reconciliation: LOCAL / FAIL-CLOSED / NO DATA CHANGE.**
+The hash-pinned oracle proves the 2026 workbook's Barhi rows total 4,638, not its stated 4,539; male
+rows total 370; and 28 units depend on an unmatched Shafaa shape. It also reports duplicate sector 3,
+malformed dates, and 2021 heading/range conflicts around explicit numbering 1–759. The old 4,380/299/28
+baseline and later workbook are both non-authoritative. The oracle emits no import payload. Exact gate:
+a corrected Owner+farm-manager-approved unit registry or fresh signed field count. No migration or
+production data changed. See `palm registry source reconciliation 2026 07 30.md`.
 
 **2026-07-27 — full data audit + report authority gates: MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
 Farm production migration `20260727145912 data_authority_status` applied before PR #931 merged at `7ce98f5`;
@@ -43,7 +51,7 @@ owner/accountant row decisions, dual-run, exception resolution, and signed accou
 |---|---|---|
 | 0 Security remediation | ~50% | #362 open: legacy repo history, spreadsheet creds, leaked-password toggle, demo-cred plan. **Gates all real data.** |
 | 1 SaaS foundation (RLS/RBAC/audit) | ✅ Done | 58/58 tenant tables FORCE RLS; `authorize()` **19-perm** union pinned by tests/97 (added `site.write` 2026-07-03; S-10 reused existing `budget.write`). |
-| 2 Farm structure + registry | 88% code / **0% verified real data** | Production palms are synthetic. The older 4,380/299/28 baseline conflicts with a later internally inconsistent 4,539/370/28 workbook; neither is approved for import. Import path shipped (#561, SPEC-0020). |
+| 2 Farm structure + registry | 90% code / **0% verified real data** | Production palms are synthetic. The source oracle proves 4,638 Barhi rows vs stated 4,539, plus 370 male and structural/2021 numbering conflicts. Neither source is approved; no import payload is emitted. |
 | 3 Activity/event model | ✅ ~95% | Event spine + rollups + connected work graph (#582). |
 | 4 Planning workspace | ✅ ~97% | Templates #552, relative scheduling #572, assignees, 16-arg multi RPC, assigned-work dashboard queue + linked 360 plan/task views (#673), and DB/RPC positive plan-requirement backstop live (#848 / prod `20260706180856`). |
 | 5 Inventory + coverage engine | ✅ ~95% | Masked-shortage-free (independent review 2026-07-01). Open: #199/#526 reservation semantics (safe over-order direction). |
@@ -67,7 +75,7 @@ owner/accountant row decisions, dual-run, exception resolution, and signed accou
 3. **Owner: close Stage 0** (#362) — one afternoon; unlocks the remaining real-data path.
 4. **Owner: 1-click** leaked-password Auth toggle (#229 iii).
 5. **Owner decisions (cheap)**: wage model #388 · #157 budget-cap (4 one-line answers) · #199/#526 reservation semantics (one line).
-6. **Build now:** remaining real-data runway. Close/period lock, trusted balance sheet, trusted P&L, budget-vs-actual, custody/revenue reports, custody report print/PDF polish, finance statement print/PDF polish, balance-sheet server PDF download, combined statement package PDF, payment-request proof packet, and report output coverage are live; **after 3:** real palm-registry import via SPEC-0020 path → #157 real budget gate.
+6. **Build now:** remaining real-data runway. Close/period lock, trusted balance sheet, trusted P&L, budget-vs-actual, custody/revenue reports, custody report print/PDF polish, finance statement print/PDF polish, balance-sheet server PDF download, combined statement package PDF, payment-request proof packet, and report output coverage are live; **after 3 and source correction:** real palm-registry dry-run via SPEC-0020 → independent review → Owner-gated import → #157 real budget gate.
 7. **Money-integrity — ✅ DONE.** `fn_reverse_journal_entry` (#793), `audit_read` completeness pin (#792, test 131), custody cash-out balance floor + journal-completeness guards (#791), and the accounting-kernel correctness pass (#871: revenue-on-sale-date, reversed-sale collection block, posted-only trial balance) are all shipped/applied. Optional LOW hardening left (defense-in-depth, not correctness): custody `movement_type` CHECK + a journal-linkage constraint trigger; an auto-discovering audit-entity guard.
 8. **Page-speed follow-up if still slow:** consolidate owner/dashboard multi-query loaders into read RPCs, keep heavy search/help/chart tools async, and add route-specific skeletons for the slowest finance/farm pages after live timing feedback.
 9. **Field-readiness follow-ups**: field/DevTools smoke-test the shipped ExecuteForm offline outbox (#625), add PWA brand icons when the real logo asset exists, choose the signed-URL-safe image path for MediaGallery, and batch the deferred DS rebuild. Already shipped: OperationBuilder fabricated-zero fix (#607), DB/RPC positive plan-requirement backstop (repo `20260706175357`, prod `20260706180856`), shared retry/finally submit handling across the 8 forms (#608), bounded `/m` feed (#610), storekeeper `/m/receive` (#614), field-level errors (#613/#627), and decimal mobile keyboards (#611). Full list: `REVIEW-360-2026-07-01.md` §Frontend.
