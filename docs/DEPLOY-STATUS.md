@@ -1,8 +1,18 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-29)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-04)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-29 (latest) — payroll Stage-M access design review MERGED / DEPLOYED / INDEPENDENTLY
+> **2026-08-04 (latest) — public farm-areas table REMOVED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #996 merged to `main` at `57f7ee608fe70d14c8fba3a7b0946afc3e42b215`; production deployment
+> `dpl_Dicoyc6FxjAetnYqb9MK7YyR1Gfs` is READY for that exact SHA and serves `ebeidfarm.business`.
+> The public Production Blocks/farm-areas table and its table-only CSS were removed. The underlying block
+> records remain in the owner-managed Farm OS content model and were not deleted or migrated. TypeScript,
+> touched lint, the 63-page production build, app/design-system CI, pgTAP, gitleaks, Vercel, and CodeRabbit
+> passed; CodeRabbit reported no actionable findings. Live HTML plus Arabic and English browser DOM checks
+> confirmed no production-block heading, area column, or farm-row names render, while certifications and
+> supply remain present. **No database migration or production data change.**
+
+> **2026-07-29 — payroll Stage-M access design review MERGED / DEPLOYED / INDEPENDENTLY
 > ACCEPTED WITH CONDITIONS.**
 > PR #963 merged at `5e4e69d9ad973b5fc6ca8f6bafab1616ac375157` (head commits `79a0b6e` review evidence,
 > `dd3ab6f` comment-safe scanner, `744a77d` review/approval-state clarification); production deployment
