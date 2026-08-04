@@ -229,34 +229,6 @@
 .site__feature h3 { color: var(--g-green); margin: 0.6rem 0 0.4rem; font-size: 1.15rem; }
 .site__feature p { margin: 0; color: var(--g-muted); }
 
-/* ---- Table ---- */
-.site__table-wrap { overflow-x: auto; }
-.site__table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 560px;
-}
-.site__table th {
-  background: var(--g-green);
-  color: #fff;
-  padding: 0.7rem 0.75rem;
-  text-align: start;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-.site__table td {
-  padding: 0.65rem 0.75rem;
-  border-block-end: 1px solid var(--g-line);
-  font-variant-numeric: tabular-nums;
-}
-.site__table tbody tr:nth-child(even) td { background: #faf8f2; }
-.site__table-total td {
-  font-weight: 700;
-  color: var(--g-green-dark);
-  background: var(--g-cream) !important;
-  border-block-start: 2px solid var(--g-gold);
-}
-
 /* ---- Certifications ---- */
 .site__certs {
   display: grid;
