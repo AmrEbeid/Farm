@@ -40,7 +40,7 @@ Every figure/claim comes from owner-provided documents, not invented:
   حوض البابور (30.5f, 5, 1,485, 2023/2025) · الشفعة (9.5f, 4, 269, 2023) · الخطارة (23f, 4, 513, 2010–2024).
 - **Supply/specs:** Fresh Barhi (Khalal) · 202 t CAPQ-approved · season Aug–Oct · packaging to
   buyer spec · air + reefer sea · destinations CHN/ARE/SAU/KWT/EU.
-- **Contact:** Eng. Abdelglil Ebeid · ebeidfarm@gmail.com · +20 100 217 4773 · +20 121 014 1019.
+- **Contact:** Eng. Abdelglil Ebeid · abdoebaid2016@gmail.com · +20 100 217 4773 · +20 121 014 1019.
 
 ### Certification proofs (real files, in `public/site/proofs/`)
 
