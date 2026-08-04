@@ -45,7 +45,7 @@ export default async function Home() {
     description:
       "Certified Egyptian exporter of premium fresh Barhi dates from El-Sharkia — GLOBALG.A.P. certified, approved for China (GACC), residue-free (QCAP), single-source and fully traceable.",
     email: content.contact.email,
-    telephone: content.contact.phones[0]?.replace(/[^0-9+]/g, ""),
+    telephone: "+201002174773",
     address: {
       "@type": "PostalAddress",
       streetAddress: "Abou Shalaby, Faqous",
