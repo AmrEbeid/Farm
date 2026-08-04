@@ -341,7 +341,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
   contact: {
     heading: { ar: "تواصل معنا", en: "Contact Us" },
     person: { ar: "م. عبد الجليل عبيد", en: "Eng. Abdelglil Ebeid" },
-    email: "ebeidfarm@gmail.com",
+    email: "abdoebaid2016@gmail.com",
     phones: ["+20 100 217 4773", "+20 121 014 1019"],
     address: {
       ar: "أبو شلبي، فاقوس، الشرقية، مصر 44641",
