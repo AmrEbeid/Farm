@@ -9,7 +9,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import type { Bi, Lang, SiteContent } from "@/lib/site-content";
-import { fmtDigits, fmtNum } from "@/components/site/format";
+import { fmtNum } from "@/components/site/format";
 import { submitEnquiry } from "@/app/enquiry-actions";
 
 function waLink(phone: string): string {
@@ -138,43 +138,6 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
               </article>
             ))}
           </div>
-        </section>
-
-        {/* ---- Production blocks ---- */}
-        <section className="site__section">
-          <div className="site__section-head"><h2>{t(c.blocks.heading)}</h2></div>
-          <div className="site__table-wrap">
-            <table className="site__table">
-              <thead>
-                <tr>
-                  <th>{lang === "ar" ? "القطاع" : "Block"}</th>
-                  <th>{lang === "ar" ? "المساحة (فدان)" : "Area (feddans)"}</th>
-                  <th>{lang === "ar" ? "الحوشات" : "Hawshat"}</th>
-                  <th>{lang === "ar" ? "نخيل برحي" : "Barhi Palms"}</th>
-                  <th>{lang === "ar" ? "سنة الزراعة" : "Planting Year"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {c.blocks.rows.map((r, i) => (
-                  <tr key={i}>
-                    <td>{t(r.name)}</td>
-                    <td>{fmtNum(r.areaFeddans, lang)}</td>
-                    <td>{fmtNum(r.hawshat, lang)}</td>
-                    <td>{fmtNum(r.barhiPalms, lang)}</td>
-                    <td>{fmtDigits(r.years, lang)}</td>
-                  </tr>
-                ))}
-                <tr className="site__table-total">
-                  <td>{t(c.blocks.totalLabel)}</td>
-                  <td>{fmtNum(c.blocks.total.areaFeddans, lang, { approx: true })}</td>
-                  <td>{fmtNum(c.blocks.total.hawshat, lang)}</td>
-                  <td>{fmtNum(c.blocks.total.barhiPalms, lang, { approx: true })}</td>
-                  <td>—</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="site__note">{t(c.blocks.note)}</p>
         </section>
 
         {/* ---- Certifications & proof ---- */}

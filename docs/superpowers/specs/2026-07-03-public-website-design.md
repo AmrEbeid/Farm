@@ -67,9 +67,10 @@ corporate document. It is NOT used on the farm site.
 
 ### Sections (fixed set)
 
-Hero (name + badges + Login) → About → Why Barhi → Production Blocks (table) → Supply & Specs
-(table) → **Certifications & Proof** (badges + proof thumbnails + live-registry links) → Why
-Partner → Contact (+ optional future scenery gallery, empty until photos exist).
+Hero (name + badges + Login) → About → Why Barhi → Supply & Specs → **Certifications & Proof**
+(badges + proof thumbnails + live-registry links) → Why Partner → Contact (+ optional future
+scenery gallery, empty until photos exist). Production-block records remain owner-managed in the
+content model but are not displayed on the public website.
 
 ## 4. The OS-editable content model (touches the DB — migration required)
 
