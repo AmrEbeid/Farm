@@ -14,10 +14,10 @@ begin;
 select plan(12);
 
 -- ============================================================================================
--- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function except the RLS helpers.
--- Generalises migration 0021. authorize(text,uuid)/user_org_ids() are the intentional helpers anon
--- needs so RLS policies can evaluate for an unauthenticated request; every other definer fn is a
--- privileged code path that must never be reachable from the anon (unauthenticated) JWT.
+-- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function.
+-- Generalises migration 0021. RLS policies can invoke their helpers during policy evaluation without
+-- exposing those helpers as anonymous PostgREST RPCs; every definer function is therefore removed
+-- from the unauthenticated API surface.
 -- ============================================================================================
 select is(
   (select count(*)::int
@@ -25,17 +25,15 @@ select is(
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.prosecdef
-      and p.proname not in ('authorize', 'user_org_ids', 'user_member_org_ids')
       and has_function_privilege('anon', p.oid, 'EXECUTE')),
   0,
-  'INV-1: no public SECURITY DEFINER fn (other than authorize/user_org_ids) is EXECUTE-able by anon');
+  'INV-1: no public SECURITY DEFINER function is EXECUTE-able by anon');
 
--- Pin the positive side too: the two intended helpers MUST stay anon-executable (so a future
--- over-zealous revoke that breaks anonymous RLS evaluation is also caught).
-select ok(has_function_privilege('anon', 'public.authorize(text, uuid)', 'EXECUTE'),
-  'INV-1: authorize(text, uuid) remains EXECUTE-able by anon (RLS helper; AUTHZ-2 #181 org-scoped overload)');
-select ok(has_function_privilege('anon', 'public.user_org_ids()', 'EXECUTE'),
-  'INV-1: user_org_ids() remains EXECUTE-able by anon (RLS helper)');
+-- Pin the two previously exempt helpers directly so later migrations cannot reopen either RPC.
+select ok(not has_function_privilege('anon', 'public.authorize(text, uuid)', 'EXECUTE'),
+  'INV-1: anon cannot execute authorize(text, uuid)');
+select ok(not has_function_privilege('anon', 'public.user_org_ids()', 'EXECUTE'),
+  'INV-1: anon cannot execute user_org_ids()');
 
 -- ============================================================================================
 -- Invariant 2 — authenticated may EXECUTE only the intended API surface of public SECURITY
