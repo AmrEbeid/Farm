@@ -95,13 +95,10 @@ actions are distinguished below.
   extension can affect dependent objects and is not justified without a tested migration.
 - **Follow-up:** reassess only with a dependency-aware migration and full period-lock regression coverage.
 
-### 1.4 Leaked-password protection disabled — dashboard toggle
-- **What:** the advisor flags that Supabase Auth leaked-password protection (HaveIBeenPwned check) is
-  off.
-- **Why it remains here:** it is a **dashboard setting**, not a code or migration defect, but production is no
-  longer synthetic. Do not use the old demo-data rationale to defer it.
-- **Follow-up:** enable the toggle in the Supabase dashboard (Auth → Policies) and verify it with a fresh advisor
-  run. This is an open Owner configuration action; key rotation itself is complete (see 4.1).
+### 1.4 Leaked-password protection — resolved 2026-08-05
+- **What:** Supabase Auth leaked-password protection (HaveIBeenPwned check) is enabled.
+- **Evidence:** a fresh production security-advisor run returned no leaked-password finding.
+- **Follow-up:** none; recheck after Auth configuration changes.
 
 ---
 
@@ -195,13 +192,11 @@ Any new concern in these areas must be assessed against the current definitions 
 
 ### 4.4 Current dashboard gates
 - Verify `custom_access_token_hook` before onboarding a second org (0.1).
-- Enable leaked-password protection and verify the advisor clears (1.4).
-- Rotate, delete, or replace the production `*@ebeid.test` demo identities; treat the retired shared password as
-  compromised (5.1). The code-side surface is removed, the live identities are not.
+- Leaked-password protection and synthetic-identity cleanup are complete (1.4, 5.1).
 
 ---
 
-## 5. 2026-07-28 — production demo-credential surface removed (live; identities still Owner-gated)
+## 5. Production demo credential removed; identities closed 2026-08-05
 
 **What it was.** The production login page (`apps/farm-os/app/login/page.tsx`) is a client component, so
 everything in it shipped in the browser bundle. It carried four demo account addresses
@@ -238,26 +233,23 @@ Live verification on `ebeidfarm.business/login` found both fields blank and no d
 client scripts were clean for the retired password, demo addresses, activation text, and provisioning
 endpoint. Vercel reported no runtime errors in the preceding 30 minutes. No migration was required.
 
-### 5.1 Follow-up condition — Owner action on the live demo identities (OPEN)
+### 5.1 Follow-up condition — live demo identities (CLOSED 2026-08-05)
 
-**Removing the code does not change any live account.** The demo identities may still exist in the production
-Supabase project, and the retired shared password must be treated as compromised for any account that ever used it — it
-was committed to git history and shipped in the client bundle, so removal from HEAD does not retract it.
+Removing the code did not itself change a live account. The separate live cleanup is now complete, while the
+retired shared password remains compromised historical material because removal from HEAD does not retract it.
 
-Read-only production audit on 2026-07-28: six confirmed demo-email identities have signed in and are linked
-to the organization; six phone-only seed identities have never signed in and are not linked. The security
-advisor still reports leaked-password protection disabled.
+The 2026-07-28 baseline was six linked demo-email identities and six unlinked phone-only seed identities.
+The 2026-08-05 postflight found 0 users in both populations and 0 corresponding people or organization-member
+links. The security advisor has no leaked-password finding.
 
-**Owner-only, not performed by this change (no live user was created, deleted, reset, or invited here):**
-1. Enumerate the `*@ebeid.test` identities in the production project (`veezkmytervjnpxcrbkw`).
-2. For each: rotate to a unique strong secret, delete it, or replace it with a **real, recoverable** account
-   for the actual person, and re-link `people.user_id` / `organization_member` accordingly.
-3. Confirm no remaining account authenticates with `[REDACTED RETIRED DEMO PASSWORD]`.
-4. Enable leaked-password protection (§1.4) so a reused/known secret is rejected at sign-up/reset.
+**Completed controls:**
+1. Enumerated the `*@ebeid.test` and email-null phone-only populations in production.
+2. Deleted both synthetic populations; aggregate postflight found no dangling people or memberships.
+3. Confirmed the retired demo identities no longer exist and therefore cannot authenticate.
+4. Enabled leaked-password protection (§1.4).
 
-Do not record this item as closed until steps 1–4 have live evidence. Git-history purge of the literal is
-hygiene only; rotation/deletion is the real fix (same logic as
-[`STAGE-0-REMEDIATION-RUNBOOK.md`](STAGE-0-REMEDIATION-RUNBOOK.md) §B).
+The aggregate identity/link counts and fresh advisor provide the live evidence required to close this item.
+Git-history cleanup remains separate hygiene under Stage 0 steps A–C.
 
 ---
 

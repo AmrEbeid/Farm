@@ -2,7 +2,20 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-08-05 (latest) — public-home mobile repair MERGED / DEPLOYED / LIVE-VERIFIED.**
+> **2026-08-05 (latest) — auth cleanup verified + anonymous helpers MIGRATED / MERGED.**
+> Leaked-password protection is enabled and aggregate production counts show 0 `*@ebeid.test` users, 0
+> email-null phone-only users and 0 linked people/memberships for either population. PR #1002 migrated first as
+> `20260805165322 anonymous_helper_lockdown`, then merged at
+> `4411723af2e7b579b9c9c266f2e88f77aa1edc63`. `PUBLIC`/`anon` execution on `authorize(text,uuid)` and
+> `user_org_ids()` is now false while `authenticated`/`service_role` remains true; security advisors report
+> 0 anonymous SECURITY DEFINER and 0 leaked-password findings. Full pgTAP 3,166/3,166; independent review
+> APPROVE; exact-head checks plus exact-merge CI/release/db-tests and CodeRabbit green. Exact production deployment
+> `dpl_EFhQTGS8hcxkZ73uNHBVmoHU2wFW` is READY on the merge SHA and serves `ebeidfarm.business`. No function
+> body, RLS policy, table, identity or business row changed in this migration. Stage 0 remains open only for
+> the three unverified external historical-source
+> controls in #362.
+
+> **2026-08-05 — public-home mobile repair MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #1000 merged at `fc9e10f402248ea65f44580610c4c61477defb8a`; exact production deployment
 > `dpl_6a3JjaGkx4uaP1uXeTS6gEW2ZZtE` is READY and aliases `ebeidfarm.business`. At 360, 390 and 1,440px,
 > live Chrome reports document width exactly equal to viewport width. The mobile header is 57px; the desktop

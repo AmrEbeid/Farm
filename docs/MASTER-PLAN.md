@@ -57,6 +57,10 @@ This is serious work — multi-tenant isolation, money/voucher logic, payroll PI
 Each stage scored on **impact × probability × reversibility → highest tier wins** (an irreversible action is ≥ High). Stages are independently reviewable. **Do not start a stage before its predecessor's gate is closed.**
 
 ### Stage 0 — Security remediation & data cleanup · Type: Execution + External Apply · **Risk: Critical/High**
+- **Current state (2026-08-05): ~75%.** Current-app credentials are removed, npm audit is 0,
+  leaked-password protection is enabled, synthetic identities are deleted, and anonymous SECURITY DEFINER
+  helper execution is closed. Remaining scope is external and unverified: identify/retire the legacy project
+  keys, verify old-repository history cleanup, and verify workbook/Google credential cleanup plus 2FA.
 - **Why this tier:** *impact* — a live exposed Gmail+password and an anon key + project-id in a public repo is a real breach surface; *probability* — already public; *reversibility* — key rotation is reversible, but exposure already happened (treat as incident).
 - **Scope (allowed):** rotate the Supabase anon key; purge `.env.local` + secret from git history (BFG/`git filter-repo`); scrub the Gmail/password from the accounting sheet copy; reconcile palm count to the Nov-2025 registry; add the enterprise/crop dimension; separate `مسحوبات` from operating expenses; fix `العام الحقلي` typos. **Forbidden:** building any new feature; touching production data of any real system beyond the named cleanup; committing any secret.
 - **Acceptance:** secret absent from history (verified); key rotated and old key invalid; one agreed canonical count; expenses re-taggable by crop with drawings separated; **secret-scan passes**.
