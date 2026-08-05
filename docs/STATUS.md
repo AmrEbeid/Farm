@@ -216,7 +216,7 @@ owner/accountant row decisions, dual-run, exception resolution, and signed accou
 
 | Stage | Status | Evidence / blocker |
 |---|---|---|
-| 0 Security remediation | ~50% | #362 open: legacy repo history, spreadsheet creds, leaked-password toggle, demo-cred plan. **Gates all real data.** |
+| 0 Security remediation | ~50% | App-side demo credential removed and current npm audit is 0 (PR #998). #362 remains open for Owner/external closure: legacy keys/repo history, spreadsheet/Google credential, leaked-password toggle, and 6 linked demo-email + 6 unlinked phone-only identities. The old source repo/workbook cleanup is **UNVERIFIED**. |
 | 1 SaaS foundation (RLS/RBAC/audit) | ✅ Done | 58/58 tenant tables FORCE RLS; `authorize()` **19-perm** union pinned by tests/97 (added `site.write` 2026-07-03; S-10 reused existing `budget.write`). |
 | 2 Farm structure + registry | 90% code / **0% verified real data** | Production palms are synthetic. The source oracle proves 4,638 Barhi rows vs stated 4,539, plus 370 male and structural/2021 numbering conflicts. Neither source is approved; no import payload is emitted. |
 | 3 Activity/event model | ✅ ~95% | Event spine + rollups + connected work graph (#582). |

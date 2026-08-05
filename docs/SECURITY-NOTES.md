@@ -158,7 +158,7 @@ Any new concern in these areas must be assessed against the current definitions 
   Do not re-open the old exposed-key finding without fresh evidence. Leaked-password protection remains a separate
   dashboard action (1.4).
 
-### 4.2 Dependency advisories — framework/root PostCSS/js-yaml patched 2026-07-28; residuals open
+### 4.2 Dependency advisories — current audit clean 2026-08-05
 - **Live patch.** PR #935 merged at `7b138ac`; production deployment
   `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW` is READY. `next` and `eslint-config-next` moved
   16.2.10 → **16.2.12** (patch-only; both kept aligned). This
@@ -172,23 +172,21 @@ Any new concern in these areas must be assessed against the current definitions 
   `postcss ^8.5.23`; Tailwind, Vite,
   Storybook, and the design-system toolchain resolve 8.5.23 without an invalid peer/range state. This removes
   the vulnerable root node, but does not reach Next's private 8.4.31 copy.
-- **Still open — not fixable by a Next patch.** `next` remains listed, but now only as a *dependent* of two
-  transitive packages: it hard-pins `postcss` `8.4.31` and declares `sharp` `^0.34.5` (optional). The fixes need
-  `postcss > 8.5.17` and `sharp >= 0.35.0`, which those ranges cannot reach, and 16.2.12 is the newest Next release —
-  so no further patch bump helps.
-- **Upstream blocker.** Verified global and dependency-specific npm override experiments did **not** replace
-  Next's private versions; npm retained PostCSS 8.4.31 and Sharp 0.34.5 and produced an invalid/extraneous
-  dependency tree. All experiment edits were discarded. Do not force these packages in production; wait for
-  or test a compatible upstream Next release, then reassess from a fresh audit.
+- **Resolved by PR #998.** Next 16.3.0 moved its private PostCSS/Sharp edges to PostCSS 8.5.23 and
+  Sharp 0.35.3. The same release keeps `eslint-config-next` aligned. Compatible lock refreshes moved
+  `brace-expansion` to 1.1.18/2.1.4/5.0.9 and `undici` to 7.29.0.
 - **Live js-yaml fix.** PR #940 merged at `0f0708b`; production deployment
   `dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm` is READY. Scoped overrides use patched `js-yaml` `4.3.0`
   for Changesets/ESLint and `3.15.0` for `read-yaml-file`, preserving each parent's API generation.
   The high-severity `js-yaml` category is removed; the audit is now 7 findings
   (1 low, 2 moderate, 4 high).
-- **Residual dependency work.** Next-private PostCSS/Sharp remain upstream-blocked. Forced
-  `brace-expansion`/`esbuild` overrides crossed incompatible parent ranges and made the npm tree invalid,
-  so they were discarded. The `exceljs`/`uuid` chain needs a product-path and export regression review
-  before any major version decision. Dependabot PR #937 did not lower the audit and remains unmerged.
+- **tsup/esbuild compatibility pin.** tsup 8.5.1 still declares `esbuild ^0.27.0`; the current advisory
+  covers 0.27.3-0.28.0, while patched 0.28.1 is outside tsup's range. PR #998 therefore pins only tsup's
+  edge to safe in-range 0.27.2. Fresh `npm ci` reproduces the lock exactly, UI output is unchanged, and
+  the override must be removed once tsup accepts 0.28.1 or later.
+- **Current result.** The 2026-08-05 fresh audit moved from 6 findings (5 high / 1 low) to **0**.
+  This is a point-in-time dependency result, not a permanent security guarantee; rerun after dependency
+  changes and newly published advisories.
 
 ### 4.3 Stage M — finance complete; registry pending; privacy boundary remains
 - Real farm financial data is live, but the real palm registry is still pending. The old "current seed is synthetic"

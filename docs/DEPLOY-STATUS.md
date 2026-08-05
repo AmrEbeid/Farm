@@ -1,8 +1,20 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-04)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-05)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-08-04 (latest) — public farm-areas table REMOVED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+> **2026-08-05 (latest) — current npm advisories REMEDIATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #998 merged to `main` at `177d96ca4f843dd50d0a9f130e5a9d6b86339e50`; the exact Vercel
+> deployment `EyNePMrv3wwX2ckszNwCG7VooP72` completed successfully. `npm audit` moved from
+> 6 findings (5 high / 1 low) to 0 through Next 16.3.0, compatible PostCSS/Sharp/brace-expansion/
+> undici refreshes, and a documented safe in-range tsup/esbuild pin. A fresh `npm ci` preserved the
+> lockfile byte-for-byte. App/design-system CI, pgTAP, gitleaks and Vercel passed; CodeRabbit's one
+> version-note nit was fixed and its final rerun was rate-limited. Public `/` and `/login` return
+> HTTP 200; signed-out `/dashboard` and `/website` return 307 to login. **No migration, schema,
+> RPC, database row, auth identity, credential or financial state changed.** Stage-0 security remains
+> open for the leaked-password toggle, production demo-identity replacement/deletion, and unverified
+> legacy repository/workbook credential cleanup.
+
+> **2026-08-04 — public farm-areas table REMOVED / MERGED / DEPLOYED / LIVE-VERIFIED.**
 > PR #996 merged to `main` at `57f7ee608fe70d14c8fba3a7b0946afc3e42b215`; production deployment
 > `dpl_Dicoyc6FxjAetnYqb9MK7YyR1Gfs` is READY for that exact SHA and serves `ebeidfarm.business`.
 > The public Production Blocks/farm-areas table and its table-only CSS were removed. The underlying block

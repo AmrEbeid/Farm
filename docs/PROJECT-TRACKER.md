@@ -1,4 +1,27 @@
-# Project Tracker — Farm OS      Last updated: 2026-07-30 by Codex (transaction-ledger exact counts — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-08-05 by Codex (security dependency remediation — RELEASED)
+
+> **2026-08-05 — CURRENT NPM ADVISORIES REMEDIATED: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #998 merged at `177d96ca4f843dd50d0a9f130e5a9d6b86339e50`. Next and its ESLint preset move
+> 16.2.12 -> 16.3.0; compatible transitive refreshes move `brace-expansion` to 1.1.18/2.1.4/5.0.9,
+> `undici` to 7.29.0, PostCSS to 8.5.23 and Sharp to 0.35.3; tsup's latest compatible esbuild
+> edge is pinned to 0.27.2 until tsup accepts 0.28.1+. A fresh `npm ci` preserved the lockfile
+> byte-for-byte and `npm audit` moved from 6 findings (5 high / 1 low) to **0**. Independent
+> validation: app TypeScript and ESLint clean; app Vitest 1,361 passed + 13 controlled skips; UI
+> TypeScript and 288 tests clean; token guards and both builds clean; fresh-head app/design-system/
+> pgTAP/gitleaks/Vercel checks green. CodeRabbit's one version-note nit was fixed; its final rerun was
+> rate-limited. The exact merge deployment `EyNePMrv3wwX2ckszNwCG7VooP72` completed successfully;
+> public `/` and `/login` return 200, while signed-out `/dashboard` and `/website` redirect to login.
+> No migration, DDL, data, auth identity, credential or financial state changed.
+>
+> **Security is still not 100%.** Read-only production evidence on the Farm project confirms leaked-password
+> protection remains disabled; 6 demo-email users remain linked to people and organization roles; 6
+> phone-only seed users remain unlinked. Current public tables all have RLS, no unexpected anonymous
+> SECURITY DEFINER entry point exists, no authenticated trigger function is executable, and every public
+> SECURITY DEFINER function pins a search path. The remaining Stage-0 closure is Owner/external: enable the
+> password control; replace/delete the demo identities without breaking role links; retire any legacy
+> project keys; verify old-repository history cleanup; and scrub/rotate the historical workbook/Google
+> credential. The named old repository and source workbook were not present in the currently accessible
+> GitHub/local/KINGSTON sources, so those two items are **UNVERIFIED**, not closed.
 
 > **2026-07-30 — TRANSACTION-LEDGER EXACT COUNTS AND BOUNDED DISPLAY: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 > PR #993 merged at `393523d09cb413c7e2e46fe437c76778b70fdf08`; production deployment
