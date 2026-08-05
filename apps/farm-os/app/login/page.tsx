@@ -43,6 +43,7 @@ export default function LoginPage() {
       // navigation so the server receives the fresh auth cookie on the next
       // request (router.push can race ahead of the cookie write).
       await supabase.auth.getSession();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Preserve the same-origin full reload after the auth cookie write.
       window.location.assign("/dashboard");
       return;
     } catch {

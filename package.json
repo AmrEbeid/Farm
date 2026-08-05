@@ -36,6 +36,10 @@
     "exceljs": {
       "uuid": "11.1.1"
     },
+    "tsup": {
+      "esbuild": "0.27.2"
+    },
     "@types/node": "^22"
-  }
+  },
+  "comment-overrides-tsup-esbuild": "GHSA-g7r4-m6w7-qqqr affects esbuild 0.27.3-0.28.0 (arbitrary file read via the esbuild dev server on Windows). tsup 8.5.1, the latest, declares esbuild ^0.27.0, so no in-range version above the advisory exists; 0.27.2 is the highest in-range version that predates it and keeps the tree valid (no semver violation). Drop this override once tsup widens its range to ^0.28.1 or later."
 }
