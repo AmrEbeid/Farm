@@ -1,5 +1,32 @@
-# Session Brief — Farm OS      Updated: 2026-08-05 by Codex (public-home mobile repair — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-08-05 by Codex (security provider and helper closure — RELEASED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-05 — security provider and anonymous-helper closure — MIGRATED / MERGED
+
+Live reconciliation corrected stale security status: leaked-password protection is enabled; aggregate counts
+show 0 `*@ebeid.test` users, 0 email-null phone-only users, and 0 people/membership links for either population.
+The security advisor still exposed two unauthenticated SECURITY DEFINER helpers. PR #1002 removes `PUBLIC` and
+`anon` execution from `authorize(text,uuid)` and `user_org_ids()` while preserving `authenticated` and
+`service_role`; no function body or policy changed. Hosted migration `20260805165322 anonymous_helper_lockdown`
+was applied before merge; PR #1002 merged at `4411723af2e7b579b9c9c266f2e88f77aa1edc63`.
+
+Full local pgTAP passed 3,166/3,166 after strengthening INV-1 from a two-helper exception to zero anonymous
+SECURITY DEFINER functions. Independent security review APPROVE, no P0-P2; CodeRabbit generated no actionable
+comment; exact-head PR checks and exact-merge CI/release/db-tests passed. Production ACL postflight is false for `PUBLIC`/`anon` and true for
+`authenticated`/`service_role` on both signatures. Advisor totals moved 103 -> 101: anonymous-definer findings
+2 -> 0 and leaked-password findings remain 0. The migration changed no table, RLS policy, identity, credential,
+function body or business row.
+
+Exact production deployment `dpl_EFhQTGS8hcxkZ73uNHBVmoHU2wFW` is READY on the merge SHA and serves
+`ebeidfarm.business`.
+
+Stage 0 is now ~75%, not 100%. Only three external historical-source controls remain: identify and retire old
+Farm project keys; verify old-repository history cleanup; and identify/scrub the historical workbook plus verify
+Google password/app-password rotation and 2FA. Prior searches did not find the named sources; absence from the
+accessible inventory is **UNVERIFIED**, not proof of cleanup.
+
+**Exact resume point:** identify the historical Farm project/repository/workbook from an Owner-controlled source.
+Do not mutate the current healthy Farm project or infer that `ai-math-tutor` is the legacy Farm project.
 
 ## 2026-08-05 — public-home mobile repair — MERGED / DEPLOYED / LIVE-VERIFIED
 
