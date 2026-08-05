@@ -1,5 +1,31 @@
-# Session Brief — Farm OS      Updated: 2026-07-30 by Codex (transaction-ledger exact counts — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-08-05 by Codex (public-home mobile repair — RELEASED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-05 — public-home mobile repair — MERGED / DEPLOYED / LIVE-VERIFIED
+
+PR #1000 merged at `fc9e10f402248ea65f44580610c4c61477defb8a`; exact production deployment
+`dpl_6a3JjaGkx4uaP1uXeTS6gEW2ZZtE` is READY and serves `ebeidfarm.business`. The public home page now
+constrains horizontal overflow, replaces the wrapping desktop navigation with a 56px mobile header and a
+real menu preserving all five section links, compacts the hero and page sections, stacks the enquiry form,
+and clips the anti-spam field without an off-canvas physical offset. No authenticated application route,
+content record, enquiry behavior, dependency, schema, RPC, policy, grant or database row changed.
+
+Review caught a missing mobile navigation path before commit; it was added and verified to close after link
+selection. CodeRabbit's deprecated clipping-fallback finding was corrected in `bcaf8d6`. Focused Vitest 3/3;
+full Vitest 1,364 passed + 13 controlled skips across 97 files; TypeScript, touched ESLint, 63-page production
+build and `git diff --check` clean. Exact-head app/design CI, pgTAP, gitleaks and Vercel passed. Claude review
+was attempted twice but produced no result, so no Claude approval is claimed.
+
+Production Chrome proof: document width equals viewport at 360, 390 and 1,440px; header is 57px on mobile
+and 63px desktop; desktop navigation is hidden only below 720px and the mobile menu is hidden on desktop.
+At 390px the menu fits within x=16..374, all links fit, closes after selection, and the language switch changes
+`ar` to `en`. Console/page errors and Vercel runtime error clusters for `/` were zero. The real production
+Arabic hero measures 818px at 360 and 767px at 390, placing the stat strip at y=851 and y=800 respectively;
+these live values supersede the shorter pre-release local estimate. **Migration: not applicable; no SQL or
+Supabase byte changed and no migration was applied.**
+
+**Exact resume point:** continue the separately planned security remediation. Treat further public-home hero
+height reduction as a new UX slice if the Owner wants the stat strip visibly above the first mobile fold.
 
 ## 2026-07-30 — finance-dashboard budget authority guard — MERGED / DEPLOYED / SIGNED-OUT SMOKED
 

@@ -1,8 +1,20 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-07-30 (transaction-ledger exact counts released). Owner: Amr Ebeid.*
+*Updated: 2026-08-05 (public-home mobile repair released). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-05 — public-home mobile repair: MERGED / DEPLOYED / LIVE-VERIFIED.**
+PR #1000 merged at `fc9e10f402248ea65f44580610c4c61477defb8a`; exact production deployment
+`dpl_6a3JjaGkx4uaP1uXeTS6gEW2ZZtE` is READY on `ebeidfarm.business`. Mobile now has no horizontal overflow,
+a 57px header, a contained five-link menu that closes after selection, compact sections and a one-column
+enquiry form; desktop navigation remains visible at 1,440px. Live Chrome at 360/390/1,440 found viewport and
+document widths equal, working Arabic-to-English switching, and zero console/page errors; Vercel found no `/`
+runtime error clusters. The production Arabic hero is 818px at 360 and 767px at 390, so the stats start at
+y=851 and y=800. Review fixed the initially omitted mobile nav and CodeRabbit's deprecated clipping fallback.
+All exact-head CI gates, 1,364 Vitest assertions, TypeScript, lint and build passed. No migration existed; no
+SQL, Supabase object, business data, authentication or financial state changed. Security remediation remains
+the next planned module; any further first-fold hero reduction is a separate UX choice.
 
 **2026-07-30 — transaction-ledger exact counts and bounded display: MERGED / DEPLOYED / SIGNED-OUT SMOKED.**
 PR #993 merged at `393523d09cb413c7e2e46fe437c76778b70fdf08`; production deployment

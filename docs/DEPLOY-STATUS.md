@@ -2,7 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-08-05 (latest) — current npm advisories REMEDIATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> **2026-08-05 (latest) — public-home mobile repair MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #1000 merged at `fc9e10f402248ea65f44580610c4c61477defb8a`; exact production deployment
+> `dpl_6a3JjaGkx4uaP1uXeTS6gEW2ZZtE` is READY and aliases `ebeidfarm.business`. At 360, 390 and 1,440px,
+> live Chrome reports document width exactly equal to viewport width. The mobile header is 57px; the desktop
+> links become a contained five-link menu that closes after selection; Arabic/English switching works; and
+> there are no browser errors or Vercel `/` runtime error clusters in the checked window. Production Arabic
+> hero height is 818px at 360 and 767px at 390, with stats beginning at y=851 and y=800. App/design CI,
+> pgTAP, gitleaks, Vercel, 1,364 Vitest assertions, TypeScript, lint and the 63-page build passed. **No
+> migration existed: no SQL, Supabase object, database row, auth identity or financial state changed.**
+
+> **2026-08-05 — current npm advisories REMEDIATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #998 merged to `main` at `177d96ca4f843dd50d0a9f130e5a9d6b86339e50`; the exact Vercel
 > deployment `EyNePMrv3wwX2ckszNwCG7VooP72` completed successfully. `npm audit` moved from
 > 6 findings (5 high / 1 low) to 0 through Next 16.3.0, compatible PostCSS/Sharp/brace-expansion/
