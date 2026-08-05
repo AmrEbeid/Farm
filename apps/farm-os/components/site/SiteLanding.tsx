@@ -7,6 +7,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui";
 import type { Bi, Lang, SiteContent } from "@/lib/site-content";
 import { fmtNum } from "@/components/site/format";
@@ -72,6 +73,22 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
               <a key={n.href} href={n.href}>{t(n.label)}</a>
             ))}
           </nav>
+          <details className="site__mobile-menu">
+            <summary aria-label={lang === "ar" ? "فتح قائمة الموقع" : "Open site menu"}>
+              <Menu width={20} height={20} aria-hidden="true" />
+            </summary>
+            <nav className="site__mobile-menu-links" aria-label={lang === "ar" ? "روابط الموقع" : "Site links"}>
+              {nav.map((n) => (
+                <a
+                  key={n.href}
+                  href={n.href}
+                  onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}
+                >
+                  {t(n.label)}
+                </a>
+              ))}
+            </nav>
+          </details>
           <div className="site__actions">
             <button
               type="button"
