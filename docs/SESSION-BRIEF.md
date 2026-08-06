@@ -1,7 +1,7 @@
-# Session Brief — Farm OS      Updated: 2026-08-06 by Codex (expense payment reversal — MIGRATED / PR OPEN)
+# Session Brief — Farm OS      Updated: 2026-08-06 by Codex (expense payment reversal — RELEASED)
 *Updated LAST, after meaningful work.*
 
-## 2026-08-06 — custody-paid expense correction — MIGRATED / PR #1004 OPEN
+## 2026-08-06 — custody-paid expense correction — MIGRATED / MERGED / DEPLOYED
 
 PR #1004 implements SPEC-0028 C-1 without editing posted money: one linked compensating custody cash-in,
 one linked period-aware journal reversal, a mandatory reason/date, and either a terminal cancellation or an
@@ -17,12 +17,13 @@ remain executable. No business row was changed. Local pgTAP passed 3,246/3,246; 
 controlled skips; TypeScript, ESLint, the 63-page build and whitespace checks passed. Independent review is
 clean after fixing the complete-follow-up workflow, transaction atomicity and report cache invalidation.
 
-**Release state:** migration applied; PR #1004 and application deployment are not merged/released yet while
-CodeRabbit completes. Accounting remains ~99.5% pending human acceptance. Security Stage 0 remains ~75%
-because the three external historical-source controls are still unverified.
+**Release state:** PR #1004 merged as `5435a6ae9c2f44dfc80820d88274adce7a374ac5`. Vercel and the Supabase
+post-merge integration passed on that exact commit. Production smoke returned 200 for `/login` and redirected
+signed-out `/accounting` and `/expenses` to login. Accounting remains ~99.5% pending human acceptance.
+Security Stage 0 remains ~75% because the three external historical-source controls are still unverified.
 
-**Exact resume point:** wait for PR #1004 checks, merge only the reviewed head, verify the exact merge deployment,
-then update these documents from migrated/open to merged/deployed. Do not repair the CLI migration ledger: hosted
+**Exact resume point:** continue Stage 0 read-only source identification, then execute only evidence-backed
+legacy-project/repository/workbook remediation. Do not repair the CLI migration ledger: hosted
 production uses later application timestamps for 18 historical migrations and the authoritative Supabase API is
 the source used for this release.
 
