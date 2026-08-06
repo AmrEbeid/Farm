@@ -2,7 +2,7 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-08-06 (latest) — custody-paid expense reversal MIGRATED; PR #1004 pending merge.**
+> **2026-08-06 (latest) — custody-paid expense reversal MIGRATED / MERGED / DEPLOYED.**
 > Hosted migration `20260806224123 expense_payment_reversal` is applied to Farm production. It adds the
 > append-only `fn_reverse_expense_payment` path and one row-locked edit-and-reroute follow-up for an
 > `unrouted` correction. Original custody movements and journals remain evidence; request-linked,
@@ -10,8 +10,10 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > postflight confirms both RPCs, all five reversal columns, complete shape checks, active-attempt uniqueness,
 > `PUBLIC`/`anon` revocation, deliberate authenticated grants, and zero anonymous SECURITY DEFINER entry
 > points. Local evidence: pgTAP 3,246/3,246; Vitest 1,382 passed + 13 controlled skips; TypeScript, ESLint,
-> 63-page build and diff checks clean; final independent review found no issue. PR #1004 and its deployment
-> remain unmerged while CodeRabbit completes. No expense, custody, journal, identity or other business row was
+> 63-page build and diff checks clean; final independent review found no issue. PR #1004 merged as
+> `5435a6ae9c2f44dfc80820d88274adce7a374ac5`; Vercel and the Supabase post-merge integration passed on that
+> exact commit. Production smoke: `/login` = 200; signed-out `/accounting` and `/expenses` = 307 to login.
+> No expense, custody, journal, identity or other business row was
 > changed by migration/postflight. Accounting remains ~99.5% pending the 698 human decisions, real workbook
 > dual run, exceptions and dated acceptance. Security Stage 0 remains ~75% pending the same three external
 > historical-source controls below.

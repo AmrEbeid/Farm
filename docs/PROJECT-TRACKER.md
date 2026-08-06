@@ -1,11 +1,13 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-06 by Codex (expense reversal — MIGRATED / PR OPEN)
+# Project Tracker — Farm OS      Last updated: 2026-08-06 by Codex (expense reversal — RELEASED)
 
-> **2026-08-06 — CUSTODY-PAID EXPENSE CORRECTION MIGRATED; PR #1004 OPEN.**
+> **2026-08-06 — CUSTODY-PAID EXPENSE CORRECTION MIGRATED / MERGED / DEPLOYED.**
 > SPEC-0028 C-1 now has append-only custody/journal reversal plus an atomic inline edit-and-reroute path for
 > payment-only mistakes. Production migration `20260806224123 expense_payment_reversal` is applied and its
 > columns, constraints, indexes, grants and zero-anonymous-definer invariant are verified. No business row
 > changed. Full evidence: pgTAP 3,246/3,246; Vitest 1,382 passed + 13 controlled skips; TypeScript, ESLint,
-> 63-page build and independent review clean. PR #1004 remains unmerged pending CodeRabbit. Accounting stays
+> 63-page build and independent review clean. PR #1004 merged as `5435a6a`; Vercel and Supabase post-merge
+> checks passed on the exact merge commit, `/login` returned 200, and signed-out `/accounting` and `/expenses`
+> redirected to login. Accounting stays
 > ~99.5% until the 698 human decisions, workbook dual run, exceptions and dated acceptance are complete;
 > security Stage 0 stays ~75% until the three external historical-source controls are verified.
 
