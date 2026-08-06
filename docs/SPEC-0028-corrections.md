@@ -1,6 +1,7 @@
 # SPEC-0028 — «سجّلت غلط»: the corrections framework (safe reversals)
 
-*Status: **DRAFT** — design only. The last missing UX property (SPEC-0027 master plan §A property 4):
+*Status: **ACTIVE** — C-1 is implemented on the current feature branch but is **NOT RELEASED**; C-2 through
+C-5 remain design only. The last missing UX property (SPEC-0027 master plan §A property 4):
 every mistake has a guided correction. Principle: **posted money is never edited — it is reversed**,
 with both entries linked, a mandatory reason, and plain-Arabic wizards that state exactly what will
 happen. `journal_entries.reversal_of` exists since the kernel (20260701220000) — unused until now.*
@@ -31,7 +32,7 @@ happen. `journal_entries.reversal_of` exists since the kernel (20260701220000) �
 ## 2. Slices
 | # | Contents | Risk |
 |---|---|---|
-| C-1 | `fn_reverse_expense_payment` + pgTAP (balance restored, links, double-reversal blocked) + «سجّلت غلط؟» on expense 360 | Med (money) — migrate-first + independent review |
+| C-1 | `fn_reverse_expense_payment` + pgTAP (balance restored, links, double-reversal blocked) + «سجّلت غلط؟» on expense 360 | Implemented locally; NOT RELEASED — migrate-first + independent review |
 | C-2 | pending-cancel + reprice + wizards | Med |
 | C-3 | collection reversal | Low-med |
 | C-4 | custody movement reversal (subsumes the kernel's TODO error text) | Med |
@@ -39,3 +40,28 @@ happen. `journal_entries.reversal_of` exists since the kernel (20260701220000) �
 
 *Recommended build trigger: first real mistake of the pilot week (there will be one) — build C-1 that day;
 the spec makes it a 1-session slice.*
+
+## 3. C-1 implemented contract (2026-08-05, NOT RELEASED)
+
+- The original expense, custody cash-out amount/details and journal remain evidence. The original movement
+  receives only reciprocal reversal status/link fields, and one unique compensating
+  cash-in links to the original movement through `reversal_of`; the existing journal reversal helper creates
+  the linked mirror journal and enforces both original-period and reversal-period locks.
+- The owner/accountant chooses one closed outcome: `unrouted` restores the exact `NULL` payment state and
+  immediately exposes a guided edit-and-reroute control on the expense page; `cancelled` uses the existing
+  P&L-excluded void state when the whole expense was wrong. Both require a written reason and explicit date.
+- The `unrouted` follow-up updates the corrected fields and chooses custody, unpaid/request, or no route through
+  one row-locked `fn_correct_and_route_reversed_expense` transaction. Concurrent/stale submissions fail closed;
+  the application never leaves an edited amount half-routed because a second database call failed.
+- The RPC takes expense and movement row locks, requires both `custody.write` and `budget.write`, is active-org
+  scoped, binds the request to the exact displayed movement ID, and returns the existing result on an exact
+  replay. A unique partial index prevents two reversal
+  movements even under concurrent submissions.
+- Any payment-request line or request-linked movement fails closed. Request settlement has additional line,
+  funding and lifecycle state, so reversing it inside C-1 would create a new mismatch; that requires a separate
+  request-level correction design and is not silently approximated here.
+- A same-account, same-amount unlinked cash-in recorded after the original payment is treated as a possible
+  legacy manual correction. C-1 fails closed until finance reconciles that evidence, preventing the custody
+  balance from being restored twice.
+- The expense 360 page shows the original and reversal movements together. It never describes the original as
+  deleted, and the guided Arabic control is rendered only to owner/accountant on an eligible custody-paid row.
