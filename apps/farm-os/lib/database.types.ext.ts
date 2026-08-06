@@ -483,7 +483,7 @@ type CustodyAccountsTable = {
   Relationships: [];
 };
 type CustodyMovementsTable = {
-  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; transfer_group_id: string | null; note: string | null; created_at: string; created_by: string | null };
+  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; transfer_group_id: string | null; reversal_of: string | null; reversal_reason: string | null; expense_reversal_outcome: "unrouted" | "cancelled" | null; reversed_by: string | null; reversed_at: string | null; note: string | null; created_at: string; created_by: string | null };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -798,6 +798,25 @@ type CustodyFunctions = {
   fn_set_expense_payment_status: {
     Args: { p_expense: string; p_status: ExpensePaymentStatus; p_custody_account?: string | null; p_paid_by?: string | null };
     Returns: undefined;
+  };
+  fn_reverse_expense_payment: {
+    Args: { p_expense: string; p_expected_movement: string; p_outcome: "unrouted" | "cancelled"; p_reason: string; p_reversal_date: string };
+    Returns: Json;
+  };
+  fn_correct_and_route_reversed_expense: {
+    Args: {
+      p_expense: string;
+      p_date: string | null;
+      p_category: string;
+      p_description: string | null;
+      p_total: number;
+      p_supplier: string | null;
+      p_account: string | null;
+      p_cost_center: string | null;
+      p_route: "custody" | "later" | "none";
+      p_custody_account?: string | null;
+    };
+    Returns: Json;
   };
   // Classify an expense (operating / drawing / capex) — the ONLY write path for expenses.kind (the column is
   // omitted from the expenses Insert type above, so it cannot be set by a direct insert). budget.write gated.

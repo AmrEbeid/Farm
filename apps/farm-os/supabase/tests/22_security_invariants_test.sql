@@ -105,6 +105,8 @@ select is(
         'fn_record_harvest_day',                   -- field picking counter (SPEC-0027 H-B, migration 20260701540000)
         'fn_close_accounting_period', 'fn_reopen_accounting_period', -- period close/lock RPCs (SPEC-0004 §7.3, migration 20260701550000)
         'fn_reverse_journal_entry', -- journal correction/reversal RPC (SPEC-0028 kernel slice, migration 20260706081636)
+        'fn_reverse_expense_payment', -- atomic custody-paid expense correction (SPEC-0028 C-1, migration 20260805200000)
+        'fn_correct_and_route_reversed_expense', -- atomic edit + replacement route after C-1 payment-only reversal
         'fn_accounting_balance_sheet', -- read-only balance-sheet report RPC (SPEC-0004 Slice A, migration 20260705110000)
         'fn_accounting_income_statement', -- read-only income-statement/P&L report RPC (SPEC-0004 Slice A, migration 20260705120000)
         'fn_pnl_timeseries', -- read-only GL-backed P&L time-series RPC (SPEC-0029 Phase 0, migration 20260705140000)
