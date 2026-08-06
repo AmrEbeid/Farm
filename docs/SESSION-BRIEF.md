@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-08-05 by Codex (security provider and helper closure — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-08-06 by Codex (expense payment reversal — MIGRATED / PR OPEN)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-06 — custody-paid expense correction — MIGRATED / PR #1004 OPEN
+
+PR #1004 implements SPEC-0028 C-1 without editing posted money: one linked compensating custody cash-in,
+one linked period-aware journal reversal, a mandatory reason/date, and either a terminal cancellation or an
+editable unrouted outcome. The latter now has an inline Arabic correction form whose edit and replacement
+route execute atomically under the expense row lock. Request-linked payments, possible legacy manual cash-ins,
+stale attempts, closed periods and already-reversed journals fail closed. Owner/accountant access remains the
+intersection of existing `custody.write` and `budget.write`; no authorization map changed.
+
+Hosted migration `20260806224123 expense_payment_reversal` was applied migrate-first. Production postflight
+confirmed both RPCs, five reversal columns, constraints and partial unique indexes; `PUBLIC`/`anon` cannot
+execute either RPC, authenticated execution is intentional, and zero anonymous SECURITY DEFINER functions
+remain executable. No business row was changed. Local pgTAP passed 3,246/3,246; Vitest passed 1,382 with 13
+controlled skips; TypeScript, ESLint, the 63-page build and whitespace checks passed. Independent review is
+clean after fixing the complete-follow-up workflow, transaction atomicity and report cache invalidation.
+
+**Release state:** migration applied; PR #1004 and application deployment are not merged/released yet while
+CodeRabbit completes. Accounting remains ~99.5% pending human acceptance. Security Stage 0 remains ~75%
+because the three external historical-source controls are still unverified.
+
+**Exact resume point:** wait for PR #1004 checks, merge only the reviewed head, verify the exact merge deployment,
+then update these documents from migrated/open to merged/deployed. Do not repair the CLI migration ledger: hosted
+production uses later application timestamps for 18 historical migrations and the authoritative Supabase API is
+the source used for this release.
 
 ## 2026-08-05 — security provider and anonymous-helper closure — MIGRATED / MERGED
 
