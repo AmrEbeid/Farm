@@ -251,7 +251,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                 <a href={`mailto:${c.contact.email}`} className="site__contact-btn">
                   ✉︎ <bdi dir="ltr">{c.contact.email}</bdi>
                 </a>
-                {c.contact.phones.map((p) => (
+                {c.contact.phones.slice(1).map((p) => (
                   <a key={p} href={`tel:${p.replace(/[^0-9+]/g, "")}`} className="site__contact-btn site__contact-btn--ghost">
                     ☎ <bdi dir="ltr">{p}</bdi>
                   </a>

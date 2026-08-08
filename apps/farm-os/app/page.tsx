@@ -10,8 +10,7 @@ export const revalidate = 300;
 
 // Public, unauthenticated export-credibility website for Ebeid Farm. Server-rendered for SEO;
 // the AR⇄EN toggle and text direction live in the SiteLanding client island. Phase 1 renders
-// the typed defaults (real figures from the 2025 farm record + official certificates — nothing
-// fabricated, non-negotiable #1). Phase 2 will read the same shape from the DB
+// the typed defaults (Owner-approved public copy + official certificates). Phase 2 reads the same shape from the DB
 // (fn_get_site_content) with these defaults as the fallback. Employee login lives in the
 // header → /login → the Farm OS.
 
@@ -53,7 +52,7 @@ export default async function Home() {
       addressCountry: "EG",
       postalCode: "44641",
     },
-    areaServed: ["CN", "AE", "SA", "KW", "EU", "EG"],
+    areaServed: ["CN", "AE", "SA", "KW", "EU", "EG", "East Asia"],
     knowsAbout: ["Barhi dates", "date export", "GLOBALG.A.P.", "phytosanitary export"],
   };
   return (
