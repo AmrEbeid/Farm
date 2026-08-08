@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-05 (security provider and anonymous-helper closure released). Owner: Amr Ebeid.*
+*Updated: 2026-08-07 (Owner public-site comments validated locally). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-07 — Owner public-site comments: VALIDATED LOCALLY / NOT RELEASED.**
+Branch `fix/owner-public-site-comments` updates both the typed fallback and the existing editable-content
+migration path with the Owner's «من نحن» copy, 120 feddans / 5,000 Barhi palms / 7 production blocks,
+contact identity «مزرعة عبيد للتمور», `ebeidfarm@gmail.com`, and East Asian markets. The primary phone now
+appears once as WhatsApp; only the remaining phone is rendered as a call button. The production content
+migration locks the one public-site row and fails closed if its expected JSON shape changed. Evidence: focused
+3/3, full Vitest 1,384 + 13 controlled skips, pgTAP 3,246/3,246, TypeScript, touched ESLint, 63-page build and
+whitespace clean. Local Chrome at 390px and 1,440px found no horizontal overflow, no console/page errors and
+the requested copy/contact/market values; 390px shows one WhatsApp and one distinct phone. No commit, push,
+PR, migration, merge, deployment or production content change occurred.
 
 **2026-08-05 — public-home mobile repair: MERGED / DEPLOYED / LIVE-VERIFIED.**
 PR #1000 merged at `fc9e10f402248ea65f44580610c4c61477defb8a`; exact production deployment

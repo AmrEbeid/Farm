@@ -1,8 +1,8 @@
 // Public website content model — the single typed source for the marketing site at `/`.
 //
-// Phase 1 (this file): the content ships as `SITE_CONTENT_DEFAULTS`, sourced entirely from
-// the owner's own `profile.html` + official GlobalGAP / China-GACC / QCAP / CAPQ documents —
-// nothing fabricated (non-negotiable #1). Phase 2 will populate the SAME `SiteContent` shape
+// Phase 1 (this file): the content ships as `SITE_CONTENT_DEFAULTS`, incorporating the Owner's
+// approved public copy plus the official GlobalGAP / China-GACC / QCAP / CAPQ documents.
+// Phase 2 will populate the SAME `SiteContent` shape
 // from the DB via `fn_get_site_content`, falling back to these defaults, so the page renders
 // identically before and after the content table exists.
 //
@@ -115,8 +115,7 @@ export interface SiteContent {
 }
 
 /**
- * Default content — real figures per the 2025 farm record; certificate data per the official
- * documents. DO NOT invent or round beyond what the source states.
+ * Default content — Owner-approved public copy; certificate data per the official documents.
  */
 export const SITE_CONTENT_DEFAULTS: SiteContent = {
   brand: {
@@ -153,16 +152,16 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
     ctaSecondary: { ar: "الشهادات والاعتمادات", en: "View Certifications" },
   },
   stats: [
-    { value: 115, approx: true, label: { ar: "فدان", en: "Feddans" } },
-    { value: 4380, approx: true, label: { ar: "نخلة برحي", en: "Barhi Palms" } },
+    { value: 120, approx: true, label: { ar: "فدان", en: "Feddans" } },
+    { value: 5000, approx: true, label: { ar: "نخلة برحي", en: "Barhi Palms" } },
     { value: 202, label: { ar: "طن معتمد للصين", en: "Tons Approved (China)" } },
-    { value: 5, label: { ar: "قطاعات إنتاجية", en: "Production Blocks" } },
+    { value: 7, label: { ar: "قطاعات إنتاجية", en: "Production Blocks" } },
   ],
   about: {
     heading: { ar: "من نحن", en: "About Us" },
     body: {
-      ar: "مزرعة متخصصة في إنتاج تمور البرحي الطازجة عالية الجودة بمحافظة الشرقية، تمتد على نحو ١١٥ فداناً وتضم قرابة ٤٬٣٨٠ نخلة برحي موزعة على خمسة قطاعات إنتاجية. نعتمد منظومة زراعية حديثة قائمة على الممارسات الزراعية الجيدة، تضمن منتجاً آمناً ومتجانساً يلبي اشتراطات الأسواق التصديرية.",
-      en: "A farm specialized in premium fresh Barhi dates in El-Sharkia, Egypt — about 115 feddans and ~4,380 Barhi palms across five production blocks. We run a modern, Good-Agricultural-Practice–based system that delivers a safe, uniform product meeting export-market requirements.",
+      ar: "تأسست المزرعة منذ 10 سنوات على تربة طينية خصبة، وتمت زراعتها بفسائل نسيجية مختارة مستوردة من شركة ساباد بالمملكة العربية السعودية عبر معمل أنسجة فرنسي معتمد، وفقاً لأفضل الممارسات الزراعية الحديثة، مما أنتج تموراً بارحي متميزة في الحجم والتجانس والطعم. تُروى المزرعة بمياه النيل بنظام الري بالتنقيط، وتُدار العمليات الزراعية ببرامج تسميد ومكافحة موثقة وفترات أمان قبل الحصاد، وفق نظم بيئية وصحية تضمن سلامة وجودة الثمار، مع تقارير قياس أسبوعية موثقة لأقطار الثمار في كل قطاع. تمتد المزرعة على 120 فداناً وتضم نحو 5,000 نخلة بارحي موزعة على 7 قطاعات بأعمار متدرجة تضمن إمداداً متصاعداً موسماً بعد موسم. ولدينا خبرة عملية منذ 4 سنوات في التعامل مع شركات التصدير والمستوردين، ندرك من خلالها متطلبات الفرز والتعبئة والتوثيق لكل سوق، كما تتوفر لدى المزرعة فسائل بارحي مختارة.",
+      en: "Established 10 years ago on fertile clay soil, the farm was planted with selected tissue-culture offshoots imported from Sabad in Saudi Arabia through an accredited French tissue laboratory and grown according to modern agricultural practices. This has produced Barhi dates distinguished by their size, uniformity and taste. The farm is irrigated with Nile water through drip irrigation, while documented fertilization and crop-protection programs, pre-harvest safety intervals, environmental and health controls, and weekly fruit-diameter reports support fruit safety and quality in every block. The farm extends across 120 feddans and includes about 5,000 Barhi palms in 7 blocks of staggered ages, providing growing supply season after season. We also bring 4 years of practical experience working with exporters and importers, understand each market's sorting, packing and documentation requirements, and offer selected Barhi offshoots.",
     },
   },
   whyBarhi: {
@@ -292,8 +291,8 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       {
         label: { ar: "الوجهات المعتمدة", en: "Certified Destinations" },
         value: {
-          ar: "الصين · الإمارات · السعودية · الكويت · أوروبا",
-          en: "China · UAE · Saudi Arabia · Kuwait · EU",
+          ar: "الصين · الإمارات · السعودية · الكويت · أوروبا · دول شرق آسيا",
+          en: "China · UAE · Saudi Arabia · Kuwait · EU · East Asian markets",
         },
       },
     ],
@@ -340,8 +339,8 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
   },
   contact: {
     heading: { ar: "تواصل معنا", en: "Contact Us" },
-    person: { ar: "م. عبد الجليل عبيد", en: "Eng. Abdelglil Ebeid" },
-    email: "abdoebaid2016@gmail.com",
+    person: { ar: "مزرعة عبيد للتمور", en: "Ebeid Farm for Dates" },
+    email: "ebeidfarm@gmail.com",
     phones: ["+20 100 217 4773", "+20 121 014 1019"],
     address: {
       ar: "أبو شلبي، فاقوس، الشرقية، مصر 44641",
