@@ -1,4 +1,13 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-06 by Codex (expense reversal — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-08-08 by Codex (Owner public comments — RELEASED)
+
+> **2026-08-08 — OWNER PUBLIC-SITE COMMENTS MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+> The public site now uses the Owner-approved About copy and 120 feddans / 5,000 Barhi palms / 7 blocks,
+> identifies the contact as `مزرعة عبيد للتمور`, uses `ebeidfarm@gmail.com`, and includes East Asian markets.
+> The primary number appears once as WhatsApp; only the distinct second number remains as a call link. Hosted
+> migration `20260808062443 owner_public_site_comments` applied first and exact row postflight passed. PR
+> #1006 merged as `a11a7e0`; exact-merge CI/db-tests/release and production deployment `5806268580` passed.
+> Live Chrome at 390px and 1,440px verified both languages, contact-link counts, no farm-area table, no overflow
+> and no browser errors.
 
 > **2026-08-06 — CUSTODY-PAID EXPENSE CORRECTION MIGRATED / MERGED / DEPLOYED.**
 > SPEC-0028 C-1 now has append-only custody/journal reversal plus an atomic inline edit-and-reroute path for

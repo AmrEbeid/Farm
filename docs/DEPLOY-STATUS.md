@@ -1,6 +1,15 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-06)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-08)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-08-08 (latest) — Owner public-site comments MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+> Hosted migration `20260808062443 owner_public_site_comments` applied migrate-first and exact postflight
+> verified the one public content row: 120 feddans, 5,000 Barhi palms, 7 blocks, Owner About copy,
+> `مزرعة عبيد للتمور`, `ebeidfarm@gmail.com`, and East Asian markets. PR #1006 merged as `a11a7e0`; exact-
+> merge CI, db-tests and release succeeded, and production deployment `5806268580` completed at
+> `farm-2k35jdoj6-amrabdelglill-7962s-projects.vercel.app`. Live Chrome on `ebeidfarm.business` at 390px and
+> 1,440px verified Arabic/English content, one WhatsApp link, no duplicate primary call link, the distinct
+> secondary phone, no old email, no farm-area table, no overflow and no console/page errors.
 
 > **2026-08-06 (latest) — custody-paid expense reversal MIGRATED / MERGED / DEPLOYED.**
 > Hosted migration `20260806224123 expense_payment_reversal` is applied to Farm production. It adds the

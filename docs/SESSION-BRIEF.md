@@ -1,5 +1,23 @@
-# Session Brief — Farm OS      Updated: 2026-08-06 by Codex (expense payment reversal — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-08-08 by Codex (Owner public comments — RELEASED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-08 — Owner public-site comments — MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED
+
+The Owner-approved public copy is live in Arabic and English: 120 feddans, approximately 5,000 Barhi palms,
+7 production blocks, the expanded About narrative, contact identity `مزرعة عبيد للتمور`, email
+`ebeidfarm@gmail.com`, and East Asian markets. The primary phone appears only in the WhatsApp action; the
+distinct second number remains callable. The previously removed farm-area table remains absent.
+
+Hosted migration `20260808062443 owner_public_site_comments` applied migrate-first. Exact postflight verified
+the one production content row. PR #1006 merged as `a11a7e017e229c8dd92b5701aaabc34cb8a60ef4`; exact-merge
+CI, db-tests and release passed, and production deployment `5806268580` completed successfully. Live Chrome on
+`ebeidfarm.business` at 390px and 1,440px verified all requested Arabic/English text, one new-email link, zero
+old-email links, one WhatsApp link, zero duplicate primary call links, one secondary call link, no horizontal
+overflow and no console/page errors.
+
+**Exact resume point:** return to the separate accounting release-readiness stack and its credentialed
+owner/accountant/denied-role acceptance gate. Keep the seven unreleased accounting migrations and every
+production action behind a new explicit Owner gate.
 
 ## 2026-08-06 — custody-paid expense correction — MIGRATED / MERGED / DEPLOYED
 
