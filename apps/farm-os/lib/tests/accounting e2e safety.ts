@@ -24,6 +24,7 @@ import {
   accountingE2EServerRequestIsReadOnly,
   accountingE2ESanitizedChildEnvironment,
   accountingE2ESupabaseOrigin,
+  accountingE2EWidthSnapshotFits,
   assertAccountingE2EInputs,
   assertDistinctAccountingE2EAccounts,
   createAccountingE2ERequestPolicy,
@@ -36,6 +37,25 @@ import {
 } from "../accounting e2e launch safety";
 
 describe("accounting read-only E2E safety", () => {
+  it("rejects shell-contained overflow even when the root document fits", () => {
+    expect(
+      accountingE2EWidthSnapshotFits({
+        viewport: 412,
+        document: 412,
+        body: 412,
+        shellMain: { client: 364, scroll: 600 },
+      }),
+    ).toBe(false);
+    expect(
+      accountingE2EWidthSnapshotFits({
+        viewport: 412,
+        document: 412,
+        body: 412,
+        shellMain: { client: 364, scroll: 364 },
+      }),
+    ).toBe(true);
+  });
+
   it("records only fixed browser runtime error categories without retaining detail", () => {
     const errors: AccountingE2EBrowserRuntimeError[] = [];
     recordAccountingE2EBrowserRuntimeError(errors, ACCOUNTING_E2E_BROWSER_RUNTIME_ERROR.page);
@@ -487,8 +507,10 @@ describe("accounting read-only E2E source contract", () => {
     expect(spec).toContain("document.documentElement.clientWidth");
     expect(spec).toContain("document.documentElement.scrollWidth");
     expect(spec).toContain("document.body.scrollWidth");
-    expect(spec).toContain("Math.max(widths.document, widths.body)");
-    expect(spec).toContain("Math.max(widths.document, widths.body)).toBeLessThanOrEqual(widths.viewport)");
+    expect(spec).toContain('document.querySelector<HTMLElement>(".fos-appshell__main")');
+    expect(spec).toContain("client: shellMain.clientWidth");
+    expect(spec).toContain("scroll: shellMain.scrollWidth");
+    expect(spec).toContain("accountingE2EWidthSnapshotFits(widths)");
     expect(spec.match(/page\.goto\(/g)).toHaveLength(1);
     expectOrdered(functionBlock("gotoReadOnly", "login"), [
       "await page.goto(path)",

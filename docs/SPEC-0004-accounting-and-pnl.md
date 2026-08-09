@@ -783,8 +783,9 @@ is the canonical external sequence for the independently approved desktop candid
 the twenty-one migrate-first versions, forward-only database recovery, contained role acceptance, separate merge
 and production-deployment approvals, deployment/postflight verification, then human accounting acceptance. It
 keeps issue #903 outside this release and grants no external authorization. The local mobile follow-up expands the
-same 22 workflows to 44 desktop/mobile tests. Its first independent review's P2/P3/P4 findings were corrected and
-exact-byte rereview returned APPROVE; it becomes canonical only after local branch integration.
+same 22 workflows to 44 desktop/mobile tests. Exact-commit review found that root-only widths could miss overflow
+inside the authenticated shell main; the corrected oracle measures that scrolling element and has a negative
+false-pass fixture. Final exact-commit rereview is required before local branch integration.
 
 **Money-direction daily launcher.** The approved `df01d6d` behavior is integrated on the current release base.
 The owner sees five ordered groups and the accountant four money groups; empty role groups are omitted while the
@@ -796,8 +797,8 @@ schema and migrations are unchanged. A stale read-only acceptance heading found 
 the suite now advances both preset URLs to step 3, verifies the actual `custody` or `later` selector value, and
 does not submit. The installed runtime request policy remains authoritative. Two source-contract review rounds
 tightened the exact two-click and guard-invocation proof; final narrow rereview returned APPROVE for the original
-desktop slice. The local mobile extension now discovers the same 22 workflows on two pinned viewports, 44 total,
-and exact-byte independent rereview returned APPROVE with no P1-P4 finding.
+desktop slice. The local mobile extension now discovers the same 22 workflows on two pinned viewports, 44 total;
+its corrected shell-overflow proof requires final exact-commit rereview.
 
 **Human acceptance runbook.** [`accounting reconciliation acceptance runbook.md`](accounting%20reconciliation%20acceptance%20runbook.md)
 is the canonical sequence for the remaining 698-row gate. It preserves human-only decisions and the existing

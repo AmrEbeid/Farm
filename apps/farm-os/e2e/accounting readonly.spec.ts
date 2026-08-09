@@ -6,12 +6,14 @@ import {
   accountingE2EBatchId,
   accountingE2ECredentials,
   accountingE2EDeniedRole,
+  accountingE2EWidthSnapshotFits,
   assertDistinctAccountingE2EAccounts,
   createAccountingE2ERequestPolicy,
   recordAccountingE2EBrowserRuntimeError,
   type AccountingE2EBrowserRuntimeError,
   type AccountingE2ECredentials,
   type AccountingE2ERole,
+  type AccountingE2EWidthSnapshot,
 } from "../lib/accounting e2e safety";
 
 const approvedOrigin = accountingE2EBaseUrl(process.env);
@@ -130,24 +132,34 @@ async function expectPageFitsViewport(page: Page) {
 
   let previousWidths = "";
   let stableSince = 0;
-  let widths = { viewport: 0, document: 0, body: 0 };
+  let widths: AccountingE2EWidthSnapshot = {
+    viewport: 0,
+    document: 0,
+    body: 0,
+    shellMain: null,
+  };
   await expect
     .poll(
       async () => {
-        widths = await page.evaluate(() => ({
-          viewport: document.documentElement.clientWidth,
-          document: document.documentElement.scrollWidth,
-          body: document.body.scrollWidth,
-        }));
-        const currentWidths = `${widths.viewport}:${widths.document}:${widths.body}`;
+        widths = await page.evaluate(() => {
+          const shellMain = document.querySelector<HTMLElement>(".fos-appshell__main");
+          return {
+            viewport: document.documentElement.clientWidth,
+            document: document.documentElement.scrollWidth,
+            body: document.body.scrollWidth,
+            shellMain: shellMain
+              ? { client: shellMain.clientWidth, scroll: shellMain.scrollWidth }
+              : null,
+          };
+        });
+        const currentWidths = JSON.stringify(widths);
         const now = Date.now();
         if (currentWidths !== previousWidths) {
           previousWidths = currentWidths;
           stableSince = now;
         }
         return (
-          widths.viewport > 0 &&
-          Math.max(widths.document, widths.body) <= widths.viewport &&
+          accountingE2EWidthSnapshotFits(widths) &&
           now - stableSince >= 300
         );
       },
@@ -158,8 +170,7 @@ async function expectPageFitsViewport(page: Page) {
       },
     )
     .toBe(true);
-  expect(widths.viewport).toBeGreaterThan(0);
-  expect(Math.max(widths.document, widths.body)).toBeLessThanOrEqual(widths.viewport);
+  expect(accountingE2EWidthSnapshotFits(widths)).toBe(true);
 }
 
 async function gotoReadOnly(page: Page, path: string) {

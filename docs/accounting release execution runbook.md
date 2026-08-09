@@ -5,10 +5,10 @@
 **Canonical branch:** `validation/accounting-release-current-main-20260808`
 **Scope:** the manifest-bound accounting application, documentation, tests, and twenty-one pending migrations.
 
-**Local mobile follow-up:** the uncommitted branch `validation/accounting-mobile-acceptance-20260809` contains the
-locally validated and independently approved 44-test desktop/mobile role gate. It is not the canonical branch and
-this modified runbook is not externally usable until the canonical branch is fast-forwarded to its integration
-commit.
+**Local mobile follow-up:** the locally committed branch `validation/accounting-mobile-acceptance-20260809`
+contains the validated 44-test desktop/mobile role gate. Exact-commit review found and prompted correction of a
+shell-contained overflow false pass; the corrected tip still requires exact-commit rereview. It is not canonical
+or externally usable until approval and canonical-branch fast-forward.
 
 This runbook is a checklist, not authorization. Committing, pushing, opening or merging a PR, applying a
 migration, deploying, reading production, running credentialed acceptance, and changing business rows each

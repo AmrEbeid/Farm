@@ -4,17 +4,19 @@
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-09 — mobile accounting role acceptance: LOCAL / UNCOMMITTED / VALIDATED / INDEPENDENTLY APPROVED.** A separate follow-up
+**2026-08-09 — mobile accounting role acceptance: LOCAL / COMMITTED / VALIDATED / REREVIEW REQUIRED.** A separate follow-up
 worktree at exact PR #1008 head adds a pinned Pixel 7 Chromium project beside Desktop Chrome and routes every
 direct navigation through a settled page-level horizontal-overflow assertion, repeated after each workflow's final
 rendered state. The unchanged 22 owner/accountant/denied-role workflows now discover as exactly 44 tests, 22 per
-viewport. Focused safety/source-contract Vitest passes 22/22; full Vitest passes 1,745 with 14 controlled skips,
+viewport. The width oracle now also measures the authenticated shell's real scrolling main element and a negative
+fixture proves that shell-contained overflow fails even when the root document fits. Focused safety/source-contract
+Vitest passes 23/23; full Vitest passes 1,746 with 14 controlled skips,
 TypeScript and scoped ESLint pass, `npm audit` reports zero vulnerabilities, the production build generates 63/63
 pages, the 220-file working-tree preflight passes, and synthetic discovery lists exactly 44 tests without executing
-them. The first independent review's P2/P3/P4 findings were corrected; exact-byte rereview returned APPROVE with
-no P1-P4 finding. No credentialed browser run occurred. The canonical release branch remains
-`validation/accounting-release-current-main-20260808`; this commit is the independently approved integration unit
-and becomes canonical only when that branch is fast-forwarded to it.
+them. Exact-commit review of local integration commit `ccdc915` found the shell-overflow P2 and stale commit-state
+P3 now corrected in this follow-up; the corrected tip still requires exact-commit rereview. No credentialed browser
+run occurred. The canonical release branch remains `validation/accounting-release-current-main-20260808`; the
+corrected tip becomes canonical only after approval and fast-forward integration.
 
 **2026-08-07/08 — accounting release stack + C-4 custody correction: INTEGRATED / INDEPENDENTLY APPROVED / NOT RELEASED.**
 The canonical validation branch `validation/accounting-release-current-main-20260808` is based on exact current

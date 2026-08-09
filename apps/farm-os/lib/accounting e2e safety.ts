@@ -30,6 +30,24 @@ export const ACCOUNTING_E2E_BROWSER_RUNTIME_ERROR = {
 export type AccountingE2EBrowserRuntimeError =
   (typeof ACCOUNTING_E2E_BROWSER_RUNTIME_ERROR)[keyof typeof ACCOUNTING_E2E_BROWSER_RUNTIME_ERROR];
 
+export type AccountingE2EWidthSnapshot = {
+  viewport: number;
+  document: number;
+  body: number;
+  shellMain: { client: number; scroll: number } | null;
+};
+
+export function accountingE2EWidthSnapshotFits(
+  widths: AccountingE2EWidthSnapshot,
+): boolean {
+  if (widths.viewport <= 0) return false;
+  if (Math.max(widths.document, widths.body) > widths.viewport) return false;
+  return (
+    widths.shellMain === null ||
+    (widths.shellMain.client > 0 && widths.shellMain.scroll <= widths.shellMain.client)
+  );
+}
+
 export function recordAccountingE2EBrowserRuntimeError(
   errors: AccountingE2EBrowserRuntimeError[],
   category: unknown,
