@@ -36,8 +36,8 @@ is_replay_safe_migration() {
     20260808070000_month_close_exact_summary.sql | \
     20260808080000_cost_center_history_summary.sql | \
     20260808100000_custody_movement_reversal.sql | \
-    "20260808130000 receivable workflow exact money.sql" | \
-    "20260808140000 exact revenue report transport.sql") return 0 ;;
+    20260808130000_receivable_workflow_exact_money.sql | \
+    20260808140000_exact_revenue_report_transport.sql) return 0 ;;
     *) return 1 ;;
   esac
 }
