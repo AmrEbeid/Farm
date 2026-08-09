@@ -5,6 +5,11 @@
 **Canonical branch:** `validation/accounting-release-current-main-20260808`
 **Scope:** the manifest-bound accounting application, documentation, tests, and twenty-one pending migrations.
 
+**Local mobile follow-up:** the uncommitted branch `validation/accounting-mobile-acceptance-20260809` contains the
+locally validated and independently approved 44-test desktop/mobile role gate. It is not the canonical branch and
+this modified runbook is not externally usable until the canonical branch is fast-forwarded to its integration
+commit.
+
 This runbook is a checklist, not authorization. Committing, pushing, opening or merging a PR, applying a
 migration, deploying, reading production, running credentialed acceptance, and changing business rows each
 remain separately Owner-approved. Stop when an approval does not name the exact next action.
@@ -103,8 +108,11 @@ The actor who prepared the candidate must not silently substitute for the Owner 
 3. For a production read, obtain explicit Owner approval for that invocation and run the read-only wrapper with
    its production acknowledgement flag. Never bypass its localhost, origin, method, service-worker, WebSocket, or
    environment guards.
-4. Require all 22 discovered browser tests to pass. The suite must not stage, decide, freeze, approve, execute,
-   roll back, or otherwise write financial data.
+4. Once the mobile follow-up is integrated into the canonical candidate, require all 44 discovered browser tests to
+   pass: the same 22 workflows on Desktop Chrome and pinned Pixel 7 Chromium. Each workflow must pass its settled
+   final-state page-level horizontal-overflow assertion. Until then, the canonical branch retains its reviewed
+   desktop-only gate. The suite must not stage, decide, freeze, approve, execute, roll back, or otherwise write
+   financial data.
 5. Treat missing credentials, a blocked request, an unexpected redirect, an unreadable statement PDF, or a role
    mismatch as a failed release gate.
 

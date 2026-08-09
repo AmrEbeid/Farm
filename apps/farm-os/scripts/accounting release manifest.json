@@ -187,7 +187,7 @@
     "package-lock.json",
     "package.json"
   ],
-  "candidateDigest": "3e458f7d5c0bddbe89ac78b0d7d425618106982da3d554b65fe303520c882a53",
+  "candidateDigest": "8a4e89ef6786bab98612c667030336cf7013fcffce3ea0b20002acf120406678",
   "artifactModesDigest": "1eb6a7ab5af4b29fb80e6e25124fbd9add1a4fe51424c21d20d151159d1c8b54",
   "migrations": [
     {

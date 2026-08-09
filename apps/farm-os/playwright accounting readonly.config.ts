@@ -33,7 +33,10 @@ export default defineConfig({
     // post-login mutation guard complete instead of leaving a second network path around it.
     serviceWorkers: "block",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
+  ],
   webServer: {
     command: `npm run build && npm run start -- -p ${local.port}`,
     url: `${baseURL}/login`,

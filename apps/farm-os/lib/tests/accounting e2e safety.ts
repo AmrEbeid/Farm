@@ -392,7 +392,23 @@ describe("accounting read-only E2E source contract", () => {
   });
 
   it("installs the mutation guard and never interacts with financial action controls", () => {
-    const loginGoto = spec.indexOf('await page.goto("/login")');
+    const functionBlock = (name: string, nextName: string) => {
+      const start = spec.indexOf(`async function ${name}`);
+      const endMarker = nextName.startsWith("for (") ? nextName : `async function ${nextName}`;
+      const end = spec.indexOf(endMarker, start + 1);
+      expect(start).toBeGreaterThanOrEqual(0);
+      expect(end).toBeGreaterThan(start);
+      return spec.slice(start, end);
+    };
+    const expectOrdered = (source: string, markers: readonly string[]) => {
+      let cursor = -1;
+      for (const marker of markers) {
+        const index = source.indexOf(marker, cursor + 1);
+        expect(index).toBeGreaterThan(cursor);
+        cursor = index;
+      }
+    };
+    const loginGoto = spec.indexOf('await gotoReadOnly(page, "/login")');
     const firstOriginCheck = spec.indexOf("expect(new URL(page.url()).origin).toBe(approvedOrigin)");
     const credentialFill = spec.indexOf('page.locator("#email").fill');
     const dashboardWait = spec.indexOf("await page.waitForURL");
@@ -414,10 +430,10 @@ describe("accounting read-only E2E source contract", () => {
     expect(spec).toContain("await expectAuthenticatedIdentity(page, credentialsByRole[role], roleLabels[role])");
     expect(spec).toContain("await expectAuthenticatedIdentity(page, credentialsByRole.denied, roleLabels[deniedRole])");
     expect(spec).toContain("dashboard\\/manager|m|inventory\\/dashboard");
-    expect(spec).toContain('await page.goto("/finance/close")');
+    expect(spec).toContain('await gotoReadOnly(page, "/finance/close")');
     expect(spec).toContain('page.getByRole("heading", { name: "إقفال الشهر" })');
     expect(spec).toContain("async function verifyCostCenterReportModes(page: Page)");
-    expect(spec).toContain('await page.goto("/finance/reports?view=history")');
+    expect(spec).toContain('await gotoReadOnly(page, "/finance/reports?view=history")');
     expect(spec).toContain('name: "المصفوفة: الحساب × السنة × المركز"');
     expect(spec).toContain("`${role} can read both cost-center report modes`");
     expect(spec).toContain("page.locator('input[name=\"period_start\"]')");
@@ -462,6 +478,83 @@ describe("accounting read-only E2E source contract", () => {
     expect(spec).toContain("await test.step(`deny ${route.path}`");
     expect(config).toContain('serviceWorkers: "block"');
     expect(config).toContain('trace: "off"');
+    expect(config).toContain('{ name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } }');
+    expect(config).toContain('{ name: "mobile-chromium", use: { ...devices["Pixel 7"] } }');
+    expect(spec).toContain("async function gotoReadOnly(page: Page, path: string)");
+    expect(spec).toContain("await page.evaluate(() => document.fonts.ready)");
+    expect(spec).toContain("now - stableSince >= 300");
+    expect(spec).toContain("intervals: [100]");
+    expect(spec).toContain("document.documentElement.clientWidth");
+    expect(spec).toContain("document.documentElement.scrollWidth");
+    expect(spec).toContain("document.body.scrollWidth");
+    expect(spec).toContain("Math.max(widths.document, widths.body)");
+    expect(spec).toContain("Math.max(widths.document, widths.body)).toBeLessThanOrEqual(widths.viewport)");
+    expect(spec.match(/page\.goto\(/g)).toHaveLength(1);
+    expectOrdered(functionBlock("gotoReadOnly", "login"), [
+      "await page.goto(path)",
+      "await expectPageFitsViewport(page)",
+    ]);
+    expectOrdered(functionBlock("login", "expectAuthenticatedIdentity"), [
+      "await page.waitForURL",
+      "expect(new URL(page.url()).origin).toBe(approvedOrigin)",
+      "await expectPageFitsViewport(page)",
+    ]);
+    expectOrdered(functionBlock("expectAuthenticatedIdentity", "verifyMonthCloseReadOnly"), [
+      'toHaveText(roleLabel)',
+      "await expectPageFitsViewport(page)",
+    ]);
+    expectOrdered(functionBlock("verifyMonthCloseReadOnly", "verifyAccountingReads"), [
+      'page.getByText("مراجعة القوائم قبل القفل", { exact: true })',
+      "await expectPageFitsViewport(page)",
+    ]);
+    expectOrdered(functionBlock("verifyAccountingReads", "verifyFinanceRoleIdentity"), [
+      'name: route.heading, exact: true })).toBeVisible()',
+      "await expectPageFitsViewport(page)",
+    ]);
+    expectOrdered(functionBlock("verifyMoneyEntryForms", "expectPdfDownload"), [
+      'page.getByText(heading, { exact: typeof heading === "string" }).first()',
+      'await expect(page.locator("#w-pay")).toHaveValue(expectedPayment)',
+      "await expectPageFitsViewport(page)",
+    ]);
+    expectOrdered(functionBlock("verifyStatementDownloads", "verifyCostCenterReportModes"), [
+      'name: "تنزيل حزمة PDF", exact: true })).toBeVisible()',
+      "await expectPageFitsViewport(page)",
+      'await expectPdfDownload(page, "تنزيل حزمة PDF")',
+      'name: "تنزيل PDF", exact: true })).toBeVisible()',
+      "await expectPageFitsViewport(page)",
+      'await expectPdfDownload(page, "تنزيل PDF")',
+    ]);
+    expectOrdered(functionBlock("verifyCostCenterReportModes", "verifyAccountingControls"), [
+      'name: "ملخص سريع", exact: true',
+      "await expectPageFitsViewport(page)",
+      'name: "المصفوفة: الحساب × السنة × المركز"',
+      "await expectPageFitsViewport(page)",
+    ]);
+    expectOrdered(functionBlock("verifyAccountingControls", "for (const role"), [
+      'name: "دفعات التسوية"',
+      "await expectPageFitsViewport(page)",
+      'name: "تقرير القبول"',
+      "await expectPageFitsViewport(page)",
+      'toHaveValue("missing_source_amount")',
+      "await expectPageFitsViewport(page)",
+      'name: /تقرير قبول التسوية/',
+      "await expectPageFitsViewport(page)",
+    ]);
+    const deniedRoutes = spec.slice(
+      spec.indexOf("for (const [group, routes] of Object.entries(FINANCE_ONLY_READ_GROUPS))"),
+      spec.indexOf('test("a non-finance role is denied finance-only money-entry forms"'),
+    );
+    expectOrdered(deniedRoutes, [
+      'name: route.heading, exact: true })).toHaveCount(0)',
+      "await expectPageFitsViewport(page)",
+    ]);
+    const deniedForms = spec.slice(
+      spec.indexOf('test("a non-finance role is denied finance-only money-entry forms"'),
+    );
+    expectOrdered(deniedForms, [
+      "await expect(page).toHaveURL",
+      "await expectPageFitsViewport(page)",
+    ]);
     expect(config).toContain("timeout: 180_000");
     expect(config).toContain("reuseExistingServer: false");
     expect(config).toContain("...accountingE2ESanitizedChildEnvironment(process.env)");

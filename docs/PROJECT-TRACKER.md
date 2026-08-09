@@ -1,4 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-09 by Codex (accounting release evidence refreshed — LOCAL)
+# Project Tracker — Farm OS      Last updated: 2026-08-09 by Codex (mobile accounting integration candidate — LOCAL)
+
+> **2026-08-09 — MOBILE ACCOUNTING ACCEPTANCE EXTENSION LOCAL / UNCOMMITTED / VALIDATED / INDEPENDENTLY APPROVED.** An isolated
+> follow-up at exact PR #1008 head runs the same 22 read-only role workflows on Desktop Chrome and pinned Pixel 7
+> Chromium, for exactly 44 discovered tests, and checks settled page-level horizontal overflow after navigation and
+> each workflow's final rendered state. Focused safety tests pass 22/22; full Vitest passes 1,745 with 14 controlled
+> skips, TypeScript/scoped ESLint/audit/build pass, the 220-file working-tree preflight passes, and synthetic
+> discovery lists exactly 44 tests without running them. The first independent review's P2/P3/P4 findings were
+> corrected and exact-byte rereview returned APPROVE with no P1-P4 finding. No credentialed run, production read,
+> commit, push, PR, migration, merge or deploy occurred. The
+> canonical release branch remains `validation/accounting-release-current-main-20260808`. These changes refresh
+> the manifest-bound candidate digest. This commit is the independently approved integration unit and replaces
+> the desktop-only candidate only after the canonical branch is fast-forwarded to it.
 
 > **2026-08-07/08 — COMBINED ACCOUNTING RELEASE REHEARSAL + C-4 LOCALLY GREEN / OWNER-GATED.**
 > The canonical integration worktree is based on exact current `origin/main` `07b1224`, including the already-live

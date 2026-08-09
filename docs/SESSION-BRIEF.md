@@ -1,5 +1,21 @@
-# Session Brief — Farm OS      Updated: 2026-08-09 by Codex (accounting release evidence refreshed — LOCAL)
+# Session Brief — Farm OS      Updated: 2026-08-09 by Codex (mobile accounting integration candidate — LOCAL)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-09 — mobile accounting role acceptance — LOCAL / UNCOMMITTED / VALIDATED / INDEPENDENTLY APPROVED
+
+An isolated follow-up based on exact PR #1008 head `3e7fa973` adds pinned Pixel 7 Chromium beside Desktop Chrome.
+Every direct route navigation now passes through one helper that waits for fonts and settled layout, then checks
+page-level horizontal overflow; the assertion repeats after each workflow's final rendered state. The existing 22
+owner/accountant/denied-role workflows are unchanged and discover as exactly 44 tests, 22 per viewport. Focused
+safety/source-contract Vitest passes 22/22; full Vitest passes 1,745 with 14 controlled skips, TypeScript and scoped
+ESLint pass, `npm audit` reports zero vulnerabilities, the production build generates 63/63 pages, the 220-file
+working-tree preflight passes, and synthetic discovery lists but does not execute the 44 tests. The first
+independent review's P2/P3/P4 findings were corrected and exact-byte rereview returned APPROVE with no P1-P4
+finding. No credentialed
+run occurred because approved invocation credentials and a denied-role account remain unavailable. No production
+read, user/role change, commit, push, PR, migration, merge or deployment occurred. The canonical release branch
+remains `validation/accounting-release-current-main-20260808`; this commit is the independently approved
+integration unit and supersedes the desktop-only candidate only after that branch is fast-forwarded to it.
 
 ## 2026-08-07/08 — combined accounting release rehearsal + C-4 — INDEPENDENTLY APPROVED / NOT RELEASED
 

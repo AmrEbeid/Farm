@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-09 mobile role-acceptance follow-up — LOCAL / UNCOMMITTED / VALIDATED / INDEPENDENTLY APPROVED.** Exact PR #1008 head now
+> has an isolated follow-up that runs the same 22 read-only accounting workflows on Desktop Chrome and pinned Pixel
+> 7 Chromium, discovering exactly 44 tests, with a settled page-level horizontal-overflow assertion after navigation
+> and each workflow's final rendered state. Focused safety tests pass 22/22; full Vitest passes 1,745 with 14
+> controlled skips, TypeScript/scoped ESLint/audit/build pass, the 220-file working-tree preflight passes, and
+> synthetic discovery lists exactly 44 tests without executing them. The first review's P2/P3/P4 findings were
+> corrected and exact-byte rereview returned APPROVE with no P1-P4 finding. It has not run with credentials and is
+> not deployed. The canonical release branch remains `validation/accounting-release-current-main-20260808`; this
+> commit becomes its independently approved mobile integration only after that branch is fast-forwarded to it.
+
 > **2026-08-07/08 (latest local state) — combined accounting release stack + C-4 NOT RELEASED.**
 > The canonical worktree is based on exact current `origin/main` `07b1224`, including the already-live Owner-site
 > release. Twenty-one accounting migrations remain pending in strict order:
@@ -88,17 +98,18 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > The canonical accounting acceptance runbook fixes the human handoff from 698-row review through final
 > accountant/Owner signatures and the existing whole-batch rollback path. It is procedural only and authorizes
 > no row, release, execution or production action.
-> The accounting release execution runbook now sequences exact-commit CI, the twenty-one migrate-first versions,
-> forward-only recovery, 22-test role acceptance, separate merge/deployment approvals, deployment verification,
-> and the human handoff. It keeps migration-history issue #903 separate. Independent rereview returned APPROVE
-> with no P1-P4 finding.
+> The independently approved accounting release execution runbook sequences exact-commit CI, the twenty-one
+> migrate-first versions, forward-only recovery, desktop/mobile role acceptance, separate merge/deployment
+> approvals, deployment verification and the human handoff. It keeps migration-history issue #903 separate. The
+> local 44-test extension has exact-byte independent approval and becomes canonical after branch integration.
 > The approved money-direction launcher is also integrated locally. It groups actions by cash in, cash out,
 > on-account, pre-collection sales and farm operations; splits custody-paid and later-paid expense cards; scopes
 > all expense picker reads to the active organization; and fails closed on loader errors. The cost-center shortcut
 > explicitly presets custody. The read-only suite now advances both preset URLs to step 3 and verifies the actual
 > payment selector value without submitting; its installed request policy remains the runtime mutation guard.
 > Two source-contract review rounds tightened the exact two-click and guard-invocation proof; final narrow
-> rereview returned APPROVE, and synthetic discovery remains 22 tests. No posting action, RPC, schema or migration changed.
+> rereview returned APPROVE for the original desktop slice; exact-byte rereview also approved the 44-test mobile
+> extension. No posting action, RPC, schema or migration changed.
 > The queue's six whole-batch KPI cards are also exact shortcuts to all/unreviewed/included/held/rejected/frozen
 > populations. They reset unrelated filters and page state, expose label plus count to assistive technology, and
 > are independently APPROVE after pinning each label/count/state tuple.
@@ -117,13 +128,14 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > build and clean migration,
 > artifact and whitespace checks. Package drift is confined to the reviewed dependency override/lock update.
 > The concurrency migration is transactional and replay-tested; exact
-> money is transported as decimal text; and the 22-test role harness is local-only with browser and Next-server
+> money is transported as decimal text; and the proposed 44-test desktop/mobile role harness is local-only with browser and Next-server
 > read containment. Its allowlisting wrapper strips privileged variables, refuses Next `.env*` files, creates a
 > private single-use 30-second acknowledgement for an explicitly approved Farm production read, and builds fresh
 > under the scrubbed environment. Synthetic discovery covers the daily hubs, scale and money-entry forms,
 > accounting/report routes, reconciliation/close, denied-role redirects, and two statement downloads whose exact
 > successful responses, attachment headers, opening signature and final EOF are checked. Independent review's
-> false-PDF and credential-log findings were corrected; final rereview APPROVE. No credentialed role execution is claimed.
+> false-PDF and credential-log findings were corrected for the original desktop harness; exact-byte rereview also
+> approved the mobile extension. No credentialed role execution is claimed.
 > Independent safety re-review returned APPROVE with no P1-P3 finding; its one historical-doc P4 was corrected.
 > C-4 review
 > then found lock-order, malformed-link bypass and future-date risks; all were corrected, damaged replay was

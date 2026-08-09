@@ -125,15 +125,58 @@ async function installRequestGuard(page: Page) {
   });
 }
 
+async function expectPageFitsViewport(page: Page) {
+  await page.evaluate(() => document.fonts.ready);
+
+  let previousWidths = "";
+  let stableSince = 0;
+  let widths = { viewport: 0, document: 0, body: 0 };
+  await expect
+    .poll(
+      async () => {
+        widths = await page.evaluate(() => ({
+          viewport: document.documentElement.clientWidth,
+          document: document.documentElement.scrollWidth,
+          body: document.body.scrollWidth,
+        }));
+        const currentWidths = `${widths.viewport}:${widths.document}:${widths.body}`;
+        const now = Date.now();
+        if (currentWidths !== previousWidths) {
+          previousWidths = currentWidths;
+          stableSince = now;
+        }
+        return (
+          widths.viewport > 0 &&
+          Math.max(widths.document, widths.body) <= widths.viewport &&
+          now - stableSince >= 300
+        );
+      },
+      {
+        message: "page width must remain stable and fit the viewport for 300ms",
+        timeout: 3_000,
+        intervals: [100],
+      },
+    )
+    .toBe(true);
+  expect(widths.viewport).toBeGreaterThan(0);
+  expect(Math.max(widths.document, widths.body)).toBeLessThanOrEqual(widths.viewport);
+}
+
+async function gotoReadOnly(page: Page, path: string) {
+  await page.goto(path);
+  await expectPageFitsViewport(page);
+}
+
 async function login(page: Page, credentials: AccountingE2ECredentials) {
   await installRequestGuard(page);
-  await page.goto("/login");
+  await gotoReadOnly(page, "/login");
   expect(new URL(page.url()).origin).toBe(approvedOrigin);
   await page.locator("#email").fill(credentials.email);
   await page.locator("#password").fill(credentials.password);
   await page.getByRole("button", { name: "دخول", exact: true }).click();
   await page.waitForURL(/\/dashboard(?:[/?#]|$)/, { timeout: 20_000 });
   expect(new URL(page.url()).origin).toBe(approvedOrigin);
+  await expectPageFitsViewport(page);
 }
 
 async function expectAuthenticatedIdentity(
@@ -141,7 +184,7 @@ async function expectAuthenticatedIdentity(
   credentials: AccountingE2ECredentials,
   roleLabel: string,
 ) {
-  await page.goto("/profile");
+  await gotoReadOnly(page, "/profile");
   expect(new URL(page.url()).origin).toBe(approvedOrigin);
   await expect(page.getByRole("heading", { name: "الملف الشخصي", exact: true })).toBeVisible();
   const details = page.locator("dl");
@@ -149,10 +192,11 @@ async function expectAuthenticatedIdentity(
     credentials.email,
   );
   await expect(details.locator("dt", { hasText: "الدور" }).locator("+ dd")).toHaveText(roleLabel);
+  await expectPageFitsViewport(page);
 }
 
 async function verifyMonthCloseReadOnly(page: Page) {
-  await page.goto("/finance/close");
+  await gotoReadOnly(page, "/finance/close");
   await expect(page).toHaveURL(/\/finance\/close(?:[/?#]|$)/);
   await expect(page.getByRole("heading", { name: "إقفال الشهر" })).toBeVisible();
   await expect(page.getByText(/لقطة دقيقة من الدفاتر الحية من 2026-07-01 إلى \d{4}-\d{2}-\d{2}/)).toBeVisible();
@@ -183,15 +227,17 @@ async function verifyMonthCloseReadOnly(page: Page) {
     await expect(readyButton).toBeEnabled();
     await expect(page.getByText("مراجعة القوائم قبل القفل", { exact: true })).toBeVisible();
   }
+  await expectPageFitsViewport(page);
 }
 
 async function verifyAccountingReads(page: Page, routes: readonly AccountingReadRoute[]) {
   for (const route of routes) {
     await test.step(`read ${route.path}`, async () => {
-      await page.goto(route.path);
+      await gotoReadOnly(page, route.path);
       expect(new URL(page.url()).origin).toBe(approvedOrigin);
       await expect(page).toHaveURL(new RegExp(`${route.path.replaceAll("/", "\\/")}(?:[/?#]|$)`));
       await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
+      await expectPageFitsViewport(page);
     });
   }
 }
@@ -213,7 +259,7 @@ async function verifyMoneyEntryForms(page: Page) {
     ["/record/collect", /حصّلت فلوسًا من عميل|لا مبيعات عليها مستحقات الآن/],
   ];
   for (const [path, heading, expectedPayment] of forms) {
-    await page.goto(path);
+    await gotoReadOnly(page, path);
     expect(new URL(page.url()).origin).toBe(approvedOrigin);
     await expect(
       page.getByText(heading, { exact: typeof heading === "string" }).first(),
@@ -225,6 +271,7 @@ async function verifyMoneyEntryForms(page: Page) {
       await page.getByRole("button", { name: "التالي ←", exact: true }).click();
       await expect(page.locator("#w-pay")).toHaveValue(expectedPayment);
     }
+    await expectPageFitsViewport(page);
   }
 }
 
@@ -272,20 +319,25 @@ async function expectPdfDownload(page: Page, linkName: string) {
 }
 
 async function verifyStatementDownloads(page: Page) {
-  await page.goto("/finance/income-statement");
+  await gotoReadOnly(page, "/finance/income-statement");
+  await expect(page.getByRole("link", { name: "تنزيل حزمة PDF", exact: true })).toBeVisible();
+  await expectPageFitsViewport(page);
   await expectPdfDownload(page, "تنزيل حزمة PDF");
 
-  await page.goto("/finance/balance-sheet");
+  await gotoReadOnly(page, "/finance/balance-sheet");
+  await expect(page.getByRole("link", { name: "تنزيل PDF", exact: true })).toBeVisible();
+  await expectPageFitsViewport(page);
   await expectPdfDownload(page, "تنزيل PDF");
 }
 
 async function verifyCostCenterReportModes(page: Page) {
-  await page.goto("/finance/reports");
+  await gotoReadOnly(page, "/finance/reports");
   await expect(page.getByRole("heading", { name: "تقارير مراكز التكلفة", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "ملخص سريع", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page.getByText("المصفوفة: الحساب × السنة × المركز", { exact: true })).toHaveCount(0);
+  await expectPageFitsViewport(page);
 
-  await page.goto("/finance/reports?view=history");
+  await gotoReadOnly(page, "/finance/reports?view=history");
   await expect(page).toHaveURL(/\/finance\/reports\?view=history$/);
   await expect(page.getByRole("link", { name: "التحليل السنوي", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(
@@ -294,26 +346,31 @@ async function verifyCostCenterReportModes(page: Page) {
       exact: true,
     }),
   ).toBeVisible();
+  await expectPageFitsViewport(page);
 }
 
 async function verifyAccountingControls(page: Page) {
-  await page.goto("/finance/reconciliation");
+  await gotoReadOnly(page, "/finance/reconciliation");
   await expect(page.getByRole("heading", { name: "مراجعة التسويات" })).toBeVisible();
   await expect(page.getByRole("table", { name: "دفعات التسوية" })).toBeVisible();
+  await expectPageFitsViewport(page);
 
   const detailPath = `/finance/reconciliation/${encodeURIComponent(batchId)}`;
-  await page.goto(detailPath);
+  await gotoReadOnly(page, detailPath);
   await expect(page).toHaveURL(new RegExp(`${batchId}$`));
   await expect(page.getByText("الصفوف", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "تقرير القبول" })).toBeVisible();
+  await expectPageFitsViewport(page);
 
-  await page.goto(`${detailPath}?quality=missing_source_amount`);
+  await gotoReadOnly(page, `${detailPath}?quality=missing_source_amount`);
   await expect(page).toHaveURL(/quality=missing_source_amount/);
   await expect(page.locator("#quality")).toHaveValue("missing_source_amount");
+  await expectPageFitsViewport(page);
 
   await page.getByRole("link", { name: "تقرير القبول" }).click();
   await expect(page).toHaveURL(new RegExp(`${batchId}/acceptance$`));
   await expect(page.getByRole("heading", { name: /تقرير قبول التسوية/ })).toBeVisible();
+  await expectPageFitsViewport(page);
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),
@@ -355,9 +412,10 @@ for (const [group, routes] of Object.entries(FINANCE_ONLY_READ_GROUPS)) {
     await expectAuthenticatedIdentity(page, credentialsByRole.denied, roleLabels[deniedRole]);
     for (const route of routes) {
       await test.step(`deny ${route.path}`, async () => {
-        await page.goto(route.path);
+        await gotoReadOnly(page, route.path);
         await expect(page).toHaveURL(/\/(?:dashboard\/manager|m|inventory\/dashboard)(?:[/?#]|$)/);
         await expect(page.getByRole("heading", { name: route.heading, exact: true })).toHaveCount(0);
+        await expectPageFitsViewport(page);
       });
     }
   });
@@ -367,8 +425,9 @@ test("a non-finance role is denied finance-only money-entry forms", async ({ pag
   await login(page, credentialsByRole.denied);
   await expectAuthenticatedIdentity(page, credentialsByRole.denied, roleLabels[deniedRole]);
   for (const path of ["/record/expense", "/record/custody-in", "/record/collect", "/record/price"]) {
-    await page.goto(path);
+    await gotoReadOnly(page, path);
     expect(new URL(page.url()).origin).toBe(approvedOrigin);
     await expect(page).toHaveURL(/\/(?:dashboard\/manager|m|inventory\/dashboard)(?:[/?#]|$)/);
+    await expectPageFitsViewport(page);
   }
 });
