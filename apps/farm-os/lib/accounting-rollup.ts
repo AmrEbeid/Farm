@@ -41,3 +41,38 @@ export function subtreeNetByCode(
   }
   return sum;
 }
+
+export function subtreeNetByCodeExact(
+  accounts: AccountTreeRow[],
+  trialBalance: AccountNetRow[],
+  code: string,
+  orgId?: string | null,
+): DecimalString {
+  const scopedAccounts = orgId ? accounts.filter((account) => account.org_id === orgId) : accounts;
+  const root = scopedAccounts.find((account) => account.code === code);
+  if (!root) return "0";
+
+  const childrenByParent = new Map<string, string[]>();
+  for (const account of scopedAccounts) {
+    if (!account.parent_id) continue;
+    const siblings = childrenByParent.get(account.parent_id) ?? [];
+    siblings.push(account.id);
+    childrenByParent.set(account.parent_id, siblings);
+  }
+
+  const netByAccountId = new Map(trialBalance.map((row) => [row.account_id, row.net]));
+  const values: unknown[] = [];
+  const stack = [root.id];
+  const seen = new Set<string>();
+  while (stack.length > 0) {
+    const id = stack.pop() as string;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    values.push(netByAccountId.get(id) ?? "0");
+    for (const child of childrenByParent.get(id) ?? []) stack.push(child);
+  }
+  const summary = sumDecimals(values);
+  if (summary.hasUnknown) throw new Error("accounting rollup: subtree contains unreadable money");
+  return summary.total;
+}
+import { sumDecimals, type DecimalString } from "./decimal";

@@ -1,15 +1,29 @@
 # Stage 0 — Legacy Secret Remediation Runbook
 
-**Status: PARTIAL — A–C OPEN; D COMPLETE.** Steps A–C concern the **legacy** system (the old repo + the
-accounting spreadsheet); step D (added 2026-07-28) covers the shared demo credential that was committed and
+**Status: PARTIAL — WORKBOOK SCRUBBED; OLD-SYSTEM KEY/HISTORY AND GOOGLE CONTROLS OPEN; D COMPLETE.**
+Steps A–C concern the **legacy** system (the old repo + the accounting spreadsheet); step D (added 2026-07-28)
+covers the shared demo credential that was committed and
 client-bundled in the new `apps/farm-os` build. Production financial data is already live, so this
 remediation is overdue. Close it before any further real Ebeid/PII import or identity onboarding.
 **Owner-executed** where steps touch external systems or live identities. This is the exact runbook
 (referenced from `OWNER-DECISIONS-2026-06-24.md` §3).
 
+### 2026-08-06 remediation evidence
+
+- Credential cells were cleared from the known parsed workbook/archive copies. A structured scan found no
+  known credential, adjacent-password or legacy account-label hit afterward; 88 parser failures remain explicit
+  and are not claimed clean.
+- Canonical workbook and exception-evidence SHA-256 pins were rotated. Canonical validation passes 102/102; a
+  private-corpus verifier compares 149,593 retained cells, permits only the two credential cells to disappear,
+  and proves 33,751 formulas unchanged. Redacted or absent cached formula results are disclosed rather than
+  claimed value-compared. The existing 698-row production batch remains untouched.
+- The pin remediation is included in the locally green 2026-08-07 accounting release rehearsal. Old Farm key
+  retirement, old-source history cleanup, and Google password/2FA verification remain external controls.
+
 ## What's exposed (per the risk register)
 - An **anon key + project id** committed in the **old repo's** git history.
-- A **Gmail address + password** embedded in the **accounting spreadsheet**.
+- A **Gmail address + password** was embedded in the **accounting spreadsheet** and has been removed from every
+  parsed known copy; the Google account remains compromised until password rotation and 2FA are verified.
 - Treat all of the above as **compromised** until rotated/purged.
 
 ## Steps
@@ -69,7 +83,8 @@ As in step B: history purge is hygiene; **rotation/deletion is the real fix**.
 ## Verification (Definition of Done)
 - [ ] Old anon/service keys rotated or project deleted; old keys no longer authenticate.
 - [ ] Secret scan of the old repo (e.g. `gitleaks detect`) is clean on the new HEAD.
-- [ ] Spreadsheet credential removed; Google password rotated + 2FA on.
+- [x] Spreadsheet credential removed from all parsed known copies; 88 parser failures remain explicit.
+- [ ] Google password rotated and 2FA enabled and verified.
 - [x] Production `*@ebeid.test` and phone-only synthetic identities deleted with no dangling people/membership
       links; leaked-password protection enabled (D), verified 2026-08-05.
 - [ ] Risk-register entry flipped from 🔴 OPEN → closed in `PROJECT-TRACKER.md` / `MASTER-PLAN.md`.

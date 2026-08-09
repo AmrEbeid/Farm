@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { subtreeNetByCode } from "./accounting-rollup";
+import { subtreeNetByCode, subtreeNetByCodeExact } from "./accounting-rollup";
 
 describe("subtreeNetByCode", () => {
   it("rolls up only the requested org when duplicate account codes exist", () => {
@@ -24,5 +24,27 @@ describe("subtreeNetByCode", () => {
     ];
 
     expect(subtreeNetByCode(accounts, [{ account_id: "a", net: 1 }, { account_id: "b", net: 2 }], "5000", "org-a")).toBe(3);
+  });
+
+  it("rolls up exact decimal text without floating-point loss", () => {
+    const accounts = [
+      { id: "root", org_id: "org-a", code: "5000", parent_id: null },
+      { id: "archived-middle", org_id: "org-a", code: "5100", parent_id: "root" },
+      { id: "leaf-a", org_id: "org-a", code: "5110", parent_id: "archived-middle" },
+      { id: "leaf-b", org_id: "org-a", code: "5120", parent_id: "root" },
+    ];
+    const trialBalance = [
+      { account_id: "leaf-a", net: "100000000000000.01" },
+      { account_id: "leaf-b", net: "0.02" },
+    ];
+
+    expect(subtreeNetByCodeExact(accounts, trialBalance, "5000", "org-a"))
+      .toBe("100000000000000.03");
+  });
+
+  it("fails closed when an exact subtree contains unreadable money", () => {
+    const accounts = [{ id: "root", org_id: "org-a", code: "5000", parent_id: null }];
+    expect(() => subtreeNetByCodeExact(accounts, [{ account_id: "root", net: "bad" }], "5000", "org-a"))
+      .toThrow("subtree contains unreadable money");
   });
 });

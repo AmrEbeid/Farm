@@ -74,6 +74,12 @@ export const WHY_BY_CODE: Record<string, WhyEntry> = {
     explanation: "تعارض مؤقت (deadlock).",
     next: "أعد المحاولة.",
   },
+  "55P03": {
+    code: "55P03",
+    explanation: "بدأ إقفال الشهر بالتزامن مع تسجيل هذه الحركة.",
+    rule: "BR-133",
+    next: "انتظر لحظات حتى ينتهي الإقفال، ثم أعد المحاولة.",
+  },
   "57014": {
     code: "57014",
     explanation: "استغرقت العملية وقتًا طويلًا.",

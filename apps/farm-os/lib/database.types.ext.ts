@@ -17,7 +17,14 @@ type Public = Generated["public"];
 type Tables = Public["Tables"];
 
 /** Add the soft-delete flag to an existing generated table entry, preserving its relationships. */
-type WithArchived<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+type WithArchived<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
   Row: T["Row"] & { archived: boolean };
   Insert: T["Insert"] & { archived?: boolean };
   Update: T["Update"] & { archived?: boolean };
@@ -27,16 +34,39 @@ type WithArchived<T extends { Row: object; Insert: object; Update: object; Relat
 /** Relative operation scheduling (2026-07-01, migration 20260701350000): add the optional
  *  "depends on another operation" columns to the generated plan_operations table entry. Both
  *  nullable — most operations leave them unset and behave exactly as before. */
-type WithDependsOn<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
-  Row: T["Row"] & { depends_on_op_id: string | null; depends_on_offset_days: number | null };
-  Insert: T["Insert"] & { depends_on_op_id?: string | null; depends_on_offset_days?: number | null };
-  Update: T["Update"] & { depends_on_op_id?: string | null; depends_on_offset_days?: number | null };
+type WithDependsOn<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
+  Row: T["Row"] & {
+    depends_on_op_id: string | null;
+    depends_on_offset_days: number | null;
+  };
+  Insert: T["Insert"] & {
+    depends_on_op_id?: string | null;
+    depends_on_offset_days?: number | null;
+  };
+  Update: T["Update"] & {
+    depends_on_op_id?: string | null;
+    depends_on_offset_days?: number | null;
+  };
   Relationships: T["Relationships"];
 };
 
 /** Add the operation-vocabulary harvest_stage column (migration 20260701230000) to
  *  plan_operations, preserving its relationships. */
-type WithHarvestStage<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+type WithHarvestStage<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
   Row: T["Row"] & { harvest_stage: string | null };
   Insert: T["Insert"] & { harvest_stage?: string | null };
   Update: T["Update"] & { harvest_stage?: string | null };
@@ -45,10 +75,26 @@ type WithHarvestStage<T extends { Row: object; Insert: object; Update: object; R
 
 /** Add the soil-test-driven irrigation record-keeping columns (migration 20260701330000) to
  *  plan_operations, preserving its relationships. */
-type WithIrrigationBasis<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
-  Row: T["Row"] & { irrigation_basis: string | null; soil_moisture_reading: string | null };
-  Insert: T["Insert"] & { irrigation_basis?: string | null; soil_moisture_reading?: string | null };
-  Update: T["Update"] & { irrigation_basis?: string | null; soil_moisture_reading?: string | null };
+type WithIrrigationBasis<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
+  Row: T["Row"] & {
+    irrigation_basis: string | null;
+    soil_moisture_reading: string | null;
+  };
+  Insert: T["Insert"] & {
+    irrigation_basis?: string | null;
+    soil_moisture_reading?: string | null;
+  };
+  Update: T["Update"] & {
+    irrigation_basis?: string | null;
+    soil_moisture_reading?: string | null;
+  };
   Relationships: T["Relationships"];
 };
 
@@ -57,7 +103,14 @@ type WithIrrigationBasis<T extends { Row: object; Insert: object; Update: object
  *  `unit` is set iff mode='piece' (people_compensation_piece_shape); the two contract bounds are set
  *  iff mode='seasonal' (people_compensation_seasonal_shape). Nullable/optional everywhere else so an
  *  existing hourly row keeps EXACTLY its pre-migration meaning. */
-type WithWageMode<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+type WithWageMode<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
   Row: T["Row"] & {
     mode: string;
     unit: string | null;
@@ -80,7 +133,14 @@ type WithWageMode<T extends { Row: object; Insert: object; Update: object; Relat
 };
 
 /** Add the labor-cost-basis person_id FK (migration 20260701250000) to an existing table entry. */
-type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+type WithLaborPersonId<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
   Row: T["Row"] & { person_id: string | null };
   Insert: T["Insert"] & { person_id?: string | null };
   Update: T["Update"] & { person_id?: string | null };
@@ -89,7 +149,14 @@ type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; 
 
 /** Add the pesticide-application compliance fields (migration 20260701320000) to
  *  plan_material_requirements, preserving its relationships. */
-type WithSprayCompliance<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+type WithSprayCompliance<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
   Row: T["Row"] & {
     target_pest: string | null;
     apc_registration_ref: string | null;
@@ -127,7 +194,14 @@ type WithSprayCompliance<T extends { Row: object; Insert: object; Update: object
 };
 
 /** Add plan_operations.note (migration 20260701340000 — individual-palm treatment free-text note). */
-type WithOpNote<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+type WithOpNote<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
   Row: T["Row"] & { note: string | null };
   Insert: T["Insert"] & { note?: string | null };
   Update: T["Update"] & { note?: string | null };
@@ -477,25 +551,92 @@ type PaymentRoutingColumn = "payment_status" | "paid_by" | "kind";
 type ExpenseDimensionColumn = "account_id" | "cost_center_id";
 
 type CustodyAccountsTable = {
-  Row: { id: string; org_id: string; holder_label: string; holder_user_id: string | null; target_float: number; active: boolean; created_at: string; created_by: string | null };
+  Row: {
+    id: string;
+    org_id: string;
+    holder_label: string;
+    holder_user_id: string | null;
+    target_float: number;
+    active: boolean;
+    created_at: string;
+    created_by: string | null;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type CustodyMovementsTable = {
-  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; transfer_group_id: string | null; reversal_of: string | null; reversal_reason: string | null; expense_reversal_outcome: "unrouted" | "cancelled" | null; reversed_by: string | null; reversed_at: string | null; note: string | null; created_at: string; created_by: string | null };
+  Row: {
+    id: string;
+    org_id: string;
+    custody_account_id: string;
+    occurred_at: string;
+    movement_type: string;
+    amount_in: number;
+    amount_out: number;
+    expense_id: string | null;
+    payment_request_id: string | null;
+    journal_entry_id: string | null;
+    transfer_group_id: string | null;
+    reversal_of: string | null;
+    reversal_reason: string | null;
+    expense_reversal_outcome: "unrouted" | "cancelled" | null;
+    reversed_by: string | null;
+    reversed_at: string | null;
+    note: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
-  Relationships: [];
+  Relationships: [
+    {
+      foreignKeyName: "custody_movements_custody_account_id_fkey";
+      columns: ["custody_account_id"];
+      isOneToOne: false;
+      referencedRelation: "custody_accounts";
+      referencedColumns: ["id"];
+    }
+  ];
 };
 type PaymentRequestsTable = {
-  Row: { id: string; org_id: string; request_no: number; period_start: string | null; period_end: string | null; status: string; custody_account_id: string | null; note: string | null; prepared_by: string | null; approved_op_by: string | null; approved_final_by: string | null; submitted_at: string | null; approved_op_at: string | null; approved_final_at: string | null; approved_post_paid_total: number | null; approved_custody_top_up: number | null; approved_net_request: number | null; created_at: string };
+  Row: {
+    id: string;
+    org_id: string;
+    request_no: number;
+    period_start: string | null;
+    period_end: string | null;
+    status: string;
+    custody_account_id: string | null;
+    note: string | null;
+    prepared_by: string | null;
+    approved_op_by: string | null;
+    approved_final_by: string | null;
+    submitted_at: string | null;
+    approved_op_at: string | null;
+    approved_final_at: string | null;
+    approved_post_paid_total: number | null;
+    approved_custody_top_up: number | null;
+    approved_net_request: number | null;
+    created_at: string;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type PaymentRequestLinesTable = {
-  Row: { id: string; org_id: string; payment_request_id: string; expense_id: string; paid_at: string | null; paid_by: string | null; paid_from_custody_account_id: string | null; custody_movement_id: string | null; journal_entry_id: string | null; created_at: string };
+  Row: {
+    id: string;
+    org_id: string;
+    payment_request_id: string;
+    expense_id: string;
+    paid_at: string | null;
+    paid_by: string | null;
+    paid_from_custody_account_id: string | null;
+    custody_movement_id: string | null;
+    journal_entry_id: string | null;
+    created_at: string;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -591,25 +732,76 @@ type CostCenterReconciliationFlagsView = {
   Relationships: [];
 };
 type JournalEntriesTable = {
-  Row: { id: string; org_id: string; entry_date: string; source_type: string; source_id: string; source_sequence: number; description: string | null; status: string; posted_at: string; posted_by: string | null; reversal_of: string | null; created_at: string };
+  Row: {
+    id: string;
+    org_id: string;
+    entry_date: string;
+    source_type: string;
+    source_id: string;
+    source_sequence: number;
+    description: string | null;
+    status: string;
+    posted_at: string;
+    posted_by: string | null;
+    reversal_of: string | null;
+    created_at: string;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type JournalLinesTable = {
-  Row: { id: string; org_id: string; journal_entry_id: string; account_id: string; debit: number; credit: number; description: string | null; custody_account_id: string | null; custody_movement_id: string | null; expense_id: string | null; payment_request_id: string | null; cost_center_id: string | null; created_at: string };
+  Row: {
+    id: string;
+    org_id: string;
+    journal_entry_id: string;
+    account_id: string;
+    debit: number;
+    credit: number;
+    description: string | null;
+    custody_account_id: string | null;
+    custody_movement_id: string | null;
+    expense_id: string | null;
+    payment_request_id: string | null;
+    cost_center_id: string | null;
+    created_at: string;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type AccountingPeriodsTable = {
-  Row: { id: string; org_id: string; period_start: string; period_end: string; status: string; note: string | null; locked_by: string | null; locked_at: string; reopened_by: string | null; reopened_at: string | null; created_at: string };
+  Row: {
+    id: string;
+    org_id: string;
+    period_start: string;
+    period_end: string;
+    status: string;
+    note: string | null;
+    locked_by: string | null;
+    locked_at: string;
+    reopened_by: string | null;
+    reopened_at: string | null;
+    created_at: string;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type PaymentRequestFundingsTable = {
-  Row: { id: string; org_id: string; payment_request_id: string; custody_account_id: string; custody_movement_id: string | null; journal_entry_id: string | null; occurred_at: string; amount: number; note: string | null; created_at: string; created_by: string | null };
+  Row: {
+    id: string;
+    org_id: string;
+    payment_request_id: string;
+    custody_account_id: string;
+    custody_movement_id: string | null;
+    journal_entry_id: string | null;
+    occurred_at: string;
+    amount: number;
+    note: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -670,7 +862,15 @@ type SalesTable = {
   };
   Insert: Record<string, never>;
   Update: Record<string, never>;
-  Relationships: [];
+  Relationships: [
+    {
+      foreignKeyName: "sales_buyer_id_fkey";
+      columns: ["buyer_id"];
+      isOneToOne: false;
+      referencedRelation: "buyers";
+      referencedColumns: ["id"];
+    }
+  ];
 };
 type SaleCollectionsTable = {
   Row: {
@@ -690,7 +890,14 @@ type SaleCollectionsTable = {
   Relationships: [];
 };
 /** Add the SPEC-0018 payment-routing columns to the generated expenses table. */
-type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+type WithPaymentStatus<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
   Row: Omit<T["Row"], PaymentRoutingColumn | ExpenseDimensionColumn> & {
     payment_status: ExpensePaymentStatus | null;
     paid_by: string | null;
@@ -698,8 +905,14 @@ type WithPaymentStatus<T extends { Row: object; Insert: object; Update: object; 
     account_id: string | null;
     cost_center_id: string | null;
   };
-  Insert: Omit<T["Insert"], PaymentRoutingColumn | ExpenseDimensionColumn> & { account_id?: string | null; cost_center_id?: string | null };
-  Update: Omit<T["Update"], PaymentRoutingColumn | ExpenseDimensionColumn> & { account_id?: string | null; cost_center_id?: string | null };
+  Insert: Omit<T["Insert"], PaymentRoutingColumn | ExpenseDimensionColumn> & {
+    account_id?: string | null;
+    cost_center_id?: string | null;
+  };
+  Update: Omit<T["Update"], PaymentRoutingColumn | ExpenseDimensionColumn> & {
+    account_id?: string | null;
+    cost_center_id?: string | null;
+  };
   Relationships: T["Relationships"];
 };
 // ── SPEC-0019 P1-3 "جداول العمليات" — operation templates (instantiate-only slice). ──
@@ -758,7 +971,10 @@ type CustodyFunctions = {
     Returns: Json;
   };
   fn_archive_account: { Args: { p_id: string }; Returns: Json };
-  fn_merge_accounts: { Args: { p_source: string; p_target: string }; Returns: Json };
+  fn_merge_accounts: {
+    Args: { p_source: string; p_target: string };
+    Returns: Json;
+  };
   fn_save_cost_center: {
     Args: {
       p_id: string | null;
@@ -775,32 +991,64 @@ type CustodyFunctions = {
     Returns: Json;
   };
   fn_archive_cost_center: { Args: { p_id: string }; Returns: Json };
-  fn_merge_cost_centers: { Args: { p_source: string; p_target: string }; Returns: Json };
+  fn_merge_cost_centers: {
+    Args: { p_source: string; p_target: string };
+    Returns: Json;
+  };
   fn_save_custody_account: {
     Args: {
       p_id: string | null;
       p_org: string | null;
       p_holder_label: string;
       p_holder_user_id?: string | null;
-      p_target_float?: number;
+      p_target_float?: string;
       p_active?: boolean;
     };
     Returns: string;
   };
   fn_record_custody_movement: {
-    Args: { p_account: string; p_movement_type: string; p_amount_in: number; p_amount_out: number; p_occurred_at?: string; p_expense_id?: string | null; p_note?: string | null };
+    Args: {
+      p_account: string;
+      p_movement_type: string;
+      p_amount_in: string;
+      p_amount_out: string;
+      p_occurred_at?: string;
+      p_expense_id?: string | null;
+      p_note?: string | null;
+    };
     Returns: string;
   };
   fn_transfer_custody: {
-    Args: { p_from_account: string; p_to_account: string; p_amount: number; p_occurred_at?: string; p_note?: string | null };
+    Args: {
+      p_from_account: string;
+      p_to_account: string;
+      p_amount: string;
+      p_occurred_at?: string;
+      p_note?: string | null;
+    };
     Returns: string;
   };
   fn_set_expense_payment_status: {
-    Args: { p_expense: string; p_status: ExpensePaymentStatus; p_custody_account?: string | null; p_paid_by?: string | null };
+    Args: {
+      p_expense: string;
+      p_status: ExpensePaymentStatus;
+      p_custody_account?: string | null;
+      p_paid_by?: string | null;
+    };
     Returns: undefined;
   };
   fn_reverse_expense_payment: {
-    Args: { p_expense: string; p_expected_movement: string; p_outcome: "unrouted" | "cancelled"; p_reason: string; p_reversal_date: string };
+    Args: {
+      p_expense: string;
+      p_expected_movement: string;
+      p_outcome: "unrouted" | "cancelled";
+      p_reason: string;
+      p_reversal_date: string;
+    };
+    Returns: Json;
+  };
+  fn_reverse_custody_movement: {
+    Args: { p_movement: string; p_reason: string; p_reversal_date: string };
     Returns: Json;
   };
   fn_correct_and_route_reversed_expense: {
@@ -809,7 +1057,7 @@ type CustodyFunctions = {
       p_date: string | null;
       p_category: string;
       p_description: string | null;
-      p_total: number;
+      p_total: string;
       p_supplier: string | null;
       p_account: string | null;
       p_cost_center: string | null;
@@ -820,34 +1068,171 @@ type CustodyFunctions = {
   };
   // Classify an expense (operating / drawing / capex) — the ONLY write path for expenses.kind (the column is
   // omitted from the expenses Insert type above, so it cannot be set by a direct insert). budget.write gated.
-  fn_set_expense_kind: { Args: { p_id: string; p_kind: ExpenseKind }; Returns: Json };
+  fn_set_expense_kind: {
+    Args: { p_id: string; p_kind: ExpenseKind };
+    Returns: Json;
+  };
   fn_custody_balance: { Args: { p_account: string }; Returns: number };
+  fn_custody_dashboard_summary: { Args: { p_org: string }; Returns: Json };
+  fn_custody_daily_snapshot: {
+    Args: {
+      p_org: string;
+      p_request_filter: "all" | "awaiting" | "settled";
+      p_month_start: string;
+      p_month_end: string;
+      p_movement_limit?: number;
+      p_request_limit?: number;
+    };
+    Returns: Json;
+  };
   fn_create_payment_request: {
-    Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null; p_custody_account?: string | null; p_note?: string | null };
+    Args: {
+      p_org: string;
+      p_period_start?: string | null;
+      p_period_end?: string | null;
+      p_custody_account?: string | null;
+      p_note?: string | null;
+    };
     Returns: string;
   };
-  fn_add_expense_to_request: { Args: { p_request: string; p_expense: string }; Returns: string };
-  fn_submit_payment_request: { Args: { p_request: string }; Returns: undefined };
-  fn_approve_request_operational: { Args: { p_request: string }; Returns: undefined };
+  fn_add_expense_to_request: {
+    Args: { p_request: string; p_expense: string };
+    Returns: string;
+  };
+  fn_submit_payment_request: {
+    Args: { p_request: string };
+    Returns: undefined;
+  };
+  fn_approve_request_operational: {
+    Args: { p_request: string };
+    Returns: undefined;
+  };
   fn_approve_request_final: { Args: { p_request: string }; Returns: undefined };
   fn_payment_request_totals: { Args: { p_request: string }; Returns: Json };
+  fn_payment_request_detail_snapshot: {
+    Args: { p_org: string; p_request: string; p_available_limit?: number };
+    Returns: Json;
+  };
   fn_accounting_trial_balance: { Args: { p_org: string }; Returns: Json };
-  fn_accounting_balance_sheet: { Args: { p_org: string; p_as_of?: string | null }; Returns: Json };
-  fn_accounting_income_statement: { Args: { p_org: string; p_from: string; p_to?: string | null }; Returns: Json };
-  fn_budget_vs_actual: { Args: { p_org: string; p_from: string; p_to?: string | null }; Returns: Json };
-  fn_pnl_timeseries: { Args: { p_org: string; p_grain: string; p_from: string; p_to?: string | null }; Returns: Json };
-  fn_close_accounting_period: { Args: { p_org: string; p_period_start: string; p_period_end: string; p_note?: string | null }; Returns: string };
-  fn_reopen_accounting_period: { Args: { p_org: string; p_period_id: string }; Returns: undefined };
-  fn_custody_ledger_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
-  fn_custody_cash_expense_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
-  fn_unpaid_obligations_report: { Args: { p_org: string; p_as_of?: string | null }; Returns: Json };
-  fn_owner_funding_report: { Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null }; Returns: Json };
+  fn_accounting_ledger_snapshot: {
+    Args: { p_org: string; p_entry_limit?: number };
+    Returns: Json;
+  };
+  fn_transactions_snapshot: {
+    Args: { p_org: string; p_row_limit?: number };
+    Returns: Json;
+  };
+  fn_season_dashboard_snapshot: {
+    Args: {
+      p_org: string;
+      p_from: string;
+      p_as_of: string;
+      p_row_limit?: number;
+    };
+    Returns: Json;
+  };
+  fn_custody_reports_snapshot: {
+    Args: {
+      p_org: string;
+      p_period_start: string;
+      p_period_end: string;
+      p_as_of: string;
+      p_row_limit?: number;
+    };
+    Returns: Json;
+  };
+  fn_finance_dashboard_snapshot: {
+    Args: {
+      p_org: string;
+      p_month_start: string;
+      p_month_end: string;
+      p_as_of: string;
+      p_row_limit?: number;
+      p_journal_limit?: number;
+    };
+    Returns: Json;
+  };
+  fn_accounting_balance_sheet: {
+    Args: { p_org: string; p_as_of?: string | null };
+    Returns: Json;
+  };
+  fn_accounting_income_statement: {
+    Args: { p_org: string; p_from: string; p_to?: string | null };
+    Returns: Json;
+  };
+  fn_budget_vs_actual: {
+    Args: { p_org: string; p_from: string; p_to?: string | null };
+    Returns: Json;
+  };
+  fn_pnl_timeseries: {
+    Args: {
+      p_org: string;
+      p_grain: string;
+      p_from: string;
+      p_to?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_close_accounting_period: {
+    Args: {
+      p_org: string;
+      p_period_start: string;
+      p_period_end: string;
+      p_note?: string | null;
+    };
+    Returns: string;
+  };
+  fn_reopen_accounting_period: {
+    Args: { p_org: string; p_period_id: string };
+    Returns: undefined;
+  };
+  fn_custody_ledger_report: {
+    Args: {
+      p_org: string;
+      p_period_start?: string | null;
+      p_period_end?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_custody_cash_expense_report: {
+    Args: {
+      p_org: string;
+      p_period_start?: string | null;
+      p_period_end?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_unpaid_obligations_report: {
+    Args: { p_org: string; p_as_of?: string | null };
+    Returns: Json;
+  };
+  fn_owner_funding_report: {
+    Args: {
+      p_org: string;
+      p_period_start?: string | null;
+      p_period_end?: string | null;
+    };
+    Returns: Json;
+  };
   fn_record_payment_request_funding: {
-    Args: { p_request: string; p_custody_account: string; p_amount: number; p_occurred_at?: string; p_note?: string | null };
+    Args: {
+      p_request: string;
+      p_custody_account: string;
+      p_amount: string;
+      p_occurred_at?: string;
+      p_note?: string | null;
+    };
     Returns: string;
   };
   fn_confirm_request_expense_paid: {
-    Args: { p_request: string; p_expense: string; p_custody_account: string; p_occurred_at?: string; p_paid_by?: string | null; p_note?: string | null };
+    Args: {
+      p_request: string;
+      p_expense: string;
+      p_custody_account: string;
+      p_occurred_at?: string;
+      p_paid_by?: string | null;
+      p_note?: string | null;
+    };
     Returns: string;
   };
   fn_close_payment_request: { Args: { p_request: string }; Returns: undefined };
@@ -858,7 +1243,14 @@ type CustodyFunctions = {
 // never> — the table is written ONLY via the gated RPCs (fn_add_plan_operation_multi to add,
 // fn_unassign_plan_operation to remove); there is no direct-client-write path (mirrors CustodyAccountsTable). ──
 type PlanOperationAssigneesTable = {
-  Row: { id: string; org_id: string; plan_op_id: string; person_id: string; is_lead: boolean; created_at: string };
+  Row: {
+    id: string;
+    org_id: string;
+    plan_op_id: string;
+    person_id: string;
+    is_lead: boolean;
+    created_at: string;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -868,7 +1260,10 @@ type PlanOperationAssigneesTable = {
 // Narrowly-scoped, additive to the Stage-7 accounting framework (PR #368, still an unmerged draft) —
 // NOT a replacement for `fn_accounting_pnl_summary`. finance.read gated (owner/accountant only).
 type OwnerPnlFunctions = {
-  fn_owner_pnl_summary: { Args: { p_org: string; p_from: string; p_to: string }; Returns: Json };
+  fn_owner_pnl_summary: {
+    Args: { p_org: string; p_from: string; p_to: string };
+    Returns: Json;
+  };
 };
 
 type CostCenterSummaryFunctions = {
@@ -876,15 +1271,52 @@ type CostCenterSummaryFunctions = {
     Args: { p_org: string; p_cost_center: string };
     Returns: Json;
   };
+  fn_cost_center_history_summary: {
+    Args: { p_org: string };
+    Returns: Json;
+  };
+  fn_cost_center_reports_snapshot: {
+    Args: { p_org: string; p_include_history?: boolean };
+    Returns: Json;
+  };
+  fn_cost_center_revenue_summary: {
+    Args: { p_org: string };
+    Returns: Json;
+  };
 };
 
-// ── "/expenses" exact register summary, migration 20260730140000. Read-only, STABLE, SECURITY
-// DEFINER, org/finance.read-gated; drawing-scoped fields are JSON null for a caller without
-// finance.read (never a fabricated zero). ──
+// ── Exact expense register + unpaid-obligation summary, migrations 20260730140000/150000.
+// Read-only, STABLE, SECURITY DEFINER, org/finance.read-gated; drawing-scoped fields are JSON null
+// for a caller without finance.read (never a fabricated zero). ──
 type ExpenseRegisterSummaryFunctions = {
   fn_expense_register_summary: {
     Args: { p_org: string; p_month_start: string; p_month_end: string };
     Returns: Json;
+  };
+  fn_expense_daily_snapshot: {
+    Args: {
+      p_org: string;
+      p_filter: "all" | "month" | "operating" | "drawing" | "undated" | "unrouted" | "unclassified" | "uncentered";
+      p_month_start: string;
+      p_month_end: string;
+      p_row_limit?: number;
+    };
+    Returns: Json;
+  };
+  fn_expense_detail_snapshot: {
+    Args: { p_org: string; p_expense: string };
+    Returns: Json;
+  };
+};
+
+type MonthCloseSummaryFunctions = {
+  fn_month_close_summary: {
+    Args: { p_org: string; p_cutover: string; p_as_of: string };
+    Returns: Json;
+  };
+  fn_set_missing_expense_date: {
+    Args: { p_org: string; p_expense: string; p_date: string };
+    Returns: string;
   };
 };
 
@@ -971,7 +1403,7 @@ type PestTrapsTable = {
       isOneToOne: false;
       referencedRelation: "lines";
       referencedColumns: ["id"];
-    },
+    }
   ];
 };
 
@@ -1017,7 +1449,7 @@ type PestTrapCatchesTable = {
       isOneToOne: false;
       referencedRelation: "pest_traps";
       referencedColumns: ["id"];
-    },
+    }
   ];
 };
 
@@ -1076,7 +1508,7 @@ type PestIncidentsTable = {
       isOneToOne: false;
       referencedRelation: "assets";
       referencedColumns: ["id"];
-    },
+    }
   ];
 };
 
@@ -1129,10 +1561,26 @@ type PestScoutingFunctions = {
 // ── agronomist-signoff-gate (docs/CLAUDE.md non-negotiable #4) — plan_operations.signed_off_by/at +
 // fn_sign_off_plan_operation. Augmented here until database.types.ts is regenerated from prod (then a
 // harmless no-op, like the other augmentations in this file). ──
-type WithSignoff<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
-  Row: T["Row"] & { signed_off_by: string | null; signed_off_at: string | null };
-  Insert: T["Insert"] & { signed_off_by?: string | null; signed_off_at?: string | null };
-  Update: T["Update"] & { signed_off_by?: string | null; signed_off_at?: string | null };
+type WithSignoff<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
+  Row: T["Row"] & {
+    signed_off_by: string | null;
+    signed_off_at: string | null;
+  };
+  Insert: T["Insert"] & {
+    signed_off_by?: string | null;
+    signed_off_at?: string | null;
+  };
+  Update: T["Update"] & {
+    signed_off_by?: string | null;
+    signed_off_at?: string | null;
+  };
   Relationships: T["Relationships"];
 };
 type SignoffFunctions = {
@@ -1196,7 +1644,7 @@ type LaborLogsTable = {
       isOneToOne: false;
       referencedRelation: "people";
       referencedColumns: ["id"];
-    },
+    }
   ];
 };
 
@@ -1205,13 +1653,22 @@ type LaborLogsTable = {
 // service-role admin client for the public page); writes are RPC-only (client INSERT/UPDATE/DELETE
 // revoked), so Insert/Update are `never`. fn_save_site_content is owner-gated (authorize('site.write')).
 type SiteContentTable = {
-  Row: { id: string; org_id: string; content: Json; updated_by: string | null; updated_at: string };
+  Row: {
+    id: string;
+    org_id: string;
+    content: Json;
+    updated_by: string | null;
+    updated_at: string;
+  };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
 };
 type SiteContentFunctions = {
-  fn_save_site_content: { Args: { p_org: string; p_content: Json }; Returns: Json };
+  fn_save_site_content: {
+    Args: { p_org: string; p_content: Json };
+    Returns: Json;
+  };
 };
 
 // Public-site buyer enquiries (migration 20260701430000). Owner-only READ (RLS); writes are
@@ -1241,7 +1698,10 @@ type SiteEnquiriesTable = {
   Relationships: [];
 };
 type SiteEnquiriesFunctions = {
-  fn_set_enquiry_status: { Args: { p_id: string; p_status: string }; Returns: undefined };
+  fn_set_enquiry_status: {
+    Args: { p_id: string; p_status: string };
+    Returns: undefined;
+  };
 };
 
 // SPEC-0024 S-7 — بنك الفسائل. Physical movement ledger; valuation is display-only and finance-read.
@@ -1298,7 +1758,14 @@ type DataAuthorityStatusTable = {
   Row: {
     id: string;
     org_id: string;
-    domain: "finance_ledger" | "palm_registry" | "offshoots" | "budgets" | "payroll" | "inventory" | "operations";
+    domain:
+      | "finance_ledger"
+      | "palm_registry"
+      | "offshoots"
+      | "budgets"
+      | "payroll"
+      | "inventory"
+      | "operations";
     status: "verified" | "partial" | "unverified" | "blocked";
     source_label: string | null;
     source_sha256: string | null;
@@ -1379,7 +1846,14 @@ type ScaleFunctions = {
 };
 type RevenueFunctions = {
   fn_save_buyer: {
-    Args: { p_id: string | null; p_org: string | null; p_name: string; p_buyer_type?: BuyerType | null; p_phone?: string | null; p_active?: boolean | null };
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_name: string;
+      p_buyer_type?: BuyerType | null;
+      p_phone?: string | null;
+      p_active?: boolean | null;
+    };
     Returns: Json;
   };
   fn_save_sale: {
@@ -1402,15 +1876,43 @@ type RevenueFunctions = {
     Returns: Json;
   };
   fn_finalize_sale_price: {
-    Args: { p_sale: string; p_unit_price: number };
+    Args: { p_sale: string; p_unit_price: string };
     Returns: Json;
   };
   fn_record_sale_collection: {
-    Args: { p_sale: string; p_amount: number; p_occurred_at?: string | null; p_collected_by?: string | null; p_note?: string | null };
+    Args: {
+      p_sale: string;
+      p_amount: string;
+      p_occurred_at?: string | null;
+      p_collected_by?: string | null;
+      p_note?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_pending_sale_pricing: {
+    Args: { p_org: string; p_limit?: number };
+    Returns: Json;
+  };
+  fn_open_sale_receivables: {
+    Args: { p_org: string; p_limit?: number };
     Returns: Json;
   };
   fn_revenue_sales_report: {
-    Args: { p_org: string; p_period_start?: string | null; p_period_end?: string | null; p_as_of?: string | null };
+    Args: {
+      p_org: string;
+      p_period_start?: string | null;
+      p_period_end?: string | null;
+      p_as_of?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_revenue_sales_report_exact: {
+    Args: {
+      p_org: string;
+      p_period_start?: string | null;
+      p_period_end?: string | null;
+      p_as_of?: string | null;
+    };
     Returns: Json;
   };
 };
@@ -1471,6 +1973,8 @@ type ReconciliationBatchRowsTable = {
     batch_id: string;
     evidence_item_id: string;
     review_state: string;
+    // Migration 20260808050000: optimistic concurrency token for every row mutation.
+    review_version: number;
     reviewer_id: string | null;
     review_reason: string | null;
     reviewed_at: string | null;
@@ -1591,6 +2095,19 @@ export type ReconciliationAcceptanceSnapshot = {
   rows?: Json | null;
 };
 
+/** Runtime-validated by lib/reconciliation queue data.ts before any display row is trusted. */
+export type ReconciliationQueuePageSnapshot = {
+  version?: string | null;
+  status?: string | null;
+  total?: number | null;
+  page?: number | null;
+  page_size?: number | null;
+  counts?: Json | null;
+  rows?: Json | null;
+  row_count?: number | null;
+  rows_with_evidence?: number | null;
+};
+
 // The authenticated client RPCs the reconciliation workspace calls: the staging RPC, the three
 // review-stage ones, the two owner-only money RPCs the batch page drives, and the read-only
 // acceptance snapshot.
@@ -1645,6 +2162,22 @@ type ReconciliationFunctions = {
   fn_reconciliation_acceptance_snapshot: {
     Args: { p_org: string; p_batch_id: string };
     Returns: ReconciliationAcceptanceSnapshot;
+  };
+  /**
+   * Read-only canonical queue order (20260808060000). Returns one page of at most 50 complete display
+   * rows plus its exact filtered total from one tenant-scoped database snapshot.
+   */
+  fn_reconciliation_queue_page: {
+    Args: {
+      p_org: string;
+      p_batch_id: string;
+      p_classification?: string | null;
+      p_state?: string | null;
+      p_quality?: string | null;
+      p_page?: number;
+      p_limit?: number;
+    };
+    Returns: ReconciliationQueuePageSnapshot;
   };
 };
 
@@ -1730,8 +2263,16 @@ export type Database = Omit<Generated, "public"> & {
       hawshat: WithArchived<Tables["hawshat"]>;
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
-      plan_operations: WithOpNote<WithSignoff<WithDependsOn<WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>>>>;
-      plan_material_requirements: WithSprayCompliance<Tables["plan_material_requirements"]>;
+      plan_operations: WithOpNote<
+        WithSignoff<
+          WithDependsOn<
+            WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>
+          >
+        >
+      >;
+      plan_material_requirements: WithSprayCompliance<
+        Tables["plan_material_requirements"]
+      >;
       attachments: AttachmentsTable;
       academy_content: AcademyContentTable;
       accounts: AccountsTable;
@@ -1754,7 +2295,9 @@ export type Database = Omit<Generated, "public"> & {
       pest_trap_catches: PestTrapCatchesTable;
       pest_incidents: PestIncidentsTable;
       labor_logs: LaborLogsTable;
-      plan_labor_requirements: WithLaborPersonId<Tables["plan_labor_requirements"]>;
+      plan_labor_requirements: WithLaborPersonId<
+        Tables["plan_labor_requirements"]
+      >;
       site_content: SiteContentTable;
       site_enquiries: SiteEnquiriesTable;
       offshoot_movements: OffshootMovementsTable;
@@ -1766,7 +2309,26 @@ export type Database = Omit<Generated, "public"> & {
       payroll_runs: PayrollRunsTable;
       payroll_run_lines: PayrollRunLinesTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & ExpenseRegisterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions;
+    Functions: Public["Functions"] &
+      StructFunctions &
+      CustodyFunctions &
+      OperationTemplateFunctions &
+      OwnerPnlFunctions &
+      CostCenterSummaryFunctions &
+      ExpenseRegisterSummaryFunctions &
+      MonthCloseSummaryFunctions &
+      WeatherFunctions &
+      PestScoutingFunctions &
+      SignoffFunctions &
+      SiteContentFunctions &
+      SiteEnquiriesFunctions &
+      OffshootFunctions &
+      DataAuthorityFunctions &
+      RevenueFunctions &
+      ScaleFunctions &
+      HarvestFunctions &
+      ReconciliationFunctions &
+      PayrollFunctions;
   };
 };
 

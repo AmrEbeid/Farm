@@ -47,7 +47,7 @@ select is(
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.prosecdef
-      and p.proname not in (
+      and (p.proname not in (
         'authorize', 'user_org_ids',             -- RLS helpers
         'user_member_org_ids',                    -- RLS helper: full membership set (active-org, 0085)
         'fn_set_active_org',                       -- active-org switcher RPC (migration 0085)
@@ -72,17 +72,29 @@ select is(
         'fn_save_academy_content', 'fn_signoff_academy_content', -- gated Care Academy RPCs (STAGE 10 / SPEC-0008, migration 20260701400000)
         'fn_archive_academy_content',              -- gated Care Academy RPC (STAGE 10 / SPEC-0008, migration 20260701400000)
         'fn_save_custody_account', 'fn_record_custody_movement', 'fn_set_expense_payment_status', -- gated custody/expense RPCs (SPEC-0018)
+        'fn_reverse_custody_movement',              -- linked standalone owner-funding reversal (SPEC-0028 C-4)
         'fn_transfer_custody',                    -- atomic custody holder-to-holder transfer (SPEC-0018-EXT)
         'fn_custody_balance', 'fn_set_expense_kind', -- derived custody read + #6 drawings split helpers (SPEC-0018)
         'fn_create_payment_request', 'fn_add_expense_to_request', -- payment-request RPCs (SPEC-0018)
         'fn_submit_payment_request', 'fn_approve_request_operational', 'fn_approve_request_final', -- lifecycle through final approval
         'fn_payment_request_totals',               -- derived request totals read RPC (SPEC-0018)
         'fn_accounting_trial_balance',             -- standalone accounting read RPC (cash-method custody slice)
+        'fn_accounting_ledger_snapshot',           -- exact atomic daily ledger read (migration 20260808150000)
+        'fn_transactions_snapshot',                -- exact atomic unified transactions read (migration 20260808160000)
+        'fn_season_dashboard_snapshot',            -- exact atomic season cockpit read (migration 20260808170000)
+        'fn_custody_reports_snapshot',             -- exact atomic custody reports read (migration 20260808180000)
+        'fn_finance_dashboard_snapshot',           -- role-aware atomic finance dashboard read (migration 20260808190000)
+        'fn_custody_daily_snapshot',               -- exact atomic daily custody workspace (migration 20260808200000)
+        'fn_expense_daily_snapshot',               -- exact atomic daily expense workspace (migration 20260808210000)
+        'fn_expense_detail_snapshot',              -- exact atomic expense 360 core snapshot (migration 20260808220000)
+        'fn_cost_center_reports_snapshot',         -- exact atomic cost-center report snapshot (migration 20260808230000)
+        'fn_payment_request_detail_snapshot',      -- exact atomic payment-request 360 snapshot (migration 20260808240000)
         'fn_save_account', 'fn_archive_account', 'fn_merge_accounts', -- gated COA tree editing RPCs (SPEC-0024)
         'fn_record_payment_request_funding',       -- owner funds received as custody after final approval
         'fn_confirm_request_expense_paid',         -- cash-method request-line payment confirmation
         'fn_close_payment_request',                -- close funded request after every line is confirmed paid
         'fn_custody_ledger_report', 'fn_custody_cash_expense_report', -- read-only custody reporting RPCs (SPEC-0018-EXT)
+        'fn_custody_dashboard_summary',            -- atomic exact custody dashboard read (migration 20260808110000)
         'fn_unpaid_obligations_report', 'fn_owner_funding_report', -- read-only payment-request reporting RPCs (SPEC-0018-EXT)
         'fn_instantiate_operation_template',       -- gated template-instantiate RPC (SPEC-0019 P1-3, migration 20260701260000)
         'fn_owner_pnl_summary',                    -- gated owner P&L period-summary read RPC (migration 20260701270000)
@@ -99,6 +111,8 @@ select is(
         'fn_save_buyer', 'fn_save_sale',           -- gated revenue RPCs (SPEC-0024 S-10 / SPEC-0018-EXT §4, migration 20260701500000)
         'fn_finalize_sale_price', 'fn_record_sale_collection', -- gated revenue price-finalize + collection RPCs (SPEC-0024 S-10)
         'fn_revenue_sales_report',             -- read-only revenue/A-R report RPC (SPEC-0024 S-10b)
+        'fn_revenue_sales_report_exact',       -- exact-transport revenue/A-R report wrapper (migration 20260808140000)
+        'fn_pending_sale_pricing', 'fn_open_sale_receivables', -- bounded exact daily receivables reads (migration 20260808130000)
         'fn_save_supplier', 'fn_save_inventory_item', -- gated entry save-RPCs for import templates (SPEC-0024 S-9 final gap, migration 20260701520000)
         'fn_save_expense', -- gated expense save-RPC (import; unrouted — never moves cash)
         'fn_record_scale_delivery', -- scale-house delivery → pending sale + بون serial (SPEC-0027 H-A, migration 20260701530000)
@@ -118,10 +132,20 @@ select is(
         'fn_set_data_authority_status', -- owner-only report-source authority metadata (migration 20260727143000)
         'fn_close_payroll_run', -- owner/accountant-only payroll close/report RPC (SPEC-0006 slice 3, migration 20260729090000)
         'fn_cost_center_direct_summary', -- read-only exact cost-center totals (migration 20260730130000)
-        'fn_expense_register_summary' -- read-only exact expense-register summary (migration 20260730140000)
+        'fn_cost_center_history_summary', -- read-only annual cost-center aggregate (migration 20260808080000)
+        'fn_cost_center_revenue_summary', -- exact posted-sale revenue by cost center (migration 20260808090000)
+        'fn_expense_register_summary', -- read-only exact expense-register summary (migration 20260730140000)
+        'fn_month_close_summary', -- read-only exact close-checklist summary (migration 20260808070000)
+        'fn_set_missing_expense_date' -- one-time undated-expense correction (migration 20260808070000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
-      )
+      ) or (
+        p.proname = 'fn_cost_center_reports_snapshot'
+        and pg_get_function_identity_arguments(p.oid) <> 'p_org uuid, p_include_history boolean'
+      ) or (
+        p.proname = 'fn_payment_request_detail_snapshot'
+        and pg_get_function_identity_arguments(p.oid) <> 'p_org uuid, p_request uuid, p_available_limit integer'
+      ))
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   0,
   'INV-2: no unexpected public SECURITY DEFINER fn is EXECUTE-able by authenticated (trigger fns + fn_post_movement locked)');
@@ -200,8 +224,8 @@ select cmp_ok(
   'INV-4: farm_event still has partition children (the invariant is not vacuous)');
 
 -- ============================================================================================
--- Invariant 5 — every public SECURITY DEFINER function PINS search_path (proconfig carries a
--- search_path entry). A definer fn that leaves search_path unset runs with the CALLER's
+-- Invariant 5 — every public SECURITY DEFINER function PINS search_path to the empty value. A
+-- definer fn that leaves search_path unset or includes a writable schema runs against unsafe names;
 -- search_path, so a malicious user who creates a same-named table/function in an earlier schema
 -- can hijack an unqualified reference inside the definer body and have it execute with the owner's
 -- (elevated) privileges — the classic CVE-2018-1058 / search_path privilege-escalation vector. All
@@ -214,9 +238,9 @@ select is(
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.prosecdef
-      and not (array_to_string(coalesce(p.proconfig, '{}'), ',') ilike '%search_path%')),
+      and not (coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""']::text[])),
   0,
-  'INV-5: every public SECURITY DEFINER fn pins search_path (no caller-search_path hijack)');
+  'INV-5: every public SECURITY DEFINER fn pins an empty search_path (no writable-schema hijack)');
 
 -- Sanity floor: there are many definer fns (so INV-5 is not vacuously true if a refactor ever
 -- removed prosecdef from all of them).

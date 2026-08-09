@@ -7,20 +7,10 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
-import { subtreeNetByCode } from "@/lib/accounting-rollup";
-import { computeEntryDebitAmount, groupLinesByEntryId } from "@/lib/accounting-recent-entries";
-
-type TrialBalanceRow = {
-  account_id: string;
-  code: string;
-  name_ar: string;
-  account_type: string;
-  normal_balance: string;
-  debit: number;
-  credit: number;
-  net: number;
-};
+import { num } from "@/lib/money";
+import { absoluteDecimal, egpExact } from "@/lib/decimal";
+import { subtreeNetByCodeExact } from "@/lib/accounting-rollup";
+import { parseAccountingLedgerSnapshot } from "@/lib/accounting ledger snapshot";
 
 const ACCOUNT_TYPE_AR: Record<string, string> = {
   asset: "أصل",
@@ -42,109 +32,63 @@ const SOURCE_TYPE_AR: Record<string, string> = {
   sale_collection: "تحصيل من عميل",
 };
 
-// 500 sits comfortably below PostgREST's configured max_rows (1000, supabase/config.toml) for the 20
-// displayed entries' lines — today's production shape is 40 lines, but that count is a snapshot, not
-// a lasting correctness invariant. If a result ever lands at the limit exactly, the read below may
-// itself be truncated by the row cap, so that case fails closed instead of silently rendering an
-// incomplete sample as if it were complete.
-const JOURNAL_LINES_QUERY_LIMIT = 500;
-
 export default async function AccountingPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
-  const [trialRes, entriesRes, accountsRes] = await Promise.all([
-    sb.rpc("fn_accounting_trial_balance", { p_org: m.orgId }),
-    sb
-      .from("journal_entries")
-      .select("id, entry_date, source_type, source_id, description, status, posted_at")
-      .eq("org_id", m.orgId)
-      .order("entry_date", { ascending: false, nullsFirst: false })
-      .order("posted_at", { ascending: false, nullsFirst: false })
-      .order("id", { ascending: false })
-      .limit(20),
-    sb
-      .from("accounts")
-      .select("id, org_id, code, name_ar, account_type, normal_balance, parent_id")
-      .eq("org_id", m.orgId)
-      .order("code"),
-  ]);
-  if (trialRes.error) throw trialRes.error;
-  if (entriesRes.error) throw entriesRes.error;
-  if (accountsRes.error) throw accountsRes.error;
+  const snapshotRes = await sb.rpc("fn_accounting_ledger_snapshot", {
+    p_org: m.orgId,
+    p_entry_limit: 20,
+  });
+  if (snapshotRes.error) throw snapshotRes.error;
+  const { trialBalance, recentEntries: entries, recentLines: lines } =
+    parseAccountingLedgerSnapshot(snapshotRes.data, m.orgId);
 
-  const entries = entriesRes.data ?? [];
-  const entryIds = entries.map((entry) => entry.id);
-
-  // Every displayed entry's amount must come only from lines that belong to that exact entry — never
-  // from an unrelated global sample (the prior bug: a separate latest-80-lines-globally query zeroed
-  // every displayed entry once none of its lines happened to be in that unrelated sample). Scope the
-  // read to the displayed entries instead.
-  const linesRes = entryIds.length
-    ? await sb
-        .from("journal_lines")
-        .select("id, journal_entry_id, account_id, debit, credit, description, payment_request_id, expense_id")
-        .eq("org_id", m.orgId)
-        .in("journal_entry_id", entryIds)
-        .order("journal_entry_id", { ascending: false })
-        .order("created_at", { ascending: false, nullsFirst: false })
-        .order("id", { ascending: false })
-        .limit(JOURNAL_LINES_QUERY_LIMIT)
-    : { data: [], error: null };
-  if (linesRes.error) throw linesRes.error;
-  const lines = linesRes.data ?? [];
-  if (lines.length >= JOURNAL_LINES_QUERY_LIMIT) {
-    throw new Error("عدد سطور القيود المعروضة تجاوز الحد الآمن للاستعلام؛ لا يمكن ضمان اكتمال المبالغ المعروضة.");
-  }
-
-  const trialBalance = parseTrialBalance(trialRes.data);
-  const accounts = accountsRes.data ?? [];
-  const accountById = new Map(accounts.map((account) => [account.id, account]));
-  const linesByEntry = groupLinesByEntryId(lines);
-
-  // fn_accounting_trial_balance groups journal_lines by account_id with NO subtree rollup, but real expenses
-  // post to LEAF accounts. Roll parent KPIs over the active org's subtree only; RLS can expose several
-  // member orgs when no active_org_id claim is present, and duplicate account codes are normal per org.
-  const custodyCash = subtreeNetByCode(accounts, trialBalance, "1000", m.orgId);
-  const ownerFunding = Math.abs(subtreeNetByCode(accounts, trialBalance, "3000", m.orgId));
-  const drawings = subtreeNetByCode(accounts, trialBalance, "3100", m.orgId);
-  const capex = subtreeNetByCode(accounts, trialBalance, "1500", m.orgId);
-  const operatingExpenses = subtreeNetByCode(accounts, trialBalance, "5000", m.orgId);
+  // The snapshot carries the account tree and exact posted-only balances from one database statement.
+  const accountTree = trialBalance.map((row) => ({
+    id: row.account_id,
+    org_id: row.org_id,
+    code: row.code,
+    parent_id: row.parent_id,
+  }));
+  const custodyCash = subtreeNetByCodeExact(accountTree, trialBalance, "1000", m.orgId);
+  const ownerFunding = absoluteDecimal(subtreeNetByCodeExact(accountTree, trialBalance, "3000", m.orgId));
+  const drawings = subtreeNetByCodeExact(accountTree, trialBalance, "3100", m.orgId);
+  const capex = subtreeNetByCodeExact(accountTree, trialBalance, "1500", m.orgId);
+  const operatingExpenses = subtreeNetByCodeExact(accountTree, trialBalance, "5000", m.orgId);
 
   const trialCols: SimpleColumn[] = [
     { id: "code", header: "الكود" },
     { id: "account", header: "الحساب" },
     { id: "type", header: "النوع" },
-    { id: "debit", header: "مدين", numeric: true, kind: "money" },
-    { id: "credit", header: "دائن", numeric: true, kind: "money" },
-    { id: "net", header: "الصافي", numeric: true, kind: "money" },
+    { id: "debit", header: "مدين", numeric: true, decimal: true, kind: "money-preserve-exact" },
+    { id: "credit", header: "دائن", numeric: true, decimal: true, kind: "money-preserve-exact" },
+    { id: "net", header: "الصافي", numeric: true, decimal: true, kind: "money-preserve-exact" },
   ];
-  const trialRows = trialBalance.map((row) => ({
+  const trialRows = trialBalance.filter((row) => row.active || row.has_postings).map((row) => ({
     id: row.account_id,
     code: row.code,
     account: row.name_ar,
     type: ACCOUNT_TYPE_AR[row.account_type] ?? row.account_type,
-    debit: Number(row.debit ?? 0),
-    credit: Number(row.credit ?? 0),
-    net: Number(row.net ?? 0),
+    debit: row.debit,
+    credit: row.credit,
+    net: row.net,
   }));
 
   const entryCols: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
     { id: "source", header: "المصدر" },
     { id: "description", header: "البيان" },
-    { id: "amount", header: "القيمة", numeric: true, kind: "money" },
+    { id: "amount", header: "القيمة", numeric: true, decimal: true, kind: "money-preserve-exact" },
     { id: "status", header: "الحالة" },
   ];
   const entryRows = entries.map((entry) => {
-    const entryLines = linesByEntry.get(entry.id) ?? [];
-    const amount = computeEntryDebitAmount(entryLines);
     return {
       id: entry.id,
       date: fmtDate(entry.entry_date),
       source: SOURCE_TYPE_AR[entry.source_type] ?? entry.source_type,
       description: entry.description ?? "—",
-      amount,
+      amount: entry.amount ?? undefined,
       status: entry.status === "posted" ? "مرحل" : entry.status,
     };
   });
@@ -152,12 +96,11 @@ export default async function AccountingPage() {
   const lineCols: SimpleColumn[] = [
     { id: "account", header: "الحساب" },
     { id: "description", header: "البيان" },
-    { id: "debit", header: "مدين", numeric: true, kind: "money" },
-    { id: "credit", header: "دائن", numeric: true, kind: "money" },
+    { id: "debit", header: "مدين", numeric: true, decimal: true, kind: "money-preserve-exact" },
+    { id: "credit", header: "دائن", numeric: true, decimal: true, kind: "money-preserve-exact" },
     { id: "link", header: "الرابط" },
   ];
   const lineRows = lines.map((line) => {
-    const account = accountById.get(line.account_id);
     const link = line.payment_request_id
       ? `طلب صرف ${line.payment_request_id.slice(0, 8)}`
       : line.expense_id
@@ -165,10 +108,10 @@ export default async function AccountingPage() {
         : "—";
     return {
       id: line.id,
-      account: account ? `${account.code} · ${account.name_ar}` : "—",
+      account: `${line.account_code} · ${line.account_name_ar}`,
       description: line.description ?? "—",
-      debit: Number(line.debit ?? 0),
-      credit: Number(line.credit ?? 0),
+      debit: line.debit,
+      credit: line.credit,
       link,
     };
   });
@@ -197,11 +140,11 @@ export default async function AccountingPage() {
       />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <KpiCard label="عهدة نقدية" value={egp(custodyCash)} />
-        <KpiCard label="تمويل المالك" value={egp(ownerFunding)} />
-        <KpiCard label="مصروفات تشغيلية" value={egp(operatingExpenses)} />
-        <KpiCard label="رأسمالي" value={egp(capex)} />
-        <KpiCard label="مسحوبات مالك" value={egp(drawings)} />
+        <KpiCard label="عهدة نقدية" value={egpExact(custodyCash)} />
+        <KpiCard label="تمويل المالك" value={egpExact(ownerFunding)} />
+        <KpiCard label="مصروفات تشغيلية" value={egpExact(operatingExpenses)} />
+        <KpiCard label="رأسمالي" value={egpExact(capex)} />
+        <KpiCard label="مسحوبات مالك" value={egpExact(drawings)} />
       </section>
 
       <Card title="ميزان المراجعة النقدي">
@@ -226,7 +169,6 @@ export default async function AccountingPage() {
             rows={entryRows}
             ariaLabel="آخر القيود"
             empty="لا توجد قيود بعد"
-            exportFilename="accounting-journal-entries.csv"
             minRowsForSearch={1}
           />
         </Card>
@@ -240,34 +182,12 @@ export default async function AccountingPage() {
             rows={lineRows}
             ariaLabel="تفاصيل القيود"
             empty="لا توجد سطور قيود بعد"
-            exportFilename="accounting-journal-lines.csv"
             minRowsForSearch={1}
           />
         </Card>
       </section>
     </div>
   );
-}
-
-function parseTrialBalance(value: unknown): TrialBalanceRow[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((row) => {
-    if (!row || typeof row !== "object") return [];
-    const r = row as Record<string, unknown>;
-    if (typeof r.account_id !== "string" || typeof r.code !== "string" || typeof r.name_ar !== "string") {
-      return [];
-    }
-    return [{
-      account_id: r.account_id,
-      code: r.code,
-      name_ar: r.name_ar,
-      account_type: typeof r.account_type === "string" ? r.account_type : "asset",
-      normal_balance: typeof r.normal_balance === "string" ? r.normal_balance : "debit",
-      debit: Number(r.debit ?? 0),
-      credit: Number(r.credit ?? 0),
-      net: Number(r.net ?? 0),
-    }];
-  });
 }
 
 function HeaderLink({ href, children }: { href: string; children: ReactNode }) {

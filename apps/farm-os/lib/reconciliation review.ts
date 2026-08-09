@@ -44,18 +44,16 @@ export type ReconciliationQueueState =
  * Evidence-quality exceptions the acceptance report raises but neither `review_state` nor
  * `classification` can reach.
  *
- * The acceptance packet prints «تواريخ مصدر غير صالحة» and «صفوف بلا مبلغ مصدر مسجَّل» as named
- * figures the accountant must resolve before signing. Both cut ACROSS every classification and every
- * review state, so without their own filter the only way to find them in a several-hundred-row batch
- * is to page through the whole queue looking for the warning tag on each card.
- *
- * Deliberately NOT here: the report's third exception, «صفوف تصحيح بلا سجل مُصحَّح». Its rows are
- * already reachable — `classification=amount_correction_candidate` narrows the batch to the
- * correction population — and a predicate for it would have to pin `evidence.classification` too,
- * colliding with the caller's own classification choice. Isolating the *unlinked* subset within that
- * population stays a visual step for now.
+ * The acceptance packet prints «تواريخ مصدر غير صالحة», «صفوف بلا مبلغ مصدر مسجَّل», and
+ * «صفوف تصحيح بلا سجل مُصحَّح» as named figures the accountant must resolve before signing. They cut
+ * ACROSS review states, and the third also requires checking both correction target columns. Without
+ * their own filter the only way to find them in a several-hundred-row batch is to page through the
+ * whole queue looking for the warning tag on each card.
  */
-export type ReconciliationQueueQuality = "invalid_source_date" | "missing_source_amount";
+export type ReconciliationQueueQuality =
+  | "invalid_source_date"
+  | "missing_source_amount"
+  | "unlinked_correction";
 export interface ReconciliationQueueFilters {
   classification: Classification | null;
   state: ReconciliationQueueState | null;
@@ -159,6 +157,7 @@ const QUEUE_STATES = new Set<ReconciliationQueueState>([
 const QUEUE_QUALITIES = new Set<ReconciliationQueueQuality>([
   "invalid_source_date",
   "missing_source_amount",
+  "unlinked_correction",
 ]);
 
 /**
@@ -168,6 +167,7 @@ const QUEUE_QUALITIES = new Set<ReconciliationQueueQuality>([
 export const QUEUE_QUALITY_AR: Record<ReconciliationQueueQuality, string> = {
   invalid_source_date: "صفوف بتاريخ مصدر غير صالح",
   missing_source_amount: "صفوف بلا مبلغ مصدر مسجَّل",
+  unlinked_correction: "صفوف تصحيح بلا سجل مُصحَّح",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -221,7 +221,25 @@ export interface Pagination {
 export function parsePageParam(raw: string | string[] | undefined): number {
   const value = Array.isArray(raw) ? raw[0] : raw;
   const n = Number(value);
-  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+  // Queue RPC page parameters are PostgreSQL integers. Clamp hostile or accidental oversized URL
+  // values here so the database can apply its normal final-page clamp instead of rejecting the call.
+  return Number.isFinite(n) && n >= 1 ? Math.min(Math.floor(n), 2_147_483_647) : 1;
+}
+
+/**
+ * Find the next undecided row already visible after the row that was just saved.
+ *
+ * This deliberately never wraps and never invents a cross-page target: advancing is only an ergonomic
+ * hand-off between rows whose current server state is already on screen. The RPC still saves exactly one
+ * explicit decision at a time.
+ */
+export function nextVisibleUnreviewedRowId(
+  rows: ReadonlyArray<{ id: string; reviewState: string }>,
+  currentRowId: string,
+): string | null {
+  const currentIndex = rows.findIndex((row) => row.id === currentRowId);
+  if (currentIndex < 0) return null;
+  return rows.slice(currentIndex + 1).find((row) => row.reviewState === "unreviewed")?.id ?? null;
 }
 
 /** Unknown and repeated URL values mean "all"; they never become PostgREST column/value input. */
@@ -275,16 +293,15 @@ export function reconciliationQueueStatePredicates(
 }
 
 /**
- * An evidence-quality predicate. It carries its own OPERATOR because the two exceptions are not both
- * equalities: "no recorded source amount" is a NULL test, which PostgREST expresses as `is`, and an
+ * An evidence-quality predicate. It carries its own OPERATOR because the exceptions are not all
+ * equalities: null checks use PostgREST `is`, and an
  * `eq`-with-null would match nothing at all and silently report an empty exception list.
- *
- * Both columns live on the evidence relation the queue already `!inner`-joins and already selects —
- * so applying one adds no query, no round trip, and no widening of what the page reads.
  */
 export type ReconciliationQueueQualityPredicate =
   | { column: "evidence.invalid_calendar_quality_flag"; op: "eq"; value: true }
-  | { column: "evidence.source_amount"; op: "is"; value: null };
+  | { column: "evidence.source_amount"; op: "is"; value: null }
+  | { column: "evidence.classification"; op: "eq"; value: "amount_correction_candidate" }
+  | { column: "corrects_expense_id" | "corrects_sale_id"; op: "is"; value: null };
 
 /**
  * Exact quality predicates. Like the state predicates, these are a closed mapping from an allowlisted
@@ -303,6 +320,12 @@ export function reconciliationQueueQualityPredicates(
     case "missing_source_amount":
       // Rows whose evidence records no source amount at all — never a row whose amount is zero.
       return [{ column: "evidence.source_amount", op: "is", value: null }];
+    case "unlinked_correction":
+      return [
+        { column: "evidence.classification", op: "eq", value: "amount_correction_candidate" },
+        { column: "corrects_expense_id", op: "is", value: null },
+        { column: "corrects_sale_id", op: "is", value: null },
+      ];
     default:
       return [];
   }
@@ -424,12 +447,19 @@ export function freezeGate(
 export function approveGate(
   status: string,
   role: string,
+  eligibility: { isBatchCreator: boolean; hasReviewedRow: boolean },
 ): { canApprove: boolean; reason: string | null } {
   if (status !== "reviewed") {
     return { canApprove: false, reason: "لا يُعتمد إلا بعد تجميد الدفعة (مراجَعة)." };
   }
   if (role !== "owner") {
     return { canApprove: false, reason: "الاعتماد للمالك فقط." };
+  }
+  if (eligibility.isBatchCreator) {
+    return { canApprove: false, reason: "لا يجوز لمن أنشأ الدفعة اعتمادها (فصل المهام)." };
+  }
+  if (eligibility.hasReviewedRow) {
+    return { canApprove: false, reason: "لا يجوز لمن راجع أي صف في الدفعة اعتمادها (فصل المهام)." };
   }
   return { canApprove: true, reason: null };
 }

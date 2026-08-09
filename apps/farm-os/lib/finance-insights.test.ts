@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFinanceInsightSummary, computeSalesRevenueByCenter, type CostCenterInsightRollup } from "./finance-insights";
+import { buildFinanceInsightSummary, type CostCenterInsightRollup } from "./finance-insights";
 
 const base = {
   active: true,
@@ -99,30 +99,5 @@ describe("buildFinanceInsightSummary", () => {
     const clean = buildFinanceInsightSummary({ rollup, flags: [], salesRevenue: { byCenter: { "leaf-a": 1000 }, total: 1000 } });
     expect(clean.unallocatedRevenue).toBe(0);
     expect(clean.cards.map((c) => c.id)).not.toContain("unallocated-revenue");
-  });
-});
-
-describe("computeSalesRevenueByCenter", () => {
-  const sales = [
-    { id: "s1", cost_center_id: "a", total: 1000, price_status: "finalized" },
-    { id: "s2", cost_center_id: "a", total: 500, price_status: "finalized" },
-    { id: "s3", cost_center_id: "b", total: 300, price_status: "finalized" },
-    { id: "s4", cost_center_id: null, total: 200, price_status: "finalized" }, // untagged
-    { id: "s5", cost_center_id: "a", total: 999, price_status: "pending" }, // not finalized → ignored
-  ];
-
-  it("sums finalized live-posted sales by center; total includes untagged, byCenter omits it", () => {
-    const live = new Set(["s1", "s2", "s3", "s4"]);
-    const { byCenter, total } = computeSalesRevenueByCenter(sales, live);
-    expect(byCenter).toEqual({ a: 1500, b: 300 });
-    expect(total).toBe(2000); // 1000+500+300+200 (untagged counts toward total, not byCenter)
-  });
-
-  it("excludes a finalized-but-reversed/void sale (no live posted entry) so revenue can't be overstated (#701)", () => {
-    // s2 is finalized in the sales table but its journal was reversed → not in the live-posted set.
-    const live = new Set(["s1", "s3", "s4"]);
-    const { byCenter, total } = computeSalesRevenueByCenter(sales, live);
-    expect(byCenter).toEqual({ a: 1000, b: 300 });
-    expect(total).toBe(1500); // s2's 500 excluded, tying to the posted GL
   });
 });

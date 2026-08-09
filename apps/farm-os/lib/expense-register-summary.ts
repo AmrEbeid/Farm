@@ -1,4 +1,4 @@
-import { moneyNumber } from "./money";
+import { parseDecimal, sumDecimals, type DecimalString } from "./decimal";
 
 export const EXPENSE_REGISTER_DISPLAY_CAP = 200;
 
@@ -11,28 +11,34 @@ export interface ExpenseRegisterSummary {
   unclassifiedCount: number;
   uncenteredCount: number;
   /** Sum over every visible non-drawing row (operating AND capex) in the current month — never operating-only. */
-  monthNonDrawingTotal: number;
+  monthNonDrawingTotal: DecimalString;
   monthNonDrawingUnknownCount: number;
-  monthDrawingTotal: number | null;
+  monthDrawingTotal: DecimalString | null;
   monthDrawingUnknownCount: number | null;
-}
-
-function requireNumber(row: Record<string, unknown>, key: string): number {
-  const raw = row[key];
-  if (typeof raw !== "number" && typeof raw !== "string") {
-    throw new Error(`expense register summary: field "${key}" must be numeric`);
-  }
-  const value = moneyNumber(raw);
-  if (value == null || !Number.isFinite(value)) {
-    throw new Error(`expense register summary: field "${key}" must be finite`);
-  }
-  return value;
+  unpaidOperatingCount: number;
+  unpaidOperatingTotal: DecimalString;
+  unpaidOperatingUnknownCount: number;
+  unpaidCapexCount: number;
+  unpaidCapexTotal: DecimalString;
+  unpaidCapexUnknownCount: number;
+  unpaidDrawingCount: number | null;
+  unpaidDrawingTotal: DecimalString | null;
+  unpaidDrawingUnknownCount: number | null;
 }
 
 function requireCount(row: Record<string, unknown>, key: string): number {
-  const value = requireNumber(row, key);
-  if (!Number.isSafeInteger(value) || value < 0) {
+  const raw = row[key];
+  const value = typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : raw;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     throw new Error(`expense register summary: field "${key}" must be a non-negative safe integer`);
+  }
+  return value as number;
+}
+
+function requireMoney(row: Record<string, unknown>, key: string): DecimalString {
+  const value = typeof row[key] === "string" ? parseDecimal(row[key]) : null;
+  if (value == null || value.startsWith("-")) {
+    throw new Error(`expense register summary: field "${key}" must be non-negative decimal text`);
   }
   return value;
 }
@@ -44,9 +50,9 @@ function optionalCount(row: Record<string, unknown>, key: string): number | null
   return requireCount(row, key);
 }
 
-function optionalNumber(row: Record<string, unknown>, key: string): number | null {
+function optionalMoney(row: Record<string, unknown>, key: string): DecimalString | null {
   if (row[key] == null) return null;
-  return requireNumber(row, key);
+  return requireMoney(row, key);
 }
 
 export function parseExpenseRegisterSummary(value: unknown): ExpenseRegisterSummary {
@@ -62,11 +68,58 @@ export function parseExpenseRegisterSummary(value: unknown): ExpenseRegisterSumm
     unroutedCount: requireCount(row, "unrouted_count"),
     unclassifiedCount: requireCount(row, "unclassified_count"),
     uncenteredCount: requireCount(row, "uncentered_count"),
-    monthNonDrawingTotal: requireNumber(row, "month_non_drawing_total"),
+    monthNonDrawingTotal: requireMoney(row, "month_non_drawing_total"),
     monthNonDrawingUnknownCount: requireCount(row, "month_non_drawing_unknown_count"),
-    monthDrawingTotal: optionalNumber(row, "month_drawing_total"),
+    monthDrawingTotal: optionalMoney(row, "month_drawing_total"),
     monthDrawingUnknownCount: optionalCount(row, "month_drawing_unknown_count"),
+    unpaidOperatingCount: requireCount(row, "unpaid_operating_count"),
+    unpaidOperatingTotal: requireMoney(row, "unpaid_operating_total"),
+    unpaidOperatingUnknownCount: requireCount(row, "unpaid_operating_unknown_count"),
+    unpaidCapexCount: requireCount(row, "unpaid_capex_count"),
+    unpaidCapexTotal: requireMoney(row, "unpaid_capex_total"),
+    unpaidCapexUnknownCount: requireCount(row, "unpaid_capex_unknown_count"),
+    unpaidDrawingCount: optionalCount(row, "unpaid_drawing_count"),
+    unpaidDrawingTotal: optionalMoney(row, "unpaid_drawing_total"),
+    unpaidDrawingUnknownCount: optionalCount(row, "unpaid_drawing_unknown_count"),
   };
+}
+
+export function unpaidExpenseCount(summary: ExpenseRegisterSummary): number {
+  return summary.unpaidOperatingCount + summary.unpaidCapexCount + (summary.unpaidDrawingCount ?? 0);
+}
+
+export function unpaidKnownTotal(summary: ExpenseRegisterSummary): DecimalString {
+  return sumDecimals([
+    summary.unpaidOperatingTotal,
+    summary.unpaidCapexTotal,
+    summary.unpaidDrawingTotal ?? "0",
+  ]).total;
+}
+
+export function unpaidUnknownCount(summary: ExpenseRegisterSummary): number {
+  return (
+    summary.unpaidOperatingUnknownCount +
+    summary.unpaidCapexUnknownCount +
+    (summary.unpaidDrawingUnknownCount ?? 0)
+  );
+}
+
+type FinanceExpenseRegisterSummary = ExpenseRegisterSummary & {
+  unpaidDrawingCount: number;
+  unpaidDrawingTotal: DecimalString;
+  unpaidDrawingUnknownCount: number;
+};
+
+export function assertFinanceUnpaidSummary(
+  summary: ExpenseRegisterSummary,
+): asserts summary is FinanceExpenseRegisterSummary {
+  if (
+    summary.unpaidDrawingCount == null ||
+    summary.unpaidDrawingTotal == null ||
+    summary.unpaidDrawingUnknownCount == null
+  ) {
+    throw new Error("expense register summary: finance caller received withheld drawing fields");
+  }
 }
 
 export function isExpenseRegisterTruncated(totalCount: number): boolean {
@@ -78,6 +131,7 @@ export type ExpenseFilter =
   | "month"
   | "operating"
   | "drawing"
+  | "undated"
   | "unrouted"
   | "unclassified"
   | "uncentered";
@@ -87,6 +141,7 @@ export function parseExpenseFilter(raw: string | undefined): ExpenseFilter {
     case "month":
     case "operating":
     case "drawing":
+    case "undated":
     case "unrouted":
     case "unclassified":
     case "uncentered":
@@ -112,6 +167,8 @@ export function expenseFilterCount(filter: ExpenseFilter, summary: ExpenseRegist
       return summary.operatingCount;
     case "drawing":
       return summary.drawingCount ?? 0;
+    case "undated":
+      throw new Error("undated filter count must come from its exact filtered query");
     case "unrouted":
       return summary.unroutedCount;
     case "unclassified":

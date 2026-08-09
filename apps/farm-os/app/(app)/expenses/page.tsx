@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ImportPanel } from "@/components/import/ImportPanel";
 import { requireRole } from "@/lib/auth";
 import { fmtDate } from "@/lib/dates";
-import { egpSummary, num } from "@/lib/money";
+import { num } from "@/lib/money";
+import { egpDecimalSummary } from "@/lib/decimal";
 import { KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -13,12 +14,11 @@ import { accountOptionLabel, leafPostingAccounts } from "@/components/AccountPic
 import {
   EXPENSE_REGISTER_DISPLAY_CAP,
   currentMonthBounds,
-  expenseFilterCount,
   isExpenseRegisterTruncated,
   parseExpenseFilter,
-  parseExpenseRegisterSummary,
   type ExpenseFilter,
 } from "@/lib/expense-register-summary";
+import { parseExpenseDailySnapshot } from "@/lib/expense-daily-snapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -46,53 +46,30 @@ export default async function ExpensesListPage({
     !canSeeOwnerDrawings && filter === "drawing" ? "all" : filter;
   const { start: monthStart, end: monthEnd } = currentMonthBounds();
 
-  // Bounded to the latest 200 rows MATCHING THE SELECTED FILTER — PostgREST caps unbounded result
-  // sets, so an unbounded fetch silently understates both the displayed count and any in-memory
-  // sum once a register crosses that cap. The exact chip/KPI figures below come from
-  // fn_expense_register_summary (over the FULL register), not from this bounded page.
-  let listQuery = sb
-    .from("expenses")
-    .select("id, date, category, description, total, kind, supplier_id, payment_status, account_id, cost_center_id")
-    .eq("org_id", m.orgId)
-    .order("date", { ascending: false, nullsFirst: false })
-    .order("id", { ascending: false })
-    .limit(EXPENSE_REGISTER_DISPLAY_CAP);
-  if (effectiveFilter === "month") {
-    listQuery = listQuery.gte("date", monthStart).lt("date", monthEnd);
-  } else if (effectiveFilter === "operating") {
-    listQuery = listQuery.eq("kind", "operating");
-  } else if (effectiveFilter === "drawing") {
-    listQuery = listQuery.eq("kind", "drawing");
-  } else if (effectiveFilter === "unrouted") {
-    listQuery = listQuery.is("payment_status", null);
-  } else if (effectiveFilter === "unclassified") {
-    listQuery = listQuery.is("account_id", null);
-  } else if (effectiveFilter === "uncentered") {
-    listQuery = listQuery.is("cost_center_id", null);
+  const snapshotRes = await sb.rpc("fn_expense_daily_snapshot", {
+    p_org: m.orgId,
+    p_filter: effectiveFilter,
+    p_month_start: monthStart,
+    p_month_end: monthEnd,
+    p_row_limit: EXPENSE_REGISTER_DISPLAY_CAP,
+  });
+  if (snapshotRes.error) throw snapshotRes.error;
+  const snapshot = parseExpenseDailySnapshot(snapshotRes.data);
+  if (
+    snapshot.orgId !== m.orgId ||
+    snapshot.filter !== effectiveFilter ||
+    snapshot.monthStart !== monthStart ||
+    snapshot.monthEnd !== monthEnd ||
+    snapshot.rowLimit !== EXPENSE_REGISTER_DISPLAY_CAP
+  ) {
+    throw new Error("expense daily snapshot: response scope does not match the request");
   }
 
-  const [summaryRes, listRes, { data: suppliers }, { data: accounts }] = await Promise.all([
-    sb.rpc("fn_expense_register_summary", {
-      p_org: m.orgId,
-      p_month_start: monthStart,
-      p_month_end: monthEnd,
-    }),
-    listQuery,
-    sb.from("suppliers").select("id, name").eq("org_id", m.orgId).order("name"),
-    sb
-      .from("accounts")
-      .select("id, code, name_ar, account_type, kind, parent_id, active")
-      .eq("org_id", m.orgId)
-      .order("code", { ascending: true }),
-  ]);
-  // Fail closed: an RPC/list error or a malformed summary payload must not render a page that
-  // silently understates the register (CLAUDE.md #1) — surface the error instead.
-  if (summaryRes.error) throw summaryRes.error;
-  if (listRes.error) throw listRes.error;
-  const summary = parseExpenseRegisterSummary(summaryRes.data);
-
-  const expenses = listRes.data ?? [];
-  const matchingCount = expenseFilterCount(effectiveFilter, summary);
+  const summary = snapshot.summary;
+  const expenses = snapshot.expenseRows;
+  const suppliers = snapshot.supplierRows;
+  const accounts = snapshot.accountRows;
+  const matchingCount = snapshot.matchingCount;
   const isTruncated = isExpenseRegisterTruncated(matchingCount);
 
   const supMap = new Map((suppliers ?? []).map((s) => [s.id, s.name]));
@@ -106,6 +83,9 @@ export default async function ExpensesListPage({
     ...(canSeeOwnerDrawings
       ? [{ key: "drawing" as ExpenseFilter, label: "مسحوبات", value: summary.drawingCount ?? 0 }]
       : []),
+    ...(effectiveFilter === "undated"
+      ? [{ key: "undated" as ExpenseFilter, label: "بدون تاريخ", value: matchingCount, danger: true }]
+      : []),
     { key: "unrouted", label: "غير موجّهة للسداد", value: summary.unroutedCount, danger: true },
     { key: "unclassified", label: "بدون حساب", value: summary.unclassifiedCount, danger: true },
     { key: "uncentered", label: "بدون مركز تكلفة", value: summary.uncenteredCount, danger: true },
@@ -114,17 +94,15 @@ export default async function ExpensesListPage({
   // this month, split per non-negotiable #6. "بدون مسحوبات" means every non-drawing row — operating
   // AND capex — never operating-only; a null-total row is disclosed as unknown, never coerced into
   // the sum as zero.
-  const monthNonDrawingDisplay = egpSummary({
+  const monthNonDrawingDisplay = egpDecimalSummary({
     total: summary.monthNonDrawingTotal,
-    unknownCount: summary.monthNonDrawingUnknownCount,
     hasUnknown: summary.monthNonDrawingUnknownCount > 0,
   });
   const monthDrawingDisplay =
     summary.monthDrawingTotal == null
       ? null
-      : egpSummary({
+      : egpDecimalSummary({
           total: summary.monthDrawingTotal,
-          unknownCount: summary.monthDrawingUnknownCount ?? 0,
           hasUnknown: (summary.monthDrawingUnknownCount ?? 0) > 0,
         });
 
@@ -135,7 +113,7 @@ export default async function ExpensesListPage({
     { id: "account", header: "الحساب" },
     { id: "description", header: "البيان" },
     { id: "supplier", header: "المورّد" },
-    { id: "total", header: "المبلغ", numeric: true, kind: "money" },
+    { id: "total", header: "المبلغ", numeric: true, decimal: true, kind: "money-preserve-exact" },
   ];
 
   const rows = expenses.map((e) => ({
@@ -144,10 +122,10 @@ export default async function ExpensesListPage({
     date: e.date ? fmtDate(e.date) : "—",
     category: e.category ?? "—",
     kind: KIND_LABELS[e.kind ?? "operating"] ?? "—",
-    account: e.account_id ? accountMap.get(e.account_id) ?? "—" : "بدون حساب",
+    account: e.accountId ? accountMap.get(e.accountId) ?? "—" : "بدون حساب",
     description: e.description ?? "—",
-    supplier: e.supplier_id ? supMap.get(e.supplier_id) ?? "—" : "—",
-    total: e.total != null ? Number(e.total) : undefined,
+    supplier: e.supplierId ? supMap.get(e.supplierId) ?? "—" : "—",
+    total: e.total ?? undefined,
   }));
 
   return (

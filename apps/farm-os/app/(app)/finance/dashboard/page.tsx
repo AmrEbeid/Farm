@@ -10,16 +10,31 @@ import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { PrintButton } from "@/components/print-button";
 import { BudgetDoughnut, VarianceChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { num } from "@/lib/money";
+import {
+  compareDecimals,
+  decimalToSafeNumber,
+  egpExact,
+  maxDecimal,
+  multiplyDecimals,
+  subtractDecimals,
+  sumDecimals,
+} from "@/lib/decimal";
 import { PR_STATUS_AR, EXPENSE_KIND_AR, REQUEST_STATUS_AR } from "@/lib/labels";
-import { DATA_NOT_VERIFIED_AR, getDataAuthority, isAuthoritative } from "@/lib/data-authority";
-
-type SupplierEmbed = { name?: string | null };
-type CustodyLedgerHolder = {
-  custody_account_id: string;
-  closing_balance: number;
-};
-
+import { DATA_NOT_VERIFIED_AR, isAuthoritative } from "@/lib/data-authority";
+import {
+  assertFinanceUnpaidSummary,
+  currentMonthBounds,
+  unpaidExpenseCount,
+  unpaidKnownTotal,
+  unpaidUnknownCount,
+} from "@/lib/expense-register-summary";
+import {
+  FINANCE_DASHBOARD_JOURNAL_LIMIT,
+  FINANCE_DASHBOARD_ROW_LIMIT,
+  parseFinanceDashboardSnapshot,
+} from "@/lib/finance-dashboard-reads";
+import { cairoTodayIso } from "@/lib/payroll-close";
 const FILTER_LABEL_AR: Record<string, string> = {
   all: "كل الجداول",
   budgets: "ضغط الموازنة",
@@ -49,176 +64,134 @@ export default async function FinanceDashboardPage({
   const { filter: requestedFilter = "all" } = await searchParams;
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
-  const canSeeAccounting = m.role === "owner" || m.role === "accountant";
-  const filter = !canSeeAccounting && requestedFilter === "drawings" ? "all" : requestedFilter;
+  const now = new Date();
+  const monthBounds = currentMonthBounds(now);
+  const asOf = cairoTodayIso(now);
+  const { data, error } = await sb.rpc("fn_finance_dashboard_snapshot", {
+    p_org: m.orgId,
+    p_month_start: monthBounds.start,
+    p_month_end: monthBounds.end,
+    p_as_of: asOf,
+    p_row_limit: FINANCE_DASHBOARD_ROW_LIMIT,
+    p_journal_limit: FINANCE_DASHBOARD_JOURNAL_LIMIT,
+  });
+  if (error) throw error;
+  const snapshot = parseFinanceDashboardSnapshot(
+    data,
+    m.orgId,
+    m.role,
+    monthBounds.start,
+    monthBounds.end,
+    asOf
+  );
+  const canSeeAccounting = snapshot.canSeeAccounting;
+  const finance = snapshot.private;
+  const filter =
+    !canSeeAccounting && requestedFilter === "drawings"
+      ? "all"
+      : requestedFilter;
+  const budgetsVerified = isAuthoritative(snapshot.budgetAuthority);
+  const expenseSummary = finance?.expenseSummary ?? null;
+  if (expenseSummary) assertFinanceUnpaidSummary(expenseSummary);
 
-  const [
-    { data: budgets, error: budgetsError },
-    { data: expenses, error: expensesError },
-    { data: prs, error: prsError },
-    budgetAuthority,
-  ] = await Promise.all([
-    sb
-      .from("budgets")
-      .select("id, name, period, category, planned, approved, committed, actual, status")
-      .eq("org_id", m.orgId)
-      .order("period", { ascending: false }),
-    sb
-      .from("expenses")
-      .select("id, date, category, description, total, kind, account_id, suppliers(name)")
-      .order("date", { ascending: false })
-      .limit(12),
-    sb
-      .from("purchase_requests")
-      .select("id, code, status, reason, needed_by")
-      .in("status", ["submitted", "approved", "partially_received"])
-      .order("needed_by", { ascending: true })
-      .limit(12),
-    getDataAuthority(sb, m.orgId, "budgets"),
-  ]);
-  if (budgetsError) throw budgetsError;
-  if (expensesError) throw expensesError;
-  if (prsError) throw prsError;
-  const budgetsVerified = isAuthoritative(budgetAuthority.status);
-
-  const [
-    custodyAccountsRes,
-    custodyLedgerRes,
-    paymentRequestsRes,
-    unpaidExpensesRes,
-    journalEntriesRes,
-    unclassifiedExpensesRes,
-  ] = canSeeAccounting
-    ? await Promise.all([
-        sb.from("custody_accounts").select("id, holder_label, holder_user_id, target_float, active").order("holder_label"),
-        sb.rpc("fn_custody_ledger_report", { p_org: m.orgId, p_period_start: null, p_period_end: null }),
-        sb
-          .from("payment_requests")
-          .select("id, request_no, status, period_start, period_end, approved_net_request, created_at")
-          .in("status", ["submitted", "approved_operational", "approved_final", "paid"])
-          .order("created_at", { ascending: false })
-          .limit(12),
-        sb
-          .from("expenses")
-          .select("id, date, category, description, total, kind")
-          .eq("payment_status", "post_paid_unpaid")
-          .order("date", { ascending: true })
-          .limit(12),
-        sb
-          .from("journal_entries")
-          .select("id, entry_date, source_type, description, status, posted_at")
-          .order("entry_date", { ascending: false })
-          .order("posted_at", { ascending: false })
-          .limit(8),
-        sb.from("expenses").select("id", { count: "exact", head: true }).is("account_id", null),
-      ])
-    : [
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null, count: 0 },
-      ];
-  if (custodyAccountsRes.error) throw custodyAccountsRes.error;
-  if (custodyLedgerRes.error) throw custodyLedgerRes.error;
-  if (paymentRequestsRes.error) throw paymentRequestsRes.error;
-  if (unpaidExpensesRes.error) throw unpaidExpensesRes.error;
-  if (journalEntriesRes.error) throw journalEntriesRes.error;
-  if (unclassifiedExpensesRes.error) throw unclassifiedExpensesRes.error;
-
-  const custodyAccounts = custodyAccountsRes.data ?? [];
-  const custodyBalanceByAccount = parseCustodyLedgerHolders(custodyLedgerRes.data).reduce((map, holder) => {
-    map.set(holder.custody_account_id, holder.closing_balance);
-    return map;
-  }, new Map<string, number>());
-  const custodyWithBalance = custodyAccounts.map((account) => ({
-    ...account,
-    balance: custodyBalanceByAccount.get(account.id) ?? 0,
-  }));
-  const accountantCustody = custodyWithBalance.filter(
-    (account) =>
-      account.holder_user_id === m.userId ||
-      /محاسب|accountant/i.test(account.holder_label ?? ""),
+  const custodyWithBalance = finance?.custody ?? [];
+  const myCustody = custodyWithBalance.filter(
+    (account) => account.holder_user_id === m.userId
   );
 
-  const budgetTotals = (budgets ?? []).reduce(
-    (acc, b) => {
-      acc.approved += Number(b.approved ?? 0);
-      acc.committed += Number(b.committed ?? 0);
-      acc.actual += Number(b.actual ?? 0);
-      return acc;
-    },
-    { approved: 0, committed: 0, actual: 0 },
-  );
-  const spentOrCommitted = budgetTotals.committed + budgetTotals.actual;
-  const available = budgetTotals.approved - spentOrCommitted;
+  const budgetTotals = snapshot.budgetSummary;
+  const spentOrCommitted = budgetTotals.spentOrCommitted;
+  const available = budgetTotals.available;
 
   // Variance per budget category (planned = approved, actual = committed + actual).
-  const varianceByCategory = Object.values(
-    (budgets ?? []).reduce<Record<string, { category: string; planned: number; actual: number }>>((acc, b) => {
-      const key = b.category ?? "—";
-      acc[key] ??= { category: key, planned: 0, actual: 0 };
-      acc[key].planned += Number(b.approved ?? 0);
-      acc[key].actual += Number(b.committed ?? 0) + Number(b.actual ?? 0);
-      return acc;
-    }, {}),
-  );
-  const submittedPrs = (prs ?? []).filter((p) => p.status === "submitted").length;
-  const today = new Date();
-  const todayKey = today.toISOString().slice(0, 10);
-  const inSevenDays = new Date(today);
-  inSevenDays.setDate(today.getDate() + 7);
-  const inSevenDaysKey = inSevenDays.toISOString().slice(0, 10);
-  const nearDuePrs = (prs ?? []).filter((p) => {
-    if (!p.needed_by) return false;
-    const neededKey = String(p.needed_by).slice(0, 10);
-    return neededKey >= todayKey && neededKey <= inSevenDaysKey;
-  }).length;
-  const expenseKindRows = (expenses ?? []).map((expense) => ({
+  const varianceByCategory = snapshot.budgetCategories.flatMap((category) => {
+    const planned = decimalToSafeNumber(category.approved);
+    const actual = decimalToSafeNumber(
+      sumDecimals([category.committed, category.actual]).total
+    );
+    return planned === null || actual === null
+      ? []
+      : [{ category: category.category, planned, actual }];
+  });
+  const completeVarianceChart =
+    varianceByCategory.length === snapshot.budgetCategories.length;
+  const chartUsed = decimalToSafeNumber(spentOrCommitted);
+  const chartAvailable = decimalToSafeNumber(maxDecimal(available, "0"));
+  const submittedPrs = snapshot.purchaseRequestSample.submittedCount;
+  const nearDuePrs = snapshot.purchaseRequestSample.nearDueCount;
+  const expenseKindRows = snapshot.expenses.map((expense) => ({
     expense,
-    kind: (expense.kind ?? "operating") as ExpenseKind,
-  })).filter((row) => canSeeAccounting || row.kind !== "drawing");
-  // Operating and drawings are each their own kind; capex is neither, so it is excluded from both totals.
-  const ownerDrawingsTotal = expenseKindRows
-    .filter((row) => row.kind === "drawing")
-    .reduce((sum, row) => sum + Number(row.expense.total ?? 0), 0);
-  const operatingTotal = expenseKindRows
-    .filter((row) => row.kind === "operating")
-    .reduce((sum, row) => sum + Number(row.expense.total ?? 0), 0);
-  const unclassifiedCount = unclassifiedExpensesRes.count ?? 0;
+    kind: expense.kind,
+  }));
+  const ownerDrawingsTotal = snapshot.expenseSample.drawingTotal;
+  const operatingTotal = snapshot.expenseSample.operatingTotal;
+  const ownerDrawingsLabel =
+    ownerDrawingsTotal === null
+      ? "—"
+      : `${egpExact(ownerDrawingsTotal)}${
+          snapshot.expenseSample.drawingUnknownCount ? " + غير معروف" : ""
+        }`;
+  const operatingLabel = `${egpExact(operatingTotal)}${
+    snapshot.expenseSample.operatingUnknownCount ? " + غير معروف" : ""
+  }`;
+  const unclassifiedCount = finance?.unclassifiedExpenseCount ?? 0;
 
   const budgetColumns: SimpleColumn[] = [
     { id: "name", header: "الموازنة" },
     { id: "category", header: "الفئة" },
-    { id: "approved", header: "المعتمد", kind: "money", numeric: true },
-    { id: "committed", header: "الملتزم", kind: "money", numeric: true },
-    { id: "actual", header: "الفعلي", kind: "money", numeric: true },
-    { id: "available", header: "المتاح", kind: "money", numeric: true },
+    {
+      id: "approved",
+      header: "المعتمد",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
+    {
+      id: "committed",
+      header: "الملتزم",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
+    {
+      id: "actual",
+      header: "الفعلي",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
+    {
+      id: "available",
+      header: "المتاح",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
     { id: "signal", header: "الإشارة", kind: "status" },
   ];
-  const budgetRows = [...(budgets ?? [])]
+  const budgetRows = snapshot.budgets
     .map((b) => {
-      const approved = Number(b.approved ?? 0);
-      const committed = Number(b.committed ?? 0);
-      const actual = Number(b.actual ?? 0);
-      const remaining = approved - committed - actual;
-      const signal = approved === 0 ? "لا اعتماد" : remaining < 0 ? "متجاوز" : remaining <= approved * 0.1 ? "منخفض" : "متاح";
+      const remaining = b.available;
+      const signal =
+        compareDecimals(b.approved, "0") === 0
+          ? "لا اعتماد"
+          : compareDecimals(remaining, "0") < 0
+          ? "متجاوز"
+          : compareDecimals(remaining, multiplyDecimals(b.approved, "0.1")) <= 0
+          ? "منخفض"
+          : "متاح";
       return {
         id: b.id,
         href: `/budgets/${b.id}`,
-        sortAvailable: remaining,
-        name: b.name ?? "—",
-        category: b.category ?? "—",
-        approved,
-        committed,
-        actual,
+        name: b.name,
+        category: b.category,
+        approved: b.approved,
+        committed: b.committed,
+        actual: b.actual,
         available: remaining,
         signal,
       };
     })
-    .sort((a, b) => a.sortAvailable - b.sortAvailable)
-    .slice(0, 8)
     .map((row) => ({
       id: row.id,
       href: row.href,
@@ -230,6 +203,8 @@ export default async function FinanceDashboardPage({
       available: row.available,
       signal: row.signal,
     }));
+  const budgetRowsTruncated =
+    snapshot.budgetSummary.budgetCount > budgetRows.length;
 
   const expenseColumns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
@@ -237,48 +212,45 @@ export default async function FinanceDashboardPage({
     { id: "category", header: "الفئة" },
     { id: "description", header: "البيان" },
     { id: "supplier", header: "المورّد" },
-    { id: "total", header: "المبلغ", kind: "money", numeric: true },
+    {
+      id: "total",
+      header: "المبلغ",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
   ];
   const expenseRows = expenseKindRows
     .filter((row) =>
       filter === "drawings"
         ? row.kind === "drawing"
         : filter === "operating"
-          ? row.kind === "operating"
-          : filter === "unclassified"
-            ? row.expense.account_id == null
-            : true,
+        ? row.kind === "operating"
+        : filter === "unclassified"
+        ? row.expense.accountId == null
+        : true
     )
     .map(({ expense, kind }) => {
-    const supplier = normalizeSupplier(expense.suppliers);
-    return {
-      id: expense.id,
-      href: `/expenses/${expense.id}`,
-      date: expense.date ? fmtDate(expense.date) : "—",
-      kind: EXPENSE_KIND_AR[kind],
-      category: expense.category ?? "—",
-      description: expense.description ?? "—",
-      supplier: supplier?.name ?? "—",
-      total: expense.total != null ? Number(expense.total) : undefined,
-    };
-  });
+      return {
+        id: expense.id,
+        href: `/expenses/${expense.id}`,
+        date: expense.date ? fmtDate(expense.date) : "—",
+        kind: EXPENSE_KIND_AR[kind],
+        category: expense.category ?? "—",
+        description: expense.description ?? "—",
+        supplier: expense.supplierName ?? "—",
+        total: expense.total ?? undefined,
+      };
+    });
 
   const expenseCardTitle =
     filter === "drawings"
-      ? "مسحوبات المالك"
+      ? "مسحوبات المالك المعروضة"
       : filter === "operating"
-        ? "مصروفات تشغيلية"
-        : filter === "unclassified"
-          ? "مصروفات بدون حساب"
-          : "آخر المصروفات";
-  const expenseExportFilename =
-    filter === "drawings"
-      ? "finance-dashboard-owner-drawings"
-      : filter === "operating"
-        ? "finance-dashboard-operating-expenses"
-        : filter === "unclassified"
-          ? "finance-dashboard-unclassified-expenses"
-          : "finance-dashboard-expenses";
+      ? "مصروفات تشغيلية معروضة"
+      : filter === "unclassified"
+      ? "مصروفات بدون حساب معروضة"
+      : "آخر المصروفات المعروضة";
 
   const prColumns: SimpleColumn[] = [
     { id: "code", header: "طلب الشراء" },
@@ -286,29 +258,49 @@ export default async function FinanceDashboardPage({
     { id: "needed_by", header: "مطلوب بحلول" },
     { id: "status", header: "الحالة", kind: "status" },
   ];
-  const prRows = (prs ?? []).map((pr) => ({
+  const prRows = snapshot.purchaseRequests.map((pr) => ({
     id: pr.id,
     href: `/purchase-requests/${pr.id}`,
     code: pr.code,
     reason: pr.reason ?? "—",
-    needed_by: pr.needed_by ? fmtDate(pr.needed_by) : "—",
+    needed_by: pr.neededBy ? fmtDate(pr.neededBy) : "—",
     status: PR_STATUS_AR[pr.status] ?? "غير معروف",
   }));
 
   const custodyColumns: SimpleColumn[] = [
     { id: "holder", header: "العهدة لدى" },
-    { id: "balance", header: "الرصيد", kind: "money", numeric: true },
-    { id: "target", header: "المستهدف", kind: "money", numeric: true },
-    { id: "topup", header: "التغذية المطلوبة", kind: "money", numeric: true },
+    {
+      id: "balance",
+      header: "الرصيد",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
+    {
+      id: "target",
+      header: "المستهدف",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
+    {
+      id: "topup",
+      header: "التغذية المطلوبة",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
   ];
   const custodyRows = custodyWithBalance.map((account) => {
-    const target = Number(account.target_float ?? 0);
     return {
       id: account.id,
       holder: account.holder_label,
       balance: account.balance,
-      target,
-      topup: Math.max(0, target - account.balance),
+      target: account.target_float,
+      topup: maxDecimal(
+        subtractDecimals(account.target_float, account.balance),
+        "0"
+      ),
     };
   });
 
@@ -316,19 +308,28 @@ export default async function FinanceDashboardPage({
     { id: "no", header: "طلب الصرف", kind: "num", numeric: true },
     { id: "period", header: "الفترة" },
     { id: "status", header: "الحالة", kind: "status" },
-    { id: "amount", header: "المعتمد", kind: "money", numeric: true },
+    {
+      id: "amount",
+      header: "المعتمد",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
   ];
-  const openPaymentRequests = (paymentRequestsRes.data ?? []).filter((request) =>
-    ["submitted", "approved_operational", "approved_final"].includes(request.status),
-  );
-  const readyForPayment = openPaymentRequests.filter((request) => request.status === "approved_final");
+  const openPaymentRequests = finance?.paymentRequests ?? [];
+  const openPaymentRequestCount = finance?.openPaymentCount ?? 0;
+  const readyPaymentCount = finance?.readyPaymentCount ?? 0;
+  const paymentRowsTruncated =
+    openPaymentRequestCount > openPaymentRequests.length;
   const paymentRows = openPaymentRequests.map((request) => ({
     id: request.id,
     href: `/custody/request/${request.id}`,
-    no: request.request_no,
-    period: `${fmtDate(request.period_start)} → ${fmtDate(request.period_end)}`,
+    no: request.requestNo,
+    period: `${request.periodStart ? fmtDate(request.periodStart) : "—"} → ${
+      request.periodEnd ? fmtDate(request.periodEnd) : "—"
+    }`,
     status: REQUEST_STATUS_AR[request.status] ?? request.status,
-    amount: request.approved_net_request != null ? Number(request.approved_net_request) : undefined,
+    amount: request.approvedNetRequest ?? undefined,
   }));
 
   const unpaidColumns: SimpleColumn[] = [
@@ -336,26 +337,37 @@ export default async function FinanceDashboardPage({
     { id: "kind", header: "النوع", kind: "status" },
     { id: "category", header: "الفئة" },
     { id: "description", header: "البيان" },
-    { id: "total", header: "المبلغ", kind: "money", numeric: true },
+    {
+      id: "total",
+      header: "المبلغ",
+      kind: "money-exact",
+      numeric: true,
+      decimal: true,
+    },
   ];
-  const unpaidRows = (unpaidExpensesRes.data ?? []).map((expense) => ({
+  const unpaidRows = (finance?.unpaidExpenses ?? []).map((expense) => ({
     id: expense.id,
     href: `/expenses/${expense.id}`,
     date: fmtDate(expense.date),
     kind: EXPENSE_KIND_AR[(expense.kind ?? "operating") as ExpenseKind],
     category: expense.category ?? "—",
     description: expense.description ?? "—",
-    total: expense.total != null ? Number(expense.total) : undefined,
+    total: expense.total ?? undefined,
   }));
-  const unpaidTotal = (unpaidExpensesRes.data ?? []).reduce((sum, expense) => sum + Number(expense.total ?? 0), 0);
-  const accountantCustodyRows = accountantCustody.map((account) => {
-    const target = Number(account.target_float ?? 0);
+  const unpaidTotal = expenseSummary ? unpaidKnownTotal(expenseSummary) : "0";
+  const unpaidCount = expenseSummary ? unpaidExpenseCount(expenseSummary) : 0;
+  const unpaidUnknown = expenseSummary ? unpaidUnknownCount(expenseSummary) : 0;
+  const unpaidRowsTruncated = unpaidCount > unpaidRows.length;
+  const myCustodyRows = myCustody.map((account) => {
     return {
       id: account.id,
       holder: account.holder_label,
       balance: account.balance,
-      target,
-      topup: Math.max(0, target - account.balance),
+      target: account.target_float,
+      topup: maxDecimal(
+        subtractDecimals(account.target_float, account.balance),
+        "0"
+      ),
     };
   });
 
@@ -365,13 +377,15 @@ export default async function FinanceDashboardPage({
     { id: "description", header: "البيان" },
     { id: "status", header: "الحالة" },
   ];
-  const journalRows = (journalEntriesRes.data ?? []).map((entry) => ({
+  const journalRows = (finance?.journalEntries ?? []).map((entry) => ({
     id: entry.id,
-    date: fmtDate(entry.entry_date),
-    source: entry.source_type,
+    date: fmtDate(entry.entryDate),
+    source: entry.sourceType,
     description: entry.description ?? "—",
     status: entry.status === "posted" ? "مرحل" : entry.status,
   }));
+  const journalCount = finance?.journalCount ?? 0;
+  const journalRowsTruncated = journalCount > journalRows.length;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -387,20 +401,36 @@ export default async function FinanceDashboardPage({
           <HeaderLink href="/budgets">الموازنات</HeaderLink>
           <HeaderLink href="/expenses">المصروفات</HeaderLink>
           <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
-          {canSeeAccounting && <HeaderLink href="/finance/accounts">شجرة الحسابات</HeaderLink>}
-          {canSeeAccounting && <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>}
-          {canSeeAccounting && <HeaderLink href="/finance/revenue-reports">تقارير الإيرادات</HeaderLink>}
-          {canSeeAccounting && <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>}
+          {canSeeAccounting && (
+            <HeaderLink href="/finance/accounts">شجرة الحسابات</HeaderLink>
+          )}
+          {canSeeAccounting && (
+            <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>
+          )}
+          {canSeeAccounting && (
+            <HeaderLink href="/finance/revenue-reports">
+              تقارير الإيرادات
+            </HeaderLink>
+          )}
+          {canSeeAccounting && (
+            <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>
+          )}
           {canSeeAccounting && <HeaderLink href="/custody">العهدة</HeaderLink>}
-          {canSeeAccounting && <HeaderLink href="/accounting">المحاسبة</HeaderLink>}
+          {canSeeAccounting && (
+            <HeaderLink href="/accounting">المحاسبة</HeaderLink>
+          )}
         </div>
       </header>
 
       {budgetsVerified && (
         <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">
-          «الملتزم» و«الفعلي» و«المتاح» أدناه أرقام موازنة موثقة المصدر، لكنها لا تتحدّث تلقائيًا من الاعتمادات
-          والمصروفات. لا تعتمد عليها كرقابة صرف حية. راجع{" "}
-          <Link href="/finance/budget-vs-actual" className="font-semibold underline underline-offset-4">
+          «الملتزم» و«الفعلي» و«المتاح» أدناه أرقام موازنة موثقة المصدر، لكنها
+          لا تتحدّث تلقائيًا من الاعتمادات والمصروفات. لا تعتمد عليها كرقابة صرف
+          حية. راجع{" "}
+          <Link
+            href="/finance/budget-vs-actual"
+            className="font-semibold underline underline-offset-4"
+          >
             الموازنة مقابل الفعلي من القيود المُرحّلة
           </Link>
           .
@@ -411,70 +441,136 @@ export default async function FinanceDashboardPage({
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {budgetsVerified && (
             <>
-              <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
-                <KpiCard label="المعتمد (لقطة)" value={egp(budgetTotals.approved)} />
+              <DashboardKpiLink
+                href="/finance/dashboard?filter=budgets"
+                active={filter === "budgets"}
+              >
+                <KpiCard
+                  label="المعتمد (لقطة)"
+                  value={egpExact(budgetTotals.approved)}
+                />
               </DashboardKpiLink>
-              <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
-                <KpiCard label="ملتزم + فعلي (لقطة)" value={egp(spentOrCommitted)} />
+              <DashboardKpiLink
+                href="/finance/dashboard?filter=budgets"
+                active={filter === "budgets"}
+              >
+                <KpiCard
+                  label="ملتزم + فعلي (لقطة)"
+                  value={egpExact(spentOrCommitted)}
+                />
               </DashboardKpiLink>
-              <DashboardKpiLink href="/finance/dashboard?filter=budgets" active={filter === "budgets"}>
-                <KpiCard label="المتاح (لقطة)" value={egp(available)} deltaDirection={available < 0 ? "down" : "none"} />
+              <DashboardKpiLink
+                href="/finance/dashboard?filter=budgets"
+                active={filter === "budgets"}
+              >
+                <KpiCard
+                  label="المتاح (لقطة)"
+                  value={egpExact(available)}
+                  deltaDirection={
+                    compareDecimals(available, "0") < 0 ? "down" : "none"
+                  }
+                />
               </DashboardKpiLink>
             </>
           )}
           {canSeeAccounting && (
-            <DashboardKpiLink href="/finance/dashboard?filter=drawings" active={filter === "drawings"}>
-              <KpiCard label="مسحوبات مالك معروضة" value={egp(ownerDrawingsTotal)} />
+            <DashboardKpiLink
+              href="/finance/dashboard?filter=drawings"
+              active={filter === "drawings"}
+            >
+              <KpiCard label="مسحوبات مالك معروضة" value={ownerDrawingsLabel} />
             </DashboardKpiLink>
           )}
         </section>
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardKpiLink href="/finance/dashboard?filter=operating" active={filter === "operating"}>
-          <KpiCard label="تشغيلي معروض" value={egp(operatingTotal)} />
+        <DashboardKpiLink
+          href="/finance/dashboard?filter=operating"
+          active={filter === "operating"}
+        >
+          <KpiCard label="تشغيلي معروض" value={operatingLabel} />
         </DashboardKpiLink>
-        <DashboardKpiLink href="/finance/dashboard?filter=expenses" active={filter === "expenses"}>
+        <DashboardKpiLink
+          href="/finance/dashboard?filter=expenses"
+          active={filter === "expenses"}
+        >
           <KpiCard label="مصروفات معروضة" value={num(expenseRows.length)} />
         </DashboardKpiLink>
-        <DashboardKpiLink href="/finance/dashboard?filter=prs" active={filter === "prs"}>
-          <KpiCard label="طلبات مرسلة" value={num(submittedPrs)} />
+        <DashboardKpiLink
+          href="/finance/dashboard?filter=prs"
+          active={filter === "prs"}
+        >
+          <KpiCard label="طلبات مرسلة ضمن المعروض" value={num(submittedPrs)} />
         </DashboardKpiLink>
-        <KpiCard label="قريبة الاستحقاق" value={num(nearDuePrs)} />
+        <KpiCard label="قريبة الاستحقاق ضمن المعروض" value={num(nearDuePrs)} />
       </section>
 
       {canSeeAccounting && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          <DashboardKpiLink href="/finance/dashboard?filter=custody" active={filter === "custody"}>
-            <KpiCard
-              label={m.role === "accountant" ? "عهدتي" : "عهدة المحاسب"}
-              value={egp(accountantCustody.reduce((sum, account) => sum + account.balance, 0))}
-            />
-          </DashboardKpiLink>
-          <DashboardKpiLink href="/finance/dashboard?filter=custody" active={filter === "custody"}>
+          {m.role === "accountant" && (
+            <DashboardKpiLink
+              href="/finance/dashboard?filter=custody"
+              active={filter === "custody"}
+            >
+              <KpiCard
+                label="عهدتي"
+                value={egpExact(
+                  sumDecimals(myCustody.map((account) => account.balance)).total
+                )}
+              />
+            </DashboardKpiLink>
+          )}
+          <DashboardKpiLink
+            href="/finance/dashboard?filter=custody"
+            active={filter === "custody"}
+          >
             <KpiCard
               label="رصيد كل العهد"
-              value={egp(custodyWithBalance.reduce((sum, account) => sum + account.balance, 0))}
+              value={egpExact(
+                sumDecimals(
+                  custodyWithBalance.map((account) => account.balance)
+                ).total
+              )}
             />
           </DashboardKpiLink>
-          <DashboardKpiLink href="/finance/dashboard?filter=payments" active={filter === "payments"}>
-            <KpiCard label="طلبات صرف مفتوحة" value={num(openPaymentRequests.length)} />
+          <DashboardKpiLink
+            href="/finance/dashboard?filter=payments"
+            active={filter === "payments"}
+          >
+            <KpiCard
+              label="طلبات صرف مفتوحة"
+              value={num(openPaymentRequestCount)}
+            />
           </DashboardKpiLink>
-          <DashboardKpiLink href="/finance/dashboard?filter=payments" active={filter === "payments"}>
+          <DashboardKpiLink
+            href="/finance/dashboard?filter=payments"
+            active={filter === "payments"}
+          >
             <KpiCard
               label="جاهزة للدفع"
-              value={num(readyForPayment.length)}
-              deltaDirection={readyForPayment.length ? "down" : "none"}
+              value={num(readyPaymentCount)}
+              deltaDirection={readyPaymentCount ? "down" : "none"}
             />
           </DashboardKpiLink>
-          <DashboardKpiLink href="/finance/dashboard?filter=payments" active={filter === "payments"}>
+          <DashboardKpiLink
+            href="/finance/dashboard?filter=payments"
+            active={filter === "payments"}
+          >
             <KpiCard
-              label="آجل غير مدفوع"
-              value={egp(unpaidTotal)}
-              deltaDirection={unpaidTotal > 0 ? "down" : "none"}
+              label={
+                unpaidUnknown > 0 ? "آجل معروف غير مدفوع" : "آجل غير مدفوع"
+              }
+              value={egpExact(unpaidTotal)}
+              deltaDirection={
+                compareDecimals(unpaidTotal, "0") > 0 ? "down" : "none"
+              }
             />
           </DashboardKpiLink>
-          <DashboardKpiLink href="/finance/dashboard?filter=accounting" active={filter === "accounting"}>
+          <DashboardKpiLink
+            href="/finance/dashboard?filter=accounting"
+            active={filter === "accounting"}
+          >
             <KpiCard label="قيود حديثة" value={num(journalRows.length)} />
           </DashboardKpiLink>
           <DashboardKpiLink href="/expenses?filter=unclassified" active={false}>
@@ -487,18 +583,22 @@ export default async function FinanceDashboardPage({
         </section>
       )}
 
-      {budgetsVerified && (filter === "all" || filter === "budgets") && budgetTotals.approved > 0 && (
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Card title="استخدام لقطة الموازنة">
-            <BudgetDoughnut used={spentOrCommitted} available={Math.max(0, available)} />
-          </Card>
-          {varianceByCategory.length > 0 && (
-            <Card title="المعتمد مقابل لقطة الملتزم والفعلي حسب الفئة">
-              <VarianceChart data={varianceByCategory} />
+      {budgetsVerified &&
+        (filter === "all" || filter === "budgets") &&
+        compareDecimals(budgetTotals.approved, "0") > 0 &&
+        chartUsed !== null &&
+        chartAvailable !== null && (
+          <section className="grid gap-4 lg:grid-cols-2">
+            <Card title="استخدام لقطة الموازنة">
+              <BudgetDoughnut used={chartUsed} available={chartAvailable} />
             </Card>
-          )}
-        </section>
-      )}
+            {completeVarianceChart && varianceByCategory.length > 0 && (
+              <Card title="المعتمد مقابل لقطة الملتزم والفعلي حسب الفئة">
+                <VarianceChart data={varianceByCategory} />
+              </Card>
+            )}
+          </section>
+        )}
 
       <div className="no-print">
         <CurrentFilterCard
@@ -511,21 +611,38 @@ export default async function FinanceDashboardPage({
       {(filter === "all" || filter === "budgets") && (
         <>
           {!budgetsVerified && (
-            <Alert tone="warning" title="لا توجد موازنة موثقة" description={DATA_NOT_VERIFIED_AR} />
+            <Alert
+              tone="warning"
+              title="لا توجد موازنة موثقة"
+              description={DATA_NOT_VERIFIED_AR}
+            />
           )}
           {budgetsVerified && (
             <Card title="ضغط الموازنة (لقطة)">
-              {budgetRows.length === 0 ? (
-                <EmptyState title="لا توجد موازنات" />
-              ) : (
-                <FilterableTable
-                  columns={budgetColumns}
-                  rows={budgetRows}
-                  ariaLabel="ضغط الموازنة"
-                  exportFilename="finance-dashboard-budget-pressure"
-                  empty="—"
-                />
-              )}
+              <div className="flex flex-col gap-3">
+                {budgetRowsTruncated && (
+                  <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+                    الجدول يعرض أكثر {num(budgetRows.length)} موازنات ضغطًا من
+                    أصل {num(snapshot.budgetSummary.budgetCount)}. البحث داخل
+                    المعروض، والتصدير متوقف حتى لا ينتج ملف ناقص.
+                  </p>
+                )}
+                {budgetRows.length === 0 ? (
+                  <EmptyState title="لا توجد موازنات" />
+                ) : (
+                  <FilterableTable
+                    columns={budgetColumns}
+                    rows={budgetRows}
+                    ariaLabel="ضغط الموازنة"
+                    exportFilename={
+                      budgetRowsTruncated
+                        ? undefined
+                        : "finance-dashboard-budget-pressure"
+                    }
+                    empty="—"
+                  />
+                )}
+              </div>
             </Card>
           )}
         </>
@@ -551,22 +668,20 @@ export default async function FinanceDashboardPage({
                   columns={expenseColumns}
                   rows={expenseRows}
                   ariaLabel={expenseCardTitle}
-                  exportFilename={expenseExportFilename}
                   empty="—"
                 />
               )}
             </Card>
           )}
           {(filter === "all" || filter === "prs") && (
-            <Card title="طلبات شراء للمتابعة">
+            <Card title="طلبات شراء للمتابعة معروضة">
               {prRows.length === 0 ? (
                 <EmptyState title="لا توجد طلبات شراء للمتابعة" />
               ) : (
                 <FilterableTable
                   columns={prColumns}
                   rows={prRows}
-                  ariaLabel="طلبات شراء للمتابعة"
-                  exportFilename="finance-dashboard-purchase-requests"
+                  ariaLabel="طلبات شراء للمتابعة معروضة"
                   empty="—"
                 />
               )}
@@ -575,113 +690,158 @@ export default async function FinanceDashboardPage({
         </section>
       )}
 
-      {canSeeAccounting && (filter === "all" || filter === "custody" || filter === "payments" || filter === "accounting") && (
-        <section className="grid gap-4 xl:grid-cols-2">
-          {(filter === "all" || filter === "custody") && (
-            <Card title="العهدة حسب الشخص">
-              <div className="flex flex-col gap-4">
-                {m.role === "accountant" && (
+      {canSeeAccounting &&
+        (filter === "all" ||
+          filter === "custody" ||
+          filter === "payments" ||
+          filter === "accounting") && (
+          <section className="grid gap-4 xl:grid-cols-2">
+            {(filter === "all" || filter === "custody") && (
+              <Card title="العهدة حسب الشخص">
+                <div className="flex flex-col gap-4">
+                  {m.role === "accountant" && (
+                    <div>
+                      <h3 className="mb-2 text-base font-semibold">عهدتي</h3>
+                      {myCustodyRows.length === 0 ? (
+                        <EmptyState title="لا توجد عهدة مربوطة بهذا الحساب" />
+                      ) : (
+                        <FilterableTable
+                          columns={custodyColumns}
+                          rows={myCustodyRows}
+                          ariaLabel="عهدتي"
+                          exportFilename="finance-dashboard-accountant-custody"
+                          empty="—"
+                        />
+                      )}
+                    </div>
+                  )}
                   <div>
-                    <h3 className="mb-2 text-base font-semibold">عهدتي</h3>
-                    {accountantCustodyRows.length === 0 ? (
-                      <EmptyState title="لا توجد عهدة مربوطة بهذا الحساب" />
+                    <h3 className="mb-2 text-base font-semibold">كل العهد</h3>
+                    {custodyRows.length === 0 ? (
+                      <EmptyState title="لا توجد عهد مسجلة" />
                     ) : (
                       <FilterableTable
                         columns={custodyColumns}
-                        rows={accountantCustodyRows}
-                        ariaLabel="عهدتي"
-                        exportFilename="finance-dashboard-accountant-custody"
+                        rows={custodyRows}
+                        ariaLabel="العهدة حسب الشخص"
+                        exportFilename="finance-dashboard-custody"
                         empty="—"
                       />
                     )}
                   </div>
-                )}
-                <div>
-                  <h3 className="mb-2 text-base font-semibold">كل العهد</h3>
-                  {custodyRows.length === 0 ? (
-                    <EmptyState title="لا توجد عهد مسجلة" />
+                </div>
+              </Card>
+            )}
+            {(filter === "all" || filter === "payments") && (
+              <Card
+                title={`طلبات صرف تحتاج متابعة (${num(
+                  openPaymentRequestCount
+                )})`}
+              >
+                <div className="flex flex-col gap-3">
+                  {paymentRowsTruncated && (
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--ink-muted)" }}
+                    >
+                      القائمة تعرض أحدث {num(paymentRows.length)} من أصل{" "}
+                      {num(openPaymentRequestCount)} طلبًا مفتوحًا. البحث داخل
+                      المعروض، والتصدير متوقف حتى لا ينتج ملف ناقص.
+                    </p>
+                  )}
+                  {paymentRows.length === 0 ? (
+                    <EmptyState title="لا توجد طلبات صرف مفتوحة" />
                   ) : (
                     <FilterableTable
-                      columns={custodyColumns}
-                      rows={custodyRows}
-                      ariaLabel="العهدة حسب الشخص"
-                      exportFilename="finance-dashboard-custody"
+                      columns={paymentColumns}
+                      rows={paymentRows}
+                      ariaLabel="طلبات صرف تحتاج متابعة"
+                      exportFilename={
+                        paymentRowsTruncated
+                          ? undefined
+                          : "finance-dashboard-payment-requests"
+                      }
                       empty="—"
                     />
                   )}
                 </div>
-              </div>
-            </Card>
-          )}
-          {(filter === "all" || filter === "payments") && (
-            <Card title="طلبات صرف تحتاج متابعة">
-              {paymentRows.length === 0 ? (
-                <EmptyState title="لا توجد طلبات صرف مفتوحة" />
-              ) : (
-                <FilterableTable
-                  columns={paymentColumns}
-                  rows={paymentRows}
-                  ariaLabel="طلبات صرف تحتاج متابعة"
-                  exportFilename="finance-dashboard-payment-requests"
-                  empty="—"
-                />
-              )}
-            </Card>
-          )}
-          {(filter === "all" || filter === "payments") && (
-            <Card title="مصروفات آجلة غير مدفوعة">
-              {unpaidRows.length === 0 ? (
-                <EmptyState title="لا توجد مصروفات آجلة غير مدفوعة" />
-              ) : (
-                <FilterableTable
-                  columns={unpaidColumns}
-                  rows={unpaidRows}
-                  ariaLabel="مصروفات آجلة غير مدفوعة"
-                  exportFilename="finance-dashboard-unpaid-obligations"
-                  empty="—"
-                />
-              )}
-            </Card>
-          )}
-          {(filter === "all" || filter === "accounting") && (
-            <Card title="آخر القيود المحاسبية">
-              {journalRows.length === 0 ? (
-                <EmptyState title="لا توجد قيود محاسبية بعد" />
-              ) : (
-                <FilterableTable
-                  columns={journalColumns}
-                  rows={journalRows}
-                  ariaLabel="آخر القيود المحاسبية"
-                  exportFilename="finance-dashboard-journal-entries"
-                  empty="—"
-                />
-              )}
-            </Card>
-          )}
-        </section>
-      )}
+              </Card>
+            )}
+            {(filter === "all" || filter === "payments") && (
+              <Card title={`مصروفات آجلة غير مدفوعة (${num(unpaidCount)})`}>
+                <div className="flex flex-col gap-3">
+                  {unpaidUnknown > 0 && (
+                    <Alert
+                      tone="warning"
+                      title="مبالغ آجلة غير مكتملة"
+                      description={`يوجد ${num(
+                        unpaidUnknown
+                      )} مصروف آجل بدون مبلغ. الإجمالي يعرض المبالغ المعروفة فقط.`}
+                    />
+                  )}
+                  {unpaidRowsTruncated && (
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--ink-muted)" }}
+                    >
+                      الجدول يعرض أقدم {num(unpaidRows.length)} سجلًا فقط
+                      للمتابعة. البحث داخل المعروض، والتصدير متوقف حتى لا ينتج
+                      ملف ناقص.
+                    </p>
+                  )}
+                  {unpaidRows.length === 0 ? (
+                    <EmptyState title="لا توجد مصروفات آجلة غير مدفوعة" />
+                  ) : (
+                    <FilterableTable
+                      columns={unpaidColumns}
+                      rows={unpaidRows}
+                      ariaLabel="مصروفات آجلة غير مدفوعة"
+                      exportFilename={
+                        unpaidRowsTruncated
+                          ? undefined
+                          : "finance-dashboard-unpaid-obligations"
+                      }
+                      empty="—"
+                    />
+                  )}
+                </div>
+              </Card>
+            )}
+            {(filter === "all" || filter === "accounting") && (
+              <Card title="آخر القيود المحاسبية">
+                <div className="flex flex-col gap-3">
+                  {journalRowsTruncated && (
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--ink-muted)" }}
+                    >
+                      الجدول يعرض أحدث {num(journalRows.length)} قيدًا من أصل{" "}
+                      {num(journalCount)}. البحث داخل المعروض، والتصدير متوقف
+                      حتى لا ينتج ملف ناقص.
+                    </p>
+                  )}
+                  {journalRows.length === 0 ? (
+                    <EmptyState title="لا توجد قيود محاسبية بعد" />
+                  ) : (
+                    <FilterableTable
+                      columns={journalColumns}
+                      rows={journalRows}
+                      ariaLabel="آخر القيود المحاسبية"
+                      exportFilename={
+                        journalRowsTruncated
+                          ? undefined
+                          : "finance-dashboard-journal-entries"
+                      }
+                      empty="—"
+                    />
+                  )}
+                </div>
+              </Card>
+            )}
+          </section>
+        )}
     </div>
   );
-}
-
-function normalizeSupplier(supplier: SupplierEmbed | SupplierEmbed[] | null): SupplierEmbed | null {
-  if (Array.isArray(supplier)) return supplier[0] ?? null;
-  return supplier;
-}
-
-function parseCustodyLedgerHolders(value: unknown): CustodyLedgerHolder[] {
-  if (!value || typeof value !== "object") return [];
-  const holders = (value as { holders?: unknown }).holders;
-  if (!Array.isArray(holders)) return [];
-  return holders.flatMap((holder) => {
-    if (!holder || typeof holder !== "object") return [];
-    const row = holder as Record<string, unknown>;
-    if (typeof row.custody_account_id !== "string") return [];
-    return [{
-      custody_account_id: row.custody_account_id,
-      closing_balance: Number(row.closing_balance ?? 0),
-    }];
-  });
 }
 
 function HeaderLink({ href, children }: { href: string; children: ReactNode }) {

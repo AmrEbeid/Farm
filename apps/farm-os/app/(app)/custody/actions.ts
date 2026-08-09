@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import { isUuid } from "@/lib/uuid";
+import { normalizePositivePaymentRequestAmount } from "@/lib/payment request detail";
+import {
+  normalizeNonNegativeCustodyAmount,
+  normalizePositiveCustodyAmount,
+} from "@/lib/custody write money";
 
 type Result = { ok: boolean; error?: string };
 type RequestLifecycleRpc =
@@ -21,14 +27,6 @@ const OWNER_FUNDING_MOVEMENT_TYPE = "استلام عهدة من المالك";
 
 async function requireCustodyFinanceRole() {
   return requireRole(["owner", "accountant"]);
-}
-
-function isFiniteNonNegative(value: number): boolean {
-  return Number.isFinite(value) && value >= 0;
-}
-
-function isFinitePositive(value: number): boolean {
-  return Number.isFinite(value) && value > 0;
 }
 
 function isValidDateOnly(value: string): boolean {
@@ -65,10 +63,11 @@ function revalidateFinancePaths(requestId?: string) {
 }
 
 /** Create a custody account through the backend RPC-only write path. */
-export async function createCustodyAccount(input: { holderLabel: string; targetFloat: number }): Promise<Result> {
+export async function createCustodyAccount(input: { holderLabel: string; targetFloat: string }): Promise<Result> {
   const label = input.holderLabel?.trim();
   if (!label) return { ok: false, error: "اسم صاحب العهدة مطلوب" };
-  if (!isFiniteNonNegative(input.targetFloat)) return { ok: false, error: "العهدة المستهدفة غير صالحة" };
+  const targetFloat = normalizeNonNegativeCustodyAmount(input.targetFloat);
+  if (targetFloat == null) return { ok: false, error: "العهدة المستهدفة غير صالحة" };
   const m = await requireCustodyFinanceRole();
   const sb = await createClient();
   const { error } = await sb.rpc("fn_save_custody_account", {
@@ -76,7 +75,7 @@ export async function createCustodyAccount(input: { holderLabel: string; targetF
     p_org: m.orgId,
     p_holder_label: label,
     p_holder_user_id: null,
-    p_target_float: input.targetFloat,
+    p_target_float: targetFloat,
     p_active: true,
   });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر إضافة حساب العهدة (تحقّق من صلاحياتك)") };
@@ -88,18 +87,22 @@ export async function createCustodyAccount(input: { holderLabel: string; targetF
 export async function recordCustodyMovement(input: {
   accountId: string;
   movementType: string;
-  amountIn: number;
-  amountOut: number;
+  amountIn: string;
+  amountOut: string;
   note?: string | null;
 }): Promise<Result> {
   if (!input.accountId || !input.movementType) return { ok: false, error: "البيانات ناقصة" };
-  if (!isFiniteNonNegative(input.amountIn) || !isFiniteNonNegative(input.amountOut)) {
+  const amountIn = normalizeNonNegativeCustodyAmount(input.amountIn);
+  const amountOut = normalizeNonNegativeCustodyAmount(input.amountOut);
+  if (amountIn == null || amountOut == null) {
     return { ok: false, error: "المبلغ غير صالح" };
   }
-  if (isFinitePositive(input.amountIn) === isFinitePositive(input.amountOut)) {
+  const positiveAmountIn = normalizePositiveCustodyAmount(amountIn);
+  const positiveAmountOut = normalizePositiveCustodyAmount(amountOut);
+  if ((positiveAmountIn != null) === (positiveAmountOut != null)) {
     return { ok: false, error: "أدخل مبلغًا واردًا أو صادرًا واحدًا فقط" };
   }
-  if (input.movementType !== OWNER_FUNDING_MOVEMENT_TYPE || !isFinitePositive(input.amountIn) || input.amountOut !== 0) {
+  if (input.movementType !== OWNER_FUNDING_MOVEMENT_TYPE || positiveAmountIn == null || amountOut !== "0") {
     return { ok: false, error: "استخدم مسار الاستلام من المالك أو مسار الصرف/التحويل المخصص" };
   }
   await requireCustodyFinanceRole();
@@ -107,8 +110,8 @@ export async function recordCustodyMovement(input: {
   const { error } = await sb.rpc("fn_record_custody_movement", {
     p_account: input.accountId,
     p_movement_type: input.movementType,
-    p_amount_in: input.amountIn,
-    p_amount_out: input.amountOut,
+    p_amount_in: amountIn,
+    p_amount_out: amountOut,
     p_note: input.note ?? null,
   });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تسجيل الحركة") };
@@ -116,17 +119,55 @@ export async function recordCustodyMovement(input: {
   return { ok: true };
 }
 
+/** Reverse one standalone owner-funding movement through linked custody and journal mirrors. */
+export async function reverseCustodyMovement(input: {
+  movementId: string;
+  reason: string;
+  reversalDate: string;
+}): Promise<Result> {
+  const reason = input.reason?.trim();
+  if (!isUuid(input.movementId)) return { ok: false, error: "حركة العهدة غير صالحة" };
+  if (!reason) return { ok: false, error: "سبب التصحيح مطلوب" };
+  if (reason.length > 500) return { ok: false, error: "سبب التصحيح أطول من الحد المسموح" };
+  if (!isValidDateOnly(input.reversalDate)) return { ok: false, error: "تاريخ التصحيح غير صالح" };
+
+  await requireCustodyFinanceRole();
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_reverse_custody_movement", {
+    p_movement: input.movementId,
+    p_reason: reason,
+    p_reversal_date: input.reversalDate,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        {
+          "22023": "لا يمكن عكس هذه الحركة؛ قد تكون مرتبطة بمسار آخر أو لم يعد رصيدها متاحًا.",
+          "55P03": "إقفال الشهر جارٍ الآن. انتظر قليلًا ثم أعد المحاولة.",
+        },
+        "تعذّر عكس حركة العهدة",
+      ),
+    };
+  }
+  revalidateFinancePaths();
+  revalidatePath(`/custody/movements/${input.movementId}`);
+  return { ok: true };
+}
+
 /** Transfer custody cash between two holders without posting a journal/P&L entry. */
 export async function transferCustody(input: {
   fromAccountId: string;
   toAccountId: string;
-  amount: number;
+  amount: string;
   occurredAt?: string | null;
   note?: string | null;
 }): Promise<Result> {
   if (!input.fromAccountId || !input.toAccountId) return { ok: false, error: "اختر مصدر ووجهة العهدة" };
   if (input.fromAccountId === input.toAccountId) return { ok: false, error: "مصدر ووجهة العهدة يجب أن يكونا مختلفين" };
-  if (!isFinitePositive(input.amount)) return { ok: false, error: "المبلغ يجب أن يكون أكبر من صفر" };
+  const amount = normalizePositiveCustodyAmount(input.amount);
+  if (amount == null) return { ok: false, error: "المبلغ يجب أن يكون أكبر من صفر" };
   const occurredAt = validateOptionalDate(input.occurredAt);
   if (isResult(occurredAt)) return occurredAt;
 
@@ -135,7 +176,7 @@ export async function transferCustody(input: {
   const { error } = await sb.rpc("fn_transfer_custody", {
     p_from_account: input.fromAccountId,
     p_to_account: input.toAccountId,
-    p_amount: input.amount,
+    p_amount: amount,
     p_occurred_at: occurredAt ?? undefined,
     p_note: normalizeOptionalText(input.note),
   });
@@ -216,12 +257,13 @@ export async function addExpenseToRequest(requestId: string, expenseId: string):
 export async function recordPaymentRequestFunding(input: {
   requestId: string;
   custodyAccountId: string;
-  amount: number;
+  amount: string;
   occurredAt?: string | null;
   note?: string | null;
 }): Promise<Result> {
   if (!input.requestId || !input.custodyAccountId) return { ok: false, error: "البيانات ناقصة" };
-  if (!isFinitePositive(input.amount)) return { ok: false, error: "المبلغ يجب أن يكون أكبر من صفر" };
+  const amount = normalizePositivePaymentRequestAmount(input.amount);
+  if (amount == null) return { ok: false, error: "المبلغ يجب أن يكون أكبر من صفر" };
   const occurredAt = validateOptionalDate(input.occurredAt);
   if (isResult(occurredAt)) return occurredAt;
 
@@ -230,7 +272,7 @@ export async function recordPaymentRequestFunding(input: {
   const { error } = await sb.rpc("fn_record_payment_request_funding", {
     p_request: input.requestId,
     p_custody_account: input.custodyAccountId,
-    p_amount: input.amount,
+    p_amount: amount,
     p_occurred_at: occurredAt ?? undefined,
     p_note: normalizeOptionalText(input.note),
   });

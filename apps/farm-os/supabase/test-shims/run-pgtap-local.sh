@@ -30,8 +30,28 @@ pg_ctl -D "$PGDATA" -l "$WORK/pg.log" -o "-p $PORT -k $WORK -c listen_addresses=
 createdb -h "$WORK" -p "$PORT" -U postgres farm
 
 run() { psql -v ON_ERROR_STOP=1 -h "$WORK" -p "$PORT" -U postgres -d farm -X -q "$@"; }
+is_replay_safe_migration() {
+  case "$(basename "$1")" in
+    20260808050000_accounting_reconciliation_review_concurrency.sql | \
+    20260808070000_month_close_exact_summary.sql | \
+    20260808080000_cost_center_history_summary.sql | \
+    20260808100000_custody_movement_reversal.sql | \
+    "20260808130000 receivable workflow exact money.sql" | \
+    "20260808140000 exact revenue report transport.sql") return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 echo "==> shims";       run -f "$HERE/bootstrap.sql" >/dev/null
-echo "==> migrations";  for f in "$SUPA"/migrations/*.sql; do run -f "$f" >/dev/null; done
+echo "==> migrations"
+for f in "$SUPA"/migrations/*.sql; do
+  run -f "$f" >/dev/null
+  # Replay selected migrations immediately after their first application. Later migrations stay
+  # authoritative if they supersede one of these function definitions in the future.
+  if is_replay_safe_migration "$f"; then
+    run -f "$f" >/dev/null
+  fi
+done
 echo "==> seed";        run -f "$SUPA"/seed.sql >/dev/null
 
 echo "==> pgTAP"; tot_ok=0; tot_no=0; tot_bad=0

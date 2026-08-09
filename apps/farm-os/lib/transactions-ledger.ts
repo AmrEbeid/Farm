@@ -40,8 +40,8 @@ export interface ExactCountResult {
  */
 export function requireExactCount(res: ExactCountResult, label: string): number {
   if (res.error) throw res.error;
-  if (res.count == null) {
-    throw new Error(`${label}: exact count missing from response`);
+  if (res.count == null || !Number.isSafeInteger(res.count) || res.count < 0) {
+    throw new Error(`${label}: exact count missing or invalid in response`);
   }
   return res.count;
 }

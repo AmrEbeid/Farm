@@ -21,7 +21,7 @@ export function ExpenseCorrectionControl({
     date: string | null;
     category: string | null;
     description: string | null;
-    total: number | null;
+    total: number | string | null;
     supplierId: string | null;
     accountId: string | null;
     costCenterId: string | null;
@@ -53,7 +53,7 @@ export function ExpenseCorrectionControl({
         date,
         category,
         description,
-        total: Number(total),
+        total,
         supplierId,
         accountId,
         costCenterId,

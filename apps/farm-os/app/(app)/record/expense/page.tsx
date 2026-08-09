@@ -9,16 +9,37 @@ import { ExpenseWizard } from "@/components/ExpenseWizard";
 
 export const dynamic = "force-dynamic";
 
-export default async function RecordExpensePage() {
-  await requireRole(["owner", "accountant"]);
+export default async function RecordExpensePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ payment?: string }>;
+}) {
+  const membership = await requireRole(["owner", "accountant"]);
+  const { payment } = await searchParams;
+  const initialPayment = payment === "later" ? "later" : "custody";
   const sb = await createClient();
 
   const [suppliersRes, accountsRes, centersRes, custodyRes] = await Promise.all([
-    sb.from("suppliers").select("id, name").order("name"),
-    sb.from("accounts").select("id, code, name_ar, account_type, kind, parent_id, active").order("code"),
-    sb.from("cost_centers").select("id, code, name_ar, parent_id, active").order("code"),
-    sb.from("custody_accounts").select("id, holder_label, active").order("holder_label"),
+    sb.from("suppliers").select("id, name").eq("org_id", membership.orgId).order("name"),
+    sb
+      .from("accounts")
+      .select("id, code, name_ar, account_type, kind, parent_id, active")
+      .eq("org_id", membership.orgId)
+      .order("code"),
+    sb
+      .from("cost_centers")
+      .select("id, code, name_ar, parent_id, active")
+      .eq("org_id", membership.orgId)
+      .order("code"),
+    sb
+      .from("custody_accounts")
+      .select("id, holder_label, active")
+      .eq("org_id", membership.orgId)
+      .order("holder_label"),
   ]);
+
+  const loadError = suppliersRes.error ?? accountsRes.error ?? centersRes.error ?? custodyRes.error;
+  if (loadError) throw new Error("تعذّر تحميل بيانات تسجيل المصروف");
 
   // Leaf = active with no active children (the only valid posting/allocation targets).
   const accountRows = accountsRes.data ?? [];
@@ -36,6 +57,7 @@ export default async function RecordExpensePage() {
   return (
     <div className="p-6">
       <ExpenseWizard
+        initialPayment={initialPayment}
         suppliers={(suppliersRes.data ?? []).map((s) => ({ id: s.id, name: s.name }))}
         accounts={leafExpenseAccounts}
         centers={leafCenters}

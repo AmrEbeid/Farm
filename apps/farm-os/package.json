@@ -11,7 +11,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:e2e:accounting:readonly": "playwright test --config='playwright accounting readonly.config.ts'"
+    "test:e2e:accounting:readonly": "node 'scripts/run accounting readonly e2e.mjs'",
+    "release:accounting:preflight": "node --preserve-symlinks-main 'scripts/accounting release preflight.mjs'",
+    "release:accounting:preflight:working-tree": "node --preserve-symlinks-main 'scripts/accounting release working tree preflight.mjs'"
   },
   "dependencies": {
     "@amrebeid/ui": "*",

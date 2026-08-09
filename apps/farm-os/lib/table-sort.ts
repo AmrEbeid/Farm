@@ -1,3 +1,5 @@
+import { compareDecimals, parseDecimal } from "./decimal";
+
 export type TableSortDirection = "asc" | "desc";
 
 export interface TableSortState {
@@ -8,6 +10,7 @@ export interface TableSortState {
 export interface SortableColumn {
   id: string;
   numeric?: boolean;
+  decimal?: boolean;
 }
 
 export type SortableRow = Record<string, string | number | null | undefined>;
@@ -30,7 +33,13 @@ function compareValues(
   a: string | number | null | undefined,
   b: string | number | null | undefined,
   numeric: boolean,
+  decimal: boolean,
 ): number {
+  if (decimal) {
+    const av = parseDecimal(a);
+    const bv = parseDecimal(b);
+    if (av !== null && bv !== null) return compareDecimals(av, bv);
+  }
   if (numeric) {
     const av = numericValue(a);
     const bv = numericValue(b);
@@ -62,8 +71,12 @@ export function sortRows<T extends SortableRow>(
         if (aEmpty && bEmpty) return a.index - b.index;
         return aEmpty ? 1 : -1;
       }
-      const byValue =
-        compareValues(av, bv, Boolean(column.numeric)) * direction;
+      const byValue = compareValues(
+        av,
+        bv,
+        Boolean(column.numeric),
+        Boolean(column.decimal),
+      ) * direction;
       return byValue === 0 ? a.index - b.index : byValue;
     })
     .map((entry) => entry.row);

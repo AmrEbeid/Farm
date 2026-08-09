@@ -26,8 +26,9 @@ reinvent.
 1. **Module-first IA under the task shell — the core debt.** The 4 "tasks" modules are a thin verbs layer over
    7 dense "admin" modules; the same page is reachable from the sidebar *and* the `/record`/`/reports` hubs.
 2. **Finance = 20 pages (39% of the whole nav)**, one flat un-subgrouped list, with heavy overlap:
-   **3 P&L surfaces** (`/finance/income-statement` قائمة الدخل, `/finance/pnl-trend` اتجاه الأرباح, and the
-   orphan `/finance/pnl` linked only from the hub); **2 owner-insights pages** (`/finance/insights-summary`
+   **P&L consolidation is complete in the 2026-08-08 local candidate:** statement and trend are views of the
+   trusted `/finance/income-statement`; `/finance/pnl` and `/finance/pnl-trend` are gated compatibility aliases,
+   not launchers; **2 owner-insights pages** (`/finance/insights-summary`
    ملخّص الرؤى vs `/finance/insights` رؤى المالك); **2 scorecards** (sector + enterprise); a **budget triplet**
    (budgets / budget-vs-actual / budget-360); a **custody pair** (live `/custody` vs `/finance/custody-reports`);
    a **season/close pair**. (SPEC-0029's insight pages added to this — they need folding in.)
@@ -104,8 +105,8 @@ Everything else = **domain sections** below the spine, renamed from «الإدا
 
 ### 3b. Consolidate finance (20 → ~7) — the biggest single win
 Retire duplicates and sub-group the rest:
-- **Merge the 3 P&L surfaces** → one "الأرباح والخسائر" that carries the statement + the trend/J-curve (fold
-  `pnl-trend` in; delete the orphan `/finance/pnl`).
+- **Merge the P&L surfaces** → complete locally: one canonical income-statement route with statement and trend
+  views; old P&L routes are compatibility redirects only.
 - **Merge the 2 owner-insights pages** → keep `/finance/insights-summary` (the cockpit) as "رؤى المالك"; retire
   the older `/finance/insights` or make it the cost-center detail *inside* the cockpit.
 - **Group under 6–7 headings, not a flat list:** **الرؤى** (insights-summary cockpit → trend, sector-scorecard,

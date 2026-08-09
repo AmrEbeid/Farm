@@ -25,6 +25,15 @@ const PAGE = readFileSync(
   join(process.cwd(), "app", "(app)", "finance", "reconciliation", "[batchId]", "page.tsx"),
   "utf8",
 );
+const QUEUE_MIGRATION = readFileSync(
+  join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260808060000_accounting_reconciliation_ordered_queue.sql",
+  ),
+  "utf8",
+);
 
 describe("execute gate — owner only, approved only", () => {
   it("lets an owner execute an approved batch", () => {
@@ -472,11 +481,13 @@ describe("batch page + controls contracts (source)", () => {
     expect(bar).not.toMatch(/<KpiCard|<h1|<h2|<h3/);
   });
 
-  it("counts executed rows with a bounded head query against execution_result, not a constant", () => {
-    expect(PAGE).toContain('.select("id", { count: "exact", head: true })');
-    expect(PAGE).toContain('.in("execution_result", ["posted", "reversed"])');
+  it("counts executed rows from execution_result in the canonical queue snapshot, not a constant", () => {
+    expect(QUEUE_MIGRATION).toContain(
+      "where r.execution_result in ('posted', 'reversed')",
+    );
+    expect(QUEUE_MIGRATION).toContain("'executed', v_executed");
+    expect(PAGE).toContain("const counts = queuePage.counts");
     expect(PAGE).not.toContain("executed: 0,");
-    expect(PAGE).toContain("executed,");
   });
 
   it("passes the truthful count and the redacted summary into the controls", () => {

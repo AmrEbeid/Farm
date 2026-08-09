@@ -3,7 +3,7 @@
 //
 // PROFIT ATTRIBUTION (the subtle part, done right): revenue is NOT posted to cost-center journal lines — it is
 // a reporting dimension on `sales` (tagged to an active LEAF center by fn_save_sale). So per sector we join:
-//   revenue  = Σ finalized sales.total grouped by cost_center_id   (like finance/season)
+//   revenue  = exact finalized, live-posted sale revenue grouped by cost center
 //   expenses = the leaf center's v_cost_center_rollup.net           (net = expenses; leaf ⇒ subtree = own)
 //   profit   = revenue − expenses
 // at LEAF granularity (sales are always leaf-tagged), so revenue and expenses line up. HONESTY (#1): revenue
@@ -29,6 +29,7 @@ import {
 } from "@/lib/pnl-insights";
 import { computeSectorPnl } from "@/lib/entity-pnl";
 import type { CostCenterInsightRollup } from "@/lib/finance-insights";
+import { parseCostCenterRevenueSummary } from "@/lib/cost-center-revenue-summary";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 
@@ -45,30 +46,21 @@ const STATUS_TONE: Record<SectorStatus, "ok" | "info" | "warning" | "danger"> = 
   attention: "danger",
 };
 
-type SaleRow = { cost_center_id: string | null; total: number | null; price_status: string };
-
 export default async function SectorScorecardPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
-  const [rollupRes, salesRes] = await Promise.all([
+  const [rollupRes, revenueRes] = await Promise.all([
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb
-      .from("sales")
-      .select("cost_center_id, total, price_status")
-      .eq("org_id", m.orgId)
-      .eq("price_status", "finalized")
-      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
-      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
-      .neq("payment_status", "historical_reversed"),
+    sb.rpc("fn_cost_center_revenue_summary", { p_org: m.orgId }),
   ]);
   if (rollupRes.error) throw rollupRes.error;
-  if (salesRes.error) throw salesRes.error;
+  if (revenueRes.error) throw revenueRes.error;
   const rollup = (rollupRes.data ?? []) as CostCenterInsightRollup[];
-  const sales = (salesRes.data ?? []) as SaleRow[];
+  const revenue = parseCostCenterRevenueSummary(revenueRes.data, m.orgId);
 
   // Per-sector profit = leaf-tagged sales revenue − the leaf sector's own expenses; untagged → «غير موزّع».
   // The subtle attribution lives (and is unit-tested) in lib/entity-pnl, not duplicated here.
-  const { sectors, unallocRevenue, unallocExpense } = computeSectorPnl(rollup, sales);
+  const { sectors, unallocRevenue, unallocExpense } = computeSectorPnl(rollup, revenue.salesRevenue);
   const benchmark = bestUnitBenchmark(sectors);
   const concentration = concentrationThesis(sectors);
   const upsideById = new Map((benchmark?.rows ?? []).map((r) => [r.id, r.upside]));

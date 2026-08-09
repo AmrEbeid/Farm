@@ -1,9 +1,20 @@
 import { defineConfig, devices } from "@playwright/test";
-import { accountingE2EBaseUrl } from "./lib/accounting e2e safety";
+import {
+  ACCOUNTING_E2E_SERVER_READ_ONLY_ENV,
+  accountingE2EBaseUrl,
+  accountingE2ESanitizedChildEnvironment,
+  assertAccountingE2EInputs,
+} from "./lib/accounting e2e safety";
+import {
+  assertNoAccountingE2ENextEnvironmentFiles,
+  consumeAccountingE2EProductionAcknowledgement,
+} from "./lib/accounting e2e launch safety";
 
 const baseURL = accountingE2EBaseUrl(process.env);
+assertNoAccountingE2ENextEnvironmentFiles(process.cwd());
+const productionReadAcknowledged = consumeAccountingE2EProductionAcknowledgement(process.env);
+assertAccountingE2EInputs(process.env, productionReadAcknowledged);
 const local = new URL(baseURL);
-const useLocalServer = local.hostname === "127.0.0.1" || local.hostname === "localhost";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -11,7 +22,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  timeout: 90_000,
+  timeout: 180_000,
   reporter: [["list"]],
   use: {
     baseURL,
@@ -23,13 +34,15 @@ export default defineConfig({
     serviceWorkers: "block",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: useLocalServer
-    ? {
-        command: `npm run start -- -p ${local.port || "3100"}`,
-        url: `${baseURL}/login`,
-        // Never send finance-role credentials to an unknown process already occupying the port.
-        reuseExistingServer: false,
-        timeout: 120_000,
-      }
-    : undefined,
+  webServer: {
+    command: `npm run build && npm run start -- -p ${local.port}`,
+    url: `${baseURL}/login`,
+    // Never send finance-role credentials to an unknown process already occupying the port.
+    reuseExistingServer: false,
+    env: {
+      ...accountingE2ESanitizedChildEnvironment(process.env),
+      [ACCOUNTING_E2E_SERVER_READ_ONLY_ENV]: "1",
+    },
+    timeout: 120_000,
+  },
 });

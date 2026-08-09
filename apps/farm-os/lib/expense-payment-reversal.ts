@@ -1,3 +1,5 @@
+import { compareDecimals, parseDecimal, type DecimalString } from "./decimal";
+
 export const EXPENSE_PAYMENT_REVERSAL_OUTCOMES = ["unrouted", "cancelled"] as const;
 
 export type ExpensePaymentReversalOutcome = (typeof EXPENSE_PAYMENT_REVERSAL_OUTCOMES)[number];
@@ -26,7 +28,7 @@ export type ExpenseCorrectionInput = {
   date: string;
   category: string;
   description: string;
-  total: number;
+  total: string;
   supplierId: string;
   accountId: string;
   costCenterId: string;
@@ -39,7 +41,7 @@ export type ParsedExpenseCorrection = {
   date: string | null;
   category: string;
   description: string | null;
-  total: number;
+  total: DecimalString;
   supplierId: string | null;
   accountId: string | null;
   costCenterId: string | null;
@@ -48,20 +50,25 @@ export type ParsedExpenseCorrection = {
 };
 
 type PaymentAttemptMovement = {
-  amount_out: number;
+  amount_out: number | string;
   reversal_of: string | null;
   reversed_by: string | null;
 };
 
 export function selectExpensePaymentState<T extends PaymentAttemptMovement>(movements: T[]) {
   const activePayment = movements.find(
-    (movement) => movement.amount_out > 0 && !movement.reversal_of && !movement.reversed_by,
+    (movement) => isPositiveDecimal(movement.amount_out) && !movement.reversal_of && !movement.reversed_by,
   );
   const latestReversal = activePayment
     ? undefined
     : movements.filter((movement) => movement.reversal_of).at(-1);
 
   return { activePayment, latestReversal };
+}
+
+function isPositiveDecimal(value: number | string): boolean {
+  const parsed = parseDecimal(value);
+  return parsed != null && compareDecimals(parsed, "0") > 0;
 }
 
 export function parseExpensePaymentReversal(
@@ -104,7 +111,8 @@ export function parseExpenseCorrection(
   const category = input.category.trim();
   if (!category) return { ok: false, error: "اكتب على ماذا صُرف المبلغ" };
   if (category.length > 80) return { ok: false, error: "فئة المصروف أطول من الحد المسموح" };
-  if (!Number.isFinite(input.total) || input.total <= 0) return { ok: false, error: "المبلغ غير صالح" };
+  const total = typeof input.total === "string" ? parseDecimal(input.total) : null;
+  if (total == null || compareDecimals(total, "0") <= 0) return { ok: false, error: "المبلغ غير صالح" };
 
   const date = input.date.trim();
   if (date && !isDateOnly(date)) return { ok: false, error: "تاريخ المصروف غير صالح" };
@@ -126,7 +134,7 @@ export function parseExpenseCorrection(
       date: date || null,
       category,
       description: description || null,
-      total: input.total,
+      total,
       supplierId: input.supplierId.trim() || null,
       accountId: input.accountId.trim() || null,
       costCenterId: input.costCenterId.trim() || null,

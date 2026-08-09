@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireMembership, requireRole } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import {
   parseExpenseCorrection,
@@ -15,6 +16,7 @@ import {
 // operating expenses in any P&L (non-negotiable #6); the finance dashboard classifies by this column.
 export type ExpenseKind = "operating" | "drawing" | "capex";
 const EXPENSE_KINDS: ExpenseKind[] = ["operating", "drawing", "capex"];
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface ExpenseInput {
   date: string | null;
@@ -83,7 +85,14 @@ export async function createExpense(
     .select("id")
     .single();
   if (error || !data) {
-    return { ok: false, error: "تعذّر تسجيل المصروف (تحقّق من صلاحياتك)" };
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "تعذّر تسجيل المصروف (تحقّق من صلاحياتك)" },
+        "تعذّر تسجيل المصروف",
+      ),
+    };
   }
   // Classify via the gated RPC — the ONLY write path for expenses.kind (it's omitted from the Insert type).
   // A new expense defaults to 'operating', so only reclassify when the user chose otherwise. Drawings
@@ -224,4 +233,38 @@ function revalidateExpenseCorrectionPaths(expenseId: string) {
   ]) {
     revalidatePath(path);
   }
+}
+
+export async function setMissingExpenseDate(formData: FormData): Promise<void> {
+  const expenseId = String(formData.get("expense_id") ?? "").trim();
+  const date = String(formData.get("date") ?? "").trim();
+  if (!expenseId || !DATE_RE.test(date)) {
+    redirect(`/expenses/${encodeURIComponent(expenseId)}?error=${encodeURIComponent("اختر تاريخًا صحيحًا")}`);
+  }
+
+  const m = await requireRole(["owner", "accountant"]);
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_set_missing_expense_date", {
+    p_org: m.orgId,
+    p_expense: expenseId,
+    p_date: date,
+  });
+  if (error) {
+    redirect(
+      `/expenses/${encodeURIComponent(expenseId)}?error=${encodeURIComponent(
+        toArabicError(
+          error,
+          {
+            "55000": "لا يمكن وضع التاريخ داخل فترة محاسبية مقفلة، أو أن المصروف مؤرّخ بالفعل",
+          },
+          "تعذّر حفظ تاريخ المصروف",
+        ),
+      )}`,
+    );
+  }
+
+  revalidatePath("/expenses");
+  revalidatePath(`/expenses/${expenseId}`);
+  revalidatePath("/finance/close");
+  redirect(`/expenses/${encodeURIComponent(expenseId)}?ok=${encodeURIComponent("تم حفظ تاريخ المصروف")}`);
 }

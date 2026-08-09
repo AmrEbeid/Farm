@@ -36,6 +36,7 @@ const DEFAULT_AR: Record<string, string> = {
   P0002: "العنصر المطلوب غير موجود.", // no_data_found (raise)
   "40001": "تعارض مؤقت، يُرجى المحاولة مرة أخرى.", // serialization_failure
   "40P01": "تعارض مؤقت، يُرجى المحاولة مرة أخرى.", // deadlock_detected
+  "55P03": "إقفال الشهر جارٍ؛ يُرجى المحاولة مرة أخرى بعد لحظات.", // lock_not_available
   "57014": "استغرقت العملية وقتًا طويلًا، يُرجى المحاولة مرة أخرى.", // query_canceled (statement timeout)
 };
 

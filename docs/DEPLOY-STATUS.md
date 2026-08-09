@@ -2,14 +2,186 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-08-08 (latest) — Owner public-site comments MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+> **2026-08-07/08 (latest local state) — combined accounting release stack + C-4 NOT RELEASED.**
+> The canonical worktree is based on exact current `origin/main` `07b1224`, including the already-live Owner-site
+> release. Twenty-one accounting migrations remain pending in strict order:
+> `20260808040000`, `20260808050000`, `20260808060000`,
+> `20260808070000`, `20260808080000`, `20260808090000`, `20260808100000`, `20260808110000`,
+> `20260808120000`, `20260808130000`, `20260808140000`, `20260808150000`, `20260808160000`,
+> `20260808170000`, `20260808180000`, `20260808190000`, `20260808200000`, `20260808210000`,
+> `20260808220000`, `20260808230000`, `20260808240000`. The final fifteen migrations add the append-only standalone owner-funding custody
+> correction/movement 360, the atomic exact custody-dashboard summary, exact signed payment-request totals,
+> bounded exact daily pricing/receivables reads with exact write-response money, exact revenue/A-R report transport,
+> one atomic exact daily accounting-ledger snapshot, one atomic exact unified-transactions snapshot, and one
+> exact season snapshot that separates physical deliveries from strictly proven booked revenue, and one exact
+> atomic custody-report snapshot with current obligations and bounded detail, and one role-aware atomic exact
+> finance-dashboard snapshot with fail-closed authority and tenant checks, and one atomic exact daily custody
+> workspace snapshot with exact counts and bounded detail, one role-aware atomic exact daily expense snapshot, and
+> one role-aware atomic exact expense-detail snapshot with exact correction money, and one atomic exact cost-center
+> report snapshot with hierarchy-safe filtering and optional annual evidence, plus one finance-gated exact
+> payment-request detail snapshot with bounded line data and verified funding/payment journal evidence.
+> Independent review's zero-rounded-total P2 was corrected atomically in the RPC and preview; rereview returned
+> APPROVE with no remaining P1-P3 finding.
+> The mainline Owner migration
+> `20260807220000` is already live as hosted `20260808062443`, so it is not part of this pending accounting order.
+> The schema-v2 release manifest binds the full 220-file release boundary: 165 aggregate-hashed
+> app/docs/root files, 51 individually hashed migration/test/support artifacts, and four release controls. It binds bytes and
+> modes, uses NUL-safe Git path enumeration, rejects hidden index flags/repository-control environments and has
+> separate literal-mode strict and working-tree launchers. Use
+> `npm run release:accounting:preflight:working-tree` during local preparation; the default
+> `npm run release:accounting:preflight` is the committed release gate and must remain red until the approved
+> candidate is committed and clean. It verifies committed bytes and modes, not historical test counters, and uses the local
+> cached `origin/main`, so fetch and re-run it immediately before any Owner-approved release action.
+> Human acceptance requires an eligible Owner who neither created the canonical batch nor reviewed any row; its
+> real Owner creator cannot approve it under the database separation rule. The batch page now checks creator and
+> reviewer eligibility before enabling approval through a tenant-scoped bounded read; independent review returned
+> APPROVE with no P1-P4 finding.
+> After renaming the six backdated uncommitted migrations, the complete database chain replayed at
+> 4,018/4,018; Vitest 1,745 + 14 skipped across 125 passing files, full ESLint, TypeScript, zero-vulnerability
+> audit and the 63/63-page build pass. Six isolated
+> temporary-Git regression cases behaviorally pin the release guard's positive and adversarial paths; independent
+> test rereview returned APPROVE with no P1-P4 finding. The queue
+> now routes directly to all three acceptance quality exceptions, including unlinked corrections. Independent
+> Final release-guard rereview is APPROVE with no P1-P4 finding after adversarial newline-path, mode, hidden-index,
+> Git-environment and self-concealing Node-preload probes. The committed gate remains intentionally red until an
+> approved commit exists.
+> The `/accounting` page now reads one finance-gated organization snapshot with exact decimal text instead of
+> four ledger reads over two waves. Its full account tree preserves archived ancestors for exact KPI rollups;
+> recent entries/lines are bounded display samples and only the complete trial balance remains exportable.
+> Database test 213 passes 30/30 and independent rereview returned APPROVE with no P1-P4 finding. This is local
+> evidence only; no migration, deployment, production read or business-row change occurred.
+> `/transactions` now uses one finance-gated atomic snapshot with exact full counts and bounded newest-first
+> samples for all four sources. Decimal money/quantity stay exact; tenant-scoped party joins and an in-function
+> mismatch exception prevent foreign names or IDs from leaving PostgreSQL. Test 214 passes 59/59, including
+> 401-to-400 boundaries for each source and lifecycle exclusions. This is local evidence only.
+> `/finance/season` now uses one finance-gated exact snapshot for full physical, booked-revenue, collection, A/R
+> and center totals plus the newest 400 delivery rows. A sale contributes money only when one sole exact posted
+> same-org A/R/revenue journal proves it; invalid evidence is counted while its physical delivery remains visible.
+> Test 215 passes 70/70 and independent rereview returned APPROVE. This is local evidence only.
+> `/finance/custody-reports` now uses one finance-gated exact snapshot for full holder balances, period cash
+> activity, current obligations and owner funding, plus independently bounded 400-row detail sets. Unknown
+> amounts/dates remain explicit and truncated tables cannot export partial CSV. Historical obligation dates are
+> rejected because payment status has no complete historical ledger. Period-bounded query shapes, uniqueness
+> proofs and report-scoped tenant/reversal checks replaced the original slow multi-RPC path. Test 216 passes
+> 49/49 and final independent review returned APPROVE. This is local evidence only.
+> `/custody` now uses one finance-gated atomic exact snapshot instead of seven independent reads. Exact full
+> balances, targets, top-ups, unpaid totals and request/movement counts remain separate from the newest 200
+> requests and 15 movements. Signed balances remain visible, same-day movement ordering is deterministic, and
+> partial request CSV is disabled. Tenant/account corruption fails closed. Test 218 passes 29/29 and independent
+> rereview returned APPROVE. This is local evidence only.
+> `/expenses` now uses one role-aware atomic exact snapshot instead of four independent reads. Exact full filter
+> counts and summary remain separate from the newest 200 matching rows; exact decimals preserve scale, incomplete
+> payloads and partial CSV fail closed, farm-manager finance privacy matches the prior RLS path, and tenant
+> reference corruption fails closed. Test 219 passes 30/30 and independent rereview returned APPROVE after five
+> findings were corrected. This is local evidence only.
+> `/expenses/[expenseId]` now consumes one role-aware atomic exact snapshot for the core record and linked finance
+> context. Exact decimal text remains exact through correction writes; runtime numeric payloads, malformed
+> timestamps and cross-tenant links fail closed. Test 220 passes 24/24 and final independent rereview returned
+> APPROVE. This is local evidence only.
+> Independent filter review also returned APPROVE after adding sale-linked and real cross-organization fixtures
+> and correcting the RPC signature and locator-order documentation.
+> Seven actionable acceptance-report figures now link directly to exact queue filters: the three quality
+> exceptions, unreviewed, held, rejected, and amount-correction candidates. Accessible names disclose the count.
+> Linked corrections, frozen rows without a payload hash, and missing-evidence alarms remain unlinked because
+> no exact queue filter represents them. Independent rereview returned APPROVE after accessibility, mapping,
+> and negative-presence test hardening.
+> The canonical accounting acceptance runbook fixes the human handoff from 698-row review through final
+> accountant/Owner signatures and the existing whole-batch rollback path. It is procedural only and authorizes
+> no row, release, execution or production action.
+> The accounting release execution runbook now sequences exact-commit CI, the twenty-one migrate-first versions,
+> forward-only recovery, 22-test role acceptance, separate merge/deployment approvals, deployment verification,
+> and the human handoff. It keeps migration-history issue #903 separate. Independent rereview returned APPROVE
+> with no P1-P4 finding.
+> The approved money-direction launcher is also integrated locally. It groups actions by cash in, cash out,
+> on-account, pre-collection sales and farm operations; splits custody-paid and later-paid expense cards; scopes
+> all expense picker reads to the active organization; and fails closed on loader errors. The cost-center shortcut
+> explicitly presets custody. The read-only suite now advances both preset URLs to step 3 and verifies the actual
+> payment selector value without submitting; its installed request policy remains the runtime mutation guard.
+> Two source-contract review rounds tightened the exact two-click and guard-invocation proof; final narrow
+> rereview returned APPROVE, and synthetic discovery remains 22 tests. No posting action, RPC, schema or migration changed.
+> The queue's six whole-batch KPI cards are also exact shortcuts to all/unreviewed/included/held/rejected/frozen
+> populations. They reset unrelated filters and page state, expose label plus count to assistive technology, and
+> are independently APPROVE after pinning each label/count/state tuple.
+> The local app candidate also retires both duplicate P&L destinations: `/finance/pnl` and
+> `/finance/pnl-trend` are owner/accountant-gated compatibility redirects into statement/trend views on the
+> trusted GL income statement. Invalid, repeated, reversed, or conflicting partial dates fail safely before the
+> RPC. The reports hub and sidebar have one canonical statement entry. Independent rereview is APPROVE after
+> correcting date-range and alias-role findings.
+> Full evidence is pgTAP 4,018/4,018, including a 21-assertion real three-backend C-4/period-close race,
+> 26 exact payment-request assertions, 11 exact custody-write assertions, 29 exact receivables assertions and
+> 35 exact revenue-report assertions, 30 exact daily-ledger assertions, 59 exact transactions assertions, 70 exact
+> season assertions, 49 exact custody-report assertions, 44 exact finance-dashboard assertions, 29 exact custody-daily
+> assertions, 30 exact expense-daily assertions, 24 exact expense-detail assertions, 42 exact cost-center-report
+> assertions, 44 exact payment-request detail assertions, and Vitest 1,745 passed + 14 controlled skips across 125 passing files,
+> TypeScript, zero-warning full ESLint, 63/63-page
+> build and clean migration,
+> artifact and whitespace checks. Package drift is confined to the reviewed dependency override/lock update.
+> The concurrency migration is transactional and replay-tested; exact
+> money is transported as decimal text; and the 22-test role harness is local-only with browser and Next-server
+> read containment. Its allowlisting wrapper strips privileged variables, refuses Next `.env*` files, creates a
+> private single-use 30-second acknowledgement for an explicitly approved Farm production read, and builds fresh
+> under the scrubbed environment. Synthetic discovery covers the daily hubs, scale and money-entry forms,
+> accounting/report routes, reconciliation/close, denied-role redirects, and two statement downloads whose exact
+> successful responses, attachment headers, opening signature and final EOF are checked. Independent review's
+> false-PDF and credential-log findings were corrected; final rereview APPROVE. No credentialed role execution is claimed.
+> Independent safety re-review returned APPROVE with no P1-P3 finding; its one historical-doc P4 was corrected.
+> C-4 review
+> then found lock-order, malformed-link bypass and future-date risks; all were corrected, damaged replay was
+> hardened, and re-review returned APPROVE with no medium/high finding. The dependency lane now resolves
+> transitive `nanoid` 3.3.17 and scoped `js-yaml` 4.3.1/3.15.1; clean install and current full-tree `npm audit`
+> report **0 vulnerabilities**, and the complete integrated validation was rerun afterward. Independent
+> dependency review returned APPROVE with no security, compatibility, runtime, accounting or release finding.
+> A final local truthfulness pass now preserves unknown expense money, rejects missing/invalid exact counts,
+> deterministically orders bounded supplier expenses, uses exact supplier finance/purchase badges, and labels
+> remaining bounded workload figures as displayed rows. Partial finance-dashboard expense/purchase tables no
+> longer offer CSV exports. Finance dashboard reads use one parallel wave; custody dashboards replace split
+> account/report reads and per-account balance RPCs with one atomic finance-gated snapshot. Custody money remains
+> exact decimal text through arithmetic, display, sorting and CSV export. Review findings were corrected; final
+> rereview APPROVE. The `/approvals` inbox now replaces up to five serial reads with one parallel wave, embeds
+> material names through the existing relationship, scopes all three parent reads to the active organization and
+> fails closed on every query error without changing role, payment-stage or self-approval rules. Claude review was
+> unavailable because its local CLI is logged out; no Claude approval is claimed for that app-only slice. The
+> bounded `/transactions` ledger now embeds supplier, buyer and custody-holder names in the existing source wave,
+> removing its dependent lookup wave. Embedded resources are active-org filtered and missing/cross-org references
+> still fail closed; exact parent counts are unchanged. Independent review's multi-org isolation finding was fixed
+> and final rereview returned APPROVE. After the initial organization-scoped expense read,
+> `/expenses/[expenseId]` now resolves event, account, custody-payment history and payment-request linkage in one
+> parallel wave. Event/custody relationships are explicitly active-org scoped, inaccessible or cross-org custody
+> references fail closed, and correction eligibility plus its conditional option reads are unchanged. Independent
+> money-path review returned APPROVE with no P1-P3 finding. The owner/accountant custody movement 360 now loads
+> its movement and active-org custody account through one inner relationship query. Its amounts are cast to text
+> by PostgREST, remain decimal strings through eligibility and display, preserve every significant fractional
+> digit, and fail closed when unreadable. Behavioral tests cover every C-4 eligibility gate. Review's initial
+> precision and test-depth findings were corrected; final rereview APPROVE. Signed payment-request totals,
+> expense rows and funding rows now cross PostgREST as text, remain in exact decimal-string arithmetic through
+> the printable owner packet, and enter the funding RPC as a validated canonical decimal string. Every tenant-owned
+> page read is explicitly active-org scoped; the security-definer totals RPC rejects malformed cross-org links.
+> Its existing SQL consumers cast JSON text back to numeric. Independent rereview returned APPROVE with no P1-P3 finding.
+> Custody target, owner-funding and transfer forms now keep decimal strings through both validation boundaries;
+> crafted numeric runtime payloads fail closed, and exact DB round trips cover custody, journal and balance mirrors.
+> Independent rereview returned APPROVE with no P1-P3 finding. Current
+> revenue/A-R reporting delegates all accounting semantics to the established report RPC, then converts every
+> known money and quantity key to JSON text before PostgREST. Strict parsing fails closed, table cells preserve
+> significant decimal scale, and charts degrade as a whole with an explicit precision warning when any source
+> decimal is unsafe for the chart library. Independent review's two P2 findings and one P3 coverage gap were
+> corrected; final rereview returned APPROVE. Current app evidence is Vitest 1,601 passed + 14 controlled skips
+> across 116 discovered files, TypeScript, full ESLint,
+> 63/63-page build and whitespace checks.
+> The C-4 race proves that a reversal behind a queued close never joins the period mutex queue, fails `55P03`
+> without appending money, and allows the close to complete without deadlock or timeout. Cleanup is bounded and
+> proves zero residual fixture rows/sessions; independent concurrency-test review returned APPROVE.
+> No accounting candidate commit, push, PR, hosted migration, merge, deployment, production query or business-row
+> action occurred. Credentialed role acceptance and the 698-row human accounting acceptance gate
+> remain pending. This rehearsal is compatibility evidence only and does not authorize release.
+
+> **2026-08-08 (latest production state) — Owner public-site comments MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
 > Hosted migration `20260808062443 owner_public_site_comments` applied migrate-first and exact postflight
-> verified the one public content row: 120 feddans, 5,000 Barhi palms, 7 blocks, Owner About copy,
-> `مزرعة عبيد للتمور`, `ebeidfarm@gmail.com`, and East Asian markets. PR #1006 merged as `a11a7e0`; exact-
-> merge CI, db-tests and release succeeded, and production deployment `5806268580` completed at
-> `farm-2k35jdoj6-amrabdelglill-7962s-projects.vercel.app`. Live Chrome on `ebeidfarm.business` at 390px and
-> 1,440px verified Arabic/English content, one WhatsApp link, no duplicate primary call link, the distinct
-> secondary phone, no old email, no farm-area table, no overflow and no console/page errors.
+> verified 120 feddans, 5,000 Barhi palms, 7 blocks, the Owner About copy, `مزرعة عبيد للتمور`,
+> `ebeidfarm@gmail.com`, and East Asian markets. PR #1006 merged as `a11a7e0`; exact-merge CI, db-tests and release
+> succeeded with deployment `5806268580`. Documentation PR #1007 merged as current main `07b1224` and deployed as
+> `5806327642`. Live Chrome on `ebeidfarm.business` at 390px and 1,440px verified both languages, one WhatsApp
+> link, no duplicate primary call link, the distinct secondary phone, no old email, no farm-area table, no
+> overflow and no browser errors.
 
 > **2026-08-06 (latest) — custody-paid expense reversal MIGRATED / MERGED / DEPLOYED.**
 > Hosted migration `20260806224123 expense_payment_reversal` is applied to Farm production. It adds the

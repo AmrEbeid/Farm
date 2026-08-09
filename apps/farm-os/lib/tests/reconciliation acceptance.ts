@@ -2859,6 +2859,57 @@ describe("reconciliation acceptance — page source contract", () => {
     expect(refusal).toBeLessThan(firstFigure);
   });
 
+  it("links every named quality exception to its exact allowlisted review queue", () => {
+    expect(PAGE_SOURCE).toContain("reconciliationQueueHref(batch.id, 1");
+    const routes = [
+      ["تواريخ مصدر غير صالحة", "invalid_source_date"],
+      ["صفوف تصحيح بلا سجل مُصحَّح", "unlinked_correction"],
+      ["صفوف بلا مبلغ مصدر مسجَّل", "missing_source_amount"],
+    ] as const;
+    for (const [label, quality] of routes) {
+      const start = PAGE_SOURCE.indexOf(`label="${label}"`);
+      const end = PAGE_SOURCE.indexOf("/>", start);
+      const figure = PAGE_SOURCE.slice(start, end);
+      expect(start).toBeGreaterThan(-1);
+      expect(figure).toContain("reconciliationQueueHref(batch.id, 1");
+      expect(figure).toContain("classification: null");
+      expect(figure).toContain("state: null");
+      expect(figure).toContain(`quality: "${quality}"`);
+    }
+    expect(PAGE_SOURCE).toContain("aria-label={`عرض ${label}: ${value}`}");
+  });
+
+  it("links each exactly representable decision population without approximating the others", () => {
+    const sectionStart = PAGE_SOURCE.indexOf('<Section title="مؤشرات الجودة والاستثناءات">');
+    const sectionEnd = PAGE_SOURCE.indexOf("{report.quality.missingEvidence > 0", sectionStart);
+    const qualitySection = PAGE_SOURCE.slice(sectionStart, sectionEnd);
+    expect(sectionStart).toBeGreaterThan(-1);
+    expect(sectionEnd).toBeGreaterThan(sectionStart);
+    const routes = [
+      ["بدون قرار", "classification: null", 'state: "unreviewed"', "quality: null"],
+      ["مُعلَّقة", "classification: null", 'state: "held"', "quality: null"],
+      ["مرفوضة", "classification: null", 'state: "rejected"', "quality: null"],
+      ["صفوف تصحيح مبلغ", 'classification: "amount_correction_candidate"', "state: null", "quality: null"],
+    ] as const;
+    for (const [label, classification, state, quality] of routes) {
+      const start = qualitySection.indexOf(`label="${label}"`);
+      const end = qualitySection.indexOf("/>", start);
+      const figure = qualitySection.slice(start, end);
+      expect(start).toBeGreaterThan(-1);
+      expect(figure).toContain("reconciliationQueueHref(batch.id, 1");
+      expect(figure).toContain(classification);
+      expect(figure).toContain(state);
+      expect(figure).toContain(quality);
+    }
+    for (const label of ["صفوف مرتبطة بسجل مُصحَّح", "صفوف مُجمَّدة بلا بصمة حمولة"]) {
+      const start = qualitySection.indexOf(`label="${label}"`);
+      const end = qualitySection.indexOf("/>", start);
+      expect(start).toBeGreaterThan(-1);
+      expect(qualitySection.slice(start, end)).not.toContain("href=");
+    }
+    expect(qualitySection.match(/href=\{reconciliationQueueHref\(batch\.id, 1/g)).toHaveLength(7);
+  });
+
   it("prints the package digest on the page and on the signature sheet", () => {
     expect(PAGE_SOURCE).toContain("ACCEPTANCE_DIGEST_NOTE_AR");
     expect(PAGE_SOURCE.match(/\{digest\}/g)?.length).toBeGreaterThanOrEqual(2);

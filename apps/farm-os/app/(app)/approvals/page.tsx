@@ -15,78 +15,93 @@ import { StoryLine } from "@/components/StoryLine";
 import { SignOffButton } from "@/components/SignOffButton";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
-import { SUBTYPE_AR, isDoseBearingSubtype, NON_EXECUTABLE_OP_STATUSES } from "@/lib/labels";
+import { DOSE_BEARING_SUBTYPES, SUBTYPE_AR, NON_EXECUTABLE_OP_STATUSES } from "@/lib/labels";
 import { paymentRequestLifecyclePermissions } from "@/lib/request-lifecycle";
 
 export const dynamic = "force-dynamic";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 
+function normalizeOne<T>(value: T | T[] | null): T | null {
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
 export default async function ApprovalsInboxPage() {
   const m = await requireRole(["owner", "agri_engineer", "accountant"]);
   const sb = await createClient();
   const { role, userId } = m;
 
-  // ── 1) Plan dose/spray sign-offs — owner, agri_engineer (the #4 gate) ──
+  // Build every independent inbox read first. The old implementation waited for as many as five
+  // sequential requests, including separate material and item lookups for sign-offs.
   const canSignoff = role === "owner" || role === "agri_engineer";
-  let signoffs: { id: string; plan_id: string | null; subtype: string | null; planned_at: string | null; mats: string[] }[] = [];
-  if (canSignoff) {
-    const { data: ops } = await sb
-      .from("plan_operations")
-      .select("id, plan_id, subtype, planned_at, signed_off_at, status")
-      .is("signed_off_at", null)
-      .not("status", "in", `(${NON_EXECUTABLE_OP_STATUSES.join(",")})`)
-      .order("planned_at", { ascending: true });
-    const pending = (ops ?? []).filter((o) => isDoseBearingSubtype(o.subtype));
-    const opIds = pending.map((o) => o.id);
-    const { data: matRows } = opIds.length
-      ? await sb.from("plan_material_requirements").select("plan_op_id, qty, unit, item_id").in("plan_op_id", opIds)
-      : { data: [] };
-    const itemIds = [...new Set((matRows ?? []).map((r) => r.item_id).filter(Boolean))] as string[];
-    const { data: items } = itemIds.length
-      ? await sb.from("inventory_items").select("id, name").in("id", itemIds)
-      : { data: [] };
-    const itemName = new Map((items ?? []).map((i) => [i.id, i.name]));
-    signoffs = pending.map((op) => ({
-      id: op.id,
-      plan_id: op.plan_id,
-      subtype: op.subtype,
-      planned_at: op.planned_at,
-      mats: (matRows ?? [])
-        .filter((r) => r.plan_op_id === op.id)
-        .map((r) => `${r.qty ? num(Number(r.qty)) + " " : ""}${r.unit ?? ""} ${itemName.get(r.item_id) ?? ""}`.trim()),
-    }));
-  }
+  const canApprovePr = role === "owner";
+  const signoffsPromise = canSignoff
+    ? sb
+        .from("plan_operations")
+        .select(
+          "id, plan_id, subtype, planned_at, plan_material_requirements(qty, unit, item_id, inventory_items(name))",
+        )
+        .eq("org_id", m.orgId)
+        .is("signed_off_at", null)
+        .in("subtype", Array.from(DOSE_BEARING_SUBTYPES))
+        .not("status", "in", `(${NON_EXECUTABLE_OP_STATUSES.join(",")})`)
+        .order("planned_at", { ascending: true })
+    : Promise.resolve({ data: [], error: null });
+  const purchaseRequestsPromise = canApprovePr
+    ? sb
+        .from("purchase_requests")
+        .select("id, code, reason, needed_by, requested_by")
+        .eq("org_id", m.orgId)
+        .eq("status", "submitted")
+        .order("needed_by", { ascending: true })
+    : Promise.resolve({ data: [], error: null });
+  const paymentsPromise = sb
+    .from("payment_requests")
+    .select("id, request_no, status, created_at")
+    .eq("org_id", m.orgId)
+    .in("status", ["submitted", "approved_operational"])
+    .order("created_at", { ascending: true });
+
+  const [signoffsRes, purchaseRequestsRes, paymentsRes] = await Promise.all([
+    signoffsPromise,
+    purchaseRequestsPromise,
+    paymentsPromise,
+  ]);
+  if (signoffsRes.error) throw signoffsRes.error;
+  if (purchaseRequestsRes.error) throw purchaseRequestsRes.error;
+  if (paymentsRes.error) throw paymentsRes.error;
+
+  // ── 1) Plan dose/spray sign-offs — owner, agri_engineer (the #4 gate) ──
+  const signoffs = (signoffsRes.data ?? []).map((op) => ({
+    id: op.id,
+    plan_id: op.plan_id,
+    subtype: op.subtype,
+    planned_at: op.planned_at,
+    mats: (op.plan_material_requirements ?? []).map((requirement) => {
+      const item = normalizeOne(requirement.inventory_items);
+      return `${requirement.qty ? num(Number(requirement.qty)) + " " : ""}${requirement.unit ?? ""} ${item?.name ?? ""}`.trim();
+    }),
+  }));
 
   // ── 2) Purchase-request approvals — owner only, and never one you requested (separation of duties) ──
-  const canApprovePr = role === "owner";
-  let prs: { id: string; code: string; reason: string | null; needed_by: string | null }[] = [];
-  if (canApprovePr) {
-    const { data } = await sb
-      .from("purchase_requests")
-      .select("id, code, status, reason, needed_by, requested_by")
-      .eq("status", "submitted")
-      .order("needed_by", { ascending: true });
-    prs = (data ?? [])
-      .filter((p) => p.requested_by !== userId)
-      .map((p) => ({ id: p.id, code: p.code, reason: p.reason, needed_by: p.needed_by }));
-  }
+  const prs = (purchaseRequestsRes.data ?? [])
+    .filter((request) => request.requested_by !== userId)
+    .map((request) => ({
+      id: request.id,
+      code: request.code,
+      reason: request.reason,
+      needed_by: request.needed_by,
+    }));
 
   // ── 3) Payment-request approvals — the stage legal for this role ──
-  let payments: { id: string; request_no: number; stage: string }[] = [];
-  {
-    const { data } = await sb
-      .from("payment_requests")
-      .select("id, request_no, status, created_at")
-      .in("status", ["submitted", "approved_operational"])
-      .order("created_at", { ascending: true });
-    payments = (data ?? []).flatMap((p) => {
-      const perm = paymentRequestLifecyclePermissions(role, p.status);
-      if (p.status === "submitted" && perm.canApproveOperational) return [{ id: p.id, request_no: p.request_no, stage: "اعتماد تشغيلي" }];
-      if (p.status === "approved_operational" && perm.canApproveFinal) return [{ id: p.id, request_no: p.request_no, stage: "اعتماد نهائي" }];
-      return [];
-    });
-  }
+  const payments = (paymentsRes.data ?? []).flatMap((p) => {
+    const perm = paymentRequestLifecyclePermissions(role, p.status);
+    if (p.status === "submitted" && perm.canApproveOperational)
+      return [{ id: p.id, request_no: p.request_no, stage: "اعتماد تشغيلي" }];
+    if (p.status === "approved_operational" && perm.canApproveFinal)
+      return [{ id: p.id, request_no: p.request_no, stage: "اعتماد نهائي" }];
+    return [];
+  });
 
   const total = signoffs.length + prs.length + payments.length;
   const parts = [

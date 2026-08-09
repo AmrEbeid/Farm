@@ -2597,7 +2597,7 @@ select dblink_exec(
           id, org_id, batch_id, evidence_item_id, review_state, reviewer_id,
           review_reason, reviewed_at, target_table, disposition,
           expense_category, expense_description, expense_kind,
-          expense_account_id, expense_payment_decision
+          expense_account_id, expense_cost_center_id, expense_payment_decision
         )
         select r.id, 'd0000000-0000-0000-0000-000000000001', r.batch_id, r.evidence_id,
                'reviewed', %L::uuid, 'mutex race review', now(), 'expenses', 'include',
@@ -2610,6 +2610,9 @@ select dblink_exec(
                       where child.org_id = a.org_id and child.parent_id = a.id and child.active
                    )
                  order by a.code limit 1),
+               (select cc.id from public.cost_centers cc
+                 where cc.org_id = 'd0000000-0000-0000-0000-000000000001' and cc.active
+                 order by cc.code limit 1),
                'routed_now'
           from (values
             ('d2000000-0000-0000-0000-000000000011'::uuid,
@@ -2811,7 +2814,7 @@ select isnt(
   (select r::text from dblink('mutex_a3', format(
     $fx$select public.fn_close_accounting_period(
         'd0000000-0000-0000-0000-000000000001', %L::date, %L::date, 'إقفال يحجب التراجع')$fx$,
-    current_date - 5, current_date + 5
+    current_date - 5, current_date
   )) as t(r uuid)),
   null, 'race 3 backend A closes the batch''s own period and keeps its transaction open'
 );

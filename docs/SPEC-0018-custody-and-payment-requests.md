@@ -143,6 +143,16 @@ Implemented in #474:
 
 All route reads throw on Supabase/RPC errors instead of fabricating financial zeroes.
 
+### Exact daily workspace (2026-08-08, local release candidate)
+
+`/custody` now calls `fn_custody_daily_snapshot` once instead of composing seven independent reads. The
+finance-gated statement returns exact full account balances, targets, top-up needs, unpaid obligations and
+request/movement counts, with at most 200 newest requests and 15 newest movements for display. Signed closing
+balances remain visible, monetary values cross JSON as decimal text, same-day movements use creation time before
+the UUID tie-breaker, and a truncated request list cannot export a misleading partial CSV. Missing or cross-org
+request/movement account links raise before any payload is returned. Migration `20260808200000`, database test
+218 and strict parser tests are release-gated; no write/posting path changed.
+
 ## 8. Validation
 
 Backend:

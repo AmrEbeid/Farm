@@ -1,6 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types.ext";
+import {
+  ACCOUNTING_E2E_SERVER_READ_ONLY_ENV,
+  accountingE2EGuardedServerFetch,
+} from "@/lib/accounting e2e safety";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
@@ -11,8 +15,10 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
  */
 export async function createClient() {
   const store = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const readOnlyE2EFetch = accountingE2EGuardedServerFetch(new URL(supabaseUrl).origin);
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -28,6 +34,9 @@ export async function createClient() {
           }
         },
       },
+      ...(process.env[ACCOUNTING_E2E_SERVER_READ_ONLY_ENV] === "1"
+        ? { global: { fetch: readOnlyE2EFetch } }
+        : {}),
     },
   );
 }

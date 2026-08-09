@@ -13,7 +13,8 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { PrintButton } from "@/components/print-button";
 import { BudgetDoughnut, CategoryBarChart, VarianceChart, PalmStatusDoughnut } from "@/components/charts";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
-import { buildFinanceInsightSummary, computeSalesRevenueByCenter, type CostCenterInsightFlag, type CostCenterInsightRollup } from "@/lib/finance-insights";
+import { buildFinanceInsightSummary, type CostCenterInsightFlag, type CostCenterInsightRollup } from "@/lib/finance-insights";
+import { parseCostCenterRevenueSummary } from "@/lib/cost-center-revenue-summary";
 import { fmtDate } from "@/lib/dates";
 import { egp, num, pct } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
@@ -48,8 +49,9 @@ export default async function OwnerDashboard() {
     { data: costFlags, error: costFlagsError },
     { data: offshootMovements, error: offshootError },
     { data: offshootValuation, error: offshootValuationError },
-    { data: saleRevRows, error: saleRevError },
-    { data: postedSaleRows, error: postedSaleError },
+    { data: revenueSummaryRaw, error: revenueSummaryError },
+    { count: pendingPriceCount, error: pendingPriceError },
+    { count: unpaidExpenseCount, error: unpaidExpenseError },
   ] = await Promise.all([
     sb.from("purchase_requests").select("id, code, status, reason, needed_by").order("code", { ascending: false }),
     sb.from("budget_lines").select("category, approved, committed, actual"),
@@ -69,20 +71,40 @@ export default async function OwnerDashboard() {
     sb.from("v_cost_center_reconciliation_flags").select("*").eq("org_id", m.orgId).order("code", { ascending: true }),
     sb.from("offshoot_movements").select("movement_type, qty").eq("org_id", m.orgId),
     sb.from("offshoot_valuation").select("low_per_unit, high_per_unit").eq("org_id", m.orgId).maybeSingle(),
-    // Per-center revenue from finalized sales (SPEC-0024) — the GL credit is structurally 0 (#701);
-    // the second query gives the live-posted sale ids so a reversed/void sale can't inflate revenue.
-    sb.from("sales").select("id, cost_center_id, total, price_status").eq("org_id", m.orgId).eq("price_status", "finalized"),
-    sb.from("journal_entries").select("source_id").eq("org_id", m.orgId).eq("source_type", "sale").eq("status", "posted"),
+    // Exact posted-sale revenue by center; one bounded aggregate replaces two uncapped raw-ledger reads.
+    sb.rpc("fn_cost_center_revenue_summary", { p_org: m.orgId }),
+    // U-10 attention signals (counts only — cheap head queries).
+    sb
+      .from("sales")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", m.orgId)
+      .eq("price_status", "pending"),
+    sb
+      .from("expenses")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", m.orgId)
+      .eq("payment_status", "post_paid_unpaid"),
   ]);
-  for (const e of [prsError, linesError, itemsError, plansError, opsError, checksError, assetsError, peopleError, hawshatError, costRollupError, costFlagsError, offshootError, offshootValuationError, saleRevError, postedSaleError]) {
+  for (const e of [
+    prsError,
+    linesError,
+    itemsError,
+    plansError,
+    opsError,
+    checksError,
+    assetsError,
+    peopleError,
+    hawshatError,
+    costRollupError,
+    costFlagsError,
+    offshootError,
+    offshootValuationError,
+    revenueSummaryError,
+    pendingPriceError,
+    unpaidExpenseError,
+  ]) {
     if (e) throw e;
   }
-
-  // U-10 attention signals (counts only — cheap head queries).
-  const [{ count: pendingPriceCount }, { count: unpaidExpenseCount }] = await Promise.all([
-    sb.from("sales").select("id", { count: "exact", head: true }).eq("price_status", "pending"),
-    sb.from("expenses").select("id", { count: "exact", head: true }).eq("payment_status", "post_paid_unpaid"),
-  ]);
 
   const opIds = (ops ?? []).map((op) => op.id);
   const { data: assignees, error: assigneesError } = opIds.length
@@ -160,11 +182,7 @@ export default async function OwnerDashboard() {
   const totalUsed = budgetLines.reduce((s, b) => s + Number(b.committed ?? 0) + Number(b.actual ?? 0), 0);
   const available = totalApproved - totalUsed;
   const usedPct = totalApproved > 0 ? Math.round((totalUsed / totalApproved) * 100) : 0;
-  const livePostedSaleIds = new Set((postedSaleRows ?? []).map((r) => r.source_id as string));
-  const salesRevenue = computeSalesRevenueByCenter(
-    (saleRevRows ?? []) as { id: string; cost_center_id: string | null; total: number | null; price_status: string }[],
-    livePostedSaleIds,
-  );
+  const salesRevenue = parseCostCenterRevenueSummary(revenueSummaryRaw, m.orgId).salesRevenue;
   const financeInsights = buildFinanceInsightSummary({
     rollup: (costRollup ?? []) as CostCenterInsightRollup[],
     flags: (costFlags ?? []) as CostCenterInsightFlag[],

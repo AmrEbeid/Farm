@@ -5,7 +5,7 @@
 // ATTRIBUTION (same discipline as the sector scorecard): per enterprise, over LEAF centers carrying that
 // enterprise label (leaf ⇒ rollup net = own expenses; sales are leaf-tagged so revenue lines up):
 //   expenses = Σ leaf-center rollup.net grouped by enterprise
-//   revenue  = Σ finalized sales.total, mapped through the sale's cost center → its enterprise
+//   revenue  = exact finalized, live-posted sale revenue mapped through cost center → enterprise
 //   profit/margin/roi via cropRoi.
 // HONESTY (#1): revenue/expenses NOT tied to any enterprise (null center, no-enterprise center, or CC-UNALLOC
 // untagged cost via its DEBIT — never its revenue-contaminated net) are surfaced as «غير موزّع», never spread
@@ -23,32 +23,24 @@ import { egp, num, pct } from "@/lib/money";
 import { cropRoi, cropRoiThesis } from "@/lib/pnl-insights";
 import { computeEnterprisePnl } from "@/lib/entity-pnl";
 import type { CostCenterInsightRollup } from "@/lib/finance-insights";
+import { parseCostCenterRevenueSummary } from "@/lib/cost-center-revenue-summary";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
-type SaleRow = { cost_center_id: string | null; total: number | null; price_status: string };
-
 export default async function EnterpriseScorecardPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
-  const [rollupRes, salesRes] = await Promise.all([
+  const [rollupRes, revenueRes] = await Promise.all([
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb
-      .from("sales")
-      .select("cost_center_id, total, price_status")
-      .eq("org_id", m.orgId)
-      .eq("price_status", "finalized")
-      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
-      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
-      .neq("payment_status", "historical_reversed"),
+    sb.rpc("fn_cost_center_revenue_summary", { p_org: m.orgId }),
   ]);
   if (rollupRes.error) throw rollupRes.error;
-  if (salesRes.error) throw salesRes.error;
+  if (revenueRes.error) throw revenueRes.error;
   const rollup = (rollupRes.data ?? []) as CostCenterInsightRollup[];
-  const sales = (salesRes.data ?? []) as SaleRow[];
+  const revenue = parseCostCenterRevenueSummary(revenueRes.data, m.orgId);
 
   // Per-enterprise (crop) revenue/expenses via the cost-center `enterprise` label; untagged → «غير موزّع».
   // The subtle attribution lives (and is unit-tested) in lib/entity-pnl, not duplicated here.
-  const { enterprises, unallocRevenue, unallocExpense } = computeEnterprisePnl(rollup, sales);
+  const { enterprises, unallocRevenue, unallocExpense } = computeEnterprisePnl(rollup, revenue.salesRevenue);
   const rows = cropRoi(enterprises).sort((a, b) => (b.roi ?? -Infinity) - (a.roi ?? -Infinity));
   const thesis = cropRoiThesis(rows);
   const hasData = rows.some((r) => r.revenue !== 0 || r.expenses !== 0);

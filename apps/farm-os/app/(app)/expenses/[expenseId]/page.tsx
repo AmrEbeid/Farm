@@ -3,14 +3,16 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import type { TabItem } from "@amrebeid/ui";
-import { Alert, Breadcrumbs, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
+import { Alert, Breadcrumbs, Button, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { fmtDate } from "@/lib/dates";
 import { selectExpensePaymentState } from "@/lib/expense-payment-reversal";
-import { egp, num } from "@/lib/money";
+import { num } from "@/lib/money";
+import { formatDecimalArabic, type DecimalString } from "@/lib/decimal";
+import { parseExpenseDetailSnapshot } from "@/lib/expense-detail-snapshot";
 import { PaymentReversalControl } from "./payment-reversal-control";
 import { ExpenseCorrectionControl } from "./expense-correction-control";
 import {
@@ -22,26 +24,9 @@ import {
   PLAN_TYPE_AR,
   SUBTYPE_AR,
 } from "@/lib/labels";
+import { setMissingExpenseDate } from "../actions";
 
-type SupplierEmbed = { id?: string; name?: string | null };
 type PlanEmbed = { id?: string; type?: string | null; period_start?: string | null; period_end?: string | null };
-type FarmEmbed = { id?: string; name?: string | null };
-type SectorEmbed = { id?: string; name?: string | null };
-type HawshaEmbed = { id?: string; name?: string | null };
-type CustodyMovement = {
-  id: string;
-  occurred_at: string;
-  movement_type: string;
-  amount_in: number;
-  amount_out: number;
-  custody_account_id: string;
-  custody_accounts: { holder_label?: string | null } | { holder_label?: string | null }[] | null;
-  payment_request_id: string | null;
-  reversal_of: string | null;
-  reversed_by: string | null;
-  reversal_reason: string | null;
-  expense_reversal_outcome: string | null;
-};
 
 type PillStatus = "draft" | "scheduled" | "active" | "done" | "warning" | "blocked";
 
@@ -64,10 +49,10 @@ export default async function Expense360Page({
   searchParams,
 }: {
   params: Promise<{ expenseId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; ok?: string; error?: string }>;
 }) {
   const { expenseId } = await params;
-  const { tab: rawTab } = await searchParams;
+  const { tab: rawTab, ok, error: actionError } = await searchParams;
   const tab: ExpenseTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
     ? (rawTab as ExpenseTab)
     : "overview";
@@ -75,74 +60,33 @@ export default async function Expense360Page({
   const sb = await createClient();
   const canCorrectPayment = m.role === "owner" || m.role === "accountant";
 
-  const { data: expense, error } = await sb
-    .from("expenses")
-    .select(
-      "id, date, category, description, total, qty, unit, unit_price, payment_method, status, payment_status, kind, account_id, cost_center_id, supplier_id, plan_id, event_id, farm_id, sector_id, hawsha_id, suppliers(id, name), plans(id, type, period_start, period_end), farms(id, name), sectors(id, name), hawshat(id, name)",
-    )
-    .eq("id", expenseId)
-    .eq("org_id", m.orgId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!expense || (expense.kind === "drawing" && m.role !== "owner" && m.role !== "accountant"))
+  const snapshotRes = await sb.rpc("fn_expense_detail_snapshot", {
+    p_org: m.orgId,
+    p_expense: expenseId,
+  });
+  if (snapshotRes.error) throw snapshotRes.error;
+  const snapshot = parseExpenseDetailSnapshot(snapshotRes.data);
+  if (snapshot.orgId !== m.orgId || snapshot.expenseId !== expenseId) {
+    throw new Error("expense detail snapshot: response scope does not match the request");
+  }
+  const expense = snapshot.expense;
+  if (!expense)
     return (
       <div className="p-6">
         <EmptyState title="المصروف غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
       </div>
     );
 
-  const supplier = normalizeOne<SupplierEmbed>(expense.suppliers);
-  const plan = normalizeOne<PlanEmbed>(expense.plans);
-  const farm = normalizeOne<FarmEmbed>(expense.farms);
-  const sector = normalizeOne<SectorEmbed>(expense.sectors);
-  const hawsha = normalizeOne<HawshaEmbed>(expense.hawshat);
-
-  const { data: event, error: eventError } = expense.event_id
-    ? await sb
-        .from("farm_event")
-        .select("id, subtype, status, occurred_at, notes")
-        .eq("id", expense.event_id)
-        .maybeSingle()
-    : { data: null, error: null };
-  if (eventError) throw eventError;
-
-  const { data: account, error: accountError } = expense.account_id
-    ? await sb
-        .from("accounts")
-        .select("code, name_ar")
-        .eq("id", expense.account_id)
-        .eq("org_id", m.orgId)
-        .maybeSingle()
-    : { data: null, error: null };
-  if (accountError) throw accountError;
-
-  const [{ data: movementData, error: movementError }, { data: requestLines, error: requestLineError }] =
-    canCorrectPayment
-      ? await Promise.all([
-          sb
-            .from("custody_movements")
-            .select(
-              "id, occurred_at, movement_type, amount_in, amount_out, custody_account_id, custody_accounts(holder_label), payment_request_id, reversal_of, reversed_by, reversal_reason, expense_reversal_outcome",
-            )
-            .eq("org_id", m.orgId)
-            .eq("expense_id", expense.id)
-            .order("created_at", { ascending: true }),
-          sb
-            .from("payment_request_lines")
-            .select("id")
-            .eq("org_id", m.orgId)
-            .eq("expense_id", expense.id)
-            .limit(1),
-        ])
-      : [
-          { data: [], error: null },
-          { data: [], error: null },
-        ];
-  if (movementError) throw movementError;
-  if (requestLineError) throw requestLineError;
-  const custodyMovements = (movementData ?? []) as CustodyMovement[];
+  const supplier = expense.supplier;
+  const plan = expense.plan;
+  const farm = expense.farm;
+  const sector = expense.sector;
+  const hawsha = expense.hawsha;
+  const event = snapshot.event;
+  const account = snapshot.account;
+  const custodyMovements = snapshot.movements;
   const { activePayment, latestReversal: paymentReversal } = selectExpensePaymentState(custodyMovements);
-  const requestLinked = Boolean(activePayment?.payment_request_id || requestLines?.length);
+  const requestLinked = Boolean(activePayment?.payment_request_id || snapshot.requestLinked);
   const canCompleteCorrection =
     canCorrectPayment &&
     expense.payment_status === null &&
@@ -190,6 +134,7 @@ export default async function Expense360Page({
   // Recorded but not settled, or booked on credit (آجل) — flag for attention.
   const isCredit = !isCancelled && expense.payment_method === "credit";
   const isUnpaid = !isCancelled && (expense.status === "posted" || expense.status === "approved" || isCredit);
+  const canCorrectDate = m.role === "owner" || m.role === "accountant";
 
   const linkColumns: SimpleColumn[] = [
     { id: "target", header: "الرابط" },
@@ -232,14 +177,14 @@ export default async function Expense360Page({
   const movementColumns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
     { id: "movement", header: "الحركة" },
-    { id: "amount", header: "المبلغ" },
+    { id: "amount", header: "المبلغ", kind: "money-preserve-exact", numeric: true, decimal: true },
     { id: "link", header: "الربط" },
   ];
   const movementRows = custodyMovements.map((movement) => ({
     id: movement.id,
     date: fmtDate(movement.occurred_at),
     movement: movement.movement_type,
-    amount: egp(Number(movement.amount_in || movement.amount_out)),
+    amount: movement.amount_in !== "0" ? movement.amount_in : movement.amount_out,
     link: movement.reversal_of
       ? "عكسٌ لحركة السداد الأصلية"
       : movement.reversed_by
@@ -248,7 +193,7 @@ export default async function Expense360Page({
   }));
 
   const headerTitle = `${expense.category ?? expense.description ?? "مصروف"}${
-    expense.total != null ? ` · ${egp(Number(expense.total))}` : ""
+    expense.total != null ? ` · ${exactMoney(expense.total)}` : ""
   }`;
   const headerSubtitle = `${expense.date ? fmtDate(expense.date) : "بدون تاريخ"} · ${supplier?.name ?? "بدون مورّد"}`;
 
@@ -336,10 +281,8 @@ export default async function Expense360Page({
           <PaymentReversalControl
             expenseId={expense.id}
             movementId={activePayment.id}
-            amount={egp(Number(activePayment.amount_out))}
-            custodyAccountLabel={
-              normalizeOne(activePayment.custody_accounts)?.holder_label ?? "حساب العهدة المرتبط"
-            }
+            amount={exactMoney(activePayment.amount_out)}
+            custodyAccountLabel={activePayment.custody_account_label}
             today={todayInCairo()}
           />
         ) : (
@@ -350,10 +293,13 @@ export default async function Expense360Page({
           />
         ))}
 
+      {ok ? <Alert tone="ok" title="تم" description={ok} /> : null}
+      {actionError ? <Alert tone="danger" title="تعذّر التنفيذ" description={actionError} /> : null}
+
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="الإجمالي" value={expense.total != null ? egp(Number(expense.total)) : "—"} />
-        <KpiCard label="الكمية" value={expense.qty != null ? num(Number(expense.qty)) : "—"} unit={expense.unit ?? undefined} />
-        <KpiCard label="سعر الوحدة" value={expense.unit_price != null ? egp(Number(expense.unit_price)) : "—"} />
+        <KpiCard label="الإجمالي" value={expense.total != null ? exactMoney(expense.total) : "—"} />
+        <KpiCard label="الكمية" value={expense.qty != null ? exactDecimal(expense.qty) : "—"} unit={expense.unit ?? undefined} />
+        <KpiCard label="سعر الوحدة" value={expense.unit_price != null ? exactMoney(expense.unit_price) : "—"} />
         <KpiCard label="روابط مرتبطة" value={num(linkedScopeCount)} />
       </section>
 
@@ -362,6 +308,22 @@ export default async function Expense360Page({
       {tab === "overview" && (
         <div role="tabpanel" id={tabPanelId("overview")} aria-labelledby={tabId("overview")} tabIndex={0}>
           <Card title="بيانات المصروف">
+            {!expense.date && canCorrectDate ? (
+              <form action={setMissingExpenseDate} className="mb-4 flex flex-wrap items-end gap-3">
+                <input type="hidden" name="expense_id" value={expense.id} />
+                <label className="flex min-w-52 flex-col gap-1 text-sm font-semibold">
+                  تاريخ المصروف
+                  <input
+                    type="date"
+                    name="date"
+                    required
+                    className="rounded-md border px-3 py-2"
+                    style={{ borderColor: "var(--line)", background: "var(--surface)", color: "var(--ink)" }}
+                  />
+                </label>
+                <Button type="submit">حفظ التاريخ</Button>
+              </form>
+            ) : null}
             <DescriptionList
               layout="inline"
               items={[
@@ -442,9 +404,14 @@ function todayInCairo(): string {
   }).format(new Date());
 }
 
-function normalizeOne<T>(value: T | T[] | null): T | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value;
+function exactDecimal(value: DecimalString): string {
+  const scale = value.includes(".") ? value.length - value.indexOf(".") - 1 : 0;
+  return formatDecimalArabic(value, scale);
+}
+
+function exactMoney(value: DecimalString): string {
+  const scale = value.includes(".") ? value.length - value.indexOf(".") - 1 : 0;
+  return `${formatDecimalArabic(value, Math.max(2, scale))} ج.م`;
 }
 
 function planLabel(plan: PlanEmbed): string {

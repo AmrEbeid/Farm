@@ -39,4 +39,17 @@ describe("sortRows", () => {
     const sort: TableSortState = { columnId: "missing", direction: "asc" };
     expect(sortRows(rows, columns, sort)).toBe(rows);
   });
+
+  it("sorts exact decimal strings without collapsing them to JavaScript numbers", () => {
+    const exactRows = [
+      { id: "equal-as-double", amount: "123" },
+      { id: "larger", amount: "123.00000000000000001" },
+      { id: "smaller", amount: "122.99999999999999999" },
+    ];
+    const sorted = sortRows(exactRows, [{ id: "amount", numeric: true, decimal: true }], {
+      columnId: "amount",
+      direction: "asc",
+    });
+    expect(sorted.map((row) => row.id)).toEqual(["smaller", "equal-as-double", "larger"]);
+  });
 });

@@ -75,7 +75,7 @@ describe("parseExpenseCorrection", () => {
     date: "2026-08-01",
     category: "  سماد  ",
     description: "  دفعة مصححة  ",
-    total: 1250,
+    total: "1250",
     supplierId: " supplier-id ",
     accountId: " account-id ",
     costCenterId: " center-id ",
@@ -91,7 +91,7 @@ describe("parseExpenseCorrection", () => {
         date: "2026-08-01",
         category: "سماد",
         description: "دفعة مصححة",
-        total: 1250,
+        total: "1250",
         supplierId: "supplier-id",
         accountId: "account-id",
         costCenterId: "center-id",
@@ -127,9 +127,23 @@ describe("parseExpenseCorrection", () => {
     });
   });
 
+  it("preserves an exact correction amount beyond JavaScript number precision", () => {
+    expect(
+      parseExpenseCorrection({ ...correction, total: "9007199254740993.123456789" }),
+    ).toMatchObject({
+      ok: true,
+      value: { total: "9007199254740993.123456789" },
+    });
+  });
+
   it.each([
     [{ ...correction, category: " " }, "اكتب على ماذا صُرف المبلغ"],
-    [{ ...correction, total: 0 }, "المبلغ غير صالح"],
+    [
+      { ...correction, total: 1250 } as unknown as Parameters<typeof parseExpenseCorrection>[0],
+      "المبلغ غير صالح",
+    ],
+    [{ ...correction, total: "0" }, "المبلغ غير صالح"],
+    [{ ...correction, total: "not-money" }, "المبلغ غير صالح"],
     [{ ...correction, date: "2026-02-30" }, "تاريخ المصروف غير صالح"],
     [{ ...correction, route: "owner" }, "اختر مسار السداد"],
     [{ ...correction, custodyAccountId: "" }, "اختر العهدة التي دُفع منها"],

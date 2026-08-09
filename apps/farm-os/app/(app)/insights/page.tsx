@@ -31,7 +31,7 @@ const CHAPTERS: Chapter[] = [
 const MORE: { icon: string; title: string; hint: string; href: string }[] = [
   { icon: "🌾", title: "لوحة الموسم", hint: "الحصاد لحظة بلحظة: أطنان، بونات، معلّق، ومحصَّل", href: "/finance/season" },
   { icon: "🌿", title: "اقتصاد المحاصيل", hint: "هامش وعائد كل محصول", href: "/finance/enterprise-scorecard" },
-  { icon: "📈", title: "اتجاه الأرباح", hint: "الربح والخسارة عبر الفترات", href: "/finance/pnl-trend" },
+  { icon: "📈", title: "اتجاه الأرباح", hint: "الربح والخسارة عبر الفترات", href: "/finance/income-statement?view=trend&grain=month" },
   { icon: "💡", title: "رؤى المالك", hint: "مؤشرات مراكز التكلفة والتنبيهات", href: "/finance/insights" },
 ];
 

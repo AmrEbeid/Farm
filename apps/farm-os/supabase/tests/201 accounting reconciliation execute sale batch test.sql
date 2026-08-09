@@ -1352,7 +1352,7 @@ select ok(
 );
 select ok(
   has_function_privilege('authenticated', 'public.fn_reverse_journal_entry(uuid, text, date)', 'EXECUTE'),
-  'the public reversal RPC keeps its existing authenticated grant — ordinary reversals are untouched'
+  'the public reversal RPC retains its ordinary authenticated route'
 );
 select ok(
   (select p.proconfig[1] = 'search_path=""' from pg_proc p

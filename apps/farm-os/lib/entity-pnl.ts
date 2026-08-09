@@ -1,24 +1,19 @@
-// Per-entity (sector / enterprise-crop) P&L attribution from the cost-center rollup + sales — the ONE place
+// Per-entity (sector / enterprise-crop) P&L attribution from the cost-center rollup + exact posted-sale
+// revenue by center — the ONE place
 // this subtle logic lives (it produced three review-caught bugs while duplicated inside page components).
 //
 // The invariant everything rests on: revenue is NOT posted to cost-center journal lines — it is a reporting
 // dimension on `sales`, tagged to an active LEAF center (fn_save_sale). So `v_cost_center_rollup.net` is a
 // center's EXPENSES only, and for a LEAF center net = its own expenses (subtree = self). Therefore:
-//   sector profit     = Σ finalized sales.total by leaf center − that leaf's rollup net
-//   enterprise (crop) = group leaf expenses (net) + sales revenue (via center→enterprise) by `enterprise`
+//   sector profit     = Σ posted finalized sale revenue by leaf center − that leaf's rollup net
+//   enterprise (crop) = group leaf expenses (net) + posted revenue (via center→enterprise) by `enterprise`
 // Untagged cost = CC-UNALLOC's DEBIT (never its `net` — net = debit − credit and every revenue credit is
 // null-center → lands in CC-UNALLOC, so its net is contaminated by ALL farm revenue). Untagged revenue/expense
 // are returned as honest «غير موزّع» buckets, never spread onto an entity (#1). Drawings never enter (equity,
 // excluded from the view's expense/revenue account filter).
 
-import type { CostCenterInsightRollup } from "./finance-insights";
+import type { CostCenterInsightRollup, SalesRevenueByCenter } from "./finance-insights";
 import type { CenterPerf, EnterprisePerf } from "./pnl-insights";
-
-export interface SaleLite {
-  cost_center_id: string | null;
-  total: number | null;
-  price_status: string;
-}
 
 export interface SectorPnl {
   sectors: CenterPerf[]; // leaf centers with area; `net` = real profit (revenue − expenses)
@@ -45,27 +40,22 @@ function leafPredicate(rollup: CostCenterInsightRollup[]) {
 const ccUnallocDebit = (rollup: CostCenterInsightRollup[]): number =>
   num(rollup.find((r) => r.code === "CC-UNALLOC")?.debit);
 
-/** Per-sector P&L: profit = leaf-tagged sales revenue − the leaf sector's own expenses (rollup net). */
-export function computeSectorPnl(rollup: CostCenterInsightRollup[], finalizedSales: SaleLite[]): SectorPnl {
+/** Per-sector P&L: profit = exact leaf-tagged posted revenue − the leaf sector's own expenses. */
+export function computeSectorPnl(rollup: CostCenterInsightRollup[], salesRevenue: SalesRevenueByCenter): SectorPnl {
   const isLeaf = leafPredicate(rollup);
   const sectorRows = rollup.filter((r) => isLeaf(r) && (r.area_feddan ?? 0) > 0);
   const sectorIds = new Set(sectorRows.map((r) => r.cost_center_id));
 
-  const revenueByCenter = new Map<string, number>();
-  let unallocRevenue = 0;
-  for (const s of finalizedSales) {
-    const v = num(s.total);
-    if (s.cost_center_id && sectorIds.has(s.cost_center_id)) {
-      revenueByCenter.set(s.cost_center_id, (revenueByCenter.get(s.cost_center_id) ?? 0) + v);
-    } else {
-      unallocRevenue += v;
-    }
+  let allocatedRevenue = 0;
+  for (const centerId of sectorIds) {
+    allocatedRevenue += num(salesRevenue.byCenter[centerId]);
   }
+  const unallocRevenue = salesRevenue.total - allocatedRevenue;
 
   const sectors: CenterPerf[] = sectorRows.map((r) => ({
     id: r.cost_center_id,
     name: r.name_ar,
-    net: (revenueByCenter.get(r.cost_center_id) ?? 0) - num(r.net),
+    net: num(salesRevenue.byCenter[r.cost_center_id]) - num(r.net),
     areaFeddan: num(r.area_feddan),
   }));
 
@@ -83,8 +73,8 @@ export function computeSectorPnl(rollup: CostCenterInsightRollup[], finalizedSal
   return { sectors, unallocRevenue, unallocExpense };
 }
 
-/** Per-enterprise (crop) P&L: expenses = Σ leaf net by enterprise; revenue = finalized sales via center→enterprise. */
-export function computeEnterprisePnl(rollup: CostCenterInsightRollup[], finalizedSales: SaleLite[]): EnterprisePnl {
+/** Per-enterprise P&L: expenses = Σ leaf net; revenue = exact posted revenue via center→enterprise. */
+export function computeEnterprisePnl(rollup: CostCenterInsightRollup[], salesRevenue: SalesRevenueByCenter): EnterprisePnl {
   const isLeaf = leafPredicate(rollup);
   const centerEnterprise = new Map<string, string>();
   for (const r of rollup) {
@@ -100,13 +90,16 @@ export function computeEnterprisePnl(rollup: CostCenterInsightRollup[], finalize
   }
 
   const revByEnt = new Map<string, number>();
-  let unallocRevenue = 0;
-  for (const s of finalizedSales) {
-    const v = num(s.total);
-    const ent = s.cost_center_id ? centerEnterprise.get(s.cost_center_id) : undefined;
-    if (ent) revByEnt.set(ent, (revByEnt.get(ent) ?? 0) + v);
-    else unallocRevenue += v;
+  let allocatedRevenue = 0;
+  for (const [centerId, revenue] of Object.entries(salesRevenue.byCenter)) {
+    const value = num(revenue);
+    const ent = centerEnterprise.get(centerId);
+    if (ent) {
+      revByEnt.set(ent, (revByEnt.get(ent) ?? 0) + value);
+      allocatedRevenue += value;
+    }
   }
+  const unallocRevenue = salesRevenue.total - allocatedRevenue;
 
   const keys = [...new Set([...expByEnt.keys(), ...revByEnt.keys()])];
   const enterprises: EnterprisePerf[] = keys.map((key) => ({

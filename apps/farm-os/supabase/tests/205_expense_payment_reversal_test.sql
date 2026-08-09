@@ -330,8 +330,15 @@ select is(public.fn_custody_balance(:'acct'), 43000::numeric,
   'the second correction restores the edited 2,200 amount exactly');
 select throws_ok(format($$select public.fn_reverse_expense_payment(%L, %L, 'unrouted', 'مرتبط بطلب', current_date)$$, :'expRequest', current_setting('test.move_request')),
   '22023', null, 'payment-request-linked expense fails closed pending request reversal semantics');
-select lives_ok(format($$select public.fn_close_accounting_period(%L, '2030-02-01'::date, '2030-02-28'::date, 'اختبار قفل تاريخ العكس')$$, :'org'),
-  'accountant closes the future reversal period fixture');
+-- This suite tests reversal behavior, not close readiness. Install the locked-period fixture as
+-- the test administrator so unrelated live-era blockers in the shared seed cannot weaken or
+-- bypass fn_month_close_summary; migration 20260808070000 tests the real close RPC separately.
+reset role;
+select lives_ok(format($$insert into public.accounting_periods(
+    org_id, period_start, period_end, status, note
+  ) values (%L, '2030-02-01'::date, '2030-02-28'::date, 'locked', 'اختبار قفل تاريخ العكس')$$, :'org'),
+  'test administrator installs the future locked-period fixture');
+select pg_temp.as_user(current_setting('test.accountant'));
 select throws_ok(format($$select public.fn_reverse_expense_payment(%L, %L, 'cancelled', 'تاريخ عكس مقفل', '2030-02-10'::date)$$, :'expLocked', current_setting('test.move_locked')),
   '55000', null, 'locked reversal period aborts the entire correction');
 select lives_ok(format($$select public.fn_set_expense_payment_status(%L, 'paid_from_custody', %L)$$, :'expJournalReversed', :'acct'),

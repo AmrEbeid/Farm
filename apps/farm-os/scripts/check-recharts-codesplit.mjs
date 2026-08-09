@@ -58,9 +58,9 @@ const ALLOWED_CHART_ROUTES = [
   "/finance/revenue-reports/page",
   // SPEC-0024 S-5 owner insights reuses the report chart wrappers without loading them globally.
   "/finance/insights/page",
-  // SPEC-0029 Phase 1 P&L-trend renders a revenue/cost/net trend + cumulative J-curve line; recharts
-  // stays in this route's own client chunk (via components/charts.tsx), never the global bundle.
-  "/finance/pnl-trend/page",
+  // The canonical income-statement route includes the revenue/cost/net trend + cumulative J-curve view;
+  // Recharts stays in this route's own client chunk, never the global bundle.
+  "/finance/income-statement/page",
   // SPEC-0031 insight arc — chapters that render the report chart wrappers (code-split, not global).
   "/insights/annual-report/page",
   // SPEC-0024 S-7b offshoot bank renders physical-flow and expansion charts.

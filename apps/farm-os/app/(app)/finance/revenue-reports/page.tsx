@@ -9,119 +9,17 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { ImportPanel } from "@/components/import/ImportPanel";
 import { fmtDate } from "@/lib/dates";
-import { egp, num, pct } from "@/lib/money";
+import { num, pct } from "@/lib/money";
 import { StoryLine } from "@/components/StoryLine";
 import { PrintButton } from "@/components/print-button";
-
-type RevenueSaleRow = {
-  sale_id: string;
-  report_date: string;
-  sale_date: string | null;
-  delivery_date: string | null;
-  crop: string;
-  season: string | null;
-  qty: number | null;
-  unit: string | null;
-  unit_price: number | null;
-  total: number | null;
-  price_status: "pending" | "finalized";
-  payment_status: SalePaymentStatus;
-  buyer_id: string | null;
-  buyer_name: string | null;
-  buyer_type: string | null;
-  cost_center_id: string | null;
-  cost_center_code: string | null;
-  cost_center_name: string | null;
-  farm_name: string | null;
-  sector_name: string | null;
-  hawsha_name: string | null;
-  collected_to_as_of: number;
-  collected_in_period: number;
-  outstanding: number | null;
-};
-
-type RevenueBuyerRow = {
-  buyer_id: string | null;
-  buyer_name: string;
-  buyer_type: string | null;
-  sale_count: number;
-  pending_count: number;
-  qty: number;
-  finalized_revenue: number;
-  collected_in_period: number;
-  collected_to_as_of: number;
-  outstanding: number;
-};
-
-type RevenueCropRow = {
-  crop: string;
-  season: string;
-  sale_count: number;
-  pending_count: number;
-  qty: number;
-  finalized_revenue: number;
-  collected_in_period: number;
-  outstanding: number;
-};
-
-type RevenueArRow = {
-  sale_id: string;
-  report_date: string;
-  buyer_id: string | null;
-  buyer_name: string | null;
-  buyer_type: string | null;
-  crop: string;
-  season: string | null;
-  total: number;
-  collected_to_as_of: number;
-  outstanding: number;
-  age_days: number;
-  aging_bucket: string;
-  payment_status: SalePaymentStatus;
-};
-
-/**
- * Mirrors public.sales.payment_status. The two `historical_*` states are written only by the
- * owner-only reconciliation executor (fn_execute_reconciliation_batch); the UI renders them but
- * never produces them.
- */
-type SalePaymentStatus =
-  | "unpaid"
-  | "partially_collected"
-  | "collected"
-  | "historical_treasury"
-  | "historical_reversed";
-
-type RevenueCollectionRow = {
-  collection_id: string;
-  sale_id: string;
-  occurred_at: string;
-  amount: number;
-  buyer_name: string;
-  crop: string;
-  season: string | null;
-  collected_by: string | null;
-  note: string | null;
-  journal_entry_id: string | null;
-};
-
-type RevenueReport = {
-  period_start: string;
-  period_end: string;
-  as_of: string;
-  finalized_revenue: number;
-  period_collections: number;
-  outstanding_total: number;
-  over_30_amount: number;
-  over_30_count: number;
-  pending_count: number;
-  pending_qty: number;
-  sales: RevenueSaleRow[];
-  by_buyer: RevenueBuyerRow[];
-  by_crop_season: RevenueCropRow[];
-  ar_rows: RevenueArRow[];
-  collections: RevenueCollectionRow[];
-};
+import { compareDecimals, decimalToSafeNumber, type DecimalString } from "@/lib/decimal";
+import { cairoTodayIso } from "@/lib/payroll-close";
+import { receivableAmountEgp, receivableQuantity } from "@/lib/receivable workflow money";
+import {
+  parseExactRevenueReport,
+  exactRevenueChartRows,
+  type RevenueSaleRow,
+} from "@/lib/revenue report exact";
 
 const PRICE_STATUS_AR: Record<RevenueSaleRow["price_status"], string> = {
   pending: "السعر معلّق",
@@ -142,14 +40,13 @@ export default async function FinanceRevenueReportsPage({
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
   const params = await searchParams;
-  const today = new Date();
-  const defaultStart = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
-  const defaultEnd = isoDate(today);
+  const defaultEnd = cairoTodayIso();
+  const defaultStart = `${defaultEnd.slice(0, 7)}-01`;
   const start = parseDateParam(params.start, defaultStart);
   const end = parseDateParam(params.end, defaultEnd);
   const asOf = parseDateParam(params.asOf, end);
 
-  const reportRes = await sb.rpc("fn_revenue_sales_report", {
+  const reportRes = await sb.rpc("fn_revenue_sales_report_exact", {
     p_org: m.orgId,
     p_period_start: start,
     p_period_end: end,
@@ -157,7 +54,7 @@ export default async function FinanceRevenueReportsPage({
   });
   if (reportRes.error) throw reportRes.error;
 
-  const report = normalizeReport(reportRes.data);
+  const report = parseExactRevenueReport(reportRes.data);
   const salesRows: SimpleRow[] = report.sales.map((row) => ({
     id: row.sale_id,
     date: fmtDate(row.report_date),
@@ -168,7 +65,7 @@ export default async function FinanceRevenueReportsPage({
     unit: row.unit ?? "—",
     unitPrice: row.unit_price ?? undefined,
     total: row.total ?? undefined,
-    collected: Number(row.collected_to_as_of ?? 0),
+    collected: row.collected_to_as_of,
     outstanding: row.outstanding ?? undefined,
     price: PRICE_STATUS_AR[row.price_status] ?? row.price_status,
     payment: SALE_PAYMENT_STATUS_AR[row.payment_status] ?? row.payment_status,
@@ -181,23 +78,23 @@ export default async function FinanceRevenueReportsPage({
     buyer: row.buyer_name,
     buyer_href: row.buyer_id ? `/finance/buyers/${row.buyer_id}` : "",
     type: row.buyer_type ? BUYER_TYPE_AR[row.buyer_type] ?? row.buyer_type : "—",
-    sales: Number(row.sale_count ?? 0),
-    pending: Number(row.pending_count ?? 0),
-    qty: Number(row.qty ?? 0),
-    revenue: Number(row.finalized_revenue ?? 0),
-    collected: Number(row.collected_in_period ?? 0),
-    outstanding: Number(row.outstanding ?? 0),
+    sales: row.sale_count,
+    pending: row.pending_count,
+    qty: row.qty,
+    revenue: row.finalized_revenue,
+    collected: row.collected_in_period,
+    outstanding: row.outstanding,
   }));
 
   const cropRows: SimpleRow[] = report.by_crop_season.map((row) => ({
     id: `${row.crop}-${row.season}`,
     crop: formatCrop(row.crop, row.season),
-    sales: Number(row.sale_count ?? 0),
-    pending: Number(row.pending_count ?? 0),
-    qty: Number(row.qty ?? 0),
-    revenue: Number(row.finalized_revenue ?? 0),
-    collected: Number(row.collected_in_period ?? 0),
-    outstanding: Number(row.outstanding ?? 0),
+    sales: row.sale_count,
+    pending: row.pending_count,
+    qty: row.qty,
+    revenue: row.finalized_revenue,
+    collected: row.collected_in_period,
+    outstanding: row.outstanding,
   }));
 
   const arRows: SimpleRow[] = report.ar_rows.map((row) => ({
@@ -205,10 +102,10 @@ export default async function FinanceRevenueReportsPage({
     date: fmtDate(row.report_date),
     buyer: row.buyer_name ?? "نقدي/غير محدد",
     crop: formatCrop(row.crop, row.season),
-    total: Number(row.total ?? 0),
-    collected: Number(row.collected_to_as_of ?? 0),
-    outstanding: Number(row.outstanding ?? 0),
-    age: Number(row.age_days ?? 0),
+    total: row.total,
+    collected: row.collected_to_as_of,
+    outstanding: row.outstanding,
+    age: row.age_days,
     bucket: row.aging_bucket,
     payment: SALE_PAYMENT_STATUS_AR[row.payment_status] ?? row.payment_status,
   }));
@@ -218,41 +115,46 @@ export default async function FinanceRevenueReportsPage({
     date: fmtDate(row.occurred_at),
     buyer: row.buyer_name,
     crop: formatCrop(row.crop, row.season),
-    amount: Number(row.amount ?? 0),
+    amount: row.amount,
     collectedBy: row.collected_by ?? "—",
     journal: row.journal_entry_id ? "مرحل" : "—",
     note: row.note ?? "—",
   }));
 
-  const buyerChart = report.by_buyer.slice(0, 8).map((row) => ({
-    buyer: row.buyer_name,
-    "إيراد مسعّر": Number(row.finalized_revenue ?? 0),
-    "ذمم قائمة": Number(row.outstanding ?? 0),
-  }));
-  const cropChart = report.by_crop_season.slice(0, 8).map((row) => ({
-    crop: formatCrop(row.crop, row.season),
-    "إيراد مسعّر": Number(row.finalized_revenue ?? 0),
-    "ذمم قائمة": Number(row.outstanding ?? 0),
-  }));
-  const showCharts = buyerChart.length > 0 || cropChart.length > 0;
+  const buyerChart = exactRevenueChartRows(report.by_buyer.slice(0, 8).map((row) => ({
+    label: row.buyer_name,
+    finalizedRevenue: row.finalized_revenue,
+    outstanding: row.outstanding,
+  })));
+  const cropChart = exactRevenueChartRows(report.by_crop_season.slice(0, 8).map((row) => ({
+    label: formatCrop(row.crop, row.season),
+    finalizedRevenue: row.finalized_revenue,
+    outstanding: row.outstanding,
+  })));
+  const showCharts = report.by_buyer.length > 0 || report.by_crop_season.length > 0;
 
   // U-12 (§2c): the period's story in one sentence — same live data as the tables below (#1).
-  const topCrop = [...report.by_crop_season].sort((a, b) => Number(b.finalized_revenue ?? 0) - Number(a.finalized_revenue ?? 0))[0];
+  const topCrop = [...report.by_crop_season].sort((a, b) =>
+    compareDecimals(b.finalized_revenue, a.finalized_revenue),
+  )[0];
+  const topCropShare = topCrop
+    ? exactPercentage(topCrop.finalized_revenue, report.finalized_revenue)
+    : null;
   const storyLead =
-    report.finalized_revenue > 0
-      ? `حقّقت المزرعة في هذه الفترة ${egp(report.finalized_revenue)} إيرادًا مؤكدًا` +
-        (topCrop && Number(topCrop.finalized_revenue ?? 0) > 0
-          ? ` — ${pct(Math.round((Number(topCrop.finalized_revenue) / report.finalized_revenue) * 100))} منها من «${topCrop.crop}»`
+    compareDecimals(report.finalized_revenue, "0") > 0
+      ? `حقّقت المزرعة في هذه الفترة ${receivableAmountEgp(report.finalized_revenue)} إيرادًا مؤكدًا` +
+        (topCrop && topCropShare != null && compareDecimals(topCrop.finalized_revenue, "0") > 0
+          ? ` — ${pct(topCropShare)} منها من «${topCrop.crop}»`
           : "") +
-        `، وحُصِّل منها ${egp(report.period_collections)}.`
+        `، وحُصِّل منها ${receivableAmountEgp(report.period_collections)}.`
       : "لا إيرادات مؤكدة في هذه الفترة بعد.";
   const storyNotes: string[] = [];
   if (report.pending_count > 0)
     storyNotes.push(`${num(report.pending_count)} بيع بسعر معلّق لا يظهر في الإيراد حتى يُحدَّد سعره.`);
-  if (report.outstanding_total > 0)
+  if (compareDecimals(report.outstanding_total, "0") > 0)
     storyNotes.push(
-      `المستحق لدى العملاء ${egp(report.outstanding_total)}` +
-        (report.over_30_count > 0 ? ` — منها ${num(report.over_30_count)} بيع تجاوز ٣٠ يومًا (${egp(report.over_30_amount)}).` : "."),
+      `المستحق لدى العملاء ${receivableAmountEgp(report.outstanding_total)}` +
+        (report.over_30_count > 0 ? ` — منها ${num(report.over_30_count)} بيع تجاوز ٣٠ يومًا (${receivableAmountEgp(report.over_30_amount)}).` : "."),
     );
 
   return (
@@ -302,12 +204,12 @@ export default async function FinanceRevenueReportsPage({
       </Card>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        <KpiCard label="إيراد مسعّر" value={egp(report.finalized_revenue)} />
-        <KpiCard label="تحصيلات الفترة" value={egp(report.period_collections)} />
-        <KpiCard label="ذمم قائمة" value={egp(report.outstanding_total)} deltaDirection={report.outstanding_total > 0 ? "down" : "none"} />
-        <KpiCard label="ذمم ٣٠+ يوم" value={egp(report.over_30_amount)} deltaDirection={report.over_30_amount > 0 ? "down" : "none"} />
+        <KpiCard label="إيراد مسعّر" value={receivableAmountEgp(report.finalized_revenue)} />
+        <KpiCard label="تحصيلات الفترة" value={receivableAmountEgp(report.period_collections)} />
+        <KpiCard label="ذمم قائمة" value={receivableAmountEgp(report.outstanding_total)} deltaDirection={compareDecimals(report.outstanding_total, "0") > 0 ? "down" : "none"} />
+        <KpiCard label="ذمم ٣٠+ يوم" value={receivableAmountEgp(report.over_30_amount)} deltaDirection={compareDecimals(report.over_30_amount, "0") > 0 ? "down" : "none"} />
         <KpiCard label="تسليمات بسعر معلّق" value={num(report.pending_count)} deltaDirection={report.pending_count > 0 ? "down" : "none"} />
-        <KpiCard label="كمية معلقة السعر" value={num(report.pending_qty)} />
+        <KpiCard label="كمية معلقة السعر" value={receivableQuantity(report.pending_qty)} />
       </section>
 
       {showCharts && (
@@ -319,10 +221,10 @@ export default async function FinanceRevenueReportsPage({
                 id: "buyer",
                 label: "حسب العميل",
                 render: () =>
-                  buyerChart.length ? (
+                  buyerChart?.length ? (
                     <CategoryBarChart
                       data={buyerChart}
-                      categoryKey="buyer"
+                      categoryKey="label"
                       series={[
                         { dataKey: "إيراد مسعّر", name: "إيراد مسعّر" },
                         { dataKey: "ذمم قائمة", name: "ذمم قائمة" },
@@ -332,17 +234,17 @@ export default async function FinanceRevenueReportsPage({
                       columnHeader="العميل"
                     />
                   ) : (
-                    <EmptyState title="لا توجد مبيعات للعملاء في الفترة" />
+                    <EmptyState title={buyerChart === null ? "تعذر رسم قيم العملاء الكبيرة بدقة — راجع الجدول أدناه" : "لا توجد مبيعات للعملاء في الفترة"} />
                   ),
               },
               {
                 id: "crop",
                 label: "حسب المحصول",
                 render: () =>
-                  cropChart.length ? (
+                  cropChart?.length ? (
                     <CategoryBarChart
                       data={cropChart}
-                      categoryKey="crop"
+                      categoryKey="label"
                       series={[
                         { dataKey: "إيراد مسعّر", name: "إيراد مسعّر" },
                         { dataKey: "ذمم قائمة", name: "ذمم قائمة" },
@@ -352,7 +254,7 @@ export default async function FinanceRevenueReportsPage({
                       columnHeader="المحصول"
                     />
                   ) : (
-                    <EmptyState title="لا توجد مبيعات لمحاصيل في الفترة" />
+                    <EmptyState title={cropChart === null ? "تعذر رسم قيم المحاصيل الكبيرة بدقة — راجع الجدول أدناه" : "لا توجد مبيعات لمحاصيل في الفترة"} />
                   ),
               },
             ]}
@@ -450,20 +352,20 @@ const buyerColumns: SimpleColumn[] = [
   { id: "type", header: "النوع", kind: "status" },
   { id: "sales", header: "مبيعات", kind: "num", numeric: true },
   { id: "pending", header: "معلقة السعر", kind: "num", numeric: true },
-  { id: "qty", header: "الكمية", kind: "num", numeric: true },
-  { id: "revenue", header: "إيراد مسعّر", kind: "money", numeric: true },
-  { id: "collected", header: "تحصيلات الفترة", kind: "money", numeric: true },
-  { id: "outstanding", header: "ذمم قائمة", kind: "money", numeric: true },
+  { id: "qty", header: "الكمية", kind: "decimal-exact", numeric: true, decimal: true },
+  { id: "revenue", header: "إيراد مسعّر", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "collected", header: "تحصيلات الفترة", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "outstanding", header: "ذمم قائمة", kind: "money-preserve-exact", numeric: true, decimal: true },
 ];
 
 const cropColumns: SimpleColumn[] = [
   { id: "crop", header: "المحصول / الموسم" },
   { id: "sales", header: "مبيعات", kind: "num", numeric: true },
   { id: "pending", header: "معلقة السعر", kind: "num", numeric: true },
-  { id: "qty", header: "الكمية", kind: "num", numeric: true },
-  { id: "revenue", header: "إيراد مسعّر", kind: "money", numeric: true },
-  { id: "collected", header: "تحصيلات الفترة", kind: "money", numeric: true },
-  { id: "outstanding", header: "ذمم قائمة", kind: "money", numeric: true },
+  { id: "qty", header: "الكمية", kind: "decimal-exact", numeric: true, decimal: true },
+  { id: "revenue", header: "إيراد مسعّر", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "collected", header: "تحصيلات الفترة", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "outstanding", header: "ذمم قائمة", kind: "money-preserve-exact", numeric: true, decimal: true },
 ];
 
 const saleColumns: SimpleColumn[] = [
@@ -471,12 +373,12 @@ const saleColumns: SimpleColumn[] = [
   { id: "buyer", header: "العميل" },
   { id: "buyerType", header: "نوع العميل", kind: "status" },
   { id: "crop", header: "المحصول / الموسم" },
-  { id: "qty", header: "الكمية", kind: "num", numeric: true },
+  { id: "qty", header: "الكمية", kind: "decimal-exact", numeric: true, decimal: true },
   { id: "unit", header: "الوحدة" },
-  { id: "unitPrice", header: "سعر الوحدة", kind: "money", numeric: true },
-  { id: "total", header: "الإجمالي", kind: "money", numeric: true },
-  { id: "collected", header: "محصل حتى التاريخ", kind: "money", numeric: true },
-  { id: "outstanding", header: "المتبقي", kind: "money", numeric: true },
+  { id: "unitPrice", header: "سعر الوحدة", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "total", header: "الإجمالي", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "collected", header: "محصل حتى التاريخ", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "outstanding", header: "المتبقي", kind: "money-preserve-exact", numeric: true, decimal: true },
   { id: "price", header: "السعر", kind: "status" },
   { id: "payment", header: "التحصيل", kind: "status" },
   { id: "center", header: "مركز التكلفة" },
@@ -487,9 +389,9 @@ const arColumns: SimpleColumn[] = [
   { id: "date", header: "تاريخ البيع" },
   { id: "buyer", header: "العميل" },
   { id: "crop", header: "المحصول / الموسم" },
-  { id: "total", header: "إجمالي البيع", kind: "money", numeric: true },
-  { id: "collected", header: "محصل", kind: "money", numeric: true },
-  { id: "outstanding", header: "ذمم قائمة", kind: "money", numeric: true },
+  { id: "total", header: "إجمالي البيع", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "collected", header: "محصل", kind: "money-preserve-exact", numeric: true, decimal: true },
+  { id: "outstanding", header: "ذمم قائمة", kind: "money-preserve-exact", numeric: true, decimal: true },
   { id: "age", header: "العمر بالأيام", kind: "num", numeric: true },
   { id: "bucket", header: "فئة العمر", kind: "status" },
   { id: "payment", header: "التحصيل", kind: "status" },
@@ -499,7 +401,7 @@ const collectionColumns: SimpleColumn[] = [
   { id: "date", header: "تاريخ التحصيل" },
   { id: "buyer", header: "العميل" },
   { id: "crop", header: "المحصول / الموسم" },
-  { id: "amount", header: "المبلغ", kind: "money", numeric: true },
+  { id: "amount", header: "المبلغ", kind: "money-preserve-exact", numeric: true, decimal: true },
   { id: "collectedBy", header: "المحصّل" },
   { id: "journal", header: "القيد", kind: "status" },
   { id: "note", header: "ملاحظات" },
@@ -527,37 +429,8 @@ function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
   );
 }
 
-function normalizeReport(value: unknown): RevenueReport {
-  const report = (value ?? {}) as Partial<RevenueReport>;
-  return {
-    period_start: String(report.period_start ?? ""),
-    period_end: String(report.period_end ?? ""),
-    as_of: String(report.as_of ?? ""),
-    finalized_revenue: Number(report.finalized_revenue ?? 0),
-    period_collections: Number(report.period_collections ?? 0),
-    outstanding_total: Number(report.outstanding_total ?? 0),
-    over_30_amount: Number(report.over_30_amount ?? 0),
-    over_30_count: Number(report.over_30_count ?? 0),
-    pending_count: Number(report.pending_count ?? 0),
-    pending_qty: Number(report.pending_qty ?? 0),
-    sales: Array.isArray(report.sales) ? report.sales : [],
-    by_buyer: Array.isArray(report.by_buyer) ? report.by_buyer : [],
-    by_crop_season: Array.isArray(report.by_crop_season) ? report.by_crop_season : [],
-    ar_rows: Array.isArray(report.ar_rows) ? report.ar_rows : [],
-    collections: Array.isArray(report.collections) ? report.collections : [],
-  };
-}
-
 function parseDateParam(value: string | undefined, fallback: string): string {
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
-}
-
-function pad(value: number): string {
-  return String(value).padStart(2, "0");
-}
-
-function isoDate(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function formatCrop(crop: string | null, season: string | null): string {
@@ -573,4 +446,11 @@ function formatCenter(code: string | null, name: string | null): string {
 function formatLocation(farm: string | null, sector: string | null, hawsha: string | null): string {
   const parts = [farm, sector, hawsha].filter(Boolean);
   return parts.length ? parts.join(" / ") : "—";
+}
+
+function exactPercentage(part: DecimalString, total: DecimalString): number | null {
+  const safePart = decimalToSafeNumber(part);
+  const safeTotal = decimalToSafeNumber(total);
+  if (safePart == null || safeTotal == null || safeTotal <= 0) return null;
+  return Math.round((safePart / safeTotal) * 100);
 }

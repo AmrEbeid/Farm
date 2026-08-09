@@ -54,7 +54,13 @@ import {
   type AcceptanceTotal,
 } from "@/lib/reconciliation acceptance";
 import { loadAcceptanceBatch } from "@/lib/reconciliation acceptance data";
-import { BATCH_STATUS_AR, isUuid, type BatchStatus, type Tone } from "@/lib/reconciliation review";
+import {
+  BATCH_STATUS_AR,
+  isUuid,
+  reconciliationQueueHref,
+  type BatchStatus,
+  type Tone,
+} from "@/lib/reconciliation review";
 
 export const dynamic = "force-dynamic";
 
@@ -69,15 +75,17 @@ function Figure({
   label,
   value,
   mono,
+  href,
   className = "",
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  href?: string;
   className?: string;
 }) {
-  return (
-    <div className={`rounded-md px-2 py-1.5 ${className}`.trim()} style={boxStyle}>
+  const content = (
+    <>
       <div className="text-[11px]" style={mutedStyle}>
         {label}
       </div>
@@ -88,6 +96,16 @@ function Figure({
       ) : (
         <div className="text-sm font-semibold tabular-nums">{value}</div>
       )}
+    </>
+  );
+  const classes = `block rounded-md px-2 py-1.5 ${className}`.trim();
+  return href ? (
+    <Link href={href} aria-label={`عرض ${label}: ${value}`} className={classes} style={boxStyle}>
+      {content}
+    </Link>
+  ) : (
+    <div className={classes} style={boxStyle}>
+      {content}
     </div>
   );
 }
@@ -605,14 +623,70 @@ export default async function ReconciliationAcceptancePage({
 
       <Section title="مؤشرات الجودة والاستثناءات">
         <div className="grid gap-2 sm:grid-cols-4">
-          <Figure label="بدون قرار" value={num(report.quality.unresolved)} />
-          <Figure label="مُعلَّقة" value={num(report.quality.held)} />
-          <Figure label="مرفوضة" value={num(report.quality.rejected)} />
-          <Figure label="تواريخ مصدر غير صالحة" value={num(report.quality.invalidDate)} />
-          <Figure label="صفوف تصحيح مبلغ" value={num(report.quality.correctionCandidates)} />
-          <Figure label="صفوف تصحيح بلا سجل مُصحَّح" value={num(report.quality.correctionUnlinked)} />
+          <Figure
+            label="بدون قرار"
+            value={num(report.quality.unresolved)}
+            href={reconciliationQueueHref(batch.id, 1, {
+              classification: null,
+              state: "unreviewed",
+              quality: null,
+            })}
+          />
+          <Figure
+            label="مُعلَّقة"
+            value={num(report.quality.held)}
+            href={reconciliationQueueHref(batch.id, 1, {
+              classification: null,
+              state: "held",
+              quality: null,
+            })}
+          />
+          <Figure
+            label="مرفوضة"
+            value={num(report.quality.rejected)}
+            href={reconciliationQueueHref(batch.id, 1, {
+              classification: null,
+              state: "rejected",
+              quality: null,
+            })}
+          />
+          <Figure
+            label="تواريخ مصدر غير صالحة"
+            value={num(report.quality.invalidDate)}
+            href={reconciliationQueueHref(batch.id, 1, {
+              classification: null,
+              state: null,
+              quality: "invalid_source_date",
+            })}
+          />
+          <Figure
+            label="صفوف تصحيح مبلغ"
+            value={num(report.quality.correctionCandidates)}
+            href={reconciliationQueueHref(batch.id, 1, {
+              classification: "amount_correction_candidate",
+              state: null,
+              quality: null,
+            })}
+          />
+          <Figure
+            label="صفوف تصحيح بلا سجل مُصحَّح"
+            value={num(report.quality.correctionUnlinked)}
+            href={reconciliationQueueHref(batch.id, 1, {
+              classification: null,
+              state: null,
+              quality: "unlinked_correction",
+            })}
+          />
           <Figure label="صفوف مرتبطة بسجل مُصحَّح" value={num(report.quality.correctionLinked)} />
-          <Figure label="صفوف بلا مبلغ مصدر مسجَّل" value={num(report.quality.missingSourceAmount)} />
+          <Figure
+            label="صفوف بلا مبلغ مصدر مسجَّل"
+            value={num(report.quality.missingSourceAmount)}
+            href={reconciliationQueueHref(batch.id, 1, {
+              classification: null,
+              state: null,
+              quality: "missing_source_amount",
+            })}
+          />
           <Figure
             label="صفوف مُجمَّدة بلا بصمة حمولة"
             value={num(report.quality.frozenWithoutPayloadHash)}
