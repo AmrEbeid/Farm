@@ -1,5 +1,54 @@
-# Session Brief — Farm OS      Updated: 2026-08-08 by Codex (Owner public comments — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-08-20 by Codex + Claude (Marketing module — MIGRATED, NOT DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-20 — Marketing module (SPEC-0032) — MIGRATED, NOT YET MERGED/DEPLOYED
+
+Built one compact Arabic-first marketing module with five pages: Overview, Product, Markets, Pipeline,
+and Campaigns. It consolidates the legacy tracker's 25 areas without recreating 25 screens. Users can
+add/edit/search/archive all 16 marketing record types, manage a marketing-only contact master (separate
+from accounting `buyers`), record append-only calls/follow-ups, and copy message templates for manual
+sending. Headers and mobile padding are intentionally compact.
+
+The original downloaded JSON is supported directly. The browser previews the string-encoded `ep_*`
+export, then the server validates and imports only the reviewed rows. The exact file probe produced 25
+rows: 3 market prices, 3 contacted Kuwait distributors plus linked follow-up tasks, 2 selected exporters,
+6 daily tasks, 6 platform-readiness tasks, channel target 0, and the farm URL. Nine unrelated application
+backup keys are reported and excluded. Non-empty legacy harvest is rejected because Farm OS harvest stays
+authoritative. The owner's WhatsApp is detected in preview but is not converted into a marketing contact.
+The raw 75/1,513/14/28/12 static inventories remain counts only; no raw contact archive is committed.
+
+Draft migration `20260820090000_marketing_module.sql` creates `marketing_contact`, append-only
+`marketing_contact_activity`, and typed `marketing_record`. All use FORCE RLS, active-org narrowing, and
+the explicit owner/accountant/farm_manager gate. Writes are RPC-only; hard delete is revoked; every definer
+function locks `search_path`; linked contacts must be same-org; audit triggers cover all tables. Text and
+JSON payloads are bounded. Imported rows persist a bounded `source_key` under unique per-org indexes, so a
+partial or repeated import updates the same rows. The migration is transactional. The save RPCs also have
+canonical `ImportDescriptor`s for template/dry-run/re-upload parity, resolving the independent review's one
+convention finding.
+
+Evidence: Docker-free local pgTAP **3,288/3,288** with zero failures, including **42/42** marketing
+assertions; exact downloaded-file parser probe passed with the counts above; focused parser/import/nav/help
+Vitest **28/28**; TypeScript clean; touched ESLint clean; production build succeeds with all five marketing
+routes among 68 generated pages; repository guards for server/client boundaries, Recharts splitting, and
+service-role exposure passed. Full Vitest remains **1,391 passed / 1 failed / 13 skipped**: the sole failure is
+the unchanged `lib/reconciliation/tests/cli.ts` baseline assertion, and this branch has no reconciliation
+diff from `origin/main`. Authenticated visual smoke remains pending until the code is deployed.
+
+Documentation updated: SPEC-0032, page help, permissions matrix, BR-076, documentation-health scorecard,
+project tracker, and Arabic user manual `06 marketing.md`.
+
+Replay hardening also passed the full pgTAP suite again (**3,288/3,288**) and a one-off exact second apply in
+a fresh all-migrations database, retaining exactly 3 tables, 3 role-scoped policies, and 3 audit triggers.
+
+**Release state:** commit `2117e19` on isolated branch `feat/marketing-workspace-2026-08-20`; independent
+review APPROVE. Reviewed migration SHA-256 `7ce5f3fed552f28f1ae72cd5e5714649c9e671b920195e742eea616c4a8352aa`
+is applied migrate-first to Farm production as hosted migration `20260820135744 marketing_module`.
+Postflight verified FORCE RLS on 3 tables, 3 role-scoped read policies, 5 locked definer RPCs, expected
+indexes/audit triggers, no public/anon execute, no direct authenticated DML, and 0 rows in all 3 new tables.
+Aggregate baselines remained 1 organization / 4 memberships / 10,365 journals / 10,201 expenses / 4 auth
+users. No business row, auth identity, outbound message, or accounting state changed. The Owner approved the
+full release sequence on 2026-08-20. Exact resume point: commit this migration evidence, push/open the PR,
+wait for exact-head checks, merge, and verify the exact production deployment plus authenticated marketing UI.
 
 ## 2026-08-08 — Owner public-site comments — MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED
 

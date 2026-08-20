@@ -35,6 +35,7 @@ Legend: ✅ present · ◐ partial · ✗ missing. Sources: ② [PAGE-HELP](PAGE
 | `/weather` | ✅ | ✅ | ✅ | ✅ | ◐ | ✗ | ✗ | ✗ | L2 |
 | `/profile` | ✅ | ✅ | ✅ | ✅ | ✗ | ✗ | ✗ | ✗ | L2 |
 | `/settings` | ✅ | ✅ | ✅ | ✅ | ◐ | ✗ | ◐ | ✗ | L2 |
+| `/marketing*` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **L3** |
 
 ## Summary
 - **Coverage:** ①–④ are ✅ across all user-facing pages (purpose/help/related/permissions complete via the Tier-1 +

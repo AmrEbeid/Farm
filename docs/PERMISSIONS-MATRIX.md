@@ -31,6 +31,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `request.approve.final` | owner | Final-approve payment requests | BR-069 |
 | `export.write` | owner, farm_manager | Write export registrations/accreditations/residue tests/results | BR-074 |
 | `academy.write` | owner, agri_engineer | Forward-compatible Care Academy content write gate; tables/routes still draft #366 | BR-075 |
+| *(explicit marketing role gate)* | owner, accountant, farm_manager | Read/write the marketing workspace through active-org RLS and RPC-only mutations | BR-076 |
 
 ## Role × capability (✓ = allowed, via the permission above)
 | Capability | owner | farm_manager | agri_engineer | accountant | supervisor | storekeeper |
@@ -52,6 +53,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | Final-approve payment requests | ✓ | | | | | |
 | Write export compliance records | ✓ | ✓ | | | | |
 | Write academy content (permission only; draft tables held) | ✓ | | ✓ | | | |
+| Read/write marketing workspace | ✓ | ✓ | | ✓ | | |
 | Read core farm data (RLS, own org) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ## Page access (verified guards)
@@ -67,6 +69,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `/people` | nav `roles:["owner","farm_manager","agri_engineer","accountant"]` | those roles |
 | `/people/attendance` | `requireRole(["owner","farm_manager","supervisor"])`; writes also require `labor.write` | owner, farm_manager, supervisor |
 | `/people/payroll`, `/people/payroll/[runId]`, `/people/payroll/compensation`, `/people/payroll/readiness` | `requireRole(["owner","accountant"])`; wage/run rows also require `payroll.read` | owner, accountant |
+| `/marketing*` | nav/page role gate plus active-org RLS; writes are RPC-only | owner, accountant, farm_manager |
 | `/m` (field) | nav `roles:["supervisor","agri_engineer","owner","farm_manager"]` | those roles |
 | `/farm*`, `/plans*`, `/inventory*`, `/purchase-requests*`, `/suppliers`, `/weather`, `/budget/[planId]/check`, `/reports/[planId]/pva`, `/profile` | `requireMembership()` | any member (writes still gated server-side) |
 

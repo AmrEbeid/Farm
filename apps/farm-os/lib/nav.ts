@@ -371,6 +371,24 @@ export const APP_MODULES: AppModule[] = [
     ],
   },
   {
+    // SPEC-0032 — Marketing module: 5 nav pages consolidating the 25 legacy export-marketing
+    // tracking areas. Owner/accountant/farm_manager only — matches the marketing_* RLS/RPC role
+    // gate exactly (an explicit inline check, not authorize()), so no other role ever sees a page
+    // it cannot read.
+    id: "marketing-module",
+    label: "التسويق",
+    icon: "📣",
+    dashboardHref: "/marketing",
+    roles: ["owner", "accountant", "farm_manager"],
+    pages: [
+      { id: "marketing-overview", label: "نظرة عامة", icon: "📣", href: "/marketing", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-product", label: "المنتج", icon: "🌴", href: "/marketing/product", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-markets", label: "الأسواق", icon: "📈", href: "/marketing/markets", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-pipeline", label: "خط المبيعات", icon: "🧭", href: "/marketing/pipeline", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-campaigns", label: "الحملات", icon: "📨", href: "/marketing/campaigns", roles: ["owner", "accountant", "farm_manager"] },
+    ],
+  },
+  {
     id: "weather-module",
     label: "الطقس والمخاطر",
     icon: "🌤️",
