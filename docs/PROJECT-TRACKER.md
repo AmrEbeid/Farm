@@ -1,6 +1,6 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-20 by Codex + Claude (Marketing module — MIGRATED, PR/DEPLOY IN PROGRESS)
+# Project Tracker — Farm OS      Last updated: 2026-08-20 by Codex + Claude (Marketing module — MIGRATED, MERGED, DEPLOYED)
 
-> **2026-08-20 — MARKETING MODULE (SPEC-0032) MIGRATED; PR/MERGE/DEPLOY IN PROGRESS.**
+> **2026-08-20 — MARKETING MODULE (SPEC-0032) MIGRATED / MERGED / DEPLOYED / PUBLICLY VERIFIED.**
 > New compact marketing nav module (owner/accountant/farm_manager, 5 pages, Arabic-RTL) consolidating the 25
 > legacy export-marketing tracking areas: `marketing_contact` (separate master, no FK to `buyers`),
 > append-only `marketing_contact_activity`, and a polymorphic `marketing_record` covering all 16 editable
@@ -24,7 +24,12 @@
 > locked definer RPCs, no public/anon execute, no direct authenticated DML, all expected indexes and audit
 > triggers, and 0 marketing rows. Aggregate baselines remained 1 organization / 4 memberships / 10,365
 > journals / 10,201 expenses / 4 auth users. The Owner approved commit, migration, PR, merge, and deployment
-> in this task on 2026-08-20. **Current truth: schema migrated; code is not yet merged or deployed.**
+> in this task on 2026-08-20. PR #1011 merged as `b83db70870b35f28b723dacac57a267d1b89d8f6`;
+> exact-merge CI, db-tests, release, and Vercel deployment `F33wX3jDv5AHNartkEWBY73sa8tB` succeeded.
+> Public `/` and `/login` return 200; every `/marketing*` route redirects signed-out users to `/login`, with
+> no browser errors. **Authenticated owner/accountant/farm_manager UI acceptance remains pending because
+> neither available browser had a signed-in Farm session; no credentials were entered and no marketing row
+> was created.**
 > See [`SPEC-0032`](SPEC-0032-marketing-module.md).
 
 > **2026-08-08 — OWNER PUBLIC-SITE COMMENTS MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
