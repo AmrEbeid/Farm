@@ -79,5 +79,18 @@ advisory operation gates. *Note:* needs the server `WEATHER_API_KEY`. **`/dashbo
 role overview for owner finance/control and manager active-plan operations. **`/profile`.** *What:* your identity, role, active org
 (read-only). **`/settings`.** *What:* org settings (owner only, BR-... `fn_update_org_settings`).
 
+## Marketing (SPEC-0032)
+**`/marketing` — Marketing overview.** *What:* KPI counts across all marketing record types + upcoming
+follow-ups + preview and idempotent import of the original `ep_*` Marketing 2026 JSON. *Who:* owner/accountant/farm_manager
+only (RLS-enforced, no `authorize()` dependency). **`/marketing/product` — Product.** *What:* quality
+batches + weekly availability. **`/marketing/markets` — Markets.** *What:* price observations, competitors,
+and Kuwait-distributor follow-up tasks. **`/marketing/pipeline` — Pipeline.** *What:* all 5 lead types +
+EXW bids + broker state. **`/marketing/campaigns` — Campaigns.** *What:* the marketing contact master
+(separate from `buyers`, no FK) + activity log, campaign tasks, platform state, certificates, channel
+targets, and copy-only message templates (no automated send). *Avoid:* importing the 1,513-contact static archive
+or legacy harvest rows. The importer accepts only the small saved `ep_*` state, rejects unrelated app keys, and can
+be rerun without duplicates; all records remain editable after import.
+Refs: SPEC-0032.
+
 Maintenance: when a page is added/changed, update its block + the [Documentation Health](DOCUMENTATION-HEALTH.md)
 scorecard. Arabic-first phrasing (CLAUDE.md #2); agronomy guidance stays template-not-prescription (BR-113).

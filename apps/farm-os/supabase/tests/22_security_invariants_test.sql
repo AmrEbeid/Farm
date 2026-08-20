@@ -118,7 +118,10 @@ select is(
         'fn_set_data_authority_status', -- owner-only report-source authority metadata (migration 20260727143000)
         'fn_close_payroll_run', -- owner/accountant-only payroll close/report RPC (SPEC-0006 slice 3, migration 20260729090000)
         'fn_cost_center_direct_summary', -- read-only exact cost-center totals (migration 20260730130000)
-        'fn_expense_register_summary' -- read-only exact expense-register summary (migration 20260730140000)
+        'fn_expense_register_summary', -- read-only exact expense-register summary (migration 20260730140000)
+        'fn_save_marketing_contact', 'fn_archive_marketing_contact', -- gated marketing-contact RPCs (SPEC-0032, migration 20260820090000)
+        'fn_log_marketing_contact_activity', -- gated append-only marketing-contact activity RPC (SPEC-0032)
+        'fn_save_marketing_record', 'fn_archive_marketing_record' -- gated marketing-record RPCs (SPEC-0032, migration 20260820090000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )
