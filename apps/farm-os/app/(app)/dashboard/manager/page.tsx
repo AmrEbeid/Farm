@@ -11,6 +11,7 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { moneyNumber, num, pct } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, PLAN_TYPE_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
+import { ManagerHome } from "./manager-home";
 
 function planLabel(plan: { type?: string | null; period_start?: string | null } | undefined): string {
   if (!plan) return "—";
@@ -22,8 +23,11 @@ export default async function ManagerDashboard() {
   // Role-gate: farm_manager/agri_engineer land here via the dashboard router; a
   // wrong role typing the URL is bounced back to the router.
   const m = await requireRole(["farm_manager", "agri_engineer"]);
+  if (m.role === "farm_manager") return <ManagerHome orgId={m.orgId} />;
+
   const sb = await createClient();
-  const canSeeOffshoots = m.role === "farm_manager";
+  // The farm_manager branch returns above; this preserved legacy branch now serves Agronomist only.
+  const canSeeOffshoots = false;
 
   // The manager's *active* plans for their org (RLS narrows to the active org)
   // — never a single hard-coded demo plan. Operations/checks below are
@@ -175,7 +179,7 @@ export default async function ManagerDashboard() {
   // /farm/offshoots (owner|accountant|farm_manager) both exclude agri_engineer — showing those quick-nav
   // tiles unconditionally bounced agri_engineer to /dashboard on tap (SPEC-0030 §5 no-dead-ends).
   // canSeeOffshoots (above) already encodes the offshoots gate; guard the plan tile the same way.
-  const canPlan = m.role === "farm_manager";
+  const canPlan = false;
   const fmQuickNav = [
     { href: "/record", icon: "➕", label: "سجّل" },
     ...(canPlan ? [{ href: "/record/plan", icon: "🗓️", label: "خطة جديدة" }] : []),
