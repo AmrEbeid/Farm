@@ -3,9 +3,9 @@
  * budget.write-gated RPC the revenue flows use. Matches existing buyers by NAME (unique per org), so
  * a re-uploaded template updates type/phone/active instead of duplicating.
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const buyersDescriptor: ImportDescriptor = {
+export const buyersDescriptor: WriteImportDescriptor = {
   key: "buyers",
   titleAr: "المشترون",
   rpc: "fn_save_buyer",

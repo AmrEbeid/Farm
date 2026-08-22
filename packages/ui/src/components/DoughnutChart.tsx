@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { useChartTokens } from "./useChartTokens";
+import { ChartCanvas } from "./ChartCanvas";
 import { formatChartNumber } from "./formatChartNumber";
 
 export interface DoughnutDatum {
@@ -36,35 +37,37 @@ export function DoughnutChart({
       role="img"
       aria-label={ariaLabel}
     >
-      <ResponsiveContainer width="100%" height={height}>
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            innerRadius={inner}
-            outerRadius={outer}
-            stroke={t.surface}
-            strokeWidth={2}
-            paddingAngle={1}
-          >
-            {data.map((d, i) => (
-              <Cell
-                key={i}
-                fill={d.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand}
-              />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
-            labelStyle={{ color: t.ink }}
-            formatter={(value) => formatChartNumber(value)}
-          />
-          {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
-        </PieChart>
-      </ResponsiveContainer>
+      <ChartCanvas height={height}>
+        <ResponsiveContainer width="100%" height={height}>
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={inner}
+              outerRadius={outer}
+              stroke={t.surface}
+              strokeWidth={2}
+              paddingAngle={1}
+            >
+              {data.map((d, i) => (
+                <Cell
+                  key={i}
+                  fill={d.color ?? t.palette[i % Math.max(t.palette.length, 1)] ?? t.brand}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{ background: t.surface, border: `1px solid ${t.line}`, color: t.ink }}
+              labelStyle={{ color: t.ink }}
+              formatter={(value) => formatChartNumber(value)}
+            />
+            {showLegend && <Legend wrapperStyle={{ color: t.ink }} />}
+          </PieChart>
+        </ResponsiveContainer>
+      </ChartCanvas>
       {tableFallback && (
         <table className="fos-chart__table">
           <caption>{tableFallback.caption}</caption>

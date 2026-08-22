@@ -29,8 +29,16 @@ No Docker? Run the pgTAP suite against a plain local Postgres via
 
 ## Auth
 
-Sign-in is **email + password** (Supabase `signInWithPassword`). Seed users for the six
-roles are created/linked by `lib/seed-auth.ts`. (An earlier phone-OTP path was removed.)
+Sign-in is **email + password** (Supabase `signInWithPassword`). (An earlier phone-OTP path
+was removed.)
+
+The login page is credential-free by design: **both fields start blank**, and there is no
+demo-account chooser, no shared password, and no in-app way to provision or reset accounts.
+The former `POST /api/dev/seed-auth` route and its `lib/seed-auth.ts` helper have been
+**deleted** — user provisioning is an Owner action in Supabase, never a request the app can
+serve. `lib/login-auth-surface.test.ts` fails the build if any of that comes back.
+
+For local/e2e work, users are provisioned by the Playwright global setup only (see Tests).
 
 ## Fonts & styling
 
@@ -60,6 +68,16 @@ apps/farm-os/supabase/test-shims/run-pgtap-local.sh  # DB pgTAP via plain local 
 The legacy Playwright wedge loop mutates seed data and is guarded against remote Supabase targets.
 Do not run it against production or a shared branch. Browser smoke should use an already-authenticated
 session or another explicitly approved non-Docker path.
+
+It provisions its own test users in `e2e/global-setup.ts` and requires a **per-run,
+test-only** password — there is no committed default and no fallback, so a missing value
+fails the run loudly instead of trying a known password:
+
+```bash
+export FARM_OS_ALLOW_LOCAL_E2E_RESET=1
+export FARM_OS_E2E_PASSWORD="$(openssl rand -base64 24)"   # ≥16 chars; or put it in .env.local (gitignored)
+npx playwright test
+```
 
 ## Deploy
 

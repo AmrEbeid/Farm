@@ -40,7 +40,7 @@ Every figure/claim comes from owner-provided documents, not invented:
   حوض البابور (30.5f, 5, 1,485, 2023/2025) · الشفعة (9.5f, 4, 269, 2023) · الخطارة (23f, 4, 513, 2010–2024).
 - **Supply/specs:** Fresh Barhi (Khalal) · 202 t CAPQ-approved · season Aug–Oct · packaging to
   buyer spec · air + reefer sea · destinations CHN/ARE/SAU/KWT/EU.
-- **Contact:** Eng. Abdelglil Ebeid · ebeidfarm@gmail.com · +20 100 217 4773 · +20 121 014 1019.
+- **Contact:** Eng. Abdelglil Ebeid · abdoebaid2016@gmail.com · +20 100 217 4773 · +20 121 014 1019.
 
 ### Certification proofs (real files, in `public/site/proofs/`)
 
@@ -67,9 +67,10 @@ corporate document. It is NOT used on the farm site.
 
 ### Sections (fixed set)
 
-Hero (name + badges + Login) → About → Why Barhi → Production Blocks (table) → Supply & Specs
-(table) → **Certifications & Proof** (badges + proof thumbnails + live-registry links) → Why
-Partner → Contact (+ optional future scenery gallery, empty until photos exist).
+Hero (name + badges + Login) → About → Why Barhi → Supply & Specs → **Certifications & Proof**
+(badges + proof thumbnails + live-registry links) → Why Partner → Contact (+ optional future
+scenery gallery, empty until photos exist). Production-block records remain owner-managed in the
+content model but are not displayed on the public website.
 
 ## 4. The OS-editable content model (touches the DB — migration required)
 

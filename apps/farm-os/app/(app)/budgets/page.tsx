@@ -7,17 +7,33 @@ import { FilterableTable } from "@/components/FilterableTable";
 import { PrintButton } from "@/components/print-button";
 import { egp, num } from "@/lib/money";
 import { parseBudgetVsActual } from "@/lib/budget-vs-actual";
+import { DATA_NOT_VERIFIED_AR, getDataAuthority, isAuthoritative } from "@/lib/data-authority";
 
 // Read-only budgets overview: planned vs approved/committed/actual, with derived available.
 export default async function BudgetsPage() {
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
 
-  const { data: budgets, error } = await sb
-    .from("budgets")
-    .select("id, name, period, category, planned, approved, committed, actual, status")
-    .order("period", { ascending: false });
+  const [{ data: budgets, error }, authority] = await Promise.all([
+    sb
+      .from("budgets")
+      .select("id, name, period, category, planned, approved, committed, actual, status")
+      .order("period", { ascending: false }),
+    getDataAuthority(sb, m.orgId, "budgets"),
+  ]);
   if (error) throw error;
+
+  if (!isAuthoritative(authority.status)) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <header>
+          <h1 className="text-2xl font-bold">الموازنات</h1>
+          <p style={{ color: "var(--ink-muted)" }}>المخطط المالي المعتمد لكل فترة.</p>
+        </header>
+        <Alert tone="warning" title="لا توجد موازنة موثقة" description={DATA_NOT_VERIFIED_AR} />
+      </div>
+    );
+  }
 
   const columns: SimpleColumn[] = [
     { id: "name", header: "الموازنة" },

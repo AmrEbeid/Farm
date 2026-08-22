@@ -21,11 +21,23 @@ const POTASSIUM = "39e22867-fbe2-5cd9-8a76-ce5871a8e8f4";
 const PLAN = "5d5d302e-c385-5d0b-94f5-3dc2c9948e79";
 const FERT_OP = "37c9cce6-6ec4-570a-97a4-b263e2faf5d0";
 
+// Test-only credential — the same per-run secret `e2e/global-setup.ts` provisions
+// the users with. No committed default and no fallback to a known password: if the
+// variable is absent the suite fails at collection instead of guessing.
+const E2E_PASSWORD = env("FARM_OS_E2E_PASSWORD");
+if (E2E_PASSWORD.length < 16) {
+  throw new Error(
+    "FARM_OS_E2E_PASSWORD must be at least 16 characters; there is no default. " +
+      `Set it per run, e.g. FARM_OS_E2E_PASSWORD="$(openssl rand -base64 24)".`,
+  );
+}
+
 async function login(page: Page, email: string) {
   // global-setup already made the seeded users sign-in-able (email+password).
+  // The login page prefills nothing, so both fields are typed here.
   await page.goto("/login");
   await page.fill("#email", email);
-  await page.fill("#password", "farm-os-pilot");
+  await page.fill("#password", E2E_PASSWORD);
   await page.getByRole("button", { name: "دخول", exact: true }).click();
   await page.waitForURL(/\/dashboard|\/m|\/inventory/, { timeout: 15_000 });
   // confirm the server sees the session (a role dashboard / mobile / inventory

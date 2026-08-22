@@ -8,6 +8,7 @@ export interface BudgetVsActualLine {
   variance: number; // planned − actual (positive = under budget)
   overBudget: boolean;
   unbudgeted: boolean; // posted spend with no budget line
+  actualRowPresent: boolean; // category exists in the posted-GL side, even when its net amount is zero
 }
 
 /** The parsed `fn_budget_vs_actual` payload (SPEC-0004 Slice A). */
@@ -40,6 +41,7 @@ function toLines(value: unknown): BudgetVsActualLine[] {
       variance: toMoney(row.variance),
       overBudget: row.over_budget === true,
       unbudgeted: row.unbudgeted === true,
+      actualRowPresent: row.actual_row_present === true,
     };
   });
 }

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { summariseBuyerSales } from "@/lib/buyer-sales";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
 import { fmtDate } from "@/lib/dates";
+import { SALE_PAYMENT_STATUS_AR } from "@/lib/labels";
 import { egp, num } from "@/lib/money";
 
 // SPEC-0025 U-11 (§2c) — the buyer 360: the destination that makes every buyer name in the app a LINK.
@@ -34,6 +36,11 @@ export default async function BuyerPage({ params }: { params: Promise<{ id: stri
       .from("sales")
       .select("id, sale_date, crop, qty, unit, total, price_status, payment_status")
       .eq("buyer_id", id)
+      // A reconciliation-REVERSED sale is not revenue and leaves this buyer's history entirely. A
+      // historical_treasury sale deliberately STAYS: it is a real finalized purchase by this buyer.
+      // It was settled in cash at posting, which summariseBuyerSales accounts for.
+      // (migration 20260726160000)
+      .neq("payment_status", "historical_reversed")
       .order("sale_date", { ascending: false }),
     sb.from("sale_collections").select("sale_id, amount"),
   ]);
@@ -41,16 +48,17 @@ export default async function BuyerPage({ params }: { params: Promise<{ id: stri
   const buyer = buyerRes.data;
   if (!buyer) notFound();
 
-  const sales = salesRes.data ?? [];
-  const saleIds = new Set(sales.map((s) => s.id));
-  let collectedTotal = 0;
+  const saleIds = new Set((salesRes.data ?? []).map((s) => s.id));
+  const collectionsBySaleId = new Map<string, number>();
   for (const c of collectionsRes.data ?? []) {
-    if (saleIds.has(c.sale_id)) collectedTotal += Number(c.amount ?? 0);
+    if (saleIds.has(c.sale_id)) {
+      collectionsBySaleId.set(c.sale_id, (collectionsBySaleId.get(c.sale_id) ?? 0) + Number(c.amount ?? 0));
+    }
   }
-  const finalized = sales.filter((s) => s.price_status === "finalized");
-  const finalizedTotal = finalized.reduce((t, s) => t + Number(s.total ?? 0), 0);
-  const pendingCount = sales.length - finalized.length;
-  const outstanding = finalizedTotal - collectedTotal;
+  const { sales, finalizedTotal, collectedTotal, outstanding, pendingCount } = summariseBuyerSales(
+    salesRes.data ?? [],
+    collectionsBySaleId,
+  );
 
   const rows: SimpleRow[] = sales.map((s) => ({
     id: s.id,
@@ -58,7 +66,10 @@ export default async function BuyerPage({ params }: { params: Promise<{ id: stri
     crop: `${s.crop}${s.qty ? "" : ""}`,
     qty: s.qty ?? undefined,
     total: s.price_status === "pending" ? undefined : (s.total ?? undefined),
-    status: s.price_status === "pending" ? "السعر معلّق" : s.payment_status === "collected" ? "محصَّل" : "غير محصل",
+    status:
+      s.price_status === "pending"
+        ? "السعر معلّق"
+        : SALE_PAYMENT_STATUS_AR[s.payment_status] ?? s.payment_status,
   }));
 
   const lead =

@@ -3,7 +3,7 @@ import { fixupConfigRules } from "@eslint/compat";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-// eslint-config-next (16.2.9) still bundles eslint-plugin-react@^7.37, whose
+// eslint-config-next (16.3.0) still bundles eslint-plugin-react@^7.37, whose
 // version-detection helper calls the `context.getFilename()` API that ESLint 10
 // removed (replaced by `context.filename`). With raw ESLint 10 this throws
 // "react/display-name: contextOrFilename.getFilename is not a function" before

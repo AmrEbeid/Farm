@@ -291,6 +291,13 @@ export const APP_MODULES: AppModule[] = [
         roles: ["owner", "accountant"],
       },
       {
+        id: "reconciliation",
+        label: "مراجعة التسويات",
+        icon: "🧮",
+        href: "/finance/reconciliation",
+        roles: ["owner", "accountant"],
+      },
+      {
         id: "accounting",
         label: "المحاسبة",
         icon: "📒",
@@ -327,6 +334,58 @@ export const APP_MODULES: AppModule[] = [
         href: "/people",
         roles: ["owner", "farm_manager", "agri_engineer", "accountant"],
       },
+      {
+        // SPEC-0006 slice 3 (migration 20260729090000): close a payroll period into an immutable
+        // gross-pay snapshot. Roles match the payroll.read RLS on payroll_runs/payroll_run_lines and
+        // fn_close_payroll_run's own authorize() gate — owner/accountant only — so the entry never
+        // appears to a role the page would redirect.
+        id: "payroll",
+        label: "إقفال الرواتب",
+        icon: "💵",
+        href: "/people/payroll",
+        roles: ["owner", "accountant"],
+      },
+      {
+        // SPEC-0006 slice 4: the wage rates the close prices against. SAME two roles as the close
+        // itself — `people_compensation`'s comp_rw policy gates both read and write on
+        // authorize('payroll.read', org_id) (owner/accountant, migrations 0046/0074), so any other
+        // role would see an empty table and be redirected by the page. Wage data appears on no
+        // other nav surface.
+        id: "payroll-compensation",
+        label: "أجور الفريق",
+        icon: "🧮",
+        href: "/people/payroll/compensation",
+        roles: ["owner", "accountant"],
+      },
+      {
+        // SPEC-0006 / docs/PILOT-READINESS.md: the pre-pilot preparation sheet + three
+        // VALIDATION-ONLY templates. Same owner/accountant pair as the close and the wage editor —
+        // the templates rehearse wage/labor shapes, and their descriptors carry the identical
+        // allowedRoles which the import API re-enforces server-side. It imports nothing.
+        id: "payroll-readiness",
+        label: "جاهزية الرواتب",
+        icon: "🧷",
+        href: "/people/payroll/readiness",
+        roles: ["owner", "accountant"],
+      },
+    ],
+  },
+  {
+    // SPEC-0032 — Marketing module: 5 nav pages consolidating the 25 legacy export-marketing
+    // tracking areas. Owner/accountant/farm_manager only — matches the marketing_* RLS/RPC role
+    // gate exactly (an explicit inline check, not authorize()), so no other role ever sees a page
+    // it cannot read.
+    id: "marketing-module",
+    label: "التسويق",
+    icon: "📣",
+    dashboardHref: "/marketing",
+    roles: ["owner", "accountant", "farm_manager"],
+    pages: [
+      { id: "marketing-overview", label: "نظرة عامة", icon: "📣", href: "/marketing", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-product", label: "المنتج", icon: "🌴", href: "/marketing/product", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-markets", label: "الأسواق", icon: "📈", href: "/marketing/markets", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-pipeline", label: "خط المبيعات", icon: "🧭", href: "/marketing/pipeline", roles: ["owner", "accountant", "farm_manager"] },
+      { id: "marketing-campaigns", label: "الحملات", icon: "📨", href: "/marketing/campaigns", roles: ["owner", "accountant", "farm_manager"] },
     ],
   },
   {

@@ -15,4 +15,6 @@ export const IMPORTABLE_RPCS: readonly string[] = [
   "fn_save_supplier",
   "fn_save_inventory_item",
   "fn_save_expense",
+  "fn_save_marketing_contact",
+  "fn_save_marketing_record",
 ];

@@ -36,6 +36,9 @@ export default async function PeopleDashboardPage({
   const m = await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const sb = await createClient();
   const canOpenFieldDashboard = m.role === "owner" || m.role === "farm_manager" || m.role === "agri_engineer";
+  // The wage surfaces are payroll.read (owner/accountant) — the same roles the estimate below is
+  // gated on. Any other role would be redirected, so they are not offered the links.
+  const canOpenWagePages = m.role === "owner" || m.role === "accountant";
 
   // Current calendar month, for the payroll ESTIMATE below (a rolling window, not a closed/idempotent
   // payroll run — see the PR description for that scope decision).
@@ -72,9 +75,16 @@ export default async function PeopleDashboardPage({
   // otherwise (mirrors the `reports/[planId]/pva` planned-labor-cost pattern).
   let payrollRun: ReturnType<typeof computePayroll> | null = null;
   if (canSeePayroll) {
+    // HOURLY ONLY. Since migration 20260729090000 a person may hold several rates — one per mode,
+    // plus one per (piece, unit) pair. `computePayroll` is an hours × rate estimator, so feeding it
+    // a per-box or per-season rate would price a day's hours at a piece rate and quietly invent a
+    // number (non-negotiable #1). Both sides of the join are therefore narrowed to mode='hourly';
+    // the other modes are priced only by the real close, which resolves each (person, mode[, unit])
+    // key against its own rate. The card says in words that it covers hourly work alone.
     const { data: laborLogs, error: laborError } = await sb
       .from("labor_logs")
       .select("person_id, hours")
+      .eq("mode", "hourly")
       .gte("work_date", periodStart)
       .lte("work_date", periodEnd)
       .not("person_id", "is", null);
@@ -86,6 +96,7 @@ export default async function PeopleDashboardPage({
       const { data: comp, error: compError } = await sb
         .from("people_compensation")
         .select("person_id, rate")
+        .eq("mode", "hourly")
         .in("person_id", personIds);
       if (compError) throw compError;
       for (const row of comp ?? []) {
@@ -233,6 +244,8 @@ export default async function PeopleDashboardPage({
           <HeaderLink href="/people">دليل الفريق</HeaderLink>
           <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
           {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
+          {canOpenWagePages && <HeaderLink href="/people/payroll/compensation">أجور الفريق</HeaderLink>}
+          {canOpenWagePages && <HeaderLink href="/people/payroll">إقفال الرواتب</HeaderLink>}
         </div>
       </header>
 
@@ -265,14 +278,15 @@ export default async function PeopleDashboardPage({
       </section>
 
       {payrollRun && (
-        <Card title="تقدير الأجور (الشهر الحالي)">
+        <Card title="تقدير الأجور بالساعة (الشهر الحالي)">
           {payrollRun.lines.length === 0 ? (
-            <EmptyState title="لا توجد ساعات مسجّلة هذا الشهر" description="سجّل الحضور من صفحة تسجيل الحضور." />
+            <EmptyState title="لا توجد ساعات مسجّلة بالأجر بالساعة هذا الشهر" description="سجّل الحضور من صفحة تسجيل الحضور." />
           ) : (
             <>
               <p className="mb-3" style={{ color: "var(--ink-muted)" }}>
-                تقدير من سجلات الحضور الفعلية (ساعات × معدل)، وليس رواتب مغلقة رسميًا. الأعضاء بلا معدل
-                مسجّل يظهرون بعلامة &quot;غير مسعّر&quot; ولا يُحسب لهم مبلغ.
+                تقدير من سجلات الحضور الفعلية (ساعات × معدل) للأجر بالساعة فقط، وليس رواتب مغلقة
+                رسميًا. لا يشمل الأجر باليوم أو بالقطعة أو الموسمي — تلك تُحسب في إقفال الرواتب وحده.
+                الأعضاء بلا معدل مسجّل يظهرون بعلامة &quot;غير مسعّر&quot; ولا يُحسب لهم مبلغ.
               </p>
               <SimpleTable
                 columns={[

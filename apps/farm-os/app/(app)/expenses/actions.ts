@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import {
+  parseExpenseCorrection,
+  parseExpensePaymentReversal,
+  type ExpenseCorrectionInput,
+  type ExpensePaymentReversalInput,
+} from "@/lib/expense-payment-reversal";
 
 // Expense classification (matches the expenses.kind CHECK). Owner drawings (مسحوبات) MUST be separable from
 // operating expenses in any P&L (non-negotiable #6); the finance dashboard classifies by this column.
@@ -109,4 +115,113 @@ export async function createExpense(
   revalidatePath("/accounting");
   revalidatePath("/custody");
   return { ok: true };
+}
+
+export async function reverseExpensePayment(
+  input: ExpensePaymentReversalInput,
+): Promise<{ ok: boolean; error?: string; idempotent?: boolean }> {
+  const parsed = parseExpensePaymentReversal(input);
+  if (!parsed.ok) return parsed;
+
+  const membership = await requireMembership();
+  if (membership.role !== "owner" && membership.role !== "accountant") {
+    return { ok: false, error: "هذا التصحيح متاح للمالك والمحاسب فقط" };
+  }
+
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_reverse_expense_payment", {
+    p_expense: parsed.value.expenseId,
+    p_expected_movement: parsed.value.movementId,
+    p_outcome: parsed.value.outcome,
+    p_reason: parsed.value.reason,
+    p_reversal_date: parsed.value.reversalDate,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        {
+          "23502": "أكمل سبب التصحيح وتاريخه",
+          "22023": "لا يمكن تصحيح هذا السداد بهذه الحالة؛ راجع ارتباطه بإذن الصرف أو القيود",
+          "42501": "ليس لديك صلاحية تصحيح سداد هذا المصروف",
+          "55000": "لا يمكن التصحيح داخل فترة محاسبية مقفلة",
+          "P0002": "المصروف أو حركة السداد غير موجودة",
+        },
+        "تعذّر تصحيح سداد المصروف",
+      ),
+    };
+  }
+
+  revalidatePath(`/expenses/${parsed.value.expenseId}`);
+  revalidatePath("/expenses");
+  revalidatePath("/custody");
+  revalidatePath("/transactions");
+  revalidatePath("/accounting");
+  revalidatePath("/finance/dashboard");
+  revalidatePath("/finance/pnl");
+  revalidatePath("/finance/income-statement");
+  return {
+    ok: true,
+    idempotent: Boolean(data && typeof data === "object" && "idempotent" in data && data.idempotent),
+  };
+}
+
+export async function correctAndRerouteExpense(
+  input: ExpenseCorrectionInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const parsed = parseExpenseCorrection(input);
+  if (!parsed.ok) return parsed;
+
+  const membership = await requireMembership();
+  if (membership.role !== "owner" && membership.role !== "accountant") {
+    return { ok: false, error: "هذا التصحيح متاح للمالك والمحاسب فقط" };
+  }
+
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_correct_and_route_reversed_expense", {
+    p_expense: parsed.value.expenseId,
+    p_date: parsed.value.date,
+    p_category: parsed.value.category,
+    p_description: parsed.value.description,
+    p_total: parsed.value.total,
+    p_supplier: parsed.value.supplierId,
+    p_account: parsed.value.accountId,
+    p_cost_center: parsed.value.costCenterId,
+    p_route: parsed.value.route,
+    p_custody_account: parsed.value.custodyAccountId,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        {
+          "22023": "تغيّرت حالة المصروف أو بيانات التوجيه غير صالحة؛ حدّث الصفحة وراجع الاختيارات",
+          "42501": "ليست لديك صلاحية حفظ هذا التصحيح أو أحد الاختيارات يتبع مزرعة أخرى",
+          "P0002": "المصروف غير موجود في المزرعة النشطة",
+        },
+        "تعذّر حفظ تصحيح المصروف؛ لم تُحفظ تغييرات",
+      ),
+    };
+  }
+
+  revalidateExpenseCorrectionPaths(parsed.value.expenseId);
+  return { ok: true };
+}
+
+function revalidateExpenseCorrectionPaths(expenseId: string) {
+  for (const path of [
+    `/expenses/${expenseId}`,
+    "/expenses",
+    "/custody",
+    "/transactions",
+    "/accounting",
+    "/finance/dashboard",
+    "/finance/accounts",
+    "/finance/pnl",
+    "/finance/income-statement",
+  ]) {
+    revalidatePath(path);
+  }
 }

@@ -2,8 +2,8 @@
 
 *Phase 2 of the Product Knowledge System ([`SPEC-0015`](SPEC-0015-product-knowledge-system.md)). The authoritative
 role × permission × page × action map. **Enforcement is in Postgres** (RLS + `authorize()` + SoD triggers), not the
-UI. Reconciled to `main` 2026-06-30 (`lib/auth.ts`, `authorize()` union through `20260622000092`, role-gates,
-verified page guards).
+UI. Reconciled to `main` 2026-07-29 (`lib/auth.ts`, the final `authorize()` union, role gates, payroll persistence,
+and verified page guards).
 Maturity **L3**.*
 
 ## Roles (verified `lib/auth.ts`)
@@ -19,9 +19,11 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `op.execute` | owner, farm_manager, agri_engineer, supervisor | Execute operations, record events, attach media, palm status | BR-030/065 |
 | `inventory.write` | owner, farm_manager, storekeeper | Post movements/receipts, reserve, write items/suppliers | BR-062 |
 | `budget.write` | owner, accountant | Write budgets, budget lines, expenses | BR-063 |
-| `payroll.read` | owner, accountant | Read `people_compensation` (wages) | BR-071 |
+| `payroll.read` | owner, accountant | Read/write `people_compensation`; read closed `payroll_runs` and `payroll_run_lines`; close payroll through the gated RPC | BR-071 |
 | `structure.write` | owner, farm_manager | Create/edit/archive farm structure | BR-064 |
 | `responsibility.write` | owner, farm_manager | Write responsibility assignments | BR-073 |
+| `people.write` | owner, farm_manager | Onboard and edit staff roster rows; contact columns remain service-role-only | BR-072 |
+| `labor.write` | owner, farm_manager, supervisor | Record attendance and labor evidence; no wage/rate fields | BR-072 |
 | `finance.read` | owner, accountant | Read finance-confidential custody/payment-request rows, revenue/A-R rows, reports, and derived balances | BR-066 |
 | `custody.write` | owner, accountant | Create custody accounts and post custody movements through RPCs | BR-067 |
 | `request.prepare` | owner, accountant | Create/submit payment requests and add eligible post-paid lines | BR-068 |
@@ -29,6 +31,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `request.approve.final` | owner | Final-approve payment requests | BR-069 |
 | `export.write` | owner, farm_manager | Write export registrations/accreditations/residue tests/results | BR-074 |
 | `academy.write` | owner, agri_engineer | Forward-compatible Care Academy content write gate; tables/routes still draft #366 | BR-075 |
+| *(explicit marketing role gate)* | owner, accountant, farm_manager | Read/write the marketing workspace through active-org RLS and RPC-only mutations | BR-076 |
 
 ## Role × capability (✓ = allowed, via the permission above)
 | Capability | owner | farm_manager | agri_engineer | accountant | supervisor | storekeeper |
@@ -40,6 +43,8 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | Write inventory / receive / reserve | ✓ | ✓ | | | | ✓ |
 | Write budget / expenses | ✓ | | | ✓ | | |
 | Read wages (payroll) | ✓ | | | ✓ | | |
+| Onboard/edit staff roster | ✓ | ✓ | | | | |
+| Record attendance/labor evidence | ✓ | ✓ | | | ✓ | |
 | Edit responsibility assignments | ✓ | ✓ | | | | |
 | Read custody/payment requests | ✓ | | | ✓ | | |
 | Record custody movements | ✓ | | | ✓ | | |
@@ -48,6 +53,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | Final-approve payment requests | ✓ | | | | | |
 | Write export compliance records | ✓ | ✓ | | | | |
 | Write academy content (permission only; draft tables held) | ✓ | | ✓ | | | |
+| Read/write marketing workspace | ✓ | ✓ | | ✓ | | |
 | Read core farm data (RLS, own org) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ## Page access (verified guards)
@@ -61,6 +67,9 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `/expenses`, `/budgets` | nav `roles:["owner","accountant","farm_manager"]` | those roles |
 | `/finance/accounts`, `/finance/reports`, `/finance/revenue-reports`, `/finance/custody-reports`, `/finance/insights`, `/accounting`, `/custody` | nav/page guards owner/accountant; `finance.read` for confidential reads | owner, accountant |
 | `/people` | nav `roles:["owner","farm_manager","agri_engineer","accountant"]` | those roles |
+| `/people/attendance` | `requireRole(["owner","farm_manager","supervisor"])`; writes also require `labor.write` | owner, farm_manager, supervisor |
+| `/people/payroll`, `/people/payroll/[runId]`, `/people/payroll/compensation`, `/people/payroll/readiness` | `requireRole(["owner","accountant"])`; wage/run rows also require `payroll.read` | owner, accountant |
+| `/marketing*` | nav/page role gate plus active-org RLS; writes are RPC-only | owner, accountant, farm_manager |
 | `/m` (field) | nav `roles:["supervisor","agri_engineer","owner","farm_manager"]` | those roles |
 | `/farm*`, `/plans*`, `/inventory*`, `/purchase-requests*`, `/suppliers`, `/weather`, `/budget/[planId]/check`, `/reports/[planId]/pva`, `/profile` | `requireMembership()` | any member (writes still gated server-side) |
 
@@ -74,7 +83,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | PR revert SoD | revert blocked when requester = approver | BR-003 |
 | Tenant isolation | RLS deny-by-default + FORCE RLS; cross-org FK rejected; anon denied | BR-050/51/52/53 |
 | Export compliance refs | export-compliance rows are org-readable, `export.write`-writable, and same-org for responsible person/residue parent | BR-052/074 |
-| PII | phone/email service-role only; wages `payroll.read` only | BR-070/071 |
+| PII | phone/email service-role only; wages and closed payroll rows `payroll.read` only | BR-070/071 |
 | Audit | immutable `audit_log`; membership/people changes audited (PII redacted) | BR-080/081 |
 
 ## Admin / support operator (planned — NOT built)

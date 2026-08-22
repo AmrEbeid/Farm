@@ -1,19 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, Input, Alert, Tag, Card } from "@/components/ui";
+import { Button, Field, Input, Alert, Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
-
-// Arabic labels below are kept in sync with the canonical ROLE_LABEL_AR map in
-// lib/auth.ts. We can't import that map here: auth.ts transitively pulls in
-// next/headers (server-only), which is not allowed in a client component.
-const DEMO_ACCOUNTS = [
-  { role: "المالك", email: "owner@ebeid.test" },
-  { role: "مدير المزرعة", email: "manager@ebeid.test" },
-  { role: "أمين مخزن", email: "storekeeper@ebeid.test" },
-  { role: "مشرف ميداني", email: "supervisor@ebeid.test" },
-];
-const DEMO_PASSWORD = "farm-os-pilot";
 
 // Decorative signature cells, same abstract hawsha-grid brand motif as the public
 // landing page (app/page.tsx / .hawsha-grid in globals.css). A handful are accented
@@ -29,10 +18,12 @@ const ACCENT: Record<number, "active" | "watch"> = {
 };
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("owner@ebeid.test");
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  // Both fields start blank. This page ships to production, so it must never
+  // carry an account address or a password in the client bundle, and must never
+  // offer to provision accounts (see docs/SECURITY-NOTES.md §5).
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [tone, setTone] = useState<"info" | "danger" | "ok">("info");
   const [pending, setPending] = useState(false);
 
   async function signIn(e?: React.FormEvent) {
@@ -43,9 +34,8 @@ export default function LoginPage() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setTone("danger");
         // Don't leak the raw English Supabase auth error to the Arabic UI.
-        setMessage("تعذّر تسجيل الدخول. تأكد من البريد وكلمة المرور، أو جرّب «تفعيل حسابات العرض» أولاً.");
+        setMessage("تعذّر تسجيل الدخول. تأكد من البريد الإلكتروني وكلمة المرور.");
         setPending(false);
         return;
       }
@@ -53,29 +43,11 @@ export default function LoginPage() {
       // navigation so the server receives the fresh auth cookie on the next
       // request (router.push can race ahead of the cookie write).
       await supabase.auth.getSession();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Preserve the same-origin full reload after the auth cookie write.
       window.location.assign("/dashboard");
       return;
     } catch {
-      setTone("danger");
       setMessage("تعذّر الاتصال بالخادم.");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function enableDemo() {
-    setPending(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/dev/seed-auth", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) {
-        setTone("ok");
-        setMessage("تم تفعيل حسابات العرض. اختر دورًا للدخول.");
-      } else {
-        setTone("danger");
-        setMessage(data.error ?? "فشل التفعيل");
-      }
     } finally {
       setPending(false);
     }
@@ -98,7 +70,7 @@ export default function LoginPage() {
             </header>
 
             <div aria-live="polite" aria-atomic="true">
-              {message && <Alert tone={tone} title={message} />}
+              {message && <Alert tone="danger" title={message} />}
             </div>
 
             <form onSubmit={signIn} className="flex flex-col gap-4">
@@ -126,35 +98,6 @@ export default function LoginPage() {
                 دخول
               </Button>
             </form>
-
-            <div className="flex flex-col gap-3 border-t pt-4" style={{ borderColor: "var(--line)" }}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium">حسابات العرض</span>
-                <Button type="button" variant="ghost" size="sm" onClick={enableDemo} loading={pending}>
-                  تفعيل حسابات العرض
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {DEMO_ACCOUNTS.map((a) => (
-                  <button
-                    key={a.email}
-                    type="button"
-                    aria-label={`استخدم حساب ${a.role}`}
-                    onClick={() => {
-                      setEmail(a.email);
-                      setPassword(DEMO_PASSWORD);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Tag tone={email === a.email ? "accent" : "neutral"}>{a.role}</Tag>
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
-                الدخول بالبريد الإلكتروني وكلمة المرور. في البيئة المحلية فعّل حسابات
-                العرض أعلاه.
-              </p>
-            </div>
           </Card>
         </section>
 

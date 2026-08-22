@@ -13,6 +13,7 @@ import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { BUDGET_STATUS_AR, PR_STATUS_AR } from "@/lib/labels";
+import { DATA_NOT_VERIFIED_AR, getDataAuthority, isAuthoritative } from "@/lib/data-authority";
 
 const BASE_TAB_IDS = ["overview", "lines", "purchases"] as const;
 type BudgetTab = (typeof BASE_TAB_IDS)[number] | "finance";
@@ -47,6 +48,16 @@ export default async function Budget360Page({
     : BASE_TAB_IDS;
   const tab: BudgetTab = validTabIds.includes(rawTab ?? "") ? (rawTab as BudgetTab) : "overview";
   const sb = await createClient();
+  const authority = await getDataAuthority(sb, m.orgId, "budgets");
+  if (!isAuthoritative(authority.status)) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <Breadcrumbs ariaLabel="المسار" items={[{ id: "budgets", label: "الموازنات", href: "/budgets" }]} />
+        <h1 className="text-2xl font-bold">تفاصيل الموازنة</h1>
+        <Alert tone="warning" title="لا توجد موازنة موثقة" description={DATA_NOT_VERIFIED_AR} />
+      </div>
+    );
+  }
 
   const { data: budget, error: budgetError } = await sb
     .from("budgets")

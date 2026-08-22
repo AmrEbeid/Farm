@@ -42,7 +42,14 @@ export default async function InsightsSummaryPage() {
   const [tsRes, rollupRes, salesRes] = await Promise.all([
     sb.rpc("fn_pnl_timeseries", { p_org: m.orgId, p_grain: "year", p_from: from, p_to: to }),
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb.from("sales").select("cost_center_id, total, price_status").eq("org_id", m.orgId).eq("price_status", "finalized"),
+    sb
+      .from("sales")
+      .select("cost_center_id, total, price_status")
+      .eq("org_id", m.orgId)
+      .eq("price_status", "finalized")
+      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
+      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
+      .neq("payment_status", "historical_reversed"),
   ]);
   if (tsRes.error) throw tsRes.error;
   if (rollupRes.error) throw rollupRes.error;

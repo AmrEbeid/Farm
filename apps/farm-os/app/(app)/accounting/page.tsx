@@ -9,6 +9,7 @@ import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { egp, num } from "@/lib/money";
 import { subtreeNetByCode } from "@/lib/accounting-rollup";
+import { computeEntryDebitAmount, groupLinesByEntryId } from "@/lib/accounting-recent-entries";
 
 type TrialBalanceRow = {
   account_id: string;
@@ -41,25 +42,27 @@ const SOURCE_TYPE_AR: Record<string, string> = {
   sale_collection: "تحصيل من عميل",
 };
 
+// 500 sits comfortably below PostgREST's configured max_rows (1000, supabase/config.toml) for the 20
+// displayed entries' lines — today's production shape is 40 lines, but that count is a snapshot, not
+// a lasting correctness invariant. If a result ever lands at the limit exactly, the read below may
+// itself be truncated by the row cap, so that case fails closed instead of silently rendering an
+// incomplete sample as if it were complete.
+const JOURNAL_LINES_QUERY_LIMIT = 500;
+
 export default async function AccountingPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
-  const [trialRes, entriesRes, linesRes, accountsRes] = await Promise.all([
+  const [trialRes, entriesRes, accountsRes] = await Promise.all([
     sb.rpc("fn_accounting_trial_balance", { p_org: m.orgId }),
     sb
       .from("journal_entries")
       .select("id, entry_date, source_type, source_id, description, status, posted_at")
       .eq("org_id", m.orgId)
-      .order("entry_date", { ascending: false })
-      .order("posted_at", { ascending: false })
+      .order("entry_date", { ascending: false, nullsFirst: false })
+      .order("posted_at", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: false })
       .limit(20),
-    sb
-      .from("journal_lines")
-      .select("id, journal_entry_id, account_id, debit, credit, description, payment_request_id, expense_id")
-      .eq("org_id", m.orgId)
-      .order("created_at", { ascending: false })
-      .limit(80),
     sb
       .from("accounts")
       .select("id, org_id, code, name_ar, account_type, normal_balance, parent_id")
@@ -68,19 +71,36 @@ export default async function AccountingPage() {
   ]);
   if (trialRes.error) throw trialRes.error;
   if (entriesRes.error) throw entriesRes.error;
-  if (linesRes.error) throw linesRes.error;
   if (accountsRes.error) throw accountsRes.error;
+
+  const entries = entriesRes.data ?? [];
+  const entryIds = entries.map((entry) => entry.id);
+
+  // Every displayed entry's amount must come only from lines that belong to that exact entry — never
+  // from an unrelated global sample (the prior bug: a separate latest-80-lines-globally query zeroed
+  // every displayed entry once none of its lines happened to be in that unrelated sample). Scope the
+  // read to the displayed entries instead.
+  const linesRes = entryIds.length
+    ? await sb
+        .from("journal_lines")
+        .select("id, journal_entry_id, account_id, debit, credit, description, payment_request_id, expense_id")
+        .eq("org_id", m.orgId)
+        .in("journal_entry_id", entryIds)
+        .order("journal_entry_id", { ascending: false })
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .order("id", { ascending: false })
+        .limit(JOURNAL_LINES_QUERY_LIMIT)
+    : { data: [], error: null };
+  if (linesRes.error) throw linesRes.error;
+  const lines = linesRes.data ?? [];
+  if (lines.length >= JOURNAL_LINES_QUERY_LIMIT) {
+    throw new Error("عدد سطور القيود المعروضة تجاوز الحد الآمن للاستعلام؛ لا يمكن ضمان اكتمال المبالغ المعروضة.");
+  }
 
   const trialBalance = parseTrialBalance(trialRes.data);
   const accounts = accountsRes.data ?? [];
-  const lines = linesRes.data ?? [];
   const accountById = new Map(accounts.map((account) => [account.id, account]));
-  const linesByEntry = new Map<string, typeof lines>();
-  for (const line of lines) {
-    const current = linesByEntry.get(line.journal_entry_id) ?? [];
-    current.push(line);
-    linesByEntry.set(line.journal_entry_id, current);
-  }
+  const linesByEntry = groupLinesByEntryId(lines);
 
   // fn_accounting_trial_balance groups journal_lines by account_id with NO subtree rollup, but real expenses
   // post to LEAF accounts. Roll parent KPIs over the active org's subtree only; RLS can expose several
@@ -116,9 +136,9 @@ export default async function AccountingPage() {
     { id: "amount", header: "القيمة", numeric: true, kind: "money" },
     { id: "status", header: "الحالة" },
   ];
-  const entryRows = (entriesRes.data ?? []).map((entry) => {
+  const entryRows = entries.map((entry) => {
     const entryLines = linesByEntry.get(entry.id) ?? [];
-    const amount = entryLines.reduce((sum, line) => sum + Number(line.debit ?? 0), 0);
+    const amount = computeEntryDebitAmount(entryLines);
     return {
       id: entry.id,
       date: fmtDate(entry.entry_date),
@@ -211,6 +231,10 @@ export default async function AccountingPage() {
           />
         </Card>
         <Card title="تفاصيل القيود">
+          <p className="mb-2 text-sm" style={{ color: "var(--ink-muted)" }}>
+            تعرض هذه القائمة سطور القيود العشرين المعروضة في «آخر القيود» فقط، وليست سجلاً كاملاً لكل
+            سطور اليومية.
+          </p>
           <FilterableTable
             columns={lineCols}
             rows={lineRows}

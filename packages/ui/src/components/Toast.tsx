@@ -108,7 +108,12 @@ export function useToast(): ToastApi {
 export function Toaster(): React.ReactPortal | null {
   const ctx = React.useContext(ToastContext);
   const theme = useTheme();
-  if (!ctx || typeof document === "undefined") return null;
+  // React #418: portalling on the first client render appends to document.body while the root
+  // is still hydrating, so the client tree stops matching the server HTML (and streamed $RS
+  // inserts then lose their parentNode). Gate on a real mount, not on `typeof document`.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  if (!ctx || !mounted) return null;
   const { toasts, api } = ctx;
 
   return createPortal(

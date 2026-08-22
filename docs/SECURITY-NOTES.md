@@ -1,4 +1,4 @@
-# SECURITY-NOTES — accepted findings & residual-risk register   (reconciled 2026-07-13)
+# SECURITY-NOTES — accepted findings & residual-risk register   (reconciled 2026-07-13; §5 added, §4.2 updated 2026-07-28)
 
 Purpose: a durable record of the **known, accepted, low-risk** security findings on Farm OS MVP-0,
 so future Supabase advisor runs and independent reviews have context and do not re-litigate settled
@@ -95,13 +95,10 @@ actions are distinguished below.
   extension can affect dependent objects and is not justified without a tested migration.
 - **Follow-up:** reassess only with a dependency-aware migration and full period-lock regression coverage.
 
-### 1.4 Leaked-password protection disabled — dashboard toggle
-- **What:** the advisor flags that Supabase Auth leaked-password protection (HaveIBeenPwned check) is
-  off.
-- **Why it remains here:** it is a **dashboard setting**, not a code or migration defect, but production is no
-  longer synthetic. Do not use the old demo-data rationale to defer it.
-- **Follow-up:** enable the toggle in the Supabase dashboard (Auth → Policies) and verify it with a fresh advisor
-  run. This is an open Owner configuration action; key rotation itself is complete (see 4.1).
+### 1.4 Leaked-password protection — resolved 2026-08-05
+- **What:** Supabase Auth leaked-password protection (HaveIBeenPwned check) is enabled.
+- **Evidence:** a fresh production security-advisor run returned no leaked-password finding.
+- **Follow-up:** none; recheck after Auth configuration changes.
 
 ---
 
@@ -158,9 +155,35 @@ Any new concern in these areas must be assessed against the current definitions 
   Do not re-open the old exposed-key finding without fresh evidence. Leaked-password protection remains a separate
   dashboard action (1.4).
 
-### 4.2 Dependency advisory — resolved
-- The old `postcss < 8.5.10` item is no longer current; the lockfile resolves `postcss` 8.5.15. Reassess from a fresh
-  audit before recording any replacement dependency finding.
+### 4.2 Dependency advisories — current audit clean 2026-08-05
+- **Live patch.** PR #935 merged at `7b138ac`; production deployment
+  `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW` is READY. `next` and `eslint-config-next` moved
+  16.2.10 → **16.2.12** (patch-only; both kept aligned). This
+  clears all nine Next.js-specific advisories `npm audit` reported at 16.2.10 — middleware/proxy bypass, Server
+  Actions DoS, SSRF on custom servers and via rewrites, two cache-confusion items, unbounded Edge Server Action
+  payload, Image-Optimization SVG DoS, and unauthenticated Server Function endpoint disclosure. Do not re-flag these.
+- **Correction.** The superseded note here called `postcss` resolved at 8.5.15; the advisory range has since widened
+  to `<= 8.5.17`, so 8.5.15 is itself vulnerable.
+- **Live root fix.** PR #938 merged at `ee91739`; production deployment
+  `dpl_FdAAJeu3dYbBSjArViqBWMm5fcvo` is READY. The repository-level override moved to
+  `postcss ^8.5.23`; Tailwind, Vite,
+  Storybook, and the design-system toolchain resolve 8.5.23 without an invalid peer/range state. This removes
+  the vulnerable root node, but does not reach Next's private 8.4.31 copy.
+- **Resolved by PR #998.** Next 16.3.0 moved its private PostCSS/Sharp edges to PostCSS 8.5.23 and
+  Sharp 0.35.3. The same release keeps `eslint-config-next` aligned. Compatible lock refreshes moved
+  `brace-expansion` to 1.1.18/2.1.4/5.0.9 and `undici` to 7.29.0.
+- **Live js-yaml fix.** PR #940 merged at `0f0708b`; production deployment
+  `dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm` is READY. Scoped overrides use patched `js-yaml` `4.3.0`
+  for Changesets/ESLint and `3.15.0` for `read-yaml-file`, preserving each parent's API generation.
+  The high-severity `js-yaml` category is removed; the audit is now 7 findings
+  (1 low, 2 moderate, 4 high).
+- **tsup/esbuild compatibility pin.** tsup 8.5.1 still declares `esbuild ^0.27.0`; the current advisory
+  covers 0.27.3-0.28.0, while patched 0.28.1 is outside tsup's range. PR #998 therefore pins only tsup's
+  edge to safe in-range 0.27.2. Fresh `npm ci` reproduces the lock exactly, UI output is unchanged, and
+  the override must be removed once tsup accepts 0.28.1 or later.
+- **Current result.** The 2026-08-05 fresh audit moved from 6 findings (5 high / 1 low) to **0**.
+  This is a point-in-time dependency result, not a permanent security guarantee; rerun after dependency
+  changes and newly published advisories.
 
 ### 4.3 Stage M — finance complete; registry pending; privacy boundary remains
 - Real farm financial data is live, but the real palm registry is still pending. The old "current seed is synthetic"
@@ -169,7 +192,64 @@ Any new concern in these areas must be assessed against the current definitions 
 
 ### 4.4 Current dashboard gates
 - Verify `custom_access_token_hook` before onboarding a second org (0.1).
-- Enable leaked-password protection and verify the advisor clears (1.4).
+- Leaked-password protection and synthetic-identity cleanup are complete (1.4, 5.1).
+
+---
+
+## 5. Production demo credential removed; identities closed 2026-08-05
+
+**What it was.** The production login page (`apps/farm-os/app/login/page.tsx`) is a client component, so
+everything in it shipped in the browser bundle. It carried four demo account addresses
+(`owner@`/`manager@`/`storekeeper@`/`supervisor@` … `ebeid.test`), the **shared password
+`[REDACTED RETIRED DEMO PASSWORD]` as a string literal**, prefilled both fields with the owner address and that password, and
+offered a "تفعيل حسابات العرض" button that `POST`ed to `/api/dev/seed-auth`. The error copy told users to
+try demo activation. The provisioning route (`app/api/dev/seed-auth/route.ts`) and its service-role helper
+(`lib/seed-auth.ts` — which also held `SEED_PASSWORD`) shipped in the production source even though the
+route was environment-gated (local-URL **and** `VERCEL_ENV !== 'production'`), and `proxy.ts` carried an
+`api/dev` matcher exclusion that existed only for it.
+
+The route's own gates held, so this was **credential and account-name disclosure plus a
+provisioning surface in the shipped source**, not a demonstrated production write path. It is no longer
+acceptable regardless: production now holds real farm financial data, so the superseded synthetic-pilot
+rationale recorded elsewhere in this register (§4.3) may not be used to defer it.
+
+**What changed (PR #933, merged `a1d5834`, production deployment
+`dpl_8mLoTNzc81ikwoVjS8R9TQ45SQkF` READY):**
+- Login page: both fields start blank; the demo chooser, the shared password, the "تفعيل حسابات العرض"
+  action, and the demo-activation error copy are gone. The Supabase `signInWithPassword` call, the
+  `/dashboard` redirect, the error handling, the Arabic RTL layout, and the brand panel are unchanged.
+- `app/api/dev/seed-auth/route.ts` and `lib/seed-auth.ts` are **deleted** (the helper had no non-test
+  consumer). `app/api/dev/` no longer exists, and the `api/dev` exclusion is removed from the `proxy.ts`
+  matcher.
+- e2e user provisioning lives entirely in `e2e/global-setup.ts` + `e2e/wedge-loop.spec.ts` and now requires
+  a per-run, test-only `FARM_OS_E2E_PASSWORD` (≥16 chars). There is **no committed password and no
+  fallback** — a missing value aborts the run.
+- `apps/farm-os/lib/login-auth-surface.test.ts` is a source-contract regression guard: it fails if the login
+  page regains the known password, a demo address, the activation copy or endpoint, or a non-blank field
+  initialiser; if the deleted route/helper or the proxy special case return; or if the retired strings
+  reappear anywhere under `app/` or `lib/`.
+
+Live verification on `ebeidfarm.business/login` found both fields blank and no demo controls. All 12 loaded
+client scripts were clean for the retired password, demo addresses, activation text, and provisioning
+endpoint. Vercel reported no runtime errors in the preceding 30 minutes. No migration was required.
+
+### 5.1 Follow-up condition — live demo identities (CLOSED 2026-08-05)
+
+Removing the code did not itself change a live account. The separate live cleanup is now complete, while the
+retired shared password remains compromised historical material because removal from HEAD does not retract it.
+
+The 2026-07-28 baseline was six linked demo-email identities and six unlinked phone-only seed identities.
+The 2026-08-05 postflight found 0 users in both populations and 0 corresponding people or organization-member
+links. The security advisor has no leaked-password finding.
+
+**Completed controls:**
+1. Enumerated the `*@ebeid.test` and email-null phone-only populations in production.
+2. Deleted both synthetic populations; aggregate postflight found no dangling people or memberships.
+3. Confirmed the retired demo identities no longer exist and therefore cannot authenticate.
+4. Enabled leaked-password protection (§1.4).
+
+The aggregate identity/link counts and fresh advisor provide the live evidence required to close this item.
+Git-history cleanup remains separate hygiene under Stage 0 steps A–C.
 
 ---
 

@@ -1,6 +1,6 @@
 import "server-only"; // §2 control 1: importing this (WEATHER_API_KEY-bearing) module into a Client
 // Component FAILS the build — the key is server-only enforced, not just documented. Mirrors
-// lib/supabase/admin.ts and lib/seed-auth.ts.
+// lib/supabase/admin.ts.
 
 // Stage 9 (SPEC-0007) — server-side forecast fetch. SECRET HYGIENE (§2.1): the key lives in
 // WEATHER_API_KEY (no NEXT_PUBLIC_ prefix → Next never bundles it to the client); the browser calls OUR

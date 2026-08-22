@@ -1,8 +1,576 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-07-06)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-22)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
-> **2026-07-12 (latest) — period-lock hardening + cross-org tenancy leak closed; prod ledger head `20260712120000`.**
+> **2026-08-22 (latest) — Marketing full-source workspace MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted migration `20260822133257 marketing_full_source_workspace` is applied to Farm production and adds
+> the Owner-only, exact-digest-pinned import path for the complete supplied Marketing HTML/JSON pair: 25 areas,
+> 1,571 contacts and 101 records. Imports are atomic, idempotent and organization-serialized; differing
+> content fails without recording import evidence. The disputed `palmsApprox` value is excluded. Postflight
+> verified FORCE RLS, locked definer behavior, no anonymous execution, and unchanged live data at 5 contacts /
+> 20 records / 0 activities / 0 import runs. No source data was auto-imported. PR #1013 merged as
+> `b778ed69230d7aecdbcb9e47fab6f8dbdf0c6e56`; CI, db-tests, release and production Vercel deployment
+> `EnogVKu5brbtxFRhE8HxUXDKcx4e` succeeded on the exact merge. Public and login routes return 200; all five
+> signed-out Marketing routes redirect to login and unauthenticated source preview returns 401. pgTAP
+> 3,420/3,420, Vitest 1,416 plus 16 controlled skips, TypeScript, ESLint, build, source oracle and independent
+> review are green. Authenticated role acceptance and the Owner's explicit preview/import decision remain open.
+
+> **2026-08-08 (latest) — Owner public-site comments MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+> Hosted migration `20260808062443 owner_public_site_comments` applied migrate-first and exact postflight
+> verified the one public content row: 120 feddans, 5,000 Barhi palms, 7 blocks, Owner About copy,
+> `مزرعة عبيد للتمور`, `ebeidfarm@gmail.com`, and East Asian markets. PR #1006 merged as `a11a7e0`; exact-
+> merge CI, db-tests and release succeeded, and production deployment `5806268580` completed at
+> `farm-2k35jdoj6-amrabdelglill-7962s-projects.vercel.app`. Live Chrome on `ebeidfarm.business` at 390px and
+> 1,440px verified Arabic/English content, one WhatsApp link, no duplicate primary call link, the distinct
+> secondary phone, no old email, no farm-area table, no overflow and no console/page errors.
+
+> **2026-08-06 (latest) — custody-paid expense reversal MIGRATED / MERGED / DEPLOYED.**
+> Hosted migration `20260806224123 expense_payment_reversal` is applied to Farm production. It adds the
+> append-only `fn_reverse_expense_payment` path and one row-locked edit-and-reroute follow-up for an
+> `unrouted` correction. Original custody movements and journals remain evidence; request-linked,
+> period-locked, stale, pre-reversed-journal and possible legacy-manual corrections fail closed. Production
+> postflight confirms both RPCs, all five reversal columns, complete shape checks, active-attempt uniqueness,
+> `PUBLIC`/`anon` revocation, deliberate authenticated grants, and zero anonymous SECURITY DEFINER entry
+> points. Local evidence: pgTAP 3,246/3,246; Vitest 1,382 passed + 13 controlled skips; TypeScript, ESLint,
+> 63-page build and diff checks clean; final independent review found no issue. PR #1004 merged as
+> `5435a6ae9c2f44dfc80820d88274adce7a374ac5`; Vercel and the Supabase post-merge integration passed on that
+> exact commit. Production smoke: `/login` = 200; signed-out `/accounting` and `/expenses` = 307 to login.
+> No expense, custody, journal, identity or other business row was
+> changed by migration/postflight. Accounting remains ~99.5% pending the 698 human decisions, real workbook
+> dual run, exceptions and dated acceptance. Security Stage 0 remains ~75% pending the same three external
+> historical-source controls below.
+
+> **2026-08-05 (latest) — auth cleanup verified + anonymous helpers MIGRATED / MERGED.**
+> Leaked-password protection is enabled and aggregate production counts show 0 `*@ebeid.test` users, 0
+> email-null phone-only users and 0 linked people/memberships for either population. PR #1002 migrated first as
+> `20260805165322 anonymous_helper_lockdown`, then merged at
+> `4411723af2e7b579b9c9c266f2e88f77aa1edc63`. `PUBLIC`/`anon` execution on `authorize(text,uuid)` and
+> `user_org_ids()` is now false while `authenticated`/`service_role` remains true; security advisors report
+> 0 anonymous SECURITY DEFINER and 0 leaked-password findings. Full pgTAP 3,166/3,166; independent review
+> APPROVE; exact-head checks plus exact-merge CI/release/db-tests and CodeRabbit green. Exact production deployment
+> `dpl_EFhQTGS8hcxkZ73uNHBVmoHU2wFW` is READY on the merge SHA and serves `ebeidfarm.business`. No function
+> body, RLS policy, table, identity or business row changed in this migration. Stage 0 remains open only for
+> the three unverified external historical-source
+> controls in #362.
+
+> **2026-08-05 — public-home mobile repair MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #1000 merged at `fc9e10f402248ea65f44580610c4c61477defb8a`; exact production deployment
+> `dpl_6a3JjaGkx4uaP1uXeTS6gEW2ZZtE` is READY and aliases `ebeidfarm.business`. At 360, 390 and 1,440px,
+> live Chrome reports document width exactly equal to viewport width. The mobile header is 57px; the desktop
+> links become a contained five-link menu that closes after selection; Arabic/English switching works; and
+> there are no browser errors or Vercel `/` runtime error clusters in the checked window. Production Arabic
+> hero height is 818px at 360 and 767px at 390, with stats beginning at y=851 and y=800. App/design CI,
+> pgTAP, gitleaks, Vercel, 1,364 Vitest assertions, TypeScript, lint and the 63-page build passed. **No
+> migration existed: no SQL, Supabase object, database row, auth identity or financial state changed.**
+
+> **2026-08-05 — current npm advisories REMEDIATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #998 merged to `main` at `177d96ca4f843dd50d0a9f130e5a9d6b86339e50`; the exact Vercel
+> deployment `EyNePMrv3wwX2ckszNwCG7VooP72` completed successfully. `npm audit` moved from
+> 6 findings (5 high / 1 low) to 0 through Next 16.3.0, compatible PostCSS/Sharp/brace-expansion/
+> undici refreshes, and a documented safe in-range tsup/esbuild pin. A fresh `npm ci` preserved the
+> lockfile byte-for-byte. App/design-system CI, pgTAP, gitleaks and Vercel passed; CodeRabbit's one
+> version-note nit was fixed and its final rerun was rate-limited. Public `/` and `/login` return
+> HTTP 200; signed-out `/dashboard` and `/website` return 307 to login. **No migration, schema,
+> RPC, database row, auth identity, credential or financial state changed.** Stage-0 security remains
+> open for the leaked-password toggle, production demo-identity replacement/deletion, and unverified
+> legacy repository/workbook credential cleanup.
+
+> **2026-08-04 — public farm-areas table REMOVED / MERGED / DEPLOYED / LIVE-VERIFIED.**
+> PR #996 merged to `main` at `57f7ee608fe70d14c8fba3a7b0946afc3e42b215`; production deployment
+> `dpl_Dicoyc6FxjAetnYqb9MK7YyR1Gfs` is READY for that exact SHA and serves `ebeidfarm.business`.
+> The public Production Blocks/farm-areas table and its table-only CSS were removed. The underlying block
+> records remain in the owner-managed Farm OS content model and were not deleted or migrated. TypeScript,
+> touched lint, the 63-page production build, app/design-system CI, pgTAP, gitleaks, Vercel, and CodeRabbit
+> passed; CodeRabbit reported no actionable findings. Live HTML plus Arabic and English browser DOM checks
+> confirmed no production-block heading, area column, or farm-row names render, while certifications and
+> supply remain present. **No database migration or production data change.**
+
+> **2026-07-29 — payroll Stage-M access design review MERGED / DEPLOYED / INDEPENDENTLY
+> ACCEPTED WITH CONDITIONS.**
+> PR #963 merged at `5e4e69d9ad973b5fc6ca8f6bafab1616ac375157` (head commits `79a0b6e` review evidence,
+> `dd3ab6f` comment-safe scanner, `744a77d` review/approval-state clarification); production deployment
+> `dpl_9sMwkdrVVSd45AA6DCCmxNBCutD1` is READY on target production for that exact merge commit.
+> **Evidence-only: no migration, schema, policy, grant, RPC, application behavior, payroll data, payment, or
+> journal change.**
+> Delivered: the independently reviewed Stage-M payroll privacy/access packet; 34 new pgTAP assertions for
+> six-role direct RLS, cross-org denial, private payroll helpers, contact-column denial, and the money-free
+> labor classification; 13 repository-wide people/payroll read-surface cases; confidential-audit vocabulary
+> coverage for payroll runs/lines; and a permissions-matrix reconciliation.
+> Evidence: pgTAP 3101/0/0; Vitest 1232 passed + 13 controlled skips; TypeScript and touched ESLint clean;
+> production build 64/64; whitespace clean; all fresh-head GitHub/Vercel checks green. Hosted read-only
+> metadata matched the repository migration/policy state and confirmed the payroll grant/RLS/private-helper
+> boundaries. The security advisor still reports leaked-password protection disabled.
+> Post-release signed-out smoke: `/login` 200; `/people/payroll/readiness` 307 to `/login`; no Vercel runtime
+> errors in the queried 15-minute window.
+> **Not claimed:** Owner privacy approval is unsigned; no live supervisor JWT or authenticated
+> owner/accountant pilot was exercised; no real data was read or imported. Stage M remains NO-GO and payroll
+> is not 100%.
+
+> **2026-07-29 — payroll pilot readiness (checklist + validation-only import templates) MERGED /
+> DEPLOYED / PUBLIC-SMOKED.**
+> PR #961 merged at `4bceea5d7a8a3bd08d76025c629711b3ed7c4501` (head commits `f60977e` pilot readiness
+> validation, `220909b` targeted readiness validation errors); production deployment
+> `dpl_98qxeC3BRj9tqGGYPfJ5RfQFwP7c` is READY on target production for that exact merge commit.
+> **App-only: no schema, migration, RPC, payment, or journal change, and no authoritative payroll import** —
+> the hosted payroll migration remains `20260729102938 payroll_run_persistence`.
+> Delivered: the owner/accountant `/people/payroll/readiness` page with a printable ten-gate **human**
+> checklist that records no state and claims no completion; three validation-only staff / compensation / labor
+> import templates that only produce a dry-run report (no RPC on the descriptors); server-side role gates and
+> commit denial that run **before `req.formData()`**; reusable compensation/labor shape validation; and correct
+> error-cell attribution.
+> Evidence: focused readiness tests 139/139 then 133/133 on the review fixes; full Vitest 1,218 passed + 13
+> controlled skips; TypeScript, ESLint, production build 64/64 static-generation units, the bundle guards, and
+> `git diff --check` clean; PR app CI, design-system CI, pgTAP, gitleaks, and Vercel green. CodeRabbit reviewed
+> the original commit and its findings were addressed in the review-fix commit; its final update was
+> rate-limited.
+> Post-release (signed-out only): `/login` HTTP 200; `/people/payroll/readiness` 307 to `/login`; the template
+> GET and a missing-mode POST both 401 (auth checked first); no Vercel runtime errors on
+> `/people/payroll/readiness` or `/api/import` in the queried 15-minute window. **The preview deployment is
+> Vercel SSO protected, so no authenticated preview smoke was possible.**
+> **Not claimed:** no authenticated owner/accountant workflow was exercised, no real staff/rate/labor data was
+> imported, and no pilot close, report, or acceptance happened. **This is not pilot acceptance and payroll is
+> not 100%.** Still open: Stage-M privacy/access review; an approved real roster/rate/labor source, with real
+> data used only after approval; an authenticated owner/accountant pilot and dated signoff; and an explicit
+> payment/journal scope decision.
+
+> **2026-07-29 — payroll readiness (compensation editor + mode-aware labor) MERGED / DEPLOYED /
+> PUBLIC-SMOKED.**
+> PR #959 merged at `d335f205d4d4c79bcc613b2e7e59dba2e46c4335` (head commits `637cb4c` wage setup and
+> mode-aware labor, `7f7af17` wage editor state normalization); production deployment
+> `dpl_4Y3xR76wkA1fxbEsB8YsRC7M7gTD` is READY on target production for that exact merge commit.
+> **App-only: no migration, schema, RPC, or data change** — the hosted payroll migration remains
+> `20260729102938 payroll_run_persistence`, from source file
+> `apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`.
+> Delivered: an owner/accountant compensation editor at `/people/payroll/compensation` covering hourly, daily,
+> piece, and seasonal. Bounded org-scoped reads with no PII. Inactive workers remain named on the wage rows
+> that already reference them but cannot be selected for a new rate. Writes are create/update only — no delete
+> path. Attendance now records the compensation mode and the piece quantity and unit while still requiring
+> hours. Work dates are Cairo-calendar validated with no future day. Selecting a free-text team shows an
+> explicit warning that payroll close will refuse the period. Compact page headers and role-gated payroll
+> links. The people dashboard estimate is labelled explicitly as hourly-only. **The close RPC, payment
+> execution, and journal posting are unchanged.**
+> Evidence: full app Vitest 85 files, 1,125 passed + 13 controlled skips before the review fixes; focused
+> review-fix run 106/106; TypeScript, touched-file ESLint, production build with static generation 64/64, the
+> guards, and `git diff --check`
+> clean; fresh GitHub app CI, design-system CI, pgTAP, gitleaks, and Vercel preview green. Codex reviewed
+> independently and fixed an inactive-worker identity ambiguity before the PR opened, then addressed
+> CodeRabbit's unknown-mode and help-copy findings; CodeRabbit's final rerun was rate-limited but its status
+> check passed and all required fresh-head checks are green.
+> Post-release: public `/login` HTTP 200; signed-out `/people/payroll/compensation` and the signed-out
+> attendance page each redirect once to `/login`; no Vercel runtime errors in the queried 15-minute window.
+> **Not claimed:** no authenticated production owner/accountant UI workflow was exercised, no real
+> compensation or labor data was imported, and no pilot close or report was completed. **This is not pilot
+> acceptance.** Stage-M real-PII review, an approved real staff/rate/labor import, an authenticated
+> owner/accountant pilot of compensation/attendance/close/report, dated acceptance/signoff, and any separately
+> ratified payment/journal scope remain open. Payroll is not 100%.
+
+> **2026-07-29 — payroll close/report UI MERGED / DEPLOYED / PUBLIC-SMOKED.**
+> PR #957 merged at `9300e473b0d67e72d1e0d96f5bdc683c2617f897` (head commits `83be4f0` close/report workflow,
+> `666e675` Cairo-day close-bounds review fix); production deployment `dpl_7ac5VJrZABUaVaUSG7Pv6hwUgMH8` is
+> READY on target production for that exact merge commit. **App-only: no migration, schema, RPC, or data
+> change** — the hosted payroll migration remains `20260729102938 payroll_run_persistence`.
+> Delivered: owner/accountant-only compact Arabic close page at `/people/payroll` and printable report at
+> `/people/payroll/[runId]`, with navigation exposed to owner/accountant only. Strict real-date validation,
+> 366-day maximum, and no-future-day, all resolved on the Cairo calendar on client and server. Explicit
+> immutable/freeze confirmation, a synchronous duplicate-submit lock, and a direct idempotent RPC call with the
+> session org — no application-layer precheck race. Fixed Arabic error mapping with no raw DB identifiers.
+> Org-scoped bounded reads: recent history 20, report lines 500 with overflow detection, one-query name
+> resolution, no phone/email. Missing runs, read failures, overflow, and empty reports fail closed. Close date
+> and time render on the Cairo calendar. **No payment execution and no journal posting.**
+> Evidence: focused 71/71; full app Vitest 1,020 passed + 13 controlled skips; TypeScript and ESLint clean;
+> build 65/65 with both payroll routes dynamic; Recharts and client-function guards green; `git diff --check`
+> clean; fresh GitHub app/design-system/pgTAP/gitleaks/Vercel checks green. Codex reviewed the final bytes and
+> its two findings (date-only close-time display, same-tick duplicate submit) are fixed; CodeRabbit's
+> Cairo-vs-UTC current-day finding is fixed in `666e675` and the thread is resolved. No actionable review
+> comments remain (one non-blocking docstring warning).
+> Post-release: public `/login` HTTP 200; signed-out `/people/payroll` redirects to `/login` and ends HTTP 200;
+> no Vercel runtime errors in the following ten minutes.
+> **Not claimed:** no authenticated production payroll screen, close, or report was exercised — no session was
+> available. Production `people_compensation`/`labor_logs`/`payroll_runs`/`payroll_run_lines` were zero as of
+> the kernel release and no real data was inserted here. **This is not pilot acceptance.** Stage-M real-PII
+> review, approved staff/rate/labor import, an authenticated pilot close/report, payroll acceptance/signoff,
+> and any separately ratified payment/journal scope remain open. Payroll is not 100%.
+
+> **2026-07-29 — payroll persistence KERNEL MIGRATED / MERGED / DEPLOYED / PRODUCTION-VERIFIED.**
+> Hosted migration `20260729102938 payroll_run_persistence` is recorded in Farm production, from source file
+> `apps/farm-os/supabase/migrations/20260729090000_payroll_run_persistence.sql`. PR #955 merged at
+> `7672f3142375d092d33b7b36d13c9d55c63106bb` (head commits `4e15d0d` initial kernel, `1f876bf` review fixes);
+> production deployment `dpl_BjjVxj5TCo7qripX1f1d3dmwdKfy` is READY on target production for that exact commit.
+> The kernel persists immutable mixed-mode runs — hourly/daily/piece/seasonal, distinct daily work dates,
+> supported piece units, exact declared seasonal contract period — with idempotent exact-period replay,
+> rejected overlapping periods, per-org advisory serialization of close against labor/compensation writes
+> (including cross-org moves), covered-labor freeze after close, and mode/rate/rounded-quantity/unit/gross
+> snapshots. Close/report is owner/accountant only; payroll audit rows are confidential; the assistant is
+> excluded. **No payment execution and no journal posting.**
+> Preflight: `people_compensation` 0, `labor_logs` 0, `payroll_runs` absent, `payroll_run_lines` absent.
+> Postflight: both tables exist with RLS enabled and forced; authenticated SELECT only, authenticated writes
+> denied, anon denied; `payroll_read` policies exist; the seven expected coordination/audit/immutability
+> triggers exist; public `fn_close_payroll_run` is authenticated-executable and anon-denied; helper functions
+> are not `authenticated`/`anon` executable and pin an empty `search_path`; all four payroll data counts remain
+> zero. No real staff PII, rates, labor, or payroll runs were inserted.
+> Evidence: focused payroll pgTAP 104/104; independent full Docker-free pgTAP 3,067/3,067; assistant-policy
+> Vitest 12/12; TypeScript, ESLint, `git diff --check` clean; post-merge app CI, design-system CI, pgTAP,
+> gitleaks, changesets, Supabase integration, and Vercel all green. Public `ebeidfarm.business/login` returned
+> HTTP 200 after deployment and Vercel found no runtime errors in the following ten minutes.
+> **Not claimed:** this is the database kernel only — at the time of this release no staff-facing payroll
+> UI/report workflow consumed it, no real staff/rate/labor import happened, and no pilot close or acceptance
+> signoff exists. Stage-M real-PII review remains gated. Payroll is not 100%.
+> *(Superseded 2026-07-29 by the payroll close/report UI note above: the staff-facing close/report workflow is
+> now built and live. Every other line here still holds.)*
+
+> **2026-07-29 — ExcelJS UUID advisory PATCHED / DEPLOYED / LIVE-VERIFIED.**
+> PR #953 merged at `f36571b`; production deployment
+> `dpl_7LgzdhYYHqhm4QJrF4fm7H8jPt7V` is READY on `ebeidfarm.business`. ExcelJS `4.4.0`
+> now resolves exact `uuid` `11.1.1` through a parent-scoped npm override. A clean install and
+> ExcelJS-relative resolution prove the runtime; a focused test proves the serialized XLSX worksheet
+> XML carries the UUID-backed extended conditional-formatting ID. Audit moves from 7 findings
+> (1 low / 2 moderate / 4 high) to 5 (1 low / 0 moderate / 4 high), with no remaining
+> ExcelJS/UUID finding. Full app/shared/pgTAP/secret/preview gates passed; public Arabic login returned
+> HTTP 200 and Vercel found no runtime errors in the preceding 15 minutes. Package/test only: no
+> migration, schema, RPC, data, financial state, or auth state change.
+> Remaining audit categories are `brace-expansion`, Next-private `postcss`/`sharp`, and `esbuild`;
+> they require compatible parent/upstream releases, not force-installed invalid trees.
+
+> **2026-07-28 (latest) — Recharts hydration gate DEPLOYED; AUTHENTICATED DASHBOARD CHECK NOT DONE.**
+> PR #951 merged at `2d56783` (`2d567831f3de2d2aa38ef98eef4adf9e2c5b3a2b`); the Vercel production
+> deployment for that exact commit completed successfully. Only the Recharts canvas subtree is deferred,
+> behind a `useSyncExternalStore` hydration gate; the accessible table fallbacks and the reserved fixed
+> chart height are unchanged in the server HTML. Focused chart hydration 6/6, UI 288/288, app 959 + 13
+> controlled skips, UI/app TypeScript, ESLint, UI build, app build 65/65, recharts code-split guard,
+> `git diff --check`, and GitHub app / design-system / pgTAP / gitleaks all passed. UI/app only: no
+> migration, and no schema, RPC, data, or financial state change.
+> **Not verified:** after the release went live the fresh browser was redirected to `/login` because the
+> authenticated session was no longer available, so **no authenticated owner-dashboard full-document check
+> was run and React #418 is not proven absent on production**. One fresh authenticated dashboard check and
+> an acceptance regression check are still owed.
+
+> **2026-07-28 (latest) — toast portal hydration fix DEPLOYED / PRODUCTION-CHECKED.**
+> PR #950 merged at `eef380e`. The toast portal now mounts only after the client commits, ending the
+> global mutation of `document.body` during hydration; an SSR/hydration regression test guards it.
+> Production full-document checks after this release were clean on finance/accounts, the reconciliation
+> list, the batch page, and acceptance — zero fresh errors and zero fresh warnings. The owner dashboard
+> still showed one React #418, handled by PR #951. UI-only: no migration and no financial state change.
+
+> **2026-07-28 (latest) — reconciliation lazy option loading DEPLOYED / VERIFIED.**
+> PR #942 merged at `c6b0019`; production deployment `dpl_2utZSFoGij4jJwCmSrA4Nje7wNX9`
+> is READY. Seven org-wide option reads moved off initial batch render and row-save refresh into a
+> bounded, role/tenant/staged-batch-gated first-open action with cache invalidation after each saved row.
+> Independent rereview approved after two P2 fixes. Full app/shared/secret/preview gates, protected-route
+> redirect, and runtime-error review passed. App-only: no migration or financial state change.
+
+> **2026-07-28 (latest) — transitive js-yaml security patch DEPLOYED / LIVE-VERIFIED.**
+> PR #940 merged at `0f0708b`; production deployment `dpl_6oe2pJ2xsnGrDnw1ukt46HwnAnnm`
+> is READY. Patched `js-yaml` versions remove the high-severity category and reduce npm audit
+> from 8 findings to 7. Full app/shared/secret/preview gates, focused Changesets/YAML compatibility
+> checks, public load, and runtime-error review passed. Package-only: no migration.
+
+> **2026-07-28 (latest) — root PostCSS security patch DEPLOYED / LIVE-VERIFIED.**
+> PR #938 merged at `ee91739`; production deployment `dpl_FdAAJeu3dYbBSjArViqBWMm5fcvo`
+> is READY. The build toolchain now resolves PostCSS `8.5.23`; the vulnerable root `8.5.15` node is gone.
+> Full app/shared/secret/preview/review gates, public load, and runtime-error review passed. No migration.
+> Next's private PostCSS `8.4.31` and Sharp `0.34.5` remain upstream-blocked after both safe override forms
+> failed with an invalid dependency tree.
+
+> **2026-07-28 (latest) — Next.js security patch DEPLOYED / LIVE-VERIFIED.**
+> PR #935 merged at `7b138ac`; production deployment `dpl_BLGjEsTkDx4YKkeQN2gD5FNP9ZVW`
+> is READY. `next` and `eslint-config-next` are aligned at `16.2.12`; the nine direct framework
+> advisories present at `16.2.10` are gone. Full app/shared/secret/preview gates passed, the public
+> login loads, and Vercel reported no runtime errors in the preceding 30 minutes. App-only: no
+> migration. The `postcss`/`sharp` transitive findings remain open; npm audit is not clean.
+
+> **2026-07-28 (latest) — production demo-credential surface REMOVED / DEPLOYED / LIVE-VERIFIED.**
+> PR #933 merged at `a1d5834`; production deployment `dpl_8mLoTNzc81ikwoVjS8R9TQ45SQkF`
+> is READY. Login fields are blank and the demo chooser, demo activation action, client-bundled shared
+> credential, demo addresses, provisioning route/helper, and proxy exception are removed. All 12 loaded
+> production client scripts scanned clean for the retired surface; Vercel showed no runtime errors in the
+> preceding 30 minutes. App-only: no migration applied. Live demo identities remain an Owner-only follow-up.
+
+> **2026-07-27 (latest) — data authority gates MIGRATED / DEPLOYED / LIVE-VERIFIED.**
+> Farm migration `20260727145912 data_authority_status` applied migrate-first; PR #931 merged at `7ce98f5`;
+> production deployment `dpl_DUtDwchLmRVfU9He4MjXMvoeNNJk` is READY. RLS and FORCE RLS are enabled,
+> authenticated access is same-org SELECT plus the owner-gated RPC, anon has no access, and client DML is
+> revoked. Seven canonical domain states were seeded without changing transactional data: 10,201 expenses,
+> 162 sales, and 10,365 journals remain unchanged. Live owner-session checks confirmed palm/operations
+> warnings, offshoot capture-only mode, blocked budget list/detail, actual-only partial-ledger reporting,
+> and no runtime errors. Independent security/accounting review approved.
+
+> **2026-07-27 (latest) — reconciliation review read performance DEPLOYED / MEASURED.**
+> PR #929 merged at `0155c8e`; production deployment `dpl_5bUiqwDEy9r4p6rHG4FBSbxMz9Ev` is READY.
+> The same bounded, tenant-scoped reads now overlap instead of running in avoidable sequential waves; every
+> read still settles before render. Full app/shared/secret/Vercel checks passed and DB CI is baseline-identical.
+> Live owner-session measurements were 4.2s navigation and 2.8s immediate reload with the same 698-row result,
+> page 1/14, default filters, and disabled freeze gate. No migration or reconciliation/financial state change.
+
+> **2026-07-27 (latest) — reconciliation review filters DEPLOYED / LIVE-VERIFIED.**
+> PR #927 merged at `2d325fd`; matching Vercel production deployment
+> `dpl_HZhU5r8gfFXYorbq4AzNzjgA47fV` is READY on `ebeidfarm.business`. App-only: no migration,
+> schema, dependency, RPC, action, or posting-path change. CI app/shared/secret/Vercel passed; DB CI is
+> baseline-identical at 2,861 passing, two unchanged stock-engine assertions, and zero file failures.
+> Live owner-session evidence: 698 rows unfiltered; 15 amount-correction + unreviewed rows filtered;
+> zero included amount-correction rows renders the empty result while the whole-batch 698 KPI and disabled
+> freeze gate remain. No reconciliation or financial state changed. No runtime errors on the routes in one hour.
+
+> **2026-07-27 (latest) — authenticated staging path DEPLOYED; canonical batch STAGED / VERIFIED.**
+> PR #925 merged at `d976bba`; matching production deployment
+> `dpl_B2rhqKSC3n4QX9z3JqnC7DquBKwb` is READY on `ebeidfarm.business`. This app-only release added no
+> migration or dependency. The owner-session upload staged batch `80a1051d-5bcf-504c-93cd-07206b4c59ef`
+> with 698 evidence items and 698 untouched review rows. All rows remain `unreviewed` / `hold` / not frozen.
+> Workbook/snapshot/evidence hashes match the canonical pins; execution ledger and action links remain 0/0.
+> Financial counts and totals are unchanged at 10,201 expenses / EGP 20,527,757.01; 162 sales /
+> EGP 25,835,533.40; 10,365 journals; 20,730 lines. No money or financial row was posted or changed.
+
+> **2026-07-27 (latest) — reconciliation rollback + owner controls: MIGRATED / MERGED / DEPLOYED / VERIFIED.**
+> Exact committed SQL hash `e11f7746e571f3eeeb58bb4dc1a5b11e8dc2ced4fa2ae6edc1dbcf19d43b0420`
+> was applied migrate-first to Farm production as hosted migration `20260727115115
+> accounting_reconciliation_rollback_batch`. PR #923 merged at
+> `835f80ae4fdf6a2dce620a80e346f6845efb4ebe`; Vercel production completed successfully. Live root is
+> HTTP 200 and `/finance/reconciliation` redirects an unauthenticated request to `/login`.
+>
+> The release adds atomic append-only rollback/reinstatement, owner execute/rollback controls, exact outcome
+> parsing, action-link immutability/completeness, and period-close serialization. Final review closed executor
+> mutex ordering and both foreign-tenant lock oracles (advisory mutex and journal row). Focused rollback pgTAP
+> is 317/317; full pgTAP is 2,861 passing / 2 unchanged stock-engine baselines / 0 file failures; TypeScript,
+> ESLint, Vitest 755 + 13 controlled skips, app/shared CI, secret scan, preview, production build 65/65, and two
+> independent reviews are green. The GitHub DB job is red only because those two measured baseline assertions
+> remain intentionally visible rather than skipped.
+>
+> Production postflight: rollback/execute/mutex functions exist; authenticated can call the gated rollback RPC,
+> anon cannot; action-link append-only trigger and unique index are enabled. Financial counts are unchanged at
+> 10,201 expenses / 162 sales / 10,365 journal entries / 20,730 lines; reconciliation batches/action links/
+> execution ledger remain 0/0/0. No real batch or financial row was written. Next: controlled real staging,
+> accountant review, dual-run, and signed acceptance.
+
+> **2026-07-27 (latest) — sale + mixed-batch reconciliation execution: LIVE / VERIFIED.**
+> Branch `feat/accounting-reconciliation-sale-execution` (base `dbe8fcc`) contains append-only migration
+> `20260726160000 accounting reconciliation execute sale batch.sql` and pgTAP
+> `201 accounting reconciliation execute sale batch test.sql`.
+>
+> **Release state:** exact committed SQL hash
+> `c013dffa48244e130cec8e2a5de21cb830886aaad66a2930305675cb77df8a53` was applied migrate-first to Farm
+> production as hosted migration `20260727091633 accounting_reconciliation_execute_sale_batch`. PR #921 merged
+> to `main` at `3a28ad6bfb05c8158db292bb16afbd3761f72b75`; Vercel production deployment
+> `dpl_AYftJ6rgPievAX4mUbTrsscB8KSY` is READY. App/shared/secret CI are green; DB CI is baseline-identical.
+>
+> Local evidence for this slice:
+> - pgTAP focused: `201 …execute sale batch test.sql` — **348 ok / 0 not ok / 0 errors**, plan `1..348` matched.
+> - pgTAP full suite: **ok=2541, not_ok=2, file_failures=0** (harness exit 1 solely because the two known
+>   baselines are not `# TODO`-tagged). Pre-change baseline on the same harness: **ok=2193, not_ok=2,
+>   file_failures=0** — i.e. +348 new assertions and **zero new failures**.
+> - Known unrelated baselines, unchanged: `55_engine_maxdeficit_sizing_test` assertion 3 (#280 F4) and
+>   `80_engine_msg_maxdef_test` assertion 3 (0078). Neither was weakened, skipped, or `TODO`-tagged.
+> - `tsc --noEmit` exit 0 · `eslint` exit 0 (touched files, and 0 across the whole app) · `vitest run`
+>   71 files, 702 passed + 13 skipped · `next build` exit 0, 65/65 static pages · recharts code-split guard PASS
+>   · client-fn-in-server guard PASS · `git diff --check` clean.
+>
+> Production postflight: collection-to-sale tenant binding is enforced by a validated composite
+> foreign key; posted collection evidence cannot be reassigned or financially edited; cross-tenant batch UUIDs
+> are indistinguishable from unknown UUIDs; and the public reversal RPC cannot directly reverse historical-sale
+> or historical-expense journals. Approved executor corrections use the revoked private path; ordinary reversals
+> remain unchanged. All 162 sales are proof-backed `historical_treasury` for unchanged total EGP 25,835,533.40;
+> reconciliation counts remain 0/0/0 and financial counts remain 10,201 / 162 / 10,365 / 20,730. No batch
+> execution or financial posting occurred. The connector could not impersonate an authenticated JWT for a true
+> remote role smoke; catalog grants and local role regressions are green, and that limitation is not overstated.
+> Live verification: `ebeidfarm.business` returns 200, `/finance/reconciliation` redirects unauthenticated users
+> to login, and the production deployment has no error/fatal runtime logs. Next product gate:
+> rollback/reinstatement and the owner-facing execute/rollback UI.
+
+> **2026-07-27 — expense reconciliation execution MIGRATED, MERGED, DEPLOYED, VERIFIED.**
+> The reviewed branch adds migration `20260726150000 accounting reconciliation execute expense
+> batch.sql`, owner-only expense execution, treasury `1010`, immutable historical posting/reversal
+> states, exact correction and postflight checks, and 136 focused pgTAP assertions. Two independent
+> reviews approved the first commit; every valid CodeRabbit finding was then fixed and tested. Full
+> local evidence: ESLint/TypeScript clean, Vitest 682 passed + 13 controlled skips, build 65/65 pages,
+> pgTAP 2,193 passing with only the same two unrelated engine assertions and zero file failures.
+> Migration `20260726150000 accounting reconciliation execute expense batch.sql` was applied first to
+> Farm production as hosted migration `20260727063039
+> accounting_reconciliation_execute_expense_batch`. Postflight confirms the executor/helper privilege
+> boundary, empty search paths, enabled guards, validated constraints, account 1010 coverage, empty
+> reconciliation tables, and unchanged financial counts at 10,201 expenses / 162 sales / 10,365 journal
+> entries / 20,730 lines. PR #919 merged to `main` at `842fc8afb8f1779539097f0f9ab11c58302f8319`;
+> its Vercel production deployment succeeded, the live root returns HTTP 200, and the protected
+> reconciliation route redirects unauthenticated requests to login. No real staging, reconciliation
+> execution, or financial write occurred.
+
+<!-- -->
+
+> **2026-07-26 (latest) — reconciliation Slice 4/4A is MIGRATED, MERGED, DEPLOYED, VERIFIED.**
+> Added the evidence-contract + dimensional-guard hardening from the review's REQUEST CHANGES: a new
+> append-only migration `20260726140000 accounting reconciliation evidence contract and dimensional
+> guard.sql` (adds nullable `evidence_label`; re-emits the staging validator/stage RPC for the enriched
+> manifest; re-emits the tenant guard with the sale hierarchy + included-expense active-leaf/kind rule),
+> plus parser/generator/UI/types changes, permanent server-resolved correction-target summaries, and a
+> new pgTAP. Reviewed commit `6c49bc9` was applied migrate-first to Farm production as hosted migration
+> `20260726131109 accounting_reconciliation_evidence_contract_and_dimensional_guard`; PR **#917** then
+> merged at `31b5b93f` and the Vercel production deployment succeeded. **No real manifest was staged**;
+> production reconciliation counts remain **0/0/0**. Local validation is complete:
+> TypeScript and full ESLint zero errors; focused reconciliation Vitest **67 passed + 13
+> controlled skips**; canonical private-file regression **55/55**; full Vitest **670 passed + 13
+> controlled skips**; production build **65/65 pages**; full local pgTAP **2,057 passing**, zero file
+> failures, and only the two unchanged unrelated engine assertions. Reconciliation suites are
+> **127/127**, **21/21**, and **60/60**. Independent rereview: **APPROVE**, no remaining findings.
+> Production postflight: the new column exists; the four touched functions are security-definer with
+> empty search paths; only the gated staging RPC is authenticated-executable; financial counts are
+> unchanged. GitHub app/UI/secret checks passed; DB CI is baseline-identical; Vercel production is green.
+
+> **2026-07-26 — reconciliation Slice 4 review UI released in #917.**
+> The Arabic-RTL owner/accountant reconciliation review workspace (`/finance/reconciliation` and
+> `/finance/reconciliation/[batchId]`) was built over the live Slice-3 RPCs in an isolated worktree.
+> **No migration, no schema change, no deploy, no commit/push/PR/merge, and no data staged.** Production
+> reconciliation counts remain **0/0/0** and all financial row counts are unchanged. Its app validation
+> is now included in the complete Slice 4A evidence above.
+
+> **2026-07-26 — reconciliation Slice 3 migrated first, production-verified, then merged.**
+> Reviewed commit `ff39170` was applied to Farm Supabase project `veezkmytervjnpxcrbkw` as hosted
+> migration `20260726111554 accounting_reconciliation_review_rpcs`; PR #915 then merged to `main` at
+> `f2cd87a`. The apply contained function/grant DDL only. Postflight confirms all four gated RPCs and
+> five private helpers exist with `SECURITY DEFINER` + empty search paths; authenticated can execute
+> only stage/review/freeze/approve, while anon/public cannot and helpers remain non-executable.
+> Reconciliation table counts stayed `0/0/0`; expenses `10,201`, sales `162`, journal entries `10,365`,
+> journal lines `20,730`, custody movements `1`, and payment requests `3` were unchanged from preflight.
+> No manifest, evidence item, review row, expense, sale, journal, custody, or payment data was written.
+> Independent final review: APPROVE. Local Slice 3 pgTAP `127/127`; full suite `2036` passing plus the
+> same two known engine baseline failures, zero file failures. Rollback is the dependency-ordered nine
+> function drops documented in the migration header.
+
+> **2026-07-26 (latest) — Reconciliation Slices 1B and 2 released.** PR #912 merged at
+> `a09c2ac`; the Slice 1B schema is live and postflight-verified under hosted migration
+> `20260726083453 accounting_reconciliation_execution_ledger`. PR #913 merged at
+> `087289896b218c2cf8f2e39787f11b4d46770891`; Slice 2 is application-only, with no migration,
+> database write, or production financial effect. App/build/security/deploy checks pass. Database CI is
+> baseline-identical at 1,909 passing, two known pre-existing engine assertion failures, and zero file
+> failures. No reconciliation batch rows or financial rows were inserted by this release.
+
+> **2026-07-26 (latest) — Slice 2 staging parser: mechanical filename-compliance rename (space-only, one-dot names), local/uncommitted, no deploy, no production access.**
+> Renamed every new multiword filename to space-separated words with exactly one dot before the extension (no
+> pre-existing file renamed): `apps/farm-os/lib/reconciliation/canonical json.mts`, `stable id.mts`,
+> `pinned hashes.mts`, `canonical fixtures.ts` (plus `types.mts`/`generator.mts`/`cli.mts`/`validate.mts` — an
+> extension-only change so the whole CLI import chain is unambiguous ESM; `index.ts` unchanged); the CLI entry is
+> now `apps/farm-os/scripts/reconciliation stage dry run.mts` (`.mts` so Node never emits the
+> `MODULE_TYPELESS_PACKAGE_JSON` warning, **without** adding `"type": "module"` to `package.json` — confirmed
+> untouched). The four new test files moved to `apps/farm-os/lib/reconciliation/tests/` (no second `.test` dot);
+> `vitest.config.ts`'s `include` was extended additively, the original pattern untouched. Verified: running the new
+> `.mts` entry twice against the real three pinned inputs produced zero-byte stderr both times, byte-identical
+> SHA-256 output, `chmod 0600`, and identical counts to before the rename (698/698/2). `tsc --noEmit` clean, full
+> `eslint` clean, `git diff --check` clean. Focused Vitest with `RUN_RECONCILIATION_CANONICAL=1`: 58/58 passed;
+> full Vitest 651/651 gated, 638/638 + 13 skipped ungated — both unchanged from before the rename. No commit, push,
+> PR, merge, deploy, migration, or production access.
+> Fixed the last blocker from a second Codex acceptance review: `generateStagingDraft` now cross-checks the
+> evidence file's own `summary.source_occurrence_count`/`summary.production_occurrence_count`/`summary.counts`
+> against the counts it independently recomputes from the exception rows (previously those summary fields were
+> emitted unchecked). `summary.counts` may omit a classification key only when its true recomputed count is
+> genuinely 0 (matching the real trusted evidence's own shape); any other mismatch, or any unknown key, fails
+> closed. Added a new `RUN_RECONCILIATION_CANONICAL=1` explicit env gate
+> (`apps/farm-os/lib/reconciliation/canonical fixtures.ts`) so the canonical real-file test suites are never a
+> silent skip: unset, they skip gracefully (portable CI); set, they throw immediately if any of the three pinned
+> real files is missing, otherwise they run for real. **Run and green in this controlled worktree:**
+> `RUN_RECONCILIATION_CANONICAL=1 npx vitest run` → **651/651 passed, 0 skipped**. Also re-verified: `tsc --noEmit`
+> clean, full `eslint` clean, `git diff --check` clean, external Python harness read-only/unmodified 107/107. No
+> commit, push, PR, merge, deploy, migration, or production access.
+
+> **2026-07-26 — accounting reconciliation Slice 2 staging parser hardened per acceptance review: local/uncommitted, no deploy, no production access.**
+> Built and then hardened the Slice 2 dry-run staging generator/CLI (`apps/farm-os/lib/reconciliation/*`,
+> `apps/farm-os/scripts/reconciliation stage dry run.mts`) in the isolated worktree
+> `farm accounting reconciliation slice 2`, in response to a Codex acceptance REQUEST CHANGES review. **No Supabase
+> migration, no production apply, no deploy, no commit, no push, no PR/merge** — this entry exists only to record
+> that local work happened; production is unaffected and its ledger head is unchanged from the entry below. The tool
+> performs zero database writes and zero network access by construction; it only hashes/reads the three pinned local
+> trusted inputs (workbook, protected production snapshot, exception evidence) and writes a local draft JSON file.
+> Fixes applied: the CLI now hashes the raw bytes of all three pinned inputs (not just the evidence file) and fails
+> closed independently per input; classification totals are recomputed from the exception rows and checked against
+> exact pinned per-class counts via a new runtime JSON validator (no bare type casts); the two `2024-02-30` sale
+> quality-flag dates are now preserved verbatim (approved metadata) and pinned exact; `--force` was removed —
+> output creation is atomic (`O_CREAT|O_EXCL`), refuses any pre-existing destination including a symlink, and stays
+> `chmod 0600`; the batch draft no longer claims a `production_snapshot_sha256` column that the real
+> `reconciliation_batches` table does not have (moved to a clearly-labeled non-row `tool_metadata` section).
+> Validation done locally: focused `lib/reconciliation` + `lib/import/convention.test.ts` Vitest 50/50 (including
+> independent per-input hash-mismatch and symlink-refusal tests against the real pinned files); full `farm-os`
+> Vitest 644/644 (no regressions); full `tsc --noEmit` and full `eslint` clean; the CLI run twice against all three
+> real pinned files produced byte-identical SHA-256 output; verification artifacts were written to `/tmp` and
+> removed afterward. The external trusted Python harness (`tests/test accounting reconcile.py`) was run read-only
+> and unmodified: 107/107 passed. See `PROJECT-TRACKER.md`/`SESSION-BRIEF.md` for full detail.
+> **2026-07-26 (latest) — accounting reconciliation Slice 1B production migration applied and
+> verified; PR #912 awaiting merge.** Supabase migration ledger:
+> `20260726083453 accounting_reconciliation_execution_ledger`. Post-apply verification confirms all
+> five new tables exist with RLS + FORCE RLS, zero client DML grants, all four additive columns, and all
+> guard functions. No financial data was written. The repository PR remains open until its final review
+> completes.
+
+> **2026-07-26 (latest) — accounting reconciliation Slice 1B committed for approved release, not yet
+> applied.** Commit `4bf7021` records the independently reviewed migration and 109-assertion pgTAP test.
+> Owner approval now covers review, merge, and migration as the standard completion path. Push/PR/CI,
+> production apply, merge, and deployment have not yet occurred at this checkpoint; production ledger
+> head remains `20260726051731`.
+
+> **2026-07-26 (latest) — accounting reconciliation slice 1B: money-integrity hardening (Codex review
+> round 2), STILL a draft, NOT applied anywhere, NOT committed.** Same two untracked files as the entry
+> below, revised in place. An independent review found the schema was not yet safe as the money-integrity
+> boundary a future execution/rollback RPC will trust: baseline-snapshot fidelity checks only verified
+> each reference's org, not its copied content; the execution ledger and action links allowed relational
+> mismatches the composite FKs alone couldn't catch (e.g. a batch row from the wrong batch, or reviewing
+> the wrong evidence item); and the "forced concurrent" test was sequential, not a real two-backend proof.
+> All six blocking items were fixed in this worktree (full detail in `docs/PROJECT-TRACKER.md`'s matching
+> entry): full-field verbatim snapshot checks with independent fail-closed dimension-org verification; one
+> typed-snapshot-per-source uniqueness; execution-ledger and action-link relational guards; and a REAL
+> `dblink`-based two-backend race replacing the sequential-only proof.
+>
+> Validation (local only, no network, no production access): `git diff --check` clean; new test file
+> standalone 109/109; full `run-pgtap-local.sh` — **TOTAL ok=1909 not_ok=2 file_failures=0**, the 2 `not_ok`
+> being the same two pre-existing, already-documented stock-engine baseline failures
+> (`55_engine_maxdeficit_sizing_test` / `#280 F4`; `80_engine_msg_maxdef_test` / `0078`), unrelated to and
+> predating this change; `96_fk_covering_index_invariant_test` passes. No ephemeral processes or scratch
+> diagnostic scripts were left behind.
+>
+> Next gates are unchanged from the entry below — this entry only records that the schema itself closed the
+> gaps an independent review found before any execution/rollback RPC is written to trust it.
+
+> **2026-07-26 — accounting reconciliation slice 1B: DRAFT migration only, NOT applied anywhere, NOT committed.**
+> A new migration (`20260726090000_accounting_reconciliation_execution_ledger`) and its pgTAP test exist as
+> uncommitted, untracked files in this worktree only. No Supabase project (hosted or local), staging, or
+> production environment has had this migration applied — no `apply_migration` call was made against any
+> project. No commit, push, PR, or merge has occurred. This entry records that local schema work happened
+> and was locally validated; it is explicitly **not** a deploy record — production ledger head remains
+> `20260726051731` (unchanged, per the entry below).
+>
+> Validation performed (local only, no network, no production access): `git diff --check` clean; the local
+> ephemeral pgTAP harness (`test-shims/run-pgtap-local.sh`, no Docker, spins up and tears down a throwaway
+> PostgreSQL cluster) applies shims + every migration (including this new one) + seed, then runs every
+> `supabase/tests/*.sql` file. Result: **TOTAL ok=1885 not_ok=2 file_failures=0** — the 2 `not_ok` are the
+> same pre-existing, already-documented stock-engine baseline failures
+> (`55_engine_maxdeficit_sizing_test` assertion 3 / `#280 F4`; `80_engine_msg_maxdef_test` assertion 3 /
+> `0078`), unrelated to and predating this change. The new test file passes standalone (85/85). The
+> repo-wide FK-covering-index gate (`96_fk_covering_index_invariant_test`) passes. Because the harness runs
+> as a Postgres superuser, it cannot verify FORCE ROW LEVEL SECURITY itself (the documented harness
+> caveat) — that remains unverified against a real Supabase project until this migration is actually
+> applied there.
+>
+> Next gates, in order: Owner review of this migration at the money-logic-adjacent independent-review bar
+> the accepted design's §13B requires (same bar as slice 4/6) → Owner approval to apply → migrate-first
+> (to whichever Supabase project the Owner designates), evidenced via pre/post `pg_class`/`pg_policies`/
+> `has_table_privilege` probes exactly as slice 1A's applies were evidenced below → only then merge to
+> `main`. Rollback, if ever needed after a real apply, is the exact dependency-ordered DDL documented in
+> the migration file's own header comment (drops the five new tables, the two baseline-immutability
+> triggers/functions, the action-link tenant-guard trigger/function, the four additive expenses/sales
+> columns, and the three new `(id, org_id)` composite-uniqueness anchors on
+> `reconciliation_batch_rows`/`expenses`/`sales`) — not yet exercised against any real database.
+
+> **2026-07-26 — accounting reconciliation stack applied and merged; production ledger head `20260726051731`.**
+> Owner explicitly approved both migration gates. Applied in dependency order through Supabase MCP:
+> `20260725183055_finance_read_org_set_rls` from PR #902, then
+> `20260725183130_accounting_reconciliation_provenance` from stacked PR #910. Preflight had neither helper nor
+> reconciliation table. Postflight: the private helper is `STABLE SECURITY INVOKER`, authenticated-only, and used
+> by 16 finance policies; all three reconciliation tables exist empty with RLS + FORCE RLS, authenticated SELECT
+> only, no authenticated/anon DML, three finance-read policies, and five expected triggers. `audit_read` and
+> `authorize()` include the new reconciliation entities/permission. PR #902 merged to `main` at `d1c175e1`.
+> Final #910 review found frozen-row DELETE/future-column gaps; forward migration
+> `20260726051731_reconciliation_frozen_row_hardening` now blocks frozen DELETE and freezes all present/future
+> columns except execution bookkeeping. Client function execution remains revoked.
+> Financial data did not move: expenses 10,201; sales 162; journal entries 10,365; journal lines 20,730 before and
+> after. Hosted read-only role simulation passed for accountant, owner, and farm manager, including drawing privacy
+> and ordinary-expense continuity. Reconciliation rows remain zero. PR #910 merged at `b4ab8ecf`; post-merge
+> app/UI/secret/release checks and Vercel production deployment pass. Its database run is baseline-identical at
+> 1,800 pass, the same two known stock-engine failures, and zero file failures. Slice 1A rollout is complete.
+
+> **2026-07-12 (historical) — period-lock hardening + cross-org tenancy leak closed; prod ledger head `20260712120000`.**
 > Three migrations applied via Supabase MCP `execute_sql` (idempotent DDL) + manual ledger insert, MIGRATE-FIRST
 > then merged, under the Owner's «migrate when needed» directive. Each evidence-first (pre/post probe) + independently reviewed.
 > - **`20260712120000_cost_center_views_security_invoker`** (#899) — SECURITY: set `security_invoker=true` on
@@ -933,7 +1501,8 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
   integration injects `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` /
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **Supabase:** dedicated **non-Zeal** project `veezkmytervjnpxcrbkw` (eu-west-1).
-  - **Migrations now at `20260705150000` (current; see latest ledger entry at the top of this file).**
+  - **Migrations now at `20260729102938 payroll_run_persistence` (current; see the latest ledger entry at the
+    top of this file).**
     The live ledger includes the SPEC-0004 Slice A accounting/reporting migrations through
     budget-vs-actual. Historical note: by
     2026-06-27, Stages 2/3/4 had been applied via the Supabase MCP:
@@ -1071,9 +1640,9 @@ backed by the dedicated Supabase project `veezkmytervjnpxcrbkw`.
   **`fn_stock_coverage` works on prod** (potassium → available 300, shortage, recommend 300kg,
   Arabic message); dashboard reads correct (6 items / 1 plan / 1 budget / 1 farm); anon denied
   (GRANT-C1). DB = all 13 migrations + synthetic seed. Also CI now gates the app build (ci.yml `app` job).
-- **Auth:** email/password, **no SMS** (phone-OTP/Twilio dropped per Owner). Six demo accounts
-  exist (`<role>@ebeid.test`); ⚠️ **the password IS committed** (`lib/seed-auth.ts` + `app/login/page.tsx`,
-  client-bundled) — see "Security follow-ups" #4. Synthetic-only, but de-hardcode + rotate before real use.
+- **Auth:** email/password, **no SMS** (phone-OTP/Twilio dropped per Owner). The client-bundled demo
+  credential surface was removed in PR #933. Six linked demo-email identities remain in production and
+  require Owner-managed replacement/rotation; see "Security follow-ups."
 - **Build chain resolved (the saga):** Vercel Root Directory→`apps/farm-os`; committed `@amrebeid/ui`
   `dist/`; removed the root `.npmrc` (`${NODE_AUTH_TOKEN}` crashed the build); app-local CSS copy;
   `turbopack.root`+`outputFileTracingRoot`; **pinned Tailwind v4 Linux native binaries**
@@ -1109,6 +1678,6 @@ receipt-posting atomicity — closed by `0024`.)* No queued security caveats rem
 ## Security follow-ups
 - **Supabase DB password + `service_role` key rotation is complete** — Owner correction 2026-06-29. Do not list
   this as an open gate again unless the Owner reopens it.
-- The **demo login password is known** (shared in chat **and committed** in `lib/seed-auth.ts` +
-  `app/login/page.tsx`, client-bundled). Fine for the pilot (synthetic data only),
-  but reset it before any real Ebeid data, and consider per-user passwords.
+- The committed/client-bundled demo credential surface is removed from production as of PR #933.
+  The six linked demo-email identities still need Owner-managed replacement or rotation; six unused,
+  unlinked phone-only seed identities need removal; leaked-password protection still needs enabling.

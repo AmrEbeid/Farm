@@ -56,9 +56,24 @@ needing 500 kg).
 - **<5/7 → do NOT build the ERP yet:** iterate the wedge or pivot on what the farms actually
   said. This is the point of MVP-0 — a cheap kill/continue signal before the big build.
 
+## Payroll preparation (SPEC-0006) — in-app, owner/accountant only
+`/people/payroll/readiness` carries the printable payroll preparation sheet: the ten gates (privacy
+Stage M, source approval, template dry runs, compensation setup, attendance entry, accountant close,
+frozen-report review, exception resolution, dated owner+accountant signoff, explicit payment/journal
+scope decision), each marked **automated evidence** or **human gate**. It claims no completion and
+shows no percentage — the signatures are handwritten on the printout.
+
+Under it sit three **validation-only** import templates (staff / compensation / labor). They produce
+a dry-run report and **nothing else**: the descriptors have no RPC, and `app/api/import` refuses a
+commit for them server-side before the upload is parsed — the descriptor and mode travel as query
+parameters precisely so that refusal runs ahead of `req.formData()` — so a clean dry-run still
+writes nothing.
+**Synthetic data only** until the Stage-M privacy review clears — authoritative payroll import stays
+closed, and payment/journal posting remain out of scope.
+
 ## Readiness checklist before the first interview
 - [ ] App deployed (or local stack ready) — `DEPLOY-RUNBOOK.md`.
-- [ ] Email/password demo accounts ready (auth is email + password — phone-OTP removed).
+- [ ] Unique, recoverable per-person accounts ready; never use shared demo credentials.
 - [ ] The seeded wedge scenario loads and the demo script runs end-to-end (it does — e2e green).
 - [ ] Arabic-RTL verified on a real phone for the supervisor step.
 - [ ] Stage 0 closed if any real farm data will be loaded.

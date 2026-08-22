@@ -12,6 +12,14 @@
 --   first crossing: period 1, shortfall 50.   worst deficit: 1050 (period 4).
 --   OLD recommend_qty = 50 (first dip).        F4 recommend_qty = 1050 (covers the deep shortage).
 --
+-- Dates are RELATIVE to current_date, never absolute. 0009 bucketed from the plan's own period_start
+-- ("deterministic regardless of now()"), so absolute planned_at values were safe; ENGINE-H3
+-- (20260701200000) then clamped the bucket origin to today — v_period_start := greatest(min(planned_at),
+-- current_date) — a correct masked-shortage fix. Once today moved past a hardcoded planned_at, BOTH ops
+-- bucketed to greatest(<=0, 1) = period 1, collapsing the scenario into a single 1150 kg period-1 demand:
+-- shortfall reported 1050 instead of 50. Anchoring op1 at current_date makes the clamp a no-op and
+-- restores the intended period-1 / period-4 spread.
+--
 -- Run via `supabase test db` or test-shims/run-pgtap-local.sh.
 
 begin;
@@ -32,8 +40,8 @@ insert into public.inventory_bin (org_id, item_id, location, on_hand, reserved)
 -- a plan with a shallow period-1 demand and a deep period-4 demand
 insert into public.plans (id, org_id, type, status) values (:'plan', :'orgA', 'monthly', 'draft');
 insert into public.plan_operations (id, org_id, plan_id, subtype, planned_at, status) values
-  (:'op1', :'orgA', :'plan', 'fertilization', date '2026-07-01', 'planned'),
-  (:'op2', :'orgA', :'plan', 'fertilization', date '2026-07-22', 'planned');  -- +21d = period 4
+  (:'op1', :'orgA', :'plan', 'fertilization', current_date,      'planned'),   -- origin = period 1
+  (:'op2', :'orgA', :'plan', 'fertilization', current_date + 21, 'planned');   -- +21d = period 4
 insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit) values
   (:'orgA', :'op1', :'item', 150,  'kg'),
   (:'orgA', :'op2', :'item', 1000, 'kg');

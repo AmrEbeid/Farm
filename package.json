@@ -23,7 +23,23 @@
   "overrides": {
     "react": "$react",
     "react-dom": "$react-dom",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.23",
+    "@changesets/parse": {
+      "js-yaml": "4.3.0"
+    },
+    "@eslint/eslintrc": {
+      "js-yaml": "4.3.0"
+    },
+    "read-yaml-file": {
+      "js-yaml": "3.15.0"
+    },
+    "exceljs": {
+      "uuid": "11.1.1"
+    },
+    "tsup": {
+      "esbuild": "0.27.2"
+    },
     "@types/node": "^22"
-  }
+  },
+  "comment-overrides-tsup-esbuild": "GHSA-g7r4-m6w7-qqqr affects esbuild 0.27.3-0.28.0 (arbitrary file read via the esbuild dev server on Windows). tsup 8.5.1, the latest, declares esbuild ^0.27.0, so no in-range version above the advisory exists; 0.27.2 is the highest in-range version that predates it and keeps the tree valid (no semver violation). Drop this override once tsup widens its range to ^0.28.1 or later."
 }

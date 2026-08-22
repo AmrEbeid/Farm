@@ -9,7 +9,10 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { fmtDate } from "@/lib/dates";
+import { selectExpensePaymentState } from "@/lib/expense-payment-reversal";
 import { egp, num } from "@/lib/money";
+import { PaymentReversalControl } from "./payment-reversal-control";
+import { ExpenseCorrectionControl } from "./expense-correction-control";
 import {
   EXPENSE_KIND_AR,
   EXPENSE_STATUS_AR,
@@ -25,6 +28,20 @@ type PlanEmbed = { id?: string; type?: string | null; period_start?: string | nu
 type FarmEmbed = { id?: string; name?: string | null };
 type SectorEmbed = { id?: string; name?: string | null };
 type HawshaEmbed = { id?: string; name?: string | null };
+type CustodyMovement = {
+  id: string;
+  occurred_at: string;
+  movement_type: string;
+  amount_in: number;
+  amount_out: number;
+  custody_account_id: string;
+  custody_accounts: { holder_label?: string | null } | { holder_label?: string | null }[] | null;
+  payment_request_id: string | null;
+  reversal_of: string | null;
+  reversed_by: string | null;
+  reversal_reason: string | null;
+  expense_reversal_outcome: string | null;
+};
 
 type PillStatus = "draft" | "scheduled" | "active" | "done" | "warning" | "blocked";
 
@@ -56,13 +73,15 @@ export default async function Expense360Page({
     : "overview";
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
+  const canCorrectPayment = m.role === "owner" || m.role === "accountant";
 
   const { data: expense, error } = await sb
     .from("expenses")
     .select(
-      "id, date, category, description, total, qty, unit, unit_price, payment_method, status, payment_status, kind, account_id, supplier_id, plan_id, event_id, farm_id, sector_id, hawsha_id, suppliers(id, name), plans(id, type, period_start, period_end), farms(id, name), sectors(id, name), hawshat(id, name)",
+      "id, date, category, description, total, qty, unit, unit_price, payment_method, status, payment_status, kind, account_id, cost_center_id, supplier_id, plan_id, event_id, farm_id, sector_id, hawsha_id, suppliers(id, name), plans(id, type, period_start, period_end), farms(id, name), sectors(id, name), hawshat(id, name)",
     )
     .eq("id", expenseId)
+    .eq("org_id", m.orgId)
     .maybeSingle();
   if (error) throw error;
   if (!expense || (expense.kind === "drawing" && m.role !== "owner" && m.role !== "accountant"))
@@ -88,17 +107,89 @@ export default async function Expense360Page({
   if (eventError) throw eventError;
 
   const { data: account, error: accountError } = expense.account_id
-    ? await sb.from("accounts").select("code, name_ar").eq("id", expense.account_id).maybeSingle()
+    ? await sb
+        .from("accounts")
+        .select("code, name_ar")
+        .eq("id", expense.account_id)
+        .eq("org_id", m.orgId)
+        .maybeSingle()
     : { data: null, error: null };
   if (accountError) throw accountError;
 
+  const [{ data: movementData, error: movementError }, { data: requestLines, error: requestLineError }] =
+    canCorrectPayment
+      ? await Promise.all([
+          sb
+            .from("custody_movements")
+            .select(
+              "id, occurred_at, movement_type, amount_in, amount_out, custody_account_id, custody_accounts(holder_label), payment_request_id, reversal_of, reversed_by, reversal_reason, expense_reversal_outcome",
+            )
+            .eq("org_id", m.orgId)
+            .eq("expense_id", expense.id)
+            .order("created_at", { ascending: true }),
+          sb
+            .from("payment_request_lines")
+            .select("id")
+            .eq("org_id", m.orgId)
+            .eq("expense_id", expense.id)
+            .limit(1),
+        ])
+      : [
+          { data: [], error: null },
+          { data: [], error: null },
+        ];
+  if (movementError) throw movementError;
+  if (requestLineError) throw requestLineError;
+  const custodyMovements = (movementData ?? []) as CustodyMovement[];
+  const { activePayment, latestReversal: paymentReversal } = selectExpensePaymentState(custodyMovements);
+  const requestLinked = Boolean(activePayment?.payment_request_id || requestLines?.length);
+  const canCompleteCorrection =
+    canCorrectPayment &&
+    expense.payment_status === null &&
+    !activePayment &&
+    paymentReversal?.expense_reversal_outcome === "unrouted";
+
+  const [correctionSuppliers, correctionAccounts, correctionCenters, correctionCustody] = canCompleteCorrection
+    ? await Promise.all([
+        sb.from("suppliers").select("id, name").eq("org_id", m.orgId).order("name"),
+        sb.from("accounts").select("id, code, name_ar, kind, parent_id, active").eq("org_id", m.orgId).order("code"),
+        sb.from("cost_centers").select("id, code, name_ar, parent_id, active").eq("org_id", m.orgId).order("code"),
+        sb.from("custody_accounts").select("id, holder_label, active").eq("org_id", m.orgId).order("holder_label"),
+      ])
+    : [
+        { data: [], error: null },
+        { data: [], error: null },
+        { data: [], error: null },
+        { data: [], error: null },
+      ];
+  if (correctionSuppliers.error) throw correctionSuppliers.error;
+  if (correctionAccounts.error) throw correctionAccounts.error;
+  if (correctionCenters.error) throw correctionCenters.error;
+  if (correctionCustody.error) throw correctionCustody.error;
+
+  const accountRows = correctionAccounts.data ?? [];
+  const activeAccountParents = new Set(accountRows.filter((row) => row.active && row.parent_id).map((row) => row.parent_id));
+  const correctionAccountOptions = accountRows
+    .filter((row) => row.active && (row.kind == null || row.kind === expense.kind) && !activeAccountParents.has(row.id))
+    .map((row) => ({ id: row.id, label: `${row.code} — ${row.name_ar}` }));
+  const centerRows = correctionCenters.data ?? [];
+  const activeCenterParents = new Set(centerRows.filter((row) => row.active && row.parent_id).map((row) => row.parent_id));
+  const correctionCenterOptions = centerRows
+    .filter((row) => row.active && !activeCenterParents.has(row.id))
+    .map((row) => ({ id: row.id, label: `${row.code} — ${row.name_ar}` }));
+
   const linkedScopeCount = [expense.supplier_id, expense.plan_id, expense.event_id, expense.farm_id, expense.sector_id, expense.hawsha_id].filter(Boolean).length;
 
-  const statusLabel = EXPENSE_STATUS_AR[expense.status ?? ""] ?? "غير معروف";
-  const pillStatus: PillStatus | null = expense.status ? STATUS_PILL[expense.status] ?? null : null;
+  const isCancelled = expense.payment_status === "cancelled";
+  const statusLabel = isCancelled ? "ملغي" : EXPENSE_STATUS_AR[expense.status ?? ""] ?? "غير معروف";
+  const pillStatus: PillStatus | null = isCancelled
+    ? "blocked"
+    : expense.status
+      ? STATUS_PILL[expense.status] ?? null
+      : null;
   // Recorded but not settled, or booked on credit (آجل) — flag for attention.
-  const isCredit = expense.payment_method === "credit";
-  const isUnpaid = expense.status === "posted" || expense.status === "approved" || isCredit;
+  const isCredit = !isCancelled && expense.payment_method === "credit";
+  const isUnpaid = !isCancelled && (expense.status === "posted" || expense.status === "approved" || isCredit);
 
   const linkColumns: SimpleColumn[] = [
     { id: "target", header: "الرابط" },
@@ -137,6 +228,24 @@ export default async function Expense360Page({
         },
       ]
     : [];
+
+  const movementColumns: SimpleColumn[] = [
+    { id: "date", header: "التاريخ" },
+    { id: "movement", header: "الحركة" },
+    { id: "amount", header: "المبلغ" },
+    { id: "link", header: "الربط" },
+  ];
+  const movementRows = custodyMovements.map((movement) => ({
+    id: movement.id,
+    date: fmtDate(movement.occurred_at),
+    movement: movement.movement_type,
+    amount: egp(Number(movement.amount_in || movement.amount_out)),
+    link: movement.reversal_of
+      ? "عكسٌ لحركة السداد الأصلية"
+      : movement.reversed_by
+        ? "حركة السداد الأصلية — عُكست"
+        : "حركة السداد الأصلية — فعّالة",
+  }));
 
   const headerTitle = `${expense.category ?? expense.description ?? "مصروف"}${
     expense.total != null ? ` · ${egp(Number(expense.total))}` : ""
@@ -179,6 +288,68 @@ export default async function Expense360Page({
         />
       )}
 
+      {paymentReversal && (
+        <Alert
+          tone="ok"
+          title="تم تصحيح سداد هذا المصروف"
+          description={`${
+            paymentReversal.expense_reversal_outcome === "cancelled"
+              ? "أُلغي المصروف بالكامل"
+              : "عاد المصروف بلا مسار سداد للتعديل أو التوجيه من جديد"
+          } · ${fmtDate(paymentReversal.occurred_at)} · السبب: ${paymentReversal.reversal_reason ?? "غير مسجل"}`}
+        />
+      )}
+
+      {canCompleteCorrection && (
+        <ExpenseCorrectionControl
+          expense={{
+            id: expense.id,
+            date: expense.date,
+            category: expense.category,
+            description: expense.description,
+            total: expense.total,
+            supplierId: expense.supplier_id,
+            accountId: expense.account_id,
+            costCenterId: expense.cost_center_id,
+          }}
+          suppliers={(correctionSuppliers.data ?? []).map((row) => ({ id: row.id, label: row.name }))}
+          accounts={correctionAccountOptions}
+          costCenters={correctionCenterOptions}
+          custodyAccounts={(correctionCustody.data ?? [])
+            .filter((row) => row.active)
+            .map((row) => ({ id: row.id, label: row.holder_label }))}
+        />
+      )}
+
+      {canCorrectPayment && expense.payment_status === "paid_from_custody" && requestLinked && (
+        <Alert
+          tone="warning"
+          title="السداد مرتبط بإذن صرف"
+          description="يجب تصحيح هذا السداد من مسار إذن الصرف حتى تبقى حالة الطلب وبنوده متطابقة."
+        />
+      )}
+
+      {canCorrectPayment &&
+        expense.payment_status === "paid_from_custody" &&
+        !requestLinked &&
+        (activePayment ? (
+          <PaymentReversalControl
+            expenseId={expense.id}
+            movementId={activePayment.id}
+            amount={egp(Number(activePayment.amount_out))}
+            custodyAccountLabel={
+              normalizeOne(activePayment.custody_accounts)?.holder_label ?? "حساب العهدة المرتبط"
+            }
+            today={todayInCairo()}
+          />
+        ) : (
+          <Alert
+            tone="danger"
+            title="حركة سداد العهدة غير مكتملة"
+            description="المصروف معلّم كمسدد من العهدة لكن حركة الخروج الأصلية غير موجودة؛ لا تُجرِ تصحيحًا يدويًا."
+          />
+        ))}
+
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="الإجمالي" value={expense.total != null ? egp(Number(expense.total)) : "—"} />
         <KpiCard label="الكمية" value={expense.qty != null ? num(Number(expense.qty)) : "—"} unit={expense.unit ?? undefined} />
@@ -220,6 +391,18 @@ export default async function Expense360Page({
               ]}
             />
           </Card>
+          {movementRows.length > 0 && (
+            <div className="mt-4">
+              <Card title="حركة السداد والعكس">
+                <SimpleTable
+                  columns={movementColumns}
+                  rows={movementRows}
+                  ariaLabel="حركة سداد المصروف والعكس المرتبط"
+                  empty="—"
+                />
+              </Card>
+            </div>
+          )}
         </div>
       )}
 
@@ -248,6 +431,15 @@ export default async function Expense360Page({
       )}
     </div>
   );
+}
+
+function todayInCairo(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function normalizeOne<T>(value: T | T[] | null): T | null {

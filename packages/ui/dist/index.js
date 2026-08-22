@@ -1,4 +1,4 @@
-export { BarChart, DoughnutChart, LineChart, useChartTokens } from './chunk-XTLMKKCB.js';
+export { BarChart, DoughnutChart, LineChart, useChartTokens } from './chunk-OSSYTIVD.js';
 import * as React22 from 'react';
 import { jsxs, jsx, Fragment } from 'react/jsx-runtime';
 import { createPortal } from 'react-dom';
@@ -1119,7 +1119,9 @@ function useToast() {
 function Toaster() {
   const ctx = React22.useContext(ToastContext);
   const theme = useTheme();
-  if (!ctx || typeof document === "undefined") return null;
+  const [mounted, setMounted] = React22.useState(false);
+  React22.useEffect(() => setMounted(true), []);
+  if (!ctx || !mounted) return null;
   const { toasts, api } = ctx;
   return createPortal(
     /* @__PURE__ */ jsx(

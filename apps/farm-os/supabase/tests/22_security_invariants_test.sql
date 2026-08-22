@@ -14,10 +14,10 @@ begin;
 select plan(12);
 
 -- ============================================================================================
--- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function except the RLS helpers.
--- Generalises migration 0021. authorize(text,uuid)/user_org_ids() are the intentional helpers anon
--- needs so RLS policies can evaluate for an unauthenticated request; every other definer fn is a
--- privileged code path that must never be reachable from the anon (unauthenticated) JWT.
+-- Invariant 1 — anon may EXECUTE no public SECURITY DEFINER function.
+-- Generalises migration 0021. RLS policies can invoke their helpers during policy evaluation without
+-- exposing those helpers as anonymous PostgREST RPCs; every definer function is therefore removed
+-- from the unauthenticated API surface.
 -- ============================================================================================
 select is(
   (select count(*)::int
@@ -25,17 +25,15 @@ select is(
      join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.prosecdef
-      and p.proname not in ('authorize', 'user_org_ids', 'user_member_org_ids')
       and has_function_privilege('anon', p.oid, 'EXECUTE')),
   0,
-  'INV-1: no public SECURITY DEFINER fn (other than authorize/user_org_ids) is EXECUTE-able by anon');
+  'INV-1: no public SECURITY DEFINER function is EXECUTE-able by anon');
 
--- Pin the positive side too: the two intended helpers MUST stay anon-executable (so a future
--- over-zealous revoke that breaks anonymous RLS evaluation is also caught).
-select ok(has_function_privilege('anon', 'public.authorize(text, uuid)', 'EXECUTE'),
-  'INV-1: authorize(text, uuid) remains EXECUTE-able by anon (RLS helper; AUTHZ-2 #181 org-scoped overload)');
-select ok(has_function_privilege('anon', 'public.user_org_ids()', 'EXECUTE'),
-  'INV-1: user_org_ids() remains EXECUTE-able by anon (RLS helper)');
+-- Pin the two previously exempt helpers directly so later migrations cannot reopen either RPC.
+select ok(not has_function_privilege('anon', 'public.authorize(text, uuid)', 'EXECUTE'),
+  'INV-1: anon cannot execute authorize(text, uuid)');
+select ok(not has_function_privilege('anon', 'public.user_org_ids()', 'EXECUTE'),
+  'INV-1: anon cannot execute user_org_ids()');
 
 -- ============================================================================================
 -- Invariant 2 — authenticated may EXECUTE only the intended API surface of public SECURITY
@@ -107,10 +105,27 @@ select is(
         'fn_record_harvest_day',                   -- field picking counter (SPEC-0027 H-B, migration 20260701540000)
         'fn_close_accounting_period', 'fn_reopen_accounting_period', -- period close/lock RPCs (SPEC-0004 §7.3, migration 20260701550000)
         'fn_reverse_journal_entry', -- journal correction/reversal RPC (SPEC-0028 kernel slice, migration 20260706081636)
+        'fn_reverse_expense_payment', -- atomic custody-paid expense correction (SPEC-0028 C-1, migration 20260805200000)
+        'fn_correct_and_route_reversed_expense', -- atomic edit + replacement route after C-1 payment-only reversal
         'fn_accounting_balance_sheet', -- read-only balance-sheet report RPC (SPEC-0004 Slice A, migration 20260705110000)
         'fn_accounting_income_statement', -- read-only income-statement/P&L report RPC (SPEC-0004 Slice A, migration 20260705120000)
         'fn_pnl_timeseries', -- read-only GL-backed P&L time-series RPC (SPEC-0029 Phase 0, migration 20260705140000)
-        'fn_budget_vs_actual' -- read-only budget-vs-actual report RPC (SPEC-0004 Slice A, migration 20260705150000)
+        'fn_budget_vs_actual', -- read-only budget-vs-actual report RPC (SPEC-0004 Slice A, migration 20260705150000)
+        'fn_stage_reconciliation_manifest', 'fn_review_reconciliation_row', -- gated reconciliation slice-3 staging/review RPCs (migration 20260726120000)
+        'fn_freeze_reconciliation_batch', 'fn_approve_reconciliation_batch', -- gated reconciliation slice-3 freeze/owner-approve RPCs (migration 20260726120000)
+        'fn_execute_reconciliation_batch', -- owner-only reconciliation expense execution (migration 20260726150000)
+        'fn_rollback_reconciliation_batch', -- owner-only reconciliation batch rollback (migration 20260726170000)
+        'fn_set_data_authority_status', -- owner-only report-source authority metadata (migration 20260727143000)
+        'fn_close_payroll_run', -- owner/accountant-only payroll close/report RPC (SPEC-0006 slice 3, migration 20260729090000)
+        'fn_cost_center_direct_summary', -- read-only exact cost-center totals (migration 20260730130000)
+        'fn_expense_register_summary', -- read-only exact expense-register summary (migration 20260730140000)
+        'fn_save_marketing_contact', 'fn_archive_marketing_contact', -- gated marketing-contact RPCs (SPEC-0032, migration 20260820090000)
+        'fn_log_marketing_contact_activity', -- gated append-only marketing-contact activity RPC (SPEC-0032)
+        'fn_save_marketing_record', 'fn_archive_marketing_record', -- gated marketing-record RPCs (SPEC-0032, migration 20260820090000)
+        'fn_save_marketing_contact_v2', -- gated marketing-contact RPC + metadata (SPEC-0032 full source, migration 20260822110000)
+        'fn_import_marketing_source', -- gated atomic source-pack import RPC (SPEC-0032 full source, migration 20260822110000)
+        'fn_marketing_contacts_page', -- read-only exact paged/searched contact list (SPEC-0032 full source, migration 20260822110000)
+        'fn_marketing_dashboard_snapshot' -- read-only exact marketing overview aggregates (SPEC-0032 full source, migration 20260822110000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

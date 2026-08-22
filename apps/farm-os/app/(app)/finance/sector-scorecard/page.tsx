@@ -52,7 +52,14 @@ export default async function SectorScorecardPage() {
   const sb = await createClient();
   const [rollupRes, salesRes] = await Promise.all([
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb.from("sales").select("cost_center_id, total, price_status").eq("org_id", m.orgId).eq("price_status", "finalized"),
+    sb
+      .from("sales")
+      .select("cost_center_id, total, price_status")
+      .eq("org_id", m.orgId)
+      .eq("price_status", "finalized")
+      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
+      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
+      .neq("payment_status", "historical_reversed"),
   ]);
   if (rollupRes.error) throw rollupRes.error;
   if (salesRes.error) throw salesRes.error;

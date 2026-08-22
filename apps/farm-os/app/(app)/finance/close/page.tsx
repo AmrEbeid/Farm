@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { HISTORICAL_SALE_PAYMENT_STATUS_FILTER } from "@/lib/labels";
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { StoryLine } from "@/components/StoryLine";
@@ -62,6 +63,10 @@ export default async function MonthClosePage({
         .eq("org_id", m.orgId)
         .eq("price_status", "finalized")
         .neq("payment_status", "collected")
+        // A historical reconciliation sale is settled in cash at posting (Dr 1010) and opens no
+        // receivable; a reversed one is not revenue. Neither may ever age into A/R.
+        // (migration 20260726160000)
+        .not("payment_status", "in", HISTORICAL_SALE_PAYMENT_STATUS_FILTER)
         .or(`sale_date.gte.${CUTOVER},delivery_date.gte.${CUTOVER},created_at.gte.${CUTOVER}`),
       sb.from("sale_collections").select("sale_id, amount").eq("org_id", m.orgId),
     ]);

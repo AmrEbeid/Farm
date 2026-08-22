@@ -4,9 +4,9 @@
  * `parentId` is optional: blank means a root account; otherwise the typed account code
  * is resolved to a parent account id within the user's RLS-scoped org.
  */
-import type { ImportDescriptor } from "../types";
+import type { WriteImportDescriptor } from "../types";
 
-export const accountsDescriptor: ImportDescriptor = {
+export const accountsDescriptor: WriteImportDescriptor = {
   key: "accounts",
   titleAr: "دليل الحسابات",
   rpc: "fn_save_account",

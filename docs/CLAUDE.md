@@ -45,7 +45,10 @@
 2. **Arabic-RTL-first and mobile/offline-tolerant** for field roles — not an afterthought.
 3. **Pricing is per-farm (EGP), not per-seat.** Don't reintroduce per-seat anywhere.
 4. **Agronomy content (NPK rates, irrigation, pesticide doses) is an editable template, NOT a prescription** — requires a local agronomist + current Egyptian pesticide-registration sign-off before it is presented as authoritative.
-5. **The palm registry (Nov 2025) is the canonical source** for counts (4,380 برحي / 299 ذكور / 28 حوش). Reconcile other documents to it.
+5. **Palm counts are disputed.** The previous Nov-2025 baseline (4,380 برحي / 299 ذكور / 28 حوش)
+   conflicts with the 2026 workbook: its Barhi rows total 4,638 vs its stated 4,539, male rows total
+   370, and its 28-unit shape is ambiguous. Do not choose or import either count until the Owner and
+   farm manager approve a corrected unit-level registry or fresh field count.
 6. **Separate owner drawings (مسحوبات) from operating expenses** in any P&L; flag the legacy data-quality issues (typos, the embedded Gmail/password) rather than copying them forward.
 
 ## Where state lives

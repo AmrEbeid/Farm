@@ -28,6 +28,20 @@ describe("assistant capability boundary (SPEC-0005 §2 / lethal-trifecta)", () =
     }
   });
 
+  it("§2.2 refuses the SPEC-0006 slice-3 payroll persistence surface (#394 note C)", () => {
+    for (const s of [
+      "fn_close_payroll_run",
+      "payroll_runs",
+      "payroll_run_lines",
+      "fn_payroll_run_report",
+      "get_payroll_run",
+    ]) {
+      const d = assistantMayCall(s);
+      expect(d.allowed, s).toBe(false);
+      expect(d.reason, s).toMatch(/compensation|PII/);
+    }
+  });
+
   it("§2.3 refuses any outbound / send tool", () => {
     for (const o of ["send_whatsapp", "email_report", "sms_alert", "notify_owner", "post_webhook"]) {
       expect(assistantMayCall(o).allowed, o).toBe(false);

@@ -54,6 +54,7 @@ export function AppChrome({
 
   async function signOut() {
     await createClient().auth.signOut();
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Preserve the same-origin full reload after clearing the auth cookie.
     window.location.assign("/login");
   }
 

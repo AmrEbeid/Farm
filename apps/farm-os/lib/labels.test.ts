@@ -5,7 +5,10 @@ import {
   HARVEST_STAGE_AR,
   INCIDENT_SEVERITY_AR,
   OP_STATUS_AR,
+  HISTORICAL_SALE_PAYMENT_STATUSES,
+  HISTORICAL_SALE_PAYMENT_STATUS_FILTER,
   PAYMENT_STATUS_AR,
+  SALE_PAYMENT_STATUS_AR,
   REQUEST_STATUS_AR,
   SUBTYPE_AR,
   TRAP_STATUS_AR,
@@ -108,9 +111,54 @@ describe("EXPENSE_KIND_AR — completeness vs the expenses.kind CHECK", () => {
   );
 });
 
+describe("SALE_PAYMENT_STATUS_AR — completeness vs the sales.payment_status CHECK", () => {
+  // Must match sales_payment_status_check (migration 20260726160000) so every persisted status
+  // renders instead of leaking a raw key into the Arabic UI.
+  it.each([
+    "unpaid",
+    "partially_collected",
+    "collected",
+    "historical_treasury",
+    "historical_reversed",
+  ])("maps %s", (s) => expect(SALE_PAYMENT_STATUS_AR[s]).toBeTruthy());
+
+  it("is distinct from the EXPENSE payment map (same column name, different value set)", () => {
+    expect(SALE_PAYMENT_STATUS_AR.unpaid).toBeTruthy();
+    expect(PAYMENT_STATUS_AR.unpaid).toBeUndefined();
+  });
+});
+
+describe("HISTORICAL_SALE_PAYMENT_STATUSES", () => {
+  it("names exactly the two reconciliation-created sale states", () => {
+    expect([...HISTORICAL_SALE_PAYMENT_STATUSES]).toEqual([
+      "historical_treasury",
+      "historical_reversed",
+    ]);
+  });
+
+  it("renders a PostgREST in-list so a .not() filter cannot drift from the state list", () => {
+    expect(HISTORICAL_SALE_PAYMENT_STATUS_FILTER).toBe(
+      "(historical_treasury,historical_reversed)",
+    );
+  });
+
+  it("is fully covered by the Arabic label map", () => {
+    for (const s of HISTORICAL_SALE_PAYMENT_STATUSES) {
+      expect(SALE_PAYMENT_STATUS_AR[s]).toBeTruthy();
+    }
+  });
+});
+
 describe("PAYMENT_STATUS_AR — completeness vs the expenses.payment_status CHECK", () => {
   // Must match expenses_payment_status_check so every persisted status renders instead of leaking a key.
-  it.each(["post_paid_unpaid", "paid_from_custody", "paid_by_owner", "cancelled"])(
+  it.each([
+    "post_paid_unpaid",
+    "paid_from_custody",
+    "paid_by_owner",
+    "historical_treasury",
+    "historical_reversed",
+    "cancelled",
+  ])(
     "has a non-empty Arabic label for payment status %s",
     (s) => expect(PAYMENT_STATUS_AR[s]).toBeTruthy(),
   );

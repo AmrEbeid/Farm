@@ -52,6 +52,33 @@ type WithIrrigationBasis<T extends { Row: object; Insert: object; Update: object
   Relationships: T["Relationships"];
 };
 
+/** Add the wage-mode columns migration 20260729090000 put on `people_compensation` — ALREADY LIVE,
+ *  just not yet in the generated types. `mode` is `not null default 'hourly'` (optional on Insert);
+ *  `unit` is set iff mode='piece' (people_compensation_piece_shape); the two contract bounds are set
+ *  iff mode='seasonal' (people_compensation_seasonal_shape). Nullable/optional everywhere else so an
+ *  existing hourly row keeps EXACTLY its pre-migration meaning. */
+type WithWageMode<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
+  Row: T["Row"] & {
+    mode: string;
+    unit: string | null;
+    contract_period_start: string | null;
+    contract_period_end: string | null;
+  };
+  Insert: T["Insert"] & {
+    mode?: string;
+    unit?: string | null;
+    contract_period_start?: string | null;
+    contract_period_end?: string | null;
+  };
+  Update: T["Update"] & {
+    mode?: string;
+    unit?: string | null;
+    contract_period_start?: string | null;
+    contract_period_end?: string | null;
+  };
+  Relationships: T["Relationships"];
+};
+
 /** Add the labor-cost-basis person_id FK (migration 20260701250000) to an existing table entry. */
 type WithLaborPersonId<T extends { Row: object; Insert: object; Update: object; Relationships: unknown }> = {
   Row: T["Row"] & { person_id: string | null };
@@ -438,7 +465,13 @@ type StructFunctions = {
 
 // ── SPEC-0018 «العهدة وطلبات الصرف» — custody + payment requests. ──
 // Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
-type ExpensePaymentStatus = "paid_from_custody" | "post_paid_unpaid" | "paid_by_owner" | "cancelled";
+type ExpensePaymentStatus =
+  | "paid_from_custody"
+  | "post_paid_unpaid"
+  | "paid_by_owner"
+  | "historical_treasury"
+  | "historical_reversed"
+  | "cancelled";
 type ExpenseKind = "operating" | "drawing" | "capex";
 type PaymentRoutingColumn = "payment_status" | "paid_by" | "kind";
 type ExpenseDimensionColumn = "account_id" | "cost_center_id";
@@ -450,7 +483,7 @@ type CustodyAccountsTable = {
   Relationships: [];
 };
 type CustodyMovementsTable = {
-  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; transfer_group_id: string | null; note: string | null; created_at: string; created_by: string | null };
+  Row: { id: string; org_id: string; custody_account_id: string; occurred_at: string; movement_type: string; amount_in: number; amount_out: number; expense_id: string | null; payment_request_id: string | null; journal_entry_id: string | null; transfer_group_id: string | null; reversal_of: string | null; reversal_reason: string | null; expense_reversal_outcome: "unrouted" | "cancelled" | null; reversed_by: string | null; reversed_at: string | null; note: string | null; created_at: string; created_by: string | null };
   Insert: Record<string, never>;
   Update: Record<string, never>;
   Relationships: [];
@@ -583,7 +616,14 @@ type PaymentRequestFundingsTable = {
 };
 type BuyerType = "cash_customer" | "trader" | "company";
 type SalePriceStatus = "pending" | "finalized";
-type SalePaymentStatus = "unpaid" | "partially_collected" | "collected";
+type SalePaymentStatus =
+  | "unpaid"
+  | "partially_collected"
+  | "collected"
+  // reconciliation-created historical direct-treasury sales (migration 20260726160000):
+  // cash-settled at posting (Dr 1010 / Cr typed revenue leaf), never collectible.
+  | "historical_treasury"
+  | "historical_reversed";
 type BuyersTable = {
   Row: {
     id: string;
@@ -759,6 +799,25 @@ type CustodyFunctions = {
     Args: { p_expense: string; p_status: ExpensePaymentStatus; p_custody_account?: string | null; p_paid_by?: string | null };
     Returns: undefined;
   };
+  fn_reverse_expense_payment: {
+    Args: { p_expense: string; p_expected_movement: string; p_outcome: "unrouted" | "cancelled"; p_reason: string; p_reversal_date: string };
+    Returns: Json;
+  };
+  fn_correct_and_route_reversed_expense: {
+    Args: {
+      p_expense: string;
+      p_date: string | null;
+      p_category: string;
+      p_description: string | null;
+      p_total: number;
+      p_supplier: string | null;
+      p_account: string | null;
+      p_cost_center: string | null;
+      p_route: "custody" | "later" | "none";
+      p_custody_account?: string | null;
+    };
+    Returns: Json;
+  };
   // Classify an expense (operating / drawing / capex) — the ONLY write path for expenses.kind (the column is
   // omitted from the expenses Insert type above, so it cannot be set by a direct insert). budget.write gated.
   fn_set_expense_kind: { Args: { p_id: string; p_kind: ExpenseKind }; Returns: Json };
@@ -810,6 +869,23 @@ type PlanOperationAssigneesTable = {
 // NOT a replacement for `fn_accounting_pnl_summary`. finance.read gated (owner/accountant only).
 type OwnerPnlFunctions = {
   fn_owner_pnl_summary: { Args: { p_org: string; p_from: string; p_to: string }; Returns: Json };
+};
+
+type CostCenterSummaryFunctions = {
+  fn_cost_center_direct_summary: {
+    Args: { p_org: string; p_cost_center: string };
+    Returns: Json;
+  };
+};
+
+// ── "/expenses" exact register summary, migration 20260730140000. Read-only, STABLE, SECURITY
+// DEFINER, org/finance.read-gated; drawing-scoped fields are JSON null for a caller without
+// finance.read (never a fabricated zero). ──
+type ExpenseRegisterSummaryFunctions = {
+  fn_expense_register_summary: {
+    Args: { p_org: string; p_month_start: string; p_month_end: string };
+    Returns: Json;
+  };
 };
 
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
@@ -1065,6 +1141,11 @@ type SignoffFunctions = {
 
 // ── SPEC-0006 slice 2 — `labor_logs` (ACTUAL day-to-day attendance), migration 20260701310000. ──
 // Augmented here until database.types.ts is regenerated from prod (then a harmless no-op).
+//
+// `mode`/`quantity`/`unit` were added by 20260729090000_payroll_run_persistence.sql, which is ALREADY
+// LIVE — this is a narrow catch-up on columns that exist, not a forward declaration of a draft.
+// `mode` is `not null default 'hourly'` so it is optional on Insert; `quantity`/`unit` are set iff
+// mode = 'piece' (labor_logs_piece_shape). `hours` stays required for EVERY mode.
 type LaborLogsTable = {
   Row: {
     id: string;
@@ -1073,6 +1154,9 @@ type LaborLogsTable = {
     team_name: string | null;
     work_date: string;
     hours: number;
+    mode: string;
+    quantity: number | null;
+    unit: string | null;
     plan_op_id: string | null;
     note: string | null;
     created_at: string;
@@ -1084,6 +1168,9 @@ type LaborLogsTable = {
     team_name?: string | null;
     work_date: string;
     hours: number;
+    mode?: string;
+    quantity?: number | null;
+    unit?: string | null;
     plan_op_id?: string | null;
     note?: string | null;
     created_at?: string;
@@ -1095,6 +1182,9 @@ type LaborLogsTable = {
     team_name?: string | null;
     work_date?: string;
     hours?: number;
+    mode?: string;
+    quantity?: number | null;
+    unit?: string | null;
     plan_op_id?: string | null;
     note?: string | null;
     created_at?: string;
@@ -1203,6 +1293,42 @@ type OffshootFunctions = {
     Returns: Json;
   };
 };
+
+type DataAuthorityStatusTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    domain: "finance_ledger" | "palm_registry" | "offshoots" | "budgets" | "payroll" | "inventory" | "operations";
+    status: "verified" | "partial" | "unverified" | "blocked";
+    source_label: string | null;
+    source_sha256: string | null;
+    record_count: number | null;
+    notes: string | null;
+    verified_at: string | null;
+    verified_by: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
+type DataAuthorityFunctions = {
+  fn_set_data_authority_status: {
+    Args: {
+      p_org: string;
+      p_domain: DataAuthorityStatusTable["Row"]["domain"];
+      p_status: DataAuthorityStatusTable["Row"]["status"];
+      p_source_label?: string | null;
+      p_source_sha256?: string | null;
+      p_record_count?: number | null;
+      p_notes?: string | null;
+    };
+    Returns: DataAuthorityStatusTable["Row"];
+  };
+};
+
 // SPEC-0027 H-A — شاشة الميزان: one call = crates→net→pending sale + serialized بون.
 type HarvestDaysTable = {
   Row: {
@@ -1289,6 +1415,507 @@ type RevenueFunctions = {
   };
 };
 
+// Accounting reconciliation (SPEC-0004 slices 1A/3, migrations
+// 20260725201546_accounting_reconciliation_provenance.sql and
+// "20260726120000 accounting reconciliation review rpcs.sql"). Not yet in the generated types.
+// Reads are RLS-scoped SELECTs; every write goes through the gated RPCs below, so Insert/Update are
+// closed (Record<string, never>), matching the accounting tables above.
+type ReconciliationBatchesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    source_workbook_sha256: string | null;
+    source_label: string | null;
+    status: string;
+    created_at: string;
+    created_by: string | null;
+    approved_by: string | null;
+    approved_at: string | null;
+    result_summary: Json | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type ReconciliationEvidenceItemsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    origin_kind: string;
+    source_workbook_sha256: string | null;
+    sheet_name: string | null;
+    row_locator: string | null;
+    production_snapshot_sha256: string | null;
+    snapshot_target_table: string | null;
+    snapshot_target_id: string | null;
+    source_identity_fingerprint: string | null;
+    source_amount: number | null;
+    source_date_text: string | null;
+    source_date_parsed: string | null;
+    classification: string;
+    invalid_calendar_quality_flag: boolean;
+    first_staged_batch_id: string | null;
+    created_at: string;
+    created_by: string | null;
+    // Slice 4A (migration 20260726140000): nullable label displayed in the review UI.
+    evidence_label: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type ReconciliationBatchRowsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    batch_id: string;
+    evidence_item_id: string;
+    review_state: string;
+    reviewer_id: string | null;
+    review_reason: string | null;
+    reviewed_at: string | null;
+    target_table: string | null;
+    disposition: string;
+    expense_category: string | null;
+    expense_description: string | null;
+    expense_kind: string | null;
+    expense_account_id: string | null;
+    expense_cost_center_id: string | null;
+    expense_supplier_id: string | null;
+    expense_payment_decision: string | null;
+    sale_crop: string | null;
+    sale_quantity: number | null;
+    sale_unit: string | null;
+    sale_unit_price: number | null;
+    sale_recorded_total: number | null;
+    sale_buyer_id: string | null;
+    sale_cost_center_id: string | null;
+    sale_farm_id: string | null;
+    sale_sector_id: string | null;
+    sale_hawsha_id: string | null;
+    sale_season: string | null;
+    sale_delivery_date: string | null;
+    sale_notes: string | null;
+    sale_historical_date_decision: string | null;
+    sale_effective_date: string | null;
+    corrects_expense_id: string | null;
+    corrects_sale_id: string | null;
+    payload_hash: string | null;
+    frozen: boolean;
+    frozen_at: string | null;
+    execution_result: string;
+    execution_error: string | null;
+    created_at: string;
+    created_by: string | null;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+/**
+ * What the two owner-only money RPCs return.
+ *
+ * Both answer with a jsonb VERDICT, not with a bare void: fn_execute_reconciliation_batch catches a
+ * non-transient failure, records it on the batch, and returns `{status:'failed', failure_code,
+ * safe_locator}` WITHOUT raising, so `status` is the only truthful signal that anything was posted.
+ * Typing these as an opaque `Json` forced a caller to either ignore the body or cast it, which is
+ * exactly how a returned failure came to be reported as success.
+ *
+ * Every field is optional and nullable ON PURPOSE. This type says "here is the shape you may look
+ * for"; it does not assert the server sent it. `lib/reconciliation review.ts`'s parseExecuteOutcome /
+ * parseRollbackOutcome remain the authoritative runtime validation and fail closed on anything else.
+ */
+export type ReconciliationBatchOutcome = {
+  batch_id?: string | null;
+  status?: string | null;
+  idempotent?: boolean | null;
+  executed_rows?: number | null;
+  skipped_rows?: number | null;
+  /** Coarse execution failure class. Mapped to Arabic; never rendered raw. */
+  failure_code?: string | null;
+  // `safe_locator` IS on the wire and is deliberately NOT modelled here. It is a row-level locator,
+  // and §2.7's redaction discipline keeps row-level identifiers out of anything a user can see. Not
+  // declaring it makes that a COMPILE error rather than a convention: `data.safe_locator` does not
+  // typecheck, so a future caller cannot reach it without deliberately casting past this contract.
+  reversed_journals?: number | null;
+  reinstated_journals?: number | null;
+  zero_value_rows?: number | null;
+  ledger_rows_reversed?: number | null;
+  rows_marked_reversed?: number | null;
+};
+
+/**
+ * What fn_stage_reconciliation_manifest returns.
+ *
+ * Every field is optional and nullable ON PURPOSE — same rationale as ReconciliationBatchOutcome
+ * above: this type describes the shape a caller MAY look for, it does not assert the server sent it.
+ * `lib/reconciliation staging.ts`'s parseStageOutcome is the authoritative runtime validation and
+ * fails closed unless `batch_id` is a real UUID and `status` a non-empty string.
+ */
+export type ReconciliationStageOutcome = {
+  batch_id?: string | null;
+  status?: string | null;
+  /** True when the deterministic manifest was already staged byte-for-byte; nothing was written. */
+  idempotent_replay?: boolean | null;
+  staged_rows?: number | null;
+  total_rows?: number | null;
+};
+
+/**
+ * What fn_reconciliation_acceptance_snapshot returns (migration
+ * "20260728120000 accounting reconciliation acceptance snapshot.sql").
+ *
+ * Every field is optional and nullable ON PURPOSE — same rationale as the two types above: this says
+ * "here is the shape you may look for", it does not assert the server sent it.
+ * `lib/reconciliation acceptance data.ts`'s parseAcceptanceSnapshot is the authoritative runtime
+ * validation and refuses anything it does not fully recognise.
+ *
+ * `batch` and `rows` are deliberately `Json`: the parser reads them field by field (including that no
+ * accounting amount arrived as a JSON number), so declaring a convenient shape here would only invite
+ * a caller to trust it without that check.
+ */
+export type ReconciliationAcceptanceSnapshot = {
+  /** Pins the payload contract; the reader refuses any other value. */
+  version?: string | null;
+  /** 'ok' | 'not_found' | 'empty' | 'overflow' | 'incomplete' | 'count_mismatch'. */
+  status?: string | null;
+  /** The whole-batch bound the DB enforced. Must equal the app's ACCEPTANCE_MAX_ROWS. */
+  max_rows?: number | null;
+  row_count?: number | null;
+  evidence_item_count?: number | null;
+  declared_row_count?: number | null;
+  rows_missing_evidence?: number | null;
+  staged_batch_row_count?: number | null;
+  staged_evidence_item_count?: number | null;
+  batch?: Json | null;
+  rows?: Json | null;
+};
+
+// The authenticated client RPCs the reconciliation workspace calls: the staging RPC, the three
+// review-stage ones, the two owner-only money RPCs the batch page drives, and the read-only
+// acceptance snapshot.
+type ReconciliationFunctions = {
+  /**
+   * Stage an already-generated Slice-2 manifest as REVIEW ROWS ONLY (20260726120000, re-emitted by
+   * 20260726140000). Owner/accountant via authorize('reconciliation.write', p_org); `p_org` must be
+   * the caller's own org and must equal the manifest's own `batch.org_id` (the RPC re-checks both).
+   * Creates no expense, sale, or journal — posting happens only at owner execution.
+   */
+  fn_stage_reconciliation_manifest: {
+    Args: { p_org: string; p_manifest: Json };
+    Returns: ReconciliationStageOutcome;
+  };
+  fn_review_reconciliation_row: {
+    Args: { p_row_id: string; p_decision: Json };
+    Returns: Json;
+  };
+  fn_freeze_reconciliation_batch: {
+    Args: { p_batch_id: string };
+    Returns: Json;
+  };
+  fn_approve_reconciliation_batch: {
+    Args: { p_batch_id: string };
+    Returns: Json;
+  };
+  /**
+   * Owner-only, whole-batch atomic execution of an approved batch (20260726150000/20260726160000).
+   * Returns a verdict — a `failed` status arrives with NO PostgREST error, so the body must be read.
+   */
+  fn_execute_reconciliation_batch: {
+    Args: { p_batch_id: string };
+    Returns: ReconciliationBatchOutcome;
+  };
+  /**
+   * Owner-only, whole-batch atomic rollback of an executed batch (20260726170000). `p_reason` is
+   * MANDATORY at the RPC — it is typed non-optional here so a caller cannot omit it at compile time.
+   */
+  fn_rollback_reconciliation_batch: {
+    Args: { p_batch_id: string; p_reason: string };
+    Returns: ReconciliationBatchOutcome;
+  };
+  /**
+   * READ-ONLY, SECURITY INVOKER single-snapshot payload for the acceptance report (20260728120000).
+   *
+   * Owner/accountant via authorize('finance.read', p_org); `p_org` must be the caller's ACTIVE org.
+   * It reads the batch, every row, each row's evidence and the readable dimension labels in ONE
+   * database snapshot, serialises every `numeric` accounting field as canonical decimal TEXT, and
+   * refuses — never truncates — an over-large batch, an incomplete read, or a batch whose stored row
+   * count disagrees with what staging recorded. It calls no other RPC and writes nothing.
+   */
+  fn_reconciliation_acceptance_snapshot: {
+    Args: { p_org: string; p_batch_id: string };
+    Returns: ReconciliationAcceptanceSnapshot;
+  };
+};
+
+// Payroll persistence (SPEC-0006 slice 3, migration 20260729090000_payroll_run_persistence.sql —
+// already live). Not yet in the generated types. Both tables are FORCE RLS with a SELECT-only grant
+// gated on authorize('payroll.read', org_id) (owner/accountant); the ONLY write path is the
+// SECURITY DEFINER RPC below, and both tables are additionally immutable through an unconditional
+// BEFORE UPDATE OR DELETE trigger. Insert/Update are therefore closed (Record<string, never>),
+// matching the accounting/reconciliation tables above — a stray `.insert()` fails to compile.
+type PayrollRunsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    period_start: string;
+    period_end: string;
+    closed_by: string | null;
+    closed_at: string;
+    total_gross: number;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type PayrollRunLinesTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    run_id: string;
+    person_id: string;
+    mode: string;
+    /** Set iff mode = 'piece' (payroll_run_lines_piece_shape). */
+    unit: string | null;
+    quantity: number;
+    rate: number;
+    /** round(quantity * rate, 2) — pinned by the payroll_run_lines_gross_exact CHECK. */
+    gross: number;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+type PayrollFunctions = {
+  /**
+   * Close a payroll period: freeze one immutable run + its snapshot lines for the caller's own org
+   * (owner/accountant via authorize('payroll.read', p_org)). Idempotent on an exact replay, and it
+   * takes a per-org EXCLUSIVE advisory lock BEFORE deciding, so a concurrent second caller never
+   * races it — an app-side pre-check would only reintroduce the race the RPC already closes.
+   *
+   * NO PAYMENT EXECUTION and NO JOURNAL: it snapshots gross pay for reporting only.
+   *
+   * Every failure arrives as a raised SQLSTATE whose message embeds raw identifiers (person/org
+   * UUIDs). Callers MUST route it through lib/payroll-close.ts' `payrollCloseFailure`, never render
+   * `error.message`.
+   */
+  fn_close_payroll_run: {
+    Args: { p_org: string; p_period_start: string; p_period_end: string };
+    Returns: Json;
+  };
+};
+
+// ── SPEC-0032 — Marketing module, migration 20260820090000. ──
+// Reads/writes are role-scoped to owner/accountant/farm_manager (RLS + RPC inline check, no
+// authorize() dependency); client INSERT/UPDATE/DELETE is revoked on all three tables, so every
+// Insert/Update type below is `never` — the RPCs (below) are the only write surface.
+type MarketingContactTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    org_name: string | null;
+    category: "exporter" | "buyer_lead" | "kuwait_distributor" | "platform" | "freight" | "other";
+    source: string | null;
+    source_key: string | null;
+    notes: string | null;
+    metadata: Json;
+    selected: boolean;
+    archived: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
+// Append-only (no update/delete RPC exists at all — fn_log_marketing_contact_activity is the only writer).
+type MarketingContactActivityTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    contact_id: string;
+    kind: "call" | "email" | "meeting" | "note" | "followup";
+    notes: string | null;
+    occurred_at: string;
+    follow_up_at: string | null;
+    created_by: string | null;
+    created_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [
+    {
+      foreignKeyName: "marketing_contact_activity_contact_id_fkey";
+      columns: ["contact_id"];
+      isOneToOne: false;
+      referencedRelation: "marketing_contact";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+export type MarketingRecordType =
+  | "price_observation"
+  | "exw_bid"
+  | "quality_batch"
+  | "weekly_availability"
+  | "competitor"
+  | "lead_local"
+  | "lead_offshoot"
+  | "lead_social"
+  | "lead_linkedin"
+  | "hot_lead"
+  | "task"
+  | "platform_state"
+  | "broker_state"
+  | "certificate"
+  | "channel_target"
+  | "message_template"
+  | "freight_reference"
+  | "market_reference"
+  | "daily_sales_report"
+  | "repeat_customer";
+
+type MarketingRecordTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    record_type: MarketingRecordType;
+    title: string;
+    payload: Json;
+    contact_id: string | null;
+    amount: number | null;
+    status: string | null;
+    source_key: string | null;
+    archived: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [
+    {
+      foreignKeyName: "marketing_record_contact_id_fkey";
+      columns: ["contact_id"];
+      isOneToOne: false;
+      referencedRelation: "marketing_contact";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type MarketingImportRunTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    source_hash: string;
+    expected_contacts: number;
+    imported_contacts: number;
+    existing_contacts: number;
+    expected_records: number;
+    imported_records: number;
+    existing_records: number;
+    coverage: Json;
+    created_by: string | null;
+    created_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
+type MarketingFunctions = {
+  fn_save_marketing_contact: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_name: string;
+      p_phone: string | null;
+      p_email: string | null;
+      p_org_name: string | null;
+      p_category: string;
+      p_source: string | null;
+      p_notes: string | null;
+      p_selected?: boolean;
+      p_source_key?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_archive_marketing_contact: { Args: { p_id: string; p_archived: boolean }; Returns: undefined };
+  fn_save_marketing_contact_v2: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_name: string;
+      p_phone: string | null;
+      p_email: string | null;
+      p_org_name: string | null;
+      p_category: string;
+      p_source: string | null;
+      p_notes: string | null;
+      p_selected?: boolean;
+      p_source_key?: string | null;
+      p_metadata?: Json;
+    };
+    Returns: Json;
+  };
+  fn_log_marketing_contact_activity: {
+    Args: {
+      p_contact_id: string;
+      p_kind: string;
+      p_notes: string | null;
+      p_occurred_at?: string;
+      p_follow_up_at?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_save_marketing_record: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_record_type: string;
+      p_title: string;
+      p_payload: Json;
+      p_contact_id?: string | null;
+      p_amount?: number | null;
+      p_status?: string | null;
+      p_source_key?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_archive_marketing_record: { Args: { p_id: string; p_archived: boolean }; Returns: undefined };
+  fn_import_marketing_source: {
+    Args: {
+      p_org: string;
+      p_source_hash: string;
+      p_contacts: Json;
+      p_records: Json;
+      p_expected_contacts: number;
+      p_expected_records: number;
+      p_coverage: Json;
+    };
+    Returns: Json;
+  };
+  fn_marketing_contacts_page: {
+    Args: {
+      p_org: string;
+      p_query?: string | null;
+      p_category?: string | null;
+      p_archived?: boolean | null;
+      p_page?: number;
+      p_page_size?: number;
+    };
+    Returns: Json;
+  };
+  fn_marketing_dashboard_snapshot: { Args: { p_org: string }; Returns: Json };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
     Views: Public["Views"] & {
@@ -1306,7 +1933,9 @@ export type Database = Omit<Generated, "public"> & {
       | "plan_operations"
       | "plan_labor_requirements"
       | "plan_material_requirements"
+      | "people_compensation"
     > & {
+      people_compensation: WithWageMode<Tables["people_compensation"]>;
       farms: WithArchived<Tables["farms"]>;
       sectors: WithArchived<Tables["sectors"]>;
       hawshat: WithArchived<Tables["hawshat"]>;
@@ -1341,8 +1970,18 @@ export type Database = Omit<Generated, "public"> & {
       site_enquiries: SiteEnquiriesTable;
       offshoot_movements: OffshootMovementsTable;
       offshoot_valuation: OffshootValuationTable;
+      data_authority_status: DataAuthorityStatusTable;
+      reconciliation_batches: ReconciliationBatchesTable;
+      reconciliation_evidence_items: ReconciliationEvidenceItemsTable;
+      reconciliation_batch_rows: ReconciliationBatchRowsTable;
+      payroll_runs: PayrollRunsTable;
+      payroll_run_lines: PayrollRunLinesTable;
+      marketing_contact: MarketingContactTable;
+      marketing_contact_activity: MarketingContactActivityTable;
+      marketing_record: MarketingRecordTable;
+      marketing_import_run: MarketingImportRunTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & ExpenseRegisterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions & MarketingFunctions;
   };
 };
 

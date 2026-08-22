@@ -39,7 +39,13 @@ with expected_sensitive(entity_type) as (
     ('offshoot_valuation'),
     ('buyer'),
     ('sale_collection'),
-    ('accounting_period')
+    ('accounting_period'),
+    -- SPEC-0006 slice 3 (migration 20260729090000) folded these two into the SAME confidential
+    -- branch as people_compensation. They were added to the policy but never to this vocabulary,
+    -- so a later re-emit could have dropped either one from the open-branch exclusion and still
+    -- passed here — the precise stale-copy leak this pin exists to catch.
+    ('payroll_run'),
+    ('payroll_run_line')
 ),
 audit_gate as (
   select lower(coalesce(qual, '')) as policy_sql
