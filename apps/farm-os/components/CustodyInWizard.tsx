@@ -4,8 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { useSubmit } from "@/components/useSubmit";
-import { egp } from "@/lib/money";
 import { recordCustodyMovement } from "@/app/(app)/custody/actions";
+import {
+  custodyAmountEgp,
+  normalizePositiveCustodyAmount,
+} from "@/lib/custody write money";
 
 // SPEC-0025 U-2 — cash IN: «استلمت عهدة من المالك». One question, one confirmation; the gated RPC
 // posts the funding journal itself. Plain Arabic — no internal vocabulary.
@@ -17,7 +20,7 @@ export function CustodyInWizard({ accounts }: { accounts: { id: string; label: s
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const { pending, submit } = useSubmit();
-  const amountNum = Number(amount);
+  const amountValue = normalizePositiveCustodyAmount(amount);
   const label = accounts.find((a) => a.id === accountId)?.label;
 
   async function onSave() {
@@ -26,8 +29,8 @@ export function CustodyInWizard({ accounts }: { accounts: { id: string; label: s
       recordCustodyMovement({
         accountId,
         movementType: "استلام عهدة من المالك",
-        amountIn: amountNum,
-        amountOut: 0,
+        amountIn: amount,
+        amountOut: "0",
         note: note || null,
       }),
     );
@@ -74,18 +77,18 @@ export function CustodyInWizard({ accounts }: { accounts: { id: string; label: s
               </select>
             </Field>
             <Field label="المبلغ (ج.م)" id="ci-amt">
-              <Input id="ci-amt" type="number" inputMode="decimal" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+              <Input id="ci-amt" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} required />
             </Field>
             <Field label="ملاحظة (اختياري)" id="ci-note">
               <Input id="ci-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
             </Field>
-            {Number.isFinite(amountNum) && amountNum > 0 && label && (
+            {amountValue && label && (
               <div className="rounded-md p-3 text-sm" style={{ background: "var(--surface-sunken, #f4f7f5)", color: "var(--ink)" }}>
-                <strong>سيُسجَّل:</strong> استلام {egp(amountNum)} في عهدة «{label}» — صحيح؟
+                <strong>سيُسجَّل:</strong> استلام {custodyAmountEgp(amountValue)} في عهدة «{label}» — صحيح؟
               </div>
             )}
             <div>
-              <Button onClick={onSave} disabled={pending || !(amountNum > 0) || !accountId}>
+              <Button onClick={onSave} disabled={pending || amountValue == null || !accountId}>
                 {pending ? "جارٍ الحفظ…" : "احفظ ✓"}
               </Button>
             </div>

@@ -133,7 +133,7 @@ export default async function CostCenterPage({ params }: { params: Promise<{ id:
         </div>
         <div className="no-print flex flex-wrap gap-2 text-sm font-bold">
           <PrintButton label="طباعة المركز" />
-          <Link href="/record/expense" className="underline underline-offset-4" style={{ color: "var(--brand)" }}>
+          <Link href="/record/expense?payment=custody" className="underline underline-offset-4" style={{ color: "var(--brand)" }}>
             + سجّل مصروفًا عليه
           </Link>
         </div>

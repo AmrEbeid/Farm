@@ -64,7 +64,7 @@ export type FinanceInsightSummary = {
   };
 };
 
-/** Reversal-safe per-center sale revenue. See {@link computeSalesRevenueByCenter}. */
+/** Reversal-safe posted-sale revenue already aggregated by nullable cost center. */
 export type SalesRevenueByCenter = { byCenter: Record<string, number>; total: number };
 
 export function buildFinanceInsightSummary({
@@ -162,31 +162,6 @@ function toCenterEconomics(row: CostCenterInsightRollup, revenueOverride?: numbe
     net,
     netPerFeddan,
   };
-}
-
-/**
- * Reversal-safe per-cost-center sale revenue (#701, SPEC-0024). Sums finalized `sales.total` by the
- * sale's own `cost_center_id`, but ONLY for sales whose revenue journal entry is live-posted — i.e.
- * `sale.id ∈ livePostedSaleIds`, the set of `journal_entries.source_id where source_type='sale' and
- * status='posted'`. A finalized-then-reversed (or voided) sale keeps `price_status='finalized'` but
- * has no posted entry, so excluding it here keeps the total tied to the posted GL (no status-void
- * over-count). `total` includes untagged (null-center) revenue; `byCenter` omits it.
- */
-export function computeSalesRevenueByCenter(
-  sales: { id: string; cost_center_id: string | null; total: number | null; price_status: string }[],
-  livePostedSaleIds: Set<string>,
-): SalesRevenueByCenter {
-  const byCenter: Record<string, number> = {};
-  let total = 0;
-  for (const s of sales) {
-    if (s.price_status !== "finalized") continue;
-    if (!livePostedSaleIds.has(s.id)) continue;
-    const amount = Number(s.total ?? 0);
-    if (amount === 0) continue;
-    total += amount;
-    if (s.cost_center_id) byCenter[s.cost_center_id] = (byCenter[s.cost_center_id] ?? 0) + amount;
-  }
-  return { byCenter, total };
 }
 
 function buildCards({

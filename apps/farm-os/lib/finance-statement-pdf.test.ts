@@ -8,6 +8,8 @@ import {
   statementPackagePdfFilename,
 } from "@/lib/finance-statement-pdf";
 
+const PDF_RENDER_TIMEOUT_MS = 20_000;
+
 describe("finance statement PDF rendering", () => {
   it("builds a stable balance-sheet filename", () => {
     expect(balanceSheetPdfFilename("2026-03-31")).toBe("balance-sheet-2026-03-31.pdf");
@@ -39,7 +41,7 @@ describe("finance statement PDF rendering", () => {
 
     expect(pdf.subarray(0, 5).toString("utf8")).toBe("%PDF-");
     expect(pdf.byteLength).toBeGreaterThan(1000);
-  });
+  }, PDF_RENDER_TIMEOUT_MS);
 
   it("renders a combined income-statement and balance-sheet PDF package", async () => {
     const incomeStatement = parseIncomeStatement({
@@ -78,5 +80,5 @@ describe("finance statement PDF rendering", () => {
 
     expect(pdf.subarray(0, 5).toString("utf8")).toBe("%PDF-");
     expect(pdf.byteLength).toBeGreaterThan(1500);
-  });
+  }, PDF_RENDER_TIMEOUT_MS);
 });

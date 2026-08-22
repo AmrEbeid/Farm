@@ -9,8 +9,9 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
 import { EntityTabs } from "@/components/EntityTabs";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { egp, egpSummary, num, sumMoney } from "@/lib/money";
 import { MOVEMENT_TYPE_AR, PR_STATUS_AR } from "@/lib/labels";
+import { requireExactCount } from "@/lib/transactions-ledger";
 
 type InventoryItemEmbed = { id?: string; name?: string | null; unit?: string | null };
 type PurchaseRequestEmbed = { id?: string; code?: string | null; status?: string | null; needed_by?: string | null };
@@ -43,7 +44,7 @@ export default async function Supplier360Page({
     { data: supplier, error: supplierError },
     { data: items, error: itemsError },
     { data: prLines, error: prLinesError, count: prLineCount },
-    { data: expenses, error: expensesError },
+    { data: expenses, error: expensesError, count: expenseCount },
     { data: movements, error: movementsError },
   ] = await Promise.all([
     sb
@@ -63,15 +64,17 @@ export default async function Supplier360Page({
         { count: "exact" },
       )
       .eq("supplier_id", supplierId)
+      .order("id", { ascending: false })
       .limit(20),
     canReadPrivateFinance
       ? sb
           .from("expenses")
-          .select("id, date, category, description, total")
+          .select("id, date, category, description, total", { count: "exact" })
           .eq("supplier_id", supplierId)
-          .order("date", { ascending: false })
+          .order("date", { ascending: false, nullsFirst: false })
+          .order("id", { ascending: false })
           .limit(12)
-      : Promise.resolve({ data: [], error: null }),
+      : Promise.resolve({ data: [], error: null, count: 0 }),
     sb
       .from("inventory_movements")
       .select("id, item_id, type, qty, occurred_at, inventory_items(id, name, unit)")
@@ -92,7 +95,15 @@ export default async function Supplier360Page({
       </div>
     );
 
-  const expensesTotal = (expenses ?? []).reduce((sum, expense) => sum + Number(expense.total ?? 0), 0);
+  const exactExpenseCount = canReadPrivateFinance
+    ? requireExactCount({ count: expenseCount, error: expensesError }, "supplier expenses")
+    : 0;
+  const exactPrLineCount = requireExactCount(
+    { count: prLineCount, error: prLinesError },
+    "supplier purchase lines",
+  );
+  const expensesSummary = sumMoney((expenses ?? []).map((expense) => expense.total));
+  const expensesTruncated = exactExpenseCount > (expenses ?? []).length;
 
   const itemColumns: SimpleColumn[] = [
     { id: "name", header: "الصنف" },
@@ -169,10 +180,10 @@ export default async function Supplier360Page({
   const tabItems: TabItem[] = [
     { id: "overview", label: "نظرة عامة" },
     { id: "items", label: `الأصناف (${num((items ?? []).length)})` },
-    { id: "purchases", label: `المشتريات (${num(prLineCount ?? prRows.length)})` },
-    { id: "movements", label: `حركات المخزون (${num((movements ?? []).length)})` },
+    { id: "purchases", label: `المشتريات (${num(exactPrLineCount)})` },
+    { id: "movements", label: `حركات معروضة (${num((movements ?? []).length)})` },
     ...(canReadPrivateFinance
-      ? [{ id: "finance", label: `المالية (${num(expenseRows.length)})` } satisfies TabItem]
+      ? [{ id: "finance", label: `المالية (${num(exactExpenseCount)})` } satisfies TabItem]
       : []),
   ];
 
@@ -201,10 +212,16 @@ export default async function Supplier360Page({
         <KpiCard label="أصناف مفضلة" value={num((items ?? []).length)} />
         <KpiCard
           label="بنود شراء"
-          value={num(prLineCount ?? (prLines ?? []).length)}
-          delta={prLineCount && prLineCount > (prLines ?? []).length ? "يعرض الجدول أحدث ٢٠" : undefined}
+          value={num(exactPrLineCount)}
+          delta={exactPrLineCount > (prLines ?? []).length ? `يعرض الجدول ${num((prLines ?? []).length)} من الإجمالي` : undefined}
         />
-        {canReadPrivateFinance && <KpiCard label="مصروفات حديثة" value={egp(expensesTotal)} />}
+        {canReadPrivateFinance && (
+          <KpiCard
+            label="آخر مصروفات معروضة"
+            value={egpSummary(expensesSummary)}
+            delta={expensesTruncated ? `أحدث ${num((expenses ?? []).length)} من ${num(exactExpenseCount)}` : undefined}
+          />
+        )}
         <KpiCard label="حركات مخزون" value={num((movements ?? []).length)} />
       </section>
 

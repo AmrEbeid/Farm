@@ -5,9 +5,10 @@ import { failClosedAuthority, isAuthoritative } from "./data-authority";
 
 const financeDashboardSource = readFileSync(
   join(process.cwd(), "app", "(app)", "finance", "dashboard", "page.tsx"),
-  "utf8",
+  "utf8"
 );
-const occurrences = (source: string, needle: string) => source.split(needle).length - 1;
+const occurrences = (source: string, needle: string) =>
+  source.split(needle).length - 1;
 
 describe("data authority", () => {
   it("allows numerical claims only for verified data", () => {
@@ -29,43 +30,41 @@ describe("data authority", () => {
   });
 
   it("fails the finance dashboard budget surfaces closed", () => {
-    const initialParallelWave = financeDashboardSource.slice(
-      financeDashboardSource.indexOf("const ["),
-      financeDashboardSource.indexOf("if (budgetsError)"),
-    );
     const budgetKpiGate = financeDashboardSource.slice(
       financeDashboardSource.indexOf("{(budgetsVerified || canSeeAccounting)"),
       financeDashboardSource.indexOf(
         '\n\n      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">',
-        financeDashboardSource.indexOf("{(budgetsVerified || canSeeAccounting)"),
-      ),
+        financeDashboardSource.indexOf("{(budgetsVerified || canSeeAccounting)")
+      )
     );
     const budgetChartGate = financeDashboardSource.slice(
-      financeDashboardSource.indexOf(
-        '{budgetsVerified && (filter === "all" || filter === "budgets") && budgetTotals.approved > 0 && (',
-      ),
-      financeDashboardSource.indexOf('<div className="no-print">'),
+      financeDashboardSource.indexOf("{budgetsVerified &&"),
+      financeDashboardSource.indexOf('<div className="no-print">')
     );
     const budgetPressureGate = financeDashboardSource.slice(
-      financeDashboardSource.indexOf('{(filter === "all" || filter === "budgets") && ('),
       financeDashboardSource.indexOf(
-        '{(filter === "all" ||\n        filter === "expenses"',
+        '{(filter === "all" || filter === "budgets") && ('
       ),
+      financeDashboardSource.indexOf(
+        '{(filter === "all" ||\n        filter === "expenses"'
+      )
     );
 
-    expect(initialParallelWave).toContain('getDataAuthority(sb, m.orgId, "budgets")');
-    expect(initialParallelWave).toContain('.eq("org_id", m.orgId)');
     expect(financeDashboardSource).toContain(
-      "const budgetsVerified = isAuthoritative(budgetAuthority.status);",
+      'sb.rpc("fn_finance_dashboard_snapshot"'
+    );
+    expect(financeDashboardSource).toContain("p_org: m.orgId");
+    expect(financeDashboardSource).toContain(
+      "const budgetsVerified = isAuthoritative(snapshot.budgetAuthority);"
     );
     expect(financeDashboardSource).toContain(
-      '{budgetsVerified && (\n        <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">',
+      '{budgetsVerified && (\n        <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">'
     );
     expect(budgetKpiGate).toContain("{budgetsVerified && (");
     for (const sink of [
-      '<KpiCard label="المعتمد (لقطة)"',
-      '<KpiCard label="ملتزم + فعلي (لقطة)"',
-      '<KpiCard label="المتاح (لقطة)"',
+      'label="المعتمد (لقطة)"',
+      'label="ملتزم + فعلي (لقطة)"',
+      'label="المتاح (لقطة)"',
     ]) {
       expect(occurrences(financeDashboardSource, sink), sink).toBe(1);
       expect(budgetKpiGate, sink).toContain(sink);
@@ -74,17 +73,19 @@ describe("data authority", () => {
       expect(occurrences(financeDashboardSource, sink), sink).toBe(1);
       expect(budgetChartGate, sink).toContain(sink);
     }
+    expect(budgetPressureGate).toContain('title="لا توجد موازنة موثقة"');
+    expect(budgetPressureGate).toContain("description={DATA_NOT_VERIFIED_AR}");
     expect(budgetPressureGate).toContain(
-      '<Alert tone="warning" title="لا توجد موازنة موثقة" description={DATA_NOT_VERIFIED_AR} />',
+      '{budgetsVerified && (\n            <Card title="ضغط الموازنة (لقطة)">'
+    );
+    expect(financeDashboardSource).toMatch(
+      /const budgetRowsTruncated =\s*snapshot\.budgetSummary\.budgetCount > budgetRows\.length/
     );
     expect(budgetPressureGate).toContain(
-      '{budgetsVerified && (\n            <Card title="ضغط الموازنة (لقطة)">',
+      '? undefined\n                        : "finance-dashboard-budget-pressure"'
     );
-    const budgetExport = 'exportFilename="finance-dashboard-budget-pressure"';
-    expect(occurrences(financeDashboardSource, budgetExport)).toBe(1);
-    expect(budgetPressureGate).toContain(budgetExport);
     expect(financeDashboardSource).toContain(
-      'requireRole(["owner", "accountant", "farm_manager"])',
+      'requireRole(["owner", "accountant", "farm_manager"])'
     );
   });
 });

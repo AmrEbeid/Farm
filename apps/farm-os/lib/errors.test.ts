@@ -9,7 +9,10 @@ const hasLatinLetters = (s: string) => /[A-Za-z]/.test(s);
 
 describe("toArabicError", () => {
   it("maps each known SQLSTATE to a non-English Arabic message", () => {
-    const codes = ["42501", "23514", "22023", "23505", "23503", "23502", "55000", "P0002", "40001", "40P01", "57014"];
+    const codes = [
+      "42501", "23514", "22023", "23505", "23503", "23502", "55000", "P0002",
+      "40001", "40P01", "55P03", "57014",
+    ];
     for (const code of codes) {
       const msg = toArabicError({ code, message: "some raw English postgres detail" });
       expect(msg).not.toBe("some raw English postgres detail");
@@ -49,6 +52,12 @@ describe("toArabicError", () => {
   it("explains period-lock SQLSTATEs before falling back to action-specific messages", () => {
     expect(toArabicError({ code: "55000", message: "period is locked" })).toBe(
       "الفترة المحاسبية مقفلة؛ افتحها أو اختر تاريخًا خارج الفترة المقفلة.",
+    );
+  });
+
+  it("explains a month-close source mutex collision as retryable", () => {
+    expect(toArabicError({ code: "55P03", message: "lock not available" })).toBe(
+      "إقفال الشهر جارٍ؛ يُرجى المحاولة مرة أخرى بعد لحظات.",
     );
   });
 

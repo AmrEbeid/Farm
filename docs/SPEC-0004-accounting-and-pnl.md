@@ -11,6 +11,12 @@ reconciliation against real financials depends on the privacy-reviewed real-data
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 7, [`03-architecture-and-data-model.md`](03-architecture-and-data-model.md),
 and the real **7-year Ebeid accounting workbook** (the reconciliation source).*
 
+*2026-08-08 local release-candidate note: the owner-facing report hub and sidebar now have one canonical P&L
+entry backed by the posted double-entry GL. Statement and monthly/annual trend are views of
+`/finance/income-statement`; legacy `/finance/pnl` and `/finance/pnl-trend` URLs remain owner/accountant-gated
+redirects. Invalid, repeated, reversed, or conflicting partial parameters fail safely. This consolidation is
+validated locally and is not released; it does not satisfy the workbook dual-run or human acceptance gates.*
+
 ---
 
 ## 1. Why & the bar
@@ -681,7 +687,7 @@ policy. PR #977 merged at `002d04cfcad74f7bdc6088c4111d6d68a6bcee88`; exact prod
 are green. Public `/login` is 200, the signed-out acceptance route redirects to `/login`, and the post-release
 runtime-error window is empty. No migration or business row changed.
 
-### 8.12 Queue route to the acceptance report's evidence-quality exceptions (2026-07-30, MERGED / DEPLOYED / LIVE-SMOKED)
+### 8.12 Queue route to the acceptance report's evidence-quality exceptions (2026-08-08 local extension, NOT RELEASED)
 
 **Status: PR #981 merged at `7566402c1ca8757cb4e609ee9e35d3f0d949a932`; exact deployment
 `5XWz8F9CE29VcyTq4bWLbRaHySm2` completed. Independent Codex review APPROVE. No migration, dependency,
@@ -699,26 +705,25 @@ so the fact is on screen, but at 50 rows per page the only way to enumerate thos
 698-row batch was to open all fourteen pages and read every card. The report told the accountant a number
 it gave them no way to navigate to.
 
-**The change (two source files, no SQL).** A third bounded filter dimension, `quality`, with a closed
-two-value allowlist:
+**The current local extension.** The existing bounded `quality` dimension now has a closed three-value
+allowlist, enforced identically by the URL parser and the canonical page RPC:
 
 | URL value | Predicate | Acceptance figure it routes to |
 | --- | --- | --- |
 | `invalid_source_date` | `evidence.invalid_calendar_quality_flag eq true` | «تواريخ مصدر غير صالحة» |
 | `missing_source_amount` | `evidence.source_amount is null` | «صفوف بلا مبلغ مصدر مسجَّل» |
+| `unlinked_correction` | correction classification and both correction target IDs null | «صفوف تصحيح بلا سجل مُصحَّح» |
 
-`reconciliationQueueQualityPredicates()` is the closed mapping, in the same shape and spirit as the
-existing `reconciliationQueueStatePredicates()`. Its predicate carries an explicit **operator** because
-the two are not both equalities: "no recorded source amount" is a NULL test, which PostgREST expresses as
-`is`; an `eq`-with-null would match nothing and would have reported an empty exception list rather than a
-real one. `parseReconciliationQueueFilters()` remains the single URL allowlist — an unknown, empty,
+`reconciliationQueueQualityPredicates()` documents the closed mapping, in the same shape and spirit as the
+existing `reconciliationQueueStatePredicates()`. Its predicates carry explicit **operators** because null
+checks are not equalities. The pending canonical page RPC applies the same fixed conditions to its exact count
+and row page. `parseReconciliationQueueFilters()` remains the URL allowlist — an unknown, empty,
 injected (`source_amount.is.null`) or repeated value resolves to the unfiltered queue and is never
 forwarded as PostgREST syntax.
 
-Both predicates read columns the queue's evidence relation **already joins and already selects**, so the
-filter adds no query, no round trip, no new relation and no widening of what the page reads. It is applied
-to the filtered exact count and to the 50-row page query identically — filtering only one would page a
-narrowed list against an unnarrowed total.
+All predicates read the evidence and batch-row columns the queue already carries, so the filter adds no query,
+round trip, relation, or data widening. Contradictory classification and quality filters compose honestly to
+an empty queue rather than overriding either filter.
 
 **Boundaries, all deliberate.** The whole-batch KPI strip (the 698 total and its unreviewed / included /
 held / rejected / frozen counts) stays independent and unfiltered, as it is of the other two dimensions —
@@ -728,36 +733,87 @@ contract, the read concurrency of §8.5, the lazy option cache of §8.6, and eve
 report / CSV / digest byte are untouched. **This slice adds no decision path of any kind: it changes which
 rows are listed, never what any row says or what happens to it.** No row was decided.
 
-**Two honest limits, stated rather than papered over.** (1) `missing_source_amount` selects rows whose
+**One honest limit, stated rather than papered over.** `missing_source_amount` selects rows whose
 evidence records no source amount — which structurally includes every production-orphan row, because the
 `reconciliation_evidence_items_locator_shape` CHECK requires a `production_snapshot_row` to carry no
 source amount at all. It is a faithful route to the reported population, not a smaller "surprising rows
 only" set. It also does not cover the report's separate `missingEvidence` alarm, whose rows cannot appear
-in an `!inner`-joined queue at all and which the report alarms on independently. (2) The report's third
-exception, «صفوف تصحيح بلا سجل مُصحَّح», is deliberately NOT a `quality` value: its rows are already
-reachable via `classification=amount_correction_candidate` (15 rows, one page), and a predicate for it
-would have to pin `evidence.classification` itself, colliding with the caller's own classification
-choice. Isolating the unlinked subset within that population remains a visual step.
+in an inner-joined queue at all and which the report alarms on independently.
 
-**Not attempted, and why.** The queue is ordered by `evidence_item_id`, while the acceptance report and
-its CSV annex are ordered by evidence locator (sheet, then row) — `orderByEvidenceLocator`, whose own
-comment records that PostgREST cannot express that order across an embedded relation. The two orders
-genuinely differ, but reconciling them cannot be done inside a bounded server filter: it needs either an
-ordering PostgREST cannot express or an unbounded read of the whole batch, which would break the
-pagination bound. It is left open rather than half-done.
+**Ordering.** The pending canonical RPC uses the same natural evidence-locator order as the acceptance report
+and applies the 50-row bound before assembling detailed row JSON and dimension summaries. Evidence UUID is the
+final deterministic tiebreaker.
 
-**Local evidence.** Regression checks written first: nine new assertions in `lib/tests/reconciliation
-review.ts` (a five-test "evidence-quality queue filter" suite plus four additions to the "queue source
-contract" suite) **failed 9/9 against the pre-fix bytes**; a tenth, the non-regression guard that the
-whole-batch KPI loader never sees the quality filter, is green both ways by design. Focused Vitest 56/56;
-full Vitest **1,292 passed + 13 controlled skips across 91 files** (baseline 1,283 + 13 across 91 —
-exactly the nine new tests); `tsc --noEmit` clean; ESLint clean on all three touched files; production
-build compiled successfully with **64/64** static pages; `git diff --check` clean. **pgTAP was NOT run:
-zero SQL bytes changed.** Exact-head checks and exact-merge main CI/release/db-tests are green. Aggregate-only
-production postflight found 698 joined rows, 2 rows with no source amount (both production snapshots), 0
-invalid-date flags in this staged queue, and 15 correction rows; no identifiers, descriptions, or financial
-values were read. No authenticated browser session was available, so the UI controls were not exercised
-against a real row.
+**Local evidence.** The extension adds UI allowlist/label/predicate tests and pgTAP assertions proving that
+expense-linked and sale-linked corrections are excluded, the unlinked row is returned, contradictory filters
+return zero, and a real cross-organization batch cannot cross the active membership boundary.
+The complete fresh migration replay passes **3,597/3,597** with zero failed files. No production query,
+decision, migration, deployment, or business-row change occurred; credentialed browser acceptance remains a
+release gate.
+
+The three named quality figures on the acceptance report are direct links to the same allowlisted queue filters.
+Four other exactly representable populations link through the same helper: unreviewed, held, rejected, and
+amount-correction candidates. The batch ID flows through `reconciliationQueueHref`, page 1 is canonical, and
+every unused filter dimension is explicitly null. Each accessible name includes the label and current count.
+Linked corrections, frozen rows without a payload hash, and the missing-evidence alarm remain plain because no
+current queue predicate exactly represents them. This adds navigation only: no report read, digest, decision,
+write, or print content changes. The review queue's six whole-batch KPI cards also route to exact
+all/unreviewed/included/held/rejected/frozen populations, canonicalize page one, and clear unrelated filters.
+Their source contract pins each complete label/count/state tuple. Focused acceptance/review tests pass 224/224;
+full Vitest passes 1,601 with 14 controlled skips, and independent review returned APPROVE after strengthening
+negative-presence and count-to-route coverage.
+
+**Release-boundary proof.** The schema-v2 accounting manifest covers the full local release candidate, not only
+its database files: 165 app/docs/root files are bound by one path+mode+content digest, 51 migration/test/support
+artifacts retain individual hashes plus a mode digest, and the manifest plus three hash-pinned `100644` release
+programs form the four control files (220 total). NUL-safe Git enumeration preserves unusual pathnames; canonical
+regular-file, exact path-set, byte/mode, hidden-index, repository-root/environment and clean-`HEAD` checks fail
+closed. Strict and working-tree validation use separate launchers with literal modes, so preload/argument mutation
+cannot select the local mode from the strict launcher. Adversarial probes covered leading-space paths, candidate,
+artifact and manifest chmod drift, alternate Git index/environment, concealed Node preload and strict dirty state.
+Final independent rereview returned APPROVE with no P1-P4 finding. This proof performs no release action and does
+not convert local test evidence into production evidence.
+Six durable regression cases construct isolated temporary Git repositories and behaviorally prove the positive
+working-tree path plus concealed-preload, unexpected-path, release-program byte/mode, assume-unchanged and
+fsmonitor-clean rejection. The suite has no dependency on the real release base/ref and deletes only its own
+temporary roots; independent test rereview returned APPROVE with no P1-P4 finding.
+
+**Release execution runbook.** [`accounting release execution runbook.md`](accounting%20release%20execution%20runbook.md)
+is the canonical external sequence for the independently approved desktop candidate: exact-commit CI and review,
+the twenty-one migrate-first versions, forward-only database recovery, contained role acceptance, separate merge
+and production-deployment approvals, deployment/postflight verification, then human accounting acceptance. It
+keeps issue #903 outside this release and grants no external authorization. The local mobile follow-up expands the
+same 22 workflows to 44 desktop/mobile tests. Exact-commit review found that root-only widths could miss overflow
+inside the authenticated shell main; the corrected oracle measures that scrolling element and has a negative
+false-pass fixture. Final exact-commit rereview is required before local branch integration.
+
+**Money-direction daily launcher.** The approved `df01d6d` behavior is integrated on the current release base.
+The owner sees five ordered groups and the accountant four money groups; empty role groups are omitted while the
+same 11 action routes remain available to their prior roles. Expense entry has distinct custody-paid and later-paid
+cards that seed, but do not lock, the wizard's live payment choice. Direct visits default to custody. The loader's
+suppliers, accounts, cost centers and custody accounts are all explicitly active-organization scoped and any read
+error aborts the page. The cost-center deep link now states its custody intent. The server posting action, RPCs,
+schema and migrations are unchanged. A stale read-only acceptance heading found in independent review was fixed;
+the suite now advances both preset URLs to step 3, verifies the actual `custody` or `later` selector value, and
+does not submit. The installed runtime request policy remains authoritative. Two source-contract review rounds
+tightened the exact two-click and guard-invocation proof; final narrow rereview returned APPROVE for the original
+desktop slice. The local mobile extension now discovers the same 22 workflows on two pinned viewports, 44 total;
+its corrected shell-overflow proof requires final exact-commit rereview.
+
+**Human acceptance runbook.** [`accounting reconciliation acceptance runbook.md`](accounting%20reconciliation%20acceptance%20runbook.md)
+is the canonical sequence for the remaining 698-row gate. It preserves human-only decisions and the existing
+paper signature record while fixing the evidence order: review and exception outcomes, freeze, Owner approval,
+digest-bound pre-execution dual run, separately authorized execution, post-execution verification, accountant
+then Owner signatures, restricted archive retention, and append-only whole-batch rollback on failure. The
+approver must be an eligible Owner who neither created the batch nor reviewed a row; this matters because the
+canonical batch was staged by an Owner and the database separation rule rejects its creator. The runbook is
+procedural and grants no production authorization.
+
+The frozen-batch UI now mirrors both database separation arms before enabling approval: it compares the signed-in
+Owner with `created_by` and performs a tenant-scoped, batch-scoped, one-row reviewer lookup only for an Owner on a
+reviewed batch. Read errors fail closed, exact Arabic reasons distinguish creator and reviewer conflicts, and the
+approval RPC remains authoritative. Focused tests, TypeScript, ESLint and the 63/63-page build pass; independent
+review returned APPROVE with no P1-P4 finding.
 
 ### 8.13 Read-only authenticated role-acceptance harness (2026-07-30, MERGED / DEPLOYED / SIGNED-OUT SMOKED)
 
@@ -766,10 +822,15 @@ so its enforced local-only guard is correct and remains unchanged. Farm no longe
 Supabase workflow, leaving no safe current browser path to prove the owner/accountant reconciliation surface.
 
 The separate `playwright accounting readonly.config.ts` and `e2e/accounting readonly.spec.ts` close the
-engineering part of that gap without creating a data path. Owner, accountant and denied-role credentials plus
-the batch UUID come only from explicit environment variables. Remote execution requires an acknowledgement
-flag and the exact production origin allowlist. After login, Playwright blocks service workers and intercepts
-all page traffic: POST, PUT, PATCH and DELETE are aborted and fail the test; only GET, HEAD and OPTIONS remain.
+engineering part of that gap without creating a data path. The current launcher is the package script, which
+runs a dedicated wrapper: owner, accountant and denied-role credentials plus the batch UUID come only from its
+allowlisted invocation environment. The app itself must run on localhost; its public Supabase data URL must
+exactly match the separately approved auth origin. Farm production fails closed unless that wrapper receives
+the explicit `--owner-approved-production-readonly` flag for the current invocation. The wrapper creates a
+private, 30-second, one-use acknowledgement file; config consumes and unlinks it, refuses every Next production
+`.env*` file, and starts a fresh build/server with credentials and privileged variables removed. Before login,
+Playwright blocks service workers and installs its all-context request/WebSocket guard. It permits safe reads
+plus one exact password-token POST, then blocks every later mutation or foreign request.
 The finance-role checks cover the reconciliation list, pinned batch, GET evidence-quality filter, acceptance
 report and CSV. The denied-role check follows the existing `/dashboard` router to the role-specific manager,
 field or inventory destination and verifies reconciliation content is absent. No test touches staging, review
@@ -860,3 +921,263 @@ focused Vitest 7/7; full Vitest 1,324 + 13 controlled skips; TypeScript, touched
 pgTAP 3,158/3,158 and exact-main CI/release/db-tests green. No schema, dependency or business row changed.
 This removes a live money-display defect but does not complete the 698 human decisions, exceptions, real
 workbook dual run or dated accountant/Owner acceptance.
+
+### 8.17 Exact unpaid totals and bounded detail (2026-08-07, local release candidate)
+
+`fn_expense_register_summary` is the complete source for post-paid unpaid counts, known totals and
+unknown-amount counts split by operating, capex and drawing kind. `/custody` and `/finance/dashboard` no longer
+present reductions over capped arrays as complete money. Detail lists remain deliberately bounded and ordered;
+their scope is disclosed, and CSV is disabled whenever the visible rows are incomplete. Null money is reported
+as unknown rather than zero. The RPC and all supporting detail/lookup reads are active-organization scoped and
+fail closed.
+
+### 8.18 Versioned one-row review and canonical queue (2026-08-07, local release candidate)
+
+Each reconciliation save carries a monotonic `review_version`. The database serializes batch then row locks and
+rejects a stale writer with `40001`; the existing one-row path remains the only review writer. The UI permits
+one open form, protects unsaved changes across links, filters, pagination and browser traversal, and offers
+save-and-advance only to a later visible unreviewed row after a fresh server refresh. It never wraps, crosses a
+page, copies a reason/target or bulk-decides.
+
+`fn_reconciliation_queue_page` returns exact whole-batch KPIs, an exact filtered total and at most 50 complete
+rows from one snapshot in the acceptance packet's natural locator order. The locator set is ordered and limited
+before detailed joins. Classification, state and quality filters are closed allowlists; the response is
+runtime-validated. Post-batch database requests fall from eight to one RPC without changing any decision,
+freeze, approval, execution or rollback rule.
+
+The concurrency migration is one transaction and is safe to replay immediately: columns and constraints are
+conditional, the one trigger is recreated deterministically, and the original unversioned function is renamed
+only while its versioned replacement is absent.
+
+### 8.19 Exact month close and annual cost-center history (2026-08-07, local release candidate)
+
+The close page consumes one exact dated snapshot. Pending prices and unresolved expense dates, routes,
+accounts, cost centers or amounts remain hard data-quality blockers. Correct aged receivables remain visible
+follow-up but do not force collection before close. The inline close form uses the evaluated dates, rejects a
+future Cairo period end, and atomically rechecks readiness under the organization period mutex. Undated active
+expenses have an exact filter and a one-time date repair that refuses locked periods. Expense-payment reversal
+uses the same mutex-first lock order.
+
+The default cost-center report transfers no raw historical ledger. It uses bounded rollups, flags, posted trial
+balance and an exact null-center count. Explicit annual mode calls `fn_cost_center_history_summary`, grouped in
+Postgres by year/account/center, preserving counter-normal corrections, archived posted accounts and the
+unallocated center.
+
+Unpaid, close and annual-history monetary values cross JSON as decimal text. Runtime parsers reject JSON money
+numbers, preserve exact decimal strings and use integer-backed decimal sums before any guarded display-number
+conversion, avoiding binary floating-point drift and unsafe-integer truncation.
+
+### 8.20 Exact posted-sale revenue for owner insights (2026-08-07, local release candidate)
+
+`fn_cost_center_revenue_summary` groups all eligible sales before returning them, so PostgREST caps cannot
+truncate revenue. Eligibility requires a finalized, non-historical-reversed sale linked to a still-posted sale
+journal with an exact revenue-account credit. Decimal money and counts travel as text and are checked for exact
+footing and lossless display conversion. The owner dashboard, finance insights, insight summary, enterprise and
+sector scorecards, annual-report sector context and benchmark use this one rule.
+
+The accounting-only Playwright harness keeps the application target local because a remote Next server cannot be
+contained from the browser. Its allowlisting wrapper strips inherited privileged variables, config refuses Next
+production `.env*` files, and Playwright builds and starts a fresh child server under that scrubbed environment.
+Server RPC POSTs use a closed read allowlist while browser mutation/origin/WebSocket controls remain active. A
+Farm production data origin additionally requires the wrapper's private, single-use 30-second acknowledgement
+created only by `--owner-approved-production-readonly`. Synthetic discovery lists 17 tests; no credentialed
+execution is claimed. Independent safety re-review returned APPROVE with no P1-P3 finding.
+
+The ordered candidate chain on exact current `origin/main` `07b1224` passes pgTAP 3,483/3,483, Vitest 1,500
+passed + 14 controlled skips across 105 files, TypeScript, zero-warning full ESLint and a 63/63-page build.
+This is local compatibility evidence only.
+Authenticated role acceptance, 698 human decisions, exception resolution, real-workbook dual run and dated
+acceptance remain open. Independent review first requested the migration replay, exact-money and server-side
+containment corrections; the focused re-review returned APPROVE with no remaining medium/high finding.
+
+### 8.21 Exact atomic daily ledger snapshot (2026-08-08, local release candidate)
+
+`/accounting` now reads `fn_accounting_ledger_snapshot` once instead of issuing separate account, entry, line
+and trial-balance reads over two waves. The stable SECURITY DEFINER function requires active organization
+membership plus `finance.read`, uses an empty search path and explicit schema qualification, and grants execution
+only to `authenticated`.
+
+The function builds one organization-scoped statement snapshot containing the full account tree, posted-only
+trial balance, and the latest 20 entries with all of their lines up to a 500-line safety bound. Archived
+zero-balance ancestors remain in the tree so historical descendant postings roll up correctly; the visible table
+shows active or posted accounts. Cross-organization entry, line or account links are counted from either side and
+cause the application parser to fail closed. Duplicate rows, tenant drift, malformed decimal values, unknown
+entries and incomplete bounded detail also fail closed.
+
+Every debit, credit, net and entry amount crosses PostgREST as JSON text, stays in exact decimal arithmetic for
+the KPI subtree rollups, and is rendered/sorted/exported without JavaScript floating-point conversion. Only the
+complete trial balance is exportable. Recent entries and lines are explicitly daily samples and have no CSV
+control. Database test 213 passes 30 assertions; the full chain passes 3,627/3,627, full Vitest passes 1,614 with
+14 controlled skips, and independent rereview returned APPROVE with no P1-P4 finding. No migration, deployment,
+production query or business-row change occurred.
+
+### 8.22 Exact atomic transactions snapshot (2026-08-08, local release candidate)
+
+`/transactions` now reads `fn_transactions_snapshot` once instead of assembling five source/count reads and
+dependent party lookups. One stable SECURITY DEFINER statement requires active organization membership plus
+`finance.read`, returns exact full counts and at most the newest 400 rows from each of expenses, sales,
+collections and custody, and transports money and quantity as decimal text.
+
+Supplier, buyer and custody-account joins are organization-scoped. A missing or foreign party reference raises
+inside PostgreSQL before any payload is returned. Cancelled and historically reversed rows remain excluded under
+the existing lifecycle contract; null-status expenses and live pending-price sales remain visible. Same UUIDs in
+different source tables receive full-type page keys, so collection and custody rows cannot collide.
+
+Database test 214 proves 401 rows per source produce exact count deltas of 401, bounded samples of 400, and
+newest-first deterministic rows; it also proves lifecycle and cross-tenant failure behavior. Test 214 passes
+59/59 and the full database chain passes 3,686/3,686. Full Vitest passes 1,619 with 14 controlled skips,
+TypeScript and ESLint are clean, and the production build generates 63/63 pages. No migration, deployment,
+production query or business-row change occurred.
+
+### 8.23 Exact atomic season cockpit (2026-08-08, local release candidate)
+
+`/finance/season` now reads `fn_season_dashboard_snapshot` once instead of composing five independently capped
+PostgREST reads and converting accounting values through JavaScript `Number`. One stable SECURITY DEFINER
+statement requires active organization membership plus `finance.read`, applies the sale economic event date
+(`sale_date`, then `delivery_date`, then Cairo-local creation date) consistently to the requested window,
+display and newest-first ordering, and returns exact full aggregates separately from at most the newest 400
+delivery rows.
+
+Physical deliveries remain visible even when their financial evidence is invalid. Historical treasury and
+historically reversed rows are excluded. A finalized sale contributes booked revenue, collections, outstanding
+A/R, row amount and center revenue only when it has exactly one posted sale journal overall and that journal has
+exactly two same-organization lines: the exact sale total debited to A/R account `1200` and credited to revenue.
+A reversed, missing, malformed or duplicate posted journal instead increments `invalid_revenue_count`; the row
+is labelled **قيد الإيراد غير صالح** and its money is withheld. This prevents physical production reporting from
+hiding the delivery while preventing unsupported accounting values from entering revenue or A/R.
+
+Money, quantity, area and per-feddan values cross PostgREST as exact decimal text and remain in integer-backed
+decimal arithmetic for validation, display, sorting and CSV. The parser independently checks date boundaries,
+count relationships, A/R arithmetic, tons-to-quantity conversion, collection-percentage rounding, row states,
+sample completeness and center totals. Delivery CSV is disabled when the 400-row sample is truncated; exact
+full center CSV remains available. Database test 215 passes 70/70 and the full database chain passes
+3,756/3,756. Full Vitest passes 1,636 with 14 controlled skips, TypeScript and ESLint are clean, `npm audit`
+reports zero vulnerabilities, and the production build generates 63/63 pages. Independent rereview returned
+APPROVE. No migration, deployment, production query or business-row change occurred.
+
+### 8.24 Exact atomic custody report pack (2026-08-08, local release candidate)
+
+`/finance/custody-reports` now calls `fn_custody_reports_snapshot` once instead of composing four independent
+legacy report RPCs. The stable SECURITY DEFINER statement requires active-organization membership plus
+`finance.read`, uses an empty search path, and returns exact full custody balances, period movement and cash
+expense totals, current unpaid obligations, 30-plus exceptions, and period owner funding. Each detail set is
+limited to 400 rows independently; any truncated table loses its CSV control while complete tables remain
+exportable.
+
+All monetary values cross PostgREST as decimal text. Unknown expense amounts and dates remain explicit rather
+than becoming zero or age zero. Obligation aging is deliberately fixed to Cairo today: the mutable expense
+payment status has no complete historical ledger, so the RPC rejects a historical `as_of` instead of fabricating
+past outstanding balances. Request-line and active cash-out uniqueness are database-proven, and defensive row
+selection prevents duplicated financial totals if those invariants are bypassed by damaged data.
+
+The holder join stops at the report end, cash rows are period movement-driven with a separate indexed missing-
+movement stream, and integrity checks scan only records that can affect the requested snapshot. Report-affecting
+foreign account, request, journal, movement, and reversal links raise before a payload leaves PostgreSQL. The
+strict parser independently verifies date, count, direction, balance, aging, remaining-funding and complete-
+sample arithmetic.
+
+Database test 216 passes 49 assertions; the full chain passes 3,805/3,805. Full Vitest passes 1,653 with 14
+controlled skips across 121 passing files; TypeScript, full ESLint, `npm audit`, whitespace and the 63/63-page
+production build are green. Independent final review returned APPROVE. The credentialed read-only acceptance
+launcher stopped safely because no pinned batch ID was supplied. No commit, push, PR, migration, deployment,
+production query or business-row change occurred.
+
+### 8.25 Exact atomic finance operating dashboard (2026-08-08, local release candidate)
+
+`/finance/dashboard` now calls `fn_finance_dashboard_snapshot` once instead of composing approximately eleven
+independent reads. The stable SECURITY DEFINER statement validates active-organization membership, the current
+Cairo business day and its exact month bounds. Farm managers receive shared operational samples only; owner and
+accountant receive the private custody, payment, unpaid-obligation and journal section.
+
+Full budget/payment/unpaid/journal counts and exact totals remain separate from bounded detail. Money crosses
+PostgREST as decimal text and the strict parser reconciles every count, sample subtotal and budget category.
+Blocked, partial or unverified budget authority returns zero/empty budget fields from PostgreSQL rather than
+merely hiding figures in the UI. Truncated budget, payment, unpaid and journal tables disclose their coverage and
+cannot export partial CSV. “My custody” is based only on the signed-in holder user ID, never a label heuristic.
+Cross-organization supplier or custody links fail closed before a payload is returned.
+
+Database test 217 passes 44 assertions and the full chain passes 3,849/3,849. Full Vitest passes 1,666 with 14
+controlled skips across 121 passing files; TypeScript, full ESLint and the 63/63-page production build are green.
+The first independent review requested five corrections covering authority enforcement, custody corruption,
+partial exports, custody identity and Cairo month boundaries; all were corrected and focused rereview returned
+APPROVE with no severity finding.
+No commit, push, PR, migration, deployment, production query or business-row change occurred.
+
+### 8.26 Exact atomic daily custody workspace (2026-08-08, local release candidate)
+
+`/custody` now calls `fn_custody_daily_snapshot` once instead of composing seven independent account, request,
+movement and obligation reads. The stable SECURITY DEFINER statement requires active-organization membership and
+`finance.read`, pins an empty search path, and returns exact full account balances, targets, top-up needs, unpaid
+totals, and request/movement counts separately from at most 200 requests and 15 newest movements.
+
+All money crosses PostgREST as decimal text and remains in integer-backed exact arithmetic. Signed closing
+balances remain visible for correction instead of being rejected or hidden. Same-day movements order by
+`occurred_at`, `created_at`, then ID; incomplete request detail cannot export a partial CSV. Missing or foreign
+request/movement account links raise before a payload leaves PostgreSQL. Posting and write paths are unchanged.
+
+Database test 218 passes 29 assertions and the full chain passes 3,878/3,878. Focused parser/route tests pass
+26/26, TypeScript and scoped ESLint are green. The first independent review requested signed-balance handling,
+creation-time ordering and a real movement/account corruption fixture; all were corrected and focused rereview
+returned APPROVE with no actionable finding. No commit, push, PR, migration, deployment, production query or
+business-row change occurred.
+
+### 8.27 Exact atomic daily expense workspace (2026-08-08, local release candidate)
+
+`/expenses` now calls `fn_expense_daily_snapshot` once instead of composing four independent expense, summary,
+supplier and account reads. The stable SECURITY DEFINER statement requires active-organization membership and an
+allowed expense-register role, applies drawing privacy inside PostgreSQL, and returns exact full filter counts and
+summary separately from at most the newest 200 matching expense rows.
+
+All row money crosses PostgREST as decimal text and uses the scale-preserving exact renderer. The strict parser
+requires exactly `min(row_limit, matching_count)` rows and reconciles filter counts against the summary, so a short
+or inconsistent payload cannot render or export as complete. Farm managers retain their existing non-drawing
+expense and supplier access but receive no drawing rows, drawing totals, or chart-of-accounts payload. Foreign or
+missing supplier, account, or cost-center references fail closed. An all-row organization/date/ID index supports
+the bounded newest-first register query; partial CSV remains disabled.
+
+Database test 219 passes 30 assertions and the full chain passes 3,908/3,908. Focused parser/summary tests pass
+37/37 and TypeScript is green. The first independent review found chart-of-accounts leakage, rounded display,
+incomplete snapshot acceptance, missing corruption fixtures and the absent all-row index; all were corrected and
+independent rereview returned APPROVE. No commit, push, PR, migration, deployment, production query or business-row
+change occurred.
+
+### 8.28 Exact atomic expense 360 detail (2026-08-08, local release candidate)
+
+`/expenses/[expenseId]` now calls `fn_expense_detail_snapshot` once for its core expense, event, ledger-account,
+custody-payment and payment-request evidence. The stable SECURITY DEFINER function enforces active-organization
+membership and the existing owner/accountant/farm-manager read roles. Farm managers can read ordinary expenses
+but receive no drawings, chart-of-accounts detail, custody movements or payment-request evidence.
+
+Expense totals, quantity, unit price and custody amounts cross JSON as validated decimal text. Event timestamps
+retain PostgreSQL timestamp form, and every nested relationship must agree with its parent ID. Missing or foreign
+supplier, plan, event, farm, sector, hawsha, account, cost-center, custody-movement/account or payment-request-line
+references fail closed. The correction form accepts only decimal text at the server boundary, so an authorized
+caller cannot silently round a PostgreSQL numeric through JavaScript `Number`. The four correction-option reads
+remain one conditional parallel wave and run only after an eligible unrouted reversal.
+
+Database test 220 passes 24 assertions and the complete chain passes 3,932/3,932. Focused Vitest passes 46/46;
+full Vitest passes 1,718 with 14 controlled skips. TypeScript, full ESLint, zero-vulnerability `npm audit`,
+whitespace and the 63/63-page production build are green. Independent money/access review found event timestamp,
+exact correction transport and trusted-boundary issues; all were corrected and final rereview returned APPROVE.
+No commit, push, PR, migration, deployment, production query or business-row change occurred.
+
+### 8.29 Exact atomic cost-center reports (2026-08-08, local release candidate)
+
+`/finance/reports` now calls `fn_cost_center_reports_snapshot` once instead of combining independent views,
+trial-balance reads, raw ledger pages and a separate annual RPC. The stable SECURITY DEFINER function requires
+active organization membership plus `finance.read`, pins an empty search path, and exposes execution only to
+authenticated users. It returns exact posted expense/revenue/net subtree rollups, line activity, reconciliation
+flags, the null-center count and optional annual account-by-center rows from one snapshot.
+
+Contra-side corrections are normalized before rollup, net is consistently revenue minus expense, and a zero-net
+center with offsetting activity remains visibly posted. The bounded hierarchy rejects missing parents, cycles,
+excess depth and ambiguous/missing `CC-UNALLOC`. Every visible filter expands annual evidence through its
+descendants, while charts retain only visible rows with no visible ancestor anywhere in the full hierarchy, so
+parent and descendant values are never represented twice. Exact decimal text remains exact in tables, KPIs and
+CSV; charts degrade explicitly when a value cannot be converted losslessly.
+
+Database test 221 passes 42 assertions and the full local chain passes 3,974/3,974. Focused parser and hierarchy
+tests pass 26/26; TypeScript and scoped ESLint are green. Independent review found descendant-history,
+filtered-chart and security-oracle gaps; all were corrected. Final release-candidate review found no implementation
+defect and identified only stale documentation counts, which were corrected. No commit, push, PR, migration,
+deployment, production query or business-row change occurred.

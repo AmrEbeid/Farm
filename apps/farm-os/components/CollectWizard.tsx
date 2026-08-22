@@ -4,9 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { useSubmit } from "@/components/useSubmit";
-import { egp, num } from "@/lib/money";
+import { num } from "@/lib/money";
 import { LineItemsEditor, type LineState } from "@/components/LineItemsEditor";
 import { recordGuidedCollection } from "@/app/(app)/record/actions";
+import { compareDecimals, type DecimalString } from "@/lib/decimal";
+import {
+  addReceivableAmounts,
+  normalizePositiveReceivableAmount,
+  receivableAmountEgp,
+  remainingReceivable,
+} from "@/lib/receivable workflow money";
 
 // SPEC-0025 U-2 part 2 (+U-9 multi-line): «حصّلت فلوسًا من عميل» — collect from SEVERAL sales in one
 // session. Each line: pick an open-balance sale, amount defaults to the remaining, save; add more lines
@@ -16,14 +23,14 @@ import { recordGuidedCollection } from "@/app/(app)/record/actions";
 export interface OpenSale {
   id: string;
   label: string;
-  remaining: number;
+  remaining: DecimalString;
 }
 
 interface CollectLine extends LineState {
   saleId: string;
   amount: string;
   note: string;
-  savedAmount?: number;
+  savedAmount?: DecimalString;
 }
 
 const sel = "w-full rounded-md px-3 py-2 text-sm";
@@ -34,11 +41,17 @@ export function CollectWizard({ sales }: { sales: OpenSale[] }) {
   const { pending, submit } = useSubmit();
 
   // Remaining per sale, net of amounts already saved in THIS session (so the picker stays honest).
-  const savedBySale = new Map<string, number>();
-  for (const l of lines) if (l.saved && l.savedAmount) savedBySale.set(l.saleId, (savedBySale.get(l.saleId) ?? 0) + l.savedAmount);
+  const savedBySale = new Map<string, DecimalString>();
+  for (const line of lines) {
+    if (!line.saved || !line.savedAmount) continue;
+    savedBySale.set(
+      line.saleId,
+      addReceivableAmounts([savedBySale.get(line.saleId) ?? "0", line.savedAmount]),
+    );
+  }
   const remainingOf = (id: string) => {
     const s = sales.find((x) => x.id === id);
-    return s ? s.remaining - (savedBySale.get(id) ?? 0) : 0;
+    return s ? remainingReceivable(s.remaining, savedBySale.get(id) ?? "0") : "0";
   };
 
   function setLine(i: number, patch: Partial<CollectLine>) {
@@ -47,9 +60,9 @@ export function CollectWizard({ sales }: { sales: OpenSale[] }) {
 
   async function saveLine(i: number) {
     const l = lines[i];
-    const amount = Number(l.amount);
+    const amount = normalizePositiveReceivableAmount(l.amount);
     if (!l.saleId) return setLine(i, { error: "اختر البيع" });
-    if (!(amount > 0)) return setLine(i, { error: "أدخل مبلغًا موجبًا" });
+    if (!amount) return setLine(i, { error: "أدخل مبلغًا موجبًا" });
     setLine(i, { error: null });
     const r = await submit(() => recordGuidedCollection({ saleId: l.saleId, amount, note: l.note || null }));
     if (r.ok) setLine(i, { saved: true, savedAmount: amount, error: null });
@@ -57,7 +70,9 @@ export function CollectWizard({ sales }: { sales: OpenSale[] }) {
   }
 
   const savedCount = lines.filter((l) => l.saved).length;
-  const savedTotal = lines.reduce((t, l) => t + (l.saved ? (l.savedAmount ?? 0) : 0), 0);
+  const savedTotal = addReceivableAmounts(
+    lines.filter((line) => line.saved && line.savedAmount).map((line) => line.savedAmount!),
+  );
 
   if (sales.length === 0) {
     return (
@@ -85,12 +100,12 @@ export function CollectWizard({ sales }: { sales: OpenSale[] }) {
         addLabel="+ تحصيل آخر"
         header={
           savedCount > 0 ? (
-            <Alert tone="info" title={`حُفظ ${num(savedCount)} تحصيل بإجمالي ${egp(savedTotal)}`} />
+            <Alert tone="info" title={`حُفظ ${num(savedCount)} تحصيل بإجمالي ${receivableAmountEgp(savedTotal)}`} />
           ) : null
         }
         renderLine={(l, i) => {
           const remaining = remainingOf(l.saleId);
-          const amountNum = Number(l.amount);
+          const amount = normalizePositiveReceivableAmount(l.amount);
           return (
             <div className="flex flex-col gap-2">
               <Field label="أي بيع؟" id={`cw-${i}-sale`}>
@@ -98,15 +113,15 @@ export function CollectWizard({ sales }: { sales: OpenSale[] }) {
                   onChange={(e) => setLine(i, { saleId: e.target.value, amount: "" })}>
                   {sales.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.label} — المتبقي {egp(s.remaining - (savedBySale.get(s.id) ?? 0))}
+                      {s.label} — المتبقي {receivableAmountEgp(remainingReceivable(s.remaining, savedBySale.get(s.id) ?? "0"))}
                     </option>
                   ))}
                 </select>
               </Field>
               <div className="grid grid-cols-2 gap-2">
-                <Field label={`المبلغ (المتبقي ${egp(remaining)})`} id={`cw-${i}-amt`}>
-                  <Input id={`cw-${i}-amt`} type="number" inputMode="decimal" min={0} step="0.01"
-                    value={l.amount} disabled={l.saved} placeholder={String(remaining)}
+                <Field label={`المبلغ (المتبقي ${receivableAmountEgp(remaining)})`} id={`cw-${i}-amt`}>
+                  <Input id={`cw-${i}-amt`} type="number" inputMode="decimal" min={0} step="any"
+                    value={l.amount} disabled={l.saved} placeholder={remaining}
                     onChange={(e) => setLine(i, { amount: e.target.value })} />
                 </Field>
                 <Field label="ملاحظة (اختياري)" id={`cw-${i}-note`}>
@@ -116,12 +131,16 @@ export function CollectWizard({ sales }: { sales: OpenSale[] }) {
               </div>
               {!l.saved && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="ghost" onClick={() => setLine(i, { amount: String(remaining) })} disabled={!(remaining > 0)}>
+                  <Button variant="ghost" onClick={() => setLine(i, { amount: remaining })} disabled={compareDecimals(remaining, "0") <= 0}>
                     حصّلت المتبقي كله
                   </Button>
-                  {amountNum > 0 && (
+                  {amount && (
                     <span className="text-sm" style={{ color: "var(--ink-muted)" }}>
-                      {amountNum < remaining ? `يتبقى بعده ${egp(remaining - amountNum)}` : amountNum === remaining ? "يُغلق الرصيد" : "أكبر من المتبقي!"}
+                      {compareDecimals(amount, remaining) < 0
+                        ? `يتبقى بعده ${receivableAmountEgp(remainingReceivable(remaining, amount))}`
+                        : compareDecimals(amount, remaining) === 0
+                          ? "يُغلق الرصيد"
+                          : "أكبر من المتبقي!"}
                     </span>
                   )}
                 </div>

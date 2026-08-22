@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import { normalizePositiveReceivableAmount } from "@/lib/receivable workflow money";
+import { cairoTodayIso } from "@/lib/payroll-close";
 
 // SPEC-0025 U-1 — the guided expense flow. One server action composes what previously took four screens:
 // create the expense, classify kind (gated RPC), link the account + cost center, and route the payment
@@ -64,7 +66,16 @@ export async function recordGuidedExpense(input: GuidedExpenseInput): Promise<Gu
     })
     .select("id")
     .single();
-  if (error || !data) return { ok: false, error: "تعذّر تسجيل المصروف (تحقّق من صلاحياتك)" };
+  if (error || !data) {
+    return {
+      ok: false,
+      error: toArabicError(
+        error,
+        { "42501": "تعذّر تسجيل المصروف (تحقّق من صلاحياتك)" },
+        "تعذّر تسجيل المصروف",
+      ),
+    };
+  }
   const expenseId = data.id as string;
   const saved = (msg: string): GuidedExpenseResult => ({ ok: false, expenseId, error: msg });
 
@@ -134,7 +145,7 @@ export async function recordGuidedExpense(input: GuidedExpenseInput): Promise<Gu
 // ── SPEC-0025 U-2 part 2 — «حصّلت من عميل» ────────────────────────────────────────────────────────────
 export interface CollectInput {
   saleId: string;
-  amount: number;
+  amount: string;
   note: string | null;
 }
 
@@ -142,13 +153,14 @@ export interface CollectInput {
  *  receivable, posts the journal, and derives payment_status — the Σ ≤ total guard lives in the DB. */
 export async function recordGuidedCollection(input: CollectInput): Promise<{ ok: boolean; error?: string }> {
   if (!input.saleId) return { ok: false, error: "اختر البيع" };
-  if (!Number.isFinite(input.amount) || input.amount <= 0) return { ok: false, error: "المبلغ غير صالح" };
+  const amount = normalizePositiveReceivableAmount(input.amount);
+  if (!amount) return { ok: false, error: "المبلغ غير صالح" };
   await requireRole(["owner", "accountant"]);
   const sb = await createClient();
   const { error } = await sb.rpc("fn_record_sale_collection", {
     p_sale: input.saleId,
-    p_amount: input.amount,
-    p_occurred_at: new Date().toISOString().slice(0, 10),
+    p_amount: amount,
+    p_occurred_at: cairoTodayIso(),
     p_collected_by: null,
     p_note: input.note ?? null,
   });
@@ -226,17 +238,20 @@ export async function quickAddBuyer(name: string): Promise<{ ok: boolean; id?: s
 }
 
 // ── R-3 — «حدّدت سعرًا»: pricing a pending delivery posts Dr ذمم / Cr إيراد in the gated RPC ──────────
-export async function finalizeSalePrice(saleId: string, unitPrice: number): Promise<{ ok: boolean; error?: string; total?: number }> {
+export async function finalizeSalePrice(saleId: string, unitPrice: string): Promise<{ ok: boolean; error?: string; total?: string }> {
   if (!saleId) return { ok: false, error: "اختر التسليم" };
-  if (!Number.isFinite(unitPrice) || unitPrice <= 0) return { ok: false, error: "السعر غير صالح" };
+  const price = normalizePositiveReceivableAmount(unitPrice);
+  if (!price) return { ok: false, error: "السعر غير صالح" };
   await requireRole(["owner", "accountant"]);
   const sb = await createClient();
-  const { data, error } = await sb.rpc("fn_finalize_sale_price", { p_sale: saleId, p_unit_price: unitPrice });
+  const { data, error } = await sb.rpc("fn_finalize_sale_price", { p_sale: saleId, p_unit_price: price });
   if (error || !data) {
     return { ok: false, error: toArabicError(error, { "22023": "تحقّق من حالة البيع — قد يكون مُسعّرًا بالفعل" }, "تعذّر تحديد السعر") };
   }
   for (const p of ["/transactions", "/finance/revenue-reports", "/record/price", "/record/collect"]) revalidatePath(p);
-  return { ok: true, total: Number((data as { total?: number }).total ?? 0) };
+  const total = normalizePositiveReceivableAmount((data as { total?: unknown }).total);
+  if (!total) return { ok: false, error: "حُفظ السعر لكن تعذّر قراءة الإجمالي بدقة — راجع تقرير الإيرادات" };
+  return { ok: true, total };
 }
 
 // ── SPEC-0027 H-B — يوم قطف (field crate counter; quantities only) ───────────────────────────────────

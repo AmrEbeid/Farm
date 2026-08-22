@@ -11,7 +11,7 @@ import {
   type GuidedPayment,
 } from "@/app/(app)/record/actions";
 
-// SPEC-0025 U-1 — «دفعت مصروفًا» in ONE flow. Three plain-Arabic steps replace the old four-screen
+// SPEC-0025 U-1 — expense entry in ONE flow. Three plain-Arabic steps replace the old four-screen
 // journey (expense → account → cost center → custody). The wizard never says "journal", "kind" or
 // "payment request" — it asks what a farmer would ask, and the server action does the bookkeeping.
 
@@ -44,11 +44,13 @@ export function ExpenseWizard({
   accounts,
   centers,
   custodyAccounts,
+  initialPayment = "custody",
 }: {
   suppliers: { id: string; name: string }[];
   accounts: WizardAccount[];
   centers: WizardCenter[];
   custodyAccounts: { id: string; label: string }[];
+  initialPayment?: GuidedPayment;
 }) {
   const [step, setStep] = useState(1);
   const [date, setDate] = useState("");
@@ -59,8 +61,8 @@ export function ExpenseWizard({
   const [kind, setKind] = useState<GuidedKind>("operating");
   const [accountId, setAccountId] = useState("");
   const [costCenterId, setCostCenterId] = useState("");
-  // Recommended default: the field team pays from custody day-to-day (Owner decision, SPEC-0025 §8).
-  const [payment, setPayment] = useState<GuidedPayment>("custody");
+  // The launcher preselects the payment direction; direct visits default to custody.
+  const [payment, setPayment] = useState<GuidedPayment>(initialPayment);
   const [custodyAccountId, setCustodyAccountId] = useState(custodyAccounts[0]?.id ?? "");
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState<{ paid: boolean } | null>(null);
@@ -147,7 +149,7 @@ export function ExpenseWizard({
     <div className="mx-auto flex max-w-xl flex-col gap-4">
       <header>
         <h1 className="text-xl font-bold" style={{ color: "var(--ink)" }}>
-          دفعت مصروفًا
+          سجّل مصروفًا
         </h1>
         <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
           الخطوة {step} من 3 — {step === 1 ? "ماذا وكم؟" : step === 2 ? "على أي نشاط؟" : "من دفع؟"}

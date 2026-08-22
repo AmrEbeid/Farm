@@ -81,6 +81,14 @@ Nothing rich is safe until every figure comes from ONE place:
 - A **signed `palm_yield_curve` reference table** (#4-gated).
 - One typed app-side selectors module (avoid the prototype's "6 divergent files" anti-pattern).
 
+**2026-08-07 local release candidate:** `fn_cost_center_revenue_summary` is the shared exact all-history
+sale-attribution source for the owner dashboard, finance insights, insight summary, enterprise and sector
+scorecards, annual-report sector context and internal benchmark. Postgres groups eligible rows before returning
+JSON. Eligibility requires a finalized, non-historical-reversed sale and a still-posted sale journal with an
+exact revenue-account credit. Decimal money/counts are text; the typed parser checks version, organization,
+UUIDs, duplicate groups, exact footing and lossless display conversion. Annual-report sector context remains
+explicitly all-history until a period-scoped center foundation is released.
+
 ## 3. Build sequence
 - **Phase 0** — `fn_pnl_timeseries` + `fn_pnl_by_center_period` + `palm_yield_curve` (signed) + selectors.
 - **Phase 1** — deterministic insight engine (verdict + narrator + Punchline + thesis detectors 1/3/5) as

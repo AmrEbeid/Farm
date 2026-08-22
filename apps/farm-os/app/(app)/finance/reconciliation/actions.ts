@@ -254,6 +254,7 @@ export async function stageManifest(formData: FormData): Promise<StageManifestRe
 const REVIEW_PERM: Record<string, string> = {
   "42501": "ليس لديك صلاحية مراجعة التسويات (المالك أو المحاسب فقط).",
   "22023": "قرار غير صالح؛ راجع الحقول المطلوبة.",
+  "40001": "غيّر مستخدم آخر هذا الصف. لم يُحفظ قرارك؛ حدّث الصفحة وراجعه من جديد.",
   P0002: "الصف المطلوب غير موجود.",
 };
 
@@ -283,6 +284,13 @@ export async function reviewRow(input: unknown): Promise<ActionResult> {
   const candidate = input as Record<string, unknown>;
   if (!isUuid(candidate.rowId)) return { ok: false, error: "مُعرّف الصف غير صالح." };
   if (!isUuid(candidate.batchId)) return { ok: false, error: "مُعرّف الدفعة غير صالح." };
+  if (
+    !Number.isSafeInteger(candidate.expectedReviewVersion) ||
+    (candidate.expectedReviewVersion as number) < 0 ||
+    (candidate.expectedReviewVersion as number) > 2_147_483_647
+  ) {
+    return { ok: false, error: "نسخة صف المراجعة غير صالحة؛ حدّث الصفحة وحاول مرة أخرى." };
+  }
   const built = buildReviewDecision(candidate.decision);
   if (!built.ok) return { ok: false, error: built.error };
 
@@ -290,7 +298,10 @@ export async function reviewRow(input: unknown): Promise<ActionResult> {
   const sb = await createClient();
   const { error } = await sb.rpc("fn_review_reconciliation_row", {
     p_row_id: candidate.rowId,
-    p_decision: built.payload as unknown as Json,
+    p_decision: {
+      ...(built.payload as unknown as Record<string, Json | undefined>),
+      expected_review_version: candidate.expectedReviewVersion as number,
+    } as Json,
   });
   if (error) return { ok: false, error: toArabicError(error, REVIEW_PERM, "تعذّر حفظ القرار.") };
   revalidateReconciliation(candidate.batchId);

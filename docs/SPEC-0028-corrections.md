@@ -1,7 +1,8 @@
 # SPEC-0028 — «سجّلت غلط»: the corrections framework (safe reversals)
 
-*Status: **ACTIVE** — C-1 is implemented on the current feature branch but is **NOT RELEASED**; C-2 through
-C-5 remain design only. The last missing UX property (SPEC-0027 master plan §A property 4):
+*Status: **ACTIVE** — C-1 is released in production; C-4 is implemented in the combined local accounting
+release stack but is **NOT RELEASED**; C-2, C-3 and C-5 remain design only. The last missing UX property
+(SPEC-0027 master plan §A property 4):
 every mistake has a guided correction. Principle: **posted money is never edited — it is reversed**,
 with both entries linked, a mandatory reason, and plain-Arabic wizards that state exactly what will
 happen. `journal_entries.reversal_of` exists since the kernel (20260701220000) — unused until now.*
@@ -32,16 +33,16 @@ happen. `journal_entries.reversal_of` exists since the kernel (20260701220000) �
 ## 2. Slices
 | # | Contents | Risk |
 |---|---|---|
-| C-1 | `fn_reverse_expense_payment` + pgTAP (balance restored, links, double-reversal blocked) + «سجّلت غلط؟» on expense 360 | Implemented locally; NOT RELEASED — migrate-first + independent review |
+| C-1 | `fn_reverse_expense_payment` + pgTAP (balance restored, links, double-reversal blocked) + «سجّلت غلط؟» on expense 360 | Released 2026-08-06 |
 | C-2 | pending-cancel + reprice + wizards | Med |
 | C-3 | collection reversal | Low-med |
-| C-4 | custody movement reversal (subsumes the kernel's TODO error text) | Med |
+| C-4 | custody movement reversal (subsumes the kernel's TODO error text) | Implemented locally; NOT RELEASED — migrate-first + independent review |
 | C-5 | Ledger/360 reversal-pair rendering | Low |
 
 *Recommended build trigger: first real mistake of the pilot week (there will be one) — build C-1 that day;
 the spec makes it a 1-session slice.*
 
-## 3. C-1 implemented contract (2026-08-05, NOT RELEASED)
+## 3. C-1 released contract (production since 2026-08-06)
 
 - The original expense, custody cash-out amount/details and journal remain evidence. The original movement
   receives only reciprocal reversal status/link fields, and one unique compensating
@@ -65,3 +66,19 @@ the spec makes it a 1-session slice.*
   balance from being restored twice.
 - The expense 360 page shows the original and reversal movements together. It never describes the original as
   deleted, and the guided Arabic control is rendered only to owner/accountant on an eligible custody-paid row.
+
+## 4. C-4 local contract (2026-08-08, NOT RELEASED)
+
+- C-4 applies only to a journaled standalone `استلام عهدة من المالك` cash-in. Expense, payment-request,
+  transfer, journal-less and reversal rows fail closed and stay on their dedicated correction paths.
+- The owner/accountant opens the movement 360 page, supplies an explicit correction date and reason, and sees
+  the original amount/account before confirming. The control is hidden when the row is ineligible.
+- One transaction locks the custody account before the movement, verifies the exact two-line owner-funding
+  journal, checks the live balance floor, appends an equal cash-out mirror and journal reversal, and links both
+  directions. No original amount, date or description is overwritten.
+- Exact retries return the existing result. A changed reason/date, a reversal before the original journal date,
+  either locked period, a consumed balance, a second reversal or direct use of the generic journal-reversal RPC
+  fails closed. The generic route remains available for ordinary journals but cannot bypass C-4 for owner funding.
+- Migration `20260822140600` is append-only/replay-tested; pgTAP `206` covers the contract. Independent money
+  review is APPROVE after lock-order, malformed-link, future-date and damaged-replay fixes. Release still requires
+  Owner approval, migrate-first application, merge/deploy checks and authenticated role smoke.

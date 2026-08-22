@@ -4,8 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { useSubmit } from "@/components/useSubmit";
-import { egp, num } from "@/lib/money";
 import { finalizeSalePrice } from "@/app/(app)/record/actions";
+import {
+  normalizePositiveReceivableAmount,
+  receivableAmountEgp,
+  receivableQuantity,
+  saleTotal,
+} from "@/lib/receivable workflow money";
+import type { DecimalString } from "@/lib/decimal";
 
 // R-3 — «حدّدت سعرًا»: pick the pending delivery → enter the agreed price/kg → live total →
 // confirm sentence → the gated RPC posts Dr ذمم / Cr إيراد. Season anchor shown: target ≥52ج.
@@ -13,7 +19,7 @@ import { finalizeSalePrice } from "@/app/(app)/record/actions";
 export interface PendingSale {
   id: string;
   label: string;
-  qty: number;
+  qty: DecimalString;
   unit: string;
 }
 
@@ -21,16 +27,16 @@ export function PriceWizard({ pending }: { pending: PendingSale[] }) {
   const [saleId, setSaleId] = useState(pending[0]?.id ?? "");
   const [price, setPrice] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  const [done, setDone] = useState<number | null>(null);
+  const [done, setDone] = useState<DecimalString | null>(null);
   const { pending: busy, submit } = useSubmit();
   const sel = pending.find((p) => p.id === saleId);
-  const priceNum = Number(price);
-  const total = sel && priceNum > 0 ? sel.qty * priceNum : 0;
+  const unitPrice = normalizePositiveReceivableAmount(price);
+  const total = sel && unitPrice ? saleTotal(sel.qty, unitPrice) : null;
 
   async function onSave() {
     setMsg(null);
-    const r = await submit(() => finalizeSalePrice(saleId, priceNum));
-    if (r.ok) setDone(r.total ?? total);
+    const r = await submit(() => finalizeSalePrice(saleId, price));
+    if (r.ok && r.total) setDone(r.total);
     else setMsg(r.error ?? "تعذّر الحفظ");
   }
 
@@ -39,7 +45,7 @@ export function PriceWizard({ pending }: { pending: PendingSale[] }) {
       <Card>
         <div className="flex flex-col gap-3 p-2">
           <h2 className="text-lg font-bold" style={{ color: "var(--ink)" }}>
-            ✅ سُعّر التسليم — {egp(done)} دخلت الدفاتر (ذمم على التاجر حتى التحصيل).
+            ✅ سُعّر التسليم — {receivableAmountEgp(done)} دخلت الدفاتر (ذمم على التاجر حتى التحصيل).
           </h2>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => window.location.reload()}>+ سعّر تسليمًا آخر</Button>
@@ -79,14 +85,17 @@ export function PriceWizard({ pending }: { pending: PendingSale[] }) {
               </select>
             </Field>
             <Field label={`السعر المتفق (ج لكل ${sel?.unit || "وحدة"})`} id="pw-price">
-              <Input id="pw-price" type="number" inputMode="decimal" min={0} step="0.25" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <Input id="pw-price" type="number" inputMode="decimal" min={0} step="any" value={price} onChange={(e) => setPrice(e.target.value)} />
             </Field>
-            {sel && priceNum > 0 && (
+            {sel && unitPrice && total && (
               <div className="rounded-md p-3 text-sm" style={{ background: "var(--surface-sunken, #f4f7f5)", color: "var(--ink)" }}>
-                <strong>سيُقيَّد:</strong> {num(sel.qty)} {sel.unit} × {egp(priceNum)} = <strong>{egp(total)}</strong> إيرادًا وذممًا على التاجر — صحيح؟
+                <strong>سيُقيَّد:</strong> {receivableQuantity(sel.qty)} {sel.unit} × {receivableAmountEgp(unitPrice)} = <strong>{receivableAmountEgp(total)}</strong> إيرادًا وذممًا على التاجر — صحيح؟
               </div>
             )}
-            <Button onClick={onSave} disabled={busy || !saleId || !(priceNum > 0)}>
+            {sel && unitPrice && !total && (
+              <Alert tone="danger" title="الإجمالي بعد التقريب يجب أن يكون موجبًا وداخل الحد المحاسبي" />
+            )}
+            <Button onClick={onSave} disabled={busy || !saleId || !unitPrice || !total}>
               {busy ? "جارٍ القيد…" : "اعتمد السعر ✓"}
             </Button>
           </div>

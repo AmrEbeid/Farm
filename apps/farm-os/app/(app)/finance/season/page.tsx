@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { HISTORICAL_SALE_PAYMENT_STATUS_FILTER } from "@/lib/labels";
 import { requireRole } from "@/lib/auth";
 import { KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -8,7 +7,17 @@ import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { StoryLine } from "@/components/StoryLine";
 import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
-import { egp, num, pct } from "@/lib/money";
+import { num } from "@/lib/money";
+import {
+  absoluteDecimal,
+  compareDecimals,
+  egpExact,
+  formatDecimalArabic,
+  subtractDecimals,
+  type DecimalString,
+} from "@/lib/decimal";
+import { cairoTodayIso, isCalendarDate } from "@/lib/payroll-close";
+import { parseSeasonDashboardSnapshot } from "@/lib/season dashboard snapshot";
 
 // SPEC-0027 H-3 — لوحة الموسم: the harvest cockpit. One page answers the Owner's daily season
 // questions from Cairo: كم طنًا سلّمنا؟ لمن؟ كم بلا سعر؟ كم حُصِّل؟ وأي حوش يُنتج أكثر لكل فدان؟
@@ -16,124 +25,94 @@ import { egp, num, pct } from "@/lib/money";
 // pending deliveries are counted in tonnage but NEVER valued.
 
 export const dynamic = "force-dynamic";
+const SEASON_ROW_LIMIT = 400;
 
 const DELIVERY_COLUMNS: SimpleColumn[] = [
   { id: "note", header: "بون", kind: "code" },
   { id: "date", header: "التاريخ" },
   { id: "crop", header: "المحصول" },
   { id: "buyer", header: "التاجر", kind: "link" },
-  { id: "qty", header: "الكمية (كجم)", numeric: true },
-  { id: "total", header: "القيمة (ج.م)", kind: "money", numeric: true },
+  { id: "qty", header: "الكمية (كجم)", kind: "decimal-exact", numeric: true, decimal: true },
+  { id: "total", header: "القيمة (ج.م)", kind: "money-preserve-exact", numeric: true, decimal: true },
   { id: "status", header: "الحالة", kind: "status" },
 ];
 
 const CENTER_COLUMNS: SimpleColumn[] = [
   { id: "center", header: "المركز", kind: "link" },
-  { id: "qty", header: "كجم مسلَّمة", numeric: true },
-  { id: "perFeddan", header: "كجم/فدان", numeric: true },
-  { id: "value", header: "قيمة مؤكدة (ج.م)", kind: "money", numeric: true },
+  { id: "qty", header: "كجم مسلَّمة", kind: "decimal-exact", numeric: true, decimal: true },
+  { id: "perFeddan", header: "كجم/فدان", kind: "decimal-exact", numeric: true, decimal: true },
+  { id: "value", header: "قيمة مؤكدة (ج.م)", kind: "money-preserve-exact", numeric: true, decimal: true },
 ];
 
+function decimal(value: DecimalString, scale?: number): string {
+  const fractionDigits = value.includes(".") ? value.length - value.indexOf(".") - 1 : 0;
+  return formatDecimalArabic(value, scale ?? fractionDigits);
+}
+
 export default async function SeasonPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
-  await requireRole(["owner", "accountant"]);
+  const m = await requireRole(["owner", "accountant"]);
   const { from } = await searchParams;
-  const year = new Date().getFullYear();
-  const seasonStart = from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : `${year}-01-01`;
+  const asOf = cairoTodayIso();
+  const seasonStart = from && isCalendarDate(from) && from <= asOf ? from : `${asOf.slice(0, 4)}-01-01`;
   const sb = await createClient();
-
-  const [salesRes, collectionsRes, buyersRes, centersRes, pickedRes] = await Promise.all([
-    sb
-      .from("sales")
-      // Anchor the season window on created_at (NOT NULL ≈ when the load crossed the scale), NOT sale_date:
-      // sale_date is nullable and stays null on a PENDING (delivered-but-unpriced) delivery, so a `.gte
-      // ("sale_date", …)` silently drops those from the tonnage — yet the spec counts pending deliveries in
-      // tonnage (they're just never valued). This is the nullable-date understatement bug (honest-null #1).
-      .select("id, sale_date, delivery_date, created_at, crop, qty, unit, total, price_status, payment_status, buyer_id, cost_center_id, delivery_note_no, crates")
-      .gte("created_at", seasonStart)
-      // ...which is exactly why a reconciliation-created HISTORICAL sale must be excluded here: it is
-      // written today (created_at = now) but its economic date is years old, so the created_at anchor
-      // would drop an archive row into the current season and inflate tonnage, finalized revenue, and
-      // the derived `outstanding`. A reversed one is not revenue at all. (migration 20260726160000)
-      .not("payment_status", "in", HISTORICAL_SALE_PAYMENT_STATUS_FILTER)
-      .order("created_at", { ascending: false }),
-    sb.from("sale_collections").select("sale_id, amount"),
-    sb.from("buyers").select("id, name"),
-    sb.from("cost_centers").select("id, name_ar, area_feddan"),
-    sb.from("harvest_days").select("crates_picked, crop, day").gte("day", seasonStart),
-  ]);
-  const sales = salesRes.data ?? [];
-  const buyerName = new Map((buyersRes.data ?? []).map((b) => [b.id, b.name]));
-  const centerById = new Map((centersRes.data ?? []).map((c) => [c.id, c]));
-  const saleIds = new Set(sales.map((s) => s.id));
-  let collected = 0;
-  for (const c of collectionsRes.data ?? []) if (saleIds.has(c.sale_id)) collected += Number(c.amount ?? 0);
-
-  const deliveries = sales.length;
-  const tonnageKg = sales.reduce((t, s) => t + Number(s.qty ?? 0), 0);
-  const pendingSales = sales.filter((s) => s.price_status === "pending");
-  const pendingKg = pendingSales.reduce((t, s) => t + Number(s.qty ?? 0), 0);
-  const finalizedTotal = sales.filter((s) => s.price_status === "finalized").reduce((t, s) => t + Number(s.total ?? 0), 0);
-  const outstanding = finalizedTotal - collected;
-  const traders = new Set(sales.map((s) => s.buyer_id).filter(Boolean)).size;
-  const unnamed = sales.filter((s) => !s.buyer_id).length;
+  const snapshotRes = await sb.rpc("fn_season_dashboard_snapshot", {
+    p_org: m.orgId,
+    p_from: seasonStart,
+    p_as_of: asOf,
+    p_row_limit: SEASON_ROW_LIMIT,
+  });
+  if (snapshotRes.error) throw snapshotRes.error;
+  const snapshot = parseSeasonDashboardSnapshot(snapshotRes.data, m.orgId, seasonStart, asOf);
+  const { summary } = snapshot;
+  const isTruncated = summary.deliveryCount > snapshot.rowLimit;
 
   const lead =
-    deliveries === 0
+    summary.deliveryCount === 0
       ? "لا تسليمات في هذا الموسم بعد — أول حمولة تمر على الميزان تظهر هنا فورًا."
-      : `الموسم حتى اليوم: ${num(Math.round(tonnageKg / 1000))} طن في ${num(deliveries)} حمولة لـ${num(traders)} تاجر — ` +
-        `${pendingKg > 0 ? `${num(Math.round(pendingKg / 1000))} طن بلا سعر بعد، و` : "كل الكميات مسعّرة، و"}` +
-        `المحصَّل ${egp(collected)} من ${egp(finalizedTotal)}${finalizedTotal > 0 ? ` (${pct(Math.round((collected / finalizedTotal) * 100))})` : ""}.`;
+      : `الموسم حتى اليوم: ${decimal(summary.deliveredTons, 0)} طن في ${num(summary.deliveryCount)} حمولة لـ${num(summary.traderCount)} تاجر — ` +
+        `${compareDecimals(summary.pendingQuantity, "0") > 0 ? `${decimal(summary.pendingTons, 0)} طن بلا سعر بعد، و` : "كل الكميات المسجلة مسعّرة، و"}` +
+        `المحصَّل ${egpExact(summary.collectedTotal)} من ${egpExact(summary.finalizedTotal)}${summary.collectionPercent ? ` (${decimal(summary.collectionPercent, 0)}٪)` : ""}.`;
   const notes: string[] = [];
-  if (pendingSales.length > 0) notes.push(`${num(pendingSales.length)} تسليمًا ينتظر التسعير — كل يوم تأخير يؤخر القيد والتحصيل.`);
-  if (outstanding > 0) notes.push(`ذمم على التجار: ${egp(outstanding)}.`);
-  if (unnamed > 0) notes.push(`⚠ ${num(unnamed)} تسليمًا بلا اسم تاجر — قاعدة الموسم: كل حمولة باسم.`);
-  // Compare like-for-like: field-count (harvest_days, default برحي) can only be reconciled
-  // against deliveries of the SAME crop. Scoping the delivered side to the crop set that was
-  // actually field-counted stops the "فارق … عبوة" advisory from comparing برحي-picked against
-  // all-crop-delivered (palm-tree/wood/other sales) and raising a false shortfall (#707).
-  const pickedRows = (pickedRes.data ?? []) as { crates_picked?: number | null; crop?: string | null }[];
-  const pickedCrops = new Set(pickedRows.map((h) => h.crop).filter(Boolean));
-  const pickedCrates = pickedRows.reduce((t, h) => t + Number(h.crates_picked ?? 0), 0);
-  const deliveredCrates = sales
-    .filter((s2) => pickedCrops.has(s2.crop))
-    .reduce((t, s2) => t + Number((s2 as { crates?: number | null }).crates ?? 0), 0);
-  if (pickedCrates > 0 && deliveredCrates > 0 && pickedCrates !== deliveredCrates)
-    notes.push(`🧺 مقطوف حقليًا ${num(pickedCrates)} عبوة مقابل ${num(deliveredCrates)} وصلت الميزان — فارق ${num(Math.abs(pickedCrates - deliveredCrates))} عبوة يستحق نظرة.`);
+  if (summary.pendingCount > 0) notes.push(`${num(summary.pendingCount)} تسليمًا ينتظر التسعير — كل يوم تأخير يؤخر القيد والتحصيل.`);
+  if (summary.invalidRevenueCount > 0) notes.push(`${num(summary.invalidRevenueCount)} تسليمًا مسعّرًا بلا قيد إيراد صالح — يبقى ضمن الكمية ولا يدخل في الإيراد أو التحصيل أو الذمم حتى تصحيح القيد.`);
+  if (compareDecimals(summary.outstandingTotal, "0") > 0) notes.push(`ذمم على التجار: ${egpExact(summary.outstandingTotal)}.`);
+  if (summary.unnamedCount > 0) notes.push(`⚠ ${num(summary.unnamedCount)} تسليمًا بلا اسم تاجر — قاعدة الموسم: كل حمولة باسم.`);
+  if (summary.unknownQuantityCount > 0) notes.push(`${num(summary.unknownQuantityCount)} تسليمًا بلا كمية مقروءة لا يدخل في إجمالي الوزن.`);
+  if (
+    compareDecimals(summary.pickedCrates, "0") > 0 &&
+    compareDecimals(summary.deliveredCrates, "0") > 0 &&
+    compareDecimals(summary.pickedCrates, summary.deliveredCrates) !== 0
+  ) {
+    const difference = absoluteDecimal(subtractDecimals(summary.pickedCrates, summary.deliveredCrates));
+    notes.push(`🧺 مقطوف حقليًا ${decimal(summary.pickedCrates)} عبوة مقابل ${decimal(summary.deliveredCrates)} وصلت الميزان — فارق ${decimal(difference)} عبوة يستحق نظرة.`);
+  }
 
-  const deliveryRows: SimpleRow[] = sales.map((s) => ({
-    id: s.id,
-    note: s.delivery_note_no != null ? String(s.delivery_note_no) : "—",
-    date: fmtDate(s.sale_date ?? s.delivery_date ?? s.created_at),
-    crop: s.crop,
-    buyer: (s.buyer_id && buyerName.get(s.buyer_id)) || "بدون اسم",
-    buyer_href: s.buyer_id ? `/finance/buyers/${s.buyer_id}` : "",
-    qty: s.qty ?? undefined,
-    total: s.price_status === "pending" ? undefined : (s.total ?? undefined),
-    status: s.price_status === "pending" ? "السعر معلّق" : s.payment_status === "collected" ? "محصَّل" : "غير محصل",
+  const deliveryRows: SimpleRow[] = snapshot.rows.map((row) => ({
+    id: row.id,
+    note: row.deliveryNoteNo != null ? String(row.deliveryNoteNo) : "—",
+    date: fmtDate(row.eventDate),
+    crop: row.crop,
+    buyer: row.buyerName ?? "بدون اسم",
+    buyer_href: row.buyerId ? `/finance/buyers/${row.buyerId}` : "",
+    qty: row.quantity ?? undefined,
+    total: row.amount ?? undefined,
+    status: row.priceStatus === "pending"
+      ? "السعر معلّق"
+      : !row.revenuePosted
+        ? "قيد الإيراد غير صالح"
+        : row.paymentStatus === "collected"
+          ? "محصَّل"
+          : "غير محصل",
   }));
 
-  const byCenter = new Map<string, { qty: number; value: number }>();
-  for (const s of sales) {
-    if (!s.cost_center_id) continue;
-    const cur = byCenter.get(s.cost_center_id) ?? { qty: 0, value: 0 };
-    cur.qty += Number(s.qty ?? 0);
-    if (s.price_status === "finalized") cur.value += Number(s.total ?? 0);
-    byCenter.set(s.cost_center_id, cur);
-  }
-  const centerRows: SimpleRow[] = [...byCenter.entries()]
-    .map(([id, v]) => {
-      const c = centerById.get(id);
-      const area = c?.area_feddan == null ? null : Number(c.area_feddan);
-      return {
-        id,
-        center: c?.name_ar ?? "—",
-        center_href: `/finance/cost-centers/${id}`,
-        qty: Math.round(v.qty),
-        perFeddan: area && area > 0 ? Math.round(v.qty / area) : undefined,
-        value: v.value || undefined,
-      };
-    })
-    .sort((a, b) => Number(b.qty ?? 0) - Number(a.qty ?? 0));
+  const centerRows: SimpleRow[] = snapshot.centers.map((center) => ({
+    id: center.id,
+    center: center.name,
+    center_href: `/finance/cost-centers/${center.id}`,
+    qty: center.quantity,
+    perFeddan: center.quantityPerFeddan ?? undefined,
+    value: center.finalizedTotal,
+  }));
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -153,22 +132,27 @@ export default async function SeasonPage({ searchParams }: { searchParams: Promi
       <StoryLine lead={lead} notes={notes} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiCard label="طن مسلَّم" value={num(Math.round(tonnageKg / 1000))} />
-        <KpiCard label="حمولات (بونات)" value={num(deliveries)} />
-        <KpiCard label="طن بلا سعر" value={num(Math.round(pendingKg / 1000))} deltaDirection={pendingKg > 0 ? "down" : "none"} />
-        <KpiCard label="إيراد مُقيّد" value={egp(finalizedTotal)} />
-        <KpiCard label="محصَّل" value={egp(collected)} />
-        <KpiCard label="ذمم التجار" value={egp(outstanding)} deltaDirection={outstanding > 0 ? "down" : "none"} />
+        <KpiCard label="طن مسلَّم" value={decimal(summary.deliveredTons, 0)} />
+        <KpiCard label="حمولات (بونات)" value={num(summary.deliveryCount)} />
+        <KpiCard label="طن بلا سعر" value={decimal(summary.pendingTons, 0)} deltaDirection={summary.pendingCount > 0 ? "down" : "none"} />
+        <KpiCard label="إيراد مُقيّد" value={egpExact(summary.finalizedTotal)} />
+        <KpiCard label="محصَّل" value={egpExact(summary.collectedTotal)} />
+        <KpiCard label="ذمم التجار" value={egpExact(summary.outstandingTotal)} deltaDirection={compareDecimals(summary.outstandingTotal, "0") > 0 ? "down" : "none"} />
       </div>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-base font-bold" style={{ color: "var(--ink)" }}>التسليمات</h2>
+        {isTruncated && (
+          <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+            يظهر أحدث {num(deliveryRows.length)} من إجمالي {num(summary.deliveryCount)} حمولة. البحث داخل الصفوف المعروضة فقط، وتصدير CSV متوقف حتى لا يبدو الملف الجزئي كاملًا.
+          </p>
+        )}
         <FilterableTable
           columns={DELIVERY_COLUMNS}
           rows={deliveryRows}
           ariaLabel="تسليمات الموسم"
-          placeholder="ابحث ببون/تاجر/محصول…"
-          exportFilename="season-deliveries"
+          placeholder={isTruncated ? "ابحث ضمن أحدث الصفوف المعروضة…" : "ابحث ببون/تاجر/محصول…"}
+          exportFilename={isTruncated ? undefined : "season-deliveries"}
           empty="لا تسليمات"
         />
       </section>

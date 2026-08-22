@@ -42,22 +42,23 @@ calls the same gated RPCs that exist today. This is a frontend-only program.
 
 ## 2. Part A — «+ سجّل» the global action launcher
 
-A single prominent button (header, every page; FAB on mobile `/m`) opening a launcher with the **6 daily
-actions**, each a guided 2–3-step wizard that composes the existing RPCs:
+A single prominent button (header, every page; FAB on mobile `/m`) opens the daily-action launcher.
+Each card opens either a guided 2–3-step wizard or the existing focused flow that performs the action:
 
 | Action (as the user thinks of it) | What the wizard hides |
 |---|---|
-| **دفعت مصروفًا** — "اشتريت/دفعت…" | expense insert + kind + `fn_set_expense_kind` + account picker (suggested from category) + cost-center picker (suggested from sector) + payment routing: «من العهدة» → `fn_set_expense_payment_status(paid_from_custody)`; «آجل» → post_paid + offer "أضفه لطلب الصرف المفتوح؟" (`fn_add_expense_to_request`) |
+| **دفعت مصروفًا من العهدة** | Creates the expense, lets the user optionally choose the account and cost center, then calls `fn_set_expense_payment_status(paid_from_custody)` to post the custody movement and journal. |
+| **سجّلت مصروفًا آجلًا** | Creates the expense, lets the user optionally choose the account and cost center, then calls `fn_set_expense_payment_status(post_paid_unpaid)`. The user can open custody/payment requests afterward and add it manually when payment is due. |
 | **سلّمت محصولًا / بعت** | `fn_save_sale` — **delivery-before-price is the default path**: qty + crop + buyer now, price later; ends with "سيذكّرك النظام بتحديد السعر" |
 | **حدّدت سعر بيع** | `fn_finalize_sale_price` (picked from the pending-price list) |
 | **حصّلت فلوسًا من عميل** | `fn_record_sale_collection` against the buyer's open receivables |
 | **استلمت بضاعة** | `fn_post_receipt` (existing receive flow, re-skinned as a wizard step) |
 | **استلمت عهدة من المالك** | `fn_record_custody_movement(استلام عهدة)` |
 
-Wizard mechanics: one question per step, big touch targets, smart defaults (last-used custody account,
-cost center derived from chosen sector, account suggested from category history), a plain-Arabic summary
+Wizard mechanics: one question per step, big touch targets, the first active custody account as the cash-payment
+default, manual optional account and cost-center selectors, a plain-Arabic summary
 before save ("سيُسجَّل: ٥٠٠٠ ج أسمدة على نخيل الحصوة، مدفوعة من عهدة مدير المزرعة — صحيح؟"), and a
-**"التالي المقترح"** chip after save (e.g. after an آجل expense → "أضِفه لطلب صرف").
+**"التالي المقترح"** link after save (an آجل expense can open the custody/payment-request area).
 
 ### 2b. Owner follow-up (2026-07-04): wizards by money direction + multi-LINE entry everywhere
 
@@ -65,8 +66,8 @@ The Owner refined the ask after using the first wizard:
 
 1. **Money wizards, organized by direction** — the launcher groups money actions the way the accountant thinks:
    - **نقدية داخلة** (cash in): استلام عهدة من المالك · تحصيل من عميل.
-   - **آجل / على الحساب** (on debt): مصروف أو مشتريات لم تُدفع بعد → post_paid + طلب صرف لاحقًا.
-   - **نقدية خارجة** (cash out): مصروف مدفوع من العهدة (the live U-1 wizard already does this + آجل).
+   - **آجل / على الحساب** (on debt): مصروف لم يُدفع بعد → post_paid + طلب صرف لاحقًا.
+   - **نقدية خارجة** (cash out): مصروف مدفوع من العهدة.
 2. **Multi-LINE entry in EVERY wizard.** One session, many rows: the user adds as many lines as he wants,
    each line individually guided. A shared **`LineItemsEditor`** component (add row / remove row / per-row
    fields + validation + a running summary) is the pattern for all of them.
@@ -118,8 +119,14 @@ counts across the four implemented money-event sources; the table deliberately r
 When a selected view is truncated, search is explicitly limited to displayed rows and CSV export is disabled.
 Pending-price count metadata is exact. Expense and sale lifecycle exclusions prevent cancelled or reversed
 positive money from reappearing, null dates sort last with IDs as stable tie-breakers, and every source/count/
-party-lookup error fails closed. Party lookups are limited to deduplicated non-null IDs referenced by the
-displayed rows and are explicitly organization-scoped.
+party error fails closed.
+
+The local release candidate replaces the split reads with one atomic `fn_transactions_snapshot` call. Exact
+counts and the 400-row per-source samples now share one database statement; money and quantity cross as decimal
+text. Party joins are organization-scoped and a missing/foreign party raises inside PostgreSQL before a payload
+is returned. Full-type row keys prevent collection/custody collisions when different source tables share a UUID.
+The 401-row-per-source oracle proves exact counts, bounded newest-first samples and the existing truncation/CSV
+gate. This extension is local and not migrated or released.
 
 Production evidence at release: 10,201 expenses + 162 sales + 0 collections + 1 custody movement = 10,364
 exact rows, versus the prior displayed count of 563. The page remains read-only; no migration, schema, RPC,

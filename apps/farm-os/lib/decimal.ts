@@ -122,6 +122,13 @@ export function isDecimalText(value: unknown): value is DecimalString {
   return typeof value === "string" && parseDecimal(value) !== null;
 }
 
+/** Convert a canonical decimal to a UI number only when the conversion round-trips exactly. */
+export function decimalToSafeNumber(value: DecimalString): number | null {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || Math.abs(parsed) > Number.MAX_SAFE_INTEGER) return null;
+  return parseDecimal(String(parsed)) === value ? parsed : null;
+}
+
 /** value = units / 10^scale, exactly. */
 interface DecimalParts {
   units: bigint;
@@ -145,7 +152,51 @@ function partsToDecimal({ units, scale }: DecimalParts): DecimalString {
   const digits = (negative ? -units : units).toString().padStart(scale + 1, "0");
   const integer = digits.slice(0, digits.length - scale);
   const fraction = scale > 0 ? digits.slice(digits.length - scale) : "";
-  return canonical(negative ? "-" : "", integer, fraction) ?? "0";
+  const decimal = canonical(negative ? "-" : "", integer, fraction);
+  if (decimal == null) throw new RangeError("decimal result exceeds configured bounds");
+  return decimal;
+}
+
+/** Compare two canonical decimals without converting either value to binary floating point. */
+export function compareDecimals(left: DecimalString, right: DecimalString): -1 | 0 | 1 {
+  const leftParts = toParts(left);
+  const rightParts = toParts(right);
+  const scale = Math.max(leftParts.scale, rightParts.scale);
+  const leftUnits = rescale(leftParts.units, leftParts.scale, scale);
+  const rightUnits = rescale(rightParts.units, rightParts.scale, scale);
+  return leftUnits < rightUnits ? -1 : leftUnits > rightUnits ? 1 : 0;
+}
+
+/** Subtract canonical decimals exactly in scaled-integer space. */
+export function subtractDecimals(left: DecimalString, right: DecimalString): DecimalString {
+  const leftParts = toParts(left);
+  const rightParts = toParts(right);
+  const scale = Math.max(leftParts.scale, rightParts.scale);
+  return partsToDecimal({
+    units:
+      rescale(leftParts.units, leftParts.scale, scale) -
+      rescale(rightParts.units, rightParts.scale, scale),
+    scale,
+  });
+}
+
+/** Multiply canonical decimals exactly. Refuse a result outside this module's scale bound. */
+export function multiplyDecimals(left: DecimalString, right: DecimalString): DecimalString {
+  const leftParts = toParts(left);
+  const rightParts = toParts(right);
+  const scale = leftParts.scale + rightParts.scale;
+  if (scale > MAX_SCALE) {
+    throw new RangeError(`decimal product scale must not exceed ${MAX_SCALE}`);
+  }
+  return partsToDecimal({ units: leftParts.units * rightParts.units, scale });
+}
+
+export function maxDecimal(left: DecimalString, right: DecimalString): DecimalString {
+  return compareDecimals(left, right) >= 0 ? left : right;
+}
+
+export function absoluteDecimal(value: DecimalString): DecimalString {
+  return value.startsWith("-") ? value.slice(1) : value;
 }
 
 /**
@@ -236,6 +287,6 @@ export function egpExact(value: DecimalString | null | undefined): string {
 }
 
 /** The summary line: the exact total, and — only when there is one — the unreadable remainder. */
-export function egpDecimalSummary(summary: DecimalSummary): string {
+export function egpDecimalSummary(summary: Pick<DecimalSummary, "total" | "hasUnknown">): string {
   return summary.hasUnknown ? `${egpExact(summary.total)} + غير معروف` : egpExact(summary.total);
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeSectorPnl, computeEnterprisePnl, type SaleLite } from "./entity-pnl";
+import { computeSectorPnl, computeEnterprisePnl } from "./entity-pnl";
 import type { CostCenterInsightRollup } from "./finance-insights";
 
 const cc = (over: Partial<CostCenterInsightRollup>): CostCenterInsightRollup => ({
@@ -30,15 +30,13 @@ const rollup: CostCenterInsightRollup[] = [
 ];
 // P must look like a parent: give it a child (S1/S2 have parent_id 'P'), so P is excluded as non-leaf.
 
-const sales: SaleLite[] = [
-  { cost_center_id: "S1", total: 4_000_000, price_status: "finalized" },
-  { cost_center_id: "S2", total: 2_308_067, price_status: "finalized" },
-  { cost_center_id: null, total: 300_000, price_status: "finalized" }, // no center → unallocated
-  { cost_center_id: "S3", total: 150_000, price_status: "finalized" }, // non-sector (no area) center
-];
+const salesRevenue = {
+  byCenter: { S1: 4_000_000, S2: 2_308_067, S3: 150_000 },
+  total: 6_758_067, // includes 300k with no center
+};
 
 describe("computeSectorPnl", () => {
-  const r = computeSectorPnl(rollup, sales);
+  const r = computeSectorPnl(rollup, salesRevenue);
   it("computes profit = revenue − expenses (not cost-as-profit), for area leaf sectors only", () => {
     const s1 = r.sectors.find((s) => s.id === "S1")!;
     const s2 = r.sectors.find((s) => s.id === "S2")!;
@@ -60,7 +58,7 @@ describe("computeSectorPnl", () => {
 });
 
 describe("computeEnterprisePnl", () => {
-  const r = computeEnterprisePnl(rollup, sales);
+  const r = computeEnterprisePnl(rollup, salesRevenue);
   const byKey = (k: string) => r.enterprises.find((e) => e.key === k)!;
   it("groups expenses + revenue by enterprise across leaf centers", () => {
     expect(byKey("برحي")).toMatchObject({ revenue: 4_000_000, expenses: 1_150_000 });

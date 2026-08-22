@@ -27,7 +27,7 @@ end $$;
 select ok(not has_function_privilege('anon', 'public.fn_reverse_journal_entry(uuid, text, date)', 'EXECUTE'),
   'anon cannot EXECUTE fn_reverse_journal_entry');
 select ok(has_function_privilege('authenticated', 'public.fn_reverse_journal_entry(uuid, text, date)', 'EXECUTE'),
-  'authenticated retains EXECUTE on fn_reverse_journal_entry');
+  'authenticated retains EXECUTE on ordinary fn_reverse_journal_entry corrections');
 
 select lives_ok(format($$ select set_config('test.entry', public.fn_post_two_line_journal(%L,'2026-04-01'::date,'jr_exp',%L,'مصروف خاطئ',%L,%L,2500)::text, false) $$,
     current_setting('test.org'), current_setting('test.source'), current_setting('test.expense'), current_setting('test.asset')),

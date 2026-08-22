@@ -18,11 +18,19 @@ import {
   ClosePaymentRequestButton,
 } from "@/components/CustodyForms";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { num } from "@/lib/money";
 import { accountOptionLabel, leafPostingAccounts } from "@/components/AccountPicker";
+import type { DecimalString } from "@/lib/decimal";
+import {
+  addPaymentRequestAmounts,
+  isPositivePaymentRequestAmount,
+  paymentRequestAmount,
+  paymentRequestAmountEgp,
+  parsePaymentRequestDetailSnapshot,
+} from "@/lib/payment request detail";
 
 // SPEC-0018 slice 5 — the printable monthly «إذن صرف» + lifecycle, rebuilt as an Entity-360 page.
-// Renders live from the RLS-scoped request/lines/expenses + fn_payment_request_totals.
+// Renders from one finance-gated, organization-scoped atomic detail snapshot.
 // Finance-gated; print via the toolbar button.
 const REQ_STATUS_AR: Record<string, string> = {
   draft: "مسودة", submitted: "مُرسل", approved_operational: "اعتماد تشغيلي",
@@ -40,24 +48,6 @@ function pillStatus(s: string): PillStatus {
   if (s === "rejected" || s === "cancelled") return "blocked";
   return "draft";
 }
-
-type Totals = {
-  operating_unpaid?: number;
-  capex_unpaid?: number;
-  drawing_unpaid?: number;
-  post_paid_unpaid?: number;
-  target_float?: number;
-  current_custody?: number;
-  custody_top_up?: number;
-  gross_request?: number;
-  approved_post_paid_total?: number;
-  approved_custody_top_up?: number;
-  approved_net_request?: number;
-  owner_funding_received?: number;
-  request_cash_out?: number;
-  remaining_to_fund?: number;
-  net_request?: number;
-};
 
 // EXPENSE_KIND_AR + PAYMENT_STATUS_AR now hoisted to lib/labels.ts (A5).
 
@@ -79,14 +69,14 @@ export default async function PaymentRequestPage({
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
 
-  const { data: req, error: reqError } = await sb
-    .from("payment_requests")
-    .select(
-      "id, request_no, status, period_start, period_end, custody_account_id, note, approved_post_paid_total, approved_custody_top_up, approved_net_request, created_at, prepared_by, submitted_at, approved_op_by, approved_op_at, approved_final_by, approved_final_at",
-    )
-    .eq("id", requestId)
-    .maybeSingle();
-  if (reqError) throw reqError;
+  const snapshotRes = await sb.rpc("fn_payment_request_detail_snapshot", {
+    p_org: m.orgId,
+    p_request: requestId,
+    p_available_limit: 150,
+  });
+  if (snapshotRes.error) throw snapshotRes.error;
+  const detail = parsePaymentRequestDetailSnapshot(snapshotRes.data, m.orgId, requestId);
+  const req = detail.request;
 
   if (!req) {
     return (
@@ -96,104 +86,46 @@ export default async function PaymentRequestPage({
       </div>
     );
   }
+  if (!detail.totals || !detail.organizationName) {
+    throw new Error("payment request detail snapshot: present request is incomplete");
+  }
 
-  const [linesRes, totalsRes, orgRes, accountsRes, fundingsRes] = await Promise.all([
-    sb
-      .from("payment_request_lines")
-      .select("id, expense_id, paid_at, paid_by, paid_from_custody_account_id, custody_movement_id, journal_entry_id")
-      .eq("payment_request_id", requestId),
-    sb.rpc("fn_payment_request_totals", { p_request: requestId }),
-    sb.from("organization").select("name").eq("id", m.orgId).maybeSingle(),
-    sb.from("custody_accounts").select("id, holder_label, active").eq("active", true).order("holder_label"),
-    sb
-      .from("payment_request_fundings")
-      .select("id, occurred_at, amount, custody_account_id, note")
-      .eq("payment_request_id", requestId)
-      .order("occurred_at", { ascending: false }),
-  ]);
-  if (linesRes.error) throw linesRes.error;
-  if (totalsRes.error) throw totalsRes.error;
-  if (orgRes.error) throw orgRes.error;
-  if (accountsRes.error) throw accountsRes.error;
-  if (fundingsRes.error) throw fundingsRes.error;
-
-  // Approval-trail actors — resolve the real prepared_by/approved_op_by/approved_final_by
-  // user ids to people.name (org-scoped; people.tenant_all + the id/name/user_id column
-  // grant already allow any org member to read a colleague's name, so no extra gate needed
-  // beyond the finance.read this page already requires).
-  const actorIds = Array.from(
-    new Set(
-      [req.prepared_by, req.approved_op_by, req.approved_final_by].filter(
-        (id): id is string => id != null,
-      ),
-    ),
+  const t = detail.totals;
+  const requestLines = detail.lines;
+  const exp = requestLines.map((line) => line.expense);
+  const accountOptions = detail.custodyAccounts
+    .filter((account) => account.active)
+    .map((account) => ({ id: account.id, holder_label: account.holder_label }));
+  const accountLabelById = new Map(
+    detail.custodyAccounts.map((account) => [account.id, account.holder_label]),
   );
-
-  const ids = (linesRes.data ?? []).map((l) => l.expense_id);
-  const [expensesRes, acctRes, availableExpensesRes, actorsRes, coaAccountsRes] = await Promise.all([
-    ids.length
-      ? sb.from("expenses").select("id, date, description, category, total, payment_status, kind, account_id").in("id", ids)
-      : Promise.resolve({ data: [] as { id: string; date: string | null; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null; account_id: string | null }[], error: null }),
-    req.custody_account_id
-      ? sb.from("custody_accounts").select("holder_label").eq("id", req.custody_account_id).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    req.status === "draft"
-      ? sb
-          .from("expenses")
-          .select("id, description, category, total, payment_status, kind, account_id")
-          .in("payment_status", ["post_paid_unpaid", "paid_from_custody"])
-          .order("date", { ascending: false })
-          .limit(150)
-      : Promise.resolve({ data: [] as { id: string; description: string | null; category: string | null; total: number | null; payment_status: string | null; kind: string | null; account_id: string | null }[], error: null }),
-    actorIds.length
-      ? sb.from("people").select("user_id, name").in("user_id", actorIds)
-      : Promise.resolve({ data: [] as { user_id: string | null; name: string | null }[], error: null }),
-    sb
-      .from("accounts")
-      .select("id, code, name_ar, account_type, kind, parent_id, active")
-      .order("code", { ascending: true }),
-  ]);
-  if (expensesRes.error) throw expensesRes.error;
-  if (acctRes.error) throw acctRes.error;
-  if (availableExpensesRes.error) throw availableExpensesRes.error;
-  if (actorsRes.error) throw actorsRes.error;
-  if (coaAccountsRes.error) throw coaAccountsRes.error;
-
-  const t: Totals = (totalsRes.data as Totals) ?? {};
-  const requestLines = linesRes.data ?? [];
-  const exp = expensesRes.data ?? [];
-  const accounts = accountsRes.data ?? [];
-  const accountOptions = accounts.map((a) => ({ id: a.id, holder_label: a.holder_label }));
-  const accountLabelById = new Map(accounts.map((a) => [a.id, a.holder_label]));
-  const postingAccounts = leafPostingAccounts(coaAccountsRes.data ?? []);
+  const postingAccounts = leafPostingAccounts(detail.accounts);
   const postingAccountLabelById = new Map(
     postingAccounts.map((account) => [account.id, accountOptionLabel(account)]),
   );
   const lineByExpenseId = new Map(requestLines.map((line) => [line.expense_id, line]));
-  const linkedExpenseIds = new Set(ids);
-  const availableExpenses = (availableExpensesRes.data ?? []).filter((e) => !linkedExpenseIds.has(e.id));
-  const unclassifiedAvailableCount = availableExpenses.filter((e) => e.account_id == null).length;
-  const availableExpenseOptions = availableExpenses
-    .filter((e) => e.account_id != null)
+  const availableExpenseOptions = detail.availableExpenses
     .map((e) => ({
       id: e.id,
-      label: `${e.description ?? e.category ?? "مصروف"} — ${postingAccountLabelById.get(e.account_id ?? "") ?? "حساب غير معروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${PAYMENT_STATUS_AR[e.payment_status ?? ""] ?? "غير محدد"} — ${egp(Number(e.total ?? 0))}`,
+      label: `${e.description ?? e.category ?? "مصروف"} — ${postingAccountLabelById.get(e.account_id ?? "") ?? "حساب غير معروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${PAYMENT_STATUS_AR[e.payment_status ?? ""] ?? "غير محدد"} — ${paymentRequestAmountEgp(paymentRequestAmount(e.total, `expense ${e.id} total`))}`,
     }));
+  const unclassifiedAvailableCount = detail.unclassifiedAvailableCount;
+  const hiddenAvailableExpenseCount = detail.availableExpenseCount - detail.availableExpenses.length;
 
-  const cats = new Map<string, { operating: number; capex: number; drawing: number; paid: number }>();
+  const cats = new Map<string, { operating: DecimalString; capex: DecimalString; drawing: DecimalString; paid: DecimalString }>();
   for (const e of exp) {
     const k = e.category ?? "أخرى";
-    const row = cats.get(k) ?? { operating: 0, capex: 0, drawing: 0, paid: 0 };
+    const row = cats.get(k) ?? { operating: "0", capex: "0", drawing: "0", paid: "0" };
     const line = lineByExpenseId.get(e.id);
-    const total = Number(e.total ?? 0);
+    const total = paymentRequestAmount(e.total, `expense ${e.id} total`);
     if (line?.paid_at || e.payment_status === "paid_from_custody") {
-      row.paid += total;
+      row.paid = addPaymentRequestAmounts(row.paid, total);
     } else if (e.payment_status === "post_paid_unpaid" && e.kind === "capex") {
-      row.capex += total;
+      row.capex = addPaymentRequestAmounts(row.capex, total);
     } else if (e.payment_status === "post_paid_unpaid" && e.kind === "drawing") {
-      row.drawing += total;
+      row.drawing = addPaymentRequestAmounts(row.drawing, total);
     } else if (e.payment_status === "post_paid_unpaid") {
-      row.operating += total;
+      row.operating = addPaymentRequestAmounts(row.operating, total);
     }
     cats.set(k, row);
   }
@@ -207,10 +139,10 @@ export default async function PaymentRequestPage({
   const catRows = [...cats.entries()].map(([cat, v], i) => ({
     id: String(i),
     cat,
-    operating: egp(v.operating),
-    capex: egp(v.capex),
-    drawing: egp(v.drawing),
-    paid: egp(v.paid),
+    operating: paymentRequestAmountEgp(v.operating),
+    capex: paymentRequestAmountEgp(v.capex),
+    drawing: paymentRequestAmountEgp(v.drawing),
+    paid: paymentRequestAmountEgp(v.paid),
   }));
 
   const lineCols: SimpleColumn[] = [
@@ -234,14 +166,14 @@ export default async function PaymentRequestPage({
       : PAYMENT_STATUS_AR[e.payment_status ?? ""] ?? "غير محدد",
     paid_from: accountLabelById.get(lineByExpenseId.get(e.id)?.paid_from_custody_account_id ?? "") ?? "—",
     paid_at: lineByExpenseId.get(e.id)?.paid_at ? fmtDate(lineByExpenseId.get(e.id)?.paid_at ?? "") : "—",
-    total: egp(Number(e.total ?? 0)),
+    total: paymentRequestAmountEgp(paymentRequestAmount(e.total, `expense ${e.id} total`)),
   }));
 
   const payableExpenseOptions = exp
     .filter((e) => e.payment_status === "post_paid_unpaid" && !lineByExpenseId.get(e.id)?.paid_at)
     .map((e) => ({
       id: e.id,
-      label: `${e.description ?? e.category ?? "مصروف"} — ${postingAccountLabelById.get(e.account_id ?? "") ?? "حساب غير معروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${egp(Number(e.total ?? 0))}`,
+      label: `${e.description ?? e.category ?? "مصروف"} — ${postingAccountLabelById.get(e.account_id ?? "") ?? "حساب غير معروف"} — ${EXPENSE_KIND_AR[e.kind ?? "operating"] ?? "غير مصنف"} — ${paymentRequestAmountEgp(paymentRequestAmount(e.total, `expense ${e.id} total`))}`,
     }));
 
   const fundingCols: SimpleColumn[] = [
@@ -250,16 +182,16 @@ export default async function PaymentRequestPage({
     { id: "amount", header: "المبلغ", numeric: true },
     { id: "note", header: "ملاحظات" },
   ];
-  const fundingRows = (fundingsRes.data ?? []).map((funding) => ({
+  const fundingRows = detail.fundings.map((funding) => ({
     id: funding.id,
     date: fmtDate(funding.occurred_at),
     account: accountLabelById.get(funding.custody_account_id) ?? "—",
-    amount: egp(Number(funding.amount ?? 0)),
+    amount: paymentRequestAmountEgp(paymentRequestAmount(funding.amount, `funding ${funding.id} amount`)),
     note: funding.note ?? "—",
   }));
 
-  const orgName = orgRes.data?.name ?? "مزارع عبيد";
-  const holderLabel = acctRes.data?.holder_label ?? null;
+  const orgName = detail.organizationName;
+  const holderLabel = req.custody_account_label;
   const periodLabel = req.period_start
     ? `${fmtDate(req.period_start)} → ${req.period_end ? fmtDate(req.period_end) : "…"}`
     : null;
@@ -271,24 +203,26 @@ export default async function PaymentRequestPage({
 
   // Attention surfacing from the live totals: there is post-paid unpaid liability
   // still on the books, or a net amount the owner is asked to fund.
-  const remainingToFund = Number(t.remaining_to_fund ?? t.net_request ?? 0);
-  const pendingLineCount = payableExpenseOptions.length;
+  const remainingToFund = t.remaining_to_fund;
+  const remainingToFundPositive = isPositivePaymentRequestAmount(remainingToFund);
+  const pendingLineCount = detail.lines.filter((line) => line.paid_at == null).length;
 
   // R-2 (SPEC-0025): the request's story in ONE sentence + who acts NEXT — the rail's head.
   // Every wait-state names its actor; the cycle is never a maze again.
   const unclassifiedCount = exp.filter(
     (e) => e.payment_status === "post_paid_unpaid" && !e.account_id && !lineByExpenseId.get(e.id)?.paid_at,
   ).length;
-  const gross = Number(t.gross_request ?? 0);
+  const gross = t.gross_request;
+  const grossPositive = isPositivePaymentRequestAmount(gross);
   const railLead =
     req.status === "draft"
-      ? `مسودة بها ${num(lineRows.length)} مصروفًا${gross > 0 ? ` بإجمالي ${egp(gross)}` : ""} — التالي: المحاسب يكمل البنود ويرسل للاعتماد.`
+      ? `مسودة بها ${num(lineRows.length)} مصروفًا${grossPositive ? ` بإجمالي ${paymentRequestAmountEgp(gross)}` : ""} — التالي: المحاسب يكمل البنود ويرسل للاعتماد.`
       : req.status === "submitted"
-        ? `أُرسل الطلب (${egp(gross)}) — التالي: الاعتماد التشغيلي (مدير المزرعة).`
+        ? `أُرسل الطلب (${paymentRequestAmountEgp(gross)}) — التالي: الاعتماد التشغيلي (مدير المزرعة).`
         : req.status === "approved_operational"
-          ? `اعتمده المدير — التالي: اعتماد المالك (${egp(gross)}).`
+          ? `اعتمده المدير — التالي: اعتماد المالك (${paymentRequestAmountEgp(gross)}).`
           : req.status === "approved_final"
-            ? `اعتمده المالك — التالي: تسجيل التمويل (المتبقي ${egp(remainingToFund)}).`
+            ? `اعتمده المالك — التالي: تسجيل التمويل (المتبقي ${paymentRequestAmountEgp(remainingToFund)}).`
             : req.status === "paid" && pendingLineCount > 0
               ? `التمويل مكتمل — التالي: تأكيد سداد ${num(pendingLineCount)} بند من العهدة.`
               : req.status === "paid"
@@ -304,9 +238,7 @@ export default async function PaymentRequestPage({
   // "requested" (not started); the paper إذن صرف carries three signatures — محاسب
   // (prepare/submit), مدير المزرعة (operational), المالك (final) — mirrored here 1:1.
   const actorNames = new Map(
-    (actorsRes.data ?? [])
-      .filter((p): p is { user_id: string; name: string | null } => p.user_id != null)
-      .map((p) => [p.user_id, p.name ?? "—"]),
+    detail.actors.map((person) => [person.user_id, person.name]),
   );
   const preparedByName = req.prepared_by ? (actorNames.get(req.prepared_by) ?? "—") : null;
   const approvedOpByName = req.approved_op_by ? (actorNames.get(req.approved_op_by) ?? "—") : null;
@@ -351,11 +283,11 @@ export default async function PaymentRequestPage({
     { id: "holder", label: "العهدة", value: holderLabel ?? "—" },
     { id: "period", label: "الفترة", value: periodLabel ?? "—" },
     { id: "status", label: "الحالة", value: REQ_STATUS_AR[req.status] ?? req.status },
-    { id: "gross", label: "إجمالي الطلب", value: egp(t.gross_request ?? 0) },
-    { id: "approved", label: "المعتمد من المالك", value: egp(t.approved_net_request ?? t.gross_request ?? 0) },
-    { id: "funded", label: "تمويل مستلم كعهدة", value: egp(t.owner_funding_received ?? 0) },
-    { id: "paid", label: "مدفوع من الطلب", value: egp(t.request_cash_out ?? 0) },
-    { id: "remaining", label: "المتبقي تمويله", value: egp(remainingToFund) },
+    { id: "gross", label: "إجمالي الطلب", value: paymentRequestAmountEgp(t.gross_request) },
+    { id: "approved", label: "المعتمد من المالك", value: paymentRequestAmountEgp(t.approved_net_request) },
+    { id: "funded", label: "تمويل مستلم كعهدة", value: paymentRequestAmountEgp(t.owner_funding_received) },
+    { id: "paid", label: "مدفوع من الطلب", value: paymentRequestAmountEgp(t.request_cash_out) },
+    { id: "remaining", label: "المتبقي تمويله", value: paymentRequestAmountEgp(remainingToFund) },
   ];
   const proofCols: SimpleColumn[] = [
     { id: "stage", header: "المرحلة" },
@@ -425,11 +357,11 @@ export default async function PaymentRequestPage({
         actions={<HeaderLink href="/custody">سجل العهدة</HeaderLink>}
       />
 
-      {remainingToFund > 0 && (
+      {remainingToFundPositive && (
         <Alert
           tone="warning"
           title="تمويل مطلوب من المالك"
-          description={`المتبقي تسجيله كعهدة من تمويل المالك: ${egp(remainingToFund)}.`}
+          description={`المتبقي تسجيله كعهدة من تمويل المالك: ${paymentRequestAmountEgp(remainingToFund)}.`}
         />
       )}
       {req.status === "paid" && pendingLineCount > 0 && (
@@ -528,14 +460,14 @@ export default async function PaymentRequestPage({
           </Card>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Card title="تشغيلي آجل"><p className="text-xl font-bold">{egp(t.operating_unpaid ?? 0)}</p></Card>
-            <Card title="رأسمالي آجل"><p className="text-xl font-bold">{egp(t.capex_unpaid ?? 0)}</p></Card>
-            <Card title="مسحوبات آجل"><p className="text-xl font-bold">{egp(t.drawing_unpaid ?? 0)}</p></Card>
-            <Card title="تغذية عهدة مطلوبة"><p className="text-xl font-bold">{egp(t.custody_top_up ?? 0)}</p></Card>
-            <Card title="المعتمد من المالك"><p className="text-xl font-bold">{egp(t.approved_net_request ?? t.gross_request ?? 0)}</p></Card>
-            <Card title="تمويل مستلم كعهدة"><p className="text-xl font-bold">{egp(t.owner_funding_received ?? 0)}</p></Card>
-            <Card title="مدفوع من الطلب"><p className="text-xl font-bold">{egp(t.request_cash_out ?? 0)}</p></Card>
-            <Card title="المتبقي تمويله"><p className="text-xl font-bold" style={{ color: "var(--brand)" }}>{egp(remainingToFund)}</p></Card>
+            <Card title="تشغيلي آجل"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.operating_unpaid)}</p></Card>
+            <Card title="رأسمالي آجل"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.capex_unpaid)}</p></Card>
+            <Card title="مسحوبات آجل"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.drawing_unpaid)}</p></Card>
+            <Card title="تغذية عهدة مطلوبة"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.custody_top_up)}</p></Card>
+            <Card title="المعتمد من المالك"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.approved_net_request)}</p></Card>
+            <Card title="تمويل مستلم كعهدة"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.owner_funding_received)}</p></Card>
+            <Card title="مدفوع من الطلب"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.request_cash_out)}</p></Card>
+            <Card title="المتبقي تمويله"><p className="text-xl font-bold" style={{ color: "var(--brand)" }}>{paymentRequestAmountEgp(remainingToFund)}</p></Card>
           </div>
 
           <Card title="الملخص حسب الفئة">
@@ -561,7 +493,7 @@ export default async function PaymentRequestPage({
           className="grid gap-5 lg:grid-cols-2 no-print"
         >
           <Card title="تمويل المالك">
-            {req.status === "approved_final" || (req.status === "paid" && remainingToFund > 0) ? (
+            {req.status === "approved_final" || (req.status === "paid" && remainingToFundPositive) ? (
               <RecordRequestFunding requestId={req.id} accounts={accountOptions} remainingToFund={remainingToFund} />
             ) : (
               <p style={{ color: "var(--ink-muted)" }}>
@@ -609,6 +541,13 @@ export default async function PaymentRequestPage({
               tone="warning"
               title={`${num(unclassifiedAvailableCount)} مصروف مؤجل أو مدفوع من العهدة بدون حساب محاسبي`}
               description="لن يظهر المصروف هنا قبل اختيار حسابه من شاشة المصروفات، حتى لا يدخل إذن الصرف بدون تصنيف محاسبي."
+            />
+          )}
+          {req.status === "draft" && detail.availableExpensesTruncated && (
+            <Alert
+              tone="warning"
+              title={`${num(hiddenAvailableExpenseCount)} مصروف إضافي جاهز خارج أحدث 150 مصروفًا`}
+              description="راجع شاشة المصروفات لإضافة الأقدم؛ القائمة هنا لا تدّعي أنها كاملة."
             />
           )}
           {req.status === "draft" ? (

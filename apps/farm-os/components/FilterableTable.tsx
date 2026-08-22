@@ -56,6 +56,7 @@ export function FilterableTable({
       columns.filter((c) => c.sortable ?? !c.render).map((c) => ({
         id: c.id,
         numeric: c.numeric,
+        decimal: c.decimal,
       })),
     [columns],
   );

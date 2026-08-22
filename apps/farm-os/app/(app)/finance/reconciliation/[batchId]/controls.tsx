@@ -1,16 +1,17 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, Button, EmptyState, Field, Input, Select, Tag, Textarea } from "@/components/ui";
 import { AccountPicker } from "@/components/AccountPicker";
 import { num } from "@/lib/money";
 import type { DecisionInput, ResultSummaryLine } from "@/lib/reconciliation review";
-// The ONE runtime value this client bundle takes from the (space-named) reconciliation module: the
-// rollback reason bound, so the textarea cannot silently accept text the RPC will reject. It is a
-// plain number constant — importing the value keeps the UI cap and the RPC cap from ever drifting.
+// Runtime values kept in the pure reconciliation module: the rollback bound mirrors the RPC, while
+// next-row selection stays deterministic and independently tested. Neither writes or infers a decision.
+import { nextVisibleUnreviewedRowId } from "@/lib/reconciliation review";
 import { ROLLBACK_REASON_MAX } from "@/lib/reconciliation review";
+import { useReviewWorkspaceGuard } from "./review workspace guard";
 import {
   reviewRow,
   loadReviewOptions,
@@ -63,6 +64,7 @@ export interface RowVM {
   sourceDateLabel: string;
   invalidDate: boolean;
   reviewState: string;
+  reviewVersion: number;
   disposition: string;
   reviewReason: string | null;
   targetTable: string | null;
@@ -77,8 +79,8 @@ export interface RowVM {
 
 // Local display maps (kept here so the client bundle never pulls the whole spaced-filename module in
 // at runtime; the authoritative Arabic maps live in lib/reconciliation review.ts and are used
-// server-side). ROLLBACK_REASON_MAX above is the deliberate exception: it is a bare numeric const, so
-// the bundler inlines the literal — the built client chunk carries `maxLength:500`, not an import.
+// server-side). The two deliberate runtime helpers above are pure: one is a numeric input bound and
+// the other selects a visible row id without reading or changing any financial value.
 const REVIEW_STATE: Record<string, { label: string; tone: string }> = {
   unreviewed: { label: "بدون قرار", tone: "warning" },
   reviewed: { label: "تمت المراجعة", tone: "info" },
@@ -86,15 +88,16 @@ const REVIEW_STATE: Record<string, { label: string; tone: string }> = {
   executed: { label: "مُنفَّذ", tone: "ok" },
   rejected: { label: "مرفوض", tone: "danger" },
 };
-const DISPOSITION_LABEL: Record<string, string> = { include: "تضمين", hold: "تعليق" };
+const DISPOSITION_LABEL: Record<string, string> = {
+  include: "تضمين",
+  hold: "تعليق",
+};
 const KIND_OPTS = [
   { value: "operating", label: "تشغيلي" },
   { value: "drawing", label: "مسحوبات مالك" },
   { value: "capex", label: "رأسمالي" },
 ];
-const PAYMENT_OPTS = [
-  { value: "routed_now", label: "ترحيل تاريخي على خزينة المزرعة" },
-];
+const PAYMENT_OPTS = [{ value: "routed_now", label: "ترحيل تاريخي على خزينة المزرعة" }];
 const HISTORICAL_OPTS = [
   { value: "", label: "— بدون —" },
   { value: "use_source_text_date", label: "تاريخ نص المصدر" },
@@ -219,7 +222,10 @@ function CorrectionTargetPicker({
                   key={target.id}
                   type="button"
                   className="rounded-md px-3 py-2 text-start text-sm"
-                  style={{ border: "1px solid var(--line)", background: "var(--surface)" }}
+                  style={{
+                    border: "1px solid var(--line)",
+                    background: "var(--surface)",
+                  }}
                   onClick={() => {
                     onChange(target.id);
                     setSelectedLabel(target.label);
@@ -244,8 +250,14 @@ function RowCard({
   editable,
   options,
   ensureOptions,
-  invalidateOptions,
   optionsPending,
+  open,
+  setOpenRow,
+  nextUnreviewedRowId,
+  refreshPending,
+  anotherRowOpen,
+  reviewSupported,
+  onSaved,
 }: {
   row: RowVM;
   batchId: string;
@@ -253,18 +265,23 @@ function RowCard({
   editable: boolean;
   options: OptionList | null;
   ensureOptions: () => Promise<OptionList | null>;
-  invalidateOptions: () => void;
   optionsPending: boolean;
+  open: boolean;
+  setOpenRow: (rowId: string | null) => void;
+  nextUnreviewedRowId: string | null;
+  refreshPending: boolean;
+  anotherRowOpen: boolean;
+  reviewSupported: boolean;
+  onSaved: (nextRowId: string | null) => void;
 }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"save" | "save-next" | null>(null);
+  const [opening, setOpening] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
 
   const decided = row.reviewState !== "unreviewed";
   const [action, setAction] = useState<"review" | "hold" | "reject">(() => initialActionOf(row));
   const [target, setTarget] = useState<"expenses" | "sales">(
-    (row.targetTable as "expenses" | "sales" | null) ?? "expenses",
+    (row.targetTable as "expenses" | "sales" | null) ?? "expenses"
   );
   const [reason, setReason] = useState(row.reviewReason ?? "");
   const [exp, setExp] = useState<RowExpensePrefill>(row.expense);
@@ -274,27 +291,16 @@ function RowCard({
   // Bumped by resetForm so the correction picker — which holds its own query/results/chosen label —
   // remounts on a discard instead of keeping the label of a record that was never saved.
   const [formNonce, setFormNonce] = useState(0);
-  /**
-   * True from the moment a successful save starts the post-save refresh until the REFRESHED RSC payload
-   * has committed and `row` carries the decision that was just written.
-   *
-   * `router.refresh()` returns void and resolves later, so without this the card became reopenable the
-   * instant the save returned — and `resetForm()` seeds from the `row` PROP, which in that window is
-   * still the PRE-save row. A fast reopen would therefore show the OLD stored decision and write it back
-   * on the next save: the same defect this card was fixed for, just moved into the refresh window. The
-   * refresh runs inside a transition so this flag stays true for exactly that window, and the open path
-   * is gated on it.
-   */
-  const [refreshPending, startRefreshTransition] = useTransition();
-
   const isCorrection = classification === "amount_correction_candidate";
-  const state = REVIEW_STATE[row.reviewState] ?? { label: row.reviewState, tone: "neutral" };
+  const state = REVIEW_STATE[row.reviewState] ?? {
+    label: row.reviewState,
+    tone: "neutral",
+  };
 
   /**
    * Re-seed every field from the row as the SERVER currently renders it, and clear the last message.
    *
-   * This card is keyed by row id and never unmounts while the page is open: `router.refresh()` after a
-   * save re-renders it with fresh props but does NOT re-run the state initialisers above. Without this,
+   * A plain server refresh preserves client state and does NOT re-run the state initialisers above. Without this,
    * abandoned edits survived «إلغاء» and the next open showed them as if they were the stored decision
    * — contradicting the read-only decision summary printed in the same card, and writing the abandoned
    * values back if the reviewer then saved. On a money batch that silently flips a decision, so the
@@ -315,7 +321,7 @@ function RowCard({
   /** Close the form and throw away everything unsaved — what «إلغاء» says it does. */
   function discard() {
     resetForm();
-    setOpen(false);
+    setOpenRow(null);
   }
 
   function buildDecision(): DecisionInput {
@@ -365,30 +371,36 @@ function RowCard({
     };
   }
 
-  async function submit() {
+  async function submit(advance: boolean) {
     if (reason.trim().length === 0) {
-      setMsg({ tone: "danger", text: "سبب القرار مطلوب ولا يمكن أن يكون فارغًا." });
+      setMsg({
+        tone: "danger",
+        text: "سبب القرار مطلوب ولا يمكن أن يكون فارغًا.",
+      });
       return;
     }
     if (action === "review" && target === "expenses" && exp.payment_decision.trim() === "") {
       setMsg({ tone: "danger", text: "قرار الترحيل على خزينة المزرعة مطلوب." });
       return;
     }
-    setPending(true);
+    const command = advance ? "save-next" : "save";
+    setPendingAction(command);
     setMsg(null);
-    const r = await run(() => reviewRow({ rowId: row.id, batchId, decision: buildDecision() }));
-    setPending(false);
+    const r = await run(() =>
+      reviewRow({
+        rowId: row.id,
+        batchId,
+        expectedReviewVersion: row.reviewVersion,
+        decision: buildDecision(),
+      })
+    );
+    setPendingAction(null);
     if (r.ok) {
       setMsg({ tone: "ok", text: "تم حفظ القرار." });
-      setOpen(false);
-      invalidateOptions();
-      // Inside a transition on purpose: `refreshPending` must stay true until the refreshed row commits,
-      // and the open path is gated on it. A bare router.refresh() would leave the card reopenable
-      // against the pre-save row. Every state change above is batched with this one, so there is no
-      // intermediate render in which the card is closed and the open button is not yet gated.
-      startRefreshTransition(() => {
-        router.refresh();
-      });
+      const advanceTo = advance ? nextUnreviewedRowId : null;
+      // The parent closes every card, refreshes the server rows inside one shared transition, and only
+      // then opens this candidate if it is still visible and unreviewed. No stale pre-save row can open.
+      onSaved(advanceTo);
     } else {
       setMsg({ tone: "danger", text: r.error ?? "تعذّر حفظ القرار." });
     }
@@ -397,7 +409,10 @@ function RowCard({
   return (
     <div
       className="flex flex-col gap-3 rounded-lg p-4"
-      style={{ border: "1px solid var(--line)", backgroundColor: "var(--surface)" }}
+      style={{
+        border: "1px solid var(--line)",
+        backgroundColor: "var(--surface)",
+      }}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex flex-col gap-1">
@@ -407,12 +422,14 @@ function RowCard({
             <span className="text-xs" style={{ color: "var(--ink-muted)" }}>
               {row.reviewState === "unreviewed"
                 ? "بدون قرار (الوضع الافتراضي)"
-                : (DISPOSITION_LABEL[row.disposition] ?? row.disposition)}
+                : DISPOSITION_LABEL[row.disposition] ?? row.disposition}
             </span>
             {row.invalidDate && <Tag tone="warning">تاريخ غير صالح</Tag>}
           </div>
           <div className="text-sm font-medium">{row.evidenceLabel}</div>
-          <div className="text-xs" style={{ color: "var(--ink-muted)" }}>{row.provenanceLabel}</div>
+          <div className="text-xs" style={{ color: "var(--ink-muted)" }}>
+            {row.provenanceLabel}
+          </div>
           <div className="flex flex-wrap gap-x-4 text-xs" style={{ color: "var(--ink-muted)" }}>
             <span>المبلغ المصدر: {row.sourceAmountLabel}</span>
             <span>تاريخ المصدر: {row.sourceDateLabel}</span>
@@ -425,7 +442,10 @@ function RowCard({
           {row.targetDetails.length > 0 && (
             <div
               className="mt-1 flex flex-wrap gap-x-4 gap-y-1 rounded-md px-3 py-2 text-xs"
-              style={{ background: "var(--surface-raised)", color: "var(--ink)" }}
+              style={{
+                background: "var(--surface-raised)",
+                color: "var(--ink)",
+              }}
             >
               {row.targetDetails.map((detail) => (
                 <span key={detail}>{detail}</span>
@@ -439,8 +459,8 @@ function RowCard({
             size="sm"
             // Closing is never blocked; OPENING is, until the options are loaded AND the post-save
             // refresh has committed, because resetForm() seeds from the row prop.
-            loading={!open && (optionsPending || refreshPending)}
-            disabled={!open && (optionsPending || refreshPending)}
+            loading={!open && opening}
+            disabled={!open && (!reviewSupported || optionsPending || refreshPending || anotherRowOpen)}
             onClick={async () => {
               if (open) {
                 discard();
@@ -448,12 +468,14 @@ function RowCard({
               }
               // Defence in depth behind the disabled state above: never seed from a row the pending
               // refresh is about to replace.
-              if (refreshPending) return;
+              if (!reviewSupported || refreshPending || anotherRowOpen) return;
+              setOpening(true);
               const loaded = await ensureOptions();
+              setOpening(false);
               // Seed from the row as it is rendered right now, then show the form.
               if (loaded) {
                 resetForm();
-                setOpen(true);
+                setOpenRow(row.id);
               }
             }}
           >
@@ -629,7 +651,14 @@ function RowCard({
                   id={`sl-farm-${row.id}`}
                   value={sale.farm_id}
                   // Changing the farm clears the now-inconsistent sector + hawsha (descendant clearing).
-                  onChange={(e) => setSale({ ...sale, farm_id: e.target.value, sector_id: "", hawsha_id: "" })}
+                  onChange={(e) =>
+                    setSale({
+                      ...sale,
+                      farm_id: e.target.value,
+                      sector_id: "",
+                      hawsha_id: "",
+                    })
+                  }
                   options={idOptions("— بدون —", options.farms)}
                 />
               </Field>
@@ -639,10 +668,16 @@ function RowCard({
                   value={sale.sector_id}
                   disabled={!sale.farm_id}
                   // Sectors are filtered to the chosen farm; changing the sector clears the hawsha.
-                  onChange={(e) => setSale({ ...sale, sector_id: e.target.value, hawsha_id: "" })}
+                  onChange={(e) =>
+                    setSale({
+                      ...sale,
+                      sector_id: e.target.value,
+                      hawsha_id: "",
+                    })
+                  }
                   options={idOptions(
                     sale.farm_id ? "— بدون —" : "اختر المزرعة أولًا",
-                    options.sectors.filter((s) => s.farmId === sale.farm_id),
+                    options.sectors.filter((s) => s.farmId === sale.farm_id)
                   )}
                 />
               </Field>
@@ -654,7 +689,7 @@ function RowCard({
                   onChange={(e) => setSale({ ...sale, hawsha_id: e.target.value })}
                   options={idOptions(
                     sale.sector_id ? "— بدون —" : "اختر القطاع أولًا",
-                    options.hawshat.filter((h) => h.sectorId === sale.sector_id),
+                    options.hawshat.filter((h) => h.sectorId === sale.sector_id)
                   )}
                 />
               </Field>
@@ -677,7 +712,12 @@ function RowCard({
                 <Select
                   id={`sl-hist-${row.id}`}
                   value={sale.historical_date_decision}
-                  onChange={(e) => setSale({ ...sale, historical_date_decision: e.target.value })}
+                  onChange={(e) =>
+                    setSale({
+                      ...sale,
+                      historical_date_decision: e.target.value,
+                    })
+                  }
                   options={HISTORICAL_OPTS}
                 />
               </Field>
@@ -711,23 +751,28 @@ function RowCard({
           )}
 
           <Field label="سبب القرار (إلزامي)" id={`reason-${row.id}`} required>
-            <Textarea
-              id={`reason-${row.id}`}
-              rows={2}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
+            <Textarea id={`reason-${row.id}`} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
 
           <div role="alert" aria-live="assertive" aria-atomic="true">
             {msg && <Alert tone={msg.tone} title={msg.text} />}
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={submit} loading={pending} disabled={pending}>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => submit(false)} loading={pendingAction === "save"} disabled={pendingAction !== null}>
               حفظ القرار
             </Button>
-            <Button variant="ghost" onClick={discard} disabled={pending}>
+            {nextUnreviewedRowId && (
+              <Button
+                variant="ghost"
+                onClick={() => submit(true)}
+                loading={pendingAction === "save-next"}
+                disabled={pendingAction !== null}
+              >
+                حفظ ومراجعة التالي
+              </Button>
+            )}
+            <Button variant="ghost" onClick={discard} disabled={pendingAction !== null}>
               إلغاء
             </Button>
           </div>
@@ -760,6 +805,7 @@ function BatchActionBar({
   rollbackReason,
   executedRows,
   summaryLines,
+  reviewOpen,
 }: {
   batchId: string;
   status: string;
@@ -774,6 +820,7 @@ function BatchActionBar({
   rollbackReason: string | null;
   executedRows: number;
   summaryLines: ResultSummaryLine[];
+  reviewOpen: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<"freeze" | "approve" | MoneyAction | null>(null);
@@ -809,8 +856,9 @@ function BatchActionBar({
     call: () => Promise<ActionResult>,
     okText: string,
     failText: string,
-    onOk?: () => void,
+    onOk?: () => void
   ) {
+    if (reviewOpen) return;
     setPending(kind);
     setMsg(null);
     const result = await run(call);
@@ -827,7 +875,10 @@ function BatchActionBar({
   function doRollback() {
     // Mirrors the RPC's own rule so the owner keeps their text instead of getting a raw DB error.
     if (reason.trim().length === 0) {
-      setMsg({ tone: "danger", text: "سبب التراجع مطلوب ولا يمكن أن يكون فارغًا." });
+      setMsg({
+        tone: "danger",
+        text: "سبب التراجع مطلوب ولا يمكن أن يكون فارغًا.",
+      });
       return;
     }
     return runBatchAction(
@@ -838,29 +889,25 @@ function BatchActionBar({
       () => {
         setConfirming(null);
         setReason("");
-      },
+      }
     );
   }
 
   return (
     <div
       className="flex flex-col gap-2 rounded-lg px-4 py-3"
-      style={{ border: "1px solid var(--line)", backgroundColor: "var(--surface)" }}
+      style={{
+        border: "1px solid var(--line)",
+        backgroundColor: "var(--surface)",
+      }}
     >
       <div className="flex flex-wrap items-center gap-2">
         {showFreeze && (
           <Button
             size="sm"
-            onClick={() =>
-              runBatchAction(
-                "freeze",
-                () => freezeBatch(batchId),
-                "تم تجميد الدفعة.",
-                "تعذّر التجميد.",
-              )
-            }
+            onClick={() => runBatchAction("freeze", () => freezeBatch(batchId), "تم تجميد الدفعة.", "تعذّر التجميد.")}
             loading={pending === "freeze"}
-            disabled={!canFreeze || pending !== null}
+            disabled={!canFreeze || pending !== null || reviewOpen}
           >
             تجميد الدفعة
           </Button>
@@ -870,15 +917,10 @@ function BatchActionBar({
             variant="primary"
             size="sm"
             onClick={() =>
-              runBatchAction(
-                "approve",
-                () => approveBatch(batchId),
-                "تم اعتماد الدفعة.",
-                "تعذّر الاعتماد.",
-              )
+              runBatchAction("approve", () => approveBatch(batchId), "تم اعتماد الدفعة.", "تعذّر الاعتماد.")
             }
             loading={pending === "approve"}
-            disabled={!canApprove || pending !== null}
+            disabled={!canApprove || pending !== null || reviewOpen}
           >
             اعتماد الدفعة
           </Button>
@@ -891,7 +933,7 @@ function BatchActionBar({
               setMsg(null);
               setConfirming((v) => (v === "execute" ? null : "execute"));
             }}
-            disabled={!canExecute || pending !== null}
+            disabled={!canExecute || pending !== null || reviewOpen}
           >
             تنفيذ الدفعة (ترحيل مالي)
           </Button>
@@ -904,7 +946,7 @@ function BatchActionBar({
               setMsg(null);
               setConfirming((v) => (v === "rollback" ? null : "rollback"));
             }}
-            disabled={!canRollback || pending !== null}
+            disabled={!canRollback || pending !== null || reviewOpen}
           >
             التراجع عن التنفيذ
           </Button>
@@ -927,15 +969,18 @@ function BatchActionBar({
         </p>
       )}
 
+      {reviewOpen && (
+        <p className="text-xs" role="status" style={{ color: "var(--ink-muted)" }}>
+          احفظ قرار الصف المفتوح أو ألغِه قبل إجراء تغيير على الدفعة.
+        </p>
+      )}
+
       {confirming === "execute" && canExecute && (
-        <div
-          className="flex flex-col gap-2 rounded-md px-3 py-2"
-          style={{ background: "var(--surface-raised)" }}
-        >
+        <div className="flex flex-col gap-2 rounded-md px-3 py-2" style={{ background: "var(--surface-raised)" }}>
           <p className="text-xs" style={{ color: "var(--ink)" }}>
-            سيُنشئ التنفيذ المصروفات والمبيعات المعتمدة ويُرحّل قيودها على خزينة المزرعة فورًا —
-            أرقام الأرباح والإيرادات ستتغيّر. لا يُلغى التنفيذ بحذف أي شيء: يُلغى فقط بعملية «تراجع»
-            تُنشئ قيودًا عكسية وتُعيد القيود الأصلية.
+            سيُنشئ التنفيذ المصروفات والمبيعات المعتمدة ويُرحّل قيودها على خزينة المزرعة فورًا — أرقام الأرباح
+            والإيرادات ستتغيّر. لا يُلغى التنفيذ بحذف أي شيء: يُلغى فقط بعملية «تراجع» تُنشئ قيودًا عكسية وتُعيد القيود
+            الأصلية.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -947,7 +992,7 @@ function BatchActionBar({
                   () => executeBatch(batchId),
                   "تم تنفيذ الدفعة وترحيل قيودها.",
                   "تعذّر تنفيذ الدفعة.",
-                  () => setConfirming(null),
+                  () => setConfirming(null)
                 )
               }
               loading={pending === "execute"}
@@ -963,14 +1008,10 @@ function BatchActionBar({
       )}
 
       {confirming === "rollback" && canRollback && (
-        <div
-          className="flex flex-col gap-2 rounded-md px-3 py-2"
-          style={{ background: "var(--surface-raised)" }}
-        >
+        <div className="flex flex-col gap-2 rounded-md px-3 py-2" style={{ background: "var(--surface-raised)" }}>
           <p className="text-xs" style={{ color: "var(--ink)" }}>
-            سيعكس التراجع كل قيد أنشأته هذه الدفعة ويُعيد كل قيد عكسته — بقيود جديدة، دون حذف أي
-            سجل. أرقام الأرباح والإيرادات ستعود كما كانت قبل التنفيذ، ولا يمكن تنفيذ هذه الدفعة مرة
-            أخرى بعد التراجع.
+            سيعكس التراجع كل قيد أنشأته هذه الدفعة ويُعيد كل قيد عكسته — بقيود جديدة، دون حذف أي سجل. أرقام الأرباح
+            والإيرادات ستعود كما كانت قبل التنفيذ، ولا يمكن تنفيذ هذه الدفعة مرة أخرى بعد التراجع.
           </p>
           <Field label="سبب التراجع (إلزامي)" id="rollback-reason" required>
             <Textarea
@@ -1062,13 +1103,31 @@ export function ReconciliationControls({
   previousHref: string;
   nextHref: string;
 }) {
+  const router = useRouter();
+  const { reviewOpen, historyGuardStatus, setReviewOpen } = useReviewWorkspaceGuard();
   const optionsRef = useRef<OptionList | null>(null);
   const pendingOptionsRef = useRef<Promise<ReviewOptionsResult> | null>(null);
+  const queuedOpenRowRef = useRef<string | null>(null);
+  const wasRefreshPendingRef = useRef(false);
   const [options, setOptions] = useState<OptionList | null>(null);
   const [optionsPending, setOptionsPending] = useState(false);
   const [optionsError, setOptionsError] = useState("");
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const [refreshPending, startRefreshTransition] = useTransition();
 
-  async function ensureOptions(): Promise<OptionList | null> {
+  const setOpenRow = useCallback(
+    (rowId: string | null) => {
+      setOpenRowId(rowId);
+      setReviewOpen(rowId !== null);
+    },
+    [setReviewOpen]
+  );
+
+  useEffect(() => {
+    return () => setReviewOpen(false);
+  }, [setReviewOpen]);
+
+  const ensureOptions = useCallback(async (): Promise<OptionList | null> => {
     if (optionsRef.current) return optionsRef.current;
 
     setOptionsError("");
@@ -1097,7 +1156,27 @@ export function ReconciliationControls({
         setOptionsPending(false);
       }
     }
-  }
+  }, [batchId]);
+
+  useEffect(() => {
+    const refreshJustCommitted = wasRefreshPendingRef.current && !refreshPending;
+    wasRefreshPendingRef.current = refreshPending;
+    if (!refreshJustCommitted) return;
+
+    const candidate = queuedOpenRowRef.current;
+    queuedOpenRowRef.current = null;
+    if (!candidate || !rows.some((row) => row.id === candidate && row.reviewState === "unreviewed")) {
+      return;
+    }
+
+    let cancelled = false;
+    void ensureOptions().then((loaded) => {
+      if (!cancelled && loaded) setOpenRow(candidate);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ensureOptions, refreshPending, rows, setOpenRow]);
 
   function invalidateOptions() {
     optionsRef.current = null;
@@ -1105,6 +1184,15 @@ export function ReconciliationControls({
     setOptions(null);
     setOptionsPending(false);
     setOptionsError("");
+  }
+
+  function handleRowSaved(nextRowId: string | null) {
+    queuedOpenRowRef.current = nextRowId;
+    setOpenRow(null);
+    invalidateOptions();
+    startRefreshTransition(() => {
+      router.refresh();
+    });
   }
 
   return (
@@ -1123,11 +1211,28 @@ export function ReconciliationControls({
         rollbackReason={rollbackReason}
         executedRows={executedRows}
         summaryLines={summaryLines}
+        reviewOpen={reviewOpen}
       />
 
       {optionsError && (
         <div role="alert" aria-live="assertive">
           <Alert tone="danger" title={optionsError} />
+        </div>
+      )}
+
+      {editable && historyGuardStatus === "unsupported" && (
+        <div role="alert">
+          <Alert
+            tone="danger"
+            title="المراجعة غير متاحة بأمان في هذا المتصفح"
+            description="استخدم إصدارًا حديثًا من المتصفح يدعم حماية الرجوع والتقدم قبل فتح قرارات المراجعة."
+          />
+        </div>
+      )}
+
+      {(refreshPending || (openRowId === null && optionsPending)) && (
+        <div role="status" aria-live="polite">
+          <Alert tone="info" title="جارٍ تحديث صفوف المراجعة…" />
         </div>
       )}
 
@@ -1137,15 +1242,21 @@ export function ReconciliationControls({
         ) : (
           rows.map((row) => (
             <RowCard
-              key={row.id}
+              key={`${row.id}:${openRowId === row.id ? "open" : "closed"}`}
               row={row}
               batchId={batchId}
               classification={row.classification}
               editable={editable}
               options={options}
               ensureOptions={ensureOptions}
-              invalidateOptions={invalidateOptions}
               optionsPending={optionsPending}
+              open={openRowId === row.id}
+              setOpenRow={setOpenRow}
+              nextUnreviewedRowId={nextVisibleUnreviewedRowId(rows, row.id)}
+              refreshPending={refreshPending}
+              anotherRowOpen={openRowId !== null && openRowId !== row.id}
+              reviewSupported={historyGuardStatus === "supported"}
+              onSaved={handleRowSaved}
             />
           ))
         )}
@@ -1156,26 +1267,18 @@ export function ReconciliationControls({
           الصفوف المطابقة: {num(from)}–{num(to)} من {num(total)}
         </span>
         <div className="flex gap-2">
-          <PageLink href={previousHref} disabled={page <= 1} label="السابق" />
+          <PageLink href={previousHref} disabled={page <= 1 || reviewOpen} label="السابق" />
           <span style={{ color: "var(--ink-muted)" }}>
             صفحة {num(page)} من {num(pageCount)}
           </span>
-          <PageLink href={nextHref} disabled={page >= pageCount} label="التالي" />
+          <PageLink href={nextHref} disabled={page >= pageCount || reviewOpen} label="التالي" />
         </div>
       </nav>
     </div>
   );
 }
 
-function PageLink({
-  href,
-  disabled,
-  label,
-}: {
-  href: string;
-  disabled: boolean;
-  label: string;
-}) {
+function PageLink({ href, disabled, label }: { href: string; disabled: boolean; label: string }) {
   if (disabled) {
     return (
       <span className="rounded-md px-3 py-1" style={{ color: "var(--ink-muted)", border: "1px solid var(--line)" }}>
@@ -1184,11 +1287,7 @@ function PageLink({
     );
   }
   return (
-    <Link
-      href={href}
-      className="rounded-md px-3 py-1"
-      style={{ border: "1px solid var(--line)", color: "var(--ink)" }}
-    >
+    <Link href={href} className="rounded-md px-3 py-1" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>
       {label}
     </Link>
   );

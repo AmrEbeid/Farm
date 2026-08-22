@@ -1,13 +1,24 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { PrintButton } from "@/components/print-button";
 import { CustodyForms } from "@/components/CustodyForms";
 import { fmtDate } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
+import { num } from "@/lib/money";
+import { compareDecimals, egpExact, maxDecimal, subtractDecimals, sumDecimals } from "@/lib/decimal";
+import {
+  assertFinanceUnpaidSummary,
+  currentMonthBounds,
+  unpaidKnownTotal,
+  unpaidUnknownCount,
+} from "@/lib/expense-register-summary";
+import {
+  parseCustodyDailySnapshot,
+  type CustodyRequestFilter,
+} from "@/lib/custody-daily-snapshot";
 
 // SPEC-0018 «العهدة وطلبات الصرف» — module dashboard + write surface (slices 3+4). Custody balance + the
 // live owner payment-request figures, derived from the RLS-scoped custody/expense/request tables; write actions
@@ -21,70 +32,50 @@ const REQ_STATUS_AR: Record<string, string> = {
   closed: "مُقفل",
 };
 
-type RequestFilter = "all" | "awaiting" | "settled";
-
-function parseRequestFilter(raw: string | undefined): RequestFilter {
+function parseRequestFilter(raw: string | undefined): CustodyRequestFilter {
   return raw === "awaiting" || raw === "settled" ? raw : "all";
 }
 
-// Stages where someone still owes an action (submit→approve→fund/pay chain).
-const AWAITING_STATUSES = ["submitted", "approved_operational", "approved_final"];
-const SETTLED_STATUSES = ["paid", "closed"];
+const MOVEMENT_DISPLAY_CAP = 15;
+const REQUEST_DISPLAY_CAP = 200;
 
 export default async function CustodyDashboardPage({
   searchParams,
 }: {
   searchParams: Promise<{ requests?: string }>;
 }) {
-  await requireRole(["owner", "accountant"]);
+  const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
   const requestFilter = parseRequestFilter((await searchParams).requests);
+  const monthBounds = currentMonthBounds();
+  const snapshotRes = await sb.rpc("fn_custody_daily_snapshot", {
+    p_org: m.orgId,
+    p_request_filter: requestFilter,
+    p_month_start: monthBounds.start,
+    p_month_end: monthBounds.end,
+    p_movement_limit: MOVEMENT_DISPLAY_CAP,
+    p_request_limit: REQUEST_DISPLAY_CAP,
+  });
+  if (snapshotRes.error) throw snapshotRes.error;
+  const snapshot = parseCustodyDailySnapshot(snapshotRes.data);
+  if (snapshot.orgId !== m.orgId || snapshot.requestFilter !== requestFilter) {
+    throw new Error("custody daily snapshot: response scope does not match the request");
+  }
+  const expenseSummary = snapshot.expenseSummary;
+  assertFinanceUnpaidSummary(expenseSummary);
 
-  const [accountsRes, movementsRes, requestsRes, unpaidRes] = await Promise.all([
-    sb.from("custody_accounts").select("id, holder_label, target_float, active").order("holder_label"),
-    sb
-      .from("custody_movements")
-      .select("id, occurred_at, movement_type, amount_in, amount_out, custody_account_id, note")
-      .order("occurred_at", { ascending: false })
-      .limit(15),
-    // Full request list (not a 15-row sample) so the approval queue is complete —
-    // FINANCE-ACCOUNTANT-360: approvers previously had to scan a truncated list.
-    sb
-      .from("payment_requests")
-      .select("id, request_no, status, period_start, period_end, created_at")
-      .order("created_at", { ascending: false }),
-    sb.from("expenses").select("total, kind").eq("payment_status", "post_paid_unpaid"),
-  ]);
-  if (accountsRes.error) throw accountsRes.error;
-  if (movementsRes.error) throw movementsRes.error;
-  if (requestsRes.error) throw requestsRes.error;
-  if (unpaidRes.error) throw unpaidRes.error;
+  const acctList = snapshot.accountRows;
+  const topUps = acctList.map((account) => maxDecimal(subtractDecimals(account.targetFloat, account.balance), "0"));
 
-  // current balance per account (derived, via the gated read RPC) — runs in parallel.
-  const acctList = accountsRes.data ?? [];
-  const balances = await Promise.all(
-    acctList.map(async (a) => {
-      const { data, error } = await sb.rpc("fn_custody_balance", { p_account: a.id });
-      if (error) throw error;
-      return Number(data ?? 0);
-    }),
-  );
-  const byId = new Map(acctList.map((a, i) => [a.id, { ...a, balance: balances[i] }]));
-
-  const totalBalance = balances.reduce((s, b) => s + b, 0);
-  const totalTarget = acctList.reduce((s, a) => s + Number(a.target_float ?? 0), 0);
-  const totalTopUp = acctList.reduce((s, a, i) => s + Math.max(0, Number(a.target_float ?? 0) - balances[i]), 0);
-  const unpaidOperating = (unpaidRes.data ?? [])
-    .filter((e) => (e.kind ?? "operating") === "operating")
-    .reduce((s, e) => s + Number(e.total ?? 0), 0);
-  const unpaidCapex = (unpaidRes.data ?? [])
-    .filter((e) => e.kind === "capex")
-    .reduce((s, e) => s + Number(e.total ?? 0), 0);
-  const unpaidDrawing = (unpaidRes.data ?? [])
-    .filter((e) => e.kind === "drawing")
-    .reduce((s, e) => s + Number(e.total ?? 0), 0);
-  const unpaidPostPaid = unpaidOperating + unpaidCapex + unpaidDrawing;
-  const netRequest = unpaidPostPaid + totalTopUp;
+  const totalBalance = sumDecimals(acctList.map((account) => account.balance)).total;
+  const totalTarget = sumDecimals(acctList.map((account) => account.targetFloat)).total;
+  const totalTopUp = sumDecimals(topUps).total;
+  const unpaidOperating = expenseSummary.unpaidOperatingTotal;
+  const unpaidCapex = expenseSummary.unpaidCapexTotal;
+  const unpaidDrawing = expenseSummary.unpaidDrawingTotal;
+  const unpaidPostPaid = unpaidKnownTotal(expenseSummary);
+  const unpaidUnknown = unpaidUnknownCount(expenseSummary);
+  const netRequest = sumDecimals([unpaidPostPaid, totalTopUp]).total;
 
   const acctCols: SimpleColumn[] = [
     { id: "holder", header: "العهدة لدى" },
@@ -94,10 +85,10 @@ export default async function CustodyDashboardPage({
   ];
   const acctRows = acctList.map((a, i) => ({
     id: a.id,
-    holder: a.holder_label,
-    balance: egp(balances[i]),
-    target: egp(Number(a.target_float ?? 0)),
-    topup: egp(Math.max(0, Number(a.target_float ?? 0) - balances[i])),
+    holder: a.holderLabel,
+    balance: egpExact(a.balance),
+    target: egpExact(a.targetFloat),
+    topup: egpExact(topUps[i]),
   }));
 
   const moveCols: SimpleColumn[] = [
@@ -107,25 +98,31 @@ export default async function CustodyDashboardPage({
     { id: "in", header: "وارد", numeric: true },
     { id: "out", header: "صادر", numeric: true },
   ];
-  const moveRows = (movementsRes.data ?? []).map((m) => ({
+  const moveRows = snapshot.movementRows.map((m) => ({
     id: m.id,
-    date: fmtDate(m.occurred_at),
-    holder: byId.get(m.custody_account_id)?.holder_label ?? "—",
-    type: m.movement_type,
-    in: Number(m.amount_in) > 0 ? egp(Number(m.amount_in)) : "—",
-    out: Number(m.amount_out) > 0 ? egp(Number(m.amount_out)) : "—",
+    href: `/custody/movements/${m.id}`,
+    date: fmtDate(m.occurredAt),
+    holder: m.holderLabel,
+    type: m.reversalOf ? `↩ ${m.movementType}` : m.reversedBy ? `${m.movementType} — معكوسة` : m.movementType,
+    in: compareDecimals(m.amountIn, "0") > 0 ? egpExact(m.amountIn) : "—",
+    out: compareDecimals(m.amountOut, "0") > 0 ? egpExact(m.amountOut) : "—",
   }));
 
-  const allRequests = requestsRes.data ?? [];
-  const requestChips: { key: RequestFilter; label: string; value: number; danger?: boolean }[] = [
-    { key: "all", label: "كل طلبات الصرف", value: allRequests.length },
+  const allRequests = snapshot.requestRows;
+  const allRequestCount = snapshot.allRequestCount;
+  const awaitingRequestCount = snapshot.awaitingRequestCount;
+  const settledRequestCount = snapshot.settledRequestCount;
+  const selectedRequestCount = snapshot.selectedRequestCount;
+  const requestsTruncated = selectedRequestCount > allRequests.length;
+  const requestChips: { key: CustodyRequestFilter; label: string; value: number; danger?: boolean }[] = [
+    { key: "all", label: "كل طلبات الصرف", value: allRequestCount },
     {
       key: "awaiting",
       label: "بانتظار إجراء",
-      value: allRequests.filter((r) => AWAITING_STATUSES.includes(r.status)).length,
+      value: awaitingRequestCount,
       danger: true,
     },
-    { key: "settled", label: "مدفوعة/مقفلة", value: allRequests.filter((r) => SETTLED_STATUSES.includes(r.status)).length },
+    { key: "settled", label: "مدفوعة/مقفلة", value: settledRequestCount },
   ];
 
   const reqCols: SimpleColumn[] = [
@@ -134,21 +131,13 @@ export default async function CustodyDashboardPage({
     { id: "period", header: "الفترة" },
     { id: "created", header: "أُنشئ في" },
   ];
-  const reqRows = allRequests
-    .filter((r) =>
-      requestFilter === "awaiting"
-        ? AWAITING_STATUSES.includes(r.status)
-        : requestFilter === "settled"
-          ? SETTLED_STATUSES.includes(r.status)
-          : true,
-    )
-    .map((r) => ({
+  const reqRows = allRequests.map((r) => ({
       id: r.id,
       href: `/custody/request/${r.id}`,
-      no: num(r.request_no),
+      no: num(r.requestNo),
       status: REQ_STATUS_AR[r.status] ?? r.status,
-      period: r.period_start ? `${fmtDate(r.period_start)} → ${r.period_end ? fmtDate(r.period_end) : "…"}` : "—",
-      created: fmtDate(r.created_at),
+      period: r.periodStart ? `${fmtDate(r.periodStart)} → ${r.periodEnd ? fmtDate(r.periodEnd) : "…"}` : "—",
+      created: fmtDate(r.createdAt),
     }));
 
   return (
@@ -164,18 +153,28 @@ export default async function CustodyDashboardPage({
       </header>
 
       <div className="no-print">
-        <CustodyForms accounts={acctList.map((a) => ({ id: a.id, holder_label: a.holder_label }))} />
+        <CustodyForms accounts={acctList.map((a) => ({ id: a.id, holder_label: a.holderLabel }))} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-7">
-        <KpiCard label="الرصيد الحالي للعهدة" value={egp(totalBalance)} />
-        <KpiCard label="العهدة المستهدفة" value={egp(totalTarget)} />
-        <KpiCard label="التغذية المطلوبة" value={egp(totalTopUp)} />
-        <KpiCard label="آجل تشغيلي" value={egp(unpaidOperating)} />
-        <KpiCard label="آجل رأسمالي" value={egp(unpaidCapex)} />
-        <KpiCard label="آجل مسحوبات" value={egp(unpaidDrawing)} />
-        <KpiCard label="صافي المطلوب من المالك" value={egp(netRequest)} />
+        <KpiCard label="الرصيد الحالي للعهدة" value={egpExact(totalBalance)} />
+        <KpiCard label="العهدة المستهدفة" value={egpExact(totalTarget)} />
+        <KpiCard label="التغذية المطلوبة" value={egpExact(totalTopUp)} />
+        <KpiCard label="آجل تشغيلي" value={egpExact(unpaidOperating)} />
+        <KpiCard label="آجل رأسمالي" value={egpExact(unpaidCapex)} />
+        <KpiCard label="آجل مسحوبات" value={egpExact(unpaidDrawing)} />
+        <KpiCard
+          label={unpaidUnknown > 0 ? "صافي المطلوب المعروف" : "صافي المطلوب من المالك"}
+          value={egpExact(netRequest)}
+        />
       </div>
+      {unpaidUnknown > 0 && (
+        <Alert
+          tone="warning"
+          title="مبالغ آجلة غير مكتملة"
+          description={`يوجد ${num(unpaidUnknown)} مصروف آجل بدون مبلغ. الأرقام أعلاه تجمع المبالغ المعروفة فقط حتى تُستكمل هذه السجلات.`}
+        />
+      )}
 
       <Card title="حسابات العهدة">
         {acctRows.length ? (
@@ -186,6 +185,11 @@ export default async function CustodyDashboardPage({
       </Card>
 
       <Card title="آخر حركات العهدة">
+        {snapshot.movementCount > moveRows.length && (
+          <p className="mb-3 text-sm" style={{ color: "var(--ink-muted)" }}>
+            تعرض القائمة أحدث {num(moveRows.length)} من أصل {num(snapshot.movementCount)} حركة عهدة.
+          </p>
+        )}
         <SimpleTable columns={moveCols} rows={moveRows} ariaLabel="آخر حركات العهدة" empty="لا توجد حركات بعد" />
       </Card>
 
@@ -205,6 +209,12 @@ export default async function CustodyDashboardPage({
             </DashboardKpiLink>
           ))}
         </div>
+        {requestsTruncated && (
+          <p className="mb-3 text-sm" style={{ color: "var(--ink-muted)" }}>
+            القائمة تعرض أحدث {num(reqRows.length)} من أصل {num(selectedRequestCount)} طلبًا في الفلتر الحالي.
+            البحث داخل المعروض، والتصدير متوقف حتى لا ينتج ملف ناقص.
+          </p>
+        )}
         <FilterableTable
           ariaLabel="طلبات الصرف"
           columns={reqCols}
@@ -212,7 +222,7 @@ export default async function CustodyDashboardPage({
           empty={requestFilter === "all" ? "لا توجد طلبات صرف بعد" : "لا طلبات مطابقة لهذا الفلتر"}
           searchColumns={["no", "status", "period"]}
           placeholder="ابحث في الطلبات…"
-          exportFilename="payment-requests"
+          exportFilename={requestsTruncated ? undefined : "payment-requests"}
         />
       </Card>
     </div>

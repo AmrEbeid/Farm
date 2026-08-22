@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import { monthCloseDates } from "@/lib/month-close";
 import { createClient } from "@/lib/supabase/server";
 
 // SPEC-0004 §7.3 — write side of the accounting period lock. The RPCs (migration 20260701550000) own the
@@ -15,6 +16,7 @@ const PERIOD_ERR: Record<string, string> = {
   "23505": "الفترة تتداخل مع فترة مقفلة موجودة",
   "22023": "تواريخ الفترة غير صالحة (تأكد أن تاريخ النهاية ليس قبل البداية)",
   "23502": "بيانات الفترة ناقصة",
+  "55000": "لا يمكن إقفال الفترة قبل معالجة كل معلّقات قائمة الإقفال",
   P0002: "لا توجد فترة مقفلة بهذا المعرّف لإعادة فتحها",
 };
 
@@ -42,6 +44,13 @@ export async function closePeriod(formData: FormData): Promise<void> {
   const m = await requireRole(["owner", "accountant"]);
   if (!DATE_RE.test(start) || !DATE_RE.test(end)) back("error", "حدّد تاريخ بداية ونهاية صحيحين للفترة", formData);
   if (end < start) back("error", "تاريخ نهاية الفترة قبل بدايتها", formData);
+  const returnTo = returnPath(formData);
+  if (returnTo === RETURN_TO.close) {
+    const checklistDates = monthCloseDates();
+    if (start !== checklistDates.monthStart || end !== checklistDates.asOf) {
+      back("error", "بيانات قائمة الإقفال قديمة؛ حدّث الصفحة وراجع المعلّقات مرة أخرى", formData);
+    }
+  }
 
   const sb = await createClient();
   const { error } = await sb.rpc("fn_close_accounting_period", {

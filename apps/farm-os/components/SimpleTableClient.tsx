@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DataTable, StatusPill, Tag } from "@/components/ui";
 import { Code } from "@/components/Code";
 import { egp, num } from "@/lib/money";
+import { egpExact, formatDecimalArabic, parseDecimal } from "@/lib/decimal";
 import { sortRows, type TableSortState } from "@/lib/table-sort";
 
 // "money": the row carries the RAW number and this formats it (egp) for display, so the SAME table is
@@ -12,13 +13,15 @@ import { sortRows, type TableSortState } from "@/lib/table-sort";
 // formatted "١٬٢٣٤ ج.م" string. (SPEC-0017 export contract; see lib/export-csv.ts.)
 // "code": an LTR technical string (PR code, phone, ref) bidi-isolated for the RTL layout (F4). The
 // raw string is still what exportToCsv serializes — the wrapper is display-only.
-type CellKind = "text" | "num" | "money" | "status" | "tag-danger" | "tag-ok" | "tag-warn" | "link" | "code" | "bar";
+type CellKind = "text" | "num" | "decimal-exact" | "money" | "money-exact" | "money-preserve-exact" | "status" | "tag-danger" | "tag-ok" | "tag-warn" | "link" | "code" | "bar";
 
 export interface SimpleColumn {
   id: string;
   header: string;
   kind?: CellKind;
   numeric?: boolean;
+  /** Sort canonical decimal strings without converting them to JavaScript numbers. */
+  decimal?: boolean;
   /** Defaults to true for plain cells and false for render-backed action/composite cells. */
   sortable?: boolean;
   /**
@@ -74,6 +77,7 @@ export function SimpleTableClient({
       columns.filter((c) => c.sortable ?? !c.render).map((c) => ({
         id: c.id,
         numeric: c.numeric,
+        decimal: c.decimal,
       })),
     [columns],
   );
@@ -132,6 +136,20 @@ function renderCell(c: SimpleColumn, row: SimpleRow): React.ReactNode {
       return num(Number(v));
     case "money":
       return egp(Number(v));
+    case "money-exact":
+      return egpExact(parseDecimal(v));
+    case "money-preserve-exact": {
+      const decimal = parseDecimal(v);
+      if (decimal == null) return "—";
+      const scale = decimal.includes(".") ? decimal.length - decimal.indexOf(".") - 1 : 0;
+      return `${formatDecimalArabic(decimal, Math.max(2, scale))} ج.م`;
+    }
+    case "decimal-exact": {
+      const decimal = parseDecimal(v);
+      if (decimal == null) return "—";
+      const scale = decimal.includes(".") ? decimal.length - decimal.indexOf(".") - 1 : 0;
+      return formatDecimalArabic(decimal, scale);
+    }
     case "status":
       return <StatusPill status={statusFor(String(v))}>{String(v)}</StatusPill>;
     case "tag-danger":

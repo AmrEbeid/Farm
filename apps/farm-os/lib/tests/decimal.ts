@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  absoluteDecimal,
+  compareDecimals,
   egpDecimalSummary,
   egpExact,
   formatDecimalArabic,
   isDecimalString,
+  maxDecimal,
+  multiplyDecimals,
   parseDecimal,
   roundDecimal,
+  subtractDecimals,
   sumDecimals,
 } from "../decimal";
 
@@ -91,6 +96,36 @@ describe("decimal — exact summing", () => {
       unknownCount: 0,
       hasUnknown: false,
     });
+  });
+});
+
+describe("decimal — exact comparison and subtraction", () => {
+  it("subtracts values beyond binary floating-point precision", () => {
+    expect(subtractDecimals("123.00000000000000001", "123")).toBe("0.00000000000000001");
+    expect(subtractDecimals("20000.125", "123.00000000000000001")).toBe("19877.12499999999999999");
+  });
+
+  it("compares mixed scales and selects the larger exact value", () => {
+    expect(compareDecimals("1.000", "1")).toBe(0);
+    expect(compareDecimals("0.00000000000000001", "0")).toBe(1);
+    expect(compareDecimals("-0.01", "0")).toBe(-1);
+    expect(maxDecimal("-0.01", "0")).toBe("0");
+    expect(absoluteDecimal("-123.00000000000000001")).toBe("123.00000000000000001");
+    expect(absoluteDecimal("0.01")).toBe("0.01");
+  });
+
+  it("multiplies decimals without binary floating-point drift", () => {
+    expect(multiplyDecimals("0.1", "0.2")).toBe("0.02");
+    expect(multiplyDecimals("12345678901234567890.01", "1.25")).toBe(
+      "15432098626543209862.5125",
+    );
+  });
+
+  it("refuses a product beyond the configured decimal scale", () => {
+    expect(() => multiplyDecimals(`0.${"1".repeat(60)}`, `0.${"1".repeat(41)}`)).toThrow(
+      RangeError,
+    );
+    expect(() => multiplyDecimals("9".repeat(600), "9".repeat(600))).toThrow(RangeError);
   });
 });
 

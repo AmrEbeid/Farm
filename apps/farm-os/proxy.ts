@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import {
+  ACCOUNTING_E2E_SERVER_READ_ONLY_ENV,
+  accountingE2EGuardedServerFetch,
+} from "@/lib/accounting e2e safety";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
@@ -19,10 +23,7 @@ export async function proxy(request: NextRequest) {
   if (!url || !key) return response;
 
   try {
-    const supabase = createServerClient(
-      url,
-      key,
-      {
+    const supabase = createServerClient(url, key, {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet: CookieToSet[]) => {
@@ -35,8 +36,10 @@ export async function proxy(request: NextRequest) {
           );
         },
       },
-    },
-  );
+      ...(process.env[ACCOUNTING_E2E_SERVER_READ_ONLY_ENV] === "1"
+        ? { global: { fetch: accountingE2EGuardedServerFetch(new URL(url).origin) } }
+        : {}),
+    });
 
     await supabase.auth.getUser();
   } catch {

@@ -1,7 +1,7 @@
 // SPEC-0029/0031 — المقارنة الداخلية: the best-unit benchmark. "لو أدى كل فدان مثل الأفضل" — the reframe that
 // turns immature sectors into upside, not underperformance. Distinct FRAMING from أداء القطاعات (which ranks):
 // this foregrounds the gap-to-best + implied upside + the maturity story. Same honest attribution the sector
-// scorecard uses — computeSectorPnl over v_cost_center_rollup leaves + finalized sales (revenue tagged to a
+// scorecard uses — computeSectorPnl over v_cost_center_rollup leaves + exact live-posted sale revenue (tagged to a
 // leaf center; expenses = the leaf's own rollup net; drawings never enter, #6; unallocated surfaced, #1). All
 // cost centers, all years. Server Component; role owner/accountant (finance.read enforced by the view RLS).
 
@@ -21,6 +21,7 @@ import {
 } from "@/lib/pnl-insights";
 import { computeSectorPnl } from "@/lib/entity-pnl";
 import type { CostCenterInsightRollup } from "@/lib/finance-insights";
+import { parseCostCenterRevenueSummary } from "@/lib/cost-center-revenue-summary";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 
@@ -31,8 +32,6 @@ const STATUS_META: Record<SectorStatus, { label: string; color: string }> = {
   attention: { label: "يحتاج اهتمام", color: "#b91c1c" },
 };
 
-type SaleRow = { cost_center_id: string | null; total: number | null; price_status: string };
-
 function upsideMultiple(potential: number, current: number): string | null {
   if (!(current > 0)) return null;
   return `${num(potential / current, 1)}×`;
@@ -41,23 +40,16 @@ function upsideMultiple(potential: number, current: number): string | null {
 export default async function BenchmarkPage() {
   const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
-  const [rollupRes, salesRes] = await Promise.all([
+  const [rollupRes, revenueRes] = await Promise.all([
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb
-      .from("sales")
-      .select("cost_center_id, total, price_status")
-      .eq("org_id", m.orgId)
-      .eq("price_status", "finalized")
-      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
-      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
-      .neq("payment_status", "historical_reversed"),
+    sb.rpc("fn_cost_center_revenue_summary", { p_org: m.orgId }),
   ]);
   if (rollupRes.error) throw rollupRes.error;
-  if (salesRes.error) throw salesRes.error;
+  if (revenueRes.error) throw revenueRes.error;
   const rollup = (rollupRes.data ?? []) as CostCenterInsightRollup[];
-  const sales = (salesRes.data ?? []) as SaleRow[];
+  const revenue = parseCostCenterRevenueSummary(revenueRes.data, m.orgId);
 
-  const { sectors, unallocRevenue, unallocExpense } = computeSectorPnl(rollup, sales);
+  const { sectors, unallocRevenue, unallocExpense } = computeSectorPnl(rollup, revenue.salesRevenue);
   const bench = bestUnitBenchmark(sectors);
   const concentration = concentrationThesis(sectors);
   const hasUnalloc = Math.abs(unallocExpense) > 0 || unallocRevenue > 0;

@@ -8,13 +8,16 @@
 import type { Classification, Dataset } from "./types.mts";
 
 export const EXPECTED_WORKBOOK_SHA256 =
-  "9728167b7860b18ff802dda85fe01897a2c645c4fc21677c22dfeaead2f71dc3";
+  // 2026-08-06 security scrub removed only the legacy account label and credential cells.
+  // The canonical semantic-equivalence test proves all 149,593 retained cells against the
+  // redacted pre-scrub extraction and permits only العاملين!D1 and العاملين!E2 to disappear.
+  "450b88456ec1a8eaf15c0e3951ceee3a9496433d55e833c367298b7b42eef31d";
 
 export const EXPECTED_PRODUCTION_SNAPSHOT_SHA256 =
   "32ff3abe1a586627066301396427c31e4ff9242eb4254f482c585e112dbec058";
 
 export const EXPECTED_EXCEPTION_EVIDENCE_SHA256 =
-  "997a2794426c571ff8777083c3c9fc65cda44f352d9723585734ad11ef71695e";
+  "cda77dce9f7fe1c07d4b0850f5a49b312d9a049e5e1be6ad56807bef35fe439a";
 
 export interface OccurrenceCounts {
   expense: { source: number; production: number };

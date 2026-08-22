@@ -13,6 +13,11 @@ import {
   confirmRequestExpensePaid,
   closePaymentRequest,
 } from "@/app/(app)/custody/actions";
+import { isPositivePaymentRequestAmount } from "@/lib/payment request detail";
+import {
+  isPositiveCustodyAmount,
+  normalizeNonNegativeCustodyAmount,
+} from "@/lib/custody write money";
 
 type Acct = { id: string; holder_label: string };
 type Msg = { tone: "ok" | "danger"; text: string } | null;
@@ -82,10 +87,10 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
             <Input id="c-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} />
           </Field>
           <Field label="العهدة المستهدفة (ج.م)" id="c-target">
-            <Input id="c-target" type="number" inputMode="decimal" min={0} value={target} onChange={(e) => setTarget(e.target.value)} />
+            <Input id="c-target" type="number" inputMode="decimal" min={0} step="any" value={target} onChange={(e) => setTarget(e.target.value)} />
           </Field>
           <div>
-            <Button disabled={pending} onClick={() => run(() => createCustodyAccount({ holderLabel: label, targetFloat: Number(target) }), "تمت إضافة حساب العهدة")}>
+            <Button disabled={pending || normalizeNonNegativeCustodyAmount(target) == null} onClick={() => run(() => createCustodyAccount({ holderLabel: label, targetFloat: target }), "تمت إضافة حساب العهدة")}>
               {pending ? "جارٍ الحفظ…" : "حفظ الحساب"}
             </Button>
           </div>
@@ -99,15 +104,15 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
               options={accounts.map((a) => ({ value: a.id, label: a.holder_label }))} />
           </Field>
           <Field label="المبلغ (ج.م)" id="m-amount">
-            <Input id="m-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Input id="m-amount" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
           <Field label="ملاحظات" id="m-note">
             <Input id="m-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
           </Field>
           <div>
-            <Button disabled={pending || !acct} onClick={() => run(() => recordCustodyMovement({
+            <Button disabled={pending || !acct || !isPositiveCustodyAmount(amount)} onClick={() => run(() => recordCustodyMovement({
               accountId: acct, movementType: OWNER_FUNDING_MOVEMENT_TYPE,
-              amountIn: Number(amount), amountOut: 0,
+              amountIn: amount, amountOut: "0",
               note: note || null,
             }), "تم تسجيل الاستلام")}>
               {pending ? "جارٍ الحفظ…" : "تسجيل الاستلام"}
@@ -144,6 +149,7 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
                   type="number"
                   inputMode="decimal"
                   min={0}
+                  step="any"
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}
                 />
@@ -156,14 +162,14 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
               </Field>
               <div>
                 <Button
-                  disabled={pending || !transferFrom || !transferTo || transferFrom === transferTo || Number(transferAmount) <= 0}
+                  disabled={pending || !transferFrom || !transferTo || transferFrom === transferTo || !isPositiveCustodyAmount(transferAmount)}
                   onClick={() =>
                     run(
                       () =>
                         transferCustody({
                           fromAccountId: transferFrom,
                           toAccountId: transferTo,
-                          amount: Number(transferAmount),
+                          amount: transferAmount,
                           occurredAt: transferDate || null,
                           note: transferNote || null,
                         }),
@@ -275,11 +281,13 @@ export function RecordRequestFunding({
 }: {
   requestId: string;
   accounts: Acct[];
-  remainingToFund: number;
+  remainingToFund: string;
 }) {
   const router = useRouter();
   const [custodyAccountId, setCustodyAccountId] = useState(accounts[0]?.id ?? "");
-  const [amount, setAmount] = useState(remainingToFund > 0 ? String(remainingToFund) : "");
+  const [amount, setAmount] = useState(
+    isPositivePaymentRequestAmount(remainingToFund) ? remainingToFund : "",
+  );
   const [occurredAt, setOccurredAt] = useState("");
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
@@ -294,7 +302,7 @@ export function RecordRequestFunding({
       res = await recordPaymentRequestFunding({
         requestId,
         custodyAccountId,
-        amount: Number(amount),
+        amount,
         occurredAt: occurredAt || null,
         note: note || null,
       });
@@ -328,7 +336,7 @@ export function RecordRequestFunding({
         />
       </Field>
       <Field label="المبلغ المستلم من المالك" id="funding-amount">
-        <Input id="funding-amount" type="number" inputMode="decimal" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <Input id="funding-amount" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} />
       </Field>
       <Field label="تاريخ الاستلام" id="funding-date">
         <Input id="funding-date" type="date" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
@@ -337,7 +345,7 @@ export function RecordRequestFunding({
         <Input id="funding-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
       </Field>
       <div>
-        <Button disabled={pending || !custodyAccountId || Number(amount) <= 0} onClick={submit}>
+        <Button disabled={pending || !custodyAccountId || !isPositivePaymentRequestAmount(amount)} onClick={submit}>
           {pending ? "جارٍ التسجيل…" : "تسجيل التمويل"}
         </Button>
       </div>

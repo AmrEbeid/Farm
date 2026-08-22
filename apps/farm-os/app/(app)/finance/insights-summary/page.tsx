@@ -21,13 +21,14 @@ import {
   cropRoiThesis,
   type Thesis,
 } from "@/lib/pnl-insights";
-import { computeSectorPnl, computeEnterprisePnl, type SaleLite } from "@/lib/entity-pnl";
+import { computeSectorPnl, computeEnterprisePnl } from "@/lib/entity-pnl";
 import type { CostCenterInsightRollup } from "@/lib/finance-insights";
+import { parseCostCenterRevenueSummary } from "@/lib/cost-center-revenue-summary";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 
 const DETAILS = [
-  { href: "/finance/pnl-trend", icon: "📊", label: "اتجاه الأرباح", desc: "الإيراد والتكلفة والصافي عبر الفترات + منحنى J" },
+  { href: "/finance/income-statement?view=trend&grain=month", icon: "📊", label: "اتجاه الأرباح", desc: "الإيراد والتكلفة والصافي عبر الفترات + منحنى J" },
   { href: "/finance/sector-scorecard", icon: "🏆", label: "أداء القطاعات", desc: "ترتيب القطاعات بالربح/فدان والفرصة الكامنة" },
   { href: "/finance/enterprise-scorecard", icon: "🌱", label: "اقتصاد المحاصيل", desc: "ربحية كل محصول وعائده على التكلفة" },
 ];
@@ -39,21 +40,14 @@ export default async function InsightsSummaryPage() {
   const from = `${today.getFullYear() - 4}-01-01`;
   const to = isoDate(today);
 
-  const [tsRes, rollupRes, salesRes] = await Promise.all([
+  const [tsRes, rollupRes, revenueRes] = await Promise.all([
     sb.rpc("fn_pnl_timeseries", { p_org: m.orgId, p_grain: "year", p_from: from, p_to: to }),
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb
-      .from("sales")
-      .select("cost_center_id, total, price_status")
-      .eq("org_id", m.orgId)
-      .eq("price_status", "finalized")
-      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
-      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
-      .neq("payment_status", "historical_reversed"),
+    sb.rpc("fn_cost_center_revenue_summary", { p_org: m.orgId }),
   ]);
   if (tsRes.error) throw tsRes.error;
   if (rollupRes.error) throw rollupRes.error;
-  if (salesRes.error) throw salesRes.error;
+  if (revenueRes.error) throw revenueRes.error;
 
   const ts = parsePnlTimeseries(tsRes.data);
   const ps = ts.periods;
@@ -62,9 +56,9 @@ export default async function InsightsSummaryPage() {
   const narrative = latest && prev ? narratePeriods(prev, latest) : null;
 
   const rollup = (rollupRes.data ?? []) as CostCenterInsightRollup[];
-  const sales = (salesRes.data ?? []) as SaleLite[];
-  const { sectors } = computeSectorPnl(rollup, sales);
-  const { enterprises } = computeEnterprisePnl(rollup, sales);
+  const revenue = parseCostCenterRevenueSummary(revenueRes.data, m.orgId);
+  const { sectors } = computeSectorPnl(rollup, revenue.salesRevenue);
+  const { enterprises } = computeEnterprisePnl(rollup, revenue.salesRevenue);
   const benchmark = bestUnitBenchmark(sectors);
   const cropRows = cropRoi(enterprises);
 

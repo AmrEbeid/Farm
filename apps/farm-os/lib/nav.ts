@@ -97,7 +97,6 @@ export const APP_MODULES: AppModule[] = [
       { id: "insights-summary", label: "ملخّص الرؤى", icon: "🌅", href: "/finance/insights-summary", roles: ["owner", "accountant"] },
       { id: "sector-scorecard", label: "أداء القطاعات", icon: "🏆", href: "/finance/sector-scorecard", roles: ["owner", "accountant"] },
       { id: "enterprise-scorecard", label: "اقتصاد المحاصيل", icon: "🌿", href: "/finance/enterprise-scorecard", roles: ["owner", "accountant"] },
-      { id: "pnl-trend", label: "اتجاه الأرباح", icon: "📈", href: "/finance/pnl-trend", roles: ["owner", "accountant"] },
       { id: "finance-insights", label: "رؤى المالك", icon: "💡", href: "/finance/insights", roles: ["owner", "accountant"] },
       { id: "scorecard", label: "بطاقة الأداء", icon: "📊", href: "/insights/scorecard", roles: ["owner", "accountant"] },
       { id: "benchmark", label: "المقارنة الداخلية", icon: "🎯", href: "/insights/benchmark", roles: ["owner", "accountant"] },

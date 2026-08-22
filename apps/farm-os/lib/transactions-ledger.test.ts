@@ -59,6 +59,15 @@ describe("requireExactCount", () => {
     );
   });
 
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "fails closed when the exact count is invalid: %s",
+    (count) => {
+      expect(() => requireExactCount({ count, error: null }, "expenses")).toThrow(
+        /exact count missing or invalid/,
+      );
+    },
+  );
+
   it("returns a zero count as a real value, not a failure", () => {
     expect(requireExactCount({ count: 0, error: null }, "expenses")).toBe(0);
   });
@@ -145,75 +154,16 @@ describe("truncation gates", () => {
   });
 });
 
-// Regression guards for the actual page: the pure helpers above are correct on whatever they're
-// given, so only reading the page source can catch the page wiring them up wrong (a query missing
-// org scoping, a count query silently dropped, an error swallowed, an export left on for a truncated
-// list). Mirrors lib/accounting-recent-entries.test.ts's page-source-regression pattern.
+// Regression guards for the actual page. The database and strict parser now own source scoping,
+// lifecycle rules, exact counts, party integrity and decimal transport; this pins the page wiring.
 describe("transactions page source", () => {
-  it("scopes all seven source/lookup queries to the active org", () => {
-    for (const table of [
-      "expenses",
-      "sales",
-      "sale_collections",
-      "custody_movements",
-      "buyers",
-      "suppliers",
-      "custody_accounts",
-    ]) {
-      const start = pageSource.indexOf(`.from("${table}")`);
-      expect(start, `${table} query not found`).toBeGreaterThan(-1);
-      const chunk = pageSource.slice(start, start + 400);
-      expect(chunk, `${table} query missing org_id scoping`).toContain('.eq("org_id", m.orgId)');
-    }
-  });
-
-  it("requests an exact count on every money-event source query", () => {
-    for (const table of ["expenses", "sales", "sale_collections", "custody_movements"]) {
-      const start = pageSource.indexOf(`.from("${table}")`);
-      expect(start, `${table} query not found`).toBeGreaterThan(-1);
-      const chunk = pageSource.slice(start, start + 200);
-      expect(chunk, `${table} query missing count: "exact"`).toContain('count: "exact"');
-    }
-  });
-
-  it("checks every one of the eight query responses for an error before reading its data", () => {
-    for (const res of [
-      "expensesRes",
-      "salesRes",
-      "collectionsRes",
-      "custodyRes",
-      "buyersRes",
-      "suppliersRes",
-      "custodyAcctRes",
-      "pendingPriceRes",
-    ]) {
-      expect(pageSource, `${res}.error is never checked`).toContain(`if (${res}.error) throw ${res}.error;`);
-    }
-  });
-
-  it("orders every source query by date null-last then id for a deterministic ledger", () => {
-    for (const dateColumn of ["date", "sale_date", "occurred_at"]) {
-      const orderCall = `.order("${dateColumn}", { ascending: false, nullsFirst: false })`;
-      expect(pageSource, `missing null-last date order on ${dateColumn}`).toContain(orderCall);
-    }
-    // Every source query's date order is immediately followed by a descending id tiebreak.
-    expect(pageSource.match(/\.order\("id", \{ ascending: false \}\)/g) ?? []).toHaveLength(4);
-  });
-
-  it("reuses the exact same visible-sale lifecycle filter for the sales row query and the pending-price count", () => {
-    const occurrences = pageSource.match(/\.neq\("payment_status", SALE_HIDDEN_PAYMENT_STATUS\)/g) ?? [];
-    expect(occurrences).toHaveLength(2);
-  });
-
-  it("uses the shared expense lifecycle filter constant, not an inline duplicate", () => {
-    expect(pageSource).toContain(".or(EXPENSE_VISIBLE_LIFECYCLE_FILTER)");
-  });
-
-  it("computes the pending-price count as a head-only request (no row data)", () => {
-    const start = pageSource.indexOf('.eq("price_status", "pending")');
-    expect(start, "pending-price query not found").toBeGreaterThan(-1);
-    const chunk = pageSource.slice(Math.max(0, start - 300), start);
-    expect(chunk).toContain("head: true");
+  it("uses one organization-bound snapshot and fails on its read error", () => {
+    expect(pageSource.match(/sb\.rpc\("fn_transactions_snapshot"/g) ?? []).toHaveLength(1);
+    expect(pageSource).toContain("p_org: m.orgId");
+    expect(pageSource).toContain("p_row_limit: TX_ROW_LIMIT");
+    expect(pageSource).toContain("if (snapshotRes.error) throw snapshotRes.error;");
+    expect(pageSource).toContain("parseTransactionsSnapshot(snapshotRes.data, m.orgId)");
+    expect(pageSource).not.toMatch(/\.from\("(?:expenses|sales|sale_collections|custody_movements)"\)/);
   });
 
   it("disables CSV export exactly when the list is truncated", () => {
@@ -225,58 +175,11 @@ describe("transactions page source", () => {
     expect(pageSource).not.toMatch(/count:\s*rows\.length/);
     expect(pageSource).not.toMatch(/count:\s*rows\.filter/);
   });
-});
 
-// Regression guards for P3: buyers/suppliers/custody_accounts must never be fetched in full — only
-// the ids actually referenced by the already-bounded, displayed transaction rows. Mirrors
-// accounting/page.tsx's entryIds → journal_lines pattern (accounting-recent-entries.test.ts).
-describe("transactions page lookup fetch stays bounded to referenced ids", () => {
-  it("derives buyerIds/supplierIds/custodyAccountIds via dedupeReferencedIds from the displayed rows", () => {
-    expect(pageSource).toContain(
-      "const buyerIds = dedupeReferencedIds((salesRes.data ?? []).map((s) => s.buyer_id));",
-    );
-    expect(pageSource).toContain(
-      "const supplierIds = dedupeReferencedIds((expensesRes.data ?? []).map((e) => e.supplier_id));",
-    );
-    expect(pageSource).toContain(
-      "const custodyAccountIds = dedupeReferencedIds((custodyRes.data ?? []).map((mv) => mv.custody_account_id));",
-    );
-  });
-
-  it("pins .in(\"id\", referencedIds) plus org scope for every lookup query, never an unconditional full-table fetch", () => {
-    for (const { table, idsVar } of [
-      { table: "buyers", idsVar: "buyerIds" },
-      { table: "suppliers", idsVar: "supplierIds" },
-      { table: "custody_accounts", idsVar: "custodyAccountIds" },
-    ]) {
-      const start = pageSource.indexOf(`.from("${table}")`);
-      expect(start, `${table} lookup query not found`).toBeGreaterThan(-1);
-      const chunk = pageSource.slice(start, start + 200);
-      expect(chunk, `${table} lookup query missing org_id scoping`).toContain('.eq("org_id", m.orgId)');
-      expect(chunk, `${table} lookup query missing .in("id", ${idsVar})`).toContain(`.in("id", ${idsVar})`);
-    }
-  });
-
-  it("guards every lookup query behind an ids.length check with an empty resolved fallback, never a bare unconditional query", () => {
-    for (const idsVar of ["buyerIds", "supplierIds", "custodyAccountIds"]) {
-      expect(pageSource, `${idsVar}.length guard missing`).toContain(`${idsVar}.length > 0`);
-    }
-    expect(pageSource.match(/Promise\.resolve\(\{ data: \[\], error: null \}\)/g) ?? []).toHaveLength(3);
-  });
-
-  it("checks every lookup query response for an error before building name maps", () => {
-    for (const res of ["buyersRes", "suppliersRes", "custodyAcctRes"]) {
-      expect(pageSource, `${res}.error is never checked`).toContain(`if (${res}.error) throw ${res}.error;`);
-    }
-  });
-
-  it("resolves every party field via the fail-closed lookup helper, never the old `|| \"—\"` masking pattern", () => {
-    expect(pageSource).toContain('party: requireLookupName(e.supplier_id, supplierName, "supplier"),');
-    expect(pageSource).toContain('party: requireLookupName(s.buyer_id, buyerName, "buyer"),');
-    expect(pageSource).toContain('party: requireLookupName(mv.custody_account_id, holderName, "custody account"),');
-    expect(pageSource).not.toMatch(/supplierName\.get\([^)]*\)\)\s*\|\|\s*"—"/);
-    expect(pageSource).not.toMatch(/buyerName\.get\([^)]*\)\)\s*\|\|\s*"—"/);
-    expect(pageSource).not.toMatch(/holderName\.get\([^)]*\)\)\s*\|\|\s*"—"/);
+  it("renders and sorts exact decimal money without Number conversion", () => {
+    expect(pageSource).toContain('kind: "money-preserve-exact"');
+    expect(pageSource).toContain("decimal: true");
+    expect(pageSource).not.toMatch(/Number\((?:item\.)?(?:amount|quantity|total|amount_in|amount_out)/);
   });
 });
 

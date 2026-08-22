@@ -14,9 +14,9 @@ import { egp, num, pct } from "@/lib/money";
 import { parsePnlTimeseries, pctChange } from "@/lib/pnl-insights";
 import { computeSectorPnl } from "@/lib/entity-pnl";
 import type { CostCenterInsightRollup } from "@/lib/finance-insights";
+import { parseCostCenterRevenueSummary } from "@/lib/cost-center-revenue-summary";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
-type SaleRow = { cost_center_id: string | null; total: number | null; price_status: string };
 type AreaRow = { area_feddan: number | null };
 
 export default async function AnnualReportPage() {
@@ -24,22 +24,15 @@ export default async function AnnualReportPage() {
   const sb = await createClient();
   const nowYear = new Date().getFullYear();
 
-  const [tsRes, rollupRes, salesRes, areaRes] = await Promise.all([
+  const [tsRes, rollupRes, revenueRes, areaRes] = await Promise.all([
     sb.rpc("fn_pnl_timeseries", { p_org: m.orgId, p_grain: "year", p_from: "2017-01-01", p_to: `${nowYear}-12-31` }),
     sb.from("v_cost_center_rollup").select("*").eq("org_id", m.orgId).order("sort_order", { ascending: true }),
-    sb
-      .from("sales")
-      .select("cost_center_id, total, price_status")
-      .eq("org_id", m.orgId)
-      .eq("price_status", "finalized")
-      // A reconciliation-reversed historical sale keeps price_status='finalized' while its
-      // revenue journal is reversed, so it must not inflate revenue (migration 20260726160000).
-      .neq("payment_status", "historical_reversed"),
+    sb.rpc("fn_cost_center_revenue_summary", { p_org: m.orgId }),
     sb.from("cost_centers").select("area_feddan").eq("org_id", m.orgId).eq("active", true).eq("enterprise", "عام").not("area_feddan", "is", null),
   ]);
   if (tsRes.error) throw tsRes.error;
   if (rollupRes.error) throw rollupRes.error;
-  if (salesRes.error) throw salesRes.error;
+  if (revenueRes.error) throw revenueRes.error;
 
   const ts = parsePnlTimeseries(tsRes.data);
   const withRevenue = ts.periods.filter((p) => p.revenue > 0);
@@ -53,8 +46,8 @@ export default async function AnnualReportPage() {
   const yearsOfOps = activeYears.length;
 
   const rollup = (rollupRes.data ?? []) as CostCenterInsightRollup[];
-  const sales = (salesRes.data ?? []) as SaleRow[];
-  const { sectors } = computeSectorPnl(rollup, sales);
+  const revenue = parseCostCenterRevenueSummary(revenueRes.data, m.orgId);
+  const { sectors } = computeSectorPnl(rollup, revenue.salesRevenue);
   const topSectors = [...sectors].sort((a, b) => b.net - a.net).slice(0, 6);
   const maxSectorNet = Math.max(1, ...topSectors.map((s) => Math.abs(s.net)));
 

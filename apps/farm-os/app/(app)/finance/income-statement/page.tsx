@@ -15,6 +15,8 @@ import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
 import { PrintButton } from "@/components/print-button";
 import { FinanceStatementPrintPacket, type FinanceStatementPrintItem } from "@/components/FinanceStatementPrintPacket";
+import { normalizeFinanceReportDateRange } from "@/lib/finance report routing";
+import { FinancePnlTrend } from "@/components/FinancePnlTrend";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
@@ -37,13 +39,26 @@ function toRows(lines: IncomeStatementLine[]): SimpleRow[] {
 export default async function FinanceIncomeStatementPage({
   searchParams,
 }: {
-  searchParams: Promise<{ start?: string; end?: string }>;
+  searchParams: Promise<{
+    start?: string | string[];
+    end?: string | string[];
+    view?: string | string[];
+    grain?: string | string[];
+  }>;
 }) {
   const m = await requireRole(["owner", "accountant"]);
-  const sb = await createClient();
   const params = await searchParams;
-  const start = parseDateParam(params.start, firstOfMonth());
-  const end = parseDateParam(params.end, isoDate(new Date()));
+  if (params.view === "trend") {
+    return <FinancePnlTrend orgId={m.orgId} grain={params.grain === "year" ? "year" : "month"} />;
+  }
+
+  const sb = await createClient();
+  const { start, end } = normalizeFinanceReportDateRange({
+    start: params.start,
+    end: params.end,
+    fallbackStart: firstOfMonth(),
+    fallbackEnd: isoDate(new Date()),
+  });
   const generatedOn = isoDate(new Date());
 
   const res = await sb.rpc("fn_accounting_income_statement", { p_org: m.orgId, p_from: start, p_to: end });
@@ -70,6 +85,13 @@ export default async function FinanceIncomeStatementPage({
           </p>
         </div>
         <div className="no-print flex flex-wrap gap-2">
+          <a
+            href="/finance/income-statement?view=trend&grain=month"
+            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
+          >
+            عرض الاتجاه
+          </a>
           <a
             href={`/api/finance/statements.pdf?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&asOf=${encodeURIComponent(end)}`}
             className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
@@ -161,10 +183,6 @@ export default async function FinanceIncomeStatementPage({
       <FinanceStatementsNav current="income-statement" />
     </div>
   );
-}
-
-function parseDateParam(value: string | undefined, fallback: string): string {
-  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
 }
 
 function isoDate(date: Date): string {
