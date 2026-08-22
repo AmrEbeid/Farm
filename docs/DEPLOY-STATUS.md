@@ -2,6 +2,22 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-22 (latest) — Marketing exact HTML workspace MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Farm production has hosted migrations `20260822174128 marketing_daily_report_integrity`,
+> `20260822174129 marketing_contact_status`, `20260822174131 marketing_workspace_controls` and
+> `20260822174132 marketing_workspace_aggregates`. Postflight verified the trigger/RPC/table objects,
+> FORCE RLS, the role-scoped policy, intentional authenticated RPC grants, zero anonymous grants, and unchanged
+> application counts at 1,576 contacts / 121 records / 0 daily reports / 0 draft controls. Supabase advisors
+> reported no error-level finding; the new definer warnings are expected for the internally role-gated RPCs.
+>
+> PR #1020 merged as `e637152f8e2f8002186af99e94cf9ff7307c7632`. Exact-merge CI and db-tests
+> succeeded, and GitHub Production deployment `6039498028` completed at
+> `farm-cro4lcp9m-amrabdelglill-7962s-projects.vercel.app`. Live `/marketing` and
+> `/marketing/workspace` return 307 to `/login` when signed out. Candidate evidence: TypeScript, touched
+> ESLint, 1,895 Vitest passes plus 17 controlled skips, pgTAP 4,229/4,229, 70-page build, deterministic source
+> oracle, gitleaks, Vercel and independent review green. Authenticated role and disposable-write acceptance
+> remains pending because no authenticated Farm browser session was available.
+
 > **2026-08-22 (latest) — homepage certificate editor MERGED / DEPLOYED / PUBLICLY VERIFIED.**
 > PR #1018 merged as `68157c7b775a90613f4c559144445868a30eb47b`. It adds owner-only bilingual
 > add/edit/remove for homepage certificate cards, 5 MB magic-byte-validated organization-scoped uploads,
