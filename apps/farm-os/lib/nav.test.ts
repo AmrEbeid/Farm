@@ -7,6 +7,7 @@ import {
   APP_NAV,
   findActiveNavItem,
   isKnownRole,
+  mobilePrimaryTabsForRole,
   visibleModulesForRole,
 } from "./nav";
 
@@ -104,6 +105,27 @@ describe("APP_MODULES", () => {
       for (const appModule of visibleModulesForRole(role)) {
         expect(appModule.pages[0]?.href, `${role}:${appModule.id}`).toBe(appModule.dashboardHref);
       }
+    }
+  });
+
+  it("derives the five phone destinations from each role-visible navigation model", () => {
+    for (const role of ROLES) {
+      const tabs = mobilePrimaryTabsForRole(role);
+      const visibleHrefs = new Set(visibleModulesForRole(role).flatMap((module) => module.pages.map((page) => page.href)));
+
+      expect(tabs, role).toHaveLength(5);
+      expect(tabs.map((tab) => tab.href), role).toEqual([
+        "/dashboard",
+        "/record",
+        role === "owner" || role === "accountant"
+          ? "/transactions"
+          : role === "storekeeper"
+            ? "/inventory/dashboard"
+            : "/m",
+        "/reports",
+        "/farm/dashboard",
+      ]);
+      for (const tab of tabs) expect(visibleHrefs.has(tab.href), `${role}:${tab.href}`).toBe(true);
     }
   });
 

@@ -1,37 +1,16 @@
 "use client";
 
 import Link from "next/link";
-
-// SPEC-0025 U-14 (§2c) — the phone-first bottom tab bar: the 5 destinations a thumb needs, fixed at the
-// bottom on small screens only. Role-aware: finance roles get «المعاملات»; the storekeeper gets
-// «المخزون» (their real home); other field roles get «الميدان». Pure links — no drawer/state coupling.
+import type { Role } from "@/lib/auth";
+import { mobilePrimaryTabsForRole } from "@/lib/nav";
 //
 // Sizing and visibility live in `.farm-bottom-nav` (app/globals.css), NOT in utility classes here. The
 // bar is `position: fixed`, so the scroll container has to reserve the same height or the last row /
 // primary button of every phone page sits underneath it. Keeping the breakpoint, the height token and
 // the reserve in ONE media block is what makes the two impossible to drift apart.
 
-interface Tab {
-  href: string;
-  icon: string;
-  label: string;
-}
-
-export function MobileTabBar({ role, pathname }: { role: string; pathname: string }) {
-  const finance = role === "owner" || role === "accountant";
-  const tabs: Tab[] = [
-    { href: "/dashboard", icon: "🏠", label: "الرئيسية" },
-    { href: "/record", icon: "➕", label: "سجّل" },
-    finance
-      ? { href: "/transactions", icon: "📜", label: "المعاملات" }
-      : role === "storekeeper"
-        ? // storekeeper can't access /m (field-role only); their real home is the store — pointing the
-          // field tab at /m bounced them to /dashboard on their primary device (SPEC-0030 §4.2).
-          { href: "/inventory/dashboard", icon: "📦", label: "المخزون" }
-        : { href: "/m", icon: "📱", label: "الميدان" },
-    { href: "/reports", icon: "📈", label: "التقارير" },
-    { href: "/farm/dashboard", icon: "🌴", label: "المزرعة" },
-  ];
+export function MobileTabBar({ role, pathname }: { role: Role; pathname: string }) {
+  const tabs = mobilePrimaryTabsForRole(role);
 
   return (
     <nav

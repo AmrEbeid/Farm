@@ -1348,6 +1348,8 @@ function AppShell({
   sidebar,
   brand,
   topbar,
+  skipLink,
+  mobileNavigation,
   sidebarOpen,
   onSidebarOpenChange,
   menuButtonLabel,
@@ -1386,6 +1388,7 @@ function AppShell({
       className: `fos-appshell${open ? " fos-appshell--drawer-open" : ""} ${className}`.trim(),
       ...rest,
       children: [
+        skipLink && /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-appshell__background-slot", ...inertBackgroundProps, children: skipLink }),
         /* @__PURE__ */ jsxRuntime.jsxs("header", { className: "fos-appshell__topbar", role: "banner", ...inertBackgroundProps, children: [
           /* @__PURE__ */ jsxRuntime.jsx(
             "button",
@@ -1444,7 +1447,8 @@ function AppShell({
             "aria-hidden": "true"
           }
         ),
-        /* @__PURE__ */ jsxRuntime.jsx("main", { className: "fos-appshell__main", role: "main", ...inertBackgroundProps, children })
+        /* @__PURE__ */ jsxRuntime.jsx("main", { className: "fos-appshell__main", role: "main", ...inertBackgroundProps, children }),
+        mobileNavigation && /* @__PURE__ */ jsxRuntime.jsx("div", { className: "fos-appshell__background-slot", ...inertBackgroundProps, children: mobileNavigation })
       ]
     }
   );

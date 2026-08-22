@@ -26,6 +26,8 @@ export interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Real sidebar content. When supplied it replaces the generated SidebarNav inside the aside. */ sidebar?: React.ReactNode;
   /** Brand / logo slot. */ brand?: React.ReactNode;
   /** Topbar content (search, role switcher, user menu…). */ topbar?: React.ReactNode;
+  /** First-focusable skip link. Kept inert while the mobile drawer is modal. */ skipLink?: React.ReactNode;
+  /** Fixed mobile primary navigation. Kept inert while the mobile drawer is modal. */ mobileNavigation?: React.ReactNode;
   /** Controlled mobile-drawer open state. Uncontrolled if omitted. */ sidebarOpen?: boolean;
   /** Notified when the drawer toggles (hamburger / overlay / Esc / navigation). */ onSidebarOpenChange?: (open: boolean) => void;
   /** Accessible label for the hamburger toggle. */ menuButtonLabel: string;
@@ -51,6 +53,8 @@ export function AppShell({
   sidebar,
   brand,
   topbar,
+  skipLink,
+  mobileNavigation,
   sidebarOpen,
   onSidebarOpenChange,
   menuButtonLabel,
@@ -100,6 +104,11 @@ export function AppShell({
       className={`fos-appshell${open ? " fos-appshell--drawer-open" : ""} ${className}`.trim()}
       {...rest}
     >
+      {skipLink && (
+        <div className="fos-appshell__background-slot" {...inertBackgroundProps}>
+          {skipLink}
+        </div>
+      )}
       <header className="fos-appshell__topbar" role="banner" {...inertBackgroundProps}>
         <button
           type="button"
@@ -153,6 +162,11 @@ export function AppShell({
       />
 
       <main className="fos-appshell__main" role="main" {...inertBackgroundProps}>{children}</main>
+      {mobileNavigation && (
+        <div className="fos-appshell__background-slot" {...inertBackgroundProps}>
+          {mobileNavigation}
+        </div>
+      )}
     </div>
   );
 }

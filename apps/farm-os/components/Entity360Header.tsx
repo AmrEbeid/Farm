@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { PillStatus } from "@amrebeid/ui";
 import { StatusPill } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 
 export interface Entity360Pill {
   status: PillStatus;
@@ -24,19 +25,15 @@ export function Entity360Header({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {pills.map((p, i) => (
-            <StatusPill key={i} status={p.status}>
-              {p.label}
-            </StatusPill>
-          ))}
-        </div>
-        {subtitle != null && <p style={{ color: "var(--ink-muted)" }}>{subtitle}</p>}
-      </div>
-      {actions != null && <div className="flex flex-wrap gap-2">{actions}</div>}
-    </header>
+    <PageHeader
+      title={title}
+      subtitle={subtitle}
+      metadata={pills.map((p, i) => (
+        <StatusPill key={i} status={p.status}>
+          {p.label}
+        </StatusPill>
+      ))}
+      actions={actions}
+    />
   );
 }

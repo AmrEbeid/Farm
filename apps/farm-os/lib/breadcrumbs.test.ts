@@ -205,3 +205,23 @@ describe("bottom navigation reserve", () => {
     expect(tabBar).not.toContain("env(safe-area-inset-bottom)");
   });
 });
+
+describe("AppShell sidebar adoption", () => {
+  const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
+  const appChrome = readFileSync(join(process.cwd(), "components", "AppChrome.tsx"), "utf8");
+
+  it("renders the grouped navigation through the real AppShell sidebar slot", () => {
+    expect(appChrome).toContain("sidebar={");
+    expect(appChrome).toContain("<ModuleSidebar");
+    expect(appChrome).toContain("menuIcon={<Menu");
+    expect(appChrome).toContain("skipLink={");
+    expect(appChrome).toContain("mobileNavigation={<MobileTabBar");
+    expect(appChrome).not.toContain("navItems={[]}");
+  });
+
+  it("does not restore the legacy fixed sidebar rendered inside main", () => {
+    expect(css).not.toContain(".fos-appshell__sidebar > .fos-sidebarnav");
+    expect(css).not.toContain(".fos-appshell__main > .farm-module-nav");
+    expect(css).not.toContain(".fos-appshell--drawer-open .fos-appshell__main > .farm-module-nav");
+  });
+});

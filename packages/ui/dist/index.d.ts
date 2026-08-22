@@ -706,6 +706,8 @@ interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
     /** Real sidebar content. When supplied it replaces the generated SidebarNav inside the aside. */ sidebar?: React.ReactNode;
     /** Brand / logo slot. */ brand?: React.ReactNode;
     /** Topbar content (search, role switcher, user menu…). */ topbar?: React.ReactNode;
+    /** First-focusable skip link. Kept inert while the mobile drawer is modal. */ skipLink?: React.ReactNode;
+    /** Fixed mobile primary navigation. Kept inert while the mobile drawer is modal. */ mobileNavigation?: React.ReactNode;
     /** Controlled mobile-drawer open state. Uncontrolled if omitted. */ sidebarOpen?: boolean;
     /** Notified when the drawer toggles (hamburger / overlay / Esc / navigation). */ onSidebarOpenChange?: (open: boolean) => void;
     /** Accessible label for the hamburger toggle. */ menuButtonLabel: string;
@@ -721,7 +723,7 @@ interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
  * The aside accepts either consumer-owned `sidebar` content or, by default, a `navItems`-driven
  * SidebarNav. Both close the drawer on navigation.
  */
-declare function AppShell({ navItems, activeNavId, role, navAriaLabel, onNavSelect, sidebar, brand, topbar, sidebarOpen, onSidebarOpenChange, menuButtonLabel, menuIcon, children, className, ...rest }: AppShellProps): React.JSX.Element;
+declare function AppShell({ navItems, activeNavId, role, navAriaLabel, onNavSelect, sidebar, brand, topbar, skipLink, mobileNavigation, sidebarOpen, onSidebarOpenChange, menuButtonLabel, menuIcon, children, className, ...rest }: AppShellProps): React.JSX.Element;
 
 type LoopStepState = "pending" | "active" | "done" | "blocked";
 interface LoopStep {

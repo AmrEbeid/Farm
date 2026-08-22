@@ -483,9 +483,11 @@
 .fos-roleswitcher__select:focus-visible { outline:2px solid transparent; outline-offset:1px; border-color:var(--brand); box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent); }
 
 /* ---- AppShell ---- */
-.fos-appshell { display:grid; min-height:100vh; background:var(--surface-sunken); color:var(--ink);
-  grid-template-columns:240px 1fr; grid-template-rows:auto 1fr;
+.fos-appshell { display:grid; block-size:100vh; block-size:100dvh; overflow:hidden;
+  background:var(--surface-sunken); color:var(--ink);
+  grid-template-columns:240px minmax(0,1fr); grid-template-rows:auto minmax(0,1fr);
   grid-template-areas:"topbar topbar" "sidebar main"; }
+.fos-appshell__background-slot { display:contents; }
 .fos-appshell__topbar { grid-area:topbar; position:sticky; inset-block-start:0; z-index:var(--z-sticky);
   display:flex; align-items:center; gap:var(--space-2); padding-inline:var(--space-3); padding-block:var(--space-1);
   min-height:var(--control-h); background:var(--surface-raised); border-block-end:1px solid var(--line); box-shadow:var(--shadow-1); }
@@ -496,19 +498,20 @@
 .fos-appshell__menu-btn:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
 .fos-appshell__menu-icon { display:inline-flex; align-items:center; justify-content:center; line-height:1; }
 .fos-appshell__brand { font-weight:var(--weight-extrabold); font-size:var(--text-md); display:flex; align-items:center; gap:var(--space-2); min-width:0; }
-.fos-appshell__topbar-content { margin-inline-start:auto; display:flex; align-items:center; gap:var(--space-2); }
-.fos-appshell__sidebar { grid-area:sidebar; background:var(--surface-raised); border-inline-end:1px solid var(--line);
+.fos-appshell__topbar-content { margin-inline-start:auto; min-inline-size:0; display:flex; align-items:center; gap:var(--space-2); }
+.fos-appshell__sidebar { grid-area:sidebar; min-block-size:0; background:var(--surface-raised); border-inline-end:1px solid var(--line);
   padding:var(--card-pad); overflow-y:auto; }
 /* Fixed (not a grid item) so it covers the viewport whatever the page height. Both shell layers stay
    below --z-modal, so a sidebar action may open the package Modal/Drawer without trapping it under the shell. */
 .fos-appshell__overlay { position:fixed; inset:0; background:color-mix(in srgb, var(--ink) 45%, transparent); z-index:calc(var(--z-modal) - 2); }
 .fos-appshell__overlay[hidden] { display:none; }
-.fos-appshell__main { grid-area:main; padding:var(--space-6); overflow:auto; }
+.fos-appshell__main { grid-area:main; min-inline-size:0; min-block-size:0; padding:var(--space-6); overflow:auto; }
 
 /* Mobile: sidebar becomes an off-canvas drawer on the inline-start edge. */
 @media (max-width:48rem) {
-  .fos-appshell { grid-template-columns:1fr; grid-template-areas:"topbar" "main"; }
+  .fos-appshell { grid-template-columns:minmax(0,1fr); grid-template-areas:"topbar" "main"; }
   .fos-appshell__menu-btn { display:inline-flex; }
+  .fos-appshell__topbar-content { flex:1 1 0; flex-wrap:wrap; }
   /* The closed drawer is absent from keyboard/a11y navigation. Opening restores visibility before
      the transform; useOverlay owns focus entry/trap/return and body scroll lock. */
   .fos-appshell__sidebar { position:fixed; inset-block:0; inset-inline-start:0; inline-size:min(80vw,300px);
