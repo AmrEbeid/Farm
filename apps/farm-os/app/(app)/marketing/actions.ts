@@ -6,6 +6,7 @@ import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import type { Json } from "@/lib/database.types.ext";
 import type { MarketingRecordType } from "@/lib/database.types.ext";
+import { isMarketingContactStatus } from "@/lib/marketing/contact-status";
 import { validateMarketingRecordInput } from "@/lib/marketing/validate-record";
 
 /**
@@ -25,6 +26,7 @@ const MARKETING_PATHS = [
   "/marketing/markets",
   "/marketing/pipeline",
   "/marketing/campaigns",
+  "/marketing/workspace",
 ] as const;
 
 function revalidateMarketing() {
@@ -43,12 +45,18 @@ export interface MarketingContactInput {
   notes?: string | null;
   selected?: boolean;
   sourceKey?: string | null;
+  status?: string | null;
 }
 
 export async function saveMarketingContact(input: MarketingContactInput): Promise<Result<string>> {
   await requireMembership();
   const sb = await createClient();
-  const { data, error } = await sb.rpc("fn_save_marketing_contact", {
+  if (input.status !== undefined && input.status !== null && !isMarketingContactStatus(input.status)) {
+    return { ok: false, error: "حالة جهة الاتصال غير صالحة." };
+  }
+
+  const rpc = input.status === undefined ? "fn_save_marketing_contact" : "fn_save_marketing_contact_v3";
+  const { data, error } = await sb.rpc(rpc, {
     p_id: input.id ?? null,
     p_org: input.orgId ?? null,
     p_name: input.name,
@@ -60,6 +68,7 @@ export async function saveMarketingContact(input: MarketingContactInput): Promis
     p_notes: input.notes ?? null,
     p_selected: input.selected ?? false,
     p_source_key: input.sourceKey ?? null,
+    ...(input.status === undefined ? {} : { p_status: input.status }),
   });
   if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
   revalidateMarketing();
@@ -140,5 +149,25 @@ export async function archiveMarketingRecord(id: string, archived = true): Promi
   const { error } = await sb.rpc("fn_archive_marketing_record", { p_id: id, p_archived: archived });
   if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
   revalidateMarketing();
+  return { ok: true };
+}
+
+export async function saveMarketingWorkspaceControl(input: {
+  orgId: string;
+  areaId: string;
+  controlKey: string;
+  value: string | number | boolean | null;
+}): Promise<Result> {
+  await requireMembership();
+  if (!input.controlKey || input.controlKey.length > 240) return { ok: false, error: "مفتاح الحقل غير صالح." };
+  const sb = await createClient();
+  const { error } = await sb.rpc("fn_save_marketing_workspace_control", {
+    p_org: input.orgId,
+    p_area_id: input.areaId,
+    p_control_key: input.controlKey,
+    p_value: input.value,
+  });
+  if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
+  revalidatePath(`/marketing/workspace`);
   return { ok: true };
 }

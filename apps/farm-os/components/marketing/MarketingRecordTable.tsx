@@ -50,6 +50,8 @@ export function MarketingRecordTable({
   addLabel = "+ إضافة",
   empty = "لا توجد سجلات بعد",
   sectionId,
+  fixedPayload,
+  exportFilename,
 }: {
   recordType: MarketingRecordType;
   orgId: string;
@@ -66,6 +68,12 @@ export function MarketingRecordTable({
   addLabel?: string;
   empty?: string;
   sectionId?: string;
+  /** Merged into `payload` on create (and kept on edit) — e.g. `{ kind: "farm_fact" }` so a
+   *  workspace section that renders one `payload.kind` slice of a shared record type doesn't
+   *  require the operator to type that discriminator by hand. */
+  fixedPayload?: Record<string, Json>;
+  /** When set, shows a CSV Export button (SPEC-0017) for the current (filtered) rows. */
+  exportFilename?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -80,7 +88,7 @@ export function MarketingRecordTable({
   function startCreate() {
     setEditId(null);
     setForm({});
-    setBasePayload({});
+    setBasePayload(fixedPayload ? { ...fixedPayload } : {});
     setMsg(null);
     setOpen(true);
   }
@@ -335,6 +343,7 @@ export function MarketingRecordTable({
         placeholder="بحث…"
         ariaLabel={title}
         empty={empty}
+        exportFilename={exportFilename}
       />
     </section>
   );

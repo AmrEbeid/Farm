@@ -92,10 +92,47 @@ the active member before parsing multipart data, enforces 2 MB HTML / 200 KB JSO
 Migration `20260822110000_marketing_full_source_workspace.sql` adds bounded contact provenance metadata,
 four reference/report record types, exact contact pagination and dashboard snapshot RPCs, and an audited
 `marketing_import_run` evidence ledger. All new tables/RPCs use FORCE RLS, active-org and role checks,
-  empty search paths, RPC-only writes, and no anon execution. Imports serialize per organization. A repeated
-  reviewed digest is idempotent; a different digest that conflicts with a manually changed source key fails
-  without completion evidence, so manual edits survive without a false parity claim.
+empty search paths, RPC-only writes, and no anon execution. Imports serialize per organization. A repeated
+reviewed digest is idempotent; a different digest that conflicts with a manually changed source key fails
+without completion evidence, so manual edits survive without a false parity claim.
 The record editor preserves source payload keys that are not currently visible in the form.
+
+### 1.5 Exact 25-section authenticated workspace
+
+`/marketing/workspace?area=<source-tab-id>` is the full operational view of the owner-supplied HTML. It
+preserves all 25 source sections in their original order and safely renders the generated source headings,
+tables, copy and control facsimiles without `dangerouslySetInnerHTML` or script execution. Unsafe Google Apps
+Script bulk-send instructions and controls are replaced with a disabled safety notice. The disputed approximate
+5,000-palm claim remains visibly marked as unverified source text; it is never promoted to Farm OS truth.
+
+Only the active area is rendered and queried. The URL preserves deep links and browser history, while each
+section loads only the record types, contact category, paged directory rows or aggregates it needs. The route
+does not load all 25 React trees or the 1,513-row directory into one response.
+
+Operational workflows use the normalized stores: `marketing_record`, `marketing_contact` and the append-only
+`marketing_contact_activity`. Migration `20260822142300_marketing_workspace_controls.sql` adds a separate,
+audited, FORCE-RLS draft store for the exact source-layout fields; those drafts never count as operational
+records or accounting truth. Every safe source input/select/checkbox persists by deterministic area/path key,
+and every source action button opens the normalized live workflow below it. The Google Apps Script bulk sender
+remains removed. Owner WhatsApp and harvest remain authoritative in `/website` and `/harvest`.
+Draft buttons open the operator's own email/WhatsApp client, normalize reviewed Egyptian mobile forms to E.164,
+and append only an explicit “draft opened; not sent” activity note.
+
+The EXW and landed-cost calculators port the exact source formulas. The daily sales report supports multiple
+sector/channel/quantity/price lines, multiple expense lines, quantity-weighted expense allocation, live gross
+and net results, edit/archive, a cross-day sector ledger, manual-copy WhatsApp text and receipt printing. Reports
+save as structured `daily_sales_report` records and remain marketing operational evidence, not accounting truth.
+Migration `20260822142100_marketing_daily_report_integrity.sql` validates their source inputs and rebuilds
+all totals, averages, quantity-weighted sector allocations, title, amount and profit/loss state in a database
+trigger. A caller cannot persist forged derived values by bypassing the server action.
+
+Contact status is a visible editable field in both contact registers. Migration
+`20260822142200_marketing_contact_status.sql` adds an atomic status RPC that changes only
+`marketing_contact.metadata.status`; imported provenance keys are preserved under concurrent edits. Large
+record registers are paged independently by record type (100 rows per type/page), while funnel counts come
+from the database dashboard aggregate instead of loading every matching record into the page. Migration
+`20260822142400_marketing_workspace_aggregates.sql` computes the daily sector ledger and weekly availability
+mix across every non-archived matching record, so insight totals never shrink to the current UI page.
 
 Source mapping is exact: 75 curated exporters, 1,513 portal contacts, 14 Kuwait distributors, 28 B2B
 platforms, 12 freight references, 4 certificate definitions, 5 finance channels, 7 price types, 20 message
@@ -116,17 +153,18 @@ in the coverage evidence rather than being populated with invented rows.
 ## 3. Tests
 
 - **pgTAP** `supabase/tests/100_marketing_module_test.sql`, `101_marketing_full_source_test.sql`, and
-  `206_marketing_full_source_workspace_test.sql`: role gate (owner/accountant/
+  `206_marketing_full_source_workspace_test.sql`, and `207_marketing_daily_report_integrity_test.sql`: role gate (owner/accountant/
   farm_manager only), role-scoped reads, direct-REST DML revoked, append-only activity log, cross-org
   contact-link guard, authz-by-row-org, hard-DELETE revoked (archive/restore), audit coverage, anon
   lockdown, atomicity, idempotency, pre-write validation, exact pagination/dashboard counts and audited
   evidence. `supabase/tests/22_security_invariants_test.sql` covers every new definer RPC. Current Docker-free
-  full suite: **3,416 ok / 0 not_ok / 0 file failures**.
-- **Vitest** includes pure parser/packer/validator tests plus an opt-in canonical gate against the exact two
+  full suite: **4,229 ok / 0 not_ok / 0 file failures**.
+- **Vitest** includes pure parser/packer/validator tests, rendered source parity, exact calculator/daily-report
+  oracles and an opt-in canonical gate against the exact two
   supplied files. Canonical evidence: **25 areas / 1,571 contacts / 101 records**. Current full suite:
-  **1,415 passed / 16 controlled skips**.
+  **1,895 passed / 17 controlled skips**.
 - **TypeScript, full ESLint, service-role/client-function/Recharts guards, `git diff --check`, and production
-  `next build` (69 static generations)**: clean.
+  `next build` (70 static generations)**: clean.
 
 ## 4. Full-source coverage contract
 

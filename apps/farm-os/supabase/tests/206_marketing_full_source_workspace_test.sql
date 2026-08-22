@@ -95,7 +95,8 @@ select is((select imported_contacts || ':' || existing_contacts || ':' || import
   'import evidence records exact created/existing counts');
 select lives_ok(
   format($sql$ select public.fn_save_marketing_record(
-    null, %L, 'daily_sales_report', 'تقرير يومي', '{"date":"2026-08-22"}'::jsonb,
+    null, %L, 'daily_sales_report', 'تقرير يومي',
+    '{"date":"2026-08-22","lines":[{"sector":"أ","channel":"بيع","qtyKg":1,"pricePerKg":1}],"expenseItems":[]}'::jsonb,
     null, null, 'ready', null
   ) $sql$, :'org'),
   'normal save RPC accepts an extended record type');
