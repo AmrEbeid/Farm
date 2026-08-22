@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { MarketingRecordRow } from "@/components/marketing/MarketingRecordTable";
 import type { MarketingContactRow, MarketingContactActivityRow } from "@/components/marketing/MarketingContactTable";
 import type { MarketingRecordType, Json } from "@/lib/database.types.ext";
+import type { DailySalesSectorLedgerRow } from "@/lib/marketing/workspace/daily-sales-report";
 
 /** The three roles the whole marketing module (nav + RLS + RPCs) is gated to. */
 export const MARKETING_ROLES = ["owner", "accountant", "farm_manager"] as const;
@@ -79,6 +80,62 @@ export async function loadMarketingDashboardSnapshot(orgId: string): Promise<Mar
   };
 }
 
+export async function loadMarketingWorkspaceControlValues(
+  orgId: string,
+  areaId: string,
+): Promise<Record<string, Json>> {
+  const sb = await createClient();
+  const { data, error } = await sb
+    .from("marketing_workspace_control")
+    .select("control_key, value")
+    .eq("org_id", orgId)
+    .eq("area_id", areaId)
+    .limit(500);
+  if (error) throw error;
+  return Object.fromEntries((data ?? []).map((row) => [row.control_key, row.value]));
+}
+
+export interface MarketingWorkspaceAggregates {
+  dailySectorLedger: DailySalesSectorLedgerRow[];
+  weeklyAvailability: { weeks: number; premiumTons: number; largeTons: number; commercialTons: number; totalTons: number };
+}
+
+export async function loadMarketingWorkspaceAggregates(orgId: string): Promise<MarketingWorkspaceAggregates> {
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("fn_marketing_workspace_aggregates", { p_org: orgId });
+  if (error) throw error;
+  const value = jsonObject(data);
+  const weekly = jsonObject(value.weeklyAvailability);
+  const numberValue = (input: Json | undefined) => typeof input === "number" ? input : 0;
+  return {
+    dailySectorLedger: (Array.isArray(value.dailySectorLedger) ? value.dailySectorLedger : []).flatMap((item) => {
+      const row = jsonObject(item);
+      if (typeof row.name !== "string") return [];
+      return [{
+        name: row.name,
+        days: numberValue(row.days),
+        qtyKg: numberValue(row.qtyKg),
+        revenue: numberValue(row.revenue),
+        expenses: numberValue(row.expenses),
+        net: numberValue(row.net),
+        avgPrice: numberValue(row.avgPrice),
+      }];
+    }),
+    weeklyAvailability: (() => {
+      const premiumTons = numberValue(weekly.premiumTons);
+      const largeTons = numberValue(weekly.largeTons);
+      const commercialTons = numberValue(weekly.commercialTons);
+      return {
+        weeks: numberValue(weekly.weeks),
+        premiumTons,
+        largeTons,
+        commercialTons,
+        totalTons: premiumTons + largeTons + commercialTons,
+      };
+    })(),
+  };
+}
+
 export async function loadMarketingRecords(orgId: string, recordTypes: MarketingRecordType[]): Promise<MarketingRecordRow[]> {
   const sb = await createClient();
   const { data, error } = await sb
@@ -104,6 +161,53 @@ export async function loadMarketingRecords(orgId: string, recordTypes: Marketing
   }));
 }
 
+export interface MarketingRecordsPage {
+  rows: MarketingRecordRow[];
+  page: number;
+  pages: number;
+}
+
+/** Page each requested record type independently so one busy register cannot starve another. */
+export async function loadMarketingRecordsPage(
+  orgId: string,
+  recordTypes: MarketingRecordType[],
+  page = 1,
+  pageSize = 100,
+): Promise<MarketingRecordsPage> {
+  const safePage = Number.isInteger(page) && page > 0 ? page : 1;
+  const safePageSize = Number.isInteger(pageSize) ? Math.min(Math.max(pageSize, 1), 100) : 100;
+  const sb = await createClient();
+  const results = await Promise.all(recordTypes.map(async (recordType) => {
+    const from = (safePage - 1) * safePageSize;
+    const { data, error, count } = await sb
+      .from("marketing_record")
+      .select("id, title, payload, contact_id, amount, status, archived, record_type", { count: "exact" })
+      .eq("org_id", orgId)
+      .eq("record_type", recordType)
+      .order("created_at", { ascending: false })
+      .range(from, from + safePageSize - 1);
+    if (error) throw error;
+    return {
+      count: count ?? 0,
+      rows: (data ?? []).map((r) => ({
+        id: r.id,
+        recordType: r.record_type as MarketingRecordType,
+        title: r.title,
+        payload: (r.payload as Record<string, Json>) ?? {},
+        contactId: r.contact_id,
+        amount: r.amount,
+        status: r.status,
+        archived: r.archived,
+      })),
+    };
+  }));
+  return {
+    rows: results.flatMap((result) => result.rows),
+    page: safePage,
+    pages: results.reduce((max, result) => Math.max(max, Math.ceil(result.count / safePageSize)), 0),
+  };
+}
+
 export async function loadMarketingContactsByCategory(
   orgId: string,
   category: "exporter" | "buyer_lead" | "kuwait_distributor" | "platform" | "freight" | "other",
@@ -111,7 +215,7 @@ export async function loadMarketingContactsByCategory(
   const sb = await createClient();
   const { data, error } = await sb
     .from("marketing_contact")
-    .select("id, name, phone, email, org_name, category, source, notes, selected, archived")
+    .select("id, name, phone, email, org_name, category, source, notes, selected, archived, metadata")
     .eq("org_id", orgId)
     .eq("category", category)
     .eq("archived", false)
@@ -130,6 +234,7 @@ export async function loadMarketingContactsByCategory(
     category: contact.category,
     source: contact.source,
     notes: contact.notes,
+    status: typeof jsonObject(contact.metadata as Json).status === "string" ? String(jsonObject(contact.metadata as Json).status) : null,
     selected: contact.selected,
     archived: contact.archived,
   }));
@@ -142,7 +247,7 @@ export async function loadMarketingPipelineContacts(
   const sb = await createClient();
   let query = sb
     .from("marketing_contact")
-    .select("id, name, phone, email, org_name, category, source, notes, selected, archived")
+    .select("id, name, phone, email, org_name, category, source, notes, selected, archived, metadata")
     .eq("org_id", orgId)
     .eq("archived", false);
   query = linkedContactIds.length > 0
@@ -162,6 +267,7 @@ export async function loadMarketingPipelineContacts(
     category: contact.category,
     source: contact.source,
     notes: contact.notes,
+    status: typeof jsonObject(contact.metadata as Json).status === "string" ? String(jsonObject(contact.metadata as Json).status) : null,
     selected: contact.selected,
     archived: contact.archived,
   }));
@@ -210,6 +316,7 @@ export async function loadMarketingContactsPage(
         category: row.category,
         source: typeof row.source === "string" ? row.source : null,
         notes: typeof row.notes === "string" ? row.notes : null,
+        status: typeof jsonObject(row.metadata).status === "string" ? String(jsonObject(row.metadata).status) : null,
         selected: row.selected === true,
         archived: row.archived === true,
       }];
@@ -267,4 +374,51 @@ export async function loadMarketingContactActivityForContacts(
 /** Contact options for the {id,name} pickers, active (non-archived) only. */
 export function contactOptions(contacts: MarketingContactRow[]): { id: string; name: string }[] {
   return contacts.filter((c) => !c.archived).map((c) => ({ id: c.id, name: c.name }));
+}
+
+/** Count contacts whose imported/edited status has moved beyond either source initial state. */
+export async function loadMarketingContactedCount(
+  orgId: string,
+  category: "exporter" | "buyer_lead" | "kuwait_distributor" | "platform" | "freight" | "other",
+): Promise<number> {
+  const sb = await createClient();
+  const { count, error } = await sb
+    .from("marketing_contact")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("category", category)
+    .eq("archived", false)
+    .neq("metadata->>status", "لم يبدأ")
+    .neq("metadata->>status", "لم يتم التواصل");
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function loadMarketingSelectedContacts(orgId: string): Promise<MarketingContactRow[]> {
+  const sb = await createClient();
+  const { data, error } = await sb
+    .from("marketing_contact")
+    .select("id, name, phone, email, org_name, category, source, notes, selected, archived, metadata")
+    .eq("org_id", orgId)
+    .eq("selected", true)
+    .eq("archived", false)
+    .order("name")
+    .limit(MARKETING_SUPPORT_ROW_LIMIT + 1);
+  if (error) throw error;
+  if ((data?.length ?? 0) > MARKETING_SUPPORT_ROW_LIMIT) {
+    throw new Error("Marketing selected-contact query exceeded its reviewed row limit");
+  }
+  return (data ?? []).map((contact) => ({
+    id: contact.id,
+    name: contact.name,
+    phone: contact.phone,
+    email: contact.email,
+    orgName: contact.org_name,
+    category: contact.category,
+    source: contact.source,
+    notes: contact.notes,
+    status: typeof jsonObject(contact.metadata as Json).status === "string" ? String(jsonObject(contact.metadata as Json).status) : null,
+    selected: contact.selected,
+    archived: contact.archived,
+  }));
 }

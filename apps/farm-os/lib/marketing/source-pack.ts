@@ -47,7 +47,7 @@ export interface MarketingSourcePack {
 
 type SourceObject = Record<string, Json>;
 
-const CAMPAIGN_TASKS = [
+export const CAMPAIGN_TASKS = [
   "مراجعة تقرير الأسعار الصباحي",
   "مراسلة 5-10 شركات مركزة",
   "واتساب للأعلى أولوية",
@@ -56,7 +56,7 @@ const CAMPAIGN_TASKS = [
   "قرار اليوم",
 ] as const;
 
-const PLATFORM_TASKS = [
+export const PLATFORM_TASKS = [
   "الشعار وصورة الغلاف",
   "10-15 صورة أصلية",
   "فيديو 60-120 ثانية",

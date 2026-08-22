@@ -2363,6 +2363,22 @@ type MarketingImportRunTable = {
   Relationships: [];
 };
 
+type MarketingWorkspaceControlTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    area_id: string;
+    control_key: string;
+    value: Json;
+    updated_by: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
 type MarketingFunctions = {
   fn_save_marketing_contact: {
     Args: {
@@ -2395,6 +2411,23 @@ type MarketingFunctions = {
       p_selected?: boolean;
       p_source_key?: string | null;
       p_metadata?: Json;
+    };
+    Returns: Json;
+  };
+  fn_save_marketing_contact_v3: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_name: string;
+      p_phone: string | null;
+      p_email: string | null;
+      p_org_name: string | null;
+      p_category: string;
+      p_source: string | null;
+      p_notes: string | null;
+      p_selected?: boolean;
+      p_source_key?: string | null;
+      p_status?: string | null;
     };
     Returns: Json;
   };
@@ -2447,6 +2480,11 @@ type MarketingFunctions = {
     Returns: Json;
   };
   fn_marketing_dashboard_snapshot: { Args: { p_org: string }; Returns: Json };
+  fn_save_marketing_workspace_control: {
+    Args: { p_org: string; p_area_id: string; p_control_key: string; p_value: Json };
+    Returns: Json;
+  };
+  fn_marketing_workspace_aggregates: { Args: { p_org: string }; Returns: Json };
 };
 
 export type Database = Omit<Generated, "public"> & {
@@ -2523,6 +2561,7 @@ export type Database = Omit<Generated, "public"> & {
       marketing_contact_activity: MarketingContactActivityTable;
       marketing_record: MarketingRecordTable;
       marketing_import_run: MarketingImportRunTable;
+      marketing_workspace_control: MarketingWorkspaceControlTable;
     };
     Functions: Public["Functions"] &
       StructFunctions &

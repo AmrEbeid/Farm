@@ -7,6 +7,10 @@ import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import {
+  MARKETING_CONTACT_STATUS_OPTIONS,
+  defaultMarketingContactStatus,
+} from "@/lib/marketing/contact-status";
+import {
   saveMarketingContact,
   archiveMarketingContact,
   logMarketingContactActivity,
@@ -39,6 +43,7 @@ export interface MarketingContactRow {
   category: string;
   source: string | null;
   notes: string | null;
+  status: string | null;
   selected: boolean;
   archived: boolean;
 }
@@ -64,6 +69,9 @@ export function MarketingContactTable({
   page,
   pages,
   total,
+  basePath = "/marketing/campaigns",
+  hash = "contacts",
+  fixedParams,
 }: {
   orgId: string;
   rows: MarketingContactRow[];
@@ -75,6 +83,12 @@ export function MarketingContactTable({
   page: number;
   pages: number;
   total: number;
+  /** Route the search/filter/pagination controls navigate back to. */
+  basePath?: string;
+  /** Anchor appended to the navigated URL. */
+  hash?: string;
+  /** Route context that search/filter/pagination must preserve. */
+  fixedParams?: Record<string, string>;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -101,6 +115,7 @@ export function MarketingContactTable({
     page?: number;
   }) {
     const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(fixedParams ?? {})) params.set(key, value);
     const nextQuery = next.query ?? query;
     const nextCategory = next.category === undefined ? category : next.category;
     const nextArchived = next.includeArchived ?? includeArchived;
@@ -110,7 +125,7 @@ export function MarketingContactTable({
     if (nextArchived) params.set("archived", "1");
     if (nextPage > 1) params.set("page", String(nextPage));
     const suffix = params.toString();
-    router.push(`/marketing/campaigns${suffix ? `?${suffix}` : ""}#contacts`);
+    router.push(`${basePath}${suffix ? `?${suffix}` : ""}#${hash}`);
   }
 
   function startCreate() {
@@ -130,6 +145,7 @@ export function MarketingContactTable({
       category: row.category,
       source: row.source ?? "",
       notes: row.notes ?? "",
+      status: row.status ?? defaultMarketingContactStatus(row.category),
       selected: row.selected ? "true" : "",
     });
     setMsg(null);
@@ -151,6 +167,7 @@ export function MarketingContactTable({
       source: form.source || null,
       notes: form.notes || null,
       selected: form.selected === "true",
+      status: form.status || defaultMarketingContactStatus(form.category || "other"),
     };
     let r: { ok: boolean; error?: string };
     try {
@@ -207,6 +224,7 @@ export function MarketingContactTable({
     { id: "phone", header: "الهاتف", kind: "code" },
     { id: "email", header: "البريد" },
     { id: "source", header: "المصدر" },
+    { id: "status", header: "الحالة" },
     {
       id: "actions",
       header: "",
@@ -242,6 +260,7 @@ export function MarketingContactTable({
     phone: row.phone ?? "—",
     email: row.email ?? "—",
     source: row.source ?? "—",
+    status: row.status ?? defaultMarketingContactStatus(row.category),
   }));
 
   const activeContact = visibleRows.find((r) => r.id === activityContactId) ?? null;
@@ -327,6 +346,14 @@ export function MarketingContactTable({
           </Field>
           <Field id="mc-source" label="المصدر">
             <Input id="mc-source" value={form.source ?? ""} onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))} />
+          </Field>
+          <Field id="mc-status" label="حالة التواصل">
+            <Select
+              id="mc-status"
+              value={form.status ?? defaultMarketingContactStatus(form.category || "other")}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+              options={MARKETING_CONTACT_STATUS_OPTIONS.map((value) => ({ value, label: value }))}
+            />
           </Field>
           <Field id="mc-notes" label="ملاحظات">
             <Textarea id="mc-notes" value={form.notes ?? ""} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />

@@ -137,6 +137,23 @@ export const DAILY_SALES_REPORT_FIELDS: MarketingRecordField[] = [
   { key: "notes", label: "قرار اليوم وملاحظاته", type: "textarea" },
 ];
 
+export const EXW_SETTINGS_FIELDS: MarketingRecordField[] = [
+  { key: "size", label: "المقاس", required: true },
+  { key: "minQtyTons", label: "الحد الأدنى للكمية (طن)", type: "number" },
+  { key: "paymentTerm", label: "شرط الدفع" },
+  { key: "salesFloorPricePerKg", label: "الحد الأدنى للسعر المقبول (كجم)", type: "number" },
+];
+
+export const COMPOSE_SETTINGS_FIELDS: MarketingRecordField[] = [
+  { key: "subject", label: "موضوع الرسالة", required: true },
+  { key: "templateId", label: "القالب المستخدم" },
+];
+
+export const LINKEDIN_PROFILE_FIELDS: MarketingRecordField[] = [
+  { key: "companyUrl", label: "رابط صفحة الشركة" },
+  { key: "farmUrl", label: "رابط صفحة المزرعة" },
+];
+
 export const REPEAT_CUSTOMER_FIELDS: MarketingRecordField[] = [
   { key: "market", label: "السوق" },
   { key: "lastOrderAt", label: "تاريخ آخر طلب", type: "date" },

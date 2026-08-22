@@ -12,6 +12,11 @@ const GROUPS: { route: MarketingRoute; label: string }[] = [
 export function MarketingAreaNav() {
   return (
     <nav aria-label="مساحات عمل التسويق" className="border-y py-3" style={{ borderColor: "var(--line)" }}>
+      <div className="mb-2 text-xs">
+        <Link href="/marketing/workspace" className="font-bold underline-offset-2 hover:underline">
+          مساحة العمل الكاملة (٢٥ قسمًا بترتيب الملف المصدر)
+        </Link>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {GROUPS.map((group) => (
           <div key={group.route}>
