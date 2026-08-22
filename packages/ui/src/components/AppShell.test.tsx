@@ -42,9 +42,13 @@ function shell(extra?: Partial<React.ComponentProps<typeof AppShell>>) {
       menuButtonLabel="فتح القائمة"
       brand={<span>مزرعة عبيد</span>}
       topbar={<span>الشريط العلوي</span>}
+      skipLink={<a href="#content">تخطّي إلى المحتوى</a>}
+      mobileNavigation={<nav aria-label="التنقل السفلي">التنقل السفلي</nav>}
       {...extra}
     >
-      <h1>المحتوى</h1>
+      <div id="content">
+        <h1>المحتوى</h1>
+      </div>
     </AppShell>
   );
 }
@@ -147,6 +151,18 @@ describe("AppShell", () => {
     expect(css).toMatch(
       /\.fos-appshell__menu-btn\s*\{[^}]*min-inline-size:44px;[^}]*min-block-size:44px;/s
     );
+    expect(css).toMatch(
+      /@media \(max-width:48rem\)[\s\S]*?\.fos-appshell\s*\{[^}]*grid-template-columns:minmax\(0,1fr\);/s
+    );
+    expect(css).toMatch(/\.fos-appshell__topbar-content\s*\{[^}]*min-inline-size:0;/s);
+    expect(css).toMatch(
+      /@media \(max-width:48rem\)[\s\S]*?\.fos-appshell__topbar-content\s*\{[^}]*flex:1 1 0;[^}]*flex-wrap:wrap;/s
+    );
+    expect(css).toMatch(
+      /\.fos-appshell\s*\{[^}]*block-size:100dvh;[^}]*overflow:hidden;[^}]*grid-template-columns:240px minmax\(0,1fr\);[^}]*grid-template-rows:auto minmax\(0,1fr\);/s
+    );
+    expect(css).toMatch(/\.fos-appshell__sidebar\s*\{[^}]*min-block-size:0;[^}]*overflow-y:auto;/s);
+    expect(css).toMatch(/\.fos-appshell__main\s*\{[^}]*min-inline-size:0;[^}]*min-block-size:0;[^}]*overflow:auto;/s);
   });
 
   it("moves focus into an opened drawer, traps it, and restores the menu trigger on Escape", async () => {
@@ -168,10 +184,16 @@ describe("AppShell", () => {
     expect(screen.getByRole("dialog", { name: "التنقل الرئيسي" })).toHaveAttribute("aria-modal", "true");
     expect(screen.getByRole("banner")).toHaveAttribute("inert");
     expect(screen.getByRole("main")).toHaveAttribute("inert");
+    for (const slot of container.querySelectorAll(".fos-appshell__background-slot")) {
+      expect(slot).toHaveAttribute("inert");
+    }
     setMobileViewport(false);
     expect(container.querySelector(".fos-appshell__sidebar-panel")).not.toHaveAttribute("role");
     expect(screen.getByRole("banner")).not.toHaveAttribute("inert");
     expect(screen.getByRole("main")).not.toHaveAttribute("inert");
+    for (const slot of container.querySelectorAll(".fos-appshell__background-slot")) {
+      expect(slot).not.toHaveAttribute("inert");
+    }
   });
 
   it("releases focus trapping and body scroll lock when resizing an open drawer to desktop", () => {

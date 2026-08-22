@@ -6,6 +6,7 @@ import { Button, Field, Input, Alert, useToast } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { PrintButton } from "@/components/print-button";
+import { PageHeader } from "@/components/PageHeader";
 
 /** A create-form field (drives the inline add form). Writes go through the page's gated server action. */
 export type MasterField = {
@@ -98,22 +99,22 @@ export function MasterTable({
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {description && <p style={{ color: "var(--ink-muted)" }}>{description}</p>}
-        </div>
-        {(printLabel || (canWrite && !open)) && (
-          <div className="no-print flex flex-wrap items-center gap-2">
-            {printLabel && <PrintButton label={printLabel} />}
-            {canWrite && !open && (
-              <Button variant="ghost" onClick={() => setOpen(true)}>
-                {addLabel}
-              </Button>
-            )}
-          </div>
-        )}
-      </header>
+      <PageHeader
+        title={title}
+        subtitle={description}
+        actions={
+          printLabel || (canWrite && !open) ? (
+            <div className="no-print flex flex-wrap items-center gap-2">
+              {printLabel && <PrintButton label={printLabel} />}
+              {canWrite && !open && (
+                <Button variant="ghost" onClick={() => setOpen(true)}>
+                  {addLabel}
+                </Button>
+              )}
+            </div>
+          ) : undefined
+        }
+      />
 
       {canWrite && open && (
         <form onSubmit={submit} className="no-print flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>

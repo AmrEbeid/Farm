@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { Menu } from "lucide-react";
 import { AppShell, Tag, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/auth";
@@ -60,41 +61,42 @@ export function AppChrome({
   }
 
   return (
-    <>
-      {/*
-       * Skip-to-content: first focusable element on the page (visually hidden
-       * until focused, see .skip-to-content in globals.css). Targets the #main
-       * focus wrapper inside AppShell's <main> landmark.
-       */}
-      <a href="#main" className="skip-to-content">
-        تخطّي إلى المحتوى
-      </a>
-      <AppShell
-      navItems={[]}
+    <AppShell
       activeNavId={activeNavId}
       navAriaLabel="التنقل الرئيسي"
       menuButtonLabel="فتح القائمة"
+      menuIcon={<Menu size={20} strokeWidth={2} />}
       sidebarOpen={sidebarOpen}
       onSidebarOpenChange={setSidebarOpen}
-      brand={<span className="font-bold">نظام تشغيل المزارع</span>}
+      sidebar={
+        <ModuleSidebar
+          modules={modules}
+          activeNavId={activeNavId}
+          onNavigate={() => setSidebarOpen(false)}
+        />
+      }
+      skipLink={
+        <a href="#main" className="skip-to-content">
+          تخطّي إلى المحتوى
+        </a>
+      }
+      mobileNavigation={<MobileTabBar role={appRole} pathname={pathname} />}
+      brand={<span className="hidden font-bold sm:inline">نظام تشغيل المزارع</span>}
       topbar={
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
           <CommandPalette modules={modules} />
           <HelpDrawer pathname={pathname} fallbackHelpId={activeNavId} />
           <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
-          <Tag tone="accent">{roleLabel}</Tag>
-          {name && <span className="text-sm">{name}</span>}
+          <Tag tone="accent" className="hidden sm:inline-flex">
+            {roleLabel}
+          </Tag>
+          {name && <span className="hidden text-sm sm:inline">{name}</span>}
           <Button variant="ghost" size="sm" onClick={signOut}>
             خروج
           </Button>
         </div>
       }
     >
-      <ModuleSidebar
-        modules={modules}
-        activeNavId={activeNavId}
-        onNavigate={() => setSidebarOpen(false)}
-      />
       {/*
        * Focus target for the skip link. AppShell already renders the <main
        * role="main"> landmark; this is a non-landmark wrapper (no role) that
@@ -105,7 +107,5 @@ export function AppChrome({
         {children}
       </div>
     </AppShell>
-      <MobileTabBar role={role} pathname={pathname} />
-    </>
   );
 }

@@ -20,6 +20,8 @@ export interface AppModule {
   group?: "tasks" | "admin";
 }
 
+export type MobilePrimaryTab = Pick<AppNavItem, "id" | "href" | "icon"> & { label: string };
+
 const ALL_ROLES: Role[] = [
   "owner",
   "farm_manager",
@@ -434,6 +436,34 @@ export function visibleModulesForRole(role: Role): AppModule[] {
     if (!visibleToRole(module, role)) return [];
     const pages = module.pages.filter((page) => visibleToRole(page, role));
     return pages.length > 0 ? [{ ...module, pages }] : [];
+  });
+}
+
+const MOBILE_PRIMARY_LABELS = {
+  dashboard: "الرئيسية",
+  record: "سجّل",
+  transactions: "المعاملات",
+  "inventory-dashboard": "المخزون",
+  mobile: "الميدان",
+  "reports-hub": "التقارير",
+  "farm-dashboard": "المزرعة",
+} as const;
+
+/** The phone spine resolves against the same role-filtered pages as the desktop sidebar. */
+export function mobilePrimaryTabsForRole(role: Role): MobilePrimaryTab[] {
+  const visiblePages = visibleModulesForRole(role).flatMap((module) => module.pages);
+  const pageById = new Map(visiblePages.map((page) => [page.id, page]));
+  const thirdId =
+    role === "owner" || role === "accountant"
+      ? "transactions"
+      : role === "storekeeper"
+        ? "inventory-dashboard"
+        : "mobile";
+  const ids = ["dashboard", "record", thirdId, "reports-hub", "farm-dashboard"] as const;
+
+  return ids.flatMap((id) => {
+    const page = pageById.get(id);
+    return page ? [{ id: page.id, href: page.href, icon: page.icon, label: MOBILE_PRIMARY_LABELS[id] }] : [];
   });
 }
 
