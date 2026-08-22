@@ -1,8 +1,15 @@
 import { requireMembership } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
 import { MarketingRecordTable } from "@/components/marketing/MarketingRecordTable";
-import { canAccessMarketing, loadMarketingRecords, loadMarketingContacts, contactOptions } from "@/lib/marketing/queries";
-import { PRICE_OBSERVATION_FIELDS, COMPETITOR_FIELDS, TASK_STATUS_OPTIONS } from "@/lib/marketing/fields";
+import { canAccessMarketing, loadMarketingRecords, loadMarketingContactsByCategory, contactOptions } from "@/lib/marketing/queries";
+import { MarketingAreaNav } from "@/components/marketing/MarketingAreaNav";
+import {
+  PRICE_OBSERVATION_FIELDS,
+  COMPETITOR_FIELDS,
+  TASK_STATUS_OPTIONS,
+  FREIGHT_REFERENCE_FIELDS,
+  MARKET_REFERENCE_FIELDS,
+} from "@/lib/marketing/fields";
 
 /**
  * SPEC-0032 — Markets view (legacy: prices/markets/local/shipping/logistics/kuwait/china/competitors/
@@ -21,12 +28,12 @@ export default async function MarketingMarketsPage() {
   }
 
   const [records, contacts] = await Promise.all([
-    loadMarketingRecords(m.orgId, ["price_observation", "competitor", "task"]),
-    loadMarketingContacts(m.orgId),
+    loadMarketingRecords(m.orgId, ["price_observation", "competitor", "task", "freight_reference", "market_reference"]),
+    loadMarketingContactsByCategory(m.orgId, "kuwait_distributor"),
   ]);
   const prices = records.filter((r) => r.recordType === "price_observation");
   const competitors = records.filter((r) => r.recordType === "competitor");
-  const kuwaitContacts = contacts.filter((c) => c.category === "kuwait_distributor");
+  const kuwaitContacts = contacts;
   const kuwaitTasks = records.filter(
     (r) => r.recordType === "task" && kuwaitContacts.some((c) => c.id === r.contactId),
   );
@@ -37,7 +44,9 @@ export default async function MarketingMarketsPage() {
         <h1 className="text-xl font-bold">الأسواق</h1>
         <p style={{ color: "var(--ink-muted)" }}>رصد الأسعار، المنافسون، وحالة التواصل مع موزّعي الكويت.</p>
       </header>
+      <MarketingAreaNav />
       <MarketingRecordTable
+        sectionId="daily-prices"
         recordType="price_observation"
         orgId={m.orgId}
         title="رصد الأسعار"
@@ -49,6 +58,7 @@ export default async function MarketingMarketsPage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="competitors"
         recordType="competitor"
         orgId={m.orgId}
         title="المنافسون"
@@ -58,6 +68,7 @@ export default async function MarketingMarketsPage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="kuwait"
         recordType="task"
         orgId={m.orgId}
         title="متابعة موزّعي الكويت"
@@ -70,6 +81,28 @@ export default async function MarketingMarketsPage() {
         canWrite
         addLabel="+ إضافة متابعة موزّع"
         empty="لا توجد متابعات لموزّعي الكويت بعد"
+      />
+      <MarketingRecordTable
+        sectionId="shipping"
+        recordType="freight_reference"
+        orgId={m.orgId}
+        title="مراجع الشحن"
+        description="تكلفة مرجعية تحتاج تاريخ مراجعة قبل استخدامها في عرض جديد."
+        fields={FREIGHT_REFERENCE_FIELDS}
+        rows={records.filter((record) => record.recordType === "freight_reference")}
+        canWrite
+      />
+      <MarketingRecordTable
+        sectionId="export-markets"
+        recordType="market_reference"
+        orgId={m.orgId}
+        title="مراجع الأسواق والتصدير"
+        description="أنواع الأسعار وحقائق المزرعة المستخدمة في التخطيط التسويقي."
+        fields={MARKET_REFERENCE_FIELDS}
+        rows={records.filter(
+          (record) => record.recordType === "market_reference" && record.payload.kind === "price_type",
+        )}
+        canWrite
       />
     </div>
   );

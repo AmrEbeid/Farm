@@ -1,8 +1,13 @@
 import { requireMembership } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
 import { MarketingRecordTable } from "@/components/marketing/MarketingRecordTable";
+import { MarketingAreaNav } from "@/components/marketing/MarketingAreaNav";
 import { canAccessMarketing, loadMarketingRecords } from "@/lib/marketing/queries";
-import { QUALITY_BATCH_FIELDS, WEEKLY_AVAILABILITY_FIELDS } from "@/lib/marketing/fields";
+import {
+  QUALITY_BATCH_FIELDS,
+  WEEKLY_AVAILABILITY_FIELDS,
+  FARM_MARKETING_FACT_FIELDS,
+} from "@/lib/marketing/fields";
 
 /** SPEC-0032 — Product view: quality batches and weekly availability (legacy: farm/offshoots/quality/materials). */
 export default async function MarketingProductPage() {
@@ -15,9 +20,12 @@ export default async function MarketingProductPage() {
     );
   }
 
-  const records = await loadMarketingRecords(m.orgId, ["quality_batch", "weekly_availability"]);
+  const records = await loadMarketingRecords(m.orgId, ["quality_batch", "weekly_availability", "market_reference"]);
   const qualityBatches = records.filter((r) => r.recordType === "quality_batch");
   const availability = records.filter((r) => r.recordType === "weekly_availability");
+  const farmFacts = records.filter(
+    (record) => record.recordType === "market_reference" && record.payload.farmAreaFeddan != null,
+  );
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
@@ -25,7 +33,9 @@ export default async function MarketingProductPage() {
         <h1 className="text-xl font-bold">المنتج</h1>
         <p style={{ color: "var(--ink-muted)" }}>جودة الدفعات والكميات الأسبوعية المتاحة للتصدير.</p>
       </header>
+      <MarketingAreaNav />
       <MarketingRecordTable
+        sectionId="quality"
         recordType="quality_batch"
         orgId={m.orgId}
         title="دفعات الجودة"
@@ -41,6 +51,17 @@ export default async function MarketingProductPage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="farm-product"
+        recordType="market_reference"
+        orgId={m.orgId}
+        title="حقائق المزرعة التسويقية"
+        description="الحقائق المستخدمة في ملفات البيع والتصدير، منفصلة عن السجلات التشغيلية الرسمية."
+        fields={FARM_MARKETING_FACT_FIELDS}
+        rows={farmFacts}
+        canWrite
+      />
+      <MarketingRecordTable
+        sectionId="weekly-availability"
         recordType="weekly_availability"
         orgId={m.orgId}
         title="الكمية الأسبوعية المتاحة"

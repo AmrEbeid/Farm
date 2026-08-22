@@ -6,10 +6,7 @@ import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import type { Json } from "@/lib/database.types.ext";
 import type { MarketingRecordType } from "@/lib/database.types.ext";
-import {
-  validateStagedMarketingRecords,
-  type StagedMarketingRecord,
-} from "@/lib/marketing/source-staging";
+import { validateMarketingRecordInput } from "@/lib/marketing/validate-record";
 
 /**
  * Server actions for the Marketing module (SPEC-0032). Every mutation goes through a SECURITY
@@ -112,6 +109,13 @@ export interface MarketingRecordInput {
 }
 
 export async function saveMarketingRecord(input: MarketingRecordInput): Promise<Result<string>> {
+  const validation = validateMarketingRecordInput(input.recordType, {
+    title: input.title,
+    payload: input.payload,
+    amount: input.amount,
+  });
+  if (!validation.ok) return { ok: false, error: validation.error ?? "بيانات السجل غير صالحة." };
+
   await requireMembership();
   const sb = await createClient();
   const { data, error } = await sb.rpc("fn_save_marketing_record", {
@@ -137,71 +141,4 @@ export async function archiveMarketingRecord(id: string, archived = true): Promi
   if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
   revalidateMarketing();
   return { ok: true };
-}
-
-export async function importMarketingSource(
-  orgId: string,
-  records: StagedMarketingRecord[],
-): Promise<Result<{ imported: number }>> {
-  await requireMembership();
-  if (!validateStagedMarketingRecords(records)) {
-    return { ok: false, error: "بيانات الاستيراد غير صالحة أو أكبر من الحد المسموح." };
-  }
-
-  const sb = await createClient();
-  let imported = 0;
-  const contactIds = new Map<string, string>();
-  for (const contact of records.filter((record) => record.kind === "contact")) {
-    const { data, error } = await sb.rpc("fn_save_marketing_contact", {
-      p_id: null,
-      p_org: orgId,
-      p_name: contact.name,
-      p_phone: contact.phone,
-      p_email: contact.email,
-      p_org_name: contact.orgName,
-      p_category: contact.category,
-      p_source: contact.source,
-      p_notes: contact.notes,
-      p_selected: contact.selected,
-      p_source_key: contact.provenanceKey,
-    });
-    if (error) {
-      return {
-        ok: false,
-        error: `${toArabicError(error, { "42501": NO_PERM })} يمكن إعادة الاستيراد بأمان لاستكمال الباقي.`,
-      };
-    }
-    const id = (data as { id?: string } | null)?.id;
-    if (!id) return { ok: false, error: "لم يُرجع حفظ جهة الاتصال رقمًا صالحًا." };
-    contactIds.set(contact.provenanceKey, id);
-    imported += 1;
-  }
-
-  for (const record of records.filter((item) => item.kind === "record")) {
-    const contactId = record.contactSourceKey ? contactIds.get(record.contactSourceKey) : null;
-    if (record.contactSourceKey && !contactId) {
-      return { ok: false, error: "تعذّر ربط سجل المتابعة بجهة الاتصال المستوردة." };
-    }
-    const { error } = await sb.rpc("fn_save_marketing_record", {
-      p_id: null,
-      p_org: orgId,
-      p_record_type: record.recordType,
-      p_title: record.title,
-      p_payload: record.payload,
-      p_contact_id: contactId ?? null,
-      p_amount: record.amount,
-      p_status: record.status,
-      p_source_key: record.provenanceKey,
-    });
-    if (error) {
-      return {
-        ok: false,
-        error: `${toArabicError(error, { "42501": NO_PERM })} يمكن إعادة الاستيراد بأمان لاستكمال الباقي.`,
-      };
-    }
-    imported += 1;
-  }
-
-  revalidateMarketing();
-  return { ok: true, data: { imported } };
 }

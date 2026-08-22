@@ -121,7 +121,11 @@ select is(
         'fn_expense_register_summary', -- read-only exact expense-register summary (migration 20260730140000)
         'fn_save_marketing_contact', 'fn_archive_marketing_contact', -- gated marketing-contact RPCs (SPEC-0032, migration 20260820090000)
         'fn_log_marketing_contact_activity', -- gated append-only marketing-contact activity RPC (SPEC-0032)
-        'fn_save_marketing_record', 'fn_archive_marketing_record' -- gated marketing-record RPCs (SPEC-0032, migration 20260820090000)
+        'fn_save_marketing_record', 'fn_archive_marketing_record', -- gated marketing-record RPCs (SPEC-0032, migration 20260820090000)
+        'fn_save_marketing_contact_v2', -- gated marketing-contact RPC + metadata (SPEC-0032 full source, migration 20260822110000)
+        'fn_import_marketing_source', -- gated atomic source-pack import RPC (SPEC-0032 full source, migration 20260822110000)
+        'fn_marketing_contacts_page', -- read-only exact paged/searched contact list (SPEC-0032 full source, migration 20260822110000)
+        'fn_marketing_dashboard_snapshot' -- read-only exact marketing overview aggregates (SPEC-0032 full source, migration 20260822110000)
         -- NB: fn_post_movement and fn_bin_rebuild are deliberately NOT here — AUTHZ-3 (migration
         -- 0036) and #430 (migration 20260622000098) make them INTERNAL primitives. Pinned negatively below.
       )

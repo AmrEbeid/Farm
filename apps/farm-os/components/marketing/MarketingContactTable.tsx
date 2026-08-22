@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Input, Select, Textarea, Alert, Drawer, useToast } from "@/components/ui";
-import { FilterableTable } from "@/components/FilterableTable";
-import { type SimpleColumn } from "@/components/SimpleTable";
+import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { fmtDate } from "@/lib/dates";
+import { num } from "@/lib/money";
 import {
   saveMarketingContact,
   archiveMarketingContact,
@@ -58,17 +58,29 @@ export function MarketingContactTable({
   rows,
   activity,
   canWrite,
+  query,
+  category,
+  includeArchived,
+  page,
+  pages,
+  total,
 }: {
   orgId: string;
   rows: MarketingContactRow[];
   activity: MarketingContactActivityRow[];
   canWrite: boolean;
+  query: string;
+  category: string | null;
+  includeArchived: boolean;
+  page: number;
+  pages: number;
+  total: number;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  const [search, setSearch] = useState(query);
   const [form, setForm] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
@@ -80,7 +92,26 @@ export function MarketingContactTable({
   });
   const [activityPending, setActivityPending] = useState(false);
 
-  const visibleRows = useMemo(() => rows.filter((r) => showArchived || !r.archived), [rows, showArchived]);
+  const visibleRows = rows;
+
+  function navigate(next: {
+    query?: string;
+    category?: string | null;
+    includeArchived?: boolean;
+    page?: number;
+  }) {
+    const params = new URLSearchParams();
+    const nextQuery = next.query ?? query;
+    const nextCategory = next.category === undefined ? category : next.category;
+    const nextArchived = next.includeArchived ?? includeArchived;
+    const nextPage = next.page ?? page;
+    if (nextQuery) params.set("q", nextQuery);
+    if (nextCategory) params.set("category", nextCategory);
+    if (nextArchived) params.set("archived", "1");
+    if (nextPage > 1) params.set("page", String(nextPage));
+    const suffix = params.toString();
+    router.push(`/marketing/campaigns${suffix ? `?${suffix}` : ""}#contacts`);
+  }
 
   function startCreate() {
     setEditId(null);
@@ -174,6 +205,8 @@ export function MarketingContactTable({
     { id: "category", header: "الفئة" },
     { id: "org_name", header: "الجهة" },
     { id: "phone", header: "الهاتف", kind: "code" },
+    { id: "email", header: "البريد" },
+    { id: "source", header: "المصدر" },
     {
       id: "actions",
       header: "",
@@ -207,6 +240,8 @@ export function MarketingContactTable({
     category: CATEGORY_AR[row.category] ?? row.category,
     org_name: row.orgName ?? "—",
     phone: row.phone ?? "—",
+    email: row.email ?? "—",
+    source: row.source ?? "—",
   }));
 
   const activeContact = visibleRows.find((r) => r.id === activityContactId) ?? null;
@@ -224,8 +259,8 @@ export function MarketingContactTable({
           </p>
         </div>
         <div className="no-print flex flex-wrap items-center gap-2">
-          <Button variant="ghost" onClick={() => setShowArchived((v) => !v)}>
-            {showArchived ? "إخفاء المؤرشف" : "إظهار المؤرشف"}
+          <Button variant="ghost" onClick={() => navigate({ includeArchived: !includeArchived, page: 1 })}>
+            {includeArchived ? "النشط فقط" : "يشمل المؤرشف"}
           </Button>
           {canWrite && !open && (
             <Button variant="ghost" onClick={startCreate}>
@@ -234,6 +269,34 @@ export function MarketingContactTable({
           )}
         </div>
       </header>
+
+      <form
+        className="no-print grid gap-2 sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,14rem)_auto]"
+        onSubmit={(event) => {
+          event.preventDefault();
+          navigate({ query: search.trim(), page: 1 });
+        }}
+      >
+        <Input
+          id="marketing-contact-search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="الاسم، الجهة، البريد، أو الهاتف"
+          aria-label="بحث جهات الاتصال"
+        />
+        <Select
+          id="marketing-contact-category"
+          value={category ?? ""}
+          onChange={(event) => navigate({ category: event.target.value || null, page: 1 })}
+          placeholder="كل الفئات"
+          options={Object.entries(CATEGORY_AR).map(([value, label]) => ({ value, label }))}
+        />
+        <Button type="submit">بحث</Button>
+      </form>
+
+      <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
+        {num(total)} جهة اتصال
+      </div>
 
       {canWrite && open && (
         <form onSubmit={submit} className="no-print flex flex-col gap-3 rounded-lg border p-3" style={{ borderColor: "var(--line)" }}>
@@ -295,14 +358,24 @@ export function MarketingContactTable({
         </form>
       )}
 
-      <FilterableTable
+      <SimpleTable
         columns={columns}
         rows={tableRows}
-        searchColumns={["name", "category", "org_name", "phone"]}
-        placeholder="ابحث عن جهة اتصال…"
         ariaLabel="جهات الاتصال التسويقية"
         empty="لا توجد جهات اتصال بعد"
       />
+
+      {pages > 1 && (
+        <nav aria-label="صفحات جهات الاتصال" className="no-print flex items-center justify-between gap-3">
+          <Button variant="ghost" disabled={page <= 1} onClick={() => navigate({ page: page - 1 })}>
+            السابق
+          </Button>
+          <span className="text-sm">{num(page)} / {num(pages)}</span>
+          <Button variant="ghost" disabled={page >= pages} onClick={() => navigate({ page: page + 1 })}>
+            التالي
+          </Button>
+        </nav>
+      )}
 
       <Drawer
         open={activityContactId != null}
