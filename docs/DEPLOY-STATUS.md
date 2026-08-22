@@ -2,6 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-22 (latest) — dependable daily accounting software MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> All 21 manifest-bound accounting migrations were applied migrate-first to Farm production as hosted versions
+> `20260822140718` through `20260822140752`. Postflight verified the 29 expected function names, 27 locked
+> definer overloads with empty search paths, no public/anonymous execution, and exactly unchanged protected
+> business counts. PR #1008 merged as `046a14e902ab1c0e4f3b3dbfa636937edff88c55`; exact-merge CI run
+> `32577863311`, db-tests `32577863288` and release `32577863278` succeeded. GitHub deployment `6037606043`
+> records a successful Production deployment for that exact SHA at
+> `farm-lc8g2bfp7-amrabdelglill-7962s-projects.vercel.app`. Live `/` and `/login` return 200; signed-out
+> `/accounting`, `/finance/dashboard`, `/transactions`, `/expenses`, `/custody` and `/finance/reconciliation`
+> redirect to login. No business row changed. Authenticated 44-workflow role acceptance, 698 human reconciliation
+> decisions, workbook dual run, exceptions and dated Owner/accountant sign-off remain open; do not claim 100%
+> daily-use acceptance until those operator gates are evidenced.
+
 > **2026-08-22 (latest) — Marketing full-source workspace MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted migration `20260822133257 marketing_full_source_workspace` is applied to Farm production and adds
 > the Owner-only, exact-digest-pinned import path for the complete supplied Marketing HTML/JSON pair: 25 areas,

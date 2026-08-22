@@ -1,21 +1,28 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (accounting release reconciled with current main; not migrated or merged). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (accounting release migrated, merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-22 — CURRENT ACCOUNTING RELEASE: INTEGRATED / EXACT-HEAD CI GREEN / MIGRATION PAUSED FOR REREVIEW.**
-PR #1008 is reconciled with exact base `253f479fde25e39494550be7445560489458af60`. Its schema-v2 manifest
-binds candidate `accounting-release-20260822-current-main`: 162 candidate files, 21 ordered migrations
-`20260822140000` through `20260822142000`, 28 database tests, two support files, four release controls, and
-217 total bound files. The migrations sort after the deployed Marketing workspace and no stale 8 August migration
-reference remains. Fresh evidence: committed preflight PASS; pgTAP 4,192/4,192; Farm Vitest 1,777 plus 17
-controlled skips; UI Vitest 288/288; Farm/UI TypeScript, full Farm ESLint, 69-page Farm build and UI build green;
-Recharts/client-boundary/service-role guards green; `npm audit` 0; exact-head GitHub CI/db-tests/Vercel green.
-Independent hostile review found only stale release-control wording in this file and the execution runbook; those
-controls are being corrected and rebound before rereview. **No accounting migration has been applied, no business
-row changed, and PR #1008 has not been merged.** The remote ledger currently ends at hosted Marketing migration
-`20260822133257 marketing_full_source_workspace`.
+**2026-08-22 — CURRENT ACCOUNTING RELEASE: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+The schema-v2 manifest bound 217 files: 162 candidate paths, 21 ordered migrations, 28 database tests, two
+support files and four release controls. Independent exact-head rereview returned APPROVE. All 21 migrations
+were applied migrate-first to Farm production in manifest order and are recorded as hosted versions
+`20260822140718` through `20260822140752`. Postflight found all 29 expected accounting function names, 27
+locked `SECURITY DEFINER` overloads with empty search paths, and zero `PUBLIC` or `anon` execution. Protected
+counts remained exactly unchanged: 1 organization, 4 memberships, 10,201 expenses, 10,365 journal entries,
+20,730 journal lines, 162 sales, 0 collections, 1 custody movement, 3 payment requests, 1 reconciliation batch
+and 698 reconciliation rows. No business row changed.
+
+PR #1008 merged as `046a14e902ab1c0e4f3b3dbfa636937edff88c55`. Exact-merge CI, db-tests and release
+workflows succeeded; GitHub deployment `6037606043` records a successful Production deployment for that exact
+SHA. Live `/` and `/login` return 200; `/accounting`, `/finance/dashboard`, `/transactions`, `/expenses`,
+`/custody` and `/finance/reconciliation` redirect signed-out users to `/login`. Release evidence remains:
+committed preflight PASS; pgTAP 4,192/4,192; Farm Vitest 1,777 plus 17 controlled skips; UI Vitest 288/288;
+Farm/UI TypeScript, full Farm ESLint, 69-page Farm build and UI build green; repository guards green; `npm audit`
+0. **Accounting is not accepted as 100% daily-use complete:** the 44-test authenticated owner/accountant/denied
+role suite still needs its credentialed run, and the 698 real reconciliation decisions, workbook dual run,
+exception resolution and dated Owner/accountant sign-off remain open.
 
 **2026-08-09 (historical) — mobile accounting role acceptance: LOCAL / COMMITTED / VALIDATED.** A separate follow-up
 worktree at exact PR #1008 head adds a pinned Pixel 7 Chromium project beside Desktop Chrome and routes every
