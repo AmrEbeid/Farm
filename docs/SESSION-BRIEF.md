@@ -1,5 +1,25 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3b Accountant home live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3c Manager home live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R3c exact Farm Manager home — MIGRATED / MERGED / DEPLOYED
+
+Farm Manager `/dashboard/manager` now exits before legacy dashboard reads and renders one compact Arabic
+operating home from `fn_manager_home_snapshot`. The snapshot is active-org/manager-only, current-Cairo-date
+only and independently bounds every driver list. It distinguishes today's inclusive multi-day work, overdue,
+unscheduled and unassigned operations; keeps an incomplete dose sign-off pair advisory; includes only saved
+plan-check blocks; sums every stock bin; and treats missing stock state as unknown. It exposes no finance data.
+
+Migration `20260822224921 exact_manager_home_snapshot` is live on Farm only. Postflight proved
+`SECURITY INVOKER`, `STABLE`, empty search path, authenticated-only execute and no Manager-function advisor
+finding. PR #1035 merged as `c81245467be4ab9a0dfb6aea570ff7516fe7e423`; production deployment
+`dpl_7Y2jVft9WpWqV1ARsfYyE8AEKSCd` is served by `ebeidfarm.business`; signed-out Manager returns 307 to
+`/login`. Evidence: independent final APPROVE; pgTAP 4,381/4,381; Vitest 1,940 plus 17 controlled skips;
+TypeScript, ESLint, 70-page production build, Storybook, repository guards, gitleaks and PR checks.
+
+**Exact resume point:** implement the dedicated Agronomist home without changing Manager or accounting truth,
+then Supervisor and Storekeeper. After all six role homes, reset prioritized lists and every 360 surface.
+Authenticated Manager desktop/phone acceptance remains unclaimed because production currently has no
+`farm_manager` membership. Keep automated package publication PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R3b exact Accountant home — MIGRATED / MERGED / DEPLOYED
 
