@@ -881,6 +881,8 @@ function ThemeProvider({
   return /* @__PURE__ */ jsx(ThemeContext.Provider, { value, children: /* @__PURE__ */ jsx("div", { className: `fos ${className}`.trim(), "data-theme": scheme, "data-density": density, "data-radius": radius, style, children }) });
 }
 var FOCUSABLE = 'a[href],area[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+var overlayStack = [];
+var overflowBeforeFirstOverlay = null;
 function isVisible(el) {
   if (el === document.activeElement) return true;
   if (el.hidden) return false;
@@ -894,17 +896,23 @@ function focusable(root) {
 function useOverlay({ open, onClose, closeOnEsc = true }) {
   const ref = React22.useRef(null);
   const restoreRef = React22.useRef(null);
+  const tokenRef = React22.useRef(/* @__PURE__ */ Symbol("overlay"));
   const onCloseRef = React22.useRef(onClose);
   onCloseRef.current = onClose;
   React22.useEffect(() => {
     if (!open) return;
+    const token = tokenRef.current;
     restoreRef.current = document.activeElement;
+    if (overlayStack.length === 0) {
+      overflowBeforeFirstOverlay = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+    overlayStack.push(token);
     const panel = ref.current;
     const initial = panel ? focusable(panel)[0] ?? panel : null;
     initial?.focus();
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     function onKeyDown(e) {
+      if (overlayStack[overlayStack.length - 1] !== token) return;
       if (e.key === "Escape" && closeOnEsc) {
         e.stopPropagation();
         onCloseRef.current();
@@ -931,8 +939,16 @@ function useOverlay({ open, onClose, closeOnEsc = true }) {
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
-      document.body.style.overflow = prevOverflow;
-      restoreRef.current?.focus();
+      const stackIndex = overlayStack.lastIndexOf(token);
+      const wasTopmost = stackIndex === overlayStack.length - 1;
+      if (stackIndex >= 0) overlayStack.splice(stackIndex, 1);
+      if (overlayStack.length === 0) {
+        document.body.style.overflow = overflowBeforeFirstOverlay ?? "";
+        overflowBeforeFirstOverlay = null;
+      } else {
+        document.body.style.overflow = "hidden";
+      }
+      if (wasTopmost && restoreRef.current?.isConnected) restoreRef.current.focus();
     };
   }, [open, closeOnEsc]);
   return { ref };
@@ -1289,17 +1305,31 @@ var RoleSwitcher = React22.forwardRef(function RoleSwitcher2({ options, value, o
     )
   ] });
 });
+var MOBILE_DRAWER_QUERY = "(max-width: 48rem)";
+function useMobileDrawerViewport() {
+  const [matches, setMatches] = React22.useState(false);
+  React22.useEffect(() => {
+    const media = window.matchMedia(MOBILE_DRAWER_QUERY);
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return matches;
+}
 function AppShell({
-  navItems,
+  navItems = [],
   activeNavId,
   role,
   navAriaLabel,
   onNavSelect,
+  sidebar,
   brand,
   topbar,
   sidebarOpen,
   onSidebarOpenChange,
   menuButtonLabel,
+  menuIcon,
   children,
   className = "",
   ...rest
@@ -1307,6 +1337,12 @@ function AppShell({
   const isControlled = sidebarOpen !== void 0;
   const [internalOpen, setInternalOpen] = React22.useState(false);
   const open = isControlled ? sidebarOpen : internalOpen;
+  const sidebarId = React22.useId();
+  const mobileDrawerViewport = useMobileDrawerViewport();
+  const hasGeneratedSidebarContent = navItems.some((item) => !role || !item.roles || item.roles.includes(role));
+  const hasSidebarContent = sidebar != null || hasGeneratedSidebarContent;
+  const drawerActive = open && mobileDrawerViewport && hasSidebarContent;
+  const inertBackgroundProps = drawerActive ? { inert: true } : {};
   const setOpen = React22.useCallback(
     (next) => {
       if (!isControlled) setInternalOpen(next);
@@ -1314,21 +1350,21 @@ function AppShell({
     },
     [isControlled, onSidebarOpenChange]
   );
-  React22.useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, setOpen]);
+  const { ref: sidebarPanelRef } = useOverlay({ open: drawerActive, onClose: () => setOpen(false) });
+  const onSidebarClick = React22.useCallback(
+    (e) => {
+      if (!open) return;
+      if (e.target.closest?.("a[href]")) setOpen(false);
+    },
+    [open, setOpen]
+  );
   return /* @__PURE__ */ jsxs(
     "div",
     {
       className: `fos-appshell${open ? " fos-appshell--drawer-open" : ""} ${className}`.trim(),
       ...rest,
       children: [
-        /* @__PURE__ */ jsxs("header", { className: "fos-appshell__topbar", role: "banner", children: [
+        /* @__PURE__ */ jsxs("header", { className: "fos-appshell__topbar", role: "banner", ...inertBackgroundProps, children: [
           /* @__PURE__ */ jsx(
             "button",
             {
@@ -1336,26 +1372,47 @@ function AppShell({
               className: "fos-appshell__menu-btn",
               "aria-label": menuButtonLabel,
               "aria-expanded": open,
+              "aria-controls": sidebarId,
               onClick: () => setOpen(!open),
-              children: /* @__PURE__ */ jsx("span", { "aria-hidden": "true", children: "\u2630" })
+              children: /* @__PURE__ */ jsx("span", { className: "fos-appshell__menu-icon", "aria-hidden": "true", children: menuIcon ?? "\u2630" })
             }
           ),
           brand && /* @__PURE__ */ jsx("div", { className: "fos-appshell__brand", children: brand }),
           /* @__PURE__ */ jsx("div", { className: "fos-appshell__topbar-content", children: topbar })
         ] }),
-        /* @__PURE__ */ jsx("aside", { className: "fos-appshell__sidebar", "data-open": open || void 0, children: /* @__PURE__ */ jsx(
-          SidebarNav,
+        /* @__PURE__ */ jsx(
+          "aside",
           {
-            items: navItems,
-            activeId: activeNavId,
-            role,
-            ariaLabel: navAriaLabel,
-            onSelect: (id) => {
-              onNavSelect?.(id);
-              setOpen(false);
-            }
+            id: sidebarId,
+            className: "fos-appshell__sidebar",
+            "data-open": open || void 0,
+            onClick: sidebar ? onSidebarClick : void 0,
+            children: /* @__PURE__ */ jsx(
+              "div",
+              {
+                ref: sidebarPanelRef,
+                className: "fos-appshell__sidebar-panel",
+                tabIndex: -1,
+                role: drawerActive ? "dialog" : void 0,
+                "aria-modal": drawerActive || void 0,
+                "aria-label": drawerActive ? navAriaLabel : void 0,
+                children: sidebar ?? /* @__PURE__ */ jsx(
+                  SidebarNav,
+                  {
+                    items: navItems,
+                    activeId: activeNavId,
+                    role,
+                    ariaLabel: navAriaLabel,
+                    onSelect: (id) => {
+                      onNavSelect?.(id);
+                      setOpen(false);
+                    }
+                  }
+                )
+              }
+            )
           }
-        ) }),
+        ),
         /* @__PURE__ */ jsx(
           "div",
           {
@@ -1365,7 +1422,7 @@ function AppShell({
             "aria-hidden": "true"
           }
         ),
-        /* @__PURE__ */ jsx("main", { className: "fos-appshell__main", role: "main", children })
+        /* @__PURE__ */ jsx("main", { className: "fos-appshell__main", role: "main", ...inertBackgroundProps, children })
       ]
     }
   );
