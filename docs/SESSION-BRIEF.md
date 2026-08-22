@@ -1,5 +1,28 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R1a — MERGED / DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R1b — MERGED / DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Product UI reset R1b — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+Farm now uses the shared shell's real sidebar instead of rendering a second fixed navigation inside `<main>`.
+Desktop and phone destinations resolve from one role-filtered registry, preserving all current routes and the
+storekeeper's inventory home. The shell keeps long desktop navigation/content independently scrollable, owns
+modal inert state for the skip link and bottom tabs, wraps without phone overflow and keeps a 44px menu target.
+The shared compact `PageHeader` now serves every `Entity360Header` (17 call sites) and `MasterTable` (five call
+sites); phone titles render at 18px with a two-line visual cap and full source text retained.
+
+PR #1027 merged as `542ebe0a8942d443249b3f0b15fee1fd9813e641`; Production deployment
+`6040532441` succeeded. Public aliases serve login and redirect signed-out dashboard/Marketing routes.
+Validation passed: 31 focused, 305 UI and 1,916 Farm tests plus 17 controlled skips; TypeScript; touched ESLint;
+token purity; UI/Farm/Storybook builds; pgTAP; gitleaks; service-role/Recharts/client-boundary guards; 390px RTL
+drawer, long-page desktop and long-title browser probes; independent exact-diff APPROVE. No migration, schema,
+auth, query, permission or business-data action occurred. Authenticated role smoke remains unclaimed.
+
+**Exact resume point:** R2 from current main. Reduce each role's visible primary spine to at most five direct
+destinations while preserving every deep route in collapsed workspaces and command search. Replace remaining
+emoji navigation controls with Lucide icons, write the six explicit role journey scripts required before R2,
+and test owner/accountant/manager/agronomist/supervisor/storekeeper navigation on desktop and phone. Keep PR
+#1025 as a separate package-publication gate. After R2, start R3 owner/accountant role homes and their bounded
+aggregate performance work. The full UI reset remains incomplete.
 
 ## 2026-08-22 — Product UI reset R1a shell — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
 
