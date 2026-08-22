@@ -6,7 +6,9 @@ import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
+import { PageHeader } from "@/components/PageHeader";
 import { PrintButton } from "@/components/print-button";
 import { BudgetDoughnut, VarianceChart } from "@/components/charts";
 import { fmtDate } from "@/lib/dates";
@@ -386,41 +388,95 @@ export default async function FinanceDashboardPage({
   }));
   const journalCount = finance?.journalCount ?? 0;
   const journalRowsTruncated = journalCount > journalRows.length;
+  const isAccountantHome = m.role === "accountant" && filter === "all";
+  const accountantAttention: AttentionItem[] = [];
+  if (unclassifiedCount > 0) {
+    accountantAttention.push({
+      href: "/expenses?filter=unclassified",
+      tone: "act",
+      text: `${num(unclassifiedCount)} مصروف بلا حساب يحتاج تصنيفًا`,
+    });
+  }
+  if (readyPaymentCount > 0) {
+    accountantAttention.push({
+      href: "/finance/dashboard?filter=payments",
+      tone: "act",
+      text: `${num(readyPaymentCount)} طلب صرف جاهز للخطوة التالية`,
+    });
+  }
+  if (openPaymentRequestCount > 0) {
+    accountantAttention.push({
+      href: "/finance/dashboard?filter=payments",
+      tone: "watch",
+      text: `${num(openPaymentRequestCount)} طلب صرف مفتوح يحتاج متابعة`,
+    });
+  }
+  if (unpaidCount > 0) {
+    accountantAttention.push({
+      href: "/finance/dashboard?filter=payments",
+      tone: "watch",
+      text: `${num(unpaidCount)} مصروف آجل غير مدفوع`,
+    });
+  }
+  if (nearDuePrs > 0) {
+    accountantAttention.push({
+      href: "/finance/dashboard?filter=prs",
+      tone: "watch",
+      text: `${num(nearDuePrs)} طلب شراء قريب الاستحقاق`,
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">لوحة المالية</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            متابعة الموازنة والمصروفات وطلبات الشراء من السجلات الفعلية.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <PrintButton label="طباعة لوحة المالية" />
-          <HeaderLink href="/budgets">الموازنات</HeaderLink>
-          <HeaderLink href="/expenses">المصروفات</HeaderLink>
-          <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
-          {canSeeAccounting && (
-            <HeaderLink href="/finance/accounts">شجرة الحسابات</HeaderLink>
-          )}
-          {canSeeAccounting && (
-            <HeaderLink href="/finance/reports">تقارير التكلفة</HeaderLink>
-          )}
-          {canSeeAccounting && (
-            <HeaderLink href="/finance/revenue-reports">
-              تقارير الإيرادات
-            </HeaderLink>
-          )}
-          {canSeeAccounting && (
-            <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>
-          )}
-          {canSeeAccounting && <HeaderLink href="/custody">العهدة</HeaderLink>}
-          {canSeeAccounting && (
-            <HeaderLink href="/accounting">المحاسبة</HeaderLink>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        title={isAccountantHome ? "حسابات اليوم" : "لوحة المالية"}
+        subtitle={
+          isAccountantHome
+            ? "ابدأ بالمعلّقات، ثم راجع حالة النقد والمصروفات والقيود من السجلات الفعلية."
+            : "متابعة الموازنة والمصروفات وطلبات الشراء من السجلات الفعلية."
+        }
+        actions={
+          <div className="no-print flex flex-wrap gap-2">
+            <PrintButton label="طباعة لوحة المالية" />
+            <HeaderLink href="/expenses">المصروفات</HeaderLink>
+            {canSeeAccounting && <HeaderLink href="/custody">العهدة</HeaderLink>}
+            {canSeeAccounting && <HeaderLink href="/accounting">المحاسبة</HeaderLink>}
+          </div>
+        }
+      />
+
+      {isAccountantHome && <AttentionInbox items={accountantAttention} />}
+
+      {isAccountantHome && (
+        <section aria-labelledby="accountant-state" className="flex flex-col gap-3">
+          <h2 id="accountant-state" className="text-base font-bold">الحالة الآن</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <DashboardKpiLink href="/finance/dashboard?filter=payments" active={false}>
+              <KpiCard
+                label={unpaidUnknown > 0 ? "آجل معروف غير مدفوع" : "آجل غير مدفوع"}
+                value={egpExact(unpaidTotal)}
+                delta={`${num(unpaidCount)} سجل${unpaidUnknown > 0 ? ` + ${num(unpaidUnknown)} غير معروف` : ""}`}
+                deltaDirection={unpaidCount > 0 ? "down" : "none"}
+              />
+            </DashboardKpiLink>
+            <DashboardKpiLink href="/finance/dashboard?filter=custody" active={false}>
+              <KpiCard
+                label="عهدتي"
+                value={egpExact(sumDecimals(myCustody.map((account) => account.balance)).total)}
+              />
+            </DashboardKpiLink>
+            <DashboardKpiLink href="/finance/dashboard?filter=custody" active={false}>
+              <KpiCard
+                label="إجمالي العهد"
+                value={egpExact(sumDecimals(custodyWithBalance.map((account) => account.balance)).total)}
+              />
+            </DashboardKpiLink>
+            <DashboardKpiLink href="/finance/dashboard?filter=accounting" active={false}>
+              <KpiCard label="قيود الشهر" value={num(journalCount)} />
+            </DashboardKpiLink>
+          </div>
+        </section>
+      )}
 
       {budgetsVerified && (
         <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">
@@ -437,7 +493,7 @@ export default async function FinanceDashboardPage({
         </Alert>
       )}
 
-      {(budgetsVerified || canSeeAccounting) && (
+      {!isAccountantHome && (budgetsVerified || canSeeAccounting) && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {budgetsVerified && (
             <>
@@ -484,7 +540,7 @@ export default async function FinanceDashboardPage({
         </section>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {!isAccountantHome && <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink
           href="/finance/dashboard?filter=operating"
           active={filter === "operating"}
@@ -504,9 +560,9 @@ export default async function FinanceDashboardPage({
           <KpiCard label="طلبات مرسلة ضمن المعروض" value={num(submittedPrs)} />
         </DashboardKpiLink>
         <KpiCard label="قريبة الاستحقاق ضمن المعروض" value={num(nearDuePrs)} />
-      </section>
+      </section>}
 
-      {canSeeAccounting && (
+      {canSeeAccounting && !isAccountantHome && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
           {m.role === "accountant" && (
             <DashboardKpiLink

@@ -336,6 +336,18 @@ Owner and accountant first, then manager/agronomist/supervisor/storekeeper. Appl
 driver/detail story. Replace unbounded dashboard reads in the same release that owns each page. Use only
 existing, verified data.
 
+R3 owner/accountant slice contract:
+
+- `/dashboard` routes the owner to `/dashboard/owner` and the accountant to `/finance/dashboard`;
+- `/dashboard/owner` is owner-only and obtains all state through one exact, bounded, active-org RPC;
+- the owner home renders one attention queue, at most four state measures, an honest unavailable prior-period
+  comparison, bounded driver rows and direct detail links; domain figures fail closed unless the source authority
+  is verified, all three owner approval queues are covered, and drawings never enter operating expense;
+- the accountant finance home starts with actionable finance queues and four daily measures from its existing
+  atomic snapshot; the deeper unposted/unpriced/reconciliation/receivables/period comparison contract remains a
+  later R3 snapshot extension and is not claimed complete by this slice;
+- manager, agronomist, supervisor and storekeeper role homes remain later R3 releases.
+
 ### R4 — Lists, workspaces and 360 pages
 
 Start with the five dynamic pages missing the shared 360 header and the six raw-table pages, then migrate

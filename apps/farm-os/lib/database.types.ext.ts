@@ -1266,6 +1266,13 @@ type OwnerPnlFunctions = {
   };
 };
 
+type OwnerHomeFunctions = {
+  fn_owner_home_snapshot: {
+    Args: { p_org: string; p_as_of: string; p_detail_limit?: number };
+    Returns: Json;
+  };
+};
+
 type CostCenterSummaryFunctions = {
   fn_cost_center_direct_summary: {
     Args: { p_org: string; p_cost_center: string };
@@ -2568,6 +2575,7 @@ export type Database = Omit<Generated, "public"> & {
       CustodyFunctions &
       OperationTemplateFunctions &
       OwnerPnlFunctions &
+      OwnerHomeFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &
