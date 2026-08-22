@@ -1,4 +1,27 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Marketing full source — MIGRATED, MERGED, DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Accounting release — MIGRATED, MERGED, DEPLOYED)
+
+> **2026-08-22 — DEPENDABLE DAILY ACCOUNTING SOFTWARE RELEASE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> The current-main release contains 21 ordered accounting migrations covering exact unpaid obligations,
+> reconciliation concurrency and queueing, month close, cost-center history and revenue, custody reversal and
+> daily summaries, payment-request totals and detail, receivables, revenue transport, ledger, transactions,
+> season, expense and finance-dashboard snapshots. The strict manifest bound 217 files and passed exact-head
+> hostile rereview with APPROVE.
+>
+> All 21 migrations were applied migrate-first to Farm production as hosted versions `20260822140718` through
+> `20260822140752`. Postflight verified all 29 expected function names, 27 locked definer overloads with empty
+> search paths, and zero public/anonymous execution. Protected production counts were unchanged: 1 organization,
+> 4 memberships, 10,201 expenses, 10,365 journal entries, 20,730 journal lines, 162 sales, 0 collections,
+> 1 custody movement, 3 payment requests, 1 reconciliation batch and 698 reconciliation rows. No business row
+> changed. PR #1008 merged as `046a14e902ab1c0e4f3b3dbfa636937edff88c55`; exact-merge CI, db-tests and
+> release succeeded, and GitHub deployment `6037606043` proves successful Production deployment for that SHA.
+> Public/login routes return 200 and six signed-out accounting routes redirect to login.
+>
+> Validation: committed preflight PASS; pgTAP 4,192/4,192; Farm Vitest 1,777 plus 17 controlled skips; UI
+> Vitest 288/288; app/UI TypeScript, full app ESLint, 69-page app build and UI build green; Recharts,
+> client-boundary and service-role guards green; `npm audit` 0. **Remaining daily-use acceptance:** run the exact
+> 44 authenticated desktop/mobile owner/accountant/denied-role workflows, complete the 698 human reconciliation
+> decisions, perform the real workbook dual run, resolve exceptions, and record dated Owner/accountant sign-off.
+> The software release is live; dependable daily-use acceptance is not yet 100%.
 
 > **2026-08-22 — MARKETING FULL-SOURCE WORKSPACE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > The Marketing module now accounts for every one of the 25 areas in the supplied 2026 HTML/JSON workspace

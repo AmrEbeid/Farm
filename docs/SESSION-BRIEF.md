@@ -1,5 +1,32 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Marketing full source — MIGRATED, MERGED, DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Accounting release — MIGRATED, MERGED, DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Dependable daily accounting software — MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+The current-main accounting release is now live. Its schema-v2 manifest bound 217 files: 162 candidate paths,
+21 ordered migrations, 28 database tests, two support files and four release controls. Fresh integrated evidence
+passed: strict committed preflight; pgTAP 4,192/4,192; Farm Vitest 1,777 plus 17 controlled skips; UI Vitest
+288/288; Farm/UI TypeScript; full Farm ESLint; 69-page Farm build; UI build; Recharts, client-boundary and
+service-role guards; `npm audit` 0. Independent exact-head hostile rereview returned APPROVE.
+
+All 21 migrations were applied migrate-first to Farm production in manifest order. Supabase recorded them as
+hosted versions `20260822140718` through `20260822140752`. Postflight verified all 29 expected function names,
+27 `SECURITY DEFINER` overloads with empty search paths, zero `PUBLIC`/`anon` execution, and exactly unchanged
+protected counts: 1 organization, 4 memberships, 10,201 expenses, 10,365 journal entries, 20,730 journal lines,
+162 sales, 0 collections, 1 custody movement, 3 payment requests, 1 reconciliation batch and 698 reconciliation
+rows. No business row changed.
+
+PR #1008 merged as `046a14e902ab1c0e4f3b3dbfa636937edff88c55`. Exact-merge CI run `32577863311`,
+db-tests `32577863288` and release `32577863278` succeeded. GitHub deployment `6037606043` records a successful
+Production deployment for that exact SHA at `farm-lc8g2bfp7-amrabdelglill-7962s-projects.vercel.app`. Live `/`
+and `/login` returned 200. Signed-out `/accounting`, `/finance/dashboard`, `/transactions`, `/expenses`,
+`/custody` and `/finance/reconciliation` returned 307 to `/login`. The open PR queue was zero at closeout.
+
+**Exact resume point:** daily-use acceptance remains unproven. Supply the scrubbed harness inputs and run all 44
+desktop/mobile owner/accountant/denied-role workflows; then complete the 698 real reconciliation decisions, run
+the real workbook in parallel, resolve every exception and capture dated Owner/accountant sign-off. Do not call
+accounting 100% until those operator gates pass. No migration or production data action is needed merely to run
+the read-only acceptance harness; any corrective write discovered by acceptance requires its own reviewed path.
 
 ## 2026-08-22 — Marketing full-source workspace — MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED
 
