@@ -1,7 +1,7 @@
 # Accounting release execution runbook
 
-**Candidate:** `accounting-release-20260808`
-**Pinned base:** `07b12245e54c635e62293779f86c589f1f1f071b`
+**Candidate:** `accounting-release-20260822-current-main`
+**Pinned base:** `253f479fde25e39494550be7445560489458af60`
 **Canonical branch:** `validation/accounting-release-current-main-20260808`
 **Scope:** the manifest-bound accounting application, documentation, tests, and twenty-one pending migrations.
 
@@ -29,10 +29,10 @@ The actor who prepared the candidate must not silently substitute for the Owner 
 1. Work only from the canonical release worktree on
    `validation/accounting-release-current-main-20260808`; confirm `STATUS.md` names the same branch and base.
 2. Fetch `origin/main`, then stop if it is not the manifest's `baseCommit`.
-3. Run `npm --prefix apps/farm-os run release:accounting:preflight:working-tree` and require `PASS`, 165
-   candidate files, 51 pinned artifacts, four controls, and 220 total bound files.
-4. Require the recorded full gates: pgTAP 4,018/4,018, Vitest 1,745 plus 14 controlled skips, full ESLint,
-   TypeScript, 63/63-page build, `npm audit` with zero vulnerabilities, and `git diff --check` clean.
+3. Run `npm --prefix apps/farm-os run release:accounting:preflight:working-tree` and require `PASS`, 162
+   candidate files, 51 pinned artifacts, four controls, and 217 total bound files.
+4. Require the recorded full gates: pgTAP 4,192/4,192, Vitest 1,777 plus 17 controlled skips, full ESLint,
+   TypeScript, 69/69-page build, `npm audit` with zero vulnerabilities, and `git diff --check` clean.
 5. Confirm no migration timestamp duplicates and no pending migration outside the manifest.
 6. Obtain explicit Owner approval before creating the candidate commit. Do not amend the candidate after review;
    any byte or mode change requires a new manifest digest and rerun of this stage.
@@ -42,8 +42,8 @@ The actor who prepared the candidate must not silently substitute for the Owner 
 1. Commit only the manifest-bound candidate. Do not include credentials, generated financial evidence, or an
    unrelated worktree change.
 2. Require a clean worktree and rerun `npm --prefix apps/farm-os run release:accounting:preflight`.
-3. Require the strict result to bind the committed `HEAD`, the pinned base, all twenty-one migrations, 165 candidate
-   files, 51 pinned artifacts, and 220 total files.
+3. Require the strict result to bind the committed `HEAD`, the pinned base, all twenty-one migrations, 162 candidate
+   files, 51 pinned artifacts, and 217 total files.
 4. Obtain an independent review of the exact commit and resolve every P1-P4 finding before any external action.
 5. Obtain separate Owner approval before push and PR creation. The PR must target the fetched `main` base and
    must not be merged yet.
@@ -56,7 +56,9 @@ The actor who prepared the candidate must not silently substitute for the Owner 
    assumption.
 2. Export and retain the current migration-version list and exact aggregate-only preflight evidence approved for
    this release. Do not include credentials, row identifiers, or financial evidence in Git.
-3. Require the remote list to show exactly these pending versions in this order and no additional version:
+3. Require the local manifest to show exactly these pending repository versions in this order and no additional
+   migration. Require the remote ledger to contain none of the 21 migration names and to end at the already-applied
+   Marketing workspace before the first apply:
 
    1. `20260822140000` - exact unpaid obligations
    2. `20260822140100` - versioned reconciliation review concurrency
@@ -92,7 +94,9 @@ The actor who prepared the candidate must not silently substitute for the Owner 
 1. Apply only the twenty-one committed migration files, in the order above, using the approved Farm migration path.
 2. Stop immediately on an unknown, partial, or failed result. Do not retry until the remote version list and
    catalog state identify what committed.
-3. Re-read the remote migration list and require all twenty-one versions exactly once and in order.
+3. Re-read the remote migration list and require all twenty-one migration names exactly once and in order. The
+   hosted ledger versions may be generated at apply time and therefore need not equal repository filename timestamps;
+   record the exact repository-version to hosted-version mapping returned by the approved migration mechanism.
 4. Run the approved catalog, privilege, function-signature, RLS, and aggregate-only postflight checks. Compare
    protected accounting counts and totals with the retained preflight evidence; explain every difference.
 5. Do not change a business row to make postflight pass. Production database failures are forward-only: prepare

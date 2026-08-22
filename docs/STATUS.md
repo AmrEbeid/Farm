@@ -1,10 +1,23 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-09 (mobile accounting role-acceptance integration candidate; not released). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (accounting release reconciled with current main; not migrated or merged). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-09 — mobile accounting role acceptance: LOCAL / COMMITTED / VALIDATED / REREVIEW REQUIRED.** A separate follow-up
+**2026-08-22 — CURRENT ACCOUNTING RELEASE: INTEGRATED / EXACT-HEAD CI GREEN / MIGRATION PAUSED FOR REREVIEW.**
+PR #1008 is reconciled with exact base `253f479fde25e39494550be7445560489458af60`. Its schema-v2 manifest
+binds candidate `accounting-release-20260822-current-main`: 162 candidate files, 21 ordered migrations
+`20260822140000` through `20260822142000`, 28 database tests, two support files, four release controls, and
+217 total bound files. The migrations sort after the deployed Marketing workspace and no stale 8 August migration
+reference remains. Fresh evidence: committed preflight PASS; pgTAP 4,192/4,192; Farm Vitest 1,777 plus 17
+controlled skips; UI Vitest 288/288; Farm/UI TypeScript, full Farm ESLint, 69-page Farm build and UI build green;
+Recharts/client-boundary/service-role guards green; `npm audit` 0; exact-head GitHub CI/db-tests/Vercel green.
+Independent hostile review found only stale release-control wording in this file and the execution runbook; those
+controls are being corrected and rebound before rereview. **No accounting migration has been applied, no business
+row changed, and PR #1008 has not been merged.** The remote ledger currently ends at hosted Marketing migration
+`20260822133257 marketing_full_source_workspace`.
+
+**2026-08-09 (historical) — mobile accounting role acceptance: LOCAL / COMMITTED / VALIDATED.** A separate follow-up
 worktree at exact PR #1008 head adds a pinned Pixel 7 Chromium project beside Desktop Chrome and routes every
 direct navigation through a settled page-level horizontal-overflow assertion, repeated after each workflow's final
 rendered state. The unchanged 22 owner/accountant/denied-role workflows now discover as exactly 44 tests, 22 per
@@ -18,7 +31,7 @@ P3 now corrected in this follow-up; the corrected tip still requires exact-commi
 run occurred. The canonical release branch remains `validation/accounting-release-current-main-20260808`; the
 corrected tip becomes canonical only after approval and fast-forward integration.
 
-**2026-08-07/08 — accounting release stack + C-4 custody correction: INTEGRATED / INDEPENDENTLY APPROVED / NOT RELEASED.**
+**2026-08-07/08 (historical) — accounting release stack + C-4 custody correction: INTEGRATED / INDEPENDENTLY APPROVED / NOT RELEASED.**
 The canonical validation branch `validation/accounting-release-current-main-20260808` is based on exact current
 `origin/main` `07b1224`, including the already-live
 Owner public-site release. Twenty-one accounting
@@ -76,7 +89,7 @@ headers, `%PDF-` start bytes, final non-whitespace `%%EOF`, and nontrivial size.
 proof and WebSocket-log findings were corrected; final rereview returned APPROVE. The credentialed suite
 remains unrun because all required role, batch and Supabase runtime inputs are absent. Independent
 safety re-review returned **APPROVE** with no P1-P3 finding; its one historical-doc P4 was corrected. No duplicate
-migration timestamp or rejected patch. The dependency lane resolves `nanoid` 3.3.17 and scoped `js-yaml`
+migration timestamp or rejected patch. The dependency lane resolves `nanoid` 3.3.18 and scoped `js-yaml`
 4.3.1/3.15.1; current `npm audit` reports **0 vulnerabilities**, and independent dependency review approved it.
 The season cockpit now uses one exact atomic snapshot. Physical deliveries remain visible, but booked revenue,
 collections, A/R and center revenue require exactly one valid posted same-org two-line sale journal; invalid
@@ -129,14 +142,14 @@ creator and reviewer Owners see the exact blocked reason while the RPC remains a
 returned **APPROVE** with no P1-P4 finding.
 Every accounting release action remains explicitly Owner-gated and migrate-first in the order above.
 
-The schema-v2 release manifest binds the full **220-file** candidate boundary: 165 aggregate-hashed
+The current schema-v2 release manifest binds the full **217-file** candidate boundary: 162 aggregate-hashed
 app/docs/root files, 51 individually hashed migration/test/support artifacts, and four release controls (manifest plus three
 hash-pinned, mode-`100644` programs). Git path discovery is NUL-safe; candidate bytes and modes are bound; symlinks,
 non-canonical paths, hidden assume-unchanged/fsmonitor flags, repository-control environments, unexpected paths,
 renames, deletions and unsupported modes fail closed. Separate strict and working-tree launchers pass literal
 release modes, so Node argument/preload mutation cannot convert the committed gate into the local check. The local
-check passes all 220 files; the strict command intentionally fails until the candidate is committed and clean,
-then compares every bound byte and mode with `HEAD`. `origin/main` is explicitly a local cached ref and must be
+check passes all 217 files; the strict command compares every bound byte and mode with clean committed `HEAD`.
+`origin/main` is explicitly a local cached ref and must be
 fetched immediately before release. Independent review challenged newline paths, mode binding, Git anchoring,
 hidden flags and a self-concealing preload; adversarial probes reproduced each gap, all were corrected, and final
 narrow rereview returned **APPROVE** with no P1-P4 finding.
