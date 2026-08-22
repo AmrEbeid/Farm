@@ -48,7 +48,8 @@ export interface SiteCert {
   title: Bi;
   /** Key detail line (GGN, registration no., certificate no., etc.). */
   detail: Bi;
-  /** Image under public/site/proofs (or a `site-media` storage key in Phase 2). */
+  /** Certificate image: a bundled path under public/site/proofs, or an uploaded `site-media`
+   *  public URL (owner uploads it in the OS editor). Validated by lib/site-certificates.ts. */
   image: string;
   /** Public registry / verification URL. */
   verifyUrl: string;
@@ -67,8 +68,8 @@ export interface SiteBullet {
   text: Bi;
 }
 
-/** A photo-gallery item. `image` is a URL or a path under /public (dummy placeholders for now;
- *  the owner edits it in the OS — paste a real image URL — until in-OS upload lands). */
+/** A photo-gallery item. `image` is a URL or a path under /public — the owner uploads a photo in
+ *  the OS editor (or pastes a URL); the shipped dummy placeholders are hidden on the public site. */
 export interface GalleryItem {
   image: string;
   caption: Bi;
@@ -346,5 +347,14 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       ar: "أبو شلبي، فاقوس، الشرقية، مصر 44641",
       en: "Abou Shalaby, Faqous, El-Sharkia, Egypt 44641",
     },
+  },
+};
+// A public read failure must not republish certificate claims that an owner may have superseded.
+// Keep the rest of the marketing page available, but remove the trust surface until the DB recovers.
+export const SITE_CONTENT_PUBLIC_READ_FALLBACK: SiteContent = {
+  ...SITE_CONTENT_DEFAULTS,
+  certifications: {
+    ...SITE_CONTENT_DEFAULTS.certifications,
+    items: [],
   },
 };

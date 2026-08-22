@@ -16,7 +16,6 @@ import { submitEnquiry } from "@/app/enquiry-actions";
 function waLink(phone: string): string {
   return `https://wa.me/${phone.replace(/[^0-9]/g, "")}`;
 }
-
 // Owner-authored content URLs (e.g. certification verifyUrl) are rendered into <a href> on the PUBLIC
 // site. React does not block a `javascript:` (or `data:`) URL on an anchor, so a stored malicious/typo'd
 // link would execute in a visitor's browser. Allow only safe schemes; anything else falls back to "#".
@@ -36,6 +35,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
   // hidden on the live site so buyers never see "replace-me" tiles; the owner still sees/edits them
   // in the OS editor. An item goes public once its image is a real upload/URL (not a placeholder).
   const galleryItems = c.gallery.items.filter((g) => g.image && !g.image.includes("/placeholder-"));
+  const hasCertifications = c.certifications.items.length > 0;
 
   const [enquirySent, setEnquirySent] = useState(false);
   const [enquiryErr, setEnquiryErr] = useState("");
@@ -53,7 +53,9 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
 
   const nav = [
     { href: "#about", label: { ar: "من نحن", en: "About" } },
-    { href: "#certifications", label: { ar: "الشهادات", en: "Certifications" } },
+    ...(hasCertifications
+      ? [{ href: "#certifications", label: { ar: "الشهادات", en: "Certifications" } }]
+      : []),
     ...(galleryItems.length > 0 ? [{ href: "#gallery", label: { ar: "المعرض", en: "Gallery" } }] : []),
     { href: "#supply", label: { ar: "التوريد", en: "Supply" } },
     { href: "#contact", label: { ar: "تواصل", en: "Contact" } },
@@ -119,7 +121,9 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
             </ul>
             <div className="site__cta">
               <a href="#contact"><Button variant="primary">{t(c.hero.ctaPrimary)}</Button></a>
-              <a href="#certifications"><Button variant="ghost">{t(c.hero.ctaSecondary)}</Button></a>
+              {hasCertifications && (
+                <a href="#certifications"><Button variant="ghost">{t(c.hero.ctaSecondary)}</Button></a>
+              )}
             </div>
             <p className="site__hero-loc">{t(c.brand.location)} · {t(c.brand.season)}</p>
           </div>
@@ -158,42 +162,44 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
         </section>
 
         {/* ---- Certifications & proof ---- */}
-        <section id="certifications" className="site__section site__band site__band--green">
-          <div className="site__section-head">
-            <h2>{t(c.certifications.heading)}</h2>
-            <p className="site__intro">{t(c.certifications.intro)}</p>
-          </div>
-          <div className="site__certs">
-            {c.certifications.items.map((cert, i) => (
-              <article key={i} className="site__cert">
-                <a
-                  className="site__cert-thumb"
-                  href={safeHref(cert.verifyUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- static local proof scan, not a signed URL */}
-                  <img src={cert.image} alt={t(cert.title)} loading="lazy" />
-                </a>
-                <div className="site__cert-body">
-                  <h3>{t(cert.title)}</h3>
-                  <p>{t(cert.detail)}</p>
+        {hasCertifications && (
+          <section id="certifications" className="site__section site__band site__band--green">
+            <div className="site__section-head">
+              <h2>{t(c.certifications.heading)}</h2>
+              <p className="site__intro">{t(c.certifications.intro)}</p>
+            </div>
+            <div className="site__certs">
+              {c.certifications.items.map((cert, i) => (
+                <article key={i} className="site__cert">
                   <a
-                    className="site__cert-verify"
+                    className="site__cert-thumb"
                     href={safeHref(cert.verifyUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {cert.verifyIsRegistry
-                      ? lang === "ar" ? "التحقق على السجل" : "Verify on registry"
-                      : lang === "ar" ? "الجهة المانحة" : "Issuing authority"} ↗
-                    <span className="site__cert-host">{cert.verifyLabel}</span>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- static local proof scan, not a signed URL */}
+                    <img src={cert.image} alt={t(cert.title)} loading="lazy" />
                   </a>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+                  <div className="site__cert-body">
+                    <h3>{t(cert.title)}</h3>
+                    <p>{t(cert.detail)}</p>
+                    <a
+                      className="site__cert-verify"
+                      href={safeHref(cert.verifyUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {cert.verifyIsRegistry
+                        ? lang === "ar" ? "التحقق على السجل" : "Verify on registry"
+                        : lang === "ar" ? "الجهة المانحة" : "Issuing authority"} ↗
+                      <span className="site__cert-host">{cert.verifyLabel}</span>
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ---- Why partner ---- */}
         <section className="site__section site__band">

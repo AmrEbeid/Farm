@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SITE_CONTENT_DEFAULTS } from "./site-content";
+import { SITE_CONTENT_DEFAULTS, SITE_CONTENT_PUBLIC_READ_FALLBACK } from "./site-content";
 
 const migration = readFileSync(
   join(
@@ -50,5 +50,12 @@ describe("Owner public-site comments", () => {
     expect(landing).toContain("waLink(primaryPhone)");
     expect(landing).toContain("c.contact.phones.slice(1).map");
     expect(landing).not.toContain("c.contact.phones.map((p)");
+  });
+
+  it("fails closed on certificate claims while keeping the public page content available", () => {
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.certifications.items).toEqual([]);
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.hero).toEqual(SITE_CONTENT_DEFAULTS.hero);
+    expect(landing).toContain("const hasCertifications = c.certifications.items.length > 0");
+    expect(landing).toContain("{hasCertifications && (");
   });
 });

@@ -9,8 +9,8 @@ import { SiteEditor } from "@/components/site/SiteEditor";
  * object via fn_save_site_content (owner-gated in the DB). Reads are RLS-scoped to org members; the
  * write gate is site.write = owner.
  *
- * TYPES: site_content is declared in the database.types.ext.ts augmentation (STRUCT-1); the select
- * is fully typed and falls back to defaults on any error.
+ * TYPES: site_content is declared in the database.types.ext.ts augmentation (STRUCT-1). A genuinely
+ * empty org uses defaults; a read error fails closed and never opens a default-filled editor.
  */
 export default async function WebsiteEditorPage() {
   const m = await requireMembership();
@@ -29,16 +29,25 @@ export default async function WebsiteEditorPage() {
   let content: SiteContent = SITE_CONTENT_DEFAULTS;
   try {
     const sb = await createClient();
-    const { data } = await sb
+    const { data, error } = await sb
       .from("site_content")
       .select("content")
+      .eq("org_id", m.orgId)
       .limit(1)
       .maybeSingle();
+    if (error) throw error;
     if (data?.content && typeof data.content === "object") {
       content = { ...SITE_CONTENT_DEFAULTS, ...(data.content as Partial<SiteContent>) };
     }
   } catch {
-    // fall back to defaults (table not applied yet, etc.)
+    return (
+      <div className="mx-auto max-w-3xl p-4">
+        <h1 className="mb-1 text-xl font-bold">الموقع</h1>
+        <p className="text-sm text-red-700">
+          تعذّر تحميل المحتوى المحفوظ. لم يتم فتح المحرر لحماية بيانات الموقع. حاول مجددًا.
+        </p>
+      </div>
+    );
   }
 
   return (

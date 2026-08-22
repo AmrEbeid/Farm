@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import { sniffImage, galleryMediaPaths, ALLOWED_IMAGE_TYPES, IMAGE_EXT } from "@/lib/site-media";
+import { validateCertifications } from "@/lib/site-certificates";
 import type { SiteContent } from "@/lib/site-content";
 import type { Json } from "@/lib/database.types";
 
@@ -27,31 +28,45 @@ export async function saveSiteContent(input: {
   const m = await requireMembership();
   // AUTHZ GATE (security-360 HIGH-1): the storage cleanup below runs on the RLS-BYPASSING service-role
   // admin client, so it MUST be authorized HERE — the fn_save_site_content `site.write` gate cannot
-  // protect a `storage.remove()` that runs before it. Require owner (same gate as the RPC and
+  // protect a `storage.remove()` that runs outside it. Require owner (same gate as the RPC and
   // uploadGalleryImage) AND pin the org to the caller's session membership, never the client-supplied
-  // arg. Without this, any authenticated non-owner could wipe the public gallery (the RPC would then
-  // reject the content write, but the images would already be gone), and a forged `orgId` would delete
-  // another org's gallery objects (cross-tenant IDOR via the RLS-bypassing client).
+  // arg. Without this, an authenticated non-owner or forged org id could nominate bucket objects for
+  // service-role deletion. Object paths are also scoped to m.orgId below.
   if (m.role !== "owner" || input.orgId !== m.orgId) {
     return { ok: false, error: NO_PERM };
   }
-  const sb = await createClient();
+  // CONTENT GATE: validate the owner-editable certificate cards BEFORE anything else touches
+  // storage or the DB. The editor's field limits are client-side convenience; this is the control.
+  // Running it first means a rejected payload deletes no bucket object and writes no row.
+  const certs = validateCertifications(input.content?.certifications);
+  if (!certs.ok) return { ok: false, error: certs.error };
 
-  // Best-effort storage cleanup: delete site-media gallery objects this save removes/replaces so the
-  // bucket doesn't accumulate orphans as the owner iterates on photos. Never blocks the save.
+  const sb = await createClient();
+  let admin: ReturnType<typeof createAdminClient> | null = null;
+  let removedPaths: string[] = [];
+
+  // Gallery cleanup remains best effort. Certificate scans are deliberately retained: without an
+  // optimistic-lock token, deleting them can make a stale owner tab restore a now-missing proof.
   try {
-    const admin = createAdminClient();
+    admin = createAdminClient();
     const { data: oldRow } = await admin
       .from("site_content")
       .select("content")
       .eq("org_id", input.orgId)
       .maybeSingle();
-    const oldPaths = galleryMediaPaths(oldRow?.content as SiteContent | undefined);
-    const newPaths = new Set(galleryMediaPaths(input.content));
-    const removed = oldPaths.filter((p) => !newPaths.has(p));
-    if (removed.length) await admin.storage.from("site-media").remove(removed);
+    const { data: publicRoot } = admin.storage.from("site-media").getPublicUrl("");
+    const publicBucketPrefix = publicRoot.publicUrl.endsWith("/")
+      ? publicRoot.publicUrl
+      : `${publicRoot.publicUrl}/`;
+    const oldPaths = galleryMediaPaths(
+      oldRow?.content as SiteContent | undefined,
+      publicBucketPrefix,
+      m.orgId,
+    );
+    const newPaths = new Set(galleryMediaPaths(input.content, publicBucketPrefix, m.orgId));
+    removedPaths = oldPaths.filter((path) => !newPaths.has(path));
   } catch {
-    // storage hiccup must not fail the content save
+    // Cleanup discovery is best effort and must not block the content save.
   }
 
   const { error } = await sb.rpc("fn_save_site_content", {
@@ -61,6 +76,14 @@ export async function saveSiteContent(input: {
     p_content: input.content as unknown as Json,
   });
   if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
+
+  if (admin && removedPaths.length) {
+    try {
+      await admin.storage.from("site-media").remove(removedPaths);
+    } catch {
+      // A cleanup failure leaves an orphan but never breaks an already-successful content save.
+    }
+  }
   revalidatePath("/");
   revalidatePath("/website");
   return { ok: true };
@@ -68,16 +91,17 @@ export async function saveSiteContent(input: {
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
-// Upload a gallery image to the public `site-media` bucket and return its public URL. Owner-gated
-// (like the content save). Runs server-side via the service-role admin client, so no client write
-// path to storage exists. The returned URL is stored as a gallery item's `image`.
+type UploadResult = { ok: true; url: string } | { ok: false; error: string };
+
+// Shared owner-gated image upload into the public `site-media` bucket. Both callers below are thin
+// wrappers that only choose the FOLDER — every other decision (auth, size cap, real type from magic
+// bytes, extension, random object name) stays here and stays server-side, so no client input ever
+// reaches the storage path.
 //
 // BUCKET: `site-media` is provisioned in prod (public read, 5 MB limit, image mime types) via the
 // Supabase MCP — NOT a repo migration (the local pgTAP harness runs on a bare Postgres without the
 // `storage` schema, so a storage.buckets insert would break it). Recorded in DEPLOY-STATUS.md.
-export async function uploadGalleryImage(
-  formData: FormData,
-): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+async function uploadSiteImage(formData: FormData, folder: "gallery" | "certificates"): Promise<UploadResult> {
   const m = await requireMembership();
   if (m.role !== "owner") return { ok: false, error: NO_PERM };
 
@@ -93,7 +117,7 @@ export async function uploadGalleryImage(
     return { ok: false, error: "الملف ليس صورة صالحة (JPG / PNG / WebP / AVIF)" };
   }
 
-  const path = `gallery/${crypto.randomUUID()}.${IMAGE_EXT[type]}`;
+  const path = `${m.orgId}/${folder}/${crypto.randomUUID()}.${IMAGE_EXT[type]}`;
   const sb = createAdminClient();
   const { error } = await sb.storage
     .from("site-media")
@@ -102,4 +126,14 @@ export async function uploadGalleryImage(
 
   const { data } = sb.storage.from("site-media").getPublicUrl(path);
   return { ok: true, url: data.publicUrl };
+}
+
+/** Upload a gallery photo; the returned public URL is stored as a gallery item's `image`. */
+export async function uploadGalleryImage(formData: FormData): Promise<UploadResult> {
+  return uploadSiteImage(formData, "gallery");
+}
+
+/** Upload a certificate scan/photo; the returned public URL is stored as a cert card's `image`. */
+export async function uploadCertificateImage(formData: FormData): Promise<UploadResult> {
+  return uploadSiteImage(formData, "certificates");
 }
