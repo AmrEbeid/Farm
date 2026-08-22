@@ -49,7 +49,8 @@ export function AppChrome({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const modules = visibleModulesForRole(role as Role);
+  const appRole = role as Role;
+  const modules = visibleModulesForRole(appRole);
   const activeNavId = findActiveNavItem(pathname)?.id ?? "dashboard";
 
   async function signOut() {
@@ -100,7 +101,7 @@ export function AppChrome({
        * carries the id + tabIndex={-1} so keyboard focus lands on the content.
        */}
       <div id="main" tabIndex={-1}>
-        <AutoBreadcrumbs pathname={pathname} />
+        <AutoBreadcrumbs pathname={pathname} role={appRole} />
         {children}
       </div>
     </AppShell>

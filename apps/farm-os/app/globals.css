@@ -11,6 +11,14 @@
 :root {
   --font-family: var(--font-tajawal), system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
   --font-display: var(--font-readex), var(--font-tajawal), system-ui, "Segoe UI", sans-serif;
+
+  /*
+   * Content height of the phone bottom tab bar (MobileTabBar), EXCLUDING the device safe area. Both
+   * the bar's own min-block-size and the scroll container's bottom reserve are derived from this one
+   * value, so they cannot drift apart. 3.5rem is 56px at the default root size, scales with user text
+   * settings, clears the bar's content and keeps every tab a comfortable touch target.
+   */
+  --farm-bottom-nav-h: 3.5rem;
 }
 
 /*
@@ -101,6 +109,42 @@ body {
  */
 .fos-appshell__main {
   padding: 0;
+}
+
+/*
+ * Phone bottom tab bar: visibility, height and the matching content reserve, in ONE media block.
+ *
+ * MobileTabBar is `position: fixed; bottom: 0`, so it is out of flow and nothing below it was ever
+ * reserved — the last table row, and on a form the submit button, sat UNDERNEATH the bar on every
+ * phone-width page. `.fos-appshell__main` is the scroll container (its own padding was zeroed above so
+ * each page owns its gutter), so the reserve belongs there as a longhand, which overrides the
+ * `padding: 0` shorthand set immediately above without disturbing the other three sides.
+ *
+ * The bar's block-size and the reserve are the SAME expression, so they stay equal by
+ * construction. `env(safe-area-inset-bottom)` is added to both (the bar also pads by it internally, so
+ * with border-box its 56px of content is preserved above the home indicator on a notched device).
+ *
+ * 39.99rem mirrors Tailwind's default `sm` (40rem) breakpoint, below which the bar renders. Keeping
+ * `display` here rather than as a `sm:hidden` utility on the element is deliberate: one breakpoint
+ * literal governs both the bar and the reserve, so no future edit can hide one without the other.
+ * lib/breadcrumbs.test.ts asserts this block keeps both rules and the shared token.
+ */
+.farm-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 39.99rem) {
+  .farm-bottom-nav {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    block-size: calc(var(--farm-bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+    padding-block-end: env(safe-area-inset-bottom, 0px);
+  }
+
+  .fos-appshell__main {
+    padding-block-end: calc(var(--farm-bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* App-side grouped module navigation. This keeps @amrebeid/ui unchanged while
