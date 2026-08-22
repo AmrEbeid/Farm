@@ -1,5 +1,29 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3c Manager home live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3d Agronomist home live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R3d exact Agronomist home — MIGRATED / MERGED / DEPLOYED
+
+Agronomist /dashboard/manager now exits before the legacy dashboard reads and renders one compact Arabic
+daily-work home from fn_agronomist_home_snapshot. The snapshot is active-org/agri-engineer-only,
+current-Cairo-date-only and independently bounds every driver list and nested material list. It covers pending
+dose/spray sign-offs, active-plan agronomy work today, overdue work, trap follow-ups and last-recorded blocked
+checks. It exposes no finance values, prescription claim or APC-validity claim. /approvals, agronomy-mode /m
+and lib/pest-scouting.ts now match the snapshot's incomplete-sign-off, inclusive multi-day and Cairo
+calendar-day rules. Manager recorded counts also remain usable under partial authority without asserting
+completeness.
+
+Migration 20260822234537 exact_agronomist_home_snapshot is live on Farm only. Postflight proved SECURITY
+INVOKER, STABLE, empty search path, authenticated-only execute and no new function-specific advisor finding.
+PR #1037 merged as 8eab535eccc203545d39ece0abb68bf6af4fad15; production deployment 6042553209 /
+dpl_B3G3srJ7P61VZDiKQpxEmGYBg8ym is served by ebeidfarm.business; signed-out Manager returns 307 to /login.
+Evidence: independent final APPROVE after two correction rounds; pgTAP 4,441/4,441; Vitest 1,968 plus 17
+controlled skips; TypeScript, ESLint, 70-page production build, Storybook, repository guards, gitleaks and
+PR checks.
+
+**Exact resume point:** implement the dedicated Supervisor home without changing Manager, Agronomist or
+accounting truth, then Storekeeper. After all six role homes, reset prioritized lists and every 360 surface.
+Authenticated Agronomist desktop/phone acceptance remains unclaimed because production currently has no
+agri_engineer membership. Keep automated package publication PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R3c exact Farm Manager home — MIGRATED / MERGED / DEPLOYED
 

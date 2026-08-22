@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — Product UI reset R3d exact Agronomist home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration 20260822234537 exact_agronomist_home_snapshot adds one agri-engineer-only,
+> active-organization, bounded SECURITY INVOKER agronomy snapshot with empty search path and no finance
+> values. Postflight proved authenticated-only execution and no new function-specific advisory. PR #1037
+> merged as 8eab535eccc203545d39ece0abb68bf6af4fad15; GitHub Production deployment 6042553209 and Vercel
+> dpl_B3G3srJ7P61VZDiKQpxEmGYBg8ym are served by ebeidfarm.business. Signed-out /dashboard/manager
+> returns 307 to /login. Independent review, pgTAP 4,441/4,441, 1,968 Vitest passes plus 17 skips,
+> TypeScript, ESLint, 70-page build, Storybook, guards, gitleaks and PR CI passed. Authenticated Agronomist
+> acceptance remains pending because production has no agri_engineer membership.
+
 > **2026-08-23 (latest) — Product UI reset R3c exact Farm Manager home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260822224921 exact_manager_home_snapshot` adds one Farm-Manager-only,
 > active-organization, bounded `SECURITY INVOKER` operating snapshot with empty search path and no finance

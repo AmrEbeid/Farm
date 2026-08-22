@@ -1,4 +1,20 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3c Manager home live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3d Agronomist home live)
+
+> **2026-08-23 — PRODUCT UI RESET R3d EXACT AGRONOMIST HOME MIGRATED / MERGED / DEPLOYED.**
+> Agronomist now gets one compact daily agronomy home from an exact active-org snapshot: incomplete dose/spray
+> sign-offs, inclusive multi-day due work, overdue work, trap follow-ups and last-recorded plan blocks. It
+> exposes no finance values, keeps dose content advisory until named sign-off and treats APC references only
+> as recorded references. The review also aligned /approvals, /m?scope=agronomy&mine=0 and trap aging with
+> the snapshot, and fixed Manager's partial-authority all-dashes state while preserving verified-only all-clear
+> claims.
+>
+> Hosted migration 20260822234537 exact_agronomist_home_snapshot passed function/grant postflight. PR #1037
+> merged as 8eab535eccc203545d39ece0abb68bf6af4fad15; Production deployment 6042553209 /
+> dpl_B3G3srJ7P61VZDiKQpxEmGYBg8ym serves ebeidfarm.business, whose signed-out Manager route redirects
+> to /login. Evidence: independent APPROVE; pgTAP 4,441/4,441; Vitest 1,968 plus 17 skips; TypeScript,
+> ESLint, 70-page build, Storybook, security/bundle guards, gitleaks and PR checks green. **Open:** production
+> has no agri_engineer membership, so authenticated Agronomist desktop/phone acceptance is unclaimed. Next:
+> Supervisor and Storekeeper homes, then lists and all 360 surfaces. Package PR #1025 remains separate.
 
 > **2026-08-23 — PRODUCT UI RESET R3c EXACT FARM MANAGER HOME MIGRATED / MERGED / DEPLOYED.**
 > Farm Manager now gets a compact daily operating home from one exact active-org snapshot: current and overdue

@@ -1,15 +1,33 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (Product UI reset R3c exact Farm Manager home live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (Product UI reset R3d exact Agronomist home live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R3d EXACT AGRONOMIST HOME: MIGRATED / MERGED / DEPLOYED.**
+Agronomist /dashboard/manager now reads one agri-engineer-only, active-organization snapshot and leads with
+pending dose/spray sign-offs, agronomy work due today, overdue agronomy work and active-trap follow-ups. It
+contains no finance values and never presents recorded doses as prescriptions or APC references as proof of
+current validity. Exact recorded counts remain visible under partial authority, while completeness claims stay
+verified-only. /approvals, the agronomy field drill-down and trap aging now use the same incomplete-sign-off,
+active-plan, inclusive multi-day and Cairo calendar-day contracts. The same release fixes Manager's all-dashes
+partial-authority defect without changing its snapshot counts.
+
+Hosted Farm migration 20260822234537 exact_agronomist_home_snapshot passed postflight as SECURITY INVOKER,
+STABLE, empty-search-path and authenticated-only; definition md5 is 69f5566d85260358629dfde2402b0173.
+PR #1037 merged as 8eab535eccc203545d39ece0abb68bf6af4fad15; GitHub Production deployment 6042553209 /
+Vercel dpl_B3G3srJ7P61VZDiKQpxEmGYBg8ym is served by ebeidfarm.business, whose signed-out Manager route
+redirects to /login. Evidence: independent APPROVE after two correction rounds; pgTAP 4,441/4,441; Vitest
+1,968 plus 17 controlled skips; TypeScript, ESLint, 70-page build, Storybook, guards, gitleaks and PR CI green.
+No advisor names the new function. Authenticated Agronomist acceptance remains open because production has no
+agri_engineer membership. Next: Supervisor and Storekeeper homes, then prioritized list and 360 redesign.
 
 **2026-08-23 — PRODUCT UI RESET R3c EXACT FARM MANAGER HOME: MIGRATED / MERGED / DEPLOYED.**
 Farm Manager `/dashboard/manager` now reads one manager-only, active-organization snapshot and leads with
 today's work, overdue operations, incomplete agronomy sign-off and stock thresholds. It contains no finance
 values. Multi-day work, unscheduled and unassigned work, saved plan blocks, all-bin stock totals and unknown
 stock state are represented explicitly; operations and inventory claims fail closed when authority is not
-verified. Agronomists remain on the legacy route until their dedicated role slice.
+verified. At this R3c checkpoint Agronomists still used the legacy route; R3d above supersedes that state.
 
 Hosted Farm migration `20260822224921 exact_manager_home_snapshot` passed metadata/grant postflight as
 `SECURITY INVOKER`, `STABLE`, empty-search-path and authenticated-only. PR #1035 merged as

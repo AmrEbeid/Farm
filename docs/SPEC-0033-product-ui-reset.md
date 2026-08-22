@@ -17,7 +17,7 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Agronomist home R3d candidate
+### Agronomist home R3d released
 
 The Agronomist branch of `/dashboard/manager` now uses one agri-engineer-only, active-organisation snapshot,
 and the legacy unbounded multi-table dashboard that served this role is removed. It leads with dose/spray
@@ -32,8 +32,11 @@ labelled as the last recorded check because `plan_checks` carries no timestamp. 
 template pending named sign-off, and a recorded APC reference is shown as recorded-or-missing, never as proof
 of a valid registration. The snapshot is bounded (drivers and the materials nested inside a sign-off row are
 each independently limited), current-Cairo-date-only and contains no finance value. The existing sign-off
-action stays in **راجع**. This remains a local candidate until migration, merge, deployment and authenticated
-role smoke are separately evidenced.
+action stays in **راجع**. The approvals inbox now includes either missing sign-off half; Agronomist drill-downs
+open an active-plan, agronomy-only team view with the same inclusive multi-day/Cairo-date rules; and trap
+thresholds use Cairo calendar days in SQL and TypeScript. Hosted migration, merge, production deployment and
+signed-out routing are evidenced. Authenticated role smoke remains open because production has no
+agri_engineer membership.
 
 The same release also fixes the R3c Manager usability defect: production reports `operations` and `inventory`
 as partial, which rendered the whole Manager home as dashes and hid real overdue work. Exact recorded counts
