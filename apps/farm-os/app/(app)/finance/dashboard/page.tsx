@@ -6,7 +6,6 @@ import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
-import { AttentionInbox, type AttentionItem } from "@/components/DashboardHub";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { PageHeader } from "@/components/PageHeader";
 import { PrintButton } from "@/components/print-button";
@@ -37,6 +36,7 @@ import {
   parseFinanceDashboardSnapshot,
 } from "@/lib/finance-dashboard-reads";
 import { cairoTodayIso } from "@/lib/payroll-close";
+import { AccountantHome } from "./accountant-home";
 const FILTER_LABEL_AR: Record<string, string> = {
   all: "كل الجداول",
   budgets: "ضغط الموازنة",
@@ -65,6 +65,7 @@ export default async function FinanceDashboardPage({
 }) {
   const { filter: requestedFilter = "all" } = await searchParams;
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
+  if (m.role === "accountant") return <AccountantHome orgId={m.orgId} />;
   const sb = await createClient();
   const now = new Date();
   const monthBounds = currentMonthBounds(now);
@@ -97,10 +98,6 @@ export default async function FinanceDashboardPage({
   if (expenseSummary) assertFinanceUnpaidSummary(expenseSummary);
 
   const custodyWithBalance = finance?.custody ?? [];
-  const myCustody = custodyWithBalance.filter(
-    (account) => account.holder_user_id === m.userId
-  );
-
   const budgetTotals = snapshot.budgetSummary;
   const spentOrCommitted = budgetTotals.spentOrCommitted;
   const available = budgetTotals.available;
@@ -360,19 +357,6 @@ export default async function FinanceDashboardPage({
   const unpaidCount = expenseSummary ? unpaidExpenseCount(expenseSummary) : 0;
   const unpaidUnknown = expenseSummary ? unpaidUnknownCount(expenseSummary) : 0;
   const unpaidRowsTruncated = unpaidCount > unpaidRows.length;
-  const myCustodyRows = myCustody.map((account) => {
-    return {
-      id: account.id,
-      holder: account.holder_label,
-      balance: account.balance,
-      target: account.target_float,
-      topup: maxDecimal(
-        subtractDecimals(account.target_float, account.balance),
-        "0"
-      ),
-    };
-  });
-
   const journalColumns: SimpleColumn[] = [
     { id: "date", header: "التاريخ" },
     { id: "source", header: "المصدر" },
@@ -388,53 +372,11 @@ export default async function FinanceDashboardPage({
   }));
   const journalCount = finance?.journalCount ?? 0;
   const journalRowsTruncated = journalCount > journalRows.length;
-  const isAccountantHome = m.role === "accountant" && filter === "all";
-  const accountantAttention: AttentionItem[] = [];
-  if (unclassifiedCount > 0) {
-    accountantAttention.push({
-      href: "/expenses?filter=unclassified",
-      tone: "act",
-      text: `${num(unclassifiedCount)} مصروف بلا حساب يحتاج تصنيفًا`,
-    });
-  }
-  if (readyPaymentCount > 0) {
-    accountantAttention.push({
-      href: "/finance/dashboard?filter=payments",
-      tone: "act",
-      text: `${num(readyPaymentCount)} طلب صرف جاهز للخطوة التالية`,
-    });
-  }
-  if (openPaymentRequestCount > 0) {
-    accountantAttention.push({
-      href: "/finance/dashboard?filter=payments",
-      tone: "watch",
-      text: `${num(openPaymentRequestCount)} طلب صرف مفتوح يحتاج متابعة`,
-    });
-  }
-  if (unpaidCount > 0) {
-    accountantAttention.push({
-      href: "/finance/dashboard?filter=payments",
-      tone: "watch",
-      text: `${num(unpaidCount)} مصروف آجل غير مدفوع`,
-    });
-  }
-  if (nearDuePrs > 0) {
-    accountantAttention.push({
-      href: "/finance/dashboard?filter=prs",
-      tone: "watch",
-      text: `${num(nearDuePrs)} طلب شراء قريب الاستحقاق`,
-    });
-  }
-
   return (
     <div className="flex flex-col gap-6 p-6">
       <PageHeader
-        title={isAccountantHome ? "حسابات اليوم" : "لوحة المالية"}
-        subtitle={
-          isAccountantHome
-            ? "ابدأ بالمعلّقات، ثم راجع حالة النقد والمصروفات والقيود من السجلات الفعلية."
-            : "متابعة الموازنة والمصروفات وطلبات الشراء من السجلات الفعلية."
-        }
+        title="لوحة المالية"
+        subtitle="متابعة الموازنة والمصروفات وطلبات الشراء من السجلات الفعلية."
         actions={
           <div className="no-print flex flex-wrap gap-2">
             <PrintButton label="طباعة لوحة المالية" />
@@ -444,39 +386,6 @@ export default async function FinanceDashboardPage({
           </div>
         }
       />
-
-      {isAccountantHome && <AttentionInbox items={accountantAttention} />}
-
-      {isAccountantHome && (
-        <section aria-labelledby="accountant-state" className="flex flex-col gap-3">
-          <h2 id="accountant-state" className="text-base font-bold">الحالة الآن</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <DashboardKpiLink href="/finance/dashboard?filter=payments" active={false}>
-              <KpiCard
-                label={unpaidUnknown > 0 ? "آجل معروف غير مدفوع" : "آجل غير مدفوع"}
-                value={egpExact(unpaidTotal)}
-                delta={`${num(unpaidCount)} سجل${unpaidUnknown > 0 ? ` + ${num(unpaidUnknown)} غير معروف` : ""}`}
-                deltaDirection={unpaidCount > 0 ? "down" : "none"}
-              />
-            </DashboardKpiLink>
-            <DashboardKpiLink href="/finance/dashboard?filter=custody" active={false}>
-              <KpiCard
-                label="عهدتي"
-                value={egpExact(sumDecimals(myCustody.map((account) => account.balance)).total)}
-              />
-            </DashboardKpiLink>
-            <DashboardKpiLink href="/finance/dashboard?filter=custody" active={false}>
-              <KpiCard
-                label="إجمالي العهد"
-                value={egpExact(sumDecimals(custodyWithBalance.map((account) => account.balance)).total)}
-              />
-            </DashboardKpiLink>
-            <DashboardKpiLink href="/finance/dashboard?filter=accounting" active={false}>
-              <KpiCard label="قيود الشهر" value={num(journalCount)} />
-            </DashboardKpiLink>
-          </div>
-        </section>
-      )}
 
       {budgetsVerified && (
         <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">
@@ -493,7 +402,7 @@ export default async function FinanceDashboardPage({
         </Alert>
       )}
 
-      {!isAccountantHome && (budgetsVerified || canSeeAccounting) && (
+      {(budgetsVerified || canSeeAccounting) && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {budgetsVerified && (
             <>
@@ -540,7 +449,7 @@ export default async function FinanceDashboardPage({
         </section>
       )}
 
-      {!isAccountantHome && <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink
           href="/finance/dashboard?filter=operating"
           active={filter === "operating"}
@@ -560,23 +469,10 @@ export default async function FinanceDashboardPage({
           <KpiCard label="طلبات مرسلة ضمن المعروض" value={num(submittedPrs)} />
         </DashboardKpiLink>
         <KpiCard label="قريبة الاستحقاق ضمن المعروض" value={num(nearDuePrs)} />
-      </section>}
+      </section>
 
-      {canSeeAccounting && !isAccountantHome && (
+      {canSeeAccounting && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          {m.role === "accountant" && (
-            <DashboardKpiLink
-              href="/finance/dashboard?filter=custody"
-              active={filter === "custody"}
-            >
-              <KpiCard
-                label="عهدتي"
-                value={egpExact(
-                  sumDecimals(myCustody.map((account) => account.balance)).total
-                )}
-              />
-            </DashboardKpiLink>
-          )}
           <DashboardKpiLink
             href="/finance/dashboard?filter=custody"
             active={filter === "custody"}
@@ -755,22 +651,6 @@ export default async function FinanceDashboardPage({
             {(filter === "all" || filter === "custody") && (
               <Card title="العهدة حسب الشخص">
                 <div className="flex flex-col gap-4">
-                  {m.role === "accountant" && (
-                    <div>
-                      <h3 className="mb-2 text-base font-semibold">عهدتي</h3>
-                      {myCustodyRows.length === 0 ? (
-                        <EmptyState title="لا توجد عهدة مربوطة بهذا الحساب" />
-                      ) : (
-                        <FilterableTable
-                          columns={custodyColumns}
-                          rows={myCustodyRows}
-                          ariaLabel="عهدتي"
-                          exportFilename="finance-dashboard-accountant-custody"
-                          empty="—"
-                        />
-                      )}
-                    </div>
-                  )}
                   <div>
                     <h3 className="mb-2 text-base font-semibold">كل العهد</h3>
                     {custodyRows.length === 0 ? (
