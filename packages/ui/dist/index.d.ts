@@ -698,16 +698,18 @@ interface RoleSwitcherProps extends Omit<React.SelectHTMLAttributes<HTMLSelectEl
 declare const RoleSwitcher: React.ForwardRefExoticComponent<RoleSwitcherProps & React.RefAttributes<HTMLSelectElement>>;
 
 interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
-    /** Nav entries (consumer-supplied; filtered by role). */ navItems: NavItemData[];
+    /** Nav entries for the generated sidebar (filtered by role). Ignored when `sidebar` is supplied. */ navItems?: NavItemData[];
     /** Active nav item id → aria-current="page". */ activeNavId?: string;
     /** Current role; filters navItems via NavItemData.roles. */ role?: string;
     /** Accessible name for the sidebar <nav>. */ navAriaLabel: string;
     /** Bubbled up from sidebar item activation. */ onNavSelect?: (id: string) => void;
+    /** Real sidebar content. When supplied it replaces the generated SidebarNav inside the aside. */ sidebar?: React.ReactNode;
     /** Brand / logo slot. */ brand?: React.ReactNode;
     /** Topbar content (search, role switcher, user menu…). */ topbar?: React.ReactNode;
     /** Controlled mobile-drawer open state. Uncontrolled if omitted. */ sidebarOpen?: boolean;
-    /** Notified when the drawer toggles (hamburger / overlay / Esc). */ onSidebarOpenChange?: (open: boolean) => void;
+    /** Notified when the drawer toggles (hamburger / overlay / Esc / navigation). */ onSidebarOpenChange?: (open: boolean) => void;
     /** Accessible label for the hamburger toggle. */ menuButtonLabel: string;
+    /** Glyph/icon for the hamburger toggle. Falls back to a plain ☰ when omitted. */ menuIcon?: React.ReactNode;
     /** Main content. */ children: React.ReactNode;
 }
 /**
@@ -715,8 +717,11 @@ interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
  * RTL-first: the sidebar anchors to the inline-start edge via logical grid columns; under dir="rtl"
  * that is the right edge, under dir="ltr" the left — no code change. On narrow viewports the sidebar
  * collapses to an off-canvas drawer toggled from the topbar hamburger (overlay click / Esc closes it).
+ *
+ * The aside accepts either consumer-owned `sidebar` content or, by default, a `navItems`-driven
+ * SidebarNav. Both close the drawer on navigation.
  */
-declare function AppShell({ navItems, activeNavId, role, navAriaLabel, onNavSelect, brand, topbar, sidebarOpen, onSidebarOpenChange, menuButtonLabel, children, className, ...rest }: AppShellProps): React.JSX.Element;
+declare function AppShell({ navItems, activeNavId, role, navAriaLabel, onNavSelect, sidebar, brand, topbar, sidebarOpen, onSidebarOpenChange, menuButtonLabel, menuIcon, children, className, ...rest }: AppShellProps): React.JSX.Element;
 
 type LoopStepState = "pending" | "active" | "done" | "blocked";
 interface LoopStep {

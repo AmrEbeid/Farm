@@ -12,6 +12,10 @@ export interface UseOverlayOptions {
 const FOCUSABLE =
   'a[href],area[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
+/** Open overlays in paint order. Only the topmost layer may trap focus or handle Escape. */
+const overlayStack: symbol[] = [];
+let overflowBeforeFirstOverlay: string | null = null;
+
 function isVisible(el: HTMLElement): boolean {
   if (el === document.activeElement) return true;
   if (el.hidden) return false;
@@ -28,22 +32,27 @@ function focusable(root: HTMLElement): HTMLElement[] {
 export function useOverlay({ open, onClose, closeOnEsc = true }: UseOverlayOptions) {
   const ref = React.useRef<HTMLDivElement>(null);
   const restoreRef = React.useRef<HTMLElement | null>(null);
+  const tokenRef = React.useRef(Symbol("overlay"));
   // Keep the latest onClose without re-binding the keydown listener.
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
 
   React.useEffect(() => {
     if (!open) return;
+    const token = tokenRef.current;
     restoreRef.current = document.activeElement as HTMLElement | null;
+    if (overlayStack.length === 0) {
+      overflowBeforeFirstOverlay = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+    overlayStack.push(token);
     const panel = ref.current;
     // Move focus into the panel.
     const initial = panel ? focusable(panel)[0] ?? panel : null;
     initial?.focus();
 
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     function onKeyDown(e: KeyboardEvent) {
+      if (overlayStack[overlayStack.length - 1] !== token) return;
       if (e.key === "Escape" && closeOnEsc) {
         e.stopPropagation();
         onCloseRef.current();
@@ -71,8 +80,16 @@ export function useOverlay({ open, onClose, closeOnEsc = true }: UseOverlayOptio
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
-      document.body.style.overflow = prevOverflow;
-      restoreRef.current?.focus();
+      const stackIndex = overlayStack.lastIndexOf(token);
+      const wasTopmost = stackIndex === overlayStack.length - 1;
+      if (stackIndex >= 0) overlayStack.splice(stackIndex, 1);
+      if (overlayStack.length === 0) {
+        document.body.style.overflow = overflowBeforeFirstOverlay ?? "";
+        overflowBeforeFirstOverlay = null;
+      } else {
+        document.body.style.overflow = "hidden";
+      }
+      if (wasTopmost && restoreRef.current?.isConnected) restoreRef.current.focus();
     };
   }, [open, closeOnEsc]);
 
