@@ -1,6 +1,19 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-08)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-22)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-08-22 (latest) — Marketing full-source workspace MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted migration `20260822133257 marketing_full_source_workspace` is applied to Farm production and adds
+> the Owner-only, exact-digest-pinned import path for the complete supplied Marketing HTML/JSON pair: 25 areas,
+> 1,571 contacts and 101 records. Imports are atomic, idempotent and organization-serialized; differing
+> content fails without recording import evidence. The disputed `palmsApprox` value is excluded. Postflight
+> verified FORCE RLS, locked definer behavior, no anonymous execution, and unchanged live data at 5 contacts /
+> 20 records / 0 activities / 0 import runs. No source data was auto-imported. PR #1013 merged as
+> `b778ed69230d7aecdbcb9e47fab6f8dbdf0c6e56`; CI, db-tests, release and production Vercel deployment
+> `EnogVKu5brbtxFRhE8HxUXDKcx4e` succeeded on the exact merge. Public and login routes return 200; all five
+> signed-out Marketing routes redirect to login and unauthenticated source preview returns 401. pgTAP
+> 3,420/3,420, Vitest 1,416 plus 16 controlled skips, TypeScript, ESLint, build, source oracle and independent
+> review are green. Authenticated role acceptance and the Owner's explicit preview/import decision remain open.
 
 > **2026-08-08 (latest) — Owner public-site comments MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
 > Hosted migration `20260808062443 owner_public_site_comments` applied migrate-first and exact postflight
