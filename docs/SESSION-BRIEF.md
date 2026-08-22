@@ -1,5 +1,33 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Homepage certificates — MERGED, DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Marketing exact workspace — MIGRATED, MERGED, DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Marketing exact HTML workspace — MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+The supplied Marketing HTML is now an interactive Farm OS workspace rather than a static replica. All 25 source
+areas, 125 headings, 51 tables, 256 controls, 137 unique source IDs and 20 templates are covered. Safe source
+controls save organization-scoped draft values. Operational records remain in the normalized Marketing model:
+contact statuses preserve provenance; daily reports support multi-line sales/expenses and canonical server
+formulas; record registers paginate by type; daily-sector and weekly-availability insights aggregate all rows.
+Outbound messaging remains manual copy only. The disputed approximately 5,000-palm source claim is highlighted
+as non-authoritative.
+
+Migrations `20260822142100` through `20260822142400` were applied migrate-first to Farm production as hosted
+versions `20260822174128`, `20260822174129`, `20260822174131` and `20260822174132`. Postflight proved all
+expected objects, FORCE RLS, one role-scoped read policy, no anonymous function execution, and unchanged counts:
+1,576 contacts, 121 records, 0 daily reports and 0 draft controls. No application row moved.
+
+PR #1020 merged as `e637152f8e2f8002186af99e94cf9ff7307c7632`. CI, db-tests and Production deployment
+`6039498028` succeeded. Live signed-out `/marketing` and `/marketing/workspace` redirect to `/login`.
+Validation passed: TypeScript; touched ESLint; 1,895 Vitest passes plus 17 controlled skips; pgTAP 4,229/4,229;
+70-page build; deterministic source oracle; gitleaks; Vercel; independent review APPROVE.
+
+**Exact resume point:** first run authenticated desktop/mobile owner, accountant and farm-manager smoke covering
+contact status, one disposable draft and one disposable create/edit/archive cycle. Then begin the product-wide
+frontend reset from a read-only inventory and operator journey audit. Redesign navigation, role dashboards and
+every entity 360 page as one coherent system: compact headers, clear next actions, insight-to-detail drill-down,
+loading/empty/error states, Arabic RTL and mobile parity. Preserve existing role gates, financial definitions,
+Marketing provenance and database contracts; ship bounded reviewed slices with Playwright screenshots, axe and
+Lighthouse evidence rather than one unreviewable rewrite.
 
 ## 2026-08-22 — Homepage certificate editor — MERGED / DEPLOYED / PUBLICLY VERIFIED
 

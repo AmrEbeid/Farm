@@ -1,4 +1,28 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Homepage certificates — MERGED, DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Marketing exact workspace — MIGRATED, MERGED, DEPLOYED)
+
+> **2026-08-22 — MARKETING EXACT HTML WORKSPACE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> The supplied 2026 Marketing HTML is now represented as an interactive database-backed workspace at
+> `/marketing/workspace`: all 25 areas, 125 headings, 51 tables, 256 controls, 137 unique source IDs and
+> 20 message templates are accounted for. Safe source controls persist as organization-scoped drafts; live
+> operational actions use the normalized Marketing workflows below each source area. Contact status is editable
+> without replacing source provenance. Daily reports support multiple sales and expense lines, exact server-side
+> formulas, sector allocation, edit/archive, manual WhatsApp copy and print. Registers paginate independently
+> and all-row insights come from gated database aggregates. No automated outbound sender was introduced, and the
+> disputed approximately 5,000-palm statement is visibly non-authoritative.
+>
+> Four reviewed migrations were applied migrate-first to Farm production as hosted versions
+> `20260822174128` through `20260822174132`. Postflight verified the canonicalization trigger, contact-status
+> RPC, FORCE-RLS draft table, one role-scoped read policy, gated save/aggregate RPCs, and no anonymous execution.
+> Production counts stayed exactly 1,576 contacts / 121 records / 0 daily reports / 0 workspace drafts; no
+> application row changed. PR #1020 merged as `e637152f8e2f8002186af99e94cf9ff7307c7632`;
+> exact-merge CI/db-tests and GitHub Production deployment `6039498028` succeeded. Live signed-out
+> `/marketing` and `/marketing/workspace` return 307 to `/login`.
+>
+> Validation: TypeScript and touched ESLint clean; Vitest 1,895 passed plus 17 controlled skips; pgTAP
+> 4,229/4,229; 70-page build; source-generation oracle, diff guard, gitleaks, Vercel and independent review
+> APPROVE. Remaining acceptance is authenticated owner/accountant/farm_manager create/edit/archive and draft
+> smoke. **Next product phase:** audit and rebuild the complete application navigation, dashboards and 360 pages
+> for compact, role-specific daily work without changing financial or Marketing truth contracts.
 
 > **2026-08-22 — HOMEPAGE CERTIFICATE EDITOR MERGED / DEPLOYED / PUBLICLY VERIFIED.**
 > Owner `/website` now manages 1–12 bilingual certificate cards: section copy, titles/details, image upload or
