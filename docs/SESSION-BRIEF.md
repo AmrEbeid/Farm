@@ -1,5 +1,24 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Marketing exact workspace — MIGRATED, MERGED, DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R0 — MERGED / DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Product UI reset R0 — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+SPEC-0033 records the complete staged UI program. R0 is live: the fixed phone tab bar and app content share one
+scalable height plus safe-area inset; automatic breadcrumbs stay off depth-1 destinations, preserve deep
+role-visible trails and render nothing for a page outside the role-filtered registry. The implementation is
+app-only. It changed no route, authorization, financial/Marketing contract, database schema or business row.
+
+PR #1022 merged as `f54722bcc51d20c81140294dc0ed15a36c8dbe80`. GitHub Production deployment
+`6039939309` succeeded. Both public aliases serve `/login`; signed-out `/dashboard` and `/farm/palm/test`
+redirect to login. Evidence passed: 15 focused tests; 1,910 full Vitest passes plus 17 controlled skips;
+TypeScript; ESLint; 70-page build; pgTAP; gitleaks; service-role, Recharts and client-boundary guards;
+Impeccable deterministic scan; Vercel; independent rereview APPROVE.
+
+**Exact resume point:** create SPEC-0033 R1a from current main as a packages/UI-only release. Add a real sidebar
+slot, repair drawer/overlay ownership, replace the menu glyph with the existing Lucide system and compact the
+topbar; rebuild tracked UI distribution and do not adopt it in Farm OS until separate R1b. Authenticated 390px
+R0 visual clearance is still unclaimed because no signed-in Farm browser session was available. Before R2,
+write the six explicit role acceptance scripts required by SPEC-0033. The full UI reset is not complete.
 
 ## 2026-08-22 — Marketing exact HTML workspace — MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED
 
