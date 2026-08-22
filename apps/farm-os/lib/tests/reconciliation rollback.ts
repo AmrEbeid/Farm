@@ -30,7 +30,7 @@ const QUEUE_MIGRATION = readFileSync(
     process.cwd(),
     "supabase",
     "migrations",
-    "20260808060000_accounting_reconciliation_ordered_queue.sql",
+    "20260822140200_accounting_reconciliation_ordered_queue.sql",
   ),
   "utf8",
 );

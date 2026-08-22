@@ -332,7 +332,7 @@ select throws_ok(format($$select public.fn_reverse_expense_payment(%L, %L, 'unro
   '22023', null, 'payment-request-linked expense fails closed pending request reversal semantics');
 -- This suite tests reversal behavior, not close readiness. Install the locked-period fixture as
 -- the test administrator so unrelated live-era blockers in the shared seed cannot weaken or
--- bypass fn_month_close_summary; migration 20260808070000 tests the real close RPC separately.
+-- bypass fn_month_close_summary; migration 20260822140300 tests the real close RPC separately.
 reset role;
 select lives_ok(format($$insert into public.accounting_periods(
     org_id, period_start, period_end, status, note

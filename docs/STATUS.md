@@ -22,18 +22,18 @@ corrected tip becomes canonical only after approval and fast-forward integration
 The canonical validation branch `validation/accounting-release-current-main-20260808` is based on exact current
 `origin/main` `07b1224`, including the already-live
 Owner public-site release. Twenty-one accounting
-migrations remain pending: exact unpaid obligations `20260808040000`, reconciliation review concurrency
-`20260808050000`, canonical ordered queue `20260808060000`, exact month close `20260808070000`, exact annual
-cost-center history `20260808080000`, exact posted-sale revenue `20260808090000`, and standalone owner-funding
-custody reversal `20260808100000`, atomic exact custody dashboard summary `20260808110000`, and exact signed
-payment-request totals `20260808120000`, bounded exact daily receivables `20260808130000`, and exact
-revenue/A-R report transport `20260808140000`, the exact atomic daily ledger snapshot
-`20260808150000`, the exact atomic transactions snapshot `20260808160000`, and the exact atomic season
-snapshot `20260808170000`, the exact atomic custody-report snapshot `20260808180000`, and the exact atomic
-finance-dashboard snapshot `20260808190000`, the exact custody daily snapshot `20260808200000`, and the exact
-expense daily snapshot `20260808210000`, the exact atomic expense-detail snapshot `20260808220000`, and the exact
-atomic cost-center report snapshot `20260808230000`, and the exact atomic payment-request detail snapshot
-`20260808240000`. The mainline
+migrations remain pending: exact unpaid obligations `20260822140000`, reconciliation review concurrency
+`20260822140100`, canonical ordered queue `20260822140200`, exact month close `20260822140300`, exact annual
+cost-center history `20260822140400`, exact posted-sale revenue `20260822140500`, and standalone owner-funding
+custody reversal `20260822140600`, atomic exact custody dashboard summary `20260822140700`, and exact signed
+payment-request totals `20260822140800`, bounded exact daily receivables `20260822140900`, and exact
+revenue/A-R report transport `20260822141000`, the exact atomic daily ledger snapshot
+`20260822141100`, the exact atomic transactions snapshot `20260822141200`, and the exact atomic season
+snapshot `20260822141300`, the exact atomic custody-report snapshot `20260822141400`, and the exact atomic
+finance-dashboard snapshot `20260822141500`, the exact custody daily snapshot `20260822141600`, and the exact
+expense daily snapshot `20260822141700`, the exact atomic expense-detail snapshot `20260822141800`, and the exact
+atomic cost-center report snapshot `20260822141900`, and the exact atomic payment-request detail snapshot
+`20260822142000`. The mainline
 Owner source migration `20260807220000` is already live under hosted ID `20260808062443` and is not a pending
 accounting release action. C-4 adds a movement 360 and an
 append-only, linked custody/journal reversal; linked, consumed, stale, cross-org, pre-original-date and
@@ -227,7 +227,7 @@ findings were corrected; final rereview returned APPROVE. The signed payment-req
 and direct-row amount as exact text, computes category totals without JavaScript floating point, and passes owner
 funding to the numeric RPC as a validated canonical decimal string. All tenant-owned request, line, funding,
 expense, custody-account, people and chart-of-accounts reads are explicitly active-organization scoped; malformed
-money fails closed. Migration `20260808120000` also makes the security-definer totals function fail closed on
+money fails closed. Migration `20260822140800` also makes the security-definer totals function fail closed on
 cross-organization custody, line, expense, funding or movement links. Its SQL consumers remain compatible through
 `->>` numeric casts. Independent rereview returned APPROVE with no P1-P3 finding. Custody account targets,
 standalone owner-funding receipts, holder transfers and the quick-entry custody wizard now keep numeric input as
@@ -238,7 +238,7 @@ database snapshot per screen instead of independent sales, buyer and unbounded c
 unit prices, totals, collections and remaining balances stay as exact decimal text through display and writes;
 collection dates use the Cairo farm calendar day rather than the server UTC day;
 malformed, cross-organization, over-collected, non-posted and denied-role cases fail closed. Migration
-`20260808130000` also returns exact write totals as JSON strings and rejects a positive price whose rounded
+`20260822140900` also returns exact write totals as JSON strings and rejects a positive price whose rounded
 sale total would be zero before changing the sale or journal. Independent review found that zero-rounding
 post-write mismatch; the database and preview guards corrected it, and rereview returned APPROVE with no
 remaining P1-P3 finding. Current app evidence is **1,601 passed + 14 controlled skips** across 117 discovered files, full ESLint,

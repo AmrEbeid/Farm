@@ -266,7 +266,7 @@ describe("reconciliation review — evidence-quality queue filter", () => {
 describe("reconciliation review — queue source contract", () => {
   const pageSource = readFileSync(join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/page.tsx"), "utf8");
   const queueMigration = readFileSync(
-    join(process.cwd(), "supabase/migrations/20260808060000_accounting_reconciliation_ordered_queue.sql"),
+    join(process.cwd(), "supabase/migrations/20260822140200_accounting_reconciliation_ordered_queue.sql"),
     "utf8",
   );
   const queueStart = pageSource.indexOf("const { data: queuePageData");
@@ -985,7 +985,7 @@ describe("reconciliation review — optimistic concurrency contract", () => {
   const controls = readFileSync(join(process.cwd(), "app/(app)/finance/reconciliation/[batchId]/controls.tsx"), "utf8");
   const actions = readFileSync(join(process.cwd(), "app/(app)/finance/reconciliation/actions.ts"), "utf8");
   const migration = readFileSync(
-    join(process.cwd(), "supabase/migrations/20260808050000_accounting_reconciliation_review_concurrency.sql"),
+    join(process.cwd(), "supabase/migrations/20260822140100_accounting_reconciliation_review_concurrency.sql"),
     "utf8"
   );
   const queueData = readFileSync(
@@ -993,7 +993,7 @@ describe("reconciliation review — optimistic concurrency contract", () => {
     "utf8"
   );
   const queueMigration = readFileSync(
-    join(process.cwd(), "supabase/migrations/20260808060000_accounting_reconciliation_ordered_queue.sql"),
+    join(process.cwd(), "supabase/migrations/20260822140200_accounting_reconciliation_ordered_queue.sql"),
     "utf8"
   );
   const dbTest = readFileSync(

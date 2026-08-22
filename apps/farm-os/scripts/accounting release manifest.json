@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "candidate": "accounting-release-20260808",
+  "candidate": "accounting-release-20260822-current-main",
   "scope": "full-accounting-release-candidate",
-  "baseCommit": "07b12245e54c635e62293779f86c589f1f1f071b",
+  "baseCommit": "253f479fde25e39494550be7445560489458af60",
   "releasePrograms": [
     {
       "path": "apps/farm-os/scripts/accounting release preflight core.mjs",
@@ -165,12 +165,9 @@
     "apps/farm-os/scripts/check-recharts-codesplit.mjs",
     "apps/farm-os/scripts/run accounting readonly e2e.mjs",
     "docs/BUSINESS-RULES-CATALOG.md",
-    "docs/DEPLOY-STATUS.md",
     "docs/FEATURE-REGISTRY.md",
-    "docs/PROJECT-TRACKER.md",
     "docs/REPORT-CATALOG.md",
     "docs/RPC-CATALOG.md",
-    "docs/SESSION-BRIEF.md",
     "docs/SPEC-0004-accounting-and-pnl.md",
     "docs/SPEC-0018-custody-and-payment-requests.md",
     "docs/SPEC-0025-task-first-ux.md",
@@ -187,91 +184,91 @@
     "package-lock.json",
     "package.json"
   ],
-  "candidateDigest": "9e321f7c736de4feee793a9798da1e5b3b143114d1ca6cda89e9588b34d88b94",
-  "artifactModesDigest": "1eb6a7ab5af4b29fb80e6e25124fbd9add1a4fe51424c21d20d151159d1c8b54",
+  "candidateDigest": "b7903cf047071293bb6701429fb6068a1de0622b87f66ecc345a4335009161d4",
+  "artifactModesDigest": "3f2be3cdaa3322fd397b1bcd3469bc85c0224e4e32967ef2d4a28f14970b2cd9",
   "migrations": [
     {
-      "path": "apps/farm-os/supabase/migrations/20260808040000_expense_unpaid_exact_summary.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140000_expense_unpaid_exact_summary.sql",
       "sha256": "0a0ed8ed740833e1600be36eaf9f47ea29605d160fb0661d754db14bf46cc842"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808050000_accounting_reconciliation_review_concurrency.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140100_accounting_reconciliation_review_concurrency.sql",
       "sha256": "2a57440529ba3c4cd159df90c01c538e53ca36c0186efc1cddcc219e7b316433"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808060000_accounting_reconciliation_ordered_queue.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140200_accounting_reconciliation_ordered_queue.sql",
       "sha256": "036777c7237dff0b8d0ebfd2166f8b6ce0babc438e967ada6bcd49cf99a656ce"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808070000_month_close_exact_summary.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140300_month_close_exact_summary.sql",
       "sha256": "82cbe767cd0db2bad080e523f055e4f209c9ab306e6dff9f30d99f62e90eff4c"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808080000_cost_center_history_summary.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140400_cost_center_history_summary.sql",
       "sha256": "a0ec3b7ef62bd7a96b96f631706de9fa5d0b860cc55b6bd5c5c8155c18c67f8c"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808090000_cost_center_revenue_summary.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140500_cost_center_revenue_summary.sql",
       "sha256": "9de8e53fbc464b3377a56945fc7b22fd0455640eadc8d20e8486727490e83164"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808100000_custody_movement_reversal.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140600_custody_movement_reversal.sql",
       "sha256": "d7cba9777a5f9cbb2d5c32772d1f66c491dd55fd206a14193037af811bd698d6"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808110000_custody_dashboard_summary.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140700_custody_dashboard_summary.sql",
       "sha256": "e4ecee0fc8caac50546afea4f9436c4fca07bec947079d06012a95819b659c08"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808120000_payment_request_exact_totals.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140800_payment_request_exact_totals.sql",
       "sha256": "84cece0553dc34ff0ddfc046743169ae5e4b71a6d50685932390b3fccc64a1ae"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808130000_receivable_workflow_exact_money.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822140900_receivable_workflow_exact_money.sql",
       "sha256": "851be228a667ea480ab4624bd7966d680e8153077b7b0a46a36a448fd8cc3023"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808140000_exact_revenue_report_transport.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141000_exact_revenue_report_transport.sql",
       "sha256": "0bc46f7d4315b6a83b4b385504f963de452c6ae79240c72fd86593f776640726"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808150000_exact_accounting_ledger_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141100_exact_accounting_ledger_snapshot.sql",
       "sha256": "0219f20bf3d5ccf6b3fc81260ed2f015cf9d2a9b963c33efcf75da502eaefd28"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808160000_exact_transactions_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141200_exact_transactions_snapshot.sql",
       "sha256": "6bb33fd92a3be3b38f0137c23ce1db8c99890309fa67bf81bd1a141279f1f483"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808170000_exact_season_dashboard_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141300_exact_season_dashboard_snapshot.sql",
       "sha256": "d7db26edf9615397f0f17c10b72449ae342f12a51a016aea519e0c37c53b686c"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808180000_exact_custody_reports_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141400_exact_custody_reports_snapshot.sql",
       "sha256": "d274c8f654e404f8348101636b63c0fe6a953c3c7ff1fdd944ab89083f21a51b"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808190000_exact_finance_dashboard_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141500_exact_finance_dashboard_snapshot.sql",
       "sha256": "b8fe2bbeccab9b27fb53939d01da56044344ead6f71599c26ce440f9f7f82a87"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808200000_exact_custody_daily_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141600_exact_custody_daily_snapshot.sql",
       "sha256": "284ecad237311dd01272100e8435914d1729f0f3933501908daae3fca5ebff9d"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808210000_exact_expense_daily_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141700_exact_expense_daily_snapshot.sql",
       "sha256": "40efec09e422647b3d48183eeb1d14d7c903ec0c97ddb6a0364bb29614af769e"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808220000_exact_expense_detail_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141800_exact_expense_detail_snapshot.sql",
       "sha256": "f0f7209fc5af51e9893f09f0421c970788821ff80bd3162d5d43d58139ac4625"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808230000_exact_cost_center_reports_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822141900_exact_cost_center_reports_snapshot.sql",
       "sha256": "ec681c2dcc5c3b74ada6f28b67d424822d45ad49c9e0a12459352a1715237411"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260808240000_exact_payment_request_detail_snapshot.sql",
+      "path": "apps/farm-os/supabase/migrations/20260822142000_exact_payment_request_detail_snapshot.sql",
       "sha256": "28ad83b90b3b74611d9a2c26948a6818997d94bb0d209118c1a985f7cee00156"
     }
   ],
@@ -282,7 +279,7 @@
     },
     {
       "path": "apps/farm-os/supabase/tests/147_expense_unpaid_exact_summary_test.sql",
-      "sha256": "aef3f4f825ab77c64b38551019cdaee2b0e9b82d1a6933bb81ec8e87f4f40481"
+      "sha256": "ccbbb086dd2611caa947a635b40ab1a31492bbb093fa4792fab094305b8dcefc"
     },
     {
       "path": "apps/farm-os/supabase/tests/148_month_close_exact_summary_test.sql",
@@ -314,7 +311,7 @@
     },
     {
       "path": "apps/farm-os/supabase/tests/205_expense_payment_reversal_test.sql",
-      "sha256": "a489cf569e87048f05299ce1ab99b1c4dffdfa236575c634f9ca05b086747ade"
+      "sha256": "2f4e1e7b88c5e79607851ae6f23f7a7207f55384d43d0151c3b09ab946dadc04"
     },
     {
       "path": "apps/farm-os/supabase/tests/206_custody_movement_reversal_test.sql",
@@ -386,17 +383,17 @@
     },
     {
       "path": "apps/farm-os/supabase/tests/22_security_invariants_test.sql",
-      "sha256": "8e8db4a3504ebfb305e24b3c440ce5ad3a257e29e4d4222a3405ecc614b4403e"
+      "sha256": "9ed1748c8ab12481800519b9728d9c17f2f559e73d754f4d6cc693155f476639"
     }
   ],
   "supportFiles": [
     {
-      "path": "apps/farm-os/supabase/test-shims/run-pgtap-local.sh",
-      "sha256": "d79857cb2cd14dbf309977f803072574c095bf5e082095731e5bf0b6253aa90a"
-    },
-    {
       "path": "apps/farm-os/lib/reconciliation/pinned hashes.mts",
       "sha256": "eed06cf70dfa6ee130ad6a94fdc937a28d504894d565f9f9cb6b5082997bf120"
+    },
+    {
+      "path": "apps/farm-os/supabase/test-shims/run-pgtap-local.sh",
+      "sha256": "15255efea6a0a37b681d526177389dfdeceaa0b61048798fbfaff9f2683d6589"
     }
   ]
 }

@@ -26,17 +26,17 @@
     "next": "16.3.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "recharts": "^2.15.0"
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
-    "@playwright/test": "^1.61.1",
-    "@tailwindcss/postcss": "^4.3.2",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^10.6.0",
-    "eslint-config-next": "16.3.0",
+    "eslint": "^10.8.1",
+    "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
     "typescript": "^6",
     "vitest": "^4.1.9"

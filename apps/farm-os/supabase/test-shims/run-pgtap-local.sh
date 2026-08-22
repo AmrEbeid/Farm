@@ -32,12 +32,12 @@ createdb -h "$WORK" -p "$PORT" -U postgres farm
 run() { psql -v ON_ERROR_STOP=1 -h "$WORK" -p "$PORT" -U postgres -d farm -X -q "$@"; }
 is_replay_safe_migration() {
   case "$(basename "$1")" in
-    20260808050000_accounting_reconciliation_review_concurrency.sql | \
-    20260808070000_month_close_exact_summary.sql | \
-    20260808080000_cost_center_history_summary.sql | \
-    20260808100000_custody_movement_reversal.sql | \
-    20260808130000_receivable_workflow_exact_money.sql | \
-    20260808140000_exact_revenue_report_transport.sql) return 0 ;;
+    20260822140100_accounting_reconciliation_review_concurrency.sql | \
+    20260822140300_month_close_exact_summary.sql | \
+    20260822140400_cost_center_history_summary.sql | \
+    20260822140600_custody_movement_reversal.sql | \
+    20260822140900_receivable_workflow_exact_money.sql | \
+    20260822141000_exact_revenue_report_transport.sql) return 0 ;;
     *) return 1 ;;
   esac
 }

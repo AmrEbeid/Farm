@@ -172,7 +172,7 @@ describe("month-close page source contract", () => {
     "utf8",
   );
   const migration = readFileSync(
-    new URL("../supabase/migrations/20260808070000_month_close_exact_summary.sql", import.meta.url),
+    new URL("../supabase/migrations/20260822140300_month_close_exact_summary.sql", import.meta.url),
     "utf8",
   );
 

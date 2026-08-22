@@ -1,231 +1,69 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-09 by Codex (mobile accounting integration candidate — LOCAL)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Marketing full source — MIGRATED, MERGED, DEPLOYED)
 
-> **2026-08-09 — MOBILE ACCOUNTING ACCEPTANCE EXTENSION LOCAL / COMMITTED / VALIDATED / REREVIEW REQUIRED.** An isolated
-> follow-up at exact PR #1008 head runs the same 22 read-only role workflows on Desktop Chrome and pinned Pixel 7
-> Chromium, for exactly 44 discovered tests, and checks settled page-level horizontal overflow after navigation and
-> each workflow's final rendered state. The oracle also measures the authenticated shell's real scrolling main
-> element; a negative fixture proves shell-contained overflow fails even when the roots fit. Focused safety tests
-> pass 23/23; full Vitest passes 1,746 with 14 controlled
-> skips, TypeScript/scoped ESLint/audit/build pass, the 220-file working-tree preflight passes, and synthetic
-> discovery lists exactly 44 tests without running them. Exact-commit review of local commit `ccdc915` found a P2
-> shell-overflow false pass and P3 commit-state wording; both are corrected in the current follow-up and require
-> rereview. No credentialed run, production read, push, PR update, migration, merge or deploy occurred. The
-> canonical release branch remains `validation/accounting-release-current-main-20260808`. These changes refresh
-> the manifest-bound candidate digest. The corrected tip replaces the desktop-only candidate only after exact-commit
-> approval and canonical-branch fast-forward.
+> **2026-08-22 — MARKETING FULL-SOURCE WORKSPACE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> The Marketing module now accounts for every one of the 25 areas in the supplied 2026 HTML/JSON workspace
+> and supports editable system records across the full source shape. The exact reviewed pair contains 1,571
+> contacts and 101 records. A pinned two-file preview/import flow validates both files together, requires the
+> exact approved source digest `fb458c2865422b0ea3782894f21cae55f99278722ee3211143515155ddf9f9a6`,
+> and permits commit only for an Owner. Imports are atomic, idempotent, serialized per organization, and
+> reject differing content without writing false import evidence. Contact identity preserves exporters that
+> share a generic website. The disputed `palmsApprox` source value is coverage-listed but deliberately neither
+> editable nor imported. Existing owner/accountant/farm_manager Marketing read/edit permissions are unchanged;
+> only full-source commit is Owner-only.
+>
+> Production migration `20260822133257 marketing_full_source_workspace` is applied to Farm project
+> `veezkmytervjnpxcrbkw`. Postflight verified the import-run table, FORCE RLS, locked search path, Owner-only
+> RPC authorization, no anonymous execution, organization serialization, and unchanged production business
+> counts: 5 contacts / 20 records / 0 activities / 0 import runs. **No source rows were auto-imported.** The
+> Owner must preview the exact files and decide how to resolve any conflict with those existing compact rows.
+> PR #1013 merged as `b778ed69230d7aecdbcb9e47fab6f8dbdf0c6e56`; exact-merge CI, db-tests,
+> release, and Vercel deployment `EnogVKu5brbtxFRhE8HxUXDKcx4e` succeeded. Public `/` and `/login` return
+> 200; all five `/marketing*` routes redirect signed-out users to login; unauthenticated source preview returns
+> 401. Validation: pgTAP 3,420/3,420, Vitest 1,416 passed plus 16 controlled skips, TypeScript, full ESLint,
+> 69-page build, repository guards, exact 25/1,571/101 source probe, and independent hostile review APPROVE.
+> Remaining acceptance: authenticated owner/accountant/farm_manager UI smoke, then an explicit Owner preview
+> and import decision. Do not bypass a source conflict or infer that the live source data has been imported.
 
-> **2026-08-07/08 — COMBINED ACCOUNTING RELEASE REHEARSAL + C-4 LOCALLY GREEN / OWNER-GATED.**
-> The canonical integration worktree is based on exact current `origin/main` `07b1224`, including the already-live
-> Owner-site release. It combines the candidate lanes:
-> sanitized reconciliation provenance pins; exact unpaid obligations on
-> custody/finance; one-row review concurrency and canonical bounded queue ordering; exact dated month-close and
-> annual cost-center history plus one atomic exact cost-center report snapshot; exact posted-sale revenue for seven owner/accountant insight surfaces; and
-> append-only correction of a standalone owner-funding custody receipt. Ordered
-> migrations are `20260808040000` -> `20260808050000` -> `20260808060000` -> `20260808070000` ->
-> `20260808080000` -> `20260808090000` -> `20260808100000` -> `20260808110000` ->
-> `20260808120000` -> `20260808130000` -> `20260808140000` -> `20260808150000` -> `20260808160000` ->
-> `20260808170000` -> `20260808180000` -> `20260808190000` -> `20260808200000` -> `20260808210000` ->
-> `20260808220000` -> `20260808230000` -> `20260808240000`. The final ten migrations replace fragmented accounting, transaction, season, custody-report,
-> finance-dashboard, custody, expense-list, expense-detail and payment-request detail reads with role-aware atomic exact snapshots. The only composition work was additive generated RPC declarations and
-> merging the stronger request/identity controls into the broader daily-route acceptance matrix.
->
-> The mainline Owner source migration `20260807220000` is already live as hosted `20260808062443` and
-> is not part of the twenty-one pending accounting migrations above.
-> The schema-v2 manifest binds the exact 220-file candidate: 165 aggregate-hashed app/docs/root files, 51
-> individually hashed database artifacts and four release controls. NUL-safe Git enumeration, byte+mode binding,
-> canonical regular-file checks, hidden-index rejection, sanitized Git execution and separate literal-mode
-> launchers make the boundary fail closed. Working-tree mode passes 220/220 files. The default committed release
-> gate remains intentionally red while this candidate is dirty; after an approved commit it must prove a clean
-> tree plus byte and mode equality with `HEAD`.
-> The local cached `origin/main` must be fetched and rechecked immediately before any release action.
-> Six isolated temporary-Git Vitest cases behaviorally pin working mode, concealed-preload rejection, exact-set,
-> program byte/mode and both hidden-index failures; independent rereview returned APPROVE with no P1-P4 finding.
-> The canonical accounting acceptance runbook sequences the remaining human gate without inventing data:
-> accountant review, freeze, approval by an eligible Owner who neither created the batch nor reviewed a row,
-> pre-execution dual run, separate execution authorization, final
-> digest-bound signatures, restricted evidence retention and fail-closed rollback handling.
-> The batch page now mirrors the database creator/reviewer separation checks before enabling approval, with a
-> tenant-scoped bounded lookup and exact blocked reasons; independent review returned APPROVE with no P1-P4 finding.
-> The canonical accounting release execution runbook closes the release-order handoff: exact-commit CI precedes
-> the twenty-one migrations, database failure is fix-forward only, credentialed role acceptance precedes merge,
-> merge and automatic production deployment require distinct explicit approvals, and #903 remains separate.
-> Independent rereview returned APPROVE with no P1-P4 finding.
-> Fresh current-byte evidence is pgTAP 4,018/4,018, Vitest 1,745 + 14 skipped, full ESLint, TypeScript and a
-> 63/63-page build. Independent review reproduced newline, mode, hidden-index, Git-environment and concealed-preload
-> bypasses; all were corrected and final narrow rereview returned APPROVE with no P1-P4 finding.
-> On 2026-08-09, a fresh fetch confirmed `origin/main` remains exact `07b1224`; the open PR list contains only
-> dependency/release automation and no competing accounting branch. The private canonical reconciliation suite
-> plus import convention guard passed 102/102 against the real pinned workbook, snapshot and evidence files,
-> preserving exactly 698 generated rows. Safe synthetic collection still discovers all 22 role tests. The local
-> ephemeral 698-row queue benchmark returned 50 rows with 33.80 ms median and 37.91 ms p95 over 30 measured calls
-> after warm-up. Credentialed acceptance remains unrun because all required runtime inputs are absent.
-> A release-harness audit then found two required read-only RPCs missing from its exact server POST allowlist:
-> `fn_cost_center_reports_snapshot` for both report modes and `fn_reconciliation_acceptance_snapshot` for the
-> acceptance page/CSV. Both are now allowlisted with positive regression assertions. The origin/path/query/fragment
-> checks and exact-name requirement are unchanged; no write RPC was admitted. Focused Vitest passes 205/205, full
-> Vitest is now 1,745 + 14 controlled skips, TypeScript and touched-file ESLint are clean, and independent review
-> returned APPROVE with no P0-P4 finding after checking all 22 workflows. This fixes local release instrumentation;
-> it does not substitute for the still-unrun credentialed suite or authorize a production read.
-> The suite now treats any browser page exception or console error on the fixture or any context-created page as a
-> failed acceptance test. Mandatory hooks require installed state and close the context before asserting, while a
-> typed runtime validator admits only generic `pageerror` / `console:error` categories and rejects detail without
-> mutating the report. Regression Vitest passes 22/22, synthetic discovery remains 22 tests, and final independent
-> rereview returned APPROVE with no P0-P4 finding. No credentialed or production-connected check ran.
-> The owner dashboard's pending-price and unpaid-expense attention counts now join its first parallel read batch,
-> removing one avoidable server-read wave. Each query is explicitly organization-scoped, uses exact head-only
-> counting, retains its exact business-status predicate, and contributes its error to the fail-closed read gate.
-> A bounded source contract pins the two query chains independently. Focused Vitest passes 8/8; full Vitest is
-> 1,745 + 14 controlled skips; TypeScript, full ESLint and the 63/63-page build are green. Independent rereview
-> returned APPROVE; `fn_cost_center_revenue_summary` remains a documented migrate-first release dependency.
-> The approved `df01d6d` money-direction launcher is now reapplied to current main. It preserves all 11 routes
-> and role visibility, drops empty groups, separates custody-paid from later-paid expense entry, keeps the live
-> payment choice editable, scopes all four loader reads to the active organization, and fails closed on read errors.
-> The cost-center expense link presets custody. The read-only suite now advances both preset URLs to step 3 and
-> verifies the actual `custody` or `later` selector value without submitting. Its runtime request guard is installed
-> during login. Two source-contract review rounds tightened the exact two-click and guard-invocation proof; final
-> narrow rereview returned APPROVE and synthetic discovery remains 22 tests. Posting semantics are unchanged.
->
-> The queue now exposes every named acceptance quality exception directly, including correction candidates with
-> neither an expense nor sale target; it remains read-only and composes contradictory filters to zero rows.
-> Independent review initially requested stronger sale-link and tenant fixtures plus catalog/spec corrections;
-> all findings were fixed and final narrow rereview returned APPROVE.
-> The acceptance report now links seven exact populations to the queue: three named quality exceptions,
-> unreviewed, held, rejected, and amount-correction candidates. Accessible names include both label and count.
-> Linked corrections, frozen rows without a payload hash, and missing-evidence alarms remain deliberately
-> unlinked because the queue has no exact predicate for them. Exact mappings and negative presence are
-> source-pinned; independent review returned APPROVE.
-> All six whole-batch KPI cards on the review queue now open exact all/unreviewed/included/held/rejected/frozen
-> populations on page one with unrelated filters cleared. Independent review's initial count-wiring test gap
-> was corrected; final rereview returned APPROVE.
->
-> The daily ledger snapshot preserves archived ancestors for historical rollups, transports all money as exact
-> decimal text, and fails closed on cross-tenant/account mismatches or incomplete bounded detail. Recent entries
-> and lines are display-only; only the complete trial balance exports. Test 213 passes 30/30 and independent
-> rereview returned APPROVE with no P1-P4 finding.
-> The unified transactions snapshot uses one finance-gated statement for exact counts and bounded rows, keeps
-> decimal money/quantity exact, raises inside PostgreSQL on missing/foreign party references, and uses full-type
-> page keys. Test 214 proves all four 401-to-400 source boundaries plus lifecycle behavior in 59 assertions.
-> The season dashboard now uses one finance-gated statement for exact physical, booked-revenue, collection, A/R
-> and center aggregates plus a bounded newest-400 delivery sample. It applies one economic event date throughout,
-> keeps physical deliveries visible, and withholds money unless exactly one posted sale journal proves the exact
-> same-org two-line A/R/revenue entry. Invalid revenue evidence is counted and labelled explicitly; partial delivery
-> CSV is disabled. Test 215 passes 70/70 and independent rereview returned APPROVE.
-> The custody report pack now reads one finance-gated atomic snapshot instead of four legacy RPCs. Exact full
-> balances, period cash activity, current obligations and owner funding remain separate from 400-row detail
-> samples; unknown values remain explicit and partial CSV is disabled. Historical obligation dates are rejected
-> because payment status has no complete historical ledger. Report-affecting tenant/reversal drift fails closed,
-> request-line and active cash-out uniqueness are proven, and period-bounded query shapes replaced the original
-> full-history scans. Test 216 passes 49/49 and independent final review returned APPROVE.
-> The daily custody workspace now reads one finance-gated atomic exact snapshot instead of seven independent
-> calls. Full account balances, targets, top-ups, unpaid totals and request/movement counts remain separate from
-> the newest 200 requests and 15 movements. Signed balances remain visible, same-day movement order uses creation
-> time before ID, partial request CSV is disabled, and tenant/account corruption fails closed. Test 218 passes
-> 29/29; independent rereview returned APPROVE after all three initial findings were corrected.
-> The daily expense workspace now reads one role-aware atomic exact snapshot instead of four independent calls.
-> Exact filter counts and full summary remain separate from the newest 200 matching rows; the parser rejects short
-> or inconsistent payloads, exact decimals preserve scale, partial CSV is disabled, and farm-manager drawing and
-> chart-of-accounts privacy match the previous RLS path. Supplier/account/cost-center corruption fails closed and
-> the all-row organization/date/ID index supports newest-first display. Test 219 passes 30/30; independent rereview
-> returned APPROVE after all five initial findings were corrected.
-> The expense 360 now reads one role-aware atomic exact snapshot for the core expense, linked event, ledger account,
-> custody-payment history and payment-request links. Correction money remains decimal text from the trusted input
-> boundary through the RPC; runtime numbers, malformed timestamps and cross-tenant references fail closed. Test 220
-> passes 24/24; final independent rereview returned APPROVE with no blocking finding.
->
-> **Integrated evidence:** Docker-free pgTAP 4,018/4,018 with zero failed files, including a 21-assertion real
-> three-backend C-4/period-close race, 9 atomic custody-summary, 26 exact payment-request, 11 exact custody-write
-> 29 exact receivables, 35 exact revenue-report, 30 exact daily-ledger, 59 exact transactions, 70 exact season and
-> 49 exact custody-report assertions, 44 exact finance-dashboard assertions, 29 exact custody-daily assertions and
-> 30 exact expense-daily, 24 exact expense-detail, 42 exact cost-center-report and 44 exact payment-request detail assertions; full Vitest 1,745 passed + 14 controlled skips across 125 passing files; TypeScript; full ESLint;
-> production build 63/63 pages; no duplicate
-> migration timestamp, rejected patch or whitespace error. Package changes are limited to the reviewed
-> dependency overrides and lockfile resolutions below. The migration harness applies the
-> complete chain on a fresh database and immediately replays the concurrency, month-close and annual-history
-> migrations, including C-4. Exact monetary aggregates cross JSON as decimal text and use integer-backed decimal arithmetic.
-> The role harness refuses every remote app target, constrains Next-server RPCs to a read allowlist, blocks browser
-> mutations/foreign requests/WebSockets, and runs a fresh build/server through an allowlisting wrapper that strips
-> privileged variables and refuses Next `.env*` files. An explicitly approved Farm production read requires a
-> private, single-use 30-second acknowledgement. Synthetic discovery lists all 22 tests: owner/accountant daily
-> hubs, scale and money-entry forms, finance/ledger/report routes, both cost-center modes, reconciliation/close,
-> two statement downloads, and denied-role redirects. PDF proof is bound to the exact successful GET response,
-> attachment headers, `%PDF-` prefix, final non-whitespace `%%EOF`, and nontrivial bytes. Independent review found
-> false-PDF and WebSocket URL-log risks; both were corrected and final rereview returned APPROVE. Its credentialed run is
-> still pending because approved owner/accountant/denied local inputs and a pinned test batch are absent.
-> Independent safety re-review returned APPROVE with no P1-P3 finding; its one historical-doc P4 was corrected.
-> Separate C-4 review found lock-order,
-> malformed-link bypass and future-date risks; all were corrected, damaged replay was hardened, and re-review
-> returned APPROVE with no medium/high finding. The dependency lane now pins transitive `nanoid` 3.3.17 and
-> scoped `js-yaml` 4.3.1/3.15.1 resolutions. Clean install and current full-tree `npm audit` report **0
-> vulnerabilities**; all integrated validation above was rerun with those exact lockfile bytes. Independent
-> dependency review returned APPROVE with no security, compatibility, runtime, accounting or release finding.
-> The exact receivables review found one P2 where a tiny positive price could commit a zero-rounded finalization
-> and then be reported as failed. The RPC now rejects that total before any sale/journal write, the preview disables
-> it, and rereview returned APPROVE with no remaining P1-P3 finding.
-> Both duplicate owner P&L surfaces are now retired locally. The reports hub and sidebar launch only the trusted
-> GL income statement, which contains statement and monthly/annual trend views. `/finance/pnl` and
-> `/finance/pnl-trend` remain owner/accountant-gated compatibility redirects. Invalid, repeated, reversed, or
-> conflicting partial dates cannot reach the RPC; a true zero posted-revenue result renders as zero. Independent
-> review findings on query safety and alias authorization were corrected; rereview APPROVE with no P1-P3 finding.
-> A subsequent bounded-view audit corrected nullable expense money, missing/invalid exact-count handling,
-> deterministic supplier expense ordering, supplier badge totals and partial finance-dashboard exports. Remaining
-> bounded workload figures explicitly say they cover displayed rows. Review findings were corrected; current app
-> Finance dashboard reads now run in one parallel wave. Both finance and custody dashboards consume one atomic,
-> finance-gated custody account/balance snapshot rather than split snapshots or per-account RPCs. Exact custody
-> decimals remain strings through integer-backed arithmetic, EGP rendering, sorting and CSV export. Independent
-> review's snapshot, transport-precision and sorter findings were corrected; final rereview APPROVE with no P1-P3
-> finding. The daily `/approvals` inbox now runs its three independent role-conditioned categories in one network
-> wave rather than up to five serial reads. Its sign-off query embeds material names through the established
-> relationship; all parent reads are active-org scoped and read errors fail closed. Existing role, payment-stage
-> and purchase-request self-approval gates remain byte-equivalent in behavior. A source-level regression test pins
-> those properties. Claude review was attempted but its local CLI is logged out, so no Claude approval is claimed
-> for that app-only slice. The bounded `/transactions` ledger now embeds supplier, buyer and custody-holder labels
-> in its source-query wave instead of issuing a dependent lookup wave. Relationship metadata is pinned in the
-> extension types; each embed is filtered to the active org and missing/cross-org references retain the existing
-> fail-closed guard. Independent review's initial multi-org isolation P2 was corrected; final rereview APPROVE.
-> The expense 360 route now resolves the expense, event, ledger account, custody-payment history and payment-request
-> linkage in one role-aware atomic database snapshot. Exact correction money remains text through the trusted input
-> boundary; malformed timestamps, runtime numbers and missing or cross-org relationships fail closed. Correction
-> eligibility and finance privacy remain authoritative. Test 220 passes 24/24 and final independent rereview APPROVE.
-> The owner/accountant custody movement 360 now embeds its active-org custody account in the movement read,
-> replacing the dependent account query. Both amounts are selected as text and remain exact decimal strings;
-> display keeps every significant fractional digit and unreadable money fails closed. Direct behavioral tests
-> cover the valid C-4 candidate and every individual ineligibility gate. Independent review's P2 precision and P3
-> test-depth findings were corrected; final rereview returned APPROVE.
-> The printable payment-request/owner-funding workflow now rejects non-text or malformed money, sums request
-> categories exactly, preserves all significant digits in EGP display, and submits owner funding as a canonical
-> decimal string instead of a JavaScript number. The totals RPC emits all 15 monetary properties as JSON strings,
-> explicitly scopes every tenant-owned read and fails closed on malformed cross-org links. Existing SQL callers
-> remain compatible through `->>` numeric casts. Independent rereview returned APPROVE with no P1-P3 finding.
-> Custody account targets, owner receipts, transfers and the quick-entry wizard now submit only validated decimal
-> strings; server actions reject non-string payloads before RPC. Exact DB tests cover targets, custody movements,
-> journals, transfer pairs and balances. Independent rereview returned APPROVE with no P1-P3 finding.
-> The revenue/A-R route now calls a finance-gated exact wrapper that delegates accounting semantics to the existing
-> report RPC and converts every known money/quantity key to JSON text before PostgREST. Strict parsing fails closed;
-> table cells preserve significant scale; an unsafe decimal disables the whole affected chart with an explicit
-> precision message. Independent review's mixed-row omission P2, two-decimal rendering P2 and SQL coverage P3 were
-> corrected; focused Vitest is 7/7, pgTAP is 35/35, and rereview returned APPROVE.
-> Current evidence is Vitest 1,601 passed + 14 controlled skips across 117 discovered files,
-> TypeScript, full ESLint, 63/63-page build and whitespace checks.
-> The C-4 race holds the shared mutex in one backend, queues an exclusive close in a second, and proves a third
-> reversal settles with `55P03`, appends nothing, and never joins the queue; the close then completes cleanly.
-> Timeout-bounded cleanup proves zero residual fixture rows/sessions. Independent test review: APPROVE.
->
-> **Release state:** no accounting candidate was committed, pushed, opened as a PR, migrated, merged, deployed or
-> queried against production. Release remains explicit Owner-gated and migrate-first in the order above.
-> Accounting is
-> still ~99.5%: the feature stack is locally validated, but 698 human row decisions,
-> exception resolution, the
-> real-workbook dual run and dated accountant/Owner acceptance are completion gates that this rehearsal cannot
-> satisfy.
+> **2026-08-20 — MARKETING MODULE (SPEC-0032) MIGRATED / MERGED / DEPLOYED / PUBLICLY VERIFIED.**
+> New compact marketing nav module (owner/accountant/farm_manager, 5 pages, Arabic-RTL) consolidating the 25
+> legacy export-marketing tracking areas: `marketing_contact` (separate master, no FK to `buyers`),
+> append-only `marketing_contact_activity`, and a polymorphic `marketing_record` covering all 16 editable
+> record types. Reviewed source migration `20260820090000_marketing_module.sql` is applied migrate-first to
+> Farm production as hosted migration `20260820135744 marketing_module`. Role gate is an explicit inline
+> check (no `authorize()` re-emit); reads are role-scoped (not
+> just org-scoped); writes are RPC-only; hard DELETE revoked; activity log is append-only. Also ships a
+> pure, deterministic source parser for the original string-encoded `ep_*` JSON. It previews and idempotently
+> imports only the verified saved state (25 rows), reports/rejects the nine unrelated app keys, refuses legacy
+> harvest rows, and never commits or bulk-imports the raw 1,513-contact list. Database provenance keys are
+> persisted under per-org unique indexes; definer RPCs require the caller's active org and bound text/JSON.
+> Both save RPCs are registered in the canonical import-descriptor framework; the dedicated 2026 restore path
+> remains limited to 100 reviewed rows and currently maps exactly 25.
+> Evidence: local pgTAP 3,288/3,288 (0 not_ok); Vitest 1,391/1,392 relevant passes plus 13 controlled skips
+> (the one full-suite failure is an unchanged `lib/reconciliation` CLI baseline test; no reconciliation files
+> differ from `origin/main`); exact downloaded JSON parser probe passed; `tsc
+> --noEmit` clean; ESLint clean on every touched/new file; `next build` succeeds (5 new `/marketing*`
+> routes). Replay hardening then passed the full pgTAP suite again (**3,288/3,288**) and the exact migration
+> applied a second time cleanly in a fresh all-migrations database, retaining 3 tables / 3 policies / 3 audit
+> triggers. Production postflight verified FORCE RLS on all 3 tables, the 3 role-scoped read policies, 5
+> locked definer RPCs, no public/anon execute, no direct authenticated DML, all expected indexes and audit
+> triggers, and 0 marketing rows. Aggregate baselines remained 1 organization / 4 memberships / 10,365
+> journals / 10,201 expenses / 4 auth users. The Owner approved commit, migration, PR, merge, and deployment
+> in this task on 2026-08-20. PR #1011 merged as `b83db70870b35f28b723dacac57a267d1b89d8f6`;
+> exact-merge CI, db-tests, release, and Vercel deployment `F33wX3jDv5AHNartkEWBY73sa8tB` succeeded.
+> Public `/` and `/login` return 200; every `/marketing*` route redirects signed-out users to `/login`, with
+> no browser errors. **Authenticated owner/accountant/farm_manager UI acceptance remains pending because
+> neither available browser had a signed-in Farm session; no credentials were entered and no marketing row
+> was created.**
+> See [`SPEC-0032`](SPEC-0032-marketing-module.md).
 
 > **2026-08-08 — OWNER PUBLIC-SITE COMMENTS MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
-> The public site uses the Owner-approved About copy and 120 feddans / 5,000 Barhi palms / 7 blocks, identifies
-> the contact as `مزرعة عبيد للتمور`, uses `ebeidfarm@gmail.com`, and includes East Asian markets. The primary
-> number appears once as WhatsApp; only the distinct secondary number remains callable. Hosted migration
-> `20260808062443 owner_public_site_comments` applied first and exact postflight passed. PR #1006 merged as
-> `a11a7e0` with green exact-merge checks and deployment `5806268580`; docs PR #1007 merged as current main
-> `07b1224` with deployment `5806327642`. Live Chrome at 390px and 1,440px verified both languages, contact-link
-> counts, no farm-area table, no overflow and no browser errors.
+> The public site now uses the Owner-approved About copy and 120 feddans / 5,000 Barhi palms / 7 blocks,
+> identifies the contact as `مزرعة عبيد للتمور`, uses `ebeidfarm@gmail.com`, and includes East Asian markets.
+> The primary number appears once as WhatsApp; only the distinct second number remains as a call link. Hosted
+> migration `20260808062443 owner_public_site_comments` applied first and exact row postflight passed. PR
+> #1006 merged as `a11a7e0`; exact-merge CI/db-tests/release and production deployment `5806268580` passed.
+> Live Chrome at 390px and 1,440px verified both languages, contact-link counts, no farm-area table, no overflow
+> and no browser errors.
 
 > **2026-08-06 — CUSTODY-PAID EXPENSE CORRECTION MIGRATED / MERGED / DEPLOYED.**
 > SPEC-0028 C-1 now has append-only custody/journal reversal plus an atomic inline edit-and-reroute path for
@@ -379,8 +217,6 @@
 > `5XWz8F9CE29VcyTq4bWLbRaHySm2` completed successfully. Independent Codex review APPROVE. No migration,
 > dependency, production row decision, or financial figure changed. See
 > [`SPEC-0004` §8.12](SPEC-0004-accounting-and-pnl.md) for the full record.
-> **2026-08-08 local addendum:** the pending canonical queue RPC supersedes the historical two-value limit
-> below by adding `unlinked_correction`; complete fresh replay is 3,686/3,686. It is not released.
 >
 > **The gap.** The acceptance packet prints a quality panel of exception figures the accountant must resolve
 > before signing, two of which — «تواريخ مصدر غير صالحة» and «صفوف بلا مبلغ مصدر مسجَّل» — the review queue
@@ -408,10 +244,9 @@
 > lazy option cache, and every acceptance report/CSV/digest byte. **The slice adds no decision path: it
 > changes which rows are listed, never what a row says or what happens to it.**
 >
-> **Historical stated limits, now partly superseded by the 2026-08-08 addendum.** `missing_source_amount`
-> structurally includes every production-orphan row (their
+> **Stated limits.** `missing_source_amount` structurally includes every production-orphan row (their
 > locator CHECK forbids a source amount) — a faithful route to the reported population, not a smaller set.
-> At that release, the report's third exception, «صفوف تصحيح بلا سجل مُصحَّح», was not a `quality` value: it was
+> The report's third exception, «صفوف تصحيح بلا سجل مُصحَّح», is deliberately not a `quality` value: it is
 > already reachable via `classification=amount_correction_candidate` (15 rows, one page), and a predicate
 > for it would collide with the caller's own classification choice. The queue/CSV **order** mismatch
 > (`evidence_item_id` vs evidence locator) is real and left open: reconciling it needs either an ordering

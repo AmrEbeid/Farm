@@ -79,6 +79,6 @@ the spec makes it a 1-session slice.*
 - Exact retries return the existing result. A changed reason/date, a reversal before the original journal date,
   either locked period, a consumed balance, a second reversal or direct use of the generic journal-reversal RPC
   fails closed. The generic route remains available for ordinary journals but cannot bypass C-4 for owner funding.
-- Migration `20260808100000` is append-only/replay-tested; pgTAP `206` covers the contract. Independent money
+- Migration `20260822140600` is append-only/replay-tested; pgTAP `206` covers the contract. Independent money
   review is APPROVE after lock-order, malformed-link, future-date and damaged-replay fixes. Release still requires
   Owner approval, migrate-first application, merge/deploy checks and authenticated role smoke.

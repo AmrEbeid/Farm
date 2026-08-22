@@ -150,7 +150,7 @@ finance-gated statement returns exact full account balances, targets, top-up nee
 request/movement counts, with at most 200 newest requests and 15 newest movements for display. Signed closing
 balances remain visible, monetary values cross JSON as decimal text, same-day movements use creation time before
 the UUID tie-breaker, and a truncated request list cannot export a misleading partial CSV. Missing or cross-org
-request/movement account links raise before any payload is returned. Migration `20260808200000`, database test
+request/movement account links raise before any payload is returned. Migration `20260822141600`, database test
 218 and strict parser tests are release-gated; no write/posting path changed.
 
 ## 8. Validation

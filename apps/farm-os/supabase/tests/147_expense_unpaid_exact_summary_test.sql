@@ -1,4 +1,4 @@
--- Exact all-ledger post-paid obligations added by migration 20260808040000.
+-- Exact all-ledger post-paid obligations added by migration 20260822140000.
 begin;
 select plan(21);
 

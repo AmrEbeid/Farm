@@ -58,27 +58,27 @@ The actor who prepared the candidate must not silently substitute for the Owner 
    this release. Do not include credentials, row identifiers, or financial evidence in Git.
 3. Require the remote list to show exactly these pending versions in this order and no additional version:
 
-   1. `20260808040000` - exact unpaid obligations
-   2. `20260808050000` - versioned reconciliation review concurrency
-   3. `20260808060000` - canonical ordered reconciliation queue
-   4. `20260808070000` - exact month-close summary
-   5. `20260808080000` - exact annual cost-center history
-   6. `20260808090000` - exact posted-sale cost-center revenue
-   7. `20260808100000` - standalone custody movement reversal
-   8. `20260808110000` - atomic exact custody-dashboard summary
-   9. `20260808120000` - exact payment-request totals
-   10. `20260808130000` - exact receivable workflow money
-   11. `20260808140000` - exact revenue-report transport
-   12. `20260808150000` - exact atomic daily accounting-ledger snapshot
-   13. `20260808160000` - exact atomic unified-transactions snapshot
-   14. `20260808170000` - exact atomic season-dashboard snapshot
-   15. `20260808180000` - exact atomic custody-report snapshot
-   16. `20260808190000` - exact role-aware finance-dashboard snapshot
-   17. `20260808200000` - exact atomic daily custody-workspace snapshot
-   18. `20260808210000` - exact atomic daily expense-workspace snapshot
-   19. `20260808220000` - exact atomic expense-detail snapshot
-   20. `20260808230000` - exact atomic cost-center report snapshot
-   21. `20260808240000` - exact atomic payment-request detail snapshot
+   1. `20260822140000` - exact unpaid obligations
+   2. `20260822140100` - versioned reconciliation review concurrency
+   3. `20260822140200` - canonical ordered reconciliation queue
+   4. `20260822140300` - exact month-close summary
+   5. `20260822140400` - exact annual cost-center history
+   6. `20260822140500` - exact posted-sale cost-center revenue
+   7. `20260822140600` - standalone custody movement reversal
+   8. `20260822140700` - atomic exact custody-dashboard summary
+   9. `20260822140800` - exact payment-request totals
+   10. `20260822140900` - exact receivable workflow money
+   11. `20260822141000` - exact revenue-report transport
+   12. `20260822141100` - exact atomic daily accounting-ledger snapshot
+   13. `20260822141200` - exact atomic unified-transactions snapshot
+   14. `20260822141300` - exact atomic season-dashboard snapshot
+   15. `20260822141400` - exact atomic custody-report snapshot
+   16. `20260822141500` - exact role-aware finance-dashboard snapshot
+   17. `20260822141600` - exact atomic daily custody-workspace snapshot
+   18. `20260822141700` - exact atomic daily expense-workspace snapshot
+   19. `20260822141800` - exact atomic expense-detail snapshot
+   20. `20260822141900` - exact atomic cost-center report snapshot
+   21. `20260822142000` - exact atomic payment-request detail snapshot
 
 4. Stop if any version is already present unexpectedly, absent from the candidate, reordered, or accompanied by
    another pending migration.
