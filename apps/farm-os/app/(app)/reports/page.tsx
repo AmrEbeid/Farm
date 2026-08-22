@@ -53,7 +53,7 @@ const GROUPS: ReportGroup[] = [
   {
     question: "كيف حال المزرعة والمخزون؟",
     cards: [
-      { href: "/finance/insights", icon: "💡", title: "رؤى المالك", hint: "المؤشرات الاستراتيجية والاتجاهات", roles: FIN },
+      { href: "/insights", icon: "💡", title: "قصة المزرعة والرؤى", hint: "مسار مترابط للأداء والقطاعات والمقارنة والتوقعات", roles: FIN },
       { href: "/inventory/dashboard", icon: "📦", title: "تغطية المخزون", hint: "الأصناف والنواقص وطلبات الشراء", roles: ["owner", "farm_manager", "storekeeper", "accountant"] },
       { href: "/farm/dashboard", icon: "🌴", title: "لوحة المزرعة", hint: "النخيل والصحة والهيكل", roles: ["owner", "farm_manager", "agri_engineer", "supervisor", "accountant", "storekeeper"] },
       { href: "/plans/dashboard", icon: "🗓️", title: "لوحة التخطيط", hint: "تقدّم الخطط والعمليات (ومنها تقرير المخطط/الفعلي لكل خطة)", roles: ["owner", "farm_manager", "agri_engineer", "supervisor", "accountant", "storekeeper"] },

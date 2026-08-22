@@ -11,7 +11,14 @@ import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { ModuleSidebar } from "@/components/ModuleSidebar";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { AutoBreadcrumbs } from "@/components/AutoBreadcrumbs";
-import { findActiveNavItem, visibleModulesForRole } from "@/lib/nav";
+import { NavIcon } from "@/components/NavIcon";
+import {
+  findActiveNavItem,
+  primaryNavigationForRole,
+  primaryNavIdForPath,
+  visibleModulesForRole,
+  workspaceModulesForRole,
+} from "@/lib/nav";
 
 const HelpDrawer = dynamic(() => import("@/components/HelpDrawer").then((mod) => mod.HelpDrawer), {
   ssr: false,
@@ -26,7 +33,7 @@ const CommandPalette = dynamic(() => import("@/components/CommandPalette").then(
   ssr: false,
   loading: () => (
     <Button variant="ghost" size="sm" disabled aria-label="تحميل البحث" className="flex items-center gap-2">
-      <span aria-hidden="true">🔍</span>
+      <NavIcon name="search" />
       <span className="hidden sm:inline">بحث</span>
     </Button>
   ),
@@ -52,7 +59,13 @@ export function AppChrome({
 
   const appRole = role as Role;
   const modules = visibleModulesForRole(appRole);
+  const primaryItems = primaryNavigationForRole(appRole);
+  const workspaces = workspaceModulesForRole(appRole);
   const activeNavId = findActiveNavItem(pathname)?.id ?? "dashboard";
+  const activePrimaryNavId = primaryNavIdForPath(appRole, pathname);
+  const activePrimaryIsExact = primaryItems.some(
+    (item) => item.id === activePrimaryNavId && item.href === pathname,
+  );
 
   async function signOut() {
     await createClient().auth.signOut();
@@ -70,8 +83,11 @@ export function AppChrome({
       onSidebarOpenChange={setSidebarOpen}
       sidebar={
         <ModuleSidebar
-          modules={modules}
+          primaryItems={primaryItems}
+          workspaces={workspaces}
           activeNavId={activeNavId}
+          activePrimaryNavId={activePrimaryNavId}
+          activePrimaryIsExact={activePrimaryIsExact}
           onNavigate={() => setSidebarOpen(false)}
         />
       }

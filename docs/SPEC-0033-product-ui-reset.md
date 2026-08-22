@@ -36,33 +36,164 @@ Current main at the start of this program is `59df05d`.
 
 ## 3. Users and home stories
 
+Run every journey at 390px and 1440px with a real membership for the named role. Use an approved disposable
+record when a step writes data; otherwise keep the step read-only. An allowed outcome must complete without a
+role bounce and show only that organisation's real records. A denied outcome must be absent from navigation
+and must still fail closed when its URL is entered directly; hiding a control alone is not a pass.
+
 ### Owner
 
 Lead with decisions and exceptions, then money and operating health. Never make the Owner inspect every module.
 The home answers: what needs my decision, what changed, where is risk, and what should happen next.
+
+Acceptance script:
+
+1. Sign in as **المالك** and open **الرئيسية**. **Allowed:** the Owner home leads with real decisions,
+   exceptions, money and operating health, and every visible number drills to its source. **Denied:** an unknown
+   or partial value is not rendered as zero and no invented farm count is shown.
+2. Inspect the primary navigation on desktop and phone. **Allowed:** no more than five role-valid destinations
+   are visible, including **الرئيسية**، **سجّل**، **راجع**، **المعاملات** and **التقارير**. **Denied:** duplicate
+   dashboard, report or insight launchers do not appear in the primary spine.
+3. Open **راجع**. **Allowed:** pending dose/spray sign-offs, purchase requests not created by this user and the
+   legal payment-request stage appear with one next action. **Denied:** a purchase request created by this user
+   and any payment stage the Owner may not perform are absent, and a direct action attempt is rejected by the
+   existing server/RPC gate.
+4. Open **سجّل** and select an existing Owner action such as **دفعت مصروفًا من العهدة**. **Allowed:** the flow
+   opens with the existing accounting contract and a successfully saved disposable record appears in
+   **المعاملات**. **Denied:** an action outside the existing Owner role contract is not added merely because its
+   underlying workspace can be browsed.
+5. From **المعاملات**, open the saved row and then its report/source evidence. **Allowed:** amount, status,
+   ledger/source links and evidence agree. **Denied:** **مسحوبات المالك** are never included in operating
+   expenses or operating profit.
+6. Open **التقارير** and drill from an Owner finance answer to its real records. **Allowed:** finance, farm and
+   operating reports permitted to the Owner remain reachable. **Denied:** no decorative KPI or dead-end card
+   replaces the underlying records, and separation-of-duties controls cannot be bypassed from a deep link.
 
 ### Accountant
 
 Lead with unposted/unpriced/unreconciled work, custody and receivables, then period truth. Every amount drills
 to the ledger, source record and evidence. Owner drawings remain separate from operating expense.
 
+Acceptance script:
+
+1. Sign in as **محاسب** and open **الرئيسية**. **Allowed:** the home leads with unposted, unpriced and
+   unreconciled work, custody, receivables and period truth. **Denied:** field execution or unrestricted farm
+   administration is not presented as the accountant's next work.
+2. Inspect desktop and phone navigation. **Allowed:** the primary spine contains no more than five destinations
+   and includes **الرئيسية**، **سجّل**، **راجع**، **المعاملات** and **التقارير**. **Denied:** Owner-only
+   **الإعدادات** and field-only destinations do not enter the primary spine.
+3. In **سجّل**, choose **دفعت مصروفًا من العهدة**, save an approved disposable expense, and open it from
+   **المعاملات**. **Allowed:** the source, posting state, custody effect and evidence remain traceable end to
+   end. **Denied:** a write outside the existing owner/accountant accounting actions is not offered.
+4. Open **راجع**. **Allowed:** only the payment-request stage legal for the accountant is shown. **Denied:**
+   purchase-request approval and dose/spray sign-off are absent, and their direct action endpoints reject the
+   accountant.
+5. Open **التقارير** and answer one custody or period question, then drill to the ledger/source record.
+   **Allowed:** exact amounts and honest unknowns survive the drill-down. **Denied:** **مسحوبات المالك** do not
+   merge into operating expense, and unavailable values do not become zero.
+6. Enter `/settings` and `/m/execute/{opId}` directly with a valid existing operation ID. **Allowed:** neither
+   route exposes protected content. **Denied:** the accountant cannot gain Owner settings access or execute a
+   field operation through a bookmark, while existing owner/accountant payroll access remains unchanged.
+
 ### Farm manager
 
 Lead with today's work, blockers, stock constraints, overdue operations and team assignment. Do not foreground
 absolute finance values that the role does not need to act.
+
+Acceptance script:
+
+1. Sign in as **مدير المزرعة** and open **الرئيسية**. **Allowed:** today's work, blockers, stock constraints,
+   overdue operations and team assignment lead the page. **Denied:** absolute finance values are not
+   foregrounded and no Owner decision is presented as the manager's action.
+2. Inspect desktop and phone navigation. **Allowed:** no more than five role-valid destinations are visible,
+   with **الميدان** as the field destination. **Denied:** **راجع** and **المعاملات** are absent because this
+   role has no current legal action there.
+3. Open **سجّل** and choose **أخطّط الأسبوع/الشهر** or **سجّلت نشاطًا غير مخطط**. **Allowed:** the existing
+   manager-authorised flow opens and an approved disposable record can be saved. **Denied:** money-in,
+   expense, pricing and collection cards are absent.
+4. Open **الميدان**, select an assigned operation and record its legal next step. **Allowed:** the operation
+   remains linked to its plan and scope. **Denied:** a dose-bearing operation that lacks the required named
+   sign-off cannot be treated as approved or authoritative.
+5. Open the inventory workspace and use **استلام المخزون** or **الجرد** with approved disposable data.
+   **Allowed:** the existing owner/manager/storekeeper RPC gate accepts the valid action. **Denied:** the UI
+   cannot bypass stock validation or organisation scope.
+6. Open **التقارير**, then try `/transactions`, `/people/payroll` and `/settings` directly. **Allowed:** only
+   manager-valid operating reports open. **Denied:** the ledger, payroll and Owner settings expose no protected
+   data and fail through the existing route/server gates.
 
 ### Agronomist
 
 Lead with checks/sign-offs, crop risks and field follow-up. Agronomy remains an editable template pending named
 sign-off and current Egyptian registration, never a prescription.
 
+Acceptance script:
+
+1. Sign in as **مهندس زراعي** and open **الرئيسية**. **Allowed:** checks/sign-offs, crop risks and field
+   follow-up lead the page. **Denied:** absolute finance values and accounting work are not presented.
+2. Inspect desktop and phone navigation. **Allowed:** no more than five role-valid destinations are visible,
+   including **راجع** and **الميدان**. **Denied:** **المعاملات** and finance-only primary destinations are
+   absent.
+3. Open **راجع**. **Allowed:** unsigned dose/spray operations appear with their plan, material context and the
+   existing sign-off action. **Denied:** purchase-request and payment-request approvals that are not legal for
+   this role are absent and reject direct action attempts.
+4. Open a dose/spray item. **Allowed:** the agronomy content remains labelled advisory until named agronomist
+   sign-off and, for chemical content, current Egyptian registration are both valid. **Denied:** the interface
+   never presents an unsigned, expired or unregistered template as a prescription.
+5. From **سجّل**, choose **نفّذت عملية** or **سجّلت نشاطًا غير مخطط**, then return through **الميدان**.
+   **Allowed:** the existing agronomist-authorised field flow completes and retains plan/scope context.
+   **Denied:** expense, collection, pricing, receipt and attendance cards are absent.
+6. Open **التقارير**, then enter `/transactions`, `/people/payroll` and `/settings` directly. **Allowed:** only
+   agronomy/farm/plan/weather answers permitted to the role open. **Denied:** financial, payroll and Owner
+   settings data remain inaccessible through navigation and deep links.
+
 ### Supervisor
 
 Lead with assigned work and fast recording. Phone-first, plain Arabic, large controls and no accounting terms.
 
+Acceptance script:
+
+1. Sign in as **مشرف ميداني** on a 390px viewport. **Allowed:** **الرئيسية** resolves to **الميدان** and leads
+   with assigned work in plain Arabic using controls at least 44px. **Denied:** accounting terms, amounts and
+   Owner decisions are not shown.
+2. Inspect phone and desktop navigation. **Allowed:** both surfaces derive the same role-valid spine of no more
+   than five destinations. **Denied:** **راجع**، **المعاملات** and **المخزون** are not offered as primary
+   destinations.
+3. Open an assigned operation from **الميدان** and record its legal next step. **Allowed:** the action completes
+   without horizontal overflow or a route bounce and returns to the field context. **Denied:** a blocked,
+   cross-organisation or unsigned dose-bearing operation cannot be forced through the UI.
+4. Open **سجّل** and choose **سجّلت نشاطًا غير مخطط** or **سجّلت حضور عمالة**. **Allowed:** only the existing
+   supervisor-authorised fields and actions appear. **Denied:** money, plan creation, receipt and stock-take
+   cards are absent.
+5. Open **التقارير**. **Allowed:** farm, plan and weather answers permitted to the supervisor remain reachable.
+   **Denied:** finance, custody, payroll and people-compensation reports do not appear.
+6. Enter `/transactions`, `/m/receive`, `/inventory/stock-take` and `/settings` directly. **Allowed:** no
+   protected record is rendered. **Denied:** a bookmark cannot grant ledger, receipt, stock-count or Owner
+   settings capability.
+
 ### Storekeeper
 
 Lead with receive, issue, stock-take and shortage work. No mobile route may bounce to a role-forbidden page.
+
+Acceptance script:
+
+1. Sign in as **أمين مخزن** on a 390px viewport. **Allowed:** **الرئيسية** resolves to the inventory home and
+   leads with receipts, issues, stock-take and shortages. **Denied:** the role is never redirected to `/m`,
+   which is forbidden to the storekeeper.
+2. Inspect phone and desktop navigation. **Allowed:** both use the same role-filtered model, expose no more than
+   five primary destinations and use **المخزون** as the operational destination. **Denied:** **راجع** and
+   **المعاملات** are absent.
+3. Open **سجّل** and choose **استلمت بضاعة**. **Allowed:** `/m/receive` opens, an approved disposable receipt can
+   be posted, and every back/next link returns to an allowed inventory route. **Denied:** no link bounces to
+   `/m`, and money or field-execution cards are absent.
+4. Open **الجرد**, submit an approved disposable physical count and inspect the resulting movement/variance.
+   **Allowed:** the existing owner/manager/storekeeper stock gate and organisation scope hold. **Denied:** an
+   invalid quantity or cross-organisation item cannot be recorded.
+5. Open an inventory item and follow its movement and shortage context. **Allowed:** precise stock evidence and
+   its legal next action remain reachable. **Denied:** missing stock is not silently displayed as zero when the
+   source is unknown or partial.
+6. Open **التقارير**, then enter `/m`, `/transactions`, `/people/payroll` and `/settings` directly. **Allowed:**
+   inventory, farm, plan and weather answers permitted to the storekeeper open. **Denied:** field execution,
+   finance, payroll and Owner settings expose no protected content through deep links.
 
 ## 4. Target information architecture
 

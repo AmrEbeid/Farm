@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Modal, SearchInput, EmptyState, Skeleton } from "@/components/ui";
+import { NavIcon } from "@/components/NavIcon";
 import type { AppModule } from "@/lib/nav";
 import { searchNav, type PaletteNavResult } from "@/lib/command-palette";
 import { searchPaletteEntities, type PaletteEntityResult } from "@/lib/command-palette-actions";
@@ -88,7 +89,7 @@ function PaletteRow({
         background: active ? "color-mix(in srgb, var(--brand) 14%, var(--surface))" : undefined,
       }}
     >
-      <span aria-hidden="true">{icon}</span>
+      <span><NavIcon name={icon} /></span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate font-semibold">{label}</span>
         <span className="truncate text-xs" style={{ color: "var(--ink-muted)" }}>
@@ -215,7 +216,7 @@ export function CommandPalette({ modules }: { modules: AppModule[] }) {
         aria-label="فتح البحث"
         className="flex items-center gap-2"
       >
-        <span aria-hidden="true">🔍</span>
+        <NavIcon name="search" />
         <span className="hidden sm:inline">بحث</span>
         <kbd
           className="hidden rounded px-1.5 py-0.5 text-xs sm:inline"
