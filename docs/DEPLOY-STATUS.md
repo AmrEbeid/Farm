@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — Product UI reset R3c exact Farm Manager home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260822224921 exact_manager_home_snapshot` adds one Farm-Manager-only,
+> active-organization, bounded `SECURITY INVOKER` operating snapshot with empty search path and no finance
+> values. Postflight proved authenticated-only execution and no new function-specific advisory. PR #1035
+> merged as `c81245467be4ab9a0dfb6aea570ff7516fe7e423`; Vercel deployment
+> `dpl_7Y2jVft9WpWqV1ARsfYyE8AEKSCd` is served by `ebeidfarm.business`. Signed-out
+> `/dashboard/manager` returns 307 to `/login`. Independent review, pgTAP 4,381/4,381, 1,940 Vitest passes
+> plus 17 skips, TypeScript, ESLint, 70-page build, Storybook, guards, gitleaks and PR CI passed. Authenticated
+> Manager acceptance remains pending because production has no `farm_manager` membership.
+
 > **2026-08-23 (latest) — Product UI reset R3b exact Accountant home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260822221540 exact_accountant_home_snapshot` adds one accountant-only,
 > active-organization, bounded `SECURITY INVOKER` snapshot with empty search path. Postflight proved only

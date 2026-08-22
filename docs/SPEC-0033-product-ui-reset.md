@@ -17,7 +17,7 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Manager home R3c candidate
+### Manager home R3c released
 
 The Farm Manager branch of `/dashboard/manager` now uses one manager-only, active-organisation snapshot while
 the Agronomist keeps the existing route until its own role slice. It leads with work active today, overdue
@@ -26,8 +26,8 @@ active today across its inclusive start/end span; overdue starts only after its 
 work remains explicit. Missing stock-bin state remains unknown rather than zero across the Manager and inventory
 dashboards, every location contributes to current availability, and an incomplete dose sign-off pair remains
 advisory. KPIs fail closed unless the operations or inventory source is verified. The snapshot is bounded,
-current-Cairo-date-only and contains no finance values. This
-remains a local candidate until migration, merge, deployment and authenticated role smoke are separately evidenced.
+current-Cairo-date-only and contains no finance values. Hosted migration, merge, deployment and signed-out route
+behavior are evidenced. Authenticated role acceptance remains open because production has no Farm Manager membership.
 
 ### Accountant home R3b released
 
@@ -368,7 +368,7 @@ R3 owner/accountant slice contract:
 - the accountant finance home starts with actionable finance queues and four daily measures from its existing
   atomic snapshot; the deeper unposted/unpriced/reconciliation/receivables/period comparison contract remains a
   later R3 snapshot extension and is not claimed complete by this slice;
-- manager, agronomist, supervisor and storekeeper role homes remain later R3 releases.
+- manager is released; agronomist, supervisor and storekeeper role homes remain later R3 releases.
 
 ### R4 — Lists, workspaces and 360 pages
 

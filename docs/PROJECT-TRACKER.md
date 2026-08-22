@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3b Accountant home live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3c Manager home live)
+
+> **2026-08-23 — PRODUCT UI RESET R3c EXACT FARM MANAGER HOME MIGRATED / MERGED / DEPLOYED.**
+> Farm Manager now gets a compact daily operating home from one exact active-org snapshot: current and overdue
+> work, explicit schedule/assignment gaps, agronomy sign-off gaps, saved plan blocks and point-in-time stock
+> thresholds. Missing bins remain unknown, all bins contribute to availability, and known zero stock remains
+> out of stock even without a threshold. No finance value is exposed; authority gaps fail closed.
+>
+> Hosted migration `20260822224921 exact_manager_home_snapshot` passed function/grant postflight. PR #1035
+> merged as `c81245467be4ab9a0dfb6aea570ff7516fe7e423`; production deployment
+> `dpl_7Y2jVft9WpWqV1ARsfYyE8AEKSCd` serves `ebeidfarm.business`, whose signed-out Manager route redirects to
+> `/login`. Evidence: independent APPROVE; pgTAP 4,381/4,381; Vitest 1,940 plus 17 skips; TypeScript, ESLint,
+> 70-page build, Storybook, security/bundle guards, gitleaks and PR checks green. **Open:** production has no
+> `farm_manager` membership, so authenticated Manager desktop/phone acceptance is unclaimed. Next: Agronomist,
+> Supervisor and Storekeeper homes, then lists and all 360 surfaces. Package PR #1025 remains separate.
 
 > **2026-08-23 — PRODUCT UI RESET R3b EXACT ACCOUNTANT HOME MIGRATED / MERGED / DEPLOYED.**
 > Accountant Finance now reads one exact, bounded, active-org snapshot and leads with the work queue rather
