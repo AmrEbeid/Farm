@@ -42,7 +42,7 @@ export default async function ApprovalsInboxPage() {
           "id, plan_id, subtype, planned_at, plan_material_requirements(qty, unit, item_id, inventory_items(name))",
         )
         .eq("org_id", m.orgId)
-        .is("signed_off_at", null)
+        .or("signed_off_at.is.null,signed_off_by.is.null")
         .in("subtype", Array.from(DOSE_BEARING_SUBTYPES))
         .not("status", "in", `(${NON_EXECUTABLE_OP_STATUSES.join(",")})`)
         .order("planned_at", { ascending: true })

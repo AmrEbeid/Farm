@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, StatusPill, Alert, EmptyState } from "@/components/ui";
 import { num } from "@/lib/money";
-import { fmtDate } from "@/lib/dates";
+import { cairoDateString, fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus, NON_EXECUTABLE_OP_STATUSES } from "@/lib/labels";
 import { PendingExecutions } from "@/components/PendingExecutions";
 
@@ -17,6 +17,7 @@ type Op = {
   id: string;
   subtype: string | null;
   planned_at: string | null;
+  ends_on: string | null;
   est_cost: number | string | null;
   status: string | null;
   responsible_person_id: string | null;
@@ -99,25 +100,39 @@ function Section({ title, ops, ctxById }: { title: string; ops: Op[]; ctxById?: 
 export default async function MobileHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ done?: string; mine?: string }>;
+  searchParams: Promise<{ done?: string; mine?: string; scope?: string }>;
 }) {
-  const { done, mine } = await searchParams;
+  const { done, mine, scope } = await searchParams;
   // Role-gate the field view to match the nav (lib/nav.ts hides الميدان from
   // accountant/storekeeper) and /m/execute's gate — field roles only.
   const m = await requireRole(["supervisor", "agri_engineer", "farm_manager", "owner"]);
-  const mineOnly = m.personId != null ? mine !== "0" : mine === "1";
+  const agronomyOnly = scope === "agronomy";
+  const mineOnly = agronomyOnly ? false : m.personId != null ? mine !== "0" : mine === "1";
   const sb = await createClient();
 
-  const { data: ops, error } = await sb
+  const activePlanIds = agronomyOnly
+    ? await sb.from("plans").select("id").eq("org_id", m.orgId).eq("status", "active")
+    : null;
+  if (activePlanIds?.error) throw activePlanIds.error;
+
+  let opsQuery = sb
     .from("plan_operations")
-    .select("id, subtype, planned_at, est_cost, status, responsible_person_id, plan_id")
+    .select("id, subtype, planned_at, ends_on, est_cost, status, responsible_person_id, plan_id")
+    .eq("org_id", m.orgId)
     // F5: bound the field feed. It was fetching EVERY plan_operation ever (mostly the
     // season-over-season backlog of terminal `done` rows) and discarding them client-side.
     // Drop terminal statuses at the source using the same set the execute-gate uses — they are
     // never actionable in the field view (the execute button is already hidden for them, and the
     // overdue bucket already requires an executable status), so this hides no actionable work.
-    .not("status", "in", `(${NON_EXECUTABLE_OP_STATUSES.join(",")})`)
-    .order("planned_at");
+    .not("status", "in", `(${NON_EXECUTABLE_OP_STATUSES.join(",")})`);
+  if (agronomyOnly) {
+    const planIds = (activePlanIds?.data ?? []).map((plan) => plan.id);
+    opsQuery = opsQuery
+      .in("plan_id", planIds.length > 0 ? planIds : ["00000000-0000-0000-0000-000000000000"])
+      .in("subtype", ["fertilization", "spraying", "irrigation", "pollination", "inspection", "pest_scouting"])
+      .not("planned_at", "is", null);
+  }
+  const { data: ops, error } = await opsQuery.order("planned_at");
   // Surface DB read failures to the segment error boundary instead of rendering
   // a misleading empty page.
   if (error) throw error;
@@ -195,14 +210,19 @@ export default async function MobileHomePage({
     });
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = cairoDateString();
   const dateStr = (o: Op) => (o.planned_at != null ? String(o.planned_at).slice(0, 10) : null);
+  const effectiveEnd = (o: Op) => o.ends_on != null ? String(o.ends_on).slice(0, 10) : dateStr(o);
 
   const overdueOps = visibleOps.filter((o) => {
-    const d = dateStr(o);
+    const d = effectiveEnd(o);
     return d != null && d < todayStr && isExecutableOpStatus(o.status);
   });
-  const todayOps = visibleOps.filter((o) => dateStr(o) === todayStr);
+  const todayOps = visibleOps.filter((o) => {
+    const start = dateStr(o);
+    const end = effectiveEnd(o);
+    return start != null && end != null && start <= todayStr && end >= todayStr;
+  });
   const upcomingOps = visibleOps.filter((o) => {
     const d = dateStr(o);
     return d != null && d > todayStr;
@@ -211,7 +231,7 @@ export default async function MobileHomePage({
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
       <header>
-        <h1 className="text-xl font-bold">الميدان</h1>
+        <h1 className="text-xl font-bold">{agronomyOnly ? "الأعمال الزراعية" : "الميدان"}</h1>
       {/* «يوم قطف» opens /m/harvest, which is gated to owner/farm_manager — only show the button to them, else
           a supervisor/agri_engineer taps the biggest button on their home and bounces (SPEC-0030 flow audit A1). */}
       {(m.role === "owner" || m.role === "farm_manager") && (
@@ -237,8 +257,10 @@ export default async function MobileHomePage({
       <PendingExecutions />
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">{m.personId ? "مهامي المخطّطة" : "العمليات المخطّطة"}</h2>
-        {m.personId && (
+        <h2 className="text-lg font-semibold">
+          {agronomyOnly ? "أعمال الفريق المخطّطة" : m.personId ? "مهامي المخطّطة" : "العمليات المخطّطة"}
+        </h2>
+        {m.personId && !agronomyOnly && (
           <Link
             href={mineOnly ? "/m?mine=0" : "/m"}
             className="inline-flex min-h-11 items-center justify-center rounded-md border px-4 text-sm font-semibold"
@@ -251,9 +273,11 @@ export default async function MobileHomePage({
 
       {allOps.length === 0 ? (
         <EmptyState
-          title={m.personId ? "لا توجد مهام مسندة لك." : "لا توجد عمليات مجدولة."}
+          title={agronomyOnly ? "لا توجد أعمال زراعية مستحقة في الخطط النشطة." : m.personId ? "لا توجد مهام مسندة لك." : "لا توجد عمليات مجدولة."}
           description={
-            m.personId
+            agronomyOnly
+              ? "ستظهر هنا أعمال اليوم والمتأخرة المسجلة في الخطط النشطة."
+              : m.personId
               ? "ستظهر هنا العمليات التي يسندها مدير المزرعة أو المهندس إليك."
               : "ستظهر العمليات المخطّطة هنا عند جدولتها في الخطة."
           }
