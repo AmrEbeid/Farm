@@ -3,6 +3,7 @@
 -- deliberately refuses expense, request, transfer, reversal, journal-less, and non-funding rows.
 
 begin;
+set local time zone 'Africa/Cairo';
 select no_plan();
 
 \set org '00000000-0000-0000-0000-000000000001'

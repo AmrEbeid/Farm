@@ -1327,6 +1327,16 @@ type MonthCloseSummaryFunctions = {
   };
 };
 
+// ── Accountant home, migration 20260822142600. One exact, bounded, accountant-only active-org
+// snapshot reusing fn_month_close_summary's blocker/receivable definitions. STABLE, SECURITY INVOKER,
+// accountant-membership-gated. ──
+type AccountantHomeFunctions = {
+  fn_accountant_home_snapshot: {
+    Args: { p_org: string; p_as_of: string; p_cutover: string; p_detail_limit?: number };
+    Returns: Json;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2576,6 +2586,7 @@ export type Database = Omit<Generated, "public"> & {
       OperationTemplateFunctions &
       OwnerPnlFunctions &
       OwnerHomeFunctions &
+      AccountantHomeFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

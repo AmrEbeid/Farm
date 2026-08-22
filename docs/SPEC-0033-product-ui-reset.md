@@ -17,6 +17,16 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Accountant home R3b candidate
+
+The Accountant branch of `/finance/dashboard` now uses one accountant-only active-org snapshot. It leads with
+ledger gaps, pending pricing, staged reconciliation batches the accountant can actually work, and open
+receivables. Counts stay visible, while every amount and the month comparison fail closed until
+`finance_ledger` is verified. Future-dated journal, custody and unpaid-expense activity is excluded from the
+current as-of state; operating expenses, CAPEX, drawings and unknown amounts remain separate. Reconciliation
+rows waiting on Owner approval or execution are not misrepresented as Accountant actions. This remains a local
+candidate until migration, merge, deployment and authenticated role smoke are separately evidenced.
+
 ## 2. Verified baseline
 
 Current main at the start of this program is `59df05d`.

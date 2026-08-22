@@ -66,6 +66,7 @@ const ACCOUNTING_READ_RPC_NAMES = new Set([
   "fn_accounting_income_statement",
   "fn_accounting_trial_balance",
   "fn_accounting_ledger_snapshot",
+  "fn_accountant_home_snapshot",
   "fn_transactions_snapshot",
   "fn_budget_vs_actual",
   "fn_cost_center_direct_summary",

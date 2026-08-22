@@ -278,6 +278,9 @@ describe("accounting read-only E2E safety", () => {
       accountingE2EServerRequestIsReadOnly("POST", `${origin}/rest/v1/rpc/fn_month_close_summary`, origin),
     ).toBe(true);
     expect(
+      accountingE2EServerRequestIsReadOnly("POST", `${origin}/rest/v1/rpc/fn_accountant_home_snapshot`, origin),
+    ).toBe(true);
+    expect(
       accountingE2EServerRequestIsReadOnly("POST", `${origin}/rest/v1/rpc/fn_pending_sale_pricing`, origin),
     ).toBe(true);
     expect(

@@ -62,7 +62,7 @@ per org**; the **active-org** JWT claim narrows RLS to the current org (BR-054).
 | `(app)` layout (all pages) | `requireMembership()` | any authenticated org member |
 | `/dashboard` | `requireMembership()` (routes by role) | all → role landing |
 | `/dashboard/owner` | `requireRole(["owner"])`; `fn_owner_home_snapshot` also checks active-org owner membership | owner |
-| `/finance/dashboard` | `requireRole(["owner","accountant","farm_manager"])`; confidential sections remain `finance.read` scoped | owner, accountant, farm_manager; accountant role landing |
+| `/finance/dashboard` | `requireRole(["owner","accountant","farm_manager"])`; accountant branches before the legacy reader to accountant-only `fn_accountant_home_snapshot`, which rechecks active-org accountant membership; owner/farm-manager keep the existing role-aware snapshot | owner, accountant, farm_manager; accountant role landing |
 | `/dashboard/manager` | `requireRole(["farm_manager","agri_engineer"])` | farm_manager, agri_engineer |
 | `/settings` | nav `roles:["owner"]` | owner |
 | `/expenses`, `/budgets` | nav `roles:["owner","accountant","farm_manager"]` | those roles |
