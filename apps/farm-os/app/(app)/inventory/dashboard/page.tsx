@@ -13,6 +13,7 @@ import { PrintButton } from "@/components/print-button";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
+import { currentInventoryState } from "@/lib/inventory-current-state";
 
 const FILTER_LABEL_AR: Record<string, string> = {
   all: "كل العناصر",
@@ -54,13 +55,9 @@ export default async function InventoryDashboardPage({
   if (suppliersError) throw suppliersError;
 
   const itemRows = (items ?? []).map((it) => {
-    const bin = (Array.isArray(it.inventory_bin) ? it.inventory_bin[0] : it.inventory_bin) as
-      | { on_hand?: number; reserved?: number }
-      | null;
-    const onHand = Number(bin?.on_hand ?? 0);
-    const reserved = Number(bin?.reserved ?? 0);
-    const available = onHand - reserved;
-    const threshold = Number(it.reorder_point ?? it.min_stock ?? 0);
+    const bins = (Array.isArray(it.inventory_bin) ? it.inventory_bin : it.inventory_bin ? [it.inventory_bin] : []) as
+      Array<{ on_hand?: number | null; reserved?: number | null }>;
+    const stock = currentInventoryState(bins, it.reorder_point, it.min_stock);
     // STATIC level check against today's `available` — NOT the engine's forward-looking
     // projection. fn_stock_coverage can return shortage=true for an item that looks fine here
     // (plenty on hand today, demand spike next week), which is why the label below is an honest
@@ -68,18 +65,19 @@ export default async function InventoryDashboardPage({
     // doesn't compute) and every row links to the authoritative per-item coverage page. Batching
     // fn_stock_coverage across this whole list is deferred — a separate, performance-sensitive
     // change (N+1 RPC calls per item), not done here.
-    const needsReorder = threshold > 0 && available < threshold;
+    const needsReorder = stock.status === "reorder";
+    const stockUnknown = stock.status === "unknown";
 
     return {
       id: it.id,
       href: `/inventory/${it.id}`,
       name: it.name,
       category: it.category ?? "—",
-      status: needsReorder ? "تحت حد إعادة الطلب" : "فوق حد إعادة الطلب",
-      metric: `${num(available)} ${it.unit ?? ""}`.trim(),
+      status: stockUnknown ? "غير معروف" : needsReorder ? "تحت حد إعادة الطلب" : "فوق حد إعادة الطلب",
+      metric: stock.available === null ? "—" : `${num(stock.available)} ${it.unit ?? ""}`.trim(),
       date: "—",
-      filterKey: needsReorder ? "reorder" : "all",
-      sortWeight: needsReorder ? 0 : 3,
+      filterKey: stockUnknown ? "unknown" : needsReorder ? "reorder" : "all",
+      sortWeight: needsReorder ? 0 : stockUnknown ? 1 : 3,
       coverageHref: `/inventory/${it.id}/coverage`,
     };
   });
@@ -121,6 +119,7 @@ export default async function InventoryDashboardPage({
         : allRows.filter((row) => row.filterKey === filter);
 
   const reorderItems = itemRows.filter((row) => row.filterKey === "reorder").length;
+  const unknownItems = itemRows.filter((row) => row.filterKey === "unknown").length;
   const submittedPrs = prRows.filter((row) => row.filterKey === "submitted").length;
   const partialReceipts = prRows.filter((row) => row.filterKey === "partial").length;
   const activePrs = prRows.filter((row) =>
@@ -129,8 +128,9 @@ export default async function InventoryDashboardPage({
 
   // Chart data — derived from the items / PRs already fetched (no new queries).
   const itemsByStatus = [
-    { name: "فوق حد إعادة الطلب", value: itemRows.length - reorderItems },
+    { name: "فوق حد إعادة الطلب", value: itemRows.length - reorderItems - unknownItems },
     { name: "تحت حد إعادة الطلب", value: reorderItems },
+    { name: "غير معروف", value: unknownItems },
   ].filter((d) => d.value > 0);
   const prsByStatus = Object.entries(
     (prs ?? []).reduce<Record<string, number>>((acc, pr) => {

@@ -1337,6 +1337,15 @@ type AccountantHomeFunctions = {
   };
 };
 
+// ── Farm Manager home, migration 20260823100000. Exact, bounded, operational-only and
+// farm-manager-membership-gated. ──
+type ManagerHomeFunctions = {
+  fn_manager_home_snapshot: {
+    Args: { p_org: string; p_as_of: string; p_detail_limit?: number };
+    Returns: Json;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2587,6 +2596,7 @@ export type Database = Omit<Generated, "public"> & {
       OwnerPnlFunctions &
       OwnerHomeFunctions &
       AccountantHomeFunctions &
+      ManagerHomeFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

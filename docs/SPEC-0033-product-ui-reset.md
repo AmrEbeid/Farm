@@ -17,15 +17,27 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Accountant home R3b candidate
+### Manager home R3c candidate
+
+The Farm Manager branch of `/dashboard/manager` now uses one manager-only, active-organisation snapshot while
+the Agronomist keeps the existing route until its own role slice. It leads with work active today, overdue
+operations, blocking plan checks, team assignment and point-in-time stock threshold signals. Multi-day work is
+active today across its inclusive start/end span; overdue starts only after its effective end date; unscheduled
+work remains explicit. Missing stock-bin state remains unknown rather than zero across the Manager and inventory
+dashboards, every location contributes to current availability, and an incomplete dose sign-off pair remains
+advisory. KPIs fail closed unless the operations or inventory source is verified. The snapshot is bounded,
+current-Cairo-date-only and contains no finance values. This
+remains a local candidate until migration, merge, deployment and authenticated role smoke are separately evidenced.
+
+### Accountant home R3b released
 
 The Accountant branch of `/finance/dashboard` now uses one accountant-only active-org snapshot. It leads with
 ledger gaps, pending pricing, staged reconciliation batches the accountant can actually work, and open
 receivables. Counts stay visible, while every amount and the month comparison fail closed until
 `finance_ledger` is verified. Future-dated journal, custody and unpaid-expense activity is excluded from the
 current as-of state; operating expenses, CAPEX, drawings and unknown amounts remain separate. Reconciliation
-rows waiting on Owner approval or execution are not misrepresented as Accountant actions. This remains a local
-candidate until migration, merge, deployment and authenticated role smoke are separately evidenced.
+rows waiting on Owner approval or execution are not misrepresented as Accountant actions. The migration, merge
+and deployment are released; authenticated role browser acceptance remains open.
 
 ## 2. Verified baseline
 
