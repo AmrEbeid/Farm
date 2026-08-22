@@ -2,20 +2,28 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { AppModule } from "@/lib/nav";
+import { ChevronLeft, ChevronDown } from "lucide-react";
+import { NavIcon } from "@/components/NavIcon";
+import type { AppModule, PrimaryNavItem } from "@/lib/nav";
 
 export function ModuleSidebar({
-  modules,
+  primaryItems,
+  workspaces,
   activeNavId,
+  activePrimaryNavId,
+  activePrimaryIsExact,
   onNavigate,
 }: {
-  modules: AppModule[];
+  primaryItems: PrimaryNavItem[];
+  workspaces: AppModule[];
   activeNavId: string;
+  activePrimaryNavId: string | null;
+  activePrimaryIsExact: boolean;
   onNavigate: () => void;
 }) {
   const initialOpen = useMemo(
-    () => new Set(modules.filter((m) => m.pages.some((p) => p.id === activeNavId)).map((m) => m.id)),
-    [modules, activeNavId],
+    () => new Set(workspaces.filter((m) => m.pages.some((p) => p.id === activeNavId)).map((m) => m.id)),
+    [workspaces, activeNavId],
   );
   const [open, setOpen] = useState<Set<string>>(initialOpen);
 
@@ -30,24 +38,34 @@ export function ModuleSidebar({
 
   return (
     <nav className="fos-sidebarnav farm-module-nav" aria-label="التنقل الرئيسي">
+      <div className="farm-module-nav__section-label">العمل اليومي</div>
+      <ul className="fos-sidebarnav__list farm-module-nav__primary">
+        {primaryItems.map((item) => {
+          const active = item.id === activePrimaryNavId;
+          return (
+            <li key={item.id}>
+              <Link
+                href={item.href}
+                className={`fos-navitem farm-module-nav__primary-link${active ? " fos-navitem--active" : ""}`}
+                aria-current={active ? (activePrimaryIsExact ? "page" : "location") : undefined}
+                onClick={onNavigate}
+              >
+                <span className="fos-navitem__icon">
+                  <NavIcon name={item.icon} />
+                </span>
+                <span className="fos-navitem__label">{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="farm-module-nav__section-label farm-module-nav__workspace-label">مساحات العمل</div>
       <ul className="fos-sidebarnav__list">
-        {modules.map((module, idx) => {
+        {workspaces.map((module) => {
           const moduleOpen = open.has(module.id) || module.pages.some((p) => p.id === activeNavId);
           const pagesId = `module-nav-${module.id}`;
-          // SPEC-0025 U-5: one «الإدارة» section header before the first admin-group module.
-          const firstAdmin =
-            (module.group ?? "admin") === "admin" &&
-            (idx === 0 || (modules[idx - 1].group ?? "admin") === "tasks");
           return (
             <li key={module.id} className="farm-module-nav__module">
-              {firstAdmin && (
-                <div
-                  className="px-3 pb-1 pt-3 text-xs font-bold"
-                  style={{ color: "var(--ink-muted)", borderTop: "1px solid var(--line)", marginTop: "8px" }}
-                >
-                  الإدارة
-                </div>
-              )}
               <button
                 type="button"
                 className="farm-module-nav__toggle"
@@ -55,28 +73,32 @@ export function ModuleSidebar({
                 aria-controls={pagesId}
                 onClick={() => toggle(module.id)}
               >
-                <span className="fos-navitem__icon" aria-hidden="true">
-                  {module.icon}
+                <span className="fos-navitem__icon">
+                  <NavIcon name={module.icon} />
                 </span>
                 <span className="farm-module-nav__label">{module.label}</span>
                 <span className="farm-module-nav__chevron" aria-hidden="true">
-                  {moduleOpen ? "▾" : "◂"}
+                  {moduleOpen ? <ChevronDown size={16} /> : <ChevronLeft size={16} />}
                 </span>
               </button>
               {moduleOpen && (
                 <ul id={pagesId} className="farm-module-nav__pages">
-                  {module.pages.map((page) => {
+                  {module.pages.map((page, index) => {
                     const active = page.id === activeNavId;
+                    const showSection =
+                      page.section &&
+                      (index === 0 || module.pages[index - 1]?.section !== page.section);
                     return (
                       <li key={page.id}>
+                        {showSection && <div className="farm-module-nav__page-section">{page.section}</div>}
                         <Link
                           href={page.href}
                           className={`fos-navitem farm-module-nav__page${active ? " fos-navitem--active" : ""}`}
                           aria-current={active ? "page" : undefined}
                           onClick={onNavigate}
                         >
-                          <span className="fos-navitem__icon" aria-hidden="true">
-                            {page.icon}
+                          <span className="fos-navitem__icon">
+                            <NavIcon name={page.icon} size={16} />
                           </span>
                           <span className="fos-navitem__label">{page.label}</span>
                         </Link>

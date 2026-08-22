@@ -6,6 +6,8 @@ export interface AppNavItem {
   icon: string;
   href: string;
   roles?: Role[];
+  /** Optional visual subsection inside a large workspace. */
+  section?: string;
 }
 
 export interface AppModule {
@@ -21,6 +23,7 @@ export interface AppModule {
 }
 
 export type MobilePrimaryTab = Pick<AppNavItem, "id" | "href" | "icon"> & { label: string };
+export type PrimaryNavItem = MobilePrimaryTab;
 
 const ALL_ROLES: Role[] = [
   "owner",
@@ -206,6 +209,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📊",
         href: "/finance/dashboard",
         roles: ["owner", "accountant", "farm_manager"],
+        section: "نظرة عامة",
       },
       {
         id: "budgets",
@@ -213,6 +217,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📊",
         href: "/budgets",
         roles: ["owner", "accountant", "farm_manager"],
+        section: "التشغيل اليومي",
       },
       {
         id: "expenses",
@@ -220,6 +225,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "💸",
         href: "/expenses",
         roles: ["owner", "accountant", "farm_manager"],
+        section: "التشغيل اليومي",
       },
       {
         id: "accounts",
@@ -227,6 +233,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📚",
         href: "/finance/accounts",
         roles: ["owner", "accountant"],
+        section: "التشغيل اليومي",
       },
       {
         id: "finance-reports",
@@ -234,6 +241,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📈",
         href: "/finance/reports",
         roles: ["owner", "accountant"],
+        section: "القوائم والتقارير",
       },
       {
         id: "revenue-reports",
@@ -241,6 +249,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "🧾",
         href: "/finance/revenue-reports",
         roles: ["owner", "accountant"],
+        section: "القوائم والتقارير",
       },
       {
         id: "balance-sheet",
@@ -248,6 +257,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📋",
         href: "/finance/balance-sheet",
         roles: ["owner", "accountant"],
+        section: "القوائم والتقارير",
       },
       {
         id: "income-statement",
@@ -255,6 +265,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📈",
         href: "/finance/income-statement",
         roles: ["owner", "accountant"],
+        section: "القوائم والتقارير",
       },
       {
         id: "budget-vs-actual",
@@ -262,6 +273,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📊",
         href: "/finance/budget-vs-actual",
         roles: ["owner", "accountant"],
+        section: "القوائم والتقارير",
       },
       {
         id: "periods",
@@ -269,6 +281,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "🔒",
         href: "/finance/periods",
         roles: ["owner", "accountant"],
+        section: "الإقفال والرقابة",
       },
       {
         id: "season-dashboard",
@@ -276,6 +289,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "🌾",
         href: "/finance/season",
         roles: ["owner", "accountant"],
+        section: "القوائم والتقارير",
       },
       {
         id: "month-close",
@@ -283,6 +297,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "🔏",
         href: "/finance/close",
         roles: ["owner", "accountant"],
+        section: "الإقفال والرقابة",
       },
       {
         id: "custody-reports",
@@ -290,6 +305,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📑",
         href: "/finance/custody-reports",
         roles: ["owner", "accountant"],
+        section: "القوائم والتقارير",
       },
       {
         id: "reconciliation",
@@ -297,6 +313,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "🧮",
         href: "/finance/reconciliation",
         roles: ["owner", "accountant"],
+        section: "الإقفال والرقابة",
       },
       {
         id: "accounting",
@@ -304,6 +321,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "📒",
         href: "/accounting",
         roles: ["owner", "accountant"],
+        section: "التشغيل اليومي",
       },
       {
         id: "custody",
@@ -311,6 +329,7 @@ export const APP_MODULES: AppModule[] = [
         icon: "💰",
         href: "/custody",
         roles: ["owner", "accountant"],
+        section: "التشغيل اليومي",
       },
     ],
   },
@@ -439,32 +458,102 @@ export function visibleModulesForRole(role: Role): AppModule[] {
   });
 }
 
-const MOBILE_PRIMARY_LABELS = {
+const PRIMARY_IDS_BY_ROLE: Record<Role, readonly string[]> = {
+  owner: ["dashboard", "record", "approvals", "transactions", "reports-hub"],
+  accountant: ["dashboard", "record", "approvals", "transactions", "reports-hub"],
+  agri_engineer: ["dashboard", "record", "approvals", "mobile", "reports-hub"],
+  farm_manager: ["dashboard", "record", "mobile", "reports-hub"],
+  supervisor: ["dashboard", "record", "mobile", "reports-hub"],
+  storekeeper: ["dashboard", "record", "inventory-dashboard", "reports-hub"],
+};
+
+const PRIMARY_LABELS: Record<string, string> = {
   dashboard: "الرئيسية",
   record: "سجّل",
+  approvals: "راجع",
   transactions: "المعاملات",
-  "inventory-dashboard": "المخزون",
   mobile: "الميدان",
+  "inventory-dashboard": "المخزون",
   "reports-hub": "التقارير",
-  "farm-dashboard": "المزرعة",
-} as const;
+};
+
+/** One role-gated task spine shared by desktop and phone. */
+export function primaryNavigationForRole(role: Role): PrimaryNavItem[] {
+  const visiblePages = visibleModulesForRole(role).flatMap((module) => module.pages);
+  const pageById = new Map(visiblePages.map((page) => [page.id, page]));
+  return PRIMARY_IDS_BY_ROLE[role].flatMap((id) => {
+    const page = pageById.get(id);
+    return page ? [{ id, href: page.href, icon: page.icon, label: PRIMARY_LABELS[id] }] : [];
+  });
+}
+
+/** Secondary workspaces keep every role-allowed deep route, collapsed in the sidebar. */
+export function workspaceModulesForRole(role: Role): AppModule[] {
+  const financeLauncherOrder = [
+    "finance-dashboard",
+    "expenses",
+    "budgets",
+    "custody",
+    "accounting",
+    "reconciliation",
+    "month-close",
+  ];
+  const financeLauncherIds = new Set(financeLauncherOrder);
+  return visibleModulesForRole(role)
+    .filter((module) => (module.group ?? "admin") === "admin" && module.id !== "insights-module")
+    .map((module) => module.id === "finance-module"
+      ? {
+          ...module,
+          pages: module.pages
+            .filter((page) => financeLauncherIds.has(page.id))
+            .sort((a, b) => financeLauncherOrder.indexOf(a.id) - financeLauncherOrder.indexOf(b.id)),
+        }
+      : module);
+}
+
+const REPORT_ROUTE_PREFIXES = [
+  "/insights",
+  "/finance/insights",
+  "/finance/insights-summary",
+  "/finance/sector-scorecard",
+  "/finance/enterprise-scorecard",
+  "/finance/reports",
+  "/finance/revenue-reports",
+  "/finance/balance-sheet",
+  "/finance/income-statement",
+  "/finance/budget-vs-actual",
+  "/finance/season",
+  "/finance/custody-reports",
+] as const;
+
+/** Canonical active state for routes folded behind a primary destination. */
+export function primaryNavIdForPath(role: Role, pathname: string): string | null {
+  if (
+    role === "storekeeper" &&
+    (
+      pathname === "/inventory" ||
+      pathname.startsWith("/inventory/") ||
+      pathname === "/m/receive" ||
+      pathname.startsWith("/m/receive/")
+    )
+  ) {
+    return "inventory-dashboard";
+  }
+  if (
+    REPORT_ROUTE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) ||
+    pathname.startsWith("/finance/buyers/") ||
+    pathname.startsWith("/finance/cost-centers/") ||
+    pathname.startsWith("/reports/")
+  ) {
+    return "reports-hub";
+  }
+  const activeId = findActiveNavItem(pathname)?.id;
+  return primaryNavigationForRole(role).some((item) => item.id === activeId) ? activeId ?? null : null;
+}
 
 /** The phone spine resolves against the same role-filtered pages as the desktop sidebar. */
 export function mobilePrimaryTabsForRole(role: Role): MobilePrimaryTab[] {
-  const visiblePages = visibleModulesForRole(role).flatMap((module) => module.pages);
-  const pageById = new Map(visiblePages.map((page) => [page.id, page]));
-  const thirdId =
-    role === "owner" || role === "accountant"
-      ? "transactions"
-      : role === "storekeeper"
-        ? "inventory-dashboard"
-        : "mobile";
-  const ids = ["dashboard", "record", thirdId, "reports-hub", "farm-dashboard"] as const;
-
-  return ids.flatMap((id) => {
-    const page = pageById.get(id);
-    return page ? [{ id: page.id, href: page.href, icon: page.icon, label: MOBILE_PRIMARY_LABELS[id] }] : [];
-  });
+  return primaryNavigationForRole(role);
 }
 
 export function findActiveNavItem(pathname: string): AppNavItem | null {

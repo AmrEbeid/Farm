@@ -8,7 +8,10 @@ import {
   findActiveNavItem,
   isKnownRole,
   mobilePrimaryTabsForRole,
+  primaryNavigationForRole,
+  primaryNavIdForPath,
   visibleModulesForRole,
+  workspaceModulesForRole,
 } from "./nav";
 
 const ROLES: Role[] = ["owner", "farm_manager", "agri_engineer", "accountant", "supervisor", "storekeeper"];
@@ -108,25 +111,78 @@ describe("APP_MODULES", () => {
     }
   });
 
-  it("derives the five phone destinations from each role-visible navigation model", () => {
+  it("derives one at-most-five primary spine for desktop and phone", () => {
+    const expected: Record<Role, string[]> = {
+      owner: ["/dashboard", "/record", "/approvals", "/transactions", "/reports"],
+      accountant: ["/dashboard", "/record", "/approvals", "/transactions", "/reports"],
+      agri_engineer: ["/dashboard", "/record", "/approvals", "/m", "/reports"],
+      farm_manager: ["/dashboard", "/record", "/m", "/reports"],
+      supervisor: ["/dashboard", "/record", "/m", "/reports"],
+      storekeeper: ["/dashboard", "/record", "/inventory/dashboard", "/reports"],
+    };
     for (const role of ROLES) {
       const tabs = mobilePrimaryTabsForRole(role);
+      const desktop = primaryNavigationForRole(role);
       const visibleHrefs = new Set(visibleModulesForRole(role).flatMap((module) => module.pages.map((page) => page.href)));
 
-      expect(tabs, role).toHaveLength(5);
-      expect(tabs.map((tab) => tab.href), role).toEqual([
-        "/dashboard",
-        "/record",
-        role === "owner" || role === "accountant"
-          ? "/transactions"
-          : role === "storekeeper"
-            ? "/inventory/dashboard"
-            : "/m",
-        "/reports",
-        "/farm/dashboard",
-      ]);
+      expect(tabs.length, role).toBeLessThanOrEqual(5);
+      expect(tabs, role).toEqual(desktop);
+      expect(tabs.map((tab) => tab.href), role).toEqual(expected[role]);
       for (const tab of tabs) expect(visibleHrefs.has(tab.href), `${role}:${tab.href}`).toBe(true);
     }
+  });
+
+  it("keeps eight owner workspaces and folds insights under the reports hub", () => {
+    expect(workspaceModulesForRole("owner").map((module) => module.label)).toEqual([
+      "المزرعة",
+      "التخطيط والعمليات",
+      "المخزون والمشتريات",
+      "المالية",
+      "الفريق",
+      "التسويق",
+      "الطقس والمخاطر",
+      "الإعدادات",
+    ]);
+    expect(workspaceModulesForRole("owner").map((module) => module.id)).not.toContain("insights-module");
+    expect(visibleModulesForRole("owner").map((module) => module.id)).toContain("insights-module");
+  });
+
+  it("reduces finance to seven launchers while preserving the full searchable registry", () => {
+    const finance = workspaceModulesForRole("owner").find((module) => module.id === "finance-module");
+    expect(finance?.pages.map((page) => page.id)).toEqual([
+      "finance-dashboard",
+      "expenses",
+      "budgets",
+      "custody",
+      "accounting",
+      "reconciliation",
+      "month-close",
+    ]);
+    expect(visibleModulesForRole("owner").find((module) => module.id === "finance-module")?.pages).toHaveLength(16);
+  });
+
+  it("maps folded and task-specific routes to the correct primary state", () => {
+    for (const path of [
+      "/inventory",
+      "/inventory/item-1",
+      "/inventory/item-1/coverage",
+      "/inventory/movements",
+      "/inventory/stock-take",
+      "/m/receive",
+    ]) {
+      expect(primaryNavIdForPath("storekeeper", path), path).toBe("inventory-dashboard");
+    }
+    for (const path of [
+      "/insights/annual-report",
+      "/finance/income-statement",
+      "/finance/buyers/buyer-1",
+      "/finance/cost-centers/center-1",
+      "/reports/plan-1/pva",
+    ]) {
+      expect(primaryNavIdForPath("owner", path), path).toBe("reports-hub");
+    }
+    expect(primaryNavIdForPath("supervisor", "/m/execute/op-1")).toBe("mobile");
+    expect(primaryNavIdForPath("storekeeper", "/m")).toBeNull();
   });
 
   it("has a route file for every nav href", () => {
