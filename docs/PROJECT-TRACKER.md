@@ -1,4 +1,21 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R2 — MERGED / DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R3 role homes — IN PROGRESS)
+
+> **2026-08-22 — PRODUCT UI RESET R3 OWNER HOME + ACCOUNTANT FIRST RESET MIGRATED / MERGED / DEPLOYED.**
+> Owner now lands on one compact, trustworthy decision page backed by a single exact bounded snapshot. The
+> surface prioritizes approval queues, caps KPIs at four, gates operational claims on data-authority status,
+> shows bounded causal drivers and keeps owner drawings separate. Accountant `/dashboard` routes to a compact
+> daily accounts home with the attention queue first and four exact existing KPIs. Payment approvals and
+> agronomy signoffs are included in Owner attention; empty-state copy makes no whole-business claim.
+>
+> Hosted Farm migration `20260822204421 exact_owner_home_snapshot` is `SECURITY INVOKER`, `STABLE`, uses an
+> empty search path and is executable by `authenticated` only. Sampled production business counts were
+> unchanged. PR #1031 merged as `287ce5a8d3b4167737b4adf28e99cbd74b16e01d`; Production deployment
+> `6041101297` succeeded. Evidence: independent APPROVE; pgTAP 4,269/4,269; Vitest 1,926 plus 17 controlled
+> skips; TypeScript, ESLint, 70-page build, repository guards, gitleaks and exact-merge CI/db-tests/release green.
+> Public aliases serve the release and signed-out protected homes redirect to `/login`.
+> **Open:** authenticated Owner/Accountant acceptance. Accountant still needs the richer exact queue,
+> receivable/reconciliation/period-state and prior-comparison contract. Then build the manager, agronomist,
+> supervisor and storekeeper homes before the list and 360-page redesign. Package PR #1025 stays separate.
 
 > **2026-08-22 — PRODUCT UI RESET R2 NAVIGATION CONSOLIDATION MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Desktop and phone now use one role-gated task spine: five destinations for owner/accountant/agronomist and

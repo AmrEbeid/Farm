@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R2 — MERGED / DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R3 role homes — IN PROGRESS)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Product UI reset R3 Owner home + Accountant first reset — MIGRATED / MERGED / DEPLOYED
+
+Owner `/dashboard/owner` is rebuilt around one exact bounded database snapshot rather than the former query and
+card wall. Attention comes first, KPI count is capped at four, previous-period comparison is stated as unavailable
+instead of fabricated, causal drivers are bounded and drillable, and owner drawings stay outside operating
+performance. Finance, budget, inventory, operations and palm claims only render as authoritative when their
+domain status permits it; missing status fails closed. The queue includes purchase, payment, agronomy and other
+legal owner workflows. Accountant `/dashboard` now routes to `/finance/dashboard`, which presents a compact
+`حسابات اليوم`, attention first, with unpaid obligations, personal custody, total custody and journal count.
+
+Migration `20260822204421 exact_owner_home_snapshot` is live on Farm only. Postflight proved `SECURITY INVOKER`,
+`STABLE`, empty search path, no public/anonymous execute and unchanged sampled business counts. PR #1031 merged
+as `287ce5a8d3b4167737b4adf28e99cbd74b16e01d`; Production deployment `6041101297` succeeded at
+`farm-ht5u6kdze-amrabdelglill-7962s-projects.vercel.app`. Public aliases serve the build; signed-out Owner and
+Finance homes redirect to `/login`. Candidate and merge evidence passed: pgTAP 4,269/4,269; Vitest 1,926 plus
+17 controlled skips; TypeScript; touched ESLint; 70-page build; repository guards; gitleaks; CI/db-tests/release;
+responsive 390px/1,440px fixture probes; independent exact-diff APPROVE.
+
+**Exact resume point:** finish the Accountant home with one exact bounded snapshot covering unposted,
+unpriced, unreconciled, receivables, open-period state and honest prior comparison, without duplicating the
+Owner RPC or changing accounting truth. Then implement manager, agronomist, supervisor and storekeeper homes.
+After all six role homes, redesign prioritized lists and every 360 surface using the shared compact hierarchy.
+Authenticated Owner/Accountant desktop/phone acceptance remains unclaimed until a valid Farm session runs it.
+Keep automated package publication PR #1025 separate. The product-wide UI reset remains incomplete.
 
 ## 2026-08-22 — Product UI reset R2 — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
 

@@ -1,8 +1,24 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (Product UI reset R2 merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (Product UI reset R3 Owner home and Accountant first reset live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-22 — PRODUCT UI RESET R3 OWNER HOME + ACCOUNTANT FIRST RESET: MIGRATED / MERGED / DEPLOYED.**
+Owner `/dashboard/owner` now uses one exact, bounded, active-organization snapshot instead of the prior query
+wall. Its compact story is attention first, at most four authority-gated KPIs, explicit unavailable comparison,
+bounded causal drivers and drill-downs; owner drawings remain separate from operating results. Payment approvals
+and agronomy signoffs are included. Missing or invalid authority evidence fails closed. Accountant `/dashboard`
+now routes to `/finance/dashboard`, whose first screen is a compact `حسابات اليوم` with the attention queue
+before four exact existing KPIs. This is the first Accountant reset, not the final accounting command center.
+
+Hosted Farm migration `20260822204421 exact_owner_home_snapshot` passed postflight as `SECURITY INVOKER`,
+`STABLE`, empty-search-path, authenticated-only; sampled business counts were unchanged. PR #1031 merged as
+`287ce5a8d3b4167737b4adf28e99cbd74b16e01d`; Production deployment `6041101297` succeeded. Validation:
+pgTAP 4,269/4,269; Vitest 1,926 plus 17 controlled skips; TypeScript, ESLint, 70-page build, guards, gitleaks,
+CI/db-tests/release/Vercel and independent APPROVE. Public aliases serve the release; signed-out protected homes
+redirect to login. Authenticated Owner/Accountant acceptance remains open. Next: finish the Accountant exact
+queue/comparison contract, then manager/agronomist/supervisor/storekeeper homes and the list/360 redesign.
 
 **2026-08-22 — PRODUCT UI RESET R2: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 The visible navigation is now a single role-gated task spine shared by desktop and phone: 4–5 direct

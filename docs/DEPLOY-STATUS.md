@@ -2,6 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-22 (latest) — Product UI reset R3 Owner home + Accountant first reset MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260822204421 exact_owner_home_snapshot` is applied. It adds one owner-only,
+> active-organization, bounded `SECURITY INVOKER` snapshot RPC with an empty search path; postflight confirmed
+> only `authenticated` can execute it and all sampled business counts remained unchanged. PR #1031 merged as
+> `287ce5a8d3b4167737b4adf28e99cbd74b16e01d`; GitHub Production deployment `6041101297` completed at
+> `farm-ht5u6kdze-amrabdelglill-7962s-projects.vercel.app`. Public aliases serve the current build;
+> signed-out Owner and Finance dashboard routes return 307 to `/login`. Owner now gets one compact,
+> authority-aware decision page with approvals, four KPIs, bounded causal drivers and drawings kept separate.
+> Accountant lands on a compact daily accounts page with the attention queue first and four exact existing
+> KPIs. Exact-merge CI, db-tests, release, Vercel, gitleaks, pgTAP 4,269/4,269, 1,926 Vitest passes plus 17
+> controlled skips, 70-page build, repository guards and independent review passed. Authenticated role smoke
+> remains pending. Accountant's richer exact queue/comparison contract and the other four role homes remain R3.
+
 > **2026-08-22 (latest) — Product UI reset R2 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1029 merged as `8fce79b6ec05a7eca74d6a3196a179d2fa343d28`; GitHub Production deployment
 > `6040708816` completed at `farm-7th49dc9i-amrabdelglill-7962s-projects.vercel.app`. The exact deployment URL
