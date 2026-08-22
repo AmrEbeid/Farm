@@ -77,6 +77,16 @@ describe("trapStatus", () => {
     // days-since figures are still reported (real data), just not flagged as actionable.
     expect(removed.daysSinceLureChange).toBeGreaterThan(90);
   });
+
+  it("matches the Cairo calendar-day threshold during Cairo's early morning", () => {
+    const cairoEarlyMorning = new Date("2026-08-22T22:30:00.000Z");
+    const result = trapStatus(
+      { installedAt: "2026-01-01", lureChangedAt: "2026-08-12", lastCheckedAt: "2026-08-12", status: "active" },
+      cairoEarlyMorning,
+    );
+    expect(result.daysSinceLastCheck).toBe(11);
+    expect(result.overdueCheck).toBe(true);
+  });
 });
 
 function daysBetween(iso: string, now: Date): number {

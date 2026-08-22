@@ -25,30 +25,33 @@ const CHECK_KIND_AR: Record<string, string> = {
   responsibility: "المسؤولية",
 };
 
+// R3d usability fix: an unverified/partial SOURCE never blanks a count the organisation actually
+// recorded — that turned the whole Manager home into dashes in production and hid real overdue work.
+// Every item below is labelled مسجل (recorded) so the count is read as "what is recorded", not as
+// "everything on the farm"; the completeness claims (the all-clear inbox and the all-clear empty
+// state) stay gated on verified authority.
 function buildAttention(snapshot: ManagerHomeSnapshot): AttentionItem[] {
   const items: AttentionItem[] = [];
-  const operationsVerified = isAuthoritative(snapshot.authority.operations);
-  const inventoryVerified = isAuthoritative(snapshot.authority.inventory);
-  if (operationsVerified && snapshot.attention.overdueOperations > 0) items.push({
-    href: "/plans/dashboard", tone: "act", text: `${num(snapshot.attention.overdueOperations)} عملية تجاوزت موعدها ولم تنفذ`,
+  if (snapshot.attention.overdueOperations > 0) items.push({
+    href: "/plans/dashboard", tone: "act", text: `${num(snapshot.attention.overdueOperations)} عملية مسجلة تجاوزت موعدها ولم تنفذ`,
   });
-  if (operationsVerified && snapshot.attention.blockedPlanChecks > 0) items.push({
+  if (snapshot.attention.blockedPlanChecks > 0) items.push({
     href: "/plans/dashboard", tone: "act", text: `${num(snapshot.attention.blockedPlanChecks)} عائق في آخر فحص مسجل للخطط النشطة`,
   });
-  if (operationsVerified && snapshot.attention.unassignedOperations > 0) items.push({
-    href: "/people/dashboard?filter=unassigned", tone: "watch", text: `${num(snapshot.attention.unassignedOperations)} عملية مفتوحة بلا مسؤول`,
+  if (snapshot.attention.unassignedOperations > 0) items.push({
+    href: "/people/dashboard?filter=unassigned", tone: "watch", text: `${num(snapshot.attention.unassignedOperations)} عملية مفتوحة مسجلة بلا مسؤول`,
   });
-  if (operationsVerified && snapshot.attention.unscheduledOperations > 0) items.push({
-    href: "/plans", tone: "watch", text: `${num(snapshot.attention.unscheduledOperations)} عملية مفتوحة بلا موعد`,
+  if (snapshot.attention.unscheduledOperations > 0) items.push({
+    href: "/plans", tone: "watch", text: `${num(snapshot.attention.unscheduledOperations)} عملية مفتوحة مسجلة بلا موعد`,
   });
-  if (operationsVerified && snapshot.attention.pendingAgronomySignoffs > 0) items.push({
-    href: "/plans", tone: "act", text: `${num(snapshot.attention.pendingAgronomySignoffs)} عملية تسميد أو مكافحة تنتظر توقيع المهندس الزراعي`,
+  if (snapshot.attention.pendingAgronomySignoffs > 0) items.push({
+    href: "/plans", tone: "act", text: `${num(snapshot.attention.pendingAgronomySignoffs)} عملية تسميد أو مكافحة مسجلة تنتظر توقيع المهندس الزراعي`,
   });
-  if (inventoryVerified && snapshot.attention.unknownStockItems > 0) items.push({
+  if (snapshot.attention.unknownStockItems > 0) items.push({
     href: "/inventory", tone: "watch", text: `${num(snapshot.attention.unknownStockItems)} صنف بلا رصيد مخزن مسجل؛ حالته غير معروفة`,
   });
-  if (inventoryVerified && snapshot.attention.belowReorderThreshold > 0) items.push({
-    href: "/inventory/dashboard?filter=reorder", tone: "watch", text: `${num(snapshot.attention.belowReorderThreshold)} صنف تحت حد إعادة الطلب الحالي`,
+  if (snapshot.attention.belowReorderThreshold > 0) items.push({
+    href: "/inventory/dashboard?filter=reorder", tone: "watch", text: `${num(snapshot.attention.belowReorderThreshold)} صنف مسجل تحت حد إعادة الطلب الحالي`,
   });
   return items;
 }
@@ -94,12 +97,12 @@ export function ManagerHomeView({ snapshot }: { snapshot: ManagerHomeSnapshot })
   const attention = buildAttention(snapshot);
   const operationsVerified = isAuthoritative(snapshot.authority.operations);
   const inventoryVerified = isAuthoritative(snapshot.authority.inventory);
-  const hasDrivers = (operationsVerified && (
-    snapshot.drivers.priorityOperations.length > 0
+  const hasDrivers = snapshot.drivers.priorityOperations.length > 0
     || snapshot.drivers.unassignedOperations.length > 0
     || snapshot.drivers.pendingSignoffs.length > 0
     || snapshot.drivers.blockedChecks.length > 0
-  )) || (inventoryVerified && snapshot.drivers.stockBelowThreshold.length > 0);
+    || snapshot.drivers.stockBelowThreshold.length > 0;
+  const recordedOnly = operationsVerified && inventoryVerified ? "" : " · المسجل فقط";
 
   return (
     <main className="space-y-6" data-testid="manager-home">
@@ -120,52 +123,52 @@ export function ManagerHomeView({ snapshot }: { snapshot: ManagerHomeSnapshot })
         : null}
 
       {(!operationsVerified || !inventoryVerified) && (
-        <Alert tone="warning" title="بعض مؤشرات التشغيل غير موثقة بالكامل"
-          description="ستظهر شرطة بدل أي رقم يعتمد على مصدر غير موثق؛ راجع حالة بيانات التشغيل والمخزون مع المالك." />
+        <Alert tone="warning" title="الأرقام هنا مسجلة فقط، وتغطية المصدر غير مؤكدة"
+          description="كل رقم في هذه الصفحة عدد دقيق لما هو مسجل في المؤسسة النشطة، وليس تأكيدًا أن كل عمل المزرعة ومخزونه مسجل. راجع حالة بيانات التشغيل والمخزون مع المالك قبل أي استنتاج بالاكتمال." />
       )}
 
       <section aria-labelledby="manager-state-title" className="space-y-3">
         <div>
           <h2 id="manager-state-title" className="text-base font-bold">الحالة الآن</h2>
-          <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>أربع إشارات تشغيلية فقط لاتخاذ قرار اليوم.</p>
+          <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>أربع إشارات تشغيلية مسجلة فقط لاتخاذ قرار اليوم.</p>
         </div>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <DashboardKpiLink href="/plans/dashboard" active={false}>
-            <KpiCard label="عمليات اليوم المفتوحة" value={operationsVerified ? num(snapshot.state.operations.todayCount) : "—"}
-              icon={<ClipboardList size={18} />} delta={operationsVerified ? `${num(snapshot.state.operations.openCount)} عملية مفتوحة إجمالا` : "بيانات التشغيل غير موثقة"}
+            <KpiCard label="عمليات اليوم المفتوحة" value={num(snapshot.state.operations.todayCount)}
+              icon={<ClipboardList size={18} />} delta={`${num(snapshot.state.operations.openCount)} عملية مفتوحة مسجلة${recordedOnly}`}
               deltaDirection={operationsVerified && snapshot.state.operations.todayCount === 0 ? "up" : "none"} />
           </DashboardKpiLink>
           <DashboardKpiLink href="/plans/dashboard" active={false}>
-            <KpiCard label="عمليات متأخرة" value={operationsVerified ? num(snapshot.state.operations.overdueCount) : "—"}
-              icon={<CalendarClock size={18} />} delta={operationsVerified ? "بعد نهاية موعد التنفيذ" : "بيانات التشغيل غير موثقة"}
-              deltaDirection={operationsVerified ? (snapshot.state.operations.overdueCount > 0 ? "down" : "up") : "none"} />
+            <KpiCard label="عمليات متأخرة" value={num(snapshot.state.operations.overdueCount)}
+              icon={<CalendarClock size={18} />} delta={`بعد نهاية موعد التنفيذ${recordedOnly}`}
+              deltaDirection={snapshot.state.operations.overdueCount > 0 ? "down" : operationsVerified ? "up" : "none"} />
           </DashboardKpiLink>
           <DashboardKpiLink href="/plans/dashboard" active={false}>
-            <KpiCard label="تنتظر توقيعًا زراعيًا" value={operationsVerified ? num(snapshot.state.pendingAgronomySignoffs) : "—"}
-              icon={<ClipboardCheck size={18} />} delta={operationsVerified ? "تسميد أو مكافحة؛ ليست وصفة معتمدة بعد" : "بيانات التشغيل غير موثقة"}
-              deltaDirection={operationsVerified ? (snapshot.state.pendingAgronomySignoffs > 0 ? "down" : "up") : "none"} />
+            <KpiCard label="تنتظر توقيعًا زراعيًا" value={num(snapshot.state.pendingAgronomySignoffs)}
+              icon={<ClipboardCheck size={18} />} delta={`تسميد أو مكافحة؛ ليست وصفة معتمدة بعد${recordedOnly}`}
+              deltaDirection={snapshot.state.pendingAgronomySignoffs > 0 ? "down" : operationsVerified ? "up" : "none"} />
           </DashboardKpiLink>
           <DashboardKpiLink href="/inventory/dashboard?filter=reorder" active={false}>
-            <KpiCard label="تحت حد إعادة الطلب" value={inventoryVerified ? num(snapshot.state.inventory.belowThresholdCount) : "—"}
-              icon={<PackageSearch size={18} />} delta={inventoryVerified ? `${num(snapshot.state.inventory.outOfStockCount)} نافد فعليا · ${num(snapshot.state.inventory.unknownStockCount)} غير معروف` : "بيانات المخزون غير موثقة"}
-              deltaDirection={inventoryVerified ? (snapshot.state.inventory.belowThresholdCount > 0 ? "down" : "up") : "none"} />
+            <KpiCard label="تحت حد إعادة الطلب" value={num(snapshot.state.inventory.belowThresholdCount)}
+              icon={<PackageSearch size={18} />} delta={`${num(snapshot.state.inventory.outOfStockCount)} نافد فعليا · ${num(snapshot.state.inventory.unknownStockCount)} غير معروف${recordedOnly}`}
+              deltaDirection={snapshot.state.inventory.belowThresholdCount > 0 ? "down" : inventoryVerified ? "up" : "none"} />
           </DashboardKpiLink>
         </div>
       </section>
 
       {!hasDrivers ? (
         <EmptyState
-          title={operationsVerified && inventoryVerified ? "لا توجد أعمال أو عوائق تحتاج قرارا الآن" : "لا يمكن تأكيد تفاصيل المتابعة من المصادر الحالية"}
-          description={operationsVerified && inventoryVerified ? "ابدأ خطة جديدة أو سجّل نشاطا ميدانيا غير مخطط." : "تظهر التفاصيل بعد توثيق بيانات التشغيل والمخزون."}
+          title={operationsVerified && inventoryVerified ? "لا توجد أعمال أو عوائق تحتاج قرارا الآن" : "لا توجد بنود مسجلة للمتابعة الآن"}
+          description={operationsVerified && inventoryVerified ? "ابدأ خطة جديدة أو سجّل نشاطا ميدانيا غير مخطط." : "هذا وصف لما هو مسجل فقط؛ لا يعني أن كل عمل المزرعة ومخزونه مسجل."}
         />
       ) : (
         <section aria-labelledby="manager-drivers-title" className="space-y-3">
           <div>
             <h2 id="manager-drivers-title" className="text-base font-bold">ما الذي يحتاج التحرك؟</h2>
-            <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>أعلى البنود أولوية فقط؛ القوائم الكاملة داخل صفحاتها.</p>
+            <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>أعلى البنود المسجلة أولوية فقط؛ القوائم الكاملة داخل صفحاتها.</p>
           </div>
           <div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
-            {operationsVerified && snapshot.drivers.priorityOperations.length > 0 && (
+            {snapshot.drivers.priorityOperations.length > 0 && (
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold"><CalendarClock size={17} aria-hidden />أولوية التنفيذ</h3>
                 <ul className="mt-1">
@@ -177,7 +180,7 @@ export function ManagerHomeView({ snapshot }: { snapshot: ManagerHomeSnapshot })
                 </ul>
               </div>
             )}
-            {operationsVerified && snapshot.drivers.unassignedOperations.length > 0 && (
+            {snapshot.drivers.unassignedOperations.length > 0 && (
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold"><UserRoundX size={17} aria-hidden />توزيع الفريق</h3>
                 <ul className="mt-1">
@@ -189,7 +192,7 @@ export function ManagerHomeView({ snapshot }: { snapshot: ManagerHomeSnapshot })
                 </ul>
               </div>
             )}
-            {operationsVerified && snapshot.drivers.blockedChecks.length > 0 && (
+            {snapshot.drivers.blockedChecks.length > 0 && (
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold"><AlertOctagon size={17} aria-hidden />عوائق آخر فحص مسجل</h3>
                 <ul className="mt-1">
@@ -201,7 +204,7 @@ export function ManagerHomeView({ snapshot }: { snapshot: ManagerHomeSnapshot })
                 </ul>
               </div>
             )}
-            {operationsVerified && snapshot.drivers.pendingSignoffs.length > 0 && (
+            {snapshot.drivers.pendingSignoffs.length > 0 && (
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold"><ClipboardCheck size={17} aria-hidden />توقيع المهندس الزراعي</h3>
                 <ul className="mt-1">
@@ -213,7 +216,7 @@ export function ManagerHomeView({ snapshot }: { snapshot: ManagerHomeSnapshot })
                 </ul>
               </div>
             )}
-            {inventoryVerified && snapshot.drivers.stockBelowThreshold.length > 0 && (
+            {snapshot.drivers.stockBelowThreshold.length > 0 && (
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold"><PackageSearch size={17} aria-hidden />المخزون الآن</h3>
                 <p className="mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>إشارة لحظية مقابل حد إعادة الطلب؛ افتح التغطية لرؤية الطلب المتوقع.</p>

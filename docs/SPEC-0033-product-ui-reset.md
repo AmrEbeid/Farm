@@ -17,6 +17,29 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Agronomist home R3d candidate
+
+The Agronomist branch of `/dashboard/manager` now uses one agri-engineer-only, active-organisation snapshot,
+and the legacy unbounded multi-table dashboard that served this role is removed. It leads with dose/spray
+sign-offs waiting on this engineer, agronomy work active today, overdue agronomy work and active pheromone
+traps needing follow-up. All four numbers are exact counts of RECORDED rows for the active organisation and
+are labelled المسجل: they never claim the farm is fully covered. Scope is active plans only and the agronomy
+operation set (fertilization, spraying, irrigation, pollination, inspection, pest scouting); multi-day work is
+due today across its inclusive span and overdue only after its effective end. Trap follow-up reuses the shipped
+`lib/pest-scouting.ts` thresholds exactly — check older than 10 days or lure older than 90 days, both falling
+back to `installed_at`, active traps only. Blocked plan checks include weather, stock and budget and are
+labelled as the last recorded check because `plan_checks` carries no timestamp. Dose content stays an editable
+template pending named sign-off, and a recorded APC reference is shown as recorded-or-missing, never as proof
+of a valid registration. The snapshot is bounded (drivers and the materials nested inside a sign-off row are
+each independently limited), current-Cairo-date-only and contains no finance value. The existing sign-off
+action stays in **راجع**. This remains a local candidate until migration, merge, deployment and authenticated
+role smoke are separately evidenced.
+
+The same release also fixes the R3c Manager usability defect: production reports `operations` and `inventory`
+as partial, which rendered the whole Manager home as dashes and hid real overdue work. Exact recorded counts
+and driver rows are now always shown and labelled المسجل with a partial-source warning, while every
+completeness or all-clear claim stays gated on verified authority. Neither the RPC nor any count changed.
+
 ### Manager home R3c released
 
 The Farm Manager branch of `/dashboard/manager` now uses one manager-only, active-organisation snapshot while

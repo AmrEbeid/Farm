@@ -13,7 +13,7 @@
  * view").
  */
 
-import { daysSince } from "@/lib/dates";
+import { daysSinceCairoDate } from "@/lib/dates";
 
 const LURE_LIFE_DAYS = 90;
 const CHECK_OVERDUE_DAYS = 10;
@@ -43,8 +43,8 @@ export interface TrapStatus {
  */
 export function trapStatus(input: TrapStatusInput, now: Date = new Date()): TrapStatus {
   const active = input.status === "active";
-  const daysSinceLureChange = daysSince(input.lureChangedAt ?? input.installedAt, now);
-  const daysSinceLastCheck = daysSince(input.lastCheckedAt ?? input.installedAt, now);
+  const daysSinceLureChange = daysSinceCairoDate(input.lureChangedAt ?? input.installedAt, now);
+  const daysSinceLastCheck = daysSinceCairoDate(input.lastCheckedAt ?? input.installedAt, now);
 
   return {
     daysSinceLureChange,

@@ -6,6 +6,12 @@ const DATE_TIME_FMT = new Intl.DateTimeFormat("ar-EG", {
   timeStyle: "short",
   timeZone: "Africa/Cairo",
 });
+const CAIRO_DATE_FMT = new Intl.DateTimeFormat("en", {
+  timeZone: "Africa/Cairo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 export function fmtDate(value: string | Date | null | undefined): string {
   if (value == null || value === "") return "—";
@@ -20,6 +26,36 @@ export function fmtDateTime(value: string | Date | null | undefined): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return DATE_TIME_FMT.format(date);
+}
+
+/** The farm's current calendar date, independent of the server's timezone. */
+export function cairoDateString(value: Date = new Date()): string {
+  const parts = Object.fromEntries(
+    CAIRO_DATE_FMT.formatToParts(value).map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+/** Whole Cairo calendar days since a recorded farm date. */
+export function daysSinceCairoDate(
+  value: string | Date | null | undefined,
+  now: Date = new Date(),
+): number | null {
+  if (value == null || value === "") return null;
+  const recordedDate =
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? value
+      : (() => {
+          const instant = value instanceof Date ? value : new Date(value);
+          return Number.isNaN(instant.getTime()) ? null : cairoDateString(instant);
+        })();
+  if (recordedDate === null) return null;
+  const recorded = new Date(`${recordedDate}T00:00:00.000Z`);
+  if (Number.isNaN(recorded.getTime()) || recorded.toISOString().slice(0, 10) !== recordedDate) {
+    return null;
+  }
+  const today = new Date(`${cairoDateString(now)}T00:00:00.000Z`);
+  return Math.round((today.getTime() - recorded.getTime()) / (24 * 60 * 60 * 1000));
 }
 
 /**

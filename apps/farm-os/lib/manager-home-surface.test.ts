@@ -14,13 +14,20 @@ describe("manager home surface", () => {
     expect(component).toContain("parseManagerHomeSnapshot(data, orgId, asOf)");
   });
 
-  it("routes farm managers before the preserved agronomist reads", () => {
+  it("routes the agronomist first and keeps the manager branch on its own snapshot", () => {
     const role = router.indexOf('requireRole(["farm_manager", "agri_engineer"])');
-    const branch = router.indexOf('if (m.role === "farm_manager") return <ManagerHome orgId={m.orgId} />');
-    const client = router.indexOf("const sb = await createClient()");
+    const agronomist = router.indexOf('if (m.role === "agri_engineer") return <AgronomistHome orgId={m.orgId} />');
+    const manager = router.indexOf("return <ManagerHome orgId={m.orgId} />");
     expect(role).toBeGreaterThan(-1);
-    expect(branch).toBeGreaterThan(role);
-    expect(branch).toBeLessThan(client);
+    expect(agronomist).toBeGreaterThan(role);
+    expect(manager).toBeGreaterThan(agronomist);
+  });
+
+  it("keeps no legacy unbounded reads on the shared route", () => {
+    expect(router).not.toContain("createClient");
+    expect(router).not.toContain(".from(");
+    expect(router).not.toContain("est_cost");
+    expect(router).not.toContain("FilterableTable");
   });
 
   it("shows exactly four operational KPIs and no absolute finance", () => {
@@ -34,5 +41,28 @@ describe("manager home surface", () => {
     expect(component).toContain("عوائق آخر فحص مسجل");
     expect(component).toContain("حالته غير معروفة");
     expect(component).not.toMatch(/est_cost|egpExact|قيمة مالية|إجمالي التكلفة/i);
+  });
+
+  it("shows exact recorded counts instead of dashes when the source is only partial", () => {
+    // R3d: a partial operations/inventory authority must not blank a count the organisation recorded.
+    expect(component).not.toContain('"—"');
+    expect(component).toContain('const recordedOnly = operationsVerified && inventoryVerified ? "" : " · المسجل فقط";');
+    for (const value of [
+      "value={num(snapshot.state.operations.todayCount)}",
+      "value={num(snapshot.state.operations.overdueCount)}",
+      "value={num(snapshot.state.pendingAgronomySignoffs)}",
+      "value={num(snapshot.state.inventory.belowThresholdCount)}",
+    ]) {
+      expect(component).toContain(value);
+    }
+    expect(component).toContain("الأرقام هنا مسجلة فقط، وتغطية المصدر غير مؤكدة");
+  });
+
+  it("still gates every completeness or all-clear claim on verified authority", () => {
+    expect(component).toContain("attention.length > 0 || (operationsVerified && inventoryVerified)");
+    expect(component).toContain('operationsVerified && inventoryVerified ? "لا توجد أعمال أو عوائق تحتاج قرارا الآن"');
+    expect(component).toContain("لا توجد بنود مسجلة للمتابعة الآن");
+    // A green "all good" direction is only claimed when the source is verified.
+    expect(component).not.toMatch(/> 0 \? "down" : "up"\s*\}/);
   });
 });

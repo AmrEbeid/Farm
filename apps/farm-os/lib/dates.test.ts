@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtDate, fmtDateTime, daysSince } from "./dates";
+import { cairoDateString, daysSince, daysSinceCairoDate, fmtDate, fmtDateTime } from "./dates";
 
 // Anchor valid-date assertions to the module's own formatter so they stay stable
 // across ICU/Node versions; assert the dash sentinel exactly for invalid input.
@@ -92,5 +92,22 @@ describe("daysSince", () => {
   it("defaults `now` to the current moment when omitted", () => {
     const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     expect(daysSince(past)).toBe(5);
+  });
+});
+
+describe("Cairo calendar dates", () => {
+  it("uses the Cairo business date around UTC midnight", () => {
+    expect(cairoDateString(new Date("2026-08-22T21:30:00.000Z"))).toBe("2026-08-23");
+  });
+
+  it("counts calendar dates rather than elapsed 24-hour periods", () => {
+    const cairoEarlyMorning = new Date("2026-08-22T22:30:00.000Z");
+    expect(daysSinceCairoDate("2026-08-12", cairoEarlyMorning)).toBe(11);
+  });
+
+  it("fails closed for missing and invalid dates", () => {
+    expect(daysSinceCairoDate(null)).toBeNull();
+    expect(daysSinceCairoDate("2026-02-30")).toBeNull();
+    expect(daysSinceCairoDate("not-a-date")).toBeNull();
   });
 });

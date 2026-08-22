@@ -208,6 +208,21 @@ type WithOpNote<
   Relationships: T["Relationships"];
 };
 
+/** Add the inclusive multi-day end date (migration 20260622000090). */
+type WithOperationEnd<
+  T extends {
+    Row: object;
+    Insert: object;
+    Update: object;
+    Relationships: unknown;
+  }
+> = {
+  Row: T["Row"] & { ends_on: string | null };
+  Insert: T["Insert"] & { ends_on?: string | null };
+  Update: T["Update"] & { ends_on?: string | null };
+  Relationships: T["Relationships"];
+};
+
 type AttachmentsTable = {
   Row: {
     id: string;
@@ -1341,6 +1356,15 @@ type AccountantHomeFunctions = {
 // farm-manager-membership-gated. ──
 type ManagerHomeFunctions = {
   fn_manager_home_snapshot: {
+    Args: { p_org: string; p_as_of: string; p_detail_limit?: number };
+    Returns: Json;
+  };
+};
+
+// ── Agronomist home, migration 20260823110000. Exact, bounded, agronomy-only and
+// agri-engineer-membership-gated; recorded counts only, no finance values. ──
+type AgronomistHomeFunctions = {
+  fn_agronomist_home_snapshot: {
     Args: { p_org: string; p_as_of: string; p_detail_limit?: number };
     Returns: Json;
   };
@@ -2539,9 +2563,11 @@ export type Database = Omit<Generated, "public"> & {
       lines: WithArchived<Tables["lines"]>;
       expenses: WithPaymentStatus<Tables["expenses"]>;
       plan_operations: WithOpNote<
-        WithSignoff<
-          WithDependsOn<
-            WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>
+        WithOperationEnd<
+          WithSignoff<
+            WithDependsOn<
+              WithIrrigationBasis<WithHarvestStage<Tables["plan_operations"]>>
+            >
           >
         >
       >;
@@ -2597,6 +2623,7 @@ export type Database = Omit<Generated, "public"> & {
       OwnerHomeFunctions &
       AccountantHomeFunctions &
       ManagerHomeFunctions &
+      AgronomistHomeFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

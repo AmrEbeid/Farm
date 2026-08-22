@@ -52,6 +52,7 @@ describe("approvals inbox database reads", () => {
       "plan_material_requirements(qty, unit, item_id, inventory_items(name))",
     );
     expect(source).toContain('.in("subtype", Array.from(DOSE_BEARING_SUBTYPES))');
+    expect(source).toContain('.or("signed_off_at.is.null,signed_off_by.is.null")');
     expect(source).toContain('const canSignoff = role === "owner" || role === "agri_engineer"');
     expect(source).toContain('const canApprovePr = role === "owner"');
     expect(source).toContain("request.requested_by !== userId");
