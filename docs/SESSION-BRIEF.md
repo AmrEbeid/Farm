@@ -1,5 +1,26 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R0 — MERGED / DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R1a — MERGED / DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Product UI reset R1a shell — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+The shared `AppShell` now has a real consumer-owned sidebar slot and menu-icon slot. Its mobile drawer owns
+modal semantics, inert background, focus entry/trap/return, body lock, nested overlay ordering and responsive
+resize release. It remains backward-compatible with generated nav and deliberately detects Farm's current
+empty-aside workaround so this package-only release cannot inert the real legacy sidebar. The compact topbar is
+49px in the desktop Storybook measurement and 53px on phone; the menu hit target is 44px. RTL drawer/overlay
+layers measured 99/98 below modal 100, with zero horizontal overflow.
+
+PR #1024 merged as `2d21f261bc09af12f5ea94d4f1fdbef5a8d77b64`; Production deployment
+`6040244330` succeeded. Public aliases serve login and redirect signed-out protected routes. Validation passed:
+25 focused and 305 full UI tests; 1,910 Farm tests plus 17 controlled skips; UI/Farm TypeScript; UI, Farm and
+Storybook builds; token purity; pgTAP; gitleaks; Vercel; repository guards; independent rereview APPROVE. No
+migration, app-source or business-data change occurred. The minor changeset targets UI 1.4.0 but is not published.
+
+**Exact resume point:** R1b from current main. Pass `ModuleSidebar` through the new `sidebar` slot, pass the
+existing Lucide `Menu`, remove the fixed-sidebar and z-index workaround CSS, and derive desktop/mobile primary
+navigation from the same role-gated model without changing routes or data. Rebuild/sync tracked UI CSS, then
+verify current Farm mobile drawer, desktop RTL sidebar, focus, overlay, route navigation and zero overflow before
+merge. Authenticated role smoke remains required; the full UI reset is not complete.
 
 ## 2026-08-22 — Product UI reset R0 — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
 

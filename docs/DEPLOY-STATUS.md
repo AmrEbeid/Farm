@@ -2,6 +2,14 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-22 (latest) — Product UI reset R1a shell MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #1024 merged as `2d21f261bc09af12f5ea94d4f1fdbef5a8d77b64`; GitHub Production deployment
+> `6040244330` completed at `farm-2zpe6pedq-amrabdelglill-7962s-projects.vercel.app`. Public aliases serve
+> `/login`; signed-out `/dashboard` and `/marketing/workspace` return 307 to `/login`. This release adds the
+> backward-compatible design-system sidebar/menu-icon slots and accessible responsive drawer foundation. It
+> deliberately does not adopt the slot in Farm yet. No migration, schema, app-source or business-data action
+> occurred. Remote app/UI CI, pgTAP, gitleaks and Vercel passed; independent exact-diff rereview approved.
+
 > **2026-08-22 (latest) — Product UI reset R0 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1022 merged as `f54722bcc51d20c81140294dc0ed15a36c8dbe80`. GitHub Production deployment
 > `6039939309` completed at `farm-4ppjococg-amrabdelglill-7962s-projects.vercel.app`; the protected deployment

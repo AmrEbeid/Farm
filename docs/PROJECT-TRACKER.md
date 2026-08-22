@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R0 — MERGED / DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R1a — MERGED / DEPLOYED)
+
+> **2026-08-22 — PRODUCT UI RESET R1a DESIGN-SYSTEM SHELL MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> `AppShell` now supports a real consumer sidebar and menu-icon slot while preserving generated navigation and
+> Farm's current empty-aside workaround. The mobile drawer has valid modal semantics, inert background, focus
+> entry/trap/return, stack-safe nested overlays, responsive resize release, correct RTL positioning and layers
+> below package Modal/Drawer surfaces. The topbar is compact and its phone menu target remains 44px. PR #1024
+> merged as `2d21f261bc09af12f5ea94d4f1fdbef5a8d77b64`; Production deployment `6040244330` succeeded.
+> The public aliases serve `/login`; protected dashboard and Marketing routes redirect signed-out users.
+> No migration, schema, app-source or business-data action occurred.
+>
+> Evidence: 25 focused and 305 full UI tests; 1,910 Farm tests plus 17 controlled skips; UI/Farm TypeScript,
+> UI/Farm/Storybook builds, token purity, pgTAP, gitleaks, Vercel, package guards, rendered RTL/resize checks and
+> independent rereview APPROVE. A minor changeset targets `@amrebeid/ui` 1.4.0; publication is not claimed.
+> **Next:** R1b adopts the slot in Farm and removes the duplicate fixed-sidebar workaround.
 
 > **2026-08-22 — PRODUCT UI RESET R0 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > The first bounded slice of SPEC-0033 is live. Phone pages now reserve the same scalable bottom-navigation
