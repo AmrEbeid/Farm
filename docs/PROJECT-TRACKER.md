@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R3 role homes — IN PROGRESS)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3b Accountant home live)
+
+> **2026-08-23 — PRODUCT UI RESET R3b EXACT ACCOUNTANT HOME MIGRATED / MERGED / DEPLOYED.**
+> Accountant Finance now reads one exact, bounded, active-org snapshot and leads with the work queue rather
+> than a card wall. It covers close gaps, pending pricing, staged reconciliation, open receivables, custody,
+> period state, operating/CAPEX obligations and payment-request lifecycle actions. Drawings and unknown amounts
+> remain explicit; money/comparison fail closed unless `finance_ledger` is verified; future activity is excluded.
+>
+> Hosted Farm migration `20260822221540 exact_accountant_home_snapshot` passed metadata/grant postflight and a
+> real Accountant-claim RPC smoke. PR #1033 merged as `b4a17e06c173ae48000f53a22e6c4131b3515b02`.
+> Production deployment `dpl_CQB5wttzHuDH85hLSUtTgHsks8vf` is served by both public aliases; signed-out
+> Finance redirects to `/login`. Evidence: independent APPROVE; pgTAP 4,351/4,351; Vitest 1,932 plus 17 skips;
+> TypeScript, ESLint, 70-page build, security/bundle guards, gitleaks and PR CI green. The CI-only UTC/Cairo
+> custody-test flake was reproduced under `TZ=UTC` and fixed by pinning that test transaction to Cairo.
+> **Open:** authenticated browser desktop/phone acceptance; then manager, agronomist, supervisor and
+> storekeeper role homes; then prioritized lists and all 360 surfaces. Package publication PR #1025 is separate.
 
 > **2026-08-22 — PRODUCT UI RESET R3 OWNER HOME + ACCOUNTANT FIRST RESET MIGRATED / MERGED / DEPLOYED.**
 > Owner now lands on one compact, trustworthy decision page backed by a single exact bounded snapshot. The
