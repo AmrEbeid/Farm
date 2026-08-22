@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R1b — MERGED / DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R2 — MERGED / DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Product UI reset R2 — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+Farm now has one role-gated primary navigation model for desktop and phone. Owner/accountant have
+`الرئيسية / سجّل / راجع / المعاملات / التقارير`; agronomist has the corresponding field spine; manager,
+supervisor and storekeeper intentionally have four destinations rather than filler. Eight owner workspaces are
+collapsed except the active one. Finance shows seven daily launchers instead of 16; the other reports remain
+available contextually and through command search. Insights now enters through the Reports story hub. Lucide
+icons replace rendered emoji in sidebar, bottom tabs and command search. Canonical active mapping covers deep
+inventory, receipt, report, buyer, cost-centre and plan-variance routes with correct `page` versus `location`
+semantics. SPEC-0033 records explicit six-step allowed/denied scripts for all six roles.
+
+PR #1029 merged as `8fce79b6ec05a7eca74d6a3196a179d2fa343d28`; Production deployment
+`6040708816` succeeded at `farm-7th49dc9i-amrabdelglill-7962s-projects.vercel.app`. CI `32595565300`, db-tests
+`32595565318` and release `32595565338` passed. Public aliases serve `/login`; signed-out `/dashboard` redirects
+there. Candidate evidence passed: 1,922 Farm tests plus 17 controlled skips, TypeScript, touched ESLint,
+70-page build, pgTAP, gitleaks, repository guards, 390px/1,440px RTL probes with zero overflow, and independent
+rereview APPROVE. No migration, schema, auth, query, permission, RPC or business-data action occurred.
+
+**Exact resume point:** start SPEC-0033 R3 from current main with Owner and Accountant homes. First inventory
+their exact current queries and replace unbounded landing-page reads with bounded/exact aggregate contracts in
+the same release. Implement the attention/change/state/driver/detail story using only verified data and direct
+drill-downs. Then cover manager, agronomist, supervisor and storekeeper. Keep authenticated six-role desktop/
+phone acceptance explicitly unclaimed until a signed-in Farm session runs the scripts. Keep package PR #1025
+as a separate publication gate. The full UI reset remains incomplete.
 
 ## 2026-08-22 — Product UI reset R1b — MERGED / DEPLOYED / SIGNED-OUT VERIFIED
 

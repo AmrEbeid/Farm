@@ -1,4 +1,21 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R1b — MERGED / DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R2 — MERGED / DEPLOYED)
+
+> **2026-08-22 — PRODUCT UI RESET R2 NAVIGATION CONSOLIDATION MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Desktop and phone now use one role-gated task spine: five destinations for owner/accountant/agronomist and
+> four for manager/supervisor/storekeeper. Eight owner workspaces remain collapsed; Finance exposes seven
+> launchers instead of 16; Insights is folded behind the Reports story hub; every allowed deep route remains in
+> command search and bookmarks. Rendered navigation/search emoji are replaced by Lucide icons. The six role
+> journeys are explicit 5–8-step acceptance scripts. PR #1029 merged as
+> `8fce79b6ec05a7eca74d6a3196a179d2fa343d28`; Production deployment `6040708816` succeeded.
+> Public aliases serve `/login`; signed-out `/dashboard` redirects there. No migration, schema, auth, query,
+> permission, RPC or business-data action occurred.
+>
+> Evidence: 1,922 Farm tests plus 17 controlled skips; TypeScript; touched ESLint; 70-page build; pgTAP;
+> gitleaks; client-boundary, service-role and Recharts guards; 390px/1,440px RTL probes with zero overflow;
+> full-width phone tabs and modal drawer; independent rereview APPROVE; exact-merge CI/db-tests/release green.
+> Authenticated six-role acceptance remains unclaimed. Package publication PR #1025 stays separate.
+> **Next:** R3 rebuilds Owner and Accountant homes first, replacing their unbounded landing reads with bounded
+> aggregate contracts in the same release; then the four field/store role homes.
 
 > **2026-08-22 — PRODUCT UI RESET R1b APP SHELL ADOPTION MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Farm now renders its grouped role-safe navigation through the real `AppShell` sidebar. The same filtered
