@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const pages = [
-  "app/(app)/dashboard/owner/page.tsx",
   "app/(app)/finance/enterprise-scorecard/page.tsx",
   "app/(app)/finance/insights/page.tsx",
   "app/(app)/finance/insights-summary/page.tsx",
@@ -23,36 +22,4 @@ describe("exact cost-center revenue consumers", () => {
       expect(source).not.toMatch(/\.from\("journal_entries"\).*source_type.*sale/);
     });
   }
-});
-
-describe("owner dashboard read strategy", () => {
-  it("loads attention counts in the first org-scoped batch and fails closed", () => {
-    const source = readFileSync(
-      join(process.cwd(), "app/(app)/dashboard/owner/page.tsx"),
-      "utf8",
-    );
-    const firstBatchStart = source.indexOf("] = await Promise.all([");
-    const firstBatchEnd = source.indexOf("]);", firstBatchStart);
-    const firstBatch = source.slice(firstBatchStart, firstBatchEnd);
-    const pendingPriceQuery = firstBatch.match(
-      /sb\s*\.from\("sales"\)[\s\S]*?\.eq\("price_status", "pending"\),/,
-    )?.[0];
-    const unpaidExpenseQuery = firstBatch.match(
-      /sb\s*\.from\("expenses"\)[\s\S]*?\.eq\("payment_status", "post_paid_unpaid"\),/,
-    )?.[0];
-
-    expect(firstBatchStart).toBeGreaterThan(-1);
-    expect(firstBatchEnd).toBeGreaterThan(firstBatchStart);
-    expect(pendingPriceQuery).toBeDefined();
-    expect(pendingPriceQuery).toContain('.select("id", { count: "exact", head: true })');
-    expect(pendingPriceQuery).toContain('.eq("org_id", m.orgId)');
-    expect(pendingPriceQuery).toContain('.eq("price_status", "pending")');
-    expect(unpaidExpenseQuery).toBeDefined();
-    expect(unpaidExpenseQuery).toContain('.select("id", { count: "exact", head: true })');
-    expect(unpaidExpenseQuery).toContain('.eq("org_id", m.orgId)');
-    expect(unpaidExpenseQuery).toContain('.eq("payment_status", "post_paid_unpaid")');
-    expect(source).toContain("pendingPriceError");
-    expect(source).toContain("unpaidExpenseError");
-    expect(source).toMatch(/for \(const e of \[[\s\S]*pendingPriceError[\s\S]*unpaidExpenseError[\s\S]*\]\)/);
-  });
 });

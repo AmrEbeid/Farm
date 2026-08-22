@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertCircle, AlertTriangle } from "lucide-react";
+import { NavIcon } from "@/components/NavIcon";
 
 // SPEC-0025 U-10 (§2c) — the dashboard-hub primitives. The home page opens with a row of big quick-nav
 // buttons (with live badges) so the dashboard LAUNCHES to everything, followed by «يحتاج انتباهك» — the
@@ -24,8 +25,8 @@ export function QuickNav({ items }: { items: QuickNavItem[] }) {
           className="relative flex flex-col items-center gap-1 rounded-lg px-2 py-3 text-center"
           style={{ background: "var(--surface-raised, #fff)", border: "1px solid var(--line)", color: "var(--ink)" }}
         >
-          <span className="text-xl" aria-hidden>
-            {it.icon}
+          <span aria-hidden>
+            <NavIcon name={it.icon} size={20} />
           </span>
           <span className="text-xs font-bold">{it.label}</span>
           {Number(it.badge ?? 0) > 0 && (
@@ -57,7 +58,7 @@ export function AttentionInbox({ items }: { items: AttentionItem[] }) {
         className="rounded-lg px-4 py-3 text-sm font-bold"
         style={{ background: "var(--surface-raised, #fff)", border: "1px solid var(--line)", color: "var(--ok, #1e6b3a)" }}
       >
-        ✓ لا شيء يحتاج انتباهك الآن — كل شيء تحت السيطرة.
+        لا توجد بنود في هذه القائمة الآن.
       </div>
     );
   }
@@ -71,7 +72,7 @@ export function AttentionInbox({ items }: { items: AttentionItem[] }) {
           <li key={it.href + it.text}>
             <Link
               href={it.href}
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+              className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
               style={{
                 background: "var(--surface-raised, #fff)",
                 // Tone via the icon + a full border tinted toward the tone — not a 4px side-stripe (the AI-UI

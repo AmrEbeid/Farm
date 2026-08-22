@@ -528,6 +528,9 @@ const REPORT_ROUTE_PREFIXES = [
 
 /** Canonical active state for routes folded behind a primary destination. */
 export function primaryNavIdForPath(role: Role, pathname: string): string | null {
+  if (role === "accountant" && pathname === "/finance/dashboard") {
+    return "dashboard";
+  }
   if (
     role === "storekeeper" &&
     (

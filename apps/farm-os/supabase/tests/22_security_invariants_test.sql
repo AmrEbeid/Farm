@@ -84,6 +84,7 @@ select is(
         'fn_season_dashboard_snapshot',            -- exact atomic season cockpit read (migration 20260822141300)
         'fn_custody_reports_snapshot',             -- exact atomic custody reports read (migration 20260822141400)
         'fn_finance_dashboard_snapshot',           -- role-aware atomic finance dashboard read (migration 20260822141500)
+        'fn_owner_home_snapshot',                  -- owner-only atomic operating home read (migration 20260822142500)
         'fn_custody_daily_snapshot',               -- exact atomic daily custody workspace (migration 20260822141600)
         'fn_expense_daily_snapshot',               -- exact atomic daily expense workspace (migration 20260822141700)
         'fn_expense_detail_snapshot',              -- exact atomic expense 360 core snapshot (migration 20260822141800)

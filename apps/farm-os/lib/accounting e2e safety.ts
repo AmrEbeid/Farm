@@ -80,6 +80,7 @@ const ACCOUNTING_READ_RPC_NAMES = new Set([
   "fn_expense_detail_snapshot",
   "fn_month_close_summary",
   "fn_owner_funding_report",
+  "fn_owner_home_snapshot",
   "fn_owner_pnl_summary",
   "fn_open_sale_receivables",
   "fn_payment_request_totals",

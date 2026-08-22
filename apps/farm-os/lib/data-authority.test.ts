@@ -30,11 +30,14 @@ describe("data authority", () => {
   });
 
   it("fails the finance dashboard budget surfaces closed", () => {
+    const budgetKpiStart = financeDashboardSource.indexOf(
+      "{!isAccountantHome && (budgetsVerified || canSeeAccounting)"
+    );
     const budgetKpiGate = financeDashboardSource.slice(
-      financeDashboardSource.indexOf("{(budgetsVerified || canSeeAccounting)"),
+      budgetKpiStart,
       financeDashboardSource.indexOf(
-        '\n\n      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">',
-        financeDashboardSource.indexOf("{(budgetsVerified || canSeeAccounting)")
+        '\n\n      {!isAccountantHome && <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">',
+        budgetKpiStart
       )
     );
     const budgetChartGate = financeDashboardSource.slice(
