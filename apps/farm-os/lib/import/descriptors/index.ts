@@ -16,6 +16,7 @@ import { salesDescriptor } from "./sales";
 import { suppliersDescriptor } from "./suppliers";
 import { inventoryItemsDescriptor } from "./inventory-items";
 import { expensesDescriptor } from "./expenses";
+import { marketingContactsDescriptor, marketingRecordsDescriptor } from "./marketing";
 // SPEC-0006 readiness: template + dry-run ONLY. No RPC, so nothing to add to IMPORTABLE_RPCS.
 import { PAYROLL_READINESS_DESCRIPTORS } from "./payroll-readiness";
 
@@ -31,6 +32,8 @@ export const ALL_DESCRIPTORS = [
   suppliersDescriptor,
   inventoryItemsDescriptor,
   expensesDescriptor,
+  marketingContactsDescriptor,
+  marketingRecordsDescriptor,
   ...PAYROLL_READINESS_DESCRIPTORS,
 ];
 

@@ -1,5 +1,91 @@
-# Session Brief — Farm OS      Updated: 2026-08-08 by Codex (Owner public comments — RELEASED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Marketing full source — MIGRATED, MERGED, DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Marketing full-source workspace — MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+The Marketing module now represents all 25 areas in the supplied 2026 HTML/JSON workspace and can preview,
+edit and record the complete reviewed source shape. The exact canonical pair resolves to 1,571 contacts and
+101 records. Full-source commit is Owner-only and accepts only the paired files with approved digest
+`fb458c2865422b0ea3782894f21cae55f99278722ee3211143515155ddf9f9a6`. The database operation is atomic,
+idempotent and serialized by organization. A different source hash conflicts without creating import evidence.
+Shared generic websites no longer collapse distinct exporters. The disputed `palmsApprox` value remains listed
+in coverage evidence but is not editable or imported. Existing owner/accountant/farm_manager Marketing access
+is otherwise unchanged.
+
+Migration `20260822110000_marketing_full_source_workspace.sql` was reviewed and applied migrate-first to Farm
+production as hosted migration `20260822133257 marketing_full_source_workspace`. Postflight verified the
+import-run table, FORCE RLS, empty search path, Owner-only commit, authenticated-only execution, and the
+organization lock. Production data remained exactly 5 contacts / 20 records / 0 activities / 0 import runs.
+**No source data was auto-imported:** those compact live rows may conflict with the supplied source and require
+an explicit Owner decision after preview.
+
+PR #1013 merged as `b778ed69230d7aecdbcb9e47fab6f8dbdf0c6e56`. Exact-merge CI run 32576245238,
+db-tests 32576245240, release 32576245254, and production Vercel deployment
+`EnogVKu5brbtxFRhE8HxUXDKcx4e` succeeded. Public `/` and `/login` returned 200; all five `/marketing*`
+routes redirected signed-out users to login; unauthenticated `POST /api/marketing/source?mode=preview`
+returned 401. Validation passed: pgTAP 3,420/3,420; Vitest 1,416 plus 16 controlled skips; TypeScript; full
+ESLint; 69-page build; service-role, client-boundary, Recharts and diff guards; exact 25/1,571/101 attachment
+oracle. Independent hostile review approved exact snapshot
+`89e0fe6693069bb8cf7ad807a318690b03550d2fed248a8cc633745ce3a49e85` after all five findings were fixed.
+
+**Exact resume point:** (1) run authenticated owner, accountant and farm-manager UI smoke; (2) have the Owner
+preview the exact two attachments; (3) if the existing 5/20 compact rows conflict, resolve the data deliberately
+and never bypass the conflict; (4) import only after the Owner confirms the preview. Do not claim the source
+data is live until the import run and post-import counts are recorded.
+
+## 2026-08-20 — Marketing module (SPEC-0032) — MIGRATED / MERGED / DEPLOYED / PUBLICLY VERIFIED
+
+Built one compact Arabic-first marketing module with five pages: Overview, Product, Markets, Pipeline,
+and Campaigns. It consolidates the legacy tracker's 25 areas without recreating 25 screens. Users can
+add/edit/search/archive all 16 marketing record types, manage a marketing-only contact master (separate
+from accounting `buyers`), record append-only calls/follow-ups, and copy message templates for manual
+sending. Headers and mobile padding are intentionally compact.
+
+The original downloaded JSON is supported directly. The browser previews the string-encoded `ep_*`
+export, then the server validates and imports only the reviewed rows. The exact file probe produced 25
+rows: 3 market prices, 3 contacted Kuwait distributors plus linked follow-up tasks, 2 selected exporters,
+6 daily tasks, 6 platform-readiness tasks, channel target 0, and the farm URL. Nine unrelated application
+backup keys are reported and excluded. Non-empty legacy harvest is rejected because Farm OS harvest stays
+authoritative. The owner's WhatsApp is detected in preview but is not converted into a marketing contact.
+The raw 75/1,513/14/28/12 static inventories remain counts only; no raw contact archive is committed.
+
+Reviewed migration `20260820090000_marketing_module.sql` creates `marketing_contact`, append-only
+`marketing_contact_activity`, and typed `marketing_record`. All use FORCE RLS, active-org narrowing, and
+the explicit owner/accountant/farm_manager gate. Writes are RPC-only; hard delete is revoked; every definer
+function locks `search_path`; linked contacts must be same-org; audit triggers cover all tables. Text and
+JSON payloads are bounded. Imported rows persist a bounded `source_key` under unique per-org indexes, so a
+partial or repeated import updates the same rows. The migration is transactional. The save RPCs also have
+canonical `ImportDescriptor`s for template/dry-run/re-upload parity, resolving the independent review's one
+convention finding.
+
+Evidence: Docker-free local pgTAP **3,288/3,288** with zero failures, including **42/42** marketing
+assertions; exact downloaded-file parser probe passed with the counts above; focused parser/import/nav/help
+Vitest **28/28**; TypeScript clean; touched ESLint clean; production build succeeds with all five marketing
+routes among 68 generated pages; repository guards for server/client boundaries, Recharts splitting, and
+service-role exposure passed. Full Vitest remains **1,391 passed / 1 failed / 13 skipped**: the sole failure is
+the unchanged `lib/reconciliation/tests/cli.ts` baseline assertion, and this branch has no reconciliation
+diff from `origin/main`. Authenticated visual smoke remains pending until the code is deployed.
+
+Documentation updated: SPEC-0032, page help, permissions matrix, BR-076, documentation-health scorecard,
+project tracker, and Arabic user manual `06 marketing.md`.
+
+Replay hardening also passed the full pgTAP suite again (**3,288/3,288**) and a one-off exact second apply in
+a fresh all-migrations database, retaining exactly 3 tables, 3 role-scoped policies, and 3 audit triggers.
+
+**Release state:** independent review APPROVE. Reviewed migration SHA-256
+`7ce5f3fed552f28f1ae72cd5e5714649c9e671b920195e742eea616c4a8352aa` was applied migrate-first to Farm
+production as hosted migration `20260820135744 marketing_module`.
+Postflight verified FORCE RLS on 3 tables, 3 role-scoped read policies, 5 locked definer RPCs, expected
+indexes/audit triggers, no public/anon execute, no direct authenticated DML, and 0 rows in all 3 new tables.
+Aggregate baselines remained 1 organization / 4 memberships / 10,365 journals / 10,201 expenses / 4 auth
+users. No business row, auth identity, outbound message, or accounting state changed. PR #1011 merged as
+`b83db70870b35f28b723dacac57a267d1b89d8f6`; exact-merge CI, db-tests, release, and Vercel deployment
+`F33wX3jDv5AHNartkEWBY73sa8tB` succeeded. Public `/` and `/login` returned 200, and all five marketing routes
+redirected signed-out requests to `/login` with no browser errors. Neither the in-app browser nor Chrome had
+a signed-in Farm session, so authenticated role/UI acceptance is explicitly not claimed. No credentials were
+entered and no marketing row was created. **Exact resume point:** run one authenticated owner or accountant
+smoke across the five pages, preview the 2026 source, and create/edit/archive a disposable marketing record;
+then record acceptance without importing real rows unless the Owner separately chooses to do so.
 
 ## 2026-08-08 — Owner public-site comments — MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED
 

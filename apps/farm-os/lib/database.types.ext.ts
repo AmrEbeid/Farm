@@ -1705,6 +1705,217 @@ type PayrollFunctions = {
   };
 };
 
+// ── SPEC-0032 — Marketing module, migration 20260820090000. ──
+// Reads/writes are role-scoped to owner/accountant/farm_manager (RLS + RPC inline check, no
+// authorize() dependency); client INSERT/UPDATE/DELETE is revoked on all three tables, so every
+// Insert/Update type below is `never` — the RPCs (below) are the only write surface.
+type MarketingContactTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    org_name: string | null;
+    category: "exporter" | "buyer_lead" | "kuwait_distributor" | "platform" | "freight" | "other";
+    source: string | null;
+    source_key: string | null;
+    notes: string | null;
+    metadata: Json;
+    selected: boolean;
+    archived: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
+// Append-only (no update/delete RPC exists at all — fn_log_marketing_contact_activity is the only writer).
+type MarketingContactActivityTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    contact_id: string;
+    kind: "call" | "email" | "meeting" | "note" | "followup";
+    notes: string | null;
+    occurred_at: string;
+    follow_up_at: string | null;
+    created_by: string | null;
+    created_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [
+    {
+      foreignKeyName: "marketing_contact_activity_contact_id_fkey";
+      columns: ["contact_id"];
+      isOneToOne: false;
+      referencedRelation: "marketing_contact";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+export type MarketingRecordType =
+  | "price_observation"
+  | "exw_bid"
+  | "quality_batch"
+  | "weekly_availability"
+  | "competitor"
+  | "lead_local"
+  | "lead_offshoot"
+  | "lead_social"
+  | "lead_linkedin"
+  | "hot_lead"
+  | "task"
+  | "platform_state"
+  | "broker_state"
+  | "certificate"
+  | "channel_target"
+  | "message_template"
+  | "freight_reference"
+  | "market_reference"
+  | "daily_sales_report"
+  | "repeat_customer";
+
+type MarketingRecordTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    record_type: MarketingRecordType;
+    title: string;
+    payload: Json;
+    contact_id: string | null;
+    amount: number | null;
+    status: string | null;
+    source_key: string | null;
+    archived: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [
+    {
+      foreignKeyName: "marketing_record_contact_id_fkey";
+      columns: ["contact_id"];
+      isOneToOne: false;
+      referencedRelation: "marketing_contact";
+      referencedColumns: ["id"];
+    },
+  ];
+};
+
+type MarketingImportRunTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    source_hash: string;
+    expected_contacts: number;
+    imported_contacts: number;
+    existing_contacts: number;
+    expected_records: number;
+    imported_records: number;
+    existing_records: number;
+    coverage: Json;
+    created_by: string | null;
+    created_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
+type MarketingFunctions = {
+  fn_save_marketing_contact: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_name: string;
+      p_phone: string | null;
+      p_email: string | null;
+      p_org_name: string | null;
+      p_category: string;
+      p_source: string | null;
+      p_notes: string | null;
+      p_selected?: boolean;
+      p_source_key?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_archive_marketing_contact: { Args: { p_id: string; p_archived: boolean }; Returns: undefined };
+  fn_save_marketing_contact_v2: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_name: string;
+      p_phone: string | null;
+      p_email: string | null;
+      p_org_name: string | null;
+      p_category: string;
+      p_source: string | null;
+      p_notes: string | null;
+      p_selected?: boolean;
+      p_source_key?: string | null;
+      p_metadata?: Json;
+    };
+    Returns: Json;
+  };
+  fn_log_marketing_contact_activity: {
+    Args: {
+      p_contact_id: string;
+      p_kind: string;
+      p_notes: string | null;
+      p_occurred_at?: string;
+      p_follow_up_at?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_save_marketing_record: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_record_type: string;
+      p_title: string;
+      p_payload: Json;
+      p_contact_id?: string | null;
+      p_amount?: number | null;
+      p_status?: string | null;
+      p_source_key?: string | null;
+    };
+    Returns: Json;
+  };
+  fn_archive_marketing_record: { Args: { p_id: string; p_archived: boolean }; Returns: undefined };
+  fn_import_marketing_source: {
+    Args: {
+      p_org: string;
+      p_source_hash: string;
+      p_contacts: Json;
+      p_records: Json;
+      p_expected_contacts: number;
+      p_expected_records: number;
+      p_coverage: Json;
+    };
+    Returns: Json;
+  };
+  fn_marketing_contacts_page: {
+    Args: {
+      p_org: string;
+      p_query?: string | null;
+      p_category?: string | null;
+      p_archived?: boolean | null;
+      p_page?: number;
+      p_page_size?: number;
+    };
+    Returns: Json;
+  };
+  fn_marketing_dashboard_snapshot: { Args: { p_org: string }; Returns: Json };
+};
+
 export type Database = Omit<Generated, "public"> & {
   public: Omit<Public, "Tables" | "Functions" | "Views"> & {
     Views: Public["Views"] & {
@@ -1765,8 +1976,12 @@ export type Database = Omit<Generated, "public"> & {
       reconciliation_batch_rows: ReconciliationBatchRowsTable;
       payroll_runs: PayrollRunsTable;
       payroll_run_lines: PayrollRunLinesTable;
+      marketing_contact: MarketingContactTable;
+      marketing_contact_activity: MarketingContactActivityTable;
+      marketing_record: MarketingRecordTable;
+      marketing_import_run: MarketingImportRunTable;
     };
-    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & ExpenseRegisterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions;
+    Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & ExpenseRegisterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions & MarketingFunctions;
   };
 };
 

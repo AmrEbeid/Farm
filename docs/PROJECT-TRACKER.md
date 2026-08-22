@@ -1,4 +1,60 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-08 by Codex (Owner public comments — RELEASED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Marketing full source — MIGRATED, MERGED, DEPLOYED)
+
+> **2026-08-22 — MARKETING FULL-SOURCE WORKSPACE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> The Marketing module now accounts for every one of the 25 areas in the supplied 2026 HTML/JSON workspace
+> and supports editable system records across the full source shape. The exact reviewed pair contains 1,571
+> contacts and 101 records. A pinned two-file preview/import flow validates both files together, requires the
+> exact approved source digest `fb458c2865422b0ea3782894f21cae55f99278722ee3211143515155ddf9f9a6`,
+> and permits commit only for an Owner. Imports are atomic, idempotent, serialized per organization, and
+> reject differing content without writing false import evidence. Contact identity preserves exporters that
+> share a generic website. The disputed `palmsApprox` source value is coverage-listed but deliberately neither
+> editable nor imported. Existing owner/accountant/farm_manager Marketing read/edit permissions are unchanged;
+> only full-source commit is Owner-only.
+>
+> Production migration `20260822133257 marketing_full_source_workspace` is applied to Farm project
+> `veezkmytervjnpxcrbkw`. Postflight verified the import-run table, FORCE RLS, locked search path, Owner-only
+> RPC authorization, no anonymous execution, organization serialization, and unchanged production business
+> counts: 5 contacts / 20 records / 0 activities / 0 import runs. **No source rows were auto-imported.** The
+> Owner must preview the exact files and decide how to resolve any conflict with those existing compact rows.
+> PR #1013 merged as `b778ed69230d7aecdbcb9e47fab6f8dbdf0c6e56`; exact-merge CI, db-tests,
+> release, and Vercel deployment `EnogVKu5brbtxFRhE8HxUXDKcx4e` succeeded. Public `/` and `/login` return
+> 200; all five `/marketing*` routes redirect signed-out users to login; unauthenticated source preview returns
+> 401. Validation: pgTAP 3,420/3,420, Vitest 1,416 passed plus 16 controlled skips, TypeScript, full ESLint,
+> 69-page build, repository guards, exact 25/1,571/101 source probe, and independent hostile review APPROVE.
+> Remaining acceptance: authenticated owner/accountant/farm_manager UI smoke, then an explicit Owner preview
+> and import decision. Do not bypass a source conflict or infer that the live source data has been imported.
+
+> **2026-08-20 — MARKETING MODULE (SPEC-0032) MIGRATED / MERGED / DEPLOYED / PUBLICLY VERIFIED.**
+> New compact marketing nav module (owner/accountant/farm_manager, 5 pages, Arabic-RTL) consolidating the 25
+> legacy export-marketing tracking areas: `marketing_contact` (separate master, no FK to `buyers`),
+> append-only `marketing_contact_activity`, and a polymorphic `marketing_record` covering all 16 editable
+> record types. Reviewed source migration `20260820090000_marketing_module.sql` is applied migrate-first to
+> Farm production as hosted migration `20260820135744 marketing_module`. Role gate is an explicit inline
+> check (no `authorize()` re-emit); reads are role-scoped (not
+> just org-scoped); writes are RPC-only; hard DELETE revoked; activity log is append-only. Also ships a
+> pure, deterministic source parser for the original string-encoded `ep_*` JSON. It previews and idempotently
+> imports only the verified saved state (25 rows), reports/rejects the nine unrelated app keys, refuses legacy
+> harvest rows, and never commits or bulk-imports the raw 1,513-contact list. Database provenance keys are
+> persisted under per-org unique indexes; definer RPCs require the caller's active org and bound text/JSON.
+> Both save RPCs are registered in the canonical import-descriptor framework; the dedicated 2026 restore path
+> remains limited to 100 reviewed rows and currently maps exactly 25.
+> Evidence: local pgTAP 3,288/3,288 (0 not_ok); Vitest 1,391/1,392 relevant passes plus 13 controlled skips
+> (the one full-suite failure is an unchanged `lib/reconciliation` CLI baseline test; no reconciliation files
+> differ from `origin/main`); exact downloaded JSON parser probe passed; `tsc
+> --noEmit` clean; ESLint clean on every touched/new file; `next build` succeeds (5 new `/marketing*`
+> routes). Replay hardening then passed the full pgTAP suite again (**3,288/3,288**) and the exact migration
+> applied a second time cleanly in a fresh all-migrations database, retaining 3 tables / 3 policies / 3 audit
+> triggers. Production postflight verified FORCE RLS on all 3 tables, the 3 role-scoped read policies, 5
+> locked definer RPCs, no public/anon execute, no direct authenticated DML, all expected indexes and audit
+> triggers, and 0 marketing rows. Aggregate baselines remained 1 organization / 4 memberships / 10,365
+> journals / 10,201 expenses / 4 auth users. The Owner approved commit, migration, PR, merge, and deployment
+> in this task on 2026-08-20. PR #1011 merged as `b83db70870b35f28b723dacac57a267d1b89d8f6`;
+> exact-merge CI, db-tests, release, and Vercel deployment `F33wX3jDv5AHNartkEWBY73sa8tB` succeeded.
+> Public `/` and `/login` return 200; every `/marketing*` route redirects signed-out users to `/login`, with
+> no browser errors. **Authenticated owner/accountant/farm_manager UI acceptance remains pending because
+> neither available browser had a signed-in Farm session; no credentials were entered and no marketing row
+> was created.**
+> See [`SPEC-0032`](SPEC-0032-marketing-module.md).
 
 > **2026-08-08 — OWNER PUBLIC-SITE COMMENTS MIGRATED / MERGED / DEPLOYED / LIVE-VERIFIED.**
 > The public site now uses the Owner-approved About copy and 120 feddans / 5,000 Barhi palms / 7 blocks,

@@ -110,6 +110,7 @@ Evidence: mig = `apps/farm-os/supabase/migrations/`; test = `apps/farm-os/supaba
 | **BR-073** | Responsibility assignments are org-readable but writable only with `responsibility.write` (owner/farm_manager). | RLS WITH CHECK (`20260629141650`) | `101_responsibility_assignments_write_gate` | FEAT-019 |
 | **BR-074** | Export registrations/accreditations/residue tests/results are org-readable but writable only with `export.write` (owner/farm_manager), with same-org responsible-person and residue-parent guards. | RLS WITH CHECK (`20260622000092`) | `93_export_compliance` | FEAT-029 |
 | **BR-075** | Care Academy content writes are reserved for `academy.write` (owner/agri_engineer); on `main` only the permission arm is present while #366 tables/routes stay draft-held. | `authorize()` union (`20260622000092`) | `97_authorize_perms_complete` | FEAT-024 |
+| **BR-076** | Marketing contacts, activities, and records are visible and writable only to owner/accountant/farm_manager in the active org; writes are RPC-only, hard delete is forbidden, contact activity is append-only, and source imports upsert by a unique per-org provenance key. | RLS + RPC gates (`20260820090000`) | `100_marketing_module` | SPEC-0032 |
 
 ## PII & confidentiality
 | BR | Rule | Enforced by | Test | FEAT |
