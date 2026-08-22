@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (Product UI reset R0 merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (Product UI reset R1a merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-22 — PRODUCT UI RESET R1a SHELL: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+The design-system `AppShell` now exposes backward-compatible sidebar and menu-icon slots and owns an accessible
+RTL mobile drawer: focus entry/trap/return, inert background, responsive resize release, stack-safe nested
+overlays, correct layer order and a compact 44px-minimum menu control. Empty or role-filtered generated nav
+preserves Farm's current workaround until R1b. PR #1024 merged as
+`2d21f261bc09af12f5ea94d4f1fdbef5a8d77b64`; Production deployment `6040244330` succeeded. Public aliases
+serve login and redirect protected routes when signed out. No migration or business data changed. Validation:
+25 focused / 305 full UI tests, 1,910 Farm tests plus 17 skips, UI/Farm/Storybook builds, pgTAP, gitleaks,
+Vercel and independent APPROVE. The 1.4.0 changeset is merged but package publication is not claimed. R1b app
+adoption is next; the full UI reset remains incomplete.
 
 **2026-08-22 — PRODUCT UI RESET R0: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 SPEC-0033 now defines the staged product-wide navigation, dashboard, list and 360-page reset. Its first bounded
