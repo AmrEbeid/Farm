@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (Product UI reset R1a merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (Product UI reset R1b merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-22 — PRODUCT UI RESET R1b: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+Farm now adopts the real `AppShell` sidebar and derives its five phone destinations from the same role-filtered
+registry. Desktop main/sidebar scrolling is viewport-bound; modal drawers inert the skip link and bottom nav;
+mobile overflow is zero in the rendered probes. A compact shared header replaces oversized headings across all
+17 entity-360 and five MasterTable consumers. PR #1027 merged as
+`542ebe0a8942d443249b3f0b15fee1fd9813e641`; Production deployment `6040532441` succeeded. Public aliases
+serve login and redirect signed-out protected routes. No migration, schema or data changed. Validation: 31
+focused / 305 UI / 1,916 Farm tests plus 17 skips, all builds/guards, pgTAP, gitleaks, Vercel and independent
+APPROVE. Authenticated role smoke remains open. Package-version PR #1025 is open; publication is not claimed.
+R2 navigation consolidation is next; the full UI reset remains incomplete.
 
 **2026-08-22 — PRODUCT UI RESET R1a SHELL: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 The design-system `AppShell` now exposes backward-compatible sidebar and menu-icon slots and owns an accessible

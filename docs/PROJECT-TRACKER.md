@@ -1,4 +1,21 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R1a — MERGED / DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R1b — MERGED / DEPLOYED)
+
+> **2026-08-22 — PRODUCT UI RESET R1b APP SHELL ADOPTION MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Farm now renders its grouped role-safe navigation through the real `AppShell` sidebar. The same filtered
+> registry resolves all five phone destinations, including the storekeeper inventory route. Obsolete fixed-nav
+> CSS is gone. Desktop navigation and content scroll independently inside the viewport; phone drawer background
+> controls are inert; long Arabic titles are capped at two visual lines; the compact shared header now covers
+> all 17 `Entity360Header` and five `MasterTable` consumers. PR #1027 merged as
+> `542ebe0a8942d443249b3f0b15fee1fd9813e641`; Production deployment `6040532441` succeeded.
+> Public aliases serve `/login`; signed-out dashboard and Marketing routes redirect there. No migration,
+> schema, auth, query, permission or business-data action occurred.
+>
+> Evidence: 31 focused tests; 305 UI tests; 1,916 Farm tests plus 17 controlled skips; UI/Farm TypeScript,
+> touched ESLint, token purity, UI/Farm/Storybook builds, pgTAP, gitleaks, package/repository guards, 390px RTL
+> drawer and long-page desktop browser probes, and independent exact-diff APPROVE. Authenticated role smoke
+> remains unclaimed. Automated package-version PR #1025 is open; `@amrebeid/ui` publication is not claimed.
+> **Next:** R2 reduces navigation to the role-specific five-destination spine and replaces remaining emoji nav
+> controls with Lucide icons before role-home dashboard work.
 
 > **2026-08-22 — PRODUCT UI RESET R1a DESIGN-SYSTEM SHELL MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > `AppShell` now supports a real consumer sidebar and menu-icon slot while preserving generated navigation and

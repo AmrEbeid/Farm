@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-22 (latest) — Product UI reset R1b MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #1027 merged as `542ebe0a8942d443249b3f0b15fee1fd9813e641`; GitHub Production deployment
+> `6040532441` completed at `farm-6jrfmvsmh-amrabdelglill-7962s-projects.vercel.app`. The protected deployment
+> URL requires Vercel SSO. Public aliases `farm-ui-one.vercel.app` and `ebeidfarm.business` serve `/login`;
+> signed-out `/dashboard` and `/marketing/workspace` return 307 to `/login`. Farm now uses the real responsive
+> sidebar, a single role-filtered phone/desktop navigation source, viewport-bound desktop scrolling and compact
+> shared list/360 headers. No migration, schema, auth, query, permission or business-data action occurred.
+> Exact-merge CI, pgTAP, gitleaks, release automation, Vercel and independent review passed. Package-version
+> PR #1025 remains open; package publication is not claimed.
+
 > **2026-08-22 (latest) — Product UI reset R1a shell MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1024 merged as `2d21f261bc09af12f5ea94d4f1fdbef5a8d77b64`; GitHub Production deployment
 > `6040244330` completed at `farm-2zpe6pedq-amrabdelglill-7962s-projects.vercel.app`. Public aliases serve
