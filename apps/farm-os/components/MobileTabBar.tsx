@@ -3,9 +3,13 @@
 import Link from "next/link";
 
 // SPEC-0025 U-14 (§2c) — the phone-first bottom tab bar: the 5 destinations a thumb needs, fixed at the
-// bottom on small screens only (hidden ≥48rem, where the sidebar rules). Role-aware: finance roles get
-// «المعاملات»; the storekeeper gets «المخزون» (their real home); other field roles get «الميدان». Pure
-// links — no drawer/state coupling.
+// bottom on small screens only. Role-aware: finance roles get «المعاملات»; the storekeeper gets
+// «المخزون» (their real home); other field roles get «الميدان». Pure links — no drawer/state coupling.
+//
+// Sizing and visibility live in `.farm-bottom-nav` (app/globals.css), NOT in utility classes here. The
+// bar is `position: fixed`, so the scroll container has to reserve the same height or the last row /
+// primary button of every phone page sits underneath it. Keeping the breakpoint, the height token and
+// the reserve in ONE media block is what makes the two impossible to drift apart.
 
 interface Tab {
   href: string;
@@ -32,11 +36,10 @@ export function MobileTabBar({ role, pathname }: { role: string; pathname: strin
   return (
     <nav
       aria-label="التنقل السفلي"
-      className="fixed inset-inline-0 bottom-0 z-40 grid grid-cols-5 sm:hidden"
+      className="farm-bottom-nav fixed inset-inline-0 bottom-0 z-40"
       style={{
         background: "var(--surface-raised, #fff)",
         borderTop: "1px solid var(--line)",
-        paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
       {tabs.map((t) => {
