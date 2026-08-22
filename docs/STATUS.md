@@ -1,8 +1,20 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (accounting release migrated, merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (homepage certificate editor merged, deployed, and publicly verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-22 — HOMEPAGE CERTIFICATE EDITOR: MERGED / DEPLOYED / PUBLICLY VERIFIED.**
+Owners can now add, edit and remove the public homepage certificate cards from `/website`, including AR/EN
+headings, details, certificate images, verification links/labels and registry-vs-issuer wording. Uploads are
+owner-only, 5 MB maximum, magic-byte validated and organization-namespaced. Server validation requires 1–12
+complete cards and safe HTTPS/local URLs. Public certificate claims fail closed if the content read fails.
+PR #1018 merged as `68157c7b775a90613f4c559144445868a30eb47b`; Vercel production deployment
+`FusBLFRFSg1qwk72PGn42qHMXG4r` succeeded. Live `/` returns 200 with the four existing certificates intact;
+signed-out `/website` returns 307 to `/login`. No migration, schema or business-data change occurred.
+Validation: 1,804 Vitest tests passed with 17 controlled skips; ESLint, TypeScript, 69-page build, audit,
+pgTAP, secret scan and two exact-commit independent reviews are green. Authenticated owner save/upload smoke
+remains unclaimed because no authenticated Farm session was available.
 
 **2026-08-22 — CURRENT ACCOUNTING RELEASE: MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 The schema-v2 manifest bound 217 files: 162 candidate paths, 21 ordered migrations, 28 database tests, two
@@ -513,7 +525,7 @@ owner/accountant row decisions, dual-run, exception resolution, and signed accou
 
 **2026-07-27 full corpus and report audit:** 2,221 source paths are indexed in the Farm Records Knowledge System (1,249 unique hashes; extraction/OCR 95.28%). Production reports were authenticated-smoked across 56 report/insight routes and loaded without application errors. Data adequacy is not equivalent to route health: palms, offshoots, budgets, payroll, inventory history, and operations history remain synthetic, absent, blocked, or partial. See `data coverage audit 2026 07 27.md`.
 | P Production deploy controls | ⚠️ Bypassed | Prod deploys continuously without Stage-P controls (no staging, no monitoring, no rollback drill) — see review R-items. |
-| W Public website (`/`) | ✅ **COMPLETE + LIVE** | ebeidfarm.business — bilingual AR/EN export site: hero, KPIs, **real** GlobalGAP/GACC/QCAP/CAPQ proofs, specs, contact, **editable photo gallery** (in-OS upload → `site-media` bucket), **buyer enquiry form → OS** (`/enquiries`, owner-only), logo/favicon/PWA icons, SEO/OG/JSON-LD/sitemap. The public production-block/farm-areas table was removed in PR #996; its records remain owner-managed in Farm OS. All content editable in-OS at **`/website`** (`site.write`=owner). Migrations `20260701420000` (content) + `20260701430000` (enquiries) applied. **Buyer enquiry inbox** with owner read/archive management (`fn_set_enquiry_status`, migration `20260701450000`). Unit-tested + security-reviewed. PRs #636/#638–#642/#637/#645/#647/#650/#653/#656/#664/#996. Follow-up: real farm photos. |
+| W Public website (`/`) | ✅ **COMPLETE + LIVE** | ebeidfarm.business — bilingual AR/EN export site: hero, KPIs, **real and now owner-editable** GlobalGAP/GACC/QCAP/CAPQ proof cards, specs, contact, **editable photo gallery** (in-OS upload → `site-media` bucket), **buyer enquiry form → OS** (`/enquiries`, owner-only), logo/favicon/PWA icons, SEO/OG/JSON-LD/sitemap. Certificate and gallery editing live at **`/website`** (`site.write`=owner); PR #1018 adds bilingual certificate add/edit/remove, verified image upload and safe link validation. The public production-block/farm-areas table was removed in PR #996; its records remain owner-managed in Farm OS. Migrations `20260701420000` (content) + `20260701430000` (enquiries) applied. **Buyer enquiry inbox** with owner read/archive management (`fn_set_enquiry_status`, migration `20260701450000`). Follow-ups: authenticated owner editor smoke and real farm photos. |
 | UX Design system (`@amrebeid/ui`) | ✅ **REVAMPED + speed pass LIVE** | Stitch-directed token refresh of the whole OS — softer radii + refined layered shadows + cleaner surface (#665), primary-button depth + modern soft focus ring (#666), table zebra striping (#668), KPI bigger value + delta pill chips (#669). Owner dashboard redesign (#679), app-shell lazy-load speed pass (#681: authenticated layout chunk ~59 KB → ~14 KB), and inventory row coverage bar (#682) are live. Token-purity-clean; propagates to every screen via the two-tier tokens. |
 
 ## Top next actions (in order)
