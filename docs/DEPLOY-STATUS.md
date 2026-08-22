@@ -2,6 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-22 (latest) — homepage certificate editor MERGED / DEPLOYED / PUBLICLY VERIFIED.**
+> PR #1018 merged as `68157c7b775a90613f4c559144445868a30eb47b`. It adds owner-only bilingual
+> add/edit/remove for homepage certificate cards, 5 MB magic-byte-validated organization-scoped uploads,
+> strict server URL/content validation, post-write organization-scoped gallery cleanup, and fail-closed public
+> certificate rendering on content-read failure. No migration, schema or business-data change was required.
+> Candidate evidence: Vitest 1,804 passed + 17 controlled skips; full ESLint and TypeScript clean; 69-page
+> production build; audit 0; pgTAP, gitleaks, Vercel preview and two exact-commit reviews green. Production
+> deployment `FusBLFRFSg1qwk72PGn42qHMXG4r` succeeded. Live `/` returns 200 and still renders the four current
+> certificate cards; signed-out `/website` returns 307 to `/login`. Authenticated owner save/upload smoke is
+> still pending because no authenticated Farm session was available.
+
 > **2026-08-22 (latest) — dependable daily accounting software MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > All 21 manifest-bound accounting migrations were applied migrate-first to Farm production as hosted versions
 > `20260822140718` through `20260822140752`. Postflight verified the 29 expected function names, 27 locked

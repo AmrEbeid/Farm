@@ -1,5 +1,27 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Accounting release — MIGRATED, MERGED, DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Homepage certificates — MERGED, DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Homepage certificate editor — MERGED / DEPLOYED / PUBLICLY VERIFIED
+
+The Owner can now manage the public homepage certificate section from `/website`: edit its Arabic/English
+heading and introduction; add, edit or remove 1–12 cards; enter bilingual title/detail; upload or link a proof
+image; set the HTTPS verification URL/label; and distinguish a searchable registry from an issuing-authority
+site. Uploads are owner-only, capped at 5 MB, validated from magic bytes and stored under an organization-scoped
+path. Server validation rejects empty, oversized or unsafe certificate payloads. Public certificate navigation,
+CTA and cards fail closed together if the content read fails, while the rest of the homepage remains available.
+
+PR #1018 merged as `68157c7b775a90613f4c559144445868a30eb47b`. No migration, schema or business-data
+action was needed. Candidate evidence passed: 1,804 Vitest tests with 17 controlled skips, full ESLint,
+TypeScript, 69-page production build, npm audit 0, pgTAP, gitleaks, Vercel preview and two exact-commit independent
+reviews. Vercel production deployment `FusBLFRFSg1qwk72PGn42qHMXG4r` succeeded. Live `/` returned 200 and
+rendered the four existing GlobalGAP/GACC/QCAP/CAPQ cards; signed-out `/website` returned 307 to `/login`.
+
+**Exact resume point:** use an already-authenticated Owner session to open `/website`, add/edit/remove one
+disposable certificate card, upload a small valid image, save, verify both Arabic and English public rendering,
+then restore the original content. Record the evidence. Do not use real certificate data for a disposable test,
+and do not claim authenticated editor acceptance until this is complete. Uploaded certificate scans are retained
+instead of auto-deleted to prevent stale editor tabs from restoring broken references; permanent orphan cleanup
+needs a separately reviewed, retention-aware design.
 
 ## 2026-08-22 — Dependable daily accounting software — MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED
 

@@ -1,4 +1,14 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Accounting release — MIGRATED, MERGED, DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Homepage certificates — MERGED, DEPLOYED)
+
+> **2026-08-22 — HOMEPAGE CERTIFICATE EDITOR MERGED / DEPLOYED / PUBLICLY VERIFIED.**
+> Owner `/website` now manages 1–12 bilingual certificate cards: section copy, titles/details, image upload or
+> safe URL, verification URL/label and registry-vs-issuer wording. Uploads are 5 MB max, magic-byte checked,
+> organization-namespaced and owner-only; public claims fail closed on content-read errors. PR #1018 merged as
+> `68157c7b775a90613f4c559144445868a30eb47b`; production deployment
+> `FusBLFRFSg1qwk72PGn42qHMXG4r` succeeded. Live `/` is 200 with all four current certificate cards and
+> signed-out `/website` redirects to login. No migration/schema/data action occurred. Validation is green at
+> 1,804 Vitest passes + 17 controlled skips, TypeScript, ESLint, 69-page build, audit 0, pgTAP, gitleaks and two
+> independent exact-commit reviews. Open gate: authenticated owner add/edit/remove/upload/save smoke.
 
 > **2026-08-22 — DEPENDABLE DAILY ACCOUNTING SOFTWARE RELEASE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > The current-main release contains 21 ordered accounting migrations covering exact unpaid obligations,
