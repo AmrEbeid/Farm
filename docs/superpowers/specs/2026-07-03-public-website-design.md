@@ -104,6 +104,37 @@ content model but are not displayed on the public website.
   role-gated. A server action calls `fn_save_site_content`. Images upload to a public
   Supabase Storage bucket **`site-media`** (public read; owner-only write policy).
 
+#### Editor sections (as built)
+
+`components/site/SiteEditor.tsx` edits a working copy of the FULL `SiteContent` and saves the
+whole object, so sections without a form keep their stored values. Covered today: tagline, hero,
+headline stats, contact, the photo gallery, and — since 2026-08-22 — the **certifications**
+section (its heading/intro plus add / edit / remove of each card: AR+EN title and detail, image
+URL or in-OS upload, verify URL, verify label, and the registry-vs-issuing-authority flag). A new
+card is created blank — never a copy of a real certificate. Blocks, specs and why-partner rows
+are still edited only in `lib/site-content.ts` defaults / the DB row.
+
+**Uploads.** One owner-gated server action path (`uploadSiteImage`) backs both
+`uploadGalleryImage` and `uploadCertificateImage`; it caps at 5 MB, derives the real type from
+magic bytes (client `file.type`/name untrusted), and writes a server-generated object name —
+`<org-id>/gallery/<uuid>.<ext>` or `<org-id>/certificates/<uuid>.<ext>`.
+
+**Orphan cleanup.** On save, `galleryMediaPaths()` collects the bucket object paths referenced by the
+OLD and NEW gallery content. After the content RPC succeeds, it deletes what the save dropped. It
+accepts this project's exact public bucket prefix and requires the caller's organization prefix, so
+bundled `/site/…` assets, external URLs, lookalike bucket paths, and other organizations' objects can
+never be passed to `storage.remove()`. Certificate scans are retained instead of auto-deleted so a
+stale editor tab cannot restore a reference to a proof that another tab removed.
+
+**Certificate validation (enforced server-side).** `lib/site-certificates.ts` →
+`validateCertifications()` runs in `saveSiteContent` **before** cleanup discovery and the RPC, so a
+rejected payload deletes nothing and writes nothing. Rules: 1–12 cards; heading, intro, both
+languages of title and detail, and the verify label required and length-bounded; `image` must be a
+`/site/…` path or an HTTPS URL (no `data:`, no `javascript:`, no `//host`, no traversal);
+`verifyUrl` must parse as HTTPS; `verifyIsRegistry` must be an explicit boolean. The four shipped
+defaults pass unchanged. This is defence in depth — the public render still goes through
+`safeHref` in `SiteLanding.tsx`.
+
 ### Migration
 
 - **One append-only migration** (next free number; check in-flight PR branches #632/#628 for

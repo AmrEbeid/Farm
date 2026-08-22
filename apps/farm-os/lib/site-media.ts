@@ -1,13 +1,11 @@
 import type { SiteContent } from "@/lib/site-content";
 
-// Pure, testable helpers for the public-site media (gallery upload + orphan cleanup). Kept out of
+// Pure, testable helpers for the public-site media (gallery + certificate uploads, orphan cleanup).
+// Kept out of
 // the "use server" actions file so they can be unit-tested directly — this is security-relevant
 // logic (the upload type sniffer decides what lands in the public bucket).
 
-/** Public-URL segment that marks an object stored in the `site-media` bucket. */
-export const SITE_MEDIA_PREFIX = "/site-media/";
-
-/** Image content-types the gallery upload accepts. */
+/** Image content-types the site-media uploads (gallery + certificates) accept. */
 export const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -45,16 +43,53 @@ export function sniffImage(b: Uint8Array): string | null {
 }
 
 /**
- * Object paths of gallery images stored in the `site-media` bucket. Bundled placeholders (under
- * /site/gallery) and external URLs are ignored — so orphan-cleanup only ever deletes objects we
- * uploaded.
+ * Object paths of images we uploaded to the `site-media` bucket — across BOTH owner-editable image
+ * lists (gallery items and certificate cards). Used for orphan cleanup on save.
+ *
+ * SAFETY: the caller supplies this project's exact public bucket prefix. A path is returned only
+ * when the URL begins with that prefix, so a lookalike external URL cannot nominate an object for
+ * deletion.
  */
-export function galleryMediaPaths(content: SiteContent | null | undefined): string[] {
+function mediaPaths(
+  urls: string[],
+  publicBucketPrefix: string,
+  orgId: string,
+): string[] {
+  const orgPrefix = `${orgId}/`;
   const paths: string[] = [];
-  for (const it of content?.gallery?.items ?? []) {
-    const url = it?.image ?? "";
-    const idx = url.indexOf(SITE_MEDIA_PREFIX);
-    if (idx >= 0) paths.push(url.slice(idx + SITE_MEDIA_PREFIX.length));
+  for (const url of urls) {
+    if (typeof url === "string" && url.startsWith(publicBucketPrefix)) {
+      const path = url.slice(publicBucketPrefix.length);
+      if (path.startsWith(orgPrefix)) paths.push(path);
+    }
   }
   return paths;
+}
+
+export function siteMediaPaths(
+  content: SiteContent | null | undefined,
+  publicBucketPrefix: string,
+  orgId: string,
+): string[] {
+  return mediaPaths(
+    [
+      ...(content?.gallery?.items ?? []).map((item) => item?.image ?? ""),
+      ...(content?.certifications?.items ?? []).map((item) => item?.image ?? ""),
+    ],
+    publicBucketPrefix,
+    orgId,
+  );
+}
+
+/** Gallery-only paths eligible for automatic orphan cleanup. */
+export function galleryMediaPaths(
+  content: SiteContent | null | undefined,
+  publicBucketPrefix: string,
+  orgId: string,
+): string[] {
+  return mediaPaths(
+    (content?.gallery?.items ?? []).map((item) => item?.image ?? ""),
+    publicBucketPrefix,
+    orgId,
+  );
 }

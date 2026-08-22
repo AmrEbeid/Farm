@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sniffImage, galleryMediaPaths } from "./site-media";
+import { galleryMediaPaths, sniffImage, siteMediaPaths } from "./site-media";
 import type { SiteContent } from "./site-content";
 
 /** Build a byte array from a list of numbers, padded to at least `len` bytes. */
@@ -41,32 +41,68 @@ describe("sniffImage — trusts content, not the declared type", () => {
   });
 });
 
-describe("galleryMediaPaths — only site-media objects (never placeholders/external)", () => {
-  const content = (images: string[]): SiteContent =>
-    ({ gallery: { items: images.map((image) => ({ image, caption: { ar: "", en: "" } })) } } as unknown as SiteContent);
+describe("siteMediaPaths — only site-media objects (never placeholders/external)", () => {
+  const OBJ = "https://x.supabase.co/storage/v1/object/public/site-media/";
+  const ORG = "00000000-0000-0000-0000-000000000001";
+  const paths = (value: SiteContent | null | undefined) => siteMediaPaths(value, OBJ, ORG);
+  const content = (gallery: string[], certs: string[] = []): SiteContent =>
+    ({
+      gallery: { items: gallery.map((image) => ({ image, caption: { ar: "", en: "" } })) },
+      certifications: { items: certs.map((image) => ({ image })) },
+    } as unknown as SiteContent);
 
   it("extracts the object path from a site-media public URL", () => {
-    expect(
-      galleryMediaPaths(
-        content(["https://x.supabase.co/storage/v1/object/public/site-media/gallery/abc.png"]),
-      ),
-    ).toEqual(["gallery/abc.png"]);
+    expect(paths(content([`${OBJ}${ORG}/gallery/abc.png`]))).toEqual([
+      `${ORG}/gallery/abc.png`,
+    ]);
   });
   it("ignores bundled placeholders, external URLs, and empties", () => {
     expect(
-      galleryMediaPaths(
+      paths(
         content([
           "/site/gallery/placeholder-1.svg",
           "https://example.com/some-photo.jpg",
           "",
-          "https://x.supabase.co/storage/v1/object/public/site-media/gallery/keep.webp",
+          `${OBJ}${ORG}/gallery/keep.webp`,
         ]),
       ),
-    ).toEqual(["gallery/keep.webp"]);
+    ).toEqual([`${ORG}/gallery/keep.webp`]);
   });
-  it("returns [] for null / undefined / no gallery", () => {
-    expect(galleryMediaPaths(null)).toEqual([]);
-    expect(galleryMediaPaths(undefined)).toEqual([]);
-    expect(galleryMediaPaths({} as SiteContent)).toEqual([]);
+  it("includes UPLOADED certificate images alongside gallery images", () => {
+    expect(
+      paths(content([`${OBJ}${ORG}/gallery/a.jpg`], [`${OBJ}${ORG}/certificates/b.png`])),
+    ).toEqual([`${ORG}/gallery/a.jpg`, `${ORG}/certificates/b.png`]);
+  });
+  it("never returns a bundled /site/proofs cert image or an external cert URL", () => {
+    expect(
+      paths(
+        content([], [
+          "/site/proofs/globalgap-registry.jpeg",
+          "https://database.globalgap.org/cert.png",
+          "",
+        ]),
+      ),
+    ).toEqual([]);
+  });
+  it("ignores a lookalike external URL containing the bucket path", () => {
+    expect(
+      paths(content(["https://evil.test/site-media/gallery/do-not-delete.jpg"])),
+    ).toEqual([]);
+  });
+  it("ignores objects owned by another organization", () => {
+    const otherOrg = "00000000-0000-0000-0000-000000000002";
+    expect(paths(content([`${OBJ}${otherOrg}/gallery/private.jpg`]))).toEqual([]);
+  });
+  it("can limit cleanup discovery to gallery objects", () => {
+    const value = content(
+      [`${OBJ}${ORG}/gallery/a.jpg`],
+      [`${OBJ}${ORG}/certificates/b.png`],
+    );
+    expect(galleryMediaPaths(value, OBJ, ORG)).toEqual([`${ORG}/gallery/a.jpg`]);
+  });
+  it("returns [] for null / undefined / no gallery or certifications", () => {
+    expect(paths(null)).toEqual([]);
+    expect(paths(undefined)).toEqual([]);
+    expect(paths({} as SiteContent)).toEqual([]);
   });
 });
