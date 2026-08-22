@@ -2,137 +2,139 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Textarea, Alert } from "@/components/ui";
-import { stageMarketingSource, type SourceStagingResult } from "@/lib/marketing/source-staging";
-import { importMarketingSource } from "@/app/(app)/marketing/actions";
+import { Alert, Button } from "@/components/ui";
+import { num } from "@/lib/money";
 
-/**
- * SPEC-0032 — preview-only staging tool for the legacy tracker manifest. Runs the pure
- * `stageMarketingSource` parser ENTIRELY IN THE BROWSER (no network round-trip, no DB write): paste a
- * manifest, see the inventory counts, the curated staged counts, and every unrelated key it would
- * reject, before any record is actually created via the add forms elsewhere in this module. Never
- * persists anything — actually creating contacts/records from a reviewed manifest still goes through
- * the normal gated add forms, one at a time (this keeps the module from ever bulk-writing an unreviewed
- * raw contact dump).
- */
-export function SourceStagingPreview({ orgId, canWrite }: { orgId: string; canWrite: boolean }) {
+interface SourceSummary {
+  contacts: number;
+  selectedContacts: number;
+  records: number;
+  tabs: number;
+  templates: number;
+  mutableStateKeys: number;
+  recordTypes: Record<string, number>;
+  excluded: { source: string; destination: string; reason: string }[];
+  emptyRegisters: string[];
+}
+
+interface SourceResponse {
+  digest?: string;
+  summary?: SourceSummary;
+  result?: Record<string, unknown>;
+  error?: string;
+}
+
+async function submitSource(mode: "preview" | "commit", html: File, state: File): Promise<SourceResponse> {
+  const form = new FormData();
+  form.set("html", html);
+  form.set("state", state);
+  const response = await fetch(`/api/marketing/source?mode=${mode}`, { method: "POST", body: form });
+  const body = await response.json() as SourceResponse;
+  if (!response.ok) throw new Error(body.error ?? "تعذّر فحص الملفين.");
+  return body;
+}
+
+/** Reviewed two-file import for the complete 2026 Marketing archive. */
+export function SourceStagingPreview({ canImport }: { canImport: boolean }) {
   const router = useRouter();
-  const [text, setText] = useState("");
-  const [result, setResult] = useState<SourceStagingResult | null>(null);
+  const [html, setHtml] = useState<File | null>(null);
+  const [state, setState] = useState<File | null>(null);
+  const [preview, setPreview] = useState<{ digest: string; summary: SourceSummary } | null>(null);
+  const [pending, setPending] = useState<"preview" | "commit" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [imported, setImported] = useState<number | null>(null);
+  const [done, setDone] = useState(false);
 
-  function preview() {
-    setError(null);
-    try {
-      const parsed = JSON.parse(text || "{}");
-      setResult(stageMarketingSource(parsed));
-    } catch {
-      setResult(null);
-      setError("النص المُدخل ليس JSON صالحًا.");
-    }
+  function selectHtml(file: File | undefined) {
+    setHtml(file ?? null);
+    setPreview(null);
+    setDone(false);
   }
 
-  async function selectFile(file: File | undefined) {
-    if (!file) return;
-    if (file.size > 2_000_000) {
-      setError("الملف أكبر من 2 ميجابايت.");
+  function selectState(file: File | undefined) {
+    setState(file ?? null);
+    setPreview(null);
+    setDone(false);
+  }
+
+  async function run(mode: "preview" | "commit") {
+    if (!html || !state) {
+      setError("اختر ملف HTML وملف JSON معًا.");
       return;
     }
-    const next = await file.text();
-    setText(next);
-    setResult(null);
-    setImported(null);
+    setPending(mode);
     setError(null);
-  }
-
-  async function importAccepted() {
-    if (!result?.ok) return;
-    setImporting(true);
     try {
-      const response = await importMarketingSource(orgId, result.records);
-      if (response.ok) {
-        setImported(response.data?.imported ?? 0);
-        setError(null);
+      const response = await submitSource(mode, html, state);
+      if (!response.digest || !response.summary) throw new Error("استجابة الاستيراد غير مكتملة.");
+      setPreview({ digest: response.digest, summary: response.summary });
+      if (mode === "commit") {
+        setDone(true);
         router.refresh();
-      } else {
-        setError(response.error);
       }
-    } catch {
-      setError("تعذّر الاتصال بالخادم. أعد المحاولة؛ إعادة الاستيراد لا تنشئ نسخًا مكررة.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "تعذّر فحص الملفين.");
     } finally {
-      setImporting(false);
+      setPending(null);
     }
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
-      <div>
-        <h2 className="text-lg font-bold">استيراد ملف تسويق 2026</h2>
-        <p style={{ color: "var(--ink-muted)" }}>
-          اختر ملف JSON أو الصق محتواه. ستظهر البيانات المقبولة والمفاتيح المرفوضة قبل الحفظ.
-        </p>
+    <section className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
+      <header>
+        <h2 className="text-lg font-bold">ملف تسويق ٢٠٢٦</h2>
+        <p style={{ color: "var(--ink-muted)" }}>أرشيف HTML مع ملف الحالة JSON.</p>
+      </header>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          ملف HTML
+          <input type="file" accept="text/html,.html" onChange={(event) => selectHtml(event.target.files?.[0])} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          ملف JSON
+          <input type="file" accept="application/json,.json" onChange={(event) => selectState(event.target.files?.[0])} />
+        </label>
       </div>
-      <input
-        type="file"
-        accept="application/json,.json"
-        onChange={(event) => void selectFile(event.target.files?.[0])}
-      />
-      <Textarea
-        id="marketing-source-manifest"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={6}
-        placeholder='{"ep_prices":"[...]","ep_tasks":"[...]"}'
-      />
-      <div>
-        <Button type="button" onClick={preview}>
-          معاينة
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" loading={pending === "preview"} onClick={() => void run("preview")}>
+          فحص البيانات
         </Button>
+        {canImport && preview && (
+          <Button type="button" loading={pending === "commit"} onClick={() => void run("commit")}>
+            اعتماد الاستيراد
+          </Button>
+        )}
       </div>
+
+      {!canImport && <p className="text-sm" style={{ color: "var(--ink-muted)" }}>المعاينة متاحة، واعتماد الأرشيف لمالك المزرعة فقط.</p>}
+
       {error && <Alert tone="danger" title={error} />}
-      {imported !== null && <Alert tone="ok" title={`تم حفظ أو تحديث ${imported} سجلًا. إعادة الاستيراد لا تنشئ نسخًا مكررة.`} />}
-      {result && (
-        <div className="flex flex-col gap-2 text-sm">
+      {done && <Alert tone="ok" title="تم اعتماد المصدر. إعادة نفس الملفين لا تنشئ نسخًا مكررة." />}
+
+      {preview && (
+        <div className="flex flex-col gap-3 text-sm">
           <Alert
-            tone={result.ok ? "ok" : "warning"}
-            title={result.ok
-              ? `الملف صالح للاستيراد؛ سيتم تجاهل ${result.rejectedKeys.length} مفتاحًا من تطبيقات أخرى`
-              : "الملف يحتوي على بيانات تسويق غير صالحة ولن يتم استيراده"}
+            tone="ok"
+            title={`تمت مطابقة ${num(preview.summary.tabs)} مساحة و${num(preview.summary.mutableStateKeys)} حالة قابلة للتعديل.`}
           />
-          <div>
-            المخزون المصدري: مُصدّرون {result.inventory.exporters} · جهات اتصال {result.inventory.contacts} · موزّعو
-            الكويت {result.inventory.kuwaitDistributors} · منصّات {result.inventory.platforms} · مراجع شحن{" "}
-            {result.inventory.freightRefs}
-          </div>
-          <div>
-            الحالة المجهّزة: أسعار {result.counts.prices} · حالات الكويت {result.counts.kuwaitStatuses} · جهات مختارة{" "}
-            {result.counts.selectedContacts} · حصاد {result.counts.harvest} · مهام يومية {result.counts.campaignTasks} · مهام منصات{" "}
-            {result.counts.platformTasks} · الهدف {result.counts.target}
-          </div>
-          <div>
-            رابط المزرعة: {result.sourceMetadata.farmUrl ?? "—"} · رقم واتساب المالك موجود في المصدر ولا يُنشأ كجهة اتصال تسويقية.
-          </div>
-          {result.rejectedKeys.length > 0 && (
-            <details>
-              <summary>المفاتيح المرفوضة ({result.rejectedKeys.length})</summary>
-              <ul className="list-inside list-disc">
-                {result.rejectedKeys.map((k) => (
-                  <li key={k}>{k}</li>
-                ))}
-              </ul>
-            </details>
-          )}
-          {canWrite && result.ok && result.records.length > 0 && (
-            <div>
-              <Button type="button" loading={importing} onClick={() => void importAccepted()}>
-                استيراد {result.records.length} سجلًا مقبولًا
-              </Button>
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div><dt style={{ color: "var(--ink-muted)" }}>جهات الاتصال</dt><dd className="text-lg font-bold">{num(preview.summary.contacts)}</dd></div>
+            <div><dt style={{ color: "var(--ink-muted)" }}>المختارة</dt><dd className="text-lg font-bold">{num(preview.summary.selectedContacts)}</dd></div>
+            <div><dt style={{ color: "var(--ink-muted)" }}>السجلات</dt><dd className="text-lg font-bold">{num(preview.summary.records)}</dd></div>
+            <div><dt style={{ color: "var(--ink-muted)" }}>قوالب الرسائل</dt><dd className="text-lg font-bold">{num(preview.summary.templates)}</dd></div>
+          </dl>
+          <details>
+            <summary className="cursor-pointer font-bold">تغطية المصدر</summary>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {Object.entries(preview.summary.recordTypes).map(([type, count]) => (
+                <span key={type}>{type}: {num(count)}</span>
+              ))}
             </div>
-          )}
+          </details>
+          <div className="text-xs" style={{ color: "var(--ink-muted)" }}>مرجع الفحص: {preview.digest.slice(0, 12)}</div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

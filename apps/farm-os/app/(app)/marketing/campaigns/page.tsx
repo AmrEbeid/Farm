@@ -2,11 +2,13 @@ import { requireMembership } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
 import { MarketingRecordTable } from "@/components/marketing/MarketingRecordTable";
 import { MarketingContactTable } from "@/components/marketing/MarketingContactTable";
+import { MarketingAreaNav } from "@/components/marketing/MarketingAreaNav";
 import {
   canAccessMarketing,
   loadMarketingRecords,
-  loadMarketingContacts,
-  loadMarketingContactActivity,
+  loadMarketingContactsPage,
+  loadMarketingContactActivityForContacts,
+  loadMarketingContactIdsByCategory,
   contactOptions,
 } from "@/lib/marketing/queries";
 import {
@@ -18,6 +20,7 @@ import {
   CERTIFICATE_STATUS_OPTIONS,
   CHANNEL_TARGET_FIELDS,
   MESSAGE_TEMPLATE_FIELDS,
+  DAILY_SALES_REPORT_FIELDS,
 } from "@/lib/marketing/fields";
 
 /**
@@ -26,7 +29,13 @@ import {
  * reusable message templates (drafts only — copy the text and open your own mail/WhatsApp client; this
  * module never sends anything itself, per the no-automated-email constraint).
  */
-export default async function MarketingCampaignsPage() {
+const CONTACT_CATEGORIES = new Set(["exporter", "buyer_lead", "kuwait_distributor", "platform", "freight", "other"]);
+
+export default async function MarketingCampaignsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; category?: string; archived?: string; page?: string }>;
+}) {
   const m = await requireMembership();
   if (!canAccessMarketing(m.role)) {
     return (
@@ -36,17 +45,29 @@ export default async function MarketingCampaignsPage() {
     );
   }
 
-  const [records, contacts, activity] = await Promise.all([
-    loadMarketingRecords(m.orgId, ["task", "platform_state", "certificate", "channel_target", "message_template"]),
-    loadMarketingContacts(m.orgId),
-    loadMarketingContactActivity(m.orgId),
+  const params = await searchParams;
+  const query = (params.q ?? "").trim().slice(0, 100);
+  const category = CONTACT_CATEGORIES.has(params.category ?? "") ? params.category! : null;
+  const includeArchived = params.archived === "1";
+  const parsedPage = Number(params.page);
+  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+  const [records, contactPage, kuwaitIds] = await Promise.all([
+    loadMarketingRecords(m.orgId, [
+      "task", "platform_state", "certificate", "channel_target", "message_template", "daily_sales_report",
+    ]),
+    loadMarketingContactsPage(m.orgId, { query, category, includeArchived, page, pageSize: 50 }),
+    loadMarketingContactIdsByCategory(m.orgId, "kuwait_distributor"),
   ]);
-  const kuwaitContactIds = new Set(contacts.filter((c) => c.category === "kuwait_distributor").map((c) => c.id));
+  const activity = await loadMarketingContactActivityForContacts(
+    m.orgId,
+    contactPage.rows.map((contact) => contact.id),
+  );
+  const kuwaitContactIds = new Set(kuwaitIds);
   // Kuwait-distributor follow-up tasks live on the Markets page (SPEC-0032); campaign tasks here
   // exclude anything linked to a Kuwait-distributor contact so the same record isn't shown twice.
   const campaignTasks = records.filter((r) => r.recordType === "task" && !kuwaitContactIds.has(r.contactId ?? ""));
-  const options = contactOptions(contacts);
-
+  const options = contactOptions(contactPage.rows);
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <header>
@@ -56,9 +77,25 @@ export default async function MarketingCampaignsPage() {
         </p>
       </header>
 
-      <MarketingContactTable orgId={m.orgId} rows={contacts} activity={activity} canWrite />
+      <MarketingAreaNav />
+
+      <div id="contacts">
+        <MarketingContactTable
+          orgId={m.orgId}
+          rows={contactPage.rows}
+          activity={activity}
+          canWrite
+          query={query}
+          category={category}
+          includeArchived={includeArchived}
+          page={contactPage.page}
+          pages={contactPage.pages}
+          total={contactPage.total}
+        />
+      </div>
 
       <MarketingRecordTable
+        sectionId="daily-campaign"
         recordType="task"
         orgId={m.orgId}
         title="مهام الحملات"
@@ -71,6 +108,7 @@ export default async function MarketingCampaignsPage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="platforms"
         recordType="platform_state"
         orgId={m.orgId}
         title="حالة المنصّات"
@@ -82,6 +120,7 @@ export default async function MarketingCampaignsPage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="certificates"
         recordType="certificate"
         orgId={m.orgId}
         title="الشهادات"
@@ -93,6 +132,7 @@ export default async function MarketingCampaignsPage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="channel-targets"
         recordType="channel_target"
         orgId={m.orgId}
         title="أهداف القنوات"
@@ -104,12 +144,23 @@ export default async function MarketingCampaignsPage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="message-templates"
         recordType="message_template"
         orgId={m.orgId}
         title="قوالب الرسائل"
         description="نص جاهز للنسخ اليدوي إلى بريدك أو واتساب — لا يوجد إرسال آلي من هذه الشاشة."
         fields={MESSAGE_TEMPLATE_FIELDS}
         rows={records.filter((r) => r.recordType === "message_template")}
+        canWrite
+      />
+      <MarketingRecordTable
+        sectionId="daily-report"
+        recordType="daily_sales_report"
+        orgId={m.orgId}
+        title="التقرير اليومي"
+        description="حركة التواصل والردود والفرص والعروض خلال اليوم."
+        fields={DAILY_SALES_REPORT_FIELDS}
+        rows={records.filter((record) => record.recordType === "daily_sales_report")}
         canWrite
       />
     </div>

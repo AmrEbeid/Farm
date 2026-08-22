@@ -141,7 +141,7 @@ describe("runStagingCli hash verification (fail closed per input)", () => {
   it("rejects a missing input file with a fixed message", () => {
     const outputPath = join(dir, "out.json");
     const { io, err } = collectIo();
-    const code = runStagingCli(baseArgs({ workbook: join(dir, "does-not-exist.xlsx"), output: outputPath }), io);
+    const code = runStagingCli(baseArgs({ evidence: join(dir, "does-not-exist.json"), output: outputPath }), io);
     expect(code).toBe(1);
     expect(err[0]).toBe("error: unable to read a required input file");
     expect(existsSync(outputPath)).toBe(false);

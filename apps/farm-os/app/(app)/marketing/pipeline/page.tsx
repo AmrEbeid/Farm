@@ -1,16 +1,24 @@
 import { requireMembership } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
 import { MarketingRecordTable } from "@/components/marketing/MarketingRecordTable";
-import { canAccessMarketing, loadMarketingRecords, loadMarketingContacts, contactOptions } from "@/lib/marketing/queries";
-import { LEAD_FIELDS, LEAD_STATUS_OPTIONS, EXW_BID_FIELDS, BROKER_STATE_FIELDS, BROKER_STATUS_OPTIONS } from "@/lib/marketing/fields";
+import { canAccessMarketing, loadMarketingRecords, loadMarketingPipelineContacts, contactOptions } from "@/lib/marketing/queries";
+import { MarketingAreaNav } from "@/components/marketing/MarketingAreaNav";
+import {
+  LEAD_FIELDS,
+  LEAD_STATUS_OPTIONS,
+  EXW_BID_FIELDS,
+  BROKER_STATE_FIELDS,
+  BROKER_STATUS_OPTIONS,
+  REPEAT_CUSTOMER_FIELDS,
+} from "@/lib/marketing/fields";
 import type { MarketingRecordType } from "@/lib/database.types.ext";
 
-const LEAD_TYPES: { type: MarketingRecordType; title: string; description: string }[] = [
-  { type: "lead_local", title: "عملاء محتملون — محليون", description: "عملاء تصدير محتملون داخل السوق المحلي." },
-  { type: "lead_offshoot", title: "عملاء محتملون — فسائل", description: "عملاء محتملون لبيع الفسائل." },
-  { type: "lead_social", title: "عملاء محتملون — منصّات اجتماعية", description: "استفسارات من منصّات التواصل." },
-  { type: "lead_linkedin", title: "عملاء محتملون — LinkedIn", description: "تواصل عبر LinkedIn." },
-  { type: "hot_lead", title: "عملاء محتملون — أولوية عالية", description: "عملاء محتملون بأولوية متابعة عالية." },
+const LEAD_TYPES: { type: MarketingRecordType; sectionId: string; title: string; description: string }[] = [
+  { type: "lead_local", sectionId: "local-sales", title: "عملاء محتملون — محليون", description: "عملاء تصدير محتملون داخل السوق المحلي." },
+  { type: "lead_offshoot", sectionId: "offshoots", title: "عملاء محتملون — فسائل", description: "عملاء محتملون لبيع الفسائل." },
+  { type: "lead_social", sectionId: "social-leads", title: "عملاء محتملون — منصّات اجتماعية", description: "استفسارات من منصّات التواصل." },
+  { type: "lead_linkedin", sectionId: "linkedin", title: "عملاء محتملون — LinkedIn", description: "تواصل عبر LinkedIn." },
+  { type: "hot_lead", sectionId: "crm", title: "عملاء محتملون — أولوية عالية", description: "عملاء محتملون بأولوية متابعة عالية." },
 ];
 
 /** SPEC-0032 — Pipeline view (legacy: crm/exw/linkedin/brokers): every lead type + EXW bids + brokers. */
@@ -24,8 +32,7 @@ export default async function MarketingPipelinePage() {
     );
   }
 
-  const [records, contacts] = await Promise.all([
-    loadMarketingRecords(m.orgId, [
+  const records = await loadMarketingRecords(m.orgId, [
       "lead_local",
       "lead_offshoot",
       "lead_social",
@@ -33,9 +40,12 @@ export default async function MarketingPipelinePage() {
       "hot_lead",
       "exw_bid",
       "broker_state",
-    ]),
-    loadMarketingContacts(m.orgId),
-  ]);
+      "repeat_customer",
+    ]);
+  const contacts = await loadMarketingPipelineContacts(
+    m.orgId,
+    [...new Set(records.flatMap((record) => record.contactId ? [record.contactId] : []))],
+  );
   const options = contactOptions(contacts);
 
   return (
@@ -44,9 +54,11 @@ export default async function MarketingPipelinePage() {
         <h1 className="text-xl font-bold">خط المبيعات</h1>
         <p style={{ color: "var(--ink-muted)" }}>كل أنواع العملاء المحتملين، وعروض EXW، وحالة الوسطاء.</p>
       </header>
+      <MarketingAreaNav />
       {LEAD_TYPES.map((lt) => (
         <MarketingRecordTable
           key={lt.type}
+          sectionId={lt.sectionId}
           recordType={lt.type}
           orgId={m.orgId}
           title={lt.title}
@@ -62,6 +74,7 @@ export default async function MarketingPipelinePage() {
         />
       ))}
       <MarketingRecordTable
+        sectionId="exw"
         recordType="exw_bid"
         orgId={m.orgId}
         title="عروض EXW"
@@ -74,6 +87,7 @@ export default async function MarketingPipelinePage() {
         canWrite
       />
       <MarketingRecordTable
+        sectionId="brokers"
         recordType="broker_state"
         orgId={m.orgId}
         title="الوسطاء"
@@ -83,6 +97,17 @@ export default async function MarketingPipelinePage() {
         statusOptions={BROKER_STATUS_OPTIONS}
         contacts={options}
         rows={records.filter((r) => r.recordType === "broker_state")}
+        canWrite
+      />
+      <MarketingRecordTable
+        sectionId="repeat-customers"
+        recordType="repeat_customer"
+        orgId={m.orgId}
+        title="العملاء المتكررون"
+        description="سجل العملاء الذين عادوا للشراء وتاريخ آخر طلب."
+        fields={REPEAT_CUSTOMER_FIELDS}
+        contacts={options}
+        rows={records.filter((record) => record.recordType === "repeat_customer")}
         canWrite
       />
     </div>

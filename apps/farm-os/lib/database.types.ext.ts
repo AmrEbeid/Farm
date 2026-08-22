@@ -1721,6 +1721,7 @@ type MarketingContactTable = {
     source: string | null;
     source_key: string | null;
     notes: string | null;
+    metadata: Json;
     selected: boolean;
     archived: boolean;
     created_by: string | null;
@@ -1774,7 +1775,11 @@ export type MarketingRecordType =
   | "broker_state"
   | "certificate"
   | "channel_target"
-  | "message_template";
+  | "message_template"
+  | "freight_reference"
+  | "market_reference"
+  | "daily_sales_report"
+  | "repeat_customer";
 
 type MarketingRecordTable = {
   Row: {
@@ -1805,6 +1810,26 @@ type MarketingRecordTable = {
   ];
 };
 
+type MarketingImportRunTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    source_hash: string;
+    expected_contacts: number;
+    imported_contacts: number;
+    existing_contacts: number;
+    expected_records: number;
+    imported_records: number;
+    existing_records: number;
+    coverage: Json;
+    created_by: string | null;
+    created_at: string;
+  };
+  Insert: Record<string, never>;
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
 type MarketingFunctions = {
   fn_save_marketing_contact: {
     Args: {
@@ -1823,6 +1848,23 @@ type MarketingFunctions = {
     Returns: Json;
   };
   fn_archive_marketing_contact: { Args: { p_id: string; p_archived: boolean }; Returns: undefined };
+  fn_save_marketing_contact_v2: {
+    Args: {
+      p_id: string | null;
+      p_org: string | null;
+      p_name: string;
+      p_phone: string | null;
+      p_email: string | null;
+      p_org_name: string | null;
+      p_category: string;
+      p_source: string | null;
+      p_notes: string | null;
+      p_selected?: boolean;
+      p_source_key?: string | null;
+      p_metadata?: Json;
+    };
+    Returns: Json;
+  };
   fn_log_marketing_contact_activity: {
     Args: {
       p_contact_id: string;
@@ -1848,6 +1890,30 @@ type MarketingFunctions = {
     Returns: Json;
   };
   fn_archive_marketing_record: { Args: { p_id: string; p_archived: boolean }; Returns: undefined };
+  fn_import_marketing_source: {
+    Args: {
+      p_org: string;
+      p_source_hash: string;
+      p_contacts: Json;
+      p_records: Json;
+      p_expected_contacts: number;
+      p_expected_records: number;
+      p_coverage: Json;
+    };
+    Returns: Json;
+  };
+  fn_marketing_contacts_page: {
+    Args: {
+      p_org: string;
+      p_query?: string | null;
+      p_category?: string | null;
+      p_archived?: boolean | null;
+      p_page?: number;
+      p_page_size?: number;
+    };
+    Returns: Json;
+  };
+  fn_marketing_dashboard_snapshot: { Args: { p_org: string }; Returns: Json };
 };
 
 export type Database = Omit<Generated, "public"> & {
@@ -1913,6 +1979,7 @@ export type Database = Omit<Generated, "public"> & {
       marketing_contact: MarketingContactTable;
       marketing_contact_activity: MarketingContactActivityTable;
       marketing_record: MarketingRecordTable;
+      marketing_import_run: MarketingImportRunTable;
     };
     Functions: Public["Functions"] & StructFunctions & CustodyFunctions & OperationTemplateFunctions & OwnerPnlFunctions & CostCenterSummaryFunctions & ExpenseRegisterSummaryFunctions & WeatherFunctions & PestScoutingFunctions & SignoffFunctions & SiteContentFunctions & SiteEnquiriesFunctions & OffshootFunctions & DataAuthorityFunctions & RevenueFunctions & ScaleFunctions & HarvestFunctions & ReconciliationFunctions & PayrollFunctions & MarketingFunctions;
   };

@@ -29,7 +29,7 @@ export interface MarketingRecordRow {
 }
 
 /**
- * SPEC-0032 — one generic add/edit/archive/search screen reused across all 16 marketing record
+ * SPEC-0032 — one generic add/edit/archive/search screen reused across all Marketing record
  * types. Type-specific shape lives entirely in `fields` (rendered payload columns + form inputs);
  * writes go through the page-shared server actions, which call the gated RPCs (role re-checked in
  * the DB — `canWrite` here only hides the affordance).
@@ -49,6 +49,7 @@ export function MarketingRecordTable({
   canWrite,
   addLabel = "+ إضافة",
   empty = "لا توجد سجلات بعد",
+  sectionId,
 }: {
   recordType: MarketingRecordType;
   orgId: string;
@@ -64,6 +65,7 @@ export function MarketingRecordTable({
   canWrite: boolean;
   addLabel?: string;
   empty?: string;
+  sectionId?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -71,12 +73,14 @@ export function MarketingRecordTable({
   const [editId, setEditId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [basePayload, setBasePayload] = useState<Record<string, Json>>({});
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "danger"; text: string } | null>(null);
 
   function startCreate() {
     setEditId(null);
     setForm({});
+    setBasePayload({});
     setMsg(null);
     setOpen(true);
   }
@@ -92,6 +96,7 @@ export function MarketingRecordTable({
     next.contactId = row.contactId ?? "";
     setEditId(row.id);
     setForm(next);
+    setBasePayload(row.payload);
     setMsg(null);
     setOpen(true);
   }
@@ -100,11 +105,30 @@ export function MarketingRecordTable({
     e.preventDefault();
     setPending(true);
     setMsg(null);
-    const payload: Record<string, Json> = {};
+    const payload: Record<string, Json> = { ...basePayload };
     for (const f of fields) {
       const raw = (form[f.key] ?? "").trim();
-      if (raw === "") continue;
-      payload[f.key] = f.type === "number" ? Number(raw) : raw;
+      if (raw === "") {
+        delete payload[f.key];
+        continue;
+      }
+      if (f.type === "number") {
+        const num = Number(raw);
+        if (!Number.isFinite(num)) {
+          setPending(false);
+          setMsg({ tone: "danger", text: `أدخل رقمًا صالحًا في حقل ${f.label}.` });
+          return;
+        }
+        payload[f.key] = num;
+      } else {
+        payload[f.key] = raw;
+      }
+    }
+    const amountNum = hasAmount && form.amount ? Number(form.amount) : null;
+    if (amountNum != null && !Number.isFinite(amountNum)) {
+      setPending(false);
+      setMsg({ tone: "danger", text: `أدخل رقمًا صالحًا في حقل ${amountLabel}.` });
+      return;
     }
     const input: MarketingRecordInput = {
       id: editId,
@@ -113,7 +137,7 @@ export function MarketingRecordTable({
       title: (form.title ?? "").trim(),
       payload,
       contactId: form.contactId ? form.contactId : null,
-      amount: hasAmount && form.amount ? Number(form.amount) : null,
+      amount: amountNum,
       status: hasStatus ? (form.status || null) : null,
     };
     let r: { ok: boolean; error?: string };
@@ -126,6 +150,7 @@ export function MarketingRecordTable({
     if (r.ok) {
       setOpen(false);
       setForm({});
+      setBasePayload({});
       setEditId(null);
       toast.ok(editId ? "تم الحفظ" : "تمت الإضافة بنجاح");
       router.refresh();
@@ -199,7 +224,7 @@ export function MarketingRecordTable({
   });
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
+    <section id={sectionId} className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">{title}</h2>
@@ -238,6 +263,7 @@ export function MarketingRecordTable({
                   id={`${recordType}-${f.key}`}
                   value={form[f.key] ?? ""}
                   onChange={(e) => setForm((v) => ({ ...v, [f.key]: e.target.value }))}
+                  required={f.required}
                 />
               ) : (
                 <Input
@@ -245,6 +271,7 @@ export function MarketingRecordTable({
                   type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
                   value={form[f.key] ?? ""}
                   onChange={(e) => setForm((v) => ({ ...v, [f.key]: e.target.value }))}
+                  required={f.required}
                 />
               )}
             </Field>
@@ -309,6 +336,6 @@ export function MarketingRecordTable({
         ariaLabel={title}
         empty={empty}
       />
-    </div>
+    </section>
   );
 }

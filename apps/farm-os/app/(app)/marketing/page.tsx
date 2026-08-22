@@ -1,40 +1,25 @@
 import Link from "next/link";
 import { requireMembership } from "@/lib/auth";
-import { KpiCard, EmptyState } from "@/components/ui";
-import { num } from "@/lib/money";
-import { fmtDate } from "@/lib/dates";
+import { EmptyState, KpiCard } from "@/components/ui";
+import { MarketingAreaNav } from "@/components/marketing/MarketingAreaNav";
 import { SourceStagingPreview } from "@/components/marketing/SourceStagingPreview";
-import { canAccessMarketing, loadMarketingRecords, loadMarketingContacts, loadMarketingContactActivity } from "@/lib/marketing/queries";
-import type { MarketingRecordType } from "@/lib/database.types.ext";
+import { canAccessMarketing, loadMarketingDashboardSnapshot } from "@/lib/marketing/queries";
+import { fmtDate } from "@/lib/dates";
+import { num } from "@/lib/money";
 
-const ALL_TYPES: MarketingRecordType[] = [
-  "price_observation",
-  "exw_bid",
-  "quality_batch",
-  "weekly_availability",
-  "competitor",
-  "lead_local",
-  "lead_offshoot",
-  "lead_social",
-  "lead_linkedin",
-  "hot_lead",
-  "task",
-  "platform_state",
-  "broker_state",
-  "certificate",
-  "channel_target",
-  "message_template",
-];
+const ACTIVITY_KIND_AR: Record<string, string> = {
+  call: "مكالمة",
+  email: "بريد",
+  meeting: "اجتماع",
+  note: "ملاحظة",
+  followup: "متابعة",
+};
 
-/**
- * SPEC-0032 — Marketing module Overview (dashboard-first). Consolidates the 25 legacy tracking
- * areas into 5 nav pages; this is the landing page: KPI counts across every record type, follow-ups
- * due soon, and links to the other 4 views. Owner/accountant/farm_manager only (RLS also enforces
- * this — a direct URL hit by another role sees this notice, not an empty table).
- */
+const LEAD_TYPES = ["lead_local", "lead_offshoot", "lead_social", "lead_linkedin", "hot_lead"];
+
 export default async function MarketingOverviewPage() {
-  const m = await requireMembership();
-  if (!canAccessMarketing(m.role)) {
+  const membership = await requireMembership();
+  if (!canAccessMarketing(membership.role)) {
     return (
       <div className="p-6">
         <EmptyState
@@ -46,81 +31,114 @@ export default async function MarketingOverviewPage() {
     );
   }
 
-  const [records, contacts, activity] = await Promise.all([
-    loadMarketingRecords(m.orgId, ALL_TYPES),
-    loadMarketingContacts(m.orgId),
-    loadMarketingContactActivity(m.orgId),
-  ]);
+  const snapshot = await loadMarketingDashboardSnapshot(membership.orgId);
+  const count = (type: string) => snapshot.recordsByType[type] ?? 0;
+  const leadCount = LEAD_TYPES.reduce((total, type) => total + count(type), 0);
+  const marketSignalCount = count("price_observation") + count("competitor") + count("freight_reference");
+  const readinessCount = count("quality_batch") + count("weekly_availability") + count("certificate");
+  const openTasks = (snapshot.recordsByStatus.todo ?? 0) + (snapshot.recordsByStatus.doing ?? 0);
 
-  const active = records.filter((r) => !r.archived);
-  const activeContacts = contacts.filter((c) => !c.archived);
-  const in7Days = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
-  const dueFollowUps = activity
-    .filter((a) => a.followUpAt && new Date(a.followUpAt).getTime() <= in7Days)
-    .sort((a, b) => (a.followUpAt! < b.followUpAt! ? -1 : 1));
-
-  const kpis = [
-    { label: "جهات اتصال نشطة", value: activeContacts.length, href: "/marketing/campaigns" },
-    { label: "جهات مختارة (شورت-ليست)", value: activeContacts.filter((c) => c.selected).length, href: "/marketing/campaigns" },
-    { label: "سجلات نشطة (كل الأنواع)", value: active.length, href: "/marketing/pipeline" },
-    { label: "متابعات مستحقة خلال ٧ أيام", value: dueFollowUps.length, href: "/marketing/campaigns" },
-  ];
-
-  const views = [
-    { href: "/marketing/product", label: "المنتج", desc: "جودة الدفعات والكميات الأسبوعية المتاحة." },
-    { href: "/marketing/markets", label: "الأسواق", desc: "رصد الأسعار والمنافسين والكويت." },
-    { href: "/marketing/pipeline", label: "خط المبيعات", desc: "العملاء المحتملون وعروض EXW والوسطاء." },
-    { href: "/marketing/campaigns", label: "الحملات", desc: "جهات الاتصال والمهام والمنصّات والقوالب." },
-  ];
+  const actions = [
+    snapshot.overdueFollowUps > 0
+      ? { tone: "danger", label: `${num(snapshot.overdueFollowUps)} متابعة متأخرة`, href: "/marketing/campaigns#contacts" }
+      : null,
+    snapshot.dueFollowUps7Days > 0
+      ? { tone: "warning", label: `${num(snapshot.dueFollowUps7Days)} متابعة خلال ٧ أيام`, href: "/marketing/campaigns#contacts" }
+      : null,
+    openTasks > 0
+      ? { tone: "neutral", label: `${num(openTasks)} مهمة حملة مفتوحة`, href: "/marketing/campaigns#daily-campaign" }
+      : null,
+    snapshot.selectedContacts === 0
+      ? { tone: "warning", label: "لا توجد جهات مختارة للاتصال اليوم", href: "/marketing/campaigns#contacts" }
+      : null,
+  ].filter((action): action is NonNullable<typeof action> => action !== null);
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6">
-      <header>
+    <main className="flex flex-col gap-5 p-4 sm:p-6">
+      <header id="overview">
         <h1 className="text-xl font-bold">التسويق</h1>
-        <p style={{ color: "var(--ink-muted)" }}>
-          نظرة عامة على تسويق التصدير: الأسعار، خط المبيعات، جهات الاتصال، والحملات — بديل مُوحّد لملفات المتابعة القديمة.
-        </p>
+        <p style={{ color: "var(--ink-muted)" }}>من جاهزية المنتج إلى السوق، ثم العميل والمتابعة.</p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => (
-          <Link key={k.label} href={k.href} className="no-underline">
-            <KpiCard label={k.label} value={num(k.value)} deltaDirection="none" />
-          </Link>
-        ))}
+      <MarketingAreaNav />
+
+      <section aria-label="ملخص التسويق" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Link href="/marketing/campaigns#contacts" className="no-underline">
+          <KpiCard label="جهات اتصال نشطة" value={num(snapshot.activeContacts)} deltaDirection="none" />
+        </Link>
+        <Link href="/marketing/pipeline#crm" className="no-underline">
+          <KpiCard label="فرص البيع" value={num(leadCount)} deltaDirection="none" />
+        </Link>
+        <Link href="/marketing/markets#daily-prices" className="no-underline">
+          <KpiCard label="إشارات السوق" value={num(marketSignalCount)} deltaDirection="none" />
+        </Link>
+        <Link href="/marketing/product#quality" className="no-underline">
+          <KpiCard label="سجلات الجاهزية" value={num(readinessCount)} deltaDirection="none" />
+        </Link>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        {views.map((v) => (
-          <Link
-            key={v.href}
-            href={v.href}
-            className="rounded-lg border p-4 no-underline"
-            style={{ borderColor: "var(--line)", color: "inherit" }}
-          >
-            <div className="text-lg font-bold">{v.label}</div>
-            <div style={{ color: "var(--ink-muted)" }}>{v.desc}</div>
-          </Link>
-        ))}
-      </section>
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
+        <div id="reports">
+          <h2 className="mb-2 text-lg font-bold">مسار العمل</h2>
+          <ol className="grid gap-2 sm:grid-cols-2">
+            <li className="border-b pb-2" style={{ borderColor: "var(--line)" }}>
+              <Link href="/marketing/product" className="font-bold">١. المنتج والجودة</Link>
+              <div className="text-sm" style={{ color: "var(--ink-muted)" }}>{num(readinessCount)} سجل جاهزية</div>
+            </li>
+            <li className="border-b pb-2" style={{ borderColor: "var(--line)" }}>
+              <Link href="/marketing/markets" className="font-bold">٢. السوق والسعر</Link>
+              <div className="text-sm" style={{ color: "var(--ink-muted)" }}>{num(marketSignalCount)} إشارة قابلة للمراجعة</div>
+            </li>
+            <li className="border-b pb-2" style={{ borderColor: "var(--line)" }}>
+              <Link href="/marketing/pipeline" className="font-bold">٣. الفرص والعروض</Link>
+              <div className="text-sm" style={{ color: "var(--ink-muted)" }}>{num(leadCount)} فرصة مسجلة</div>
+            </li>
+            <li className="border-b pb-2" style={{ borderColor: "var(--line)" }}>
+              <Link href="/marketing/campaigns" className="font-bold">٤. التواصل والمتابعة</Link>
+              <div className="text-sm" style={{ color: "var(--ink-muted)" }}>{num(snapshot.selectedContacts)} جهة مختارة</div>
+            </li>
+          </ol>
+        </div>
 
-      {dueFollowUps.length > 0 && (
-        <section className="rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
-          <h2 className="mb-2 text-lg font-bold">متابعات مستحقة قريبًا</h2>
-          <ul className="flex flex-col gap-1">
-            {dueFollowUps.slice(0, 10).map((a) => {
-              const c = contacts.find((x) => x.id === a.contactId);
-              return (
-                <li key={a.id}>
-                  {c?.name ?? "جهة اتصال"} — {fmtDate(a.followUpAt!)}
+        <div>
+          <h2 className="mb-2 text-lg font-bold">المطلوب الآن</h2>
+          {actions.length === 0 ? (
+            <p className="text-sm" style={{ color: "var(--ink-muted)" }}>لا توجد متابعات متأخرة أو مهام مفتوحة.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {actions.map((action) => (
+                <li key={action.label}>
+                  <Link
+                    href={action.href}
+                    className="block border-b py-2 font-bold"
+                    style={{ borderColor: action.tone === "danger" ? "var(--danger)" : "var(--line)" }}
+                  >
+                    {action.label}
+                  </Link>
                 </li>
-              );
-            })}
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {snapshot.recentActivity.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-bold">آخر تواصل</h2>
+          <ul className="divide-y" style={{ borderColor: "var(--line)" }}>
+            {snapshot.recentActivity.slice(0, 6).map((activity) => (
+              <li key={activity.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
+                <span className="font-bold">{activity.contactName} · {ACTIVITY_KIND_AR[activity.kind] ?? activity.kind}</span>
+                <span style={{ color: "var(--ink-muted)" }}>{fmtDate(activity.occurredAt)}</span>
+              </li>
+            ))}
           </ul>
         </section>
       )}
 
-      <SourceStagingPreview orgId={m.orgId} canWrite />
-    </div>
+      <div id="source-import">
+        <SourceStagingPreview canImport={membership.role === "owner"} />
+      </div>
+    </main>
   );
 }
