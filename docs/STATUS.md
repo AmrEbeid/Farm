@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (homepage certificate editor merged, deployed, and publicly verified). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (Product UI reset R0 merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-22 — PRODUCT UI RESET R0: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+SPEC-0033 now defines the staged product-wide navigation, dashboard, list and 360-page reset. Its first bounded
+release fixes phone bottom-navigation clearance, including safe area, and removes automatic breadcrumbs from
+depth-1 routes while rejecting trails for pages outside the current role's filtered registry. PR #1022 merged
+as `f54722bcc51d20c81140294dc0ed15a36c8dbe80`; Production deployment `6039939309` succeeded. Public aliases
+serve `/login`; protected shallow and deep routes redirect signed-out users to it. No migration or data action
+occurred. Local evidence: 15 focused and 1,910 full Vitest passes plus 17 controlled skips, TypeScript, ESLint,
+70-page build, repository guards and independent APPROVE; remote CI, pgTAP, gitleaks and Vercel passed.
+Authenticated 390px visual acceptance remains open. The wider reset is not complete; R1a design-system shell is
+next, followed by shell adoption, navigation consolidation, role homes, lists/360 pages and product-wide closure.
 
 **2026-08-22 — HOMEPAGE CERTIFICATE EDITOR: MERGED / DEPLOYED / PUBLICLY VERIFIED.**
 Owners can now add, edit and remove the public homepage certificate cards from `/website`, including AR/EN

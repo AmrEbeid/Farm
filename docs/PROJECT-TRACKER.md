@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Marketing exact workspace — MIGRATED, MERGED, DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Product UI reset R0 — MERGED / DEPLOYED)
+
+> **2026-08-22 — PRODUCT UI RESET R0 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> The first bounded slice of SPEC-0033 is live. Phone pages now reserve the same scalable bottom-navigation
+> height, including the device safe area, so final rows and actions are not covered. Registry breadcrumbs are
+> removed from depth-1 destinations and fail closed for pages absent from the current role's navigation; deep
+> role-visible and 360 routes retain their trail. PR #1022 merged as
+> `f54722bcc51d20c81140294dc0ed15a36c8dbe80`; GitHub Production deployment `6039939309` succeeded.
+> `farm-ui-one.vercel.app` and `ebeidfarm.business` serve `/login`, while signed-out `/dashboard` and a deep
+> palm route redirect to `/login`. No migration, schema or business-data action occurred.
+>
+> Evidence: 15/15 focused tests; 1,910 full Vitest passes plus 17 controlled skips; TypeScript, ESLint,
+> 70-page build, pgTAP, gitleaks, service-role/Recharts/client-boundary guards, Impeccable scan, Vercel and
+> independent rereview APPROVE. Authenticated 390px visual clearance remains unclaimed because no authenticated
+> Farm session was available. **Next:** SPEC-0033 R1a, the design-system shell repair, as a separate release.
 
 > **2026-08-22 — MARKETING EXACT HTML WORKSPACE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > The supplied 2026 Marketing HTML is now represented as an interactive database-backed workspace at
