@@ -1,8 +1,25 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (Product UI reset R3 Owner home and Accountant first reset live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (Product UI reset R3b exact Accountant home live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R3b EXACT ACCOUNTANT HOME: MIGRATED / MERGED / DEPLOYED.**
+Accountant `/finance/dashboard` now uses one active-organization, accountant-only exact snapshot. The compact
+Arabic home leads with actionable close, pricing, reconciliation and payment queues; caps the decision KPIs at
+four; separates operating obligations, CAPEX, drawings and unknown amounts; exposes custody and receivable
+drill-downs; and names the legal next action for each payment-request stage. Money and prior-period comparison
+remain null while `finance_ledger` authority is not verified. Future-dated journals, custody movements,
+expenses and collections cannot change today's snapshot.
+
+Hosted Farm migration `20260822221540 exact_accountant_home_snapshot` is `SECURITY INVOKER`, `STABLE`, empty
+search path and authenticated-only. A production Accountant claim returned bounded v1 data for its claimed
+active organization; live authority is `partial`, so money stayed hidden. PR #1033 merged as
+`b4a17e06c173ae48000f53a22e6c4131b3515b02`; Vercel deployment `dpl_CQB5wttzHuDH85hLSUtTgHsks8vf`
+serves both public aliases, whose signed-out Finance route returns 307 to `/login`. Evidence: independent
+APPROVE; pgTAP 4,351/4,351 including a UTC/Cairo boundary replay; Vitest 1,932 plus 17 controlled skips;
+TypeScript, ESLint, 70-page build, guards, gitleaks and PR CI green. Authenticated browser desktop/phone
+acceptance remains open. Next: manager, agronomist, supervisor and storekeeper homes, then list and 360 redesign.
 
 **2026-08-22 — PRODUCT UI RESET R3 OWNER HOME + ACCOUNTANT FIRST RESET: MIGRATED / MERGED / DEPLOYED.**
 Owner `/dashboard/owner` now uses one exact, bounded, active-organization snapshot instead of the prior query

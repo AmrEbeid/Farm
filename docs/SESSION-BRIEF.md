@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Product UI reset R3 role homes — IN PROGRESS)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3b Accountant home live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R3b exact Accountant home — MIGRATED / MERGED / DEPLOYED
+
+Accountant `/finance/dashboard` now exits before the legacy multi-read dashboard and renders one compact Arabic
+daily-work home from `fn_accountant_home_snapshot`. One strict parser preserves PostgreSQL counts and decimals
+as strings. The snapshot is active-org/accountant-only, bounded to eight drivers per queue, and combines close
+gaps, pending pricing, staged reconciliation, open receivables, custody, period state, operating/CAPEX unpaid
+obligations and payment lifecycle actions. It separates drawings and unknown amounts, excludes future journals,
+custody, expenses and collections, and nulls all money and comparison whenever finance authority is not verified.
+
+Migration `20260822221540 exact_accountant_home_snapshot` is live on Farm only. Postflight proved
+`SECURITY INVOKER`, `STABLE`, empty search path, authenticated-only execute and a successful real Accountant
+claim read for its active organization. Authority is currently `partial`, so production correctly withheld
+money. PR #1033 merged as `b4a17e06c173ae48000f53a22e6c4131b3515b02`; production deployment
+`dpl_CQB5wttzHuDH85hLSUtTgHsks8vf` is on both public aliases and signed-out Finance returns 307 to `/login`.
+
+Evidence: independent final APPROVE; pgTAP 4,351/4,351; Vitest 1,932 plus 17 controlled skips; TypeScript;
+ESLint; 70-page production build; service-role, chart-split and client/server guards; gitleaks and PR checks.
+The first PR pgTAP run exposed an existing UTC/Cairo midnight test flaw in custody reversal; it was reproduced
+locally under `TZ=UTC`, fixed by pinning that test transaction to Cairo, and the rerun passed.
+
+**Exact resume point:** build the manager, agronomist, supervisor and storekeeper role homes without changing
+accounting truth. Then reset prioritized lists and every 360 surface using the shared compact hierarchy.
+Authenticated Accountant desktop/phone browser acceptance remains unclaimed until a valid Farm session runs it.
+Keep automated package publication PR #1025 separate. The product-wide UI reset remains incomplete.
 
 ## 2026-08-22 — Product UI reset R3 Owner home + Accountant first reset — MIGRATED / MERGED / DEPLOYED
 

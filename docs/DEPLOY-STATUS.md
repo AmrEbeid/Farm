@@ -1,6 +1,17 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-22)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-23)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-08-23 (latest) — Product UI reset R3b exact Accountant home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260822221540 exact_accountant_home_snapshot` adds one accountant-only,
+> active-organization, bounded `SECURITY INVOKER` snapshot with empty search path. Postflight proved only
+> `authenticated` can execute it; a real Accountant claim returned v1 for its claimed active org with every
+> driver list bounded to eight. Production finance authority is `partial`, so amounts/comparison correctly
+> remain hidden. PR #1033 merged as `b4a17e06c173ae48000f53a22e6c4131b3515b02`; Vercel deployment
+> `dpl_CQB5wttzHuDH85hLSUtTgHsks8vf` is served by `ebeidfarm.business` and `farm-ui-one.vercel.app`.
+> Signed-out `/finance/dashboard` returns 307 to `/login`. Independent review, pgTAP 4,351/4,351, 1,932
+> Vitest passes plus 17 skips, TypeScript, ESLint, 70-page build, guards, gitleaks and PR CI passed.
+> Authenticated browser desktop/phone acceptance remains pending; the other four role homes remain R3.
 
 > **2026-08-22 (latest) — Product UI reset R3 Owner home + Accountant first reset MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260822204421 exact_owner_home_snapshot` is applied. It adds one owner-only,
