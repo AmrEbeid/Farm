@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-22 (latest) — Product UI reset R2 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #1029 merged as `8fce79b6ec05a7eca74d6a3196a179d2fa343d28`; GitHub Production deployment
+> `6040708816` completed at `farm-7th49dc9i-amrabdelglill-7962s-projects.vercel.app`. The exact deployment URL
+> requires Vercel SSO. Public aliases `farm-ui-one.vercel.app` and `ebeidfarm.business` serve `/login`;
+> signed-out `/dashboard` returns 307 to `/login`. R2 ships one 4–5-item role spine across desktop/phone,
+> eight collapsed workspaces, seven Finance launchers, Reports-owned Insights, Lucide navigation, and explicit
+> six-role acceptance scripts. Every role-allowed deep route remains searchable/bookmarkable. No migration,
+> schema, auth, query, permission, RPC or business-data action occurred. Exact-merge CI, db-tests, release,
+> Vercel, gitleaks, pgTAP and independent review passed. Authenticated role acceptance remains pending.
+
 > **2026-08-22 (latest) — Product UI reset R1b MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1027 merged as `542ebe0a8942d443249b3f0b15fee1fd9813e641`; GitHub Production deployment
 > `6040532441` completed at `farm-6jrfmvsmh-amrabdelglill-7962s-projects.vercel.app`. The protected deployment

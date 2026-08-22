@@ -1,8 +1,20 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-22 (Product UI reset R1b merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
+*Updated: 2026-08-22 (Product UI reset R2 merged, deployed, and signed-out verified). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-22 — PRODUCT UI RESET R2: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+The visible navigation is now a single role-gated task spine shared by desktop and phone: 4–5 direct
+destinations, eight collapsed owner workspaces, seven Finance launchers, and Insights folded behind Reports.
+All allowed deep routes stay searchable and bookmarkable; Lucide icons replace rendered nav/search emoji;
+canonical child routes keep correct parent active state. SPEC-0033 now contains six explicit role acceptance
+scripts. PR #1029 merged as `8fce79b6ec05a7eca74d6a3196a179d2fa343d28`; Production deployment
+`6040708816` succeeded. Public aliases serve login and redirect signed-out dashboard traffic. No migration,
+schema, auth, query, permission, RPC or business data changed. Validation: 1,922 Farm tests plus 17 skips,
+TypeScript, ESLint, 70-page build, guards, pgTAP, gitleaks, CI/release/Vercel, 390px/1,440px zero-overflow probes,
+and independent APPROVE. Authenticated six-role acceptance remains open. R3 role homes and bounded dashboard
+aggregates are next; the full UI reset remains incomplete.
 
 **2026-08-22 — PRODUCT UI RESET R1b: MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 Farm now adopts the real `AppShell` sidebar and derives its five phone destinations from the same role-filtered
