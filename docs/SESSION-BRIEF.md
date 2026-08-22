@@ -1,5 +1,37 @@
-# Session Brief — Farm OS      Updated: 2026-08-20 by Codex + Claude (Marketing module — MIGRATED, MERGED, DEPLOYED)
+# Session Brief — Farm OS      Updated: 2026-08-22 by Codex (Marketing full source — MIGRATED, MERGED, DEPLOYED)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-22 — Marketing full-source workspace — MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED
+
+The Marketing module now represents all 25 areas in the supplied 2026 HTML/JSON workspace and can preview,
+edit and record the complete reviewed source shape. The exact canonical pair resolves to 1,571 contacts and
+101 records. Full-source commit is Owner-only and accepts only the paired files with approved digest
+`fb458c2865422b0ea3782894f21cae55f99278722ee3211143515155ddf9f9a6`. The database operation is atomic,
+idempotent and serialized by organization. A different source hash conflicts without creating import evidence.
+Shared generic websites no longer collapse distinct exporters. The disputed `palmsApprox` value remains listed
+in coverage evidence but is not editable or imported. Existing owner/accountant/farm_manager Marketing access
+is otherwise unchanged.
+
+Migration `20260822110000_marketing_full_source_workspace.sql` was reviewed and applied migrate-first to Farm
+production as hosted migration `20260822133257 marketing_full_source_workspace`. Postflight verified the
+import-run table, FORCE RLS, empty search path, Owner-only commit, authenticated-only execution, and the
+organization lock. Production data remained exactly 5 contacts / 20 records / 0 activities / 0 import runs.
+**No source data was auto-imported:** those compact live rows may conflict with the supplied source and require
+an explicit Owner decision after preview.
+
+PR #1013 merged as `b778ed69230d7aecdbcb9e47fab6f8dbdf0c6e56`. Exact-merge CI run 32576245238,
+db-tests 32576245240, release 32576245254, and production Vercel deployment
+`EnogVKu5brbtxFRhE8HxUXDKcx4e` succeeded. Public `/` and `/login` returned 200; all five `/marketing*`
+routes redirected signed-out users to login; unauthenticated `POST /api/marketing/source?mode=preview`
+returned 401. Validation passed: pgTAP 3,420/3,420; Vitest 1,416 plus 16 controlled skips; TypeScript; full
+ESLint; 69-page build; service-role, client-boundary, Recharts and diff guards; exact 25/1,571/101 attachment
+oracle. Independent hostile review approved exact snapshot
+`89e0fe6693069bb8cf7ad807a318690b03550d2fed248a8cc633745ce3a49e85` after all five findings were fixed.
+
+**Exact resume point:** (1) run authenticated owner, accountant and farm-manager UI smoke; (2) have the Owner
+preview the exact two attachments; (3) if the existing 5/20 compact rows conflict, resolve the data deliberately
+and never bypass the conflict; (4) import only after the Owner confirms the preview. Do not claim the source
+data is live until the import run and post-import counts are recorded.
 
 ## 2026-08-20 — Marketing module (SPEC-0032) — MIGRATED / MERGED / DEPLOYED / PUBLICLY VERIFIED
 

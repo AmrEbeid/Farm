@@ -1,4 +1,28 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-20 by Codex + Claude (Marketing module — MIGRATED, MERGED, DEPLOYED)
+# Project Tracker — Farm OS      Last updated: 2026-08-22 by Codex (Marketing full source — MIGRATED, MERGED, DEPLOYED)
+
+> **2026-08-22 — MARKETING FULL-SOURCE WORKSPACE MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> The Marketing module now accounts for every one of the 25 areas in the supplied 2026 HTML/JSON workspace
+> and supports editable system records across the full source shape. The exact reviewed pair contains 1,571
+> contacts and 101 records. A pinned two-file preview/import flow validates both files together, requires the
+> exact approved source digest `fb458c2865422b0ea3782894f21cae55f99278722ee3211143515155ddf9f9a6`,
+> and permits commit only for an Owner. Imports are atomic, idempotent, serialized per organization, and
+> reject differing content without writing false import evidence. Contact identity preserves exporters that
+> share a generic website. The disputed `palmsApprox` source value is coverage-listed but deliberately neither
+> editable nor imported. Existing owner/accountant/farm_manager Marketing read/edit permissions are unchanged;
+> only full-source commit is Owner-only.
+>
+> Production migration `20260822133257 marketing_full_source_workspace` is applied to Farm project
+> `veezkmytervjnpxcrbkw`. Postflight verified the import-run table, FORCE RLS, locked search path, Owner-only
+> RPC authorization, no anonymous execution, organization serialization, and unchanged production business
+> counts: 5 contacts / 20 records / 0 activities / 0 import runs. **No source rows were auto-imported.** The
+> Owner must preview the exact files and decide how to resolve any conflict with those existing compact rows.
+> PR #1013 merged as `b778ed69230d7aecdbcb9e47fab6f8dbdf0c6e56`; exact-merge CI, db-tests,
+> release, and Vercel deployment `EnogVKu5brbtxFRhE8HxUXDKcx4e` succeeded. Public `/` and `/login` return
+> 200; all five `/marketing*` routes redirect signed-out users to login; unauthenticated source preview returns
+> 401. Validation: pgTAP 3,420/3,420, Vitest 1,416 passed plus 16 controlled skips, TypeScript, full ESLint,
+> 69-page build, repository guards, exact 25/1,571/101 source probe, and independent hostile review APPROVE.
+> Remaining acceptance: authenticated owner/accountant/farm_manager UI smoke, then an explicit Owner preview
+> and import decision. Do not bypass a source conflict or infer that the live source data has been imported.
 
 > **2026-08-20 — MARKETING MODULE (SPEC-0032) MIGRATED / MERGED / DEPLOYED / PUBLICLY VERIFIED.**
 > New compact marketing nav module (owner/accountant/farm_manager, 5 pages, Arabic-RTL) consolidating the 25
