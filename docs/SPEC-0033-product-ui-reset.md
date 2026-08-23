@@ -17,6 +17,21 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Cost-center reports and 360 R4j — RELEASE CANDIDATE
+
+R4j rebuilds `/finance/reports` and `/finance/cost-centers/[id]` without changing any query, RPC, schema,
+permission, posting path or financial definition. The report retains exactly one atomic
+`fn_cost_center_reports_snapshot` call with exact decimal-text posted money and optional annual history. The
+center file retains `fn_cost_center_direct_summary` for complete direct totals plus the deterministic latest-200
+expense and sale rows; truncation remains disclosed beside the complete server aggregate.
+
+The report replaces seven equal KPI cards with one decision strip, explicit filters and compact Arabic rows.
+The full accounting table/export and annual account-by-center matrix remain available as secondary audit work.
+The center file adopts the shared 360 header, breadcrumbs and URL-driven tabs, and explicitly separates direct
+operations from subtree posted money so users do not add parent and child rollups together. Both pages keep the
+Owner/Accountant gate, unallocated evidence, archived visibility, print actions and exact existing destinations.
+No migration is required. Release evidence and production identifiers are added only after merge deployment.
+
 ### Chart of Accounts workspace R4i — RELEASED
 
 R4i rebuilds `/finance/accounts` around one exact `fn_chart_of_accounts_snapshot` call. The snapshot is

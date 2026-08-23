@@ -1,13 +1,14 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, CircleAlert, Landmark, ReceiptText, Scale } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState, KpiCard, Tag } from "@/components/ui";
-import { DashboardKpiLink } from "@/components/DashboardKpiLink";
+import { EmptyState, StatusPill } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { CategoryBarChart, MultiInsightChart, TrendLineChart } from "@/components/charts";
+import { PageHeader } from "@/components/PageHeader";
 import { num } from "@/lib/money";
 import { compareDecimals, decimalToSafeNumber, egpExact, type DecimalString } from "@/lib/decimal";
 import { StoryLine } from "@/components/StoryLine";
@@ -16,6 +17,7 @@ import {
   buildCostCenterYearMatrix,
   buildCostCenterYearTrend,
   costCenterDescendantIds,
+  costCenterHierarchyPresentation,
   parseCostCenterReportView,
   topmostVisibleCostCenters,
   type CostCenterReportView,
@@ -113,71 +115,59 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold">تقارير مراكز التكلفة</h1>
-          <p style={{ color: "var(--ink-muted)" }}>مصروفات وإيرادات كل مركز تكلفة من القيود المرحّلة فقط؛ غير الموزع يظهر صراحة ولا يتم تخمينه.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <PrintButton label="طباعة التقرير" />
-          <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
-          <HeaderLink href="/finance/accounts">شجرة الحسابات</HeaderLink>
-          <HeaderLink href="/accounting">المحاسبة</HeaderLink>
-        </div>
-      </header>
-
-      <nav aria-label="نطاق تقرير مراكز التكلفة" className="flex w-fit overflow-hidden rounded-md" style={{ border: "1px solid var(--line)" }}>
-        <ReportViewLink href={reportHref({ view: "overview", focus, center })} active={view === "overview"}>
-          ملخص سريع
-        </ReportViewLink>
-        <ReportViewLink href={reportHref({ view: "history", focus, center })} active={view === "history"}>
-          التحليل السنوي
-        </ReportViewLink>
-      </nav>
+    <div
+      className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4"
+      data-testid="cost-center-reports"
+      style={{ "--ink-muted": "#5f7066" } as CSSProperties}
+    >
+      <PageHeader
+        title="اقتصاديات مراكز التكلفة"
+        subtitle="أين تذهب الفلوس، وما الذي ينتجه كل نشاط، من القيود المرحّلة فقط."
+        metadata={<StatusPill status={unallocatedLines > 0 || flags.length > 0 ? "blocked" : "done"}>{unallocatedLines > 0 || flags.length > 0 ? "توجد مراجعة" : "لا توجد إشارات"}</StatusPill>}
+        actions={<div className="no-print flex flex-wrap gap-2"><PrintButton label="طباعة التقرير" /><Link href="/record" className="fos-btn fos-btn--primary fos-btn--md">سجّل عملية</Link></div>}
+      />
 
       <StoryLine lead={costLead} notes={costNotes} />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <DashboardKpiLink href={reportHref({ view })} active={!center && focus === "all"}>
-          <KpiCard label="مراكز التكلفة" value={num(rollup.length)} />
-        </DashboardKpiLink>
-        <DashboardKpiLink href={reportHref({ view, focus: "posted" })} active={!center && focus === "posted"}>
-          <KpiCard label="لها قيود" value={num(hasPosted.size)} />
-        </DashboardKpiLink>
-        <DashboardKpiLink href={reportHref({ view, center: "CC-UNALLOC" })} active={center === "CC-UNALLOC"}>
-          <KpiCard
-            label="سطور غير موزّعة"
-            value={num(unallocatedLines)}
-            deltaDirection={unallocatedLines > 0 ? "down" : "none"}
-          />
-        </DashboardKpiLink>
-        <DashboardKpiLink href={reportHref({ view, focus: "flags" })} active={!center && focus === "flags"}>
-          <KpiCard label="بنود مراجعة" value={num(flags.length)} deltaDirection={flags.length > 0 ? "down" : "none"} />
-        </DashboardKpiLink>
-        <KpiCard label="صافي التشغيل" value={egpExact(displayProfit)} deltaDirection={compareDecimals(displayProfit, "0") < 0 ? "down" : "none"} />
+      <section aria-label="ملخص مراكز التكلفة" className="grid border-y sm:grid-cols-2 lg:grid-cols-4" style={{ borderColor: "var(--line)" }}>
+        <Metric label="صافي التشغيل" value={egpExact(displayProfit)} icon={<Scale size={16} aria-hidden />} />
+        <Metric label="الإيرادات" value={egpExact(displayRevenue)} icon={<Landmark size={16} aria-hidden />} />
+        <Metric label="المصروفات" value={egpExact(displayExpense)} icon={<ReceiptText size={16} aria-hidden />} />
+        <Metric label="غير موزع" value={num(unallocatedLines)} icon={<CircleAlert size={16} aria-hidden />} />
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        <KpiCard label="مصروفات" value={egpExact(displayExpense)} />
-        <KpiCard label="إيرادات" value={egpExact(displayRevenue)} />
+      <section className="no-print flex flex-wrap items-center justify-between gap-3 border-b pb-4" style={{ borderColor: "var(--line)" }}>
+        <div className="flex flex-wrap gap-2" aria-label="تصفية المراكز">
+          <FilterLink href={reportHref({ view })} active={!center && focus === "all"}>الكل · {num(rollup.length)}</FilterLink>
+          <FilterLink href={reportHref({ view, focus: "posted" })} active={!center && focus === "posted"}>لها حركة · {num(hasPosted.size)}</FilterLink>
+          <FilterLink href={reportHref({ view, focus: "flags" })} active={!center && focus === "flags"}>تحتاج مراجعة · {num(flags.length)}</FilterLink>
+          <FilterLink href={reportHref({ view, center: "CC-UNALLOC" })} active={center === "CC-UNALLOC"}>غير موزع · {num(unallocatedLines)}</FilterLink>
+        </div>
+        <nav aria-label="نطاق التقرير" className="flex w-fit overflow-hidden rounded-md" style={{ border: "1px solid var(--line)" }}>
+          <ReportViewLink href={reportHref({ view: "overview", focus, center })} active={view === "overview"}>الحالي</ReportViewLink>
+          <ReportViewLink href={reportHref({ view: "history", focus, center })} active={view === "history"}>حسب السنة</ReportViewLink>
+        </nav>
       </section>
 
       {(selectedCenter || focus !== "all") && (
-        <Card title="الفلتر الحالي">
-          <div className="flex flex-wrap items-center gap-3">
-            <Tag tone="warning">
-              {selectedCenter ? `${selectedCenter.code} · ${selectedCenter.nameAr}` : focus === "posted" ? "مراكز لها قيود" : "بنود تحتاج مراجعة"}
-            </Tag>
-            <HeaderLink href={reportHref({ view })}>كل التقرير</HeaderLink>
-          </div>
-        </Card>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-y py-3 text-sm" style={{ borderColor: "var(--line)" }}>
+          <strong>{selectedCenter ? `${selectedCenter.code} · ${selectedCenter.nameAr}` : focus === "posted" ? "المراكز التي لها حركة" : "المراكز التي تحتاج مراجعة"}</strong>
+          <Link href={reportHref({ view })} className="font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>إلغاء الفلتر</Link>
+        </div>
       )}
 
+      <section aria-labelledby="center-list-title">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div><h2 id="center-list-title" className="text-base font-bold">المراكز</h2><p className="text-xs" style={{ color: "var(--ink-muted)" }}>اضغط على المركز لفتح ملفه الكامل.</p></div>
+          <span className="text-xs tabular-nums" style={{ color: "var(--ink-muted)" }}>{num(visibleRollup.length)} مركز ظاهر</span>
+        </div>
+        {visibleRollup.length ? <div className="mt-2 border-y" style={{ borderColor: "var(--line)" }}>{visibleRollup.map((row) => <CenterRow key={row.costCenterId} row={row} flagged={flaggedIds.has(row.costCenterId)} presentation={costCenterHierarchyPresentation(rollup, row.costCenterId)} />)}</div> : <EmptyState title="لا توجد مراكز مطابقة للفلتر" />}
+      </section>
+
       {(centerCharts.length > 0 || trendChart.length > 0) && (
-        <section className="grid gap-4 xl:grid-cols-2">
-          <Card title="رؤية متعددة">
-            <MultiInsightChart
+        <section aria-labelledby="center-chart-title" className="border-y py-4" style={{ borderColor: "var(--line)" }}>
+          <h2 id="center-chart-title" className="mb-3 text-base font-bold">قارن الصورة</h2>
+          <MultiInsightChart
               ariaLabel="اختيار زاوية التحليل"
               options={[
                 {
@@ -226,13 +216,12 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
                     ]
                   : []),
               ]}
-            />
-          </Card>
-
+          />
         </section>
       )}
 
-      <Card title="إشارات المراجعة">
+      {(visibleFlags.length > 0 || focus === "flags") && <section aria-labelledby="review-flags-title">
+        <h2 id="review-flags-title" className="mb-2 text-base font-bold">ما يحتاج مراجعة</h2>
         {visibleFlags.length ? (
           <FilterableTable
             columns={flagColumns}
@@ -250,9 +239,13 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
         ) : (
           <EmptyState title="لا توجد إشارات مراجعة" />
         )}
-      </Card>
+      </section>}
 
-      <Card title="اقتصاديات مراكز التكلفة">
+      <details className="border-y py-3" style={{ borderColor: "var(--line)" }}>
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
+          <span>الجدول الكامل والتصدير</span><span className="text-xs font-normal" style={{ color: "var(--ink-muted)" }}>كل الأعمدة المحاسبية</span>
+        </summary>
+        <div className="mt-3">
         {rollupRows.length ? (
           <FilterableTable
             columns={rollupColumns}
@@ -264,10 +257,12 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
         ) : (
           <EmptyState title="لا توجد مراكز مطابقة للفلتر" />
         )}
-      </Card>
+        </div>
+      </details>
 
       {view === "history" && (
-        <Card title="المصفوفة: الحساب × السنة × المركز">
+        <section aria-labelledby="history-matrix-title">
+          <h2 id="history-matrix-title" className="mb-2 text-base font-bold">الحساب × السنة × المركز</h2>
           {matrix.rows.length ? (
             <FilterableTable
               columns={matrix.columns}
@@ -279,9 +274,26 @@ export default async function FinanceReportsPage({ searchParams }: { searchParam
           ) : (
             <EmptyState title="لا توجد قيود مصروفات أو إيرادات بعد" />
           )}
-        </Card>
+        </section>
       )}
     </div>
+  );
+}
+
+function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return <div className="min-w-0 border-b py-3 last:border-b-0 sm:border-b-0 sm:px-4 sm:first:ps-0 sm:[&:not(:first-child)]:border-s" style={{ borderColor: "var(--line)" }}><div className="flex items-center gap-2 text-xs" style={{ color: "var(--ink-muted)" }}>{icon}{label}</div><strong className="mt-1 block text-lg tabular-nums">{value}</strong></div>;
+}
+
+function CenterRow({ row, flagged, presentation }: { row: CostCenterSnapshotRow; flagged: boolean; presentation: { depth: number; includesDescendants: boolean } }) {
+  const scopeSuffix = presentation.includesDescendants ? " · شامل التابع" : "";
+  return (
+    <Link href={`/finance/cost-centers/${row.costCenterId}`} className="grid min-h-16 gap-2 border-b py-3 last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(7rem,auto))_auto] sm:items-center" style={{ borderColor: "var(--line)" }}>
+      <span className="min-w-0" style={{ paddingInlineStart: `${presentation.depth * 16}px` }}><strong className="block truncate">{presentation.depth > 0 ? "تابع · " : ""}{row.nameAr}</strong><span className="text-xs" style={{ color: "var(--ink-muted)" }}>{row.code}{row.enterprise ? ` · ${row.enterprise}` : ""}{presentation.includesDescendants ? " · أرقامه تشمل التابع" : ""}{!row.active ? " · مؤرشف" : ""}</span></span>
+      <span className="text-sm"><small className="block text-xs" style={{ color: "var(--ink-muted)" }}>مصروفات{scopeSuffix}</small><b className="tabular-nums">{egpExact(row.expense)}</b></span>
+      <span className="text-sm"><small className="block text-xs" style={{ color: "var(--ink-muted)" }}>إيرادات{scopeSuffix}</small><b className="tabular-nums">{egpExact(row.revenue)}</b></span>
+      <span className="text-sm"><small className="block text-xs" style={{ color: "var(--ink-muted)" }}>الصافي{scopeSuffix}</small><b className="tabular-nums">{egpExact(row.net)}</b></span>
+      <span className="flex items-center gap-2">{flagged && <StatusPill status="blocked">مراجعة</StatusPill>}<ArrowLeft size={17} aria-hidden style={{ color: "var(--brand)" }} /></span>
+    </Link>
   );
 }
 
@@ -367,7 +379,7 @@ function ReportViewLink({ href, active, children }: { href: string; active: bool
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className="inline-flex min-h-9 items-center justify-center px-4 text-sm font-semibold"
+      className="inline-flex min-h-11 items-center justify-center px-4 text-sm font-semibold"
       style={{
         color: active ? "white" : "var(--brand)",
         background: active ? "var(--brand)" : "var(--surface)",
@@ -378,14 +390,15 @@ function ReportViewLink({ href, active, children }: { href: string; active: bool
   );
 }
 
-function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
+function FilterLink({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
   return (
     <Link
       href={href}
-      className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
+      aria-current={active ? "page" : undefined}
+      className="inline-flex min-h-11 items-center justify-center rounded-md px-3 text-sm font-semibold"
       style={{
-        color: "var(--brand)",
-        background: "var(--surface)",
+        color: active ? "white" : "var(--brand)",
+        background: active ? "var(--brand)" : "var(--surface)",
         border: "1px solid var(--line)",
       }}
     >
