@@ -17,6 +17,117 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Inventory list and item 360 R4a — CANDIDATE, not released
+
+*Candidate only. Migration `20260823140000_exact_inventory_list_and_item_snapshots.sql` is a DRAFT: it has
+not been applied to any project, nothing is committed, pushed, merged or deployed, and no browser
+acceptance has been run. The gates actually run for this candidate are listed at the end of this section.*
+
+**The bug this exists to fix.** `/inventory` and `/inventory/[itemId]` both selected `inventory_items`
+unbounded, embedded `inventory_bin` through PostgREST and then read `inventory_bin[0]` in JavaScript. An item
+stored in two physical locations therefore published the FIRST bin's balance as if it were the whole stock —
+on the list an owner uses to decide a purchase, and on the file a storekeeper would use to decide an issue.
+An item with no bin row at all published «٠» when the truth was "no balance has ever been recorded". Both
+pages are now one exact, bounded, active-organisation snapshot each, and every balance is the sum of EVERY
+bin. `/inventory/[itemId]` additionally lists every physical location in full, so the aggregate can be
+checked against the rows behind it rather than trusted.
+
+**The role contract is decided in PostgreSQL, not in React.** Hiding a field in a component is not a
+control: the bytes still reach the browser, the network tab, the RSC payload and any cache. The scope is
+therefore resolved from the caller's real `organization_member` row and the money and identity keys are NOT
+BUILT AT ALL for the store:
+
+- `operational` (storekeeper) — no `unit_cost`, no `est_cost`, no valuation, no uncosted count, no supplier,
+  no purchase `reason`, no `requested_by`/`approved_by`, and no purchase-request id, so a link to the
+  money-bearing purchase-request page cannot even be constructed. The «بلا تكلفة» filter is refused with
+  42501 for this scope, because offering it would be useless AND would confirm to that role that cost data
+  exists.
+- `finance` (every other member role) — preserves EXACTLY the money and preferred-supplier capability those
+  roles have today, because the enforced policy for `/inventory*` is still `requireMembership()`. Narrowing
+  it further (taking cost away from a supervisor, say) would be a policy change and is deliberately not
+  smuggled into a UI slice.
+
+The TypeScript parsers enforce BOTH directions rather than trusting either: every object rejects unexpected
+keys at every nesting level, the operational payload is additionally walked key-by-key against a
+forbidden-name set, and the finance payload must actually CARRY its money keys — so a regression that stops
+sending cost to an owner fails the parse too. The result types are a discriminated union on `scope`, so the
+operational branch has no `unitCost`/`valuation` property for a component to render even by accident.
+
+**Honesty.** An item with no bin row is `unknown` with JSON-null balances, never zero. An item with no
+POSITIVE `coalesce(reorder_point, min_stock)` is `no_threshold` — neither below reorder nor confirmed ok. A
+null `unit_cost` is unknown cost, never zero: valuation excludes those items and publishes the size of both
+gaps (unknown cost, unknown stock) beside the total, so the figure can never read as the value of the whole
+store. `below_reorder` is a POINT-IN-TIME reading of the recorded threshold against the all-bin balance and
+is never called coverage — it knows nothing about planned demand or scheduled receipts, so it can be quiet
+for an item `fn_stock_coverage` would call short, and the per-item coverage page remains the only place a
+coverage verdict is stated. Running the engine once per listed row would also be an N+1 of the heaviest RPC
+in the system.
+
+**Bounds.** The list is paginated server-side and publishes its exact organisation, search, filter and state
+totals SEPARATELY from the bounded page, so a truncated page can never be mistaken for the whole book. Its
+order is a deterministic total order — exceptions first, then Arabic name, then id — which is what makes
+limit/offset paging correct rather than merely plausible. The item 360 bounds its movement and purchase
+samples INDEPENDENTLY and publishes each exact total beside its sample; it returns every physical location
+in full and fails loudly above 200 rather than truncating an item's own stock silently. Search text is
+refused above a raw ceiling BEFORE it is trimmed, and its LIKE metacharacters are escaped, so a typed `%`
+searches for a per-cent sign instead of matching everything. Counts and decimals leave PostgreSQL as text,
+because a JS number cannot represent every bigint and a binary double cannot represent every `numeric`.
+
+**Not found means not found.** An item outside the active organisation returns SQL NULL — deliberately the
+same answer as an id that exists nowhere — so the 404 can never be read as "this id exists, but not for you".
+
+**The pages.** Both are server-rendered with no client component and no JavaScript requirement: search is a
+plain GET form, every filter and page control is a link, and the whole state lives in the URL, so the list
+can be bookmarked, shared and back-buttoned. Opening a row carries that state in a `?from=` parameter which
+is parsed, restricted to the inventory list path and REBUILT from validated parts before it is ever rendered
+— the caller's bytes never reach an href, and the list URL is canonicalised with one redirect so the same
+page is never reachable under two spellings. Neither page uses a table: a nine-column table cannot reflow
+into 390px without a horizontal scrollbar, so each item is one block that stacks on a phone and widens on a
+desk. The item 360 keeps the shared `Entity360Header` but replaces the client tab switcher with one column
+of short labelled sections, because tabs hide bounded content behind a tap that needs JavaScript on exactly
+the roles that are meant to be mobile-and-offline-tolerant.
+
+**Navigation.** `/inventory` is restored to the Storekeeper's navigation, because the route no longer
+publishes money to that role. `/inventory/[itemId]/coverage` is NOT restored: it still renders the engine's
+money-bearing surface, and its own server-side redirect stays exactly as it was.
+The existing `/inventory/movements` link remains available, but its server query is now role-shaped too:
+Storekeeper requests do not select or render `suppliers.name`; other members retain the existing supplier
+audit column.
+
+**Deliberately not in this slice, and why:**
+
+- **CSV export and print on the list.** The old page exported the whole client-side list — including the
+  first-bin balances that were wrong. With server-side paging, an export of one bounded page filed under
+  «inventory» would read as the whole book. An honest full-book export needs its own bounded server route
+  and belongs to a separate slice. The bulk item IMPORT panel is kept unchanged for the finance scope and
+  is not rendered for the store scope — a UX boundary, not a control: the `inventory-items` template
+  carries no cost and no supplier name (`fromRow` blanks the ref column), the storekeeper's
+  `inventory.write` permission is unchanged, and `app/api/import` plus `fn_save_inventory_item` remain the
+  enforcement.
+- **A coverage verdict on the list.** Deliberately absent, as above.
+
+Residual gaps recorded, not fixed by this slice:
+
+- **`inventory_bin.ordered` is pinned to zero.** `inventory_bin_ordered_zero_until_writer` (migration
+  `20260629140248`) forces `ordered = 0` because nothing writes an on-order balance yet. The 360 publishes
+  the column honestly as the zero the schema currently guarantees; it is not evidence that nothing is on
+  order. Closing this needs an on-order writer, which is its own change.
+- **The item-name and location fields carry no non-emptiness constraint**, so a corrupt empty value would
+  fail the strict parse and blank the page rather than render a nameless row. This matches the storekeeper
+  home's existing posture and is not newly introduced here.
+- **The wider Purchase Requests and Suppliers workspaces remain broad-read surfaces.** R4a does not link a
+  Storekeeper item row to a money-bearing purchase-request detail and does not redesign those workspaces;
+  their product-wide role/read policy remains a later workspace decision.
+
+Candidate gates: full Vitest **2,155 passed + 17 controlled skips**, app TypeScript and full ESLint clean,
+production build **70/70 static pages**, full Docker-free pgTAP **4,751/4,751** including R4a test `229`
+**143/143**, service-role/Recharts/client-server guards green, `git diff --check` clean and `packages/ui`
+unchanged. An independent hostile review returned **APPROVE** after corrections for mixed unquantified purchase
+requests, caller-bound parser scope/arguments, finance-only supplier corruption and Storekeeper movement supplier
+exposure. Deterministic operational fixtures at **390px** and **1,440px** showed zero horizontal overflow and no
+sub-44px command controls; authenticated production role acceptance remains a release/post-release gate because
+the current Farm production data has no Storekeeper membership.
+
 ### Storekeeper home R3f released
 
 *Released by PR #1041 at `4f3eaeca40a0fc43636c36e4165c2aafa4a14165`; hosted migration
@@ -64,9 +175,10 @@ stock-take provenance is recorded as a residual gap below, not fixed here.
 Current stock is an honest point-in-time reading, not the coverage engine: the sum of EVERY bin of an
 item (`on_hand - reserved`, all locations) against a POSITIVE `coalesce(reorder_point, min_stock)`.
 An item with no bin row at all stays in its own explicit unknown bucket and is never folded into
-zero; an item with no positive recorded threshold is in neither bucket. Money-bearing inventory list,
-item and coverage pages are server-gated away from Storekeeper and are no longer linked from this home;
-their role-safe list/360 replacement belongs to R4.
+zero; an item with no positive recorded threshold is in neither bucket. At R3f the inventory list, item
+and coverage pages were all server-gated away from Storekeeper and were not linked from this home,
+because all three published money to every member. R4a below is the role-safe list/360 replacement for
+the first two; the coverage page stays gated.
 
 The page is Arabic-RTL phone-first: attention and the two primary actions come before the numbers, at
 most four KPIs, no charts, no card wall, no oversized header, no money anywhere, and every control at
@@ -529,6 +641,22 @@ R3 owner/accountant slice contract:
 Start with the five dynamic pages missing the shared 360 header and the six raw-table pages, then migrate
 Finance, Marketing, Farm, Operations, Inventory and People by workspace. Marketing exact-source drafts remain
 separate from operational records.
+
+R4a inventory slice contract (CANDIDATE — see the R4a section above for the full record):
+
+- `/inventory` and `/inventory/[itemId]` each obtain all state through ONE exact, bounded, active-organisation
+  RPC; neither route reads a table directly and neither embeds `inventory_bin`;
+- every balance sums EVERY bin of the item, an item with no bin row stays explicitly unknown rather than zero,
+  and the threshold reading is never called coverage;
+- the storekeeper payload is BUILT without money, valuation, supplier, purchase free text, person and
+  purchase-request-id keys, and the operational filter set excludes «بلا تكلفة»; every other member role keeps
+  its current finance capability unchanged;
+- exact totals are published separately from a deterministically ordered limit/offset page, and each 360
+  sample is bounded independently beside its own exact total;
+- the return-to-list context is validated and rebuilt rather than echoed;
+- `/inventory` is restored to Storekeeper navigation while `/inventory/[itemId]/coverage` stays hidden and
+  server-gated; `/inventory/movements` now omits supplier identity from the Storekeeper query and rendering;
+- the surfaces are compact Arabic-RTL and phone-first with no horizontal overflow and no client component.
 
 ### R5 — Product-wide closure
 

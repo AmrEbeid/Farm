@@ -1390,6 +1390,34 @@ type StorekeeperHomeFunctions = {
   };
 };
 
+// ── Inventory list + item 360, migration 20260823140000. Two exact, bounded, active-org snapshots
+// gated on ordinary membership and branched by role INSIDE PostgreSQL: the storekeeper's
+// 'operational' payload contains no money, supplier, purchase free-text or purchase-request-id key
+// at all, every other member role keeps the 'finance' payload. `fn_inventory_item_snapshot` returns
+// SQL NULL — hence `Json | null` — when the item is outside the active organization, so the page
+// can answer "not found" without leaking whether another organization owns that id. ──
+type InventorySnapshotFunctions = {
+  fn_inventory_list_snapshot: {
+    Args: {
+      p_org: string;
+      p_query?: string | null;
+      p_filter?: string;
+      p_limit?: number;
+      p_offset?: number;
+    };
+    Returns: Json;
+  };
+  fn_inventory_item_snapshot: {
+    Args: {
+      p_org: string;
+      p_item: string;
+      p_movement_limit?: number;
+      p_purchase_limit?: number;
+    };
+    Returns: Json | null;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2646,6 +2674,7 @@ export type Database = Omit<Generated, "public"> & {
       AgronomistHomeFunctions &
       SupervisorHomeFunctions &
       StorekeeperHomeFunctions &
+      InventorySnapshotFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

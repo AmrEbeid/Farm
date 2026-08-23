@@ -92,7 +92,16 @@ describe("buildBreadcrumbs", () => {
       "inventory-module",
       "inventory",
     ]);
-    expect(buildBreadcrumbs("/inventory/id-1/coverage", "storekeeper")).toEqual([]);
+    // SPEC-0033 R4a: `/inventory/[id]/coverage` resolves to the «الأصناف» nav entry, and that entry
+    // is visible to the storekeeper again, so the trail now renders for that role too. The coverage
+    // ROUTE stays closed to it by its own server-side redirect — a breadcrumb is not, and never was,
+    // the enforcement. The role-awareness rule itself is proved on a module the role really cannot see.
+    expect(buildBreadcrumbs("/inventory/id-1/coverage", "storekeeper").map((c) => c.id)).toEqual([
+      "home",
+      "inventory-module",
+      "inventory",
+    ]);
+    expect(buildBreadcrumbs("/plans/plan-1", "storekeeper")).toEqual([]);
   });
 
   it("omits the module crumb when the page IS the module dashboard", () => {

@@ -143,10 +143,17 @@ describe("storekeeper home surface", () => {
     expect(stockTakeAction).toContain("p_location: location");
   });
 
-  it("server-gates money-bearing inventory drill-downs for the storekeeper", () => {
-    for (const page of [inventoryListPage, inventoryItemPage, inventoryCoveragePage]) {
-      expect(page).toContain('role === "storekeeper"');
-      expect(page).toContain('redirect("/inventory/dashboard")');
+  it("server-gates the money-bearing coverage page for the storekeeper", () => {
+    // SPEC-0033 R4a: `/inventory` and `/inventory/[itemId]` no longer bounce this role, because they
+    // now read a role-scoped snapshot whose storekeeper payload carries no money, supplier or
+    // counterparty key at all. `/inventory/[itemId]/coverage` still renders the engine's
+    // money-bearing surface, so its server-side redirect stays exactly as it was.
+    expect(inventoryCoveragePage).toContain('m.role === "storekeeper"');
+    expect(inventoryCoveragePage).toContain('redirect("/inventory/dashboard")');
+    for (const page of [inventoryListPage, inventoryItemPage]) {
+      expect(page).not.toContain('redirect("/inventory/dashboard")');
+      // The role still decides the PAYLOAD, in one place, and the RPC decides it again server-side.
+      expect(page).toContain("inventoryScopeForRole(membership.role)");
     }
   });
 
@@ -236,10 +243,9 @@ describe("storekeeper home surface", () => {
   it("keeps the storekeeper's inventory navigation intact", () => {
     const pages = visibleModulesForRole("storekeeper").flatMap((module) => module.pages);
     const ids = pages.map((page) => page.id);
-    for (const id of ["inventory-dashboard", "inventory-movements", "stock-take", "m-receive"]) {
+    for (const id of ["inventory-dashboard", "inventory", "inventory-movements", "stock-take", "m-receive"]) {
       expect(ids).toContain(id);
     }
-    expect(ids).not.toContain("inventory");
     expect(ids).not.toContain("plans-dashboard");
     expect(ids).not.toContain("plans");
     expect(ids).not.toContain("mobile");
