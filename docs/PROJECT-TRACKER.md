@@ -1,4 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4c People live; accounting acceptance truth refreshed)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4d Expenses live)
+
+> **2026-08-23 — PRODUCT UI RESET R4d EXPENSES WORKSPACE + EXPENSE 360 MERGED / DEPLOYED.**
+> `/expenses` is now a compact server-rendered RTL/mobile daily-money workspace while preserving its one-call
+> exact snapshot contract, full-register counts and monthly totals. Non-drawing spend remains separate from
+> owner drawings; Farm Manager receives no drawing figures or rows. Rows name one actionable classification
+> gap, bounded search states its limit honestly, and expense 360 preserves a validated register return path.
+> PR #1051 merged as `3d366ee49b10da95a77dc1fb9a1c218c5f79bab0`. Exact-merge CI `32627663641`,
+> db-tests `32627663631`, release `32627663624` and Production deployment `6045931084` succeeded. Evidence:
+> 74/74 focused tests; Vitest 2,301 plus 17 skips; TypeScript, ESLint, 70-page build, guards, dependency audit,
+> independent review and 390px/1,440px zero-overflow checks. Signed-out workspace/detail routes redirect to
+> `/login`. Migration N/A; no schema, access or business row changed. Authenticated role and real-record
+> acceptance remain open. Accounting remains about 99.5%, not 100%.
 
 > **2026-08-23 — ACCOUNTING ACCEPTANCE STATE REVERIFIED / OPERATOR RUNBOOK READY.**
 > Production remains exactly one staged reconciliation batch with 698 rows: all 698 are unreviewed and pending;

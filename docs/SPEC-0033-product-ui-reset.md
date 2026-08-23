@@ -17,7 +17,12 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Expenses workspace and expense 360 R4d — RELEASE CANDIDATE
+### Expenses workspace and expense 360 R4d — RELEASED
+
+*Released by PR #1051 at `3d366ee49b10da95a77dc1fb9a1c218c5f79bab0`. Exact-merge CI
+`32627663641`, db-tests `32627663631`, release `32627663624` and Production deployment `6045931084`
+succeeded. Signed-out workspace and expense-detail routes redirect to `/login`; authenticated role and
+real-record browser acceptance remain open because no production session was used. Migration N/A.*
 
 `/expenses` keeps its released `fn_expense_daily_snapshot` contract: one active-organisation call, exact
 register/filter counts and full-register monthly totals beside at most 200 latest matching rows. No table,
@@ -36,9 +41,10 @@ Opening `/expenses/[expenseId]` carries a validated `?from=` register state. The
 server action; no caller-provided destination is echoed. The detail page retains its exact snapshot, role gate,
 payment reversal/correction controls and server-rendered URL tabs unchanged.
 
-Release gates: focused URL/display/surface and existing accounting tests; full Vitest; TypeScript; full ESLint;
-70-page production build; client-boundary, service-role and Recharts guards; dependency audit; 390px and desktop
-RTL visual checks; independent review; empty `packages/ui` diff. This is UI-only and requires no migration.
+Release evidence: focused tests 74/74; full Vitest 2,301 passed plus 17 controlled skips; TypeScript; full
+ESLint; 70-page production build; client-boundary, service-role and Recharts guards; dependency audit with zero
+vulnerabilities; 390px and 1,440px RTL visual checks with no horizontal overflow; independent review; empty
+`packages/ui` diff. This was UI-only and required no migration.
 
 ### People directory and person 360 R4c — RELEASED
 
