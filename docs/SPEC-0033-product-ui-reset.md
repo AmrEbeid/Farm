@@ -17,11 +17,11 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Inventory list and item 360 R4a — CANDIDATE, not released
+### Inventory list and item 360 R4a — RELEASED
 
-*Candidate only. Migration `20260823140000_exact_inventory_list_and_item_snapshots.sql` is a DRAFT: it has
-not been applied to any project, nothing is committed, pushed, merged or deployed, and no browser
-acceptance has been run. The gates actually run for this candidate are listed at the end of this section.*
+*Released by PR #1043 at `091a3655d80bb3e29cfef4a8313b415b98418242`; Farm hosted migration
+`20260823031608 exact_inventory_list_and_item_snapshots` is live. Signed-out production routing is verified.
+Authenticated Storekeeper acceptance remains open because production has zero Storekeeper memberships.*
 
 **The bug this exists to fix.** `/inventory` and `/inventory/[itemId]` both selected `inventory_items`
 unbounded, embedded `inventory_bin` through PostgREST and then read `inventory_bin[0]` in JavaScript. An item
@@ -119,13 +119,17 @@ Residual gaps recorded, not fixed by this slice:
   Storekeeper item row to a money-bearing purchase-request detail and does not redesign those workspaces;
   their product-wide role/read policy remains a later workspace decision.
 
-Candidate gates: full Vitest **2,155 passed + 17 controlled skips**, app TypeScript and full ESLint clean,
+Release evidence: full Vitest **2,155 passed + 17 controlled skips**, app TypeScript and full ESLint clean,
 production build **70/70 static pages**, full Docker-free pgTAP **4,751/4,751** including R4a test `229`
 **143/143**, service-role/Recharts/client-server guards green, `git diff --check` clean and `packages/ui`
 unchanged. An independent hostile review returned **APPROVE** after corrections for mixed unquantified purchase
 requests, caller-bound parser scope/arguments, finance-only supplier corruption and Storekeeper movement supplier
 exposure. Deterministic operational fixtures at **390px** and **1,440px** showed zero horizontal overflow and no
-sub-44px command controls; authenticated production role acceptance remains a release/post-release gate because
+sub-44px command controls. Hosted postflight proved both functions are `SECURITY INVOKER`, `STABLE`, empty-search-
+path and authenticated-only, with list md5 `6801b4b2620ec86ca32b3a20a2d641cc` and item md5
+`a6204baa3972925cff75bc87600ad3e4`; business counts were unchanged and no advisor named either function.
+Exact-merge CI, db-tests, release and Vercel succeeded. Public home/login return 200; signed-out list, item,
+movements and coverage return 307 to `/login`. Authenticated production role acceptance remains open because
 the current Farm production data has no Storekeeper membership.
 
 ### Storekeeper home R3f released
@@ -642,7 +646,7 @@ Start with the five dynamic pages missing the shared 360 header and the six raw-
 Finance, Marketing, Farm, Operations, Inventory and People by workspace. Marketing exact-source drafts remain
 separate from operational records.
 
-R4a inventory slice contract (CANDIDATE — see the R4a section above for the full record):
+R4a inventory slice contract (RELEASED — see the R4a section above for the full record):
 
 - `/inventory` and `/inventory/[itemId]` each obtain all state through ONE exact, bounded, active-organisation
   RPC; neither route reads a table directly and neither embeds `inventory_bin`;

@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3f Storekeeper home live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R4a inventory list/360 live)
+
+> **2026-08-23 — PRODUCT UI RESET R4a EXACT INVENTORY LIST + ITEM 360 MIGRATED / MERGED / DEPLOYED.**
+> Inventory list and item 360 now use exact bounded active-org snapshots, sum every physical bin and preserve
+> missing balances as unknown. Search/filter/paging totals reconcile independently from the current page; item
+> history samples are independently bounded. The database builds Storekeeper responses without money,
+> valuation, supplier, person, purchase free text or purchase-request IDs, and Storekeeper movement queries omit
+> supplier identity. Coverage remains gated for that role because its current surface is money-bearing.
+>
+> Hosted migration `20260823031608 exact_inventory_list_and_item_snapshots` passed unchanged-count, metadata,
+> grant, definition-hash and advisor postflight. PR #1043 merged as
+> `091a3655d80bb3e29cfef4a8313b415b98418242`; exact-merge CI, db-tests, release and Vercel succeeded. Evidence:
+> independent final APPROVE; pgTAP 4,751/4,751; Vitest 2,155 plus 17 skips; TypeScript, ESLint, 70-page build,
+> Storybook, guards, gitleaks and 390px/1,440px zero-overflow fixtures green. Signed-out inventory routes redirect
+> to `/login`. **Open:** production has zero Storekeeper memberships, so authenticated acceptance is unclaimed.
+> Next: the next prioritized R4 list/360 workspace. Package PR #1025 remains separate.
 
 > **2026-08-23 — PRODUCT UI RESET R3f EXACT STOREKEEPER HOME MIGRATED / MERGED / DEPLOYED.**
 > Storekeeper `/inventory/dashboard` is now one compact Arabic store-day home backed by an exact active-org

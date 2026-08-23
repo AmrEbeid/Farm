@@ -2,6 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — Product UI reset R4a inventory list + item 360 MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260823031608 exact_inventory_list_and_item_snapshots` adds exact bounded inventory
+> list and item snapshots. Postflight proved both are invoker/stable/empty-search-path/authenticated-only,
+> definition md5 values `6801b4b2620ec86ca32b3a20a2d641cc` and `a6204baa3972925cff75bc87600ad3e4`,
+> unchanged business counts and no function-specific advisor finding. PR #1043 merged as
+> `091a3655d80bb3e29cfef4a8313b415b98418242`; exact-merge CI, db-tests, release and Vercel target
+> `Dkd16fvcEqnLvWHHozsiZvph8kbK` succeeded. `ebeidfarm.business` returns 200 for `/` and `/login`; signed-out
+> inventory list, item, movements and coverage return 307 to `/login`. Independent review, pgTAP 4,751/4,751,
+> 2,155 Vitest passes plus 17 skips, TypeScript, ESLint, 70-page build, Storybook, guards and gitleaks passed.
+> Authenticated Storekeeper acceptance remains pending because production has zero Storekeeper memberships.
+
 > **2026-08-23 (latest) — Product UI reset R3f exact Storekeeper home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260823015536 exact_storekeeper_home_snapshot` adds the bounded Storekeeper snapshot.
 > Postflight proved invoker/stable/empty-search-path/authenticated-only metadata, definition md5
