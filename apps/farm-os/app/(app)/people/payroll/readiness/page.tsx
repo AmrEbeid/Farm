@@ -17,13 +17,18 @@
 // real data is the person-name reference lookup inside a dry-run, which happens in the API route,
 // RLS-scoped, and returns no names to the client.
 //
-// PRINTING. The checklist is a table with a signature/date column left deliberately blank: the
-// artifact that matters is the signed paper, and the page exists to produce it.
+// PRINTING. The checklist is a list of record blocks with a signature/date line left deliberately
+// blank: the artifact that matters is the signed paper, and the page exists to produce it.
+//
+// MOBILE-FIRST, NO TABLE. R4b replaces the checklist's raw table with stacked record blocks — a table
+// this wide cannot reflow into a small screen without a horizontal scrollbar, and the mobile-first
+// convention the rest of the R4b/R4a surfaces share forbids one here too.
 
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { requireRole } from "@/lib/auth";
+import { num } from "@/lib/money";
 import { PrintButton } from "@/components/print-button";
 import { ImportPanel } from "@/components/import/ImportPanel";
 import {
@@ -46,14 +51,15 @@ export const dynamic = "force-dynamic";
 
 const mutedStyle = { color: "var(--ink-muted)" } as const;
 const boxStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
-const cellStyle = { borderBottom: "1px solid var(--line)" } as const;
-const linkStyle = { border: "1px solid var(--line)", color: "var(--ink)" } as const;
-
 const EVIDENCE_ORDER: ReadinessEvidence[] = ["automated", "human"];
 
 function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="rounded-md px-3 py-1 text-sm" style={linkStyle}>
+    <Link
+      href={href}
+      className="fos-btn fos-btn--secondary fos-btn--md"
+      style={{ minHeight: 44 }}
+    >
       {children}
     </Link>
   );
@@ -100,53 +106,31 @@ export default async function PayrollReadinessPage() {
           ))}
         </dl>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[40rem] text-sm" style={boxStyle}>
-            <caption className="sr-only">
-              بنود تحضير الرواتب للتجربة، ونوع الدليل المطلوب لكل بند، ومكان التوقيع والتاريخ.
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col" className="p-2 text-start font-semibold" style={cellStyle}>
-                  البند
-                </th>
-                <th scope="col" className="p-2 text-start font-semibold" style={cellStyle}>
-                  نوع الدليل
-                </th>
-                <th scope="col" className="p-2 text-start font-semibold" style={cellStyle}>
-                  الحالة
-                </th>
-                <th scope="col" className="p-2 text-start font-semibold" style={cellStyle}>
-                  التوقيع والتاريخ
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {PAYROLL_READINESS_ITEMS.map((item) => (
-                <tr key={item.id}>
-                  <td className="p-2" style={cellStyle}>
-                    <span className="font-semibold">{item.titleAr}</span>
-                    <span className="block text-xs" style={mutedStyle}>
-                      {item.detailAr}
-                    </span>
-                  </td>
-                  <td className="p-2" style={cellStyle}>
-                    {READINESS_EVIDENCE_AR[item.evidence]}
-                  </td>
-                  <td className="p-2" style={cellStyle}>
-                    {READINESS_UNSIGNED_AR}
-                  </td>
-                  {/* Deliberately empty: the signature and its date are written by hand on the
-                      printout. The app never records, infers or pre-fills either one. */}
-                  <td className="p-2" style={cellStyle}>
-                    <span aria-hidden="true">………………………… / ……… / ……… / ………</span>
-                    <span className="sr-only">فراغ للتوقيع والتاريخ</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul>
+          {PAYROLL_READINESS_ITEMS.map((item, index) => (
+            <li
+              key={item.id}
+              className="border-b py-3 last:border-b-0"
+              style={{ borderColor: "var(--line)" }}
+            >
+              <p className="text-sm font-semibold">
+                {num(index + 1)}. {item.titleAr}
+              </p>
+              <p className="mt-0.5 text-xs" style={mutedStyle}>
+                {item.detailAr}
+              </p>
+              <p className="mt-1 text-xs" style={mutedStyle}>
+                {READINESS_EVIDENCE_AR[item.evidence]} · {READINESS_UNSIGNED_AR}
+              </p>
+              {/* Deliberately empty: the signature and its date are written by hand on the
+                  printout. The app never records, infers or pre-fills either one. */}
+              <p className="mt-1 text-xs" style={mutedStyle}>
+                <span aria-hidden="true">التوقيع والتاريخ: ………………………… / ……… / ……… / ………</span>
+                <span className="sr-only">فراغ للتوقيع والتاريخ</span>
+              </p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {PAYROLL_READINESS_DESCRIPTORS.map((descriptor) => (

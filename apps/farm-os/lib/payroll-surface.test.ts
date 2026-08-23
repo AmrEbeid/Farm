@@ -20,6 +20,11 @@ const LIST_PAGE = join(PAYROLL_DIR, "page.tsx");
 const REPORT_PAGE = join(PAYROLL_DIR, "[runId]", "page.tsx");
 const ACTIONS = join(PAYROLL_DIR, "actions.ts");
 const CLOSE_FORM = join(PAYROLL_DIR, "close-form.tsx");
+const WORKSPACE_VIEW = join(PAYROLL_DIR, "payroll-workspace-view.tsx");
+const RUN_VIEW = join(PAYROLL_DIR, "[runId]", "payroll-run-view.tsx");
+const READINESS_PAGE = join(PAYROLL_DIR, "readiness", "page.tsx");
+const SNAPSHOT_PAGES: [string, string][] = [["workspace page", LIST_PAGE], ["run page", REPORT_PAGE]];
+const SNAPSHOT_VIEWS: [string, string][] = [["workspace view", WORKSPACE_VIEW], ["run view", RUN_VIEW]];
 const COMP_DIR = join(PAYROLL_DIR, "compensation");
 const COMP_PAGE = join(COMP_DIR, "page.tsx");
 const COMP_ACTIONS = join(COMP_DIR, "actions.ts");
@@ -152,61 +157,112 @@ describe("payroll close confirmation and pending protection", () => {
   });
 });
 
-describe("payroll pages stay fail-closed and PII-free", () => {
-  it("validates the run id before any read and 404s a bad one", () => {
-    const source = read(REPORT_PAGE);
-    expect(source).toContain("if (!isUuid(runId)) notFound();");
-    expect(source).toMatch(/load\.kind === "not_found"\)\s*notFound\(\)/);
-  });
-
-  it("renders a refusal, not figures, when the report cannot be read completely", () => {
-    const source = read(REPORT_PAGE);
-    const refusal = source.indexOf("if (!load.ok) {");
-    const figures = source.indexOf("const { run, lines } = load;");
-    expect(refusal).toBeGreaterThan(-1);
-    expect(figures).toBeGreaterThan(refusal);
-  });
-
-  it("never accepts a report payload from the query string", () => {
-    for (const path of [LIST_PAGE, REPORT_PAGE]) {
+describe("payroll surfaces read one exact bounded snapshot", () => {
+  it("calls exactly one snapshot RPC per page and reads no table directly", () => {
+    expect(read(LIST_PAGE).split('supabase.rpc("fn_payroll_workspace_snapshot"').length - 1).toBe(1);
+    expect(read(REPORT_PAGE).split('supabase.rpc("fn_payroll_run_snapshot"').length - 1).toBe(1);
+    for (const [name, path] of [...SNAPSHOT_PAGES, ...SNAPSHOT_VIEWS]) {
       const source = read(path);
-      expect(source, path).not.toContain("searchParams");
-      expect(source, path).not.toMatch(/JSON\.parse/);
+      expect(source, name).not.toContain(".from(");
+      expect(source, name).not.toContain('.from("payroll_runs")');
+      expect(source, name).not.toContain('.from("payroll_run_lines")');
+    }
+    expect(read(LIST_PAGE)).toContain("parsePayrollWorkspaceSnapshot(data, {");
+    expect(read(REPORT_PAGE)).toContain("parsePayrollRunSnapshot(data, {");
+  });
+
+  it("asks for the page it is going to render, and no more", () => {
+    expect(read(LIST_PAGE)).toContain("p_limit: PAYROLL_WORKSPACE_PAGE_SIZE");
+    expect(read(LIST_PAGE)).toContain("context.page > pageCount");
+    expect(read(REPORT_PAGE)).toContain("p_limit: PAYROLL_RUN_LINE_PAGE_SIZE");
+    expect(read(REPORT_PAGE)).toContain("page > pageCount");
+  });
+
+  it("surfaces a read failure instead of rendering an empty workspace or run", () => {
+    for (const [, path] of SNAPSHOT_PAGES) {
+      expect(read(path)).toContain("if (error) throw error;");
     }
   });
 
+  it("answers not-found the same way for a malformed, missing or cross-org run id", () => {
+    const source = read(REPORT_PAGE);
+    expect(source).toContain("if (!UUID.test(runId)) notFound();");
+    expect(source).toContain("if (data === null) notFound();");
+    expect(source).toContain("if (snapshot === null) notFound();");
+  });
+
+  it("never accepts a snapshot payload from the query string — only page/from state", () => {
+    for (const [, path] of SNAPSHOT_PAGES) {
+      expect(read(path)).not.toMatch(/JSON\.parse/);
+    }
+  });
+
+  it("rebuilds the return path instead of echoing the caller's own bytes", () => {
+    const source = read(REPORT_PAGE);
+    expect(source).toContain("readPayrollRunLineRequest(runId, resolvedSearchParams)");
+    expect(source).not.toMatch(/href=\{.*searchParams\.from/);
+  });
+});
+
+describe("payroll pages stay PII-free and state the freeze boundary", () => {
   it("selects no phone or email anywhere on the payroll surface", () => {
-    for (const path of [LIST_PAGE, REPORT_PAGE, ACTIONS, CLOSE_FORM]) {
+    for (const path of [LIST_PAGE, REPORT_PAGE, WORKSPACE_VIEW, RUN_VIEW, ACTIONS, CLOSE_FORM, READINESS_PAGE]) {
       expect(read(path), path).not.toMatch(/phone|email/i);
     }
   });
 
-  it("states the immutable / no-payment / no-journal boundary on both pages", () => {
-    for (const path of [LIST_PAGE, REPORT_PAGE]) {
+  it("never publishes closed_by (closer identity) anywhere on the payroll surface", () => {
+    for (const path of [LIST_PAGE, REPORT_PAGE, WORKSPACE_VIEW, RUN_VIEW]) {
+      expect(read(path), path).not.toContain("closed_by");
+    }
+  });
+
+  it("states the immutable / no-payment / no-journal boundary on both surfaces", () => {
+    for (const path of [WORKSPACE_VIEW, RUN_VIEW]) {
       const source = read(path);
       expect(source, path).toMatch(/قيد محاسبي|قيدًا محاسبيًا/);
       expect(source, path).toMatch(/مجمّد|يُجمّد/);
     }
   });
 
-  it("keeps the compact header shape (text-xl, p-4, gap-4) and offers print", () => {
-    for (const path of [LIST_PAGE, REPORT_PAGE]) {
+  it("keeps every exact count and total in Arabic-Indic exact-count text, and states the page-vs-total boundary", () => {
+    for (const [name, path] of SNAPSHOT_VIEWS) {
       const source = read(path);
-      expect(source, path).toContain('className="text-xl font-bold"');
-      expect(source, path).not.toMatch(/text-(2|3|4|5)xl/);
-      expect(source, path).toContain('className="flex flex-col gap-4 p-4"');
-      expect(source, path).toContain("PrintButton");
+      expect(source, name).toContain("exactCount(");
+      expect(source, name).not.toMatch(/toLocaleString\(\)/);
+    }
+    expect(read(WORKSPACE_VIEW)).toContain("لا السجل كله");
+    expect(read(RUN_VIEW)).toContain("لا الإقفال كله");
+  });
+
+  it("uses the Entity360Header and EntityTabs conventions on the run 360", () => {
+    const source = read(RUN_VIEW);
+    expect(source).toContain("Entity360Header");
+    expect(source).toContain("EntityTabs");
+  });
+
+  it("does not offer a complete-looking print action from either bounded page", () => {
+    for (const [name, path] of SNAPSHOT_VIEWS) {
+      expect(read(path), name).not.toContain("PrintButton");
     }
   });
 
   it("shows the stored close instant with the date-time formatter", () => {
-    for (const path of [LIST_PAGE, REPORT_PAGE]) {
-      expect(read(path), path).toContain("fmtDateTime(run.closedAt)");
-    }
+    expect(read(WORKSPACE_VIEW)).toContain("fmtDateTime(run.closedAt)");
+    expect(read(RUN_VIEW)).toContain("fmtDateTime(snapshot.closedAt)");
   });
 
   it("uses the shared Cairo calendar day for the close-form bound", () => {
-    expect(read(LIST_PAGE)).toContain("const todayIso = cairoTodayIso()");
+    expect(read(LIST_PAGE)).toContain("const todayIso = cairoTodayIso();");
+  });
+
+  it("has no axis to overflow on: no table, no min-width fallback, on all three targeted surfaces", () => {
+    for (const path of [LIST_PAGE, WORKSPACE_VIEW, REPORT_PAGE, RUN_VIEW, READINESS_PAGE]) {
+      const source = read(path);
+      for (const forbidden of ["<table", "overflow-x", "whitespace-nowrap", "min-w-["]) {
+        expect(source, `${path}: ${forbidden}`).not.toContain(forbidden);
+      }
+    }
   });
 });
 

@@ -1,161 +1,72 @@
-// One closed payroll run, as a printable report. Owner/accountant only.
+// R4b — «تقرير إقفال الرواتب» as a real Entity 360. ONE exact, bounded, active-organisation snapshot
+// per page view. Nothing on this route reads payroll_runs/payroll_run_lines directly any more.
 //
-// FAIL-CLOSED. A malformed run id never reaches PostgREST. A run that is missing — or belongs to
-// another org, which RLS makes indistinguishable from missing — is a 404. A failed read, a run
-// larger than the page's bound, and a run whose lines read back empty each render an Arabic refusal
-// and NO figures: a payroll report that quietly dropped lines still looks like a complete wage bill.
+// NOT FOUND MEANS NOT FOUND. `fn_payroll_run_snapshot` returns SQL NULL for a run outside the active
+// organisation — deliberately the SAME answer as a run id that does not exist anywhere — so the 404
+// below can never be read as "this run exists, but not for you". A malformed uuid never reaches
+// PostgREST either: both collapse to the same `notFound()` call.
 //
-// NOTHING IS TRUSTED FROM THE URL. The only thing taken from the route is the run id, and it is used
-// solely as a filter on an org-scoped read. No report payload is ever accepted from a query string —
-// the numbers on this page always come back out of the database under RLS.
+// THE RETURN LINK IS REBUILT, NOT ECHOED. `?from=` is parsed, restricted to the payroll workspace path
+// and REBUILT from validated parts before it is ever rendered as a link (lib/payroll-workspace-context)
+// — the caller's bytes never reach an href.
 //
-// The snapshot is read as stored: mode, unit, quantity, rate and gross were frozen at close time by
-// `fn_close_payroll_run` and are never recomputed here.
+// FROZEN, NEVER RECOMPUTED. Every figure here — mode, unit, quantity, rate, gross, the run's own
+// total — was frozen at close time by `fn_close_payroll_run` and is read exactly as stored.
 
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Lock } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { fmtDate, fmtDateTime } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
-import { PrintButton } from "@/components/print-button";
-import { Alert } from "@/components/ui";
+import { PAYROLL_RUN_LINE_PAGE_SIZE, parsePayrollRunSnapshot } from "@/lib/payroll-snapshot-reads";
 import {
-  isUuid,
-  loadPayrollRunDetail,
-  payrollModeLabel,
-  payrollQuantityUnitLabel,
-} from "@/lib/payroll-report";
+  payrollPageCount,
+  payrollRunLineHref,
+  payrollWorkspaceOffset,
+  readPayrollRunLineRequest,
+} from "@/lib/payroll-workspace-context";
+import { PayrollRunView } from "./payroll-run-view";
 
-export const dynamic = "force-dynamic";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const mutedStyle = { color: "var(--ink-muted)" } as const;
-const boxStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
-const cellStyle = { borderBottom: "1px solid var(--line)" } as const;
-const linkStyle = { border: "1px solid var(--line)", color: "var(--ink)" } as const;
-const BACK_HREF = "/people/payroll";
-
-function BackLink() {
-  return (
-    <Link href={BACK_HREF} className="rounded-md px-3 py-1 text-sm" style={linkStyle}>
-      رجوع إلى إقفال الرواتب
-    </Link>
-  );
-}
-
-export default async function PayrollRunReportPage({
+export default async function PayrollRunPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ runId: string }>;
+  searchParams: Promise<{ lines?: string; from?: string; tab?: string }>;
 }) {
   const m = await requireRole(["owner", "accountant"]);
-  const sb = await createClient();
   const { runId } = await params;
+  // A route segment that is not a uuid is a 404, not a database error: `p_run_id uuid` would raise
+  // 22P02 and reach the segment error boundary as a server fault instead of a missing page.
+  if (!UUID.test(runId)) notFound();
 
-  if (!isUuid(runId)) notFound();
+  const resolvedSearchParams = await searchParams;
+  const { page, from, redirectTo } = readPayrollRunLineRequest(runId, resolvedSearchParams);
+  if (redirectTo) redirect(redirectTo);
+  const tab = resolvedSearchParams.tab === "overview" ? "overview" : "lines";
 
-  const load = await loadPayrollRunDetail(sb, runId, m.orgId);
-  if (!load.ok && load.kind === "not_found") notFound();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_payroll_run_snapshot", {
+    p_org: m.orgId,
+    p_run_id: runId,
+    p_limit: PAYROLL_RUN_LINE_PAGE_SIZE,
+    p_offset: payrollWorkspaceOffset(page, PAYROLL_RUN_LINE_PAGE_SIZE),
+  });
+  if (error) throw error;
+  if (data === null) notFound();
 
-  if (!load.ok) {
-    return (
-      <div className="flex flex-col gap-4 p-4">
-        <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="text-xl font-bold">تقرير إقفال الرواتب</h1>
-          <div className="no-print ms-auto">
-            <BackLink />
-          </div>
-        </header>
-        <Alert tone="danger" title="لم يصدر التقرير" description={load.error} />
-      </div>
-    );
+  const snapshot = parsePayrollRunSnapshot(data, {
+    orgId: m.orgId,
+    runId,
+    limit: PAYROLL_RUN_LINE_PAGE_SIZE,
+    offset: payrollWorkspaceOffset(page, PAYROLL_RUN_LINE_PAGE_SIZE),
+  });
+  if (snapshot === null) notFound();
+
+  const pageCount = payrollPageCount(snapshot.counts.totalLines, PAYROLL_RUN_LINE_PAGE_SIZE);
+  if (page > pageCount) {
+    redirect(payrollRunLineHref(runId, pageCount, from));
   }
 
-  const { run, lines } = load;
-
-  return (
-    <div className="flex flex-col gap-4 p-4">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h1 className="text-xl font-bold">تقرير إقفال الرواتب</h1>
-        <span className="text-sm" style={mutedStyle}>
-          {fmtDate(run.periodStart)} — {fmtDate(run.periodEnd)}
-        </span>
-        <div className="no-print ms-auto flex flex-wrap items-center gap-2">
-          <PrintButton label="طباعة التقرير" />
-          <BackLink />
-        </div>
-      </header>
-
-      <p className="flex items-start gap-2 rounded-md p-3 text-xs" style={boxStyle}>
-        <Lock aria-hidden="true" size={14} className="mt-0.5 shrink-0" />
-        <span>
-          لقطة أجور مجمّدة لا تتغيّر بعد الإقفال، للعرض والتقارير فقط. لا صرف ولا قيد محاسبي.
-        </span>
-      </p>
-
-      <dl className="grid gap-2 sm:grid-cols-4">
-        {[
-          { label: "من تاريخ", value: fmtDate(run.periodStart) },
-          { label: "إلى تاريخ", value: fmtDate(run.periodEnd) },
-          { label: "وقت الإقفال", value: fmtDateTime(run.closedAt) },
-          { label: "عدد السطور", value: num(lines.length) },
-        ].map((figure) => (
-          <div key={figure.label} className="rounded-md px-2 py-1.5" style={boxStyle}>
-            <dt className="text-[11px]" style={mutedStyle}>
-              {figure.label}
-            </dt>
-            <dd className="text-sm font-semibold tabular-nums">{figure.value}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[38rem] text-sm" style={boxStyle}>
-          <caption className="sr-only">سطور الأجور المجمّدة لهذه الفترة</caption>
-          <thead>
-            <tr>
-              {["العامل", "طريقة الأجر", "الكمية", "الوحدة", "سعر الوحدة", "الإجمالي"].map((header) => (
-                <th key={header} scope="col" className="p-2 text-start font-semibold" style={cellStyle}>
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((line) => (
-              <tr key={`${line.personId}-${line.mode}-${line.unit ?? ""}`}>
-                <th scope="row" className="p-2 text-start font-normal" style={cellStyle}>
-                  {line.personName}
-                </th>
-                <td className="p-2" style={cellStyle}>
-                  {payrollModeLabel(line.mode)}
-                </td>
-                <td className="p-2 tabular-nums" style={cellStyle}>
-                  {num(line.quantity, 2)}
-                </td>
-                <td className="p-2" style={cellStyle}>
-                  {payrollQuantityUnitLabel(line.mode, line.unit)}
-                </td>
-                <td className="p-2 tabular-nums" style={cellStyle}>
-                  {egp(line.rate)}
-                </td>
-                <td className="p-2 tabular-nums" style={cellStyle}>
-                  {egp(line.gross)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="font-semibold">
-              <td className="p-2" colSpan={5}>
-                إجمالي الأجور المجمّدة
-              </td>
-              <td className="p-2 tabular-nums">{egp(run.totalGross)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  );
+  return <PayrollRunView snapshot={snapshot} page={page} returnTo={from} tab={tab} />;
 }

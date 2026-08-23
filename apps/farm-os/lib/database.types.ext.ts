@@ -1418,6 +1418,21 @@ type InventorySnapshotFunctions = {
   };
 };
 
+// ── Payroll workspace + run 360, migration 20260823150000. Two exact, bounded, active-org snapshots
+// gated on ordinary membership and re-checked payroll.read (owner/accountant) INSIDE PostgreSQL.
+// `fn_payroll_run_snapshot` returns SQL NULL — hence `Json | null` — when the run is outside the
+// active organization or does not exist, so the page can answer "not found" without leaking which. ──
+type PayrollSnapshotFunctions = {
+  fn_payroll_workspace_snapshot: {
+    Args: { p_org: string; p_limit?: number; p_offset?: number };
+    Returns: Json;
+  };
+  fn_payroll_run_snapshot: {
+    Args: { p_org: string; p_run_id: string; p_limit?: number; p_offset?: number };
+    Returns: Json | null;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2305,6 +2320,8 @@ type PayrollRunLinesTable = {
     org_id: string;
     run_id: string;
     person_id: string;
+    /** Worker display name frozen when the immutable payroll line is inserted. */
+    person_name_snapshot: string;
     mode: string;
     /** Set iff mode = 'piece' (payroll_run_lines_piece_shape). */
     unit: string | null;
@@ -2675,6 +2692,7 @@ export type Database = Omit<Generated, "public"> & {
       SupervisorHomeFunctions &
       StorekeeperHomeFunctions &
       InventorySnapshotFunctions &
+      PayrollSnapshotFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

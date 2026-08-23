@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { COMPENSATION_PERSON_COLUMNS, COMPENSATION_ROW_COLUMNS } from "./compensation-read";
-import { PAYROLL_PERSON_COLUMNS } from "./payroll-report";
 
 /**
  * REPO-WIDE contact-PII and payroll-read invariants (Stage-M access review).
@@ -122,7 +121,6 @@ function projectionsFor(path: string, table: string): string[] {
 const ALLOWED_COLUMN_CONSTANTS: Record<string, string> = {
   COMPENSATION_PERSON_COLUMNS,
   COMPENSATION_ROW_COLUMNS,
-  PAYROLL_PERSON_COLUMNS,
 };
 
 /** The one `.from("people")` chain in the repo that is a WRITE, so has no read projection to check. */
@@ -224,29 +222,29 @@ describe("no app or lib code reads staff contact PII from people", () => {
   });
 });
 
-describe("payroll run tables are read only from the owner/accountant surface", () => {
-  // The equivalent invariant for people_compensation lives in payroll-surface.test.ts. The RUN tables
-  // (payroll_runs / payroll_run_lines) had no such pin: their only readers are in lib/payroll-report.ts,
-  // which is a module, so the gate lives in whichever route imports it — the thing that can regress.
-  const REPORT_MODULE = "@/lib/payroll-report";
+describe("payroll run tables are read only through the exact snapshot RPCs", () => {
+  // R4b retired the direct payroll_runs/payroll_run_lines PostgREST reads that used to live in
+  // lib/payroll-report.ts (loadPayrollRunHistory/loadPayrollRunDetail). Every payroll read on the
+  // workspace and run 360 routes now goes through fn_payroll_workspace_snapshot or
+  // fn_payroll_run_snapshot (migration 20260823150000) — see lib/payroll-surface.test.ts for the
+  // "exactly one RPC call, no direct table read" guard on those two routes specifically. This test
+  // stays as the repo-wide backstop: no OTHER file may reintroduce a direct read of either table.
   const OWNER_ACCOUNTANT = /requireRole\(\s*\[\s*"owner",\s*"accountant"\s*\]\s*\)/;
+  const PAYROLL_DIR = join(APP_ROOT, "app", "(app)", "people", "payroll");
 
   const directReaders = SOURCES.filter((path) =>
     /\.from\("payroll_runs?(_lines)?"\)/.test(code(path)),
   );
-  const routeConsumers = walk(join(APP_ROOT, "app")).filter((path) => {
+  const routeConsumers = walk(PAYROLL_DIR).filter((path) => {
     const source = code(path);
-    return source.includes(REPORT_MODULE) && /\bloadPayroll|\bPAYROLL_RUN|\bloadPayrollRun/.test(source);
+    return /supabase\.rpc\("fn_payroll_(workspace|run)_snapshot"/.test(source);
   });
 
-  it("keeps every direct payroll_runs/payroll_run_lines read inside lib/payroll-report.ts", () => {
-    expect(directReaders.length).toBeGreaterThan(0);
-    for (const path of directReaders) {
-      expect(rel(path)).toBe(join("lib", "payroll-report.ts"));
-    }
+  it("keeps no direct payroll_runs/payroll_run_lines read anywhere in app or lib", () => {
+    expect(directReaders).toEqual([]);
   });
 
-  it("gates every route that loads a payroll run on owner/accountant", () => {
+  it("gates every route that reads a payroll snapshot RPC on owner/accountant", () => {
     expect(routeConsumers.length).toBeGreaterThan(0);
     for (const path of routeConsumers) {
       expect(OWNER_ACCOUNTANT.test(code(path)), rel(path)).toBe(true);
