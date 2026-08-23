@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — R4h GENERAL LEDGER WORKSPACE MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #1059 merged as `165f751f8dabd4ccc7bdaf4edadacb95ebda6dda`. Exact-main CI `32635498018`,
+> db-tests `32635498006`, release `32635498029` and Production deployment `6047244897` succeeded.
+> `/login` returns 200 and signed-out `/accounting` returns 307 to `/login`. Evidence: focused 15/15, Vitest
+> 2,330 plus 17 skips, Docker-free pgTAP 5,010/5,010, TypeScript, full ESLint, 70-page build, repository guards,
+> zero-vulnerability audit, independent final APPROVE and 390px/1,440px zero-overflow checks. Migration N/A;
+> no schema, RPC, permission, posting path, financial definition or business row changed. Authenticated
+> Owner/Accountant and real-record acceptance remain pending.
+
 > **2026-08-23 (latest) — R4g PAYMENT REQUEST 360 MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260823101732 payment_request_completion_guards` adds actor-independent,
 > request-row-locked settlement guards and funding movement/journal evidence. Pre/postflight matched exactly:
