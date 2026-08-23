@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
@@ -28,7 +28,7 @@ export default async function PlansListPage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  const m = await requireMembership();
+  const m = await requireRole(["owner", "accountant", "farm_manager", "agri_engineer"]);
   const sb = await createClient();
   const filter = parsePlanFilter((await searchParams).filter);
   // plan.write = owner/farm_manager (migration 0055) — the plan-authoring authority.

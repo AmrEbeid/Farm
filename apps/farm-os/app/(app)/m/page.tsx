@@ -6,6 +6,7 @@ import { num } from "@/lib/money";
 import { cairoDateString, fmtDate } from "@/lib/dates";
 import { OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus, NON_EXECUTABLE_OP_STATUSES } from "@/lib/labels";
 import { PendingExecutions } from "@/components/PendingExecutions";
+import { SupervisorHome } from "./supervisor-home";
 
 function pill(s: string): "active" | "done" | "scheduled" {
   if (s === "done") return "done";
@@ -106,6 +107,11 @@ export default async function MobileHomePage({
   // Role-gate the field view to match the nav (lib/nav.ts hides الميدان from
   // accountant/storekeeper) and /m/execute's gate — field roles only.
   const m = await requireRole(["supervisor", "agri_engineer", "farm_manager", "owner"]);
+  // SPEC-0033 R3e: the Supervisor gets a dedicated home from ONE bounded, supervisor-only snapshot.
+  // Branched BEFORE any legacy read so the unbounded multi-table field feed below is never executed
+  // for this role. Owner, farm manager and agri_engineer keep the existing field workflow untouched,
+  // including the agronomist's `?scope=agronomy` drill-down.
+  if (m.role === "supervisor") return <SupervisorHome orgId={m.orgId} saved={done != null} />;
   const agronomyOnly = scope === "agronomy";
   const mineOnly = agronomyOnly ? false : m.personId != null ? mine !== "0" : mine === "1";
   const sb = await createClient();

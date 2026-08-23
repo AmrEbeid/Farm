@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Entity360Header } from "@/components/Entity360Header";
 import { ExecuteForm } from "@/components/ExecuteForm";
 import { fmtDate } from "@/lib/dates";
-import { SUBTYPE_AR, OP_STATUS_AR, isExecutableOpStatus } from "@/lib/labels";
+import { SUBTYPE_AR, OP_STATUS_AR, isDoseBearingSubtype, isExecutableOpStatus } from "@/lib/labels";
 import { computeSprayComplianceWindow, mostRestrictiveComplianceWindow } from "@/lib/spray-compliance";
 
 // Subtype-derived default note (no hardcoded location); blank when subtype is unknown.
@@ -29,7 +29,7 @@ export default async function ExecutePage({
   const { data: op, error } = await sb
     .from("plan_operations")
     .select(
-      "id, subtype, planned_at, est_cost, status, plan_material_requirements(id, item_id, qty, unit, rei_hours, phi_days, inventory_items(name)), plan_labor_requirements(count)",
+      "id, subtype, planned_at, status, signed_off_by, signed_off_at, plan_material_requirements(id, item_id, qty, unit, rei_hours, phi_days, inventory_items(name)), plan_labor_requirements(count)",
     )
     .eq("id", opId)
     .maybeSingle();
@@ -57,7 +57,10 @@ export default async function ExecutePage({
     inventory_items: { name?: string } | null;
   }>;
   const laborReq = (op.plan_labor_requirements ?? [])[0] as { count?: number } | undefined;
-  const opPill: PillStatus = op.status === "done" ? "done" : isExecutableOpStatus(op.status) ? "active" : "blocked";
+  const doseSignoffMissing =
+    isDoseBearingSubtype(op.subtype) && (!op.signed_off_by || !op.signed_off_at);
+  const canExecute = isExecutableOpStatus(op.status) && !doseSignoffMissing;
+  const opPill: PillStatus = op.status === "done" ? "done" : canExecute ? "active" : "blocked";
 
   // REI/PHI decision support (docs/CLAUDE.md #4) — DISPLAY-ONLY, never an automated block (deferred
   // follow-up). Only computed once the op is actually done: fetch the real execution timestamp from
@@ -99,7 +102,7 @@ export default async function ExecutePage({
         pills={[{ status: opPill, label: OP_STATUS_AR[op.status ?? ""] ?? "غير معروف" }]}
       />
 
-      {isExecutableOpStatus(op.status) ? (
+      {canExecute ? (
         <Card title="سجّل الفعلي">
           <ExecuteForm
             opId={opId}
@@ -137,6 +140,12 @@ export default async function ExecutePage({
             />
           )}
         </>
+      ) : doseSignoffMissing ? (
+        <Alert
+          tone="warning"
+          title="الجرعة غير معتمدة"
+          description="لا يمكن تسجيل التنفيذ قبل اكتمال توقيع المهندس الزراعي على الجرعة. راجع المهندس الزراعي أو مدير المزرعة."
+        />
       ) : (
         // blocked / abandoned / skipped — terminal, not executable (matches the fn_execute_operation
         // guard, which 22023s these); don't render the form as a dead-end.

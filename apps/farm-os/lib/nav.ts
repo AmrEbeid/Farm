@@ -135,8 +135,20 @@ export const APP_MODULES: AppModule[] = [
     icon: "🗓️",
     dashboardHref: "/plans/dashboard",
     pages: [
-      { id: "plans-dashboard", label: "لوحة التخطيط", icon: "🗓️", href: "/plans/dashboard" },
-      { id: "plans", label: "كل الخطط", icon: "🗓️", href: "/plans" },
+      {
+        id: "plans-dashboard",
+        label: "لوحة التخطيط",
+        icon: "🗓️",
+        href: "/plans/dashboard",
+        roles: ["owner", "accountant", "farm_manager", "agri_engineer"],
+      },
+      {
+        id: "plans",
+        label: "كل الخطط",
+        icon: "🗓️",
+        href: "/plans",
+        roles: ["owner", "accountant", "farm_manager", "agri_engineer"],
+      },
       {
         id: "plan-approvals",
         label: "اعتمادات مطلوبة",
@@ -454,7 +466,10 @@ export function visibleModulesForRole(role: Role): AppModule[] {
   return APP_MODULES.flatMap((module) => {
     if (!visibleToRole(module, role)) return [];
     const pages = module.pages.filter((page) => visibleToRole(page, role));
-    return pages.length > 0 ? [{ ...module, pages }] : [];
+    // A role may not be allowed to open the module's global dashboard. In that case the first
+    // legal page becomes that role's module landing route instead of leaving a hidden/money-bearing
+    // dashboard reachable from the module header.
+    return pages.length > 0 ? [{ ...module, dashboardHref: pages[0].href, pages }] : [];
   });
 }
 

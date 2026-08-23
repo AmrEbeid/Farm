@@ -19,7 +19,11 @@ select plan(3);
 -- a planned (not-done) op in orgA, and an orgA member to act as (org-scoped RLS)
 select set_config('test.op',
   (select id::text from public.plan_operations
-     where org_id = :'orgA' and status <> 'done' limit 1), false);
+     where org_id = :'orgA'
+       and status <> 'done'
+       and (subtype not in ('fertilization', 'spraying')
+            or (signed_off_by is not null and signed_off_at is not null))
+     limit 1), false);
 select set_config('test.owner',
   (select user_id::text from public.organization_member
      where org_id = :'orgA' and role = 'owner' limit 1), false);

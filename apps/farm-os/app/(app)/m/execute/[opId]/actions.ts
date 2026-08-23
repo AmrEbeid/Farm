@@ -80,8 +80,10 @@ export async function executeOperation(opId: string, input: ExecuteInput) {
     return { ok: false, error: msg };
   }
 
-  const result = data as { event_id: string; actual_cost: number; plan_id: string };
+  const result = data as { event_id: string; plan_id: string };
   revalidatePath(`/m`);
   revalidatePath(`/reports/${result.plan_id}/pva`);
-  return { ok: true, eventId: result.event_id, actualCost: Number(result.actual_cost) };
+  // The field client needs only confirmation. Keep the RPC's accounting result server-side so
+  // Supervisor responses never serialize a money value the form does not use.
+  return { ok: true, eventId: result.event_id };
 }

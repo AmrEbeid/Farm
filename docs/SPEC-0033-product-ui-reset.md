@@ -17,6 +17,58 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Supervisor home R3e candidate
+
+*Local candidate. The migration is a draft until the Owner applies it; nothing here is merged or deployed.*
+
+The Supervisor branch of `/m` now uses one supervisor-only, active-organisation snapshot, and the
+legacy unbounded field feed no longer runs for this role. `/m` stays the Supervisor's primary field
+home; owner, farm manager and agri_engineer keep the existing field workflow unchanged, including the
+Agronomist `?scope=agronomy` drill-down and the owner/manager-only harvest-day button.
+
+Assigned work is based ONLY on the caller's real `people.user_id` link inside the organisation —
+`responsible_person_id` or `plan_operation_assignees` — on active plans only. There is no all-team
+fallback: an account with no linked person row returns an explicit unlinked state, and an account
+linked to more than one person row returns an explicit ambiguous state. Both return NULL counts and
+NULL drivers rather than zeros, because a zero would read to a field supervisor as "you are all
+clear" when the truth is that their record could not be identified.
+
+Four KPIs tell the day: work due today, overdue work, work blocked from being recorded now, and
+undated assigned work. All four are exact counts of RECORDED rows assigned to this caller, labelled
+المسجل; they never claim the farm is fully covered. Multi-day work is due today across its inclusive
+`planned_at..ends_on` span and becomes overdue only after its effective end; undated assigned work
+stays in its own bucket instead of being dropped or counted as due. Today's work reconciles strictly:
+ready plus blocked equals due today plus overdue, and the parser rejects any drift.
+
+Actionability mirrors the stored execution path rather than inventing gates. `fn_execute_operation`
+and `fn_post_movement` were read directly, and «سجّل التنفيذ» is offered only when every stored
+condition holds: the status is not terminal; a dose-bearing operation has both sign-off halves
+recorded; the target type is recognised and a typed target resolves to a same-organisation row; and
+no material unit contradicts its item's tracked unit. Anything else is shown as a named recorded
+blocker, never as an executable shortcut. Stock sufficiency is deliberately not preflighted — the
+issued quantity is entered at execution time — so the page states that the server may still refuse
+the record. A new database trigger rejects every transition to `done` for fertilisation or spraying
+while either sign-off half is missing, including a direct `fn_execute_operation` call; the direct
+execution page independently withholds its form.
+
+The snapshot is bounded (driver lists and the materials and crew nested inside a row are each
+independently limited), current-Cairo-date-only and carries no finance value of any kind: no
+`est_cost`, no `unit_cost`, no rate, wage, pay, budget or expense figure. Direct actions are the
+existing legal routes only — execution when legal, `/record/activity` and `/people/attendance`.
+Blocked, unscheduled and upcoming rows carry no drill-down link because blocked work escalates to the
+farm manager or agronomist instead. The planning list, dashboard and detail render financial values;
+they are now removed from Supervisor/Storekeeper navigation and protected by server role gates so a
+pasted URL cannot expose them. Cross-organisation operation-plan, assignee-operation, assignee-person,
+material-operation, material-item, responsible-person, sign-off-person and plan-scope links all fail
+closed; a cross-organisation operation target is instead reported as that one operation's blocker,
+which is exactly what `fn_execute_operation` does with it. `PendingExecutions` offline recovery is
+preserved on the Supervisor home. Exact recorded counts and driver rows stay visible whatever the
+operations authority says, while every completeness or all-clear claim stays gated on verified
+authority.
+
+Not yet done: hosted migration, merge, deployment and authenticated Supervisor browser acceptance at
+390px. Release-state documents are not updated by this candidate.
+
 ### Agronomist home R3d released
 
 The Agronomist branch of `/dashboard/manager` now uses one agri-engineer-only, active-organisation snapshot,
@@ -394,7 +446,7 @@ R3 owner/accountant slice contract:
 - the accountant finance home starts with actionable finance queues and four daily measures from its existing
   atomic snapshot; the deeper unposted/unpriced/reconciliation/receivables/period comparison contract remains a
   later R3 snapshot extension and is not claimed complete by this slice;
-- manager is released; agronomist, supervisor and storekeeper role homes remain later R3 releases.
+- manager and agronomist are released; the supervisor home is an unapplied local candidate; the storekeeper role home remains a later R3 release.
 
 ### R4 — Lists, workspaces and 360 pages
 

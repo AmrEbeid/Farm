@@ -32,6 +32,11 @@ insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est
   values (:'op', :'orgA', :'plan', 'fertilization', null, 0, false, 'ready');
 insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
   values (:'orgA', :'op', :'item', 100, 'kg');
+set local session_replication_role = replica;
+update public.plan_operations
+   set signed_off_by = '51ed8286-fad7-53d1-a92d-01532fa78b43', signed_off_at = pg_catalog.now()
+ where id = :'op';
+set local session_replication_role = origin;
 
 -- baseline: the earmark is on the books before execution
 select is(

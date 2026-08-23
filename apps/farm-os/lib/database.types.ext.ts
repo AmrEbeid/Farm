@@ -1370,6 +1370,15 @@ type AgronomistHomeFunctions = {
   };
 };
 
+// ── Supervisor home, migration 20260823120000. Exact, bounded, supervisor-membership-gated and
+// scoped to the caller's own person link; recorded counts only, no finance values. ──
+type SupervisorHomeFunctions = {
+  fn_supervisor_home_snapshot: {
+    Args: { p_org: string; p_as_of: string; p_detail_limit?: number };
+    Returns: Json;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2624,6 +2633,7 @@ export type Database = Omit<Generated, "public"> & {
       AccountantHomeFunctions &
       ManagerHomeFunctions &
       AgronomistHomeFunctions &
+      SupervisorHomeFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

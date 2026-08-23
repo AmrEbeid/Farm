@@ -129,6 +129,11 @@ insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est
   values (:'op2', :'orgA', :'plan', 'fertilization', null, 500, false, 'reserved');
 insert into public.plan_material_requirements (id, org_id, plan_op_id, item_id, qty, unit)
   values (:'req4', :'orgA', :'op2', :'item4', 25, 'kg');
+set local session_replication_role = replica;
+update public.plan_operations
+   set signed_off_by = '51ed8286-fad7-53d1-a92d-01532fa78b43', signed_off_at = pg_catalog.now()
+ where id in (:'op', :'op2');
+set local session_replication_role = origin;
 
 -- ===== execute the 3-material op (supervisor holds op.execute) =====
 select set_config('request.jwt.claims',
@@ -233,6 +238,11 @@ insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est
 insert into public.plan_material_requirements (id, org_id, plan_op_id, item_id, qty, unit) values
   (:'reqA', :'orgA', :'op3', :'item5', 5, 'kg'),
   (:'reqB', :'orgA', :'op3', :'item5', 20, 'kg');
+set local session_replication_role = replica;
+update public.plan_operations
+   set signed_off_by = '51ed8286-fad7-53d1-a92d-01532fa78b43', signed_off_at = pg_catalog.now()
+ where id = :'op3';
+set local session_replication_role = origin;
 
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
@@ -269,6 +279,11 @@ insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est
 insert into public.plan_material_requirements (id, org_id, plan_op_id, item_id, qty, unit) values
   (:'reqC', :'orgA', :'op4', :'item6', 5, 'kg'),
   (:'reqD', :'orgA', :'op4', :'item6', 20, 'kg');
+set local session_replication_role = replica;
+update public.plan_operations
+   set signed_off_by = '51ed8286-fad7-53d1-a92d-01532fa78b43', signed_off_at = pg_catalog.now()
+ where id = :'op4';
+set local session_replication_role = origin;
 
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);
@@ -317,6 +332,11 @@ insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty,
   (:'orgA', :'op6', :'item7', 5, 'kg'),
   (:'orgA', :'op6', :'item8', 5, 'kg'),
   (:'orgA', :'op6', :'item9', 5, 'kg');
+set local session_replication_role = replica;
+update public.plan_operations
+   set signed_off_by = '51ed8286-fad7-53d1-a92d-01532fa78b43', signed_off_at = pg_catalog.now()
+ where id = :'op6';
+set local session_replication_role = origin;
 
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.sup'), 'role','authenticated')::text, true);

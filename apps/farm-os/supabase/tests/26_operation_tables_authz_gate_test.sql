@@ -33,6 +33,11 @@ insert into public.plan_operations (id, org_id, plan_id, subtype, target_id, est
   values (:'op', :'orgA', :'plan', 'fertilization', null, 42000, false, 'reserved');
 insert into public.plan_material_requirements (org_id, plan_op_id, item_id, qty, unit)
   values (:'orgA', :'op', :'item', 500, 'kg');
+set local session_replication_role = replica;
+update public.plan_operations
+   set signed_off_by = '51ed8286-fad7-53d1-a92d-01532fa78b43', signed_off_at = pg_catalog.now()
+ where id = :'op';
+set local session_replication_role = origin;
 
 -- A REAL same-org farm_event so the quantities negative test below can satisfy the
 -- RLS-H1 same-org parent-event EXISTS check (migration 0010), leaving op.execute as the
