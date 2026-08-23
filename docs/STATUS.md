@@ -1,8 +1,26 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (Product UI reset R3e exact Supervisor home live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (Product UI reset R3f exact Storekeeper home live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R3f EXACT STOREKEEPER HOME: MIGRATED / MERGED / DEPLOYED.**
+Storekeeper `/inventory/dashboard` now uses one storekeeper-only, active-organization snapshot and shows a
+compact Arabic store day: receivable and blocked requests, overdue work, all-bin reorder readings, unknown
+stock, today's issues and bounded seven-day loss/adjustment/expiry evidence. No money, person or counterparty
+identity enters the contract. Unquantified-only requests remain visible as blocked. Stock-taking now reconciles
+each physical location independently; Storekeepers are hidden and server-gated from money-bearing inventory
+list/item/coverage routes pending R4. Owner/Manager inventory behavior is unchanged.
+
+Hosted Farm migration `20260823015536 exact_storekeeper_home_snapshot` passed postflight as `SECURITY
+INVOKER`, `STABLE`, empty-search-path and authenticated-only (definition md5
+`57b3e9bd1589bf9690a308fc4bbfcc17`); all sampled business counts were unchanged. PR #1041 merged as
+`4f3eaeca40a0fc43636c36e4165c2aafa4a14165`; Vercel succeeded for that exact SHA. Signed-out public home and
+login return 200; inventory dashboard/list/item/coverage/stock-take/movements and receive return 307 to
+`/login`. Evidence: independent final APPROVE; pgTAP 4,608/4,608; Vitest 2,084 plus 17 controlled skips;
+TypeScript, ESLint, 70-page build, Storybook, security/bundle guards, gitleaks and exact-merge checks green.
+No advisor names the new function. Authenticated Storekeeper acceptance is unclaimed because production has
+zero Storekeeper memberships. All six role homes are released; next is R4 inventory list and 360 redesign.
 
 **2026-08-23 — PRODUCT UI RESET R3e EXACT SUPERVISOR HOME: MIGRATED / MERGED / DEPLOYED.**
 Supervisor `/m` now reads one supervisor-only, active-organization snapshot and shows only work assigned through

@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3e Supervisor home live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3f Storekeeper home live)
+
+> **2026-08-23 — PRODUCT UI RESET R3f EXACT STOREKEEPER HOME MIGRATED / MERGED / DEPLOYED.**
+> Storekeeper `/inventory/dashboard` is now one compact Arabic store-day home backed by an exact active-org
+> snapshot. Receivable, blocked, overdue, reorder, unknown-stock, issue and recent movement evidence are exact
+> and bounded; no money or identity data is exposed. Unquantified-only requests remain blocked instead of
+> disappearing. Stock-taking is location-aware, and money-bearing inventory drill-downs are server-gated for
+> Storekeeper pending R4.
+>
+> Hosted migration `20260823015536 exact_storekeeper_home_snapshot` passed metadata, grants, hash and unchanged
+> data-count postflight. PR #1041 merged as `4f3eaeca40a0fc43636c36e4165c2aafa4a14165`; exact-merge Vercel and CI
+> succeeded. Evidence: independent final APPROVE; pgTAP 4,608/4,608; Vitest 2,084 plus 17 skips; TypeScript,
+> ESLint, 70-page build, Storybook, security/bundle guards and gitleaks green. Signed-out inventory routes
+> redirect to `/login`. **Open:** production has zero Storekeeper memberships, so authenticated 390px acceptance
+> is unclaimed. All six role homes are released. Next: R4 inventory list/360, then the remaining prioritized
+> lists and 360 surfaces. Package PR #1025 remains separate.
 
 > **2026-08-23 — PRODUCT UI RESET R3e EXACT SUPERVISOR HOME MIGRATED / MERGED / DEPLOYED.**
 > Supervisor `/m` is now one compact assigned-work home backed by a single exact active-org snapshot. Assignment

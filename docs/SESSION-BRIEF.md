@@ -1,5 +1,29 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3e Supervisor home live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3f Storekeeper home live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R3f exact Storekeeper home — MIGRATED / MERGED / DEPLOYED
+
+Storekeeper `/inventory/dashboard` now exits before the legacy inventory dashboard and renders one compact
+Arabic store-day home from `fn_storekeeper_home_snapshot`. It is storekeeper-only, active-org/current-Cairo-date
+only, bounded, finance-free and identity-free. Receivable and blocked requests reconcile exactly; requests with
+only unquantified lines remain visible as blocked. All bins contribute to reorder readings, no-bin items remain
+unknown, and issue/loss/adjustment/expiry evidence is explicitly recorded movement rather than a stock-take
+claim. The stock-take workflow now reconciles each item/location separately. Storekeepers are server-gated from
+money-bearing inventory list/item/coverage routes pending their R4 redesign.
+
+Farm-only migration `20260823015536 exact_storekeeper_home_snapshot` is live. Postflight proved invoker/stable/
+empty-search-path/authenticated-only metadata, definition md5 `57b3e9bd1589bf9690a308fc4bbfcc17`, unchanged
+sampled data counts and no function-specific advisor finding. PR #1041 merged as
+`4f3eaeca40a0fc43636c36e4165c2aafa4a14165`; merged-SHA CI and Vercel target
+`72kbXSd383EGz5UrVuuT9y1is87z` succeeded. Signed-out public home/login return 200 and all inventory/receive
+probes return 307 to `/login`. Evidence: independent final APPROVE; pgTAP 4,608/4,608; Vitest 2,084 plus 17
+controlled skips; TypeScript, ESLint, 70-page build, Storybook, guards and gitleaks green.
+
+**Exact resume point:** all six role homes are released. Start R4 with a role-safe inventory list and item 360,
+because Storekeeper access is intentionally gated until those money-bearing legacy surfaces are split. Then
+continue the prioritized list/360 reset across Finance, Marketing, Farm, Operations and People. Authenticated
+Storekeeper 390px acceptance remains unclaimed because production has zero Storekeeper memberships. Keep
+automated package publication PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R3e exact Supervisor home — MIGRATED / MERGED / DEPLOYED
 
