@@ -1,5 +1,29 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4c People live; accounting acceptance truth refreshed)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4d Expenses live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4d Expenses workspace + expense 360 — MERGED / DEPLOYED
+
+`/expenses` now renders compact server-side rows for Arabic RTL phone and desktop use while retaining exactly
+one existing `fn_expense_daily_snapshot` call, exact full-register counts and exact monthly totals. Operating
+plus CAPEX spend remains separate from owner drawings. Farm Manager receives no drawing rows, count, amount or
+filter. Each row publishes one next action; missing account state keys off the account ID rather than a hidden
+label. URL-driven search covers the bounded latest records and says so explicitly when the exact result set is
+larger. Expense 360 accepts only validated `/expenses` list context and carries it through tabs and date repair.
+
+PR #1051 merged as `3d366ee49b10da95a77dc1fb9a1c218c5f79bab0`. Exact-merge CI `32627663641`,
+db-tests `32627663631`, release `32627663624` and Production deployment `6045931084` succeeded. `/login`
+returns 200; signed-out workspace and detail routes return 307 to `/login`. Evidence: focused tests 74/74;
+Vitest 2,301 plus 17 controlled skips; TypeScript; full ESLint; 70-page build; client-boundary, service-role and
+Recharts guards; dependency audit with zero vulnerabilities; independent review; and 390px/1,440px RTL checks
+with no horizontal overflow. Migration N/A; no schema, access or business row changed.
+
+**Exact resume point:** implement R4e as a UI-only `/transactions` unified-ledger reset. Replace the current
+six-column client table with compact server-rendered rows, fix truthful record targets, add validated list
+context and one row-level next action, and preserve the existing bounded merged snapshot. Do not invent a
+collection 360 or widen the RPC in that slice. Authenticated Owner/Accountant/Farm Manager expense acceptance
+and the full 44-workflow accounting run remain open. Accounting remains about 99.5%, not 100%; the 698 human
+decisions, workbook dual run, exception resolution and signatures are still mandatory. Keep package PR #1025
+separate.
 
 ## 2026-08-23 — R4c People live; accounting acceptance truth reverified
 

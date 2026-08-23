@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (R4c People live; accounting acceptance truth refreshed). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (R4d Expenses live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R4d EXPENSES WORKSPACE + EXPENSE 360: MERGED / DEPLOYED.**
+PR #1051 merged as `3d366ee49b10da95a77dc1fb9a1c218c5f79bab0`. `/expenses` now uses compact
+server-rendered rows with one clear next action while retaining its existing exact one-RPC snapshot, exact
+full-register counts and exact monthly totals. Non-drawing spend remains separate from owner drawings; Farm
+Manager receives no drawing rows or figures. Bounded search is disclosed, and expense 360 validates and
+preserves register return context. Exact-merge CI `32627663641`, db-tests `32627663631`, release `32627663624`
+and Production deployment `6045931084` passed. Local evidence: 74 focused tests; Vitest 2,301 plus 17 skips;
+TypeScript, ESLint, 70-page build, guards, zero-vulnerability audit, independent review and phone/desktop
+zero-overflow checks. Signed-out routes redirect to `/login`. Migration N/A; authenticated role and real-record
+acceptance remain open. This release does not change the accounting acceptance state below.
 
 **2026-08-23 — CURRENT ACCOUNTING ACCEPTANCE TRUTH.**
 The dependable-daily software release remains live and its automated baseline remains green. Production has one
