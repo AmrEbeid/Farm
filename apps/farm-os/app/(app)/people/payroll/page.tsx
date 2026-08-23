@@ -1,141 +1,74 @@
-// «إقفال الرواتب» — the owner/accountant surface for SPEC-0006 slice 3.
+// R4b — «إقفال الرواتب» workspace. ONE exact, bounded, active-organisation snapshot per page view.
+// Nothing on this route reads payroll_runs/payroll_run_lines directly any more.
+//
+// WHAT REPLACED WHAT. The old page read `payroll_runs` and `payroll_run_lines` directly via
+// PostgREST (lib/payroll-report.ts's `loadPayrollRunHistory`), re-implementing its own bounded read,
+// its own auth re-check, and its own reconciliation-free line count. `fn_payroll_workspace_snapshot`
+// (migration 20260823150000) now decides all three in PostgreSQL: an exact run count and an exact
+// all-runs gross total, published separately from one deterministically ordered limit/offset page,
+// with every run's `total_gross` re-verified against its own stored lines before any of it is served.
 //
 // WHAT IT IS AND IS NOT. Closing a period freezes an IMMUTABLE gross-pay snapshot for reporting and
-// freezes that period's attendance against later edits. It moves NO money and posts NO journal
-// entry. That boundary is stated on the page itself, not only in a spec, because "إقفال الرواتب"
-// otherwise reads like "pay the workers".
+// freezes that period's attendance against later edits. It moves NO money and posts NO journal entry.
 //
-// ACCESS. owner/accountant only (`requireRole`), matching the payroll.read RLS on both tables. The
-// nav entry carries the same two roles, so the page never appears to anyone who would be redirected.
-//
-// The history is bounded (PAYROLL_RUN_HISTORY_LIMIT), org-scoped to the SERVER session's active org,
-// and reads its line counts in ONE extra query — never one per run.
+// ACCESS. owner/accountant only (`requireRole`), matching the payroll.read RLS on both tables and the
+// snapshot RPC's own re-check of the same permission.
 
-import type { ReactNode } from "react";
-import Link from "next/link";
-import { Lock } from "lucide-react";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { fmtDate, fmtDateTime } from "@/lib/dates";
-import { egp, num } from "@/lib/money";
-import { PrintButton } from "@/components/print-button";
-import { Alert, EmptyState } from "@/components/ui";
 import { cairoTodayIso } from "@/lib/payroll-close";
-import { PAYROLL_RUN_HISTORY_LIMIT, loadPayrollRunHistory } from "@/lib/payroll-report";
+import { PAYROLL_WORKSPACE_PAGE_SIZE, parsePayrollWorkspaceSnapshot } from "@/lib/payroll-snapshot-reads";
+import {
+  payrollPageCount,
+  payrollWorkspaceHref,
+  payrollWorkspaceOffset,
+  readPayrollWorkspaceRequest,
+} from "@/lib/payroll-workspace-context";
 import { PayrollCloseForm } from "./close-form";
+import { PayrollWorkspaceView } from "./payroll-workspace-view";
 
 export const dynamic = "force-dynamic";
 
-const mutedStyle = { color: "var(--ink-muted)" } as const;
-const boxStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
-const cellStyle = { borderBottom: "1px solid var(--line)" } as const;
-
-/** The report column carries a visually-hidden header: the cell itself holds only the link. */
-const HISTORY_COLUMNS = [
-  { key: "period", label: "الفترة", visuallyHidden: false },
-  { key: "closed-at", label: "وقت الإقفال", visuallyHidden: false },
-  { key: "total", label: "إجمالي الأجور", visuallyHidden: false },
-  { key: "lines", label: "عدد السطور", visuallyHidden: false },
-  { key: "report", label: "التقرير", visuallyHidden: true },
-] as const;
-
-const linkStyle = { border: "1px solid var(--line)", color: "var(--ink)" } as const;
-
-function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link href={href} className="rounded-md px-3 py-1 text-sm" style={linkStyle}>
-      {children}
-    </Link>
-  );
-}
-
-export default async function PayrollPage() {
+export default async function PayrollPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const m = await requireRole(["owner", "accountant"]);
-  const sb = await createClient();
-  const history = await loadPayrollRunHistory(sb, m.orgId);
+  // The url is normalised to exactly one spelling of this workspace state before anything is read —
+  // a stale or hostile `?page=` can never be echoed back into a link. `redirect` throws, so nothing
+  // below this line runs on the discarded spelling.
+  const { context, redirectTo } = readPayrollWorkspaceRequest(await searchParams);
+  if (redirectTo) redirect(redirectTo);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_payroll_workspace_snapshot", {
+    p_org: m.orgId,
+    p_limit: PAYROLL_WORKSPACE_PAGE_SIZE,
+    p_offset: payrollWorkspaceOffset(context.page, PAYROLL_WORKSPACE_PAGE_SIZE),
+  });
+  // A read failure reaches the segment error boundary rather than rendering an empty workspace.
+  if (error) throw error;
+  const snapshot = parsePayrollWorkspaceSnapshot(data, {
+    orgId: m.orgId,
+    limit: PAYROLL_WORKSPACE_PAGE_SIZE,
+    offset: payrollWorkspaceOffset(context.page, PAYROLL_WORKSPACE_PAGE_SIZE),
+  });
+  const pageCount = payrollPageCount(snapshot.counts.totalRuns, snapshot.limit);
+  // A stale bookmark can point beyond the now-smaller exact run count. Canonicalize to the last real
+  // page instead of showing an empty history while claiming closed runs exist.
+  if (context.page > pageCount) {
+    redirect(payrollWorkspaceHref({ page: pageCount }));
+  }
+
   const todayIso = cairoTodayIso();
-  const canOpenAttendance = m.role === "owner";
-
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h1 className="text-xl font-bold">إقفال الرواتب</h1>
-        <span className="text-xs" style={mutedStyle}>
-          آخر {num(PAYROLL_RUN_HISTORY_LIMIT)} فترة مُقفلة في هذه المؤسسة.
-        </span>
-        <div className="no-print ms-auto flex flex-wrap items-center gap-2">
-          <PrintButton label="طباعة سجل الإقفالات" />
-          {/* The close prices against saved rates and recorded attendance; both are one click away,
-              and a missing rate is the single most common reason a close is refused. Attendance is a
-              labor.write surface, so an accountant would be redirected — only the owner is offered it. */}
-          <HeaderLink href="/people/payroll/compensation">أجور الفريق</HeaderLink>
-          {canOpenAttendance && <HeaderLink href="/people/attendance">تسجيل الحضور</HeaderLink>}
-        </div>
-      </header>
-
-      <p className="flex items-start gap-2 rounded-md p-3 text-xs" style={boxStyle}>
-        <Lock aria-hidden="true" size={14} className="mt-0.5 shrink-0" />
-        <span>
-          الإقفال يُجمّد لقطة أجور غير قابلة للتعديل بغرض التقارير فقط — لا يصرف أي مبلغ ولا يُنشئ أي
-          قيد محاسبي. الصرف والقيد يبقيان في مسارَيهما المنفصلين.
-        </span>
-      </p>
-
-      <PayrollCloseForm todayIso={todayIso} />
-
-      <section className="flex flex-col gap-2" aria-labelledby="payroll-history-heading">
-        <h2 id="payroll-history-heading" className="text-base font-bold">
-          الإقفالات السابقة
-        </h2>
-
-        {!history.ok ? (
-          <Alert tone="danger" title="لم يُعرض السجل" description={history.error} />
-        ) : history.runs.length === 0 ? (
-          <EmptyState title="لا توجد فترات مُقفلة بعد" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-sm" style={boxStyle}>
-              <caption className="sr-only">سجل فترات الرواتب المُقفلة</caption>
-              <thead>
-                <tr>
-                  {HISTORY_COLUMNS.map((column) => (
-                    <th key={column.key} scope="col" className="p-2 text-start font-semibold" style={cellStyle}>
-                      {column.visuallyHidden ? <span className="sr-only">{column.label}</span> : column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {history.runs.map((run) => (
-                  <tr key={run.id}>
-                    <td className="p-2" style={cellStyle}>
-                      {fmtDate(run.periodStart)} — {fmtDate(run.periodEnd)}
-                    </td>
-                    <td className="p-2" style={cellStyle}>
-                      {fmtDateTime(run.closedAt)}
-                    </td>
-                    <td className="p-2 tabular-nums" style={cellStyle}>
-                      {egp(run.totalGross)}
-                    </td>
-                    <td className="p-2 tabular-nums" style={cellStyle}>
-                      {num(run.lineCount)}
-                    </td>
-                    <td className="no-print p-2" style={cellStyle}>
-                      <Link
-                        href={`/people/payroll/${run.id}`}
-                        className="font-bold underline underline-offset-4"
-                        style={{ color: "var(--brand)" }}
-                      >
-                        التقرير ←
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </div>
+    <PayrollWorkspaceView
+      snapshot={snapshot}
+      context={context}
+      canOpenAttendance={m.role === "owner"}
+      closeForm={<PayrollCloseForm todayIso={todayIso} />}
+    />
   );
 }

@@ -17,6 +17,73 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Payroll workspace and run 360 R4b — CANDIDATE (not released)
+
+*Implemented against local migration `20260823150000_exact_payroll_workspace_and_run_snapshots.sql`
+(not yet applied to any hosted environment). Release evidence, hosted migration id and production
+acceptance are recorded separately once integration, migration and release are complete.*
+
+**The read path this replaces.** `/people/payroll` and `/people/payroll/[runId]` both read
+`payroll_runs`/`payroll_run_lines` directly via PostgREST (`lib/payroll-report.ts`'s
+`loadPayrollRunHistory`/`loadPayrollRunDetail`), re-implementing their own bounded read, their own
+auth re-check and their own line count with no reconciliation against the run's own frozen total.
+Both routes now read exactly one PostgreSQL function each — `fn_payroll_workspace_snapshot` for the
+run history, `fn_payroll_run_snapshot` for one run's frozen detail — and `lib/payroll-report.ts`'s
+direct-table loaders are retired in the same change; the module keeps only its pure wage-mode/unit
+label vocabulary and the `isUuid` re-export.
+
+**A closed run with zero stored lines is corruption, never a valid zero run.**
+`fn_close_payroll_run` itself refuses an empty crew before its first write (SPEC-0006 slice 3), and
+the report this replaces already refused to render a run whose lines read back empty. A recorded
+`payroll_runs` row with no `payroll_run_lines` behind it can therefore only mean the write path was
+bypassed, so both snapshot functions fail the read closed (23514) when any selected run has zero
+lines — in addition to the existing cross-org line-reference check and the `total_gross`/line-sum
+reconciliation check both functions already carried from pass 1.
+
+**Honesty.** The workspace publishes an exact run count and an exact all-runs gross total SEPARATELY
+from one deterministically ordered limit/offset page (newest payroll period first, id as the
+final tiebreak); the run 360 publishes an exact line count separately from a bounded page of its own
+frozen lines. Every figure and displayed worker name is read from the immutable payroll line; the new
+insert trigger freezes `people.name` into `person_name_snapshot` when each line is created. Values are
+NEVER recomputed from a current wage rate — a rate edited after a close can never change what a past
+run reports. Counts and decimals leave PostgreSQL as text, because a JS number cannot represent every
+bigint and a binary double cannot represent every `numeric`.
+
+**Ordering is a database contract, not a client re-check.** Frozen lines are ordered by person name in
+SQL and proven in pgTAP; the TypeScript parser does not re-compare `person_name` with JavaScript `<`,
+because PostgreSQL collation and JS UTF-16 code-unit ordering can disagree for Arabic names — a
+client-side re-check would reject a correctly ordered page. `closed_at` is validated as a real
+parseable timestamp (not merely nonempty text), and the "is this page the whole run?" reconciliation
+compare stays in BigInt space end to end, never widening an exact count through `Number(BigInt(...))`.
+
+**Not found means not found.** `fn_payroll_run_snapshot` returns SQL NULL for a run outside the active
+organisation — the same answer as a run id that exists nowhere — so the 404 can never be read as "this
+run exists, but not for you".
+
+**No contact PII, no closer identity.** Only the stored close-time worker-name snapshot is published;
+the read payload never joins today's `people.name`, and `payroll_runs.closed_by` is never published.
+
+**The pages.** `/people/payroll` keeps its close form and the reporting-only boundary text
+("لا يصرف أي مبلغ ولا يُنشئ أي قيد محاسبي") verbatim, adds a compact story line (never closed / has
+history / the legal next action), and replaces its `<table>` history with stacked, mobile-first record
+rows carrying canonical `?page=` pagination and a stale-beyond-last-page redirect
+(`lib/payroll-workspace-context.ts`, mirroring `lib/inventory-list-context.ts`).
+`/people/payroll/[runId]` becomes a real Entity 360 using the shared `Entity360Header`/`EntityTabs`
+(overview + frozen wage lines, URL-driven `?tab=`), with its own bounded, canonically paginated line
+list (`?lines=`) and a `?from=` return path that is parsed, restricted to the payroll workspace path
+and REBUILT from validated parts before it is ever rendered as a link — the caller's bytes never reach
+an href. `/people/payroll/readiness` keeps its existing zero-database-read design and permissions and
+replaces its checklist `<table>` with the same stacked record-row convention; it fabricates no
+completion percentage and infers no pay, as before.
+
+**Deliberately not in this slice, and why:**
+
+- **`fn_close_payroll_run` and its historical migration are untouched.** A new insert trigger freezes
+  the current worker name on the line without changing the close algorithm.
+- **No new dependency and no CSV export.** The two paginated payroll views intentionally have no print
+  action: printing one bounded page beside a full-run total would look like a complete report. The
+  readiness checklist remains printable because it is not paginated.
+
 ### Inventory list and item 360 R4a — RELEASED
 
 *Released by PR #1043 at `091a3655d80bb3e29cfef4a8313b415b98418242`; Farm hosted migration

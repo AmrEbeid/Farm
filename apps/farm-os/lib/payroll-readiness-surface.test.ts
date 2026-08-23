@@ -132,9 +132,12 @@ describe("payroll readiness page — compact, printable, accessible", () => {
     expect(source).toContain('className="no-print flex flex-col gap-2"');
   });
 
-  it("gives the checklist table a caption and real column headers", () => {
-    expect(source).toContain("<caption");
-    expect(source).toContain('scope="col"');
+  it("renders the checklist as phone-safe record blocks, not a raw table", () => {
+    // R4b replaced the raw <table> with stacked <li> record blocks — mobile-first, no horizontal axis.
+    expect(source).not.toContain("<table");
+    expect(source).not.toContain("overflow-x");
+    expect(source).not.toContain("min-w-[");
+    expect(source).toContain("PAYROLL_READINESS_ITEMS.map(");
     expect(source).toContain("التوقيع والتاريخ");
   });
 
