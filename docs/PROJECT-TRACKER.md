@@ -1,4 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4e Transactions live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4f Custody live)
+
+> **2026-08-23 — PRODUCT UI RESET R4f CUSTODY WORKSPACE + MOVEMENT 360 MERGED / DEPLOYED.**
+> `/custody` now leads with the known owner request, current custody cash, unfinished draft/awaiting work and
+> incomplete money instead of seven equal KPIs and write controls. Inactive cash remains visible but inactive
+> targets cannot inflate top-up or enter write selectors. Owner funding requires its actual date. Requests and
+> movements are compact RTL/mobile rows; movement 360 traces expense, request, journal and transfer evidence.
+> PR #1055 merged as `926e04932377aebe3d63cb1f58a0915365907874`; exact-merge CI `32630919330`,
+> db-tests `32630919336`, release `32630919360` and Production deployment `6046477323` passed. Evidence:
+> focused 62/62; Vitest 2,327 plus 17 skips; pgTAP 4,986/4,986; TypeScript, full ESLint, 70-page build, guards,
+> 390px/1,440px zero-overflow QA and independent final APPROVE. Signed-out workspace, movement and request routes
+> redirect to `/login`. Migration N/A; no schema, permission, snapshot, posting definition or business row
+> changed. Authenticated role and real-record acceptance remain open. Accounting remains about 99.5%, not 100%.
 
 > **2026-08-23 — PRODUCT UI RESET R4e TRANSACTIONS WORKSPACE MERGED / DEPLOYED.**
 > `/transactions` is now a compact server-rendered RTL/mobile workspace while preserving one existing bounded

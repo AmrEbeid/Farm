@@ -17,7 +17,12 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Custody workspace and movement 360 R4f — RELEASE CANDIDATE
+### Custody workspace and movement 360 R4f — RELEASED
+
+*Released by PR #1055 at `926e04932377aebe3d63cb1f58a0915365907874`. Exact-merge CI
+`32630919330`, db-tests `32630919336`, release `32630919360` and Production deployment `6046477323`
+succeeded. Signed-out workspace, movement and request routes redirect to `/login`; authenticated
+Owner/Accountant and real-record browser acceptance remain open. Migration N/A.*
 
 R4f rebuilds `/custody` as a compact Owner/Accountant daily workspace. It preserves the single exact bounded
 snapshot and all money/permission contracts while placing the known owner request, custody cash, unfinished draft
@@ -25,9 +30,15 @@ plus awaiting requests and incomplete amounts before secondary controls. Active 
 cash in inactive accounts remains visible but cannot be selected for writes. Requests and movements are
 server-rendered mobile rows with truthful bounded-search disclosure and routes to their full report/source.
 
-The movement 360 adds amount/direction hierarchy, reversal reason and the expense/request/journal/transfer links
-already present in its one org-scoped read. Both owner-funding entry surfaces require and forward the actual date
-through the existing RPC. No migration, schema, permission, money definition or posting path changes.
+The movement 360 adds amount/direction hierarchy, reversal reason and expense/request/journal navigation. Its
+existing org-scoped movement read remains exact; transfer rows add one bounded, org-scoped counterpart lookup.
+Both owner-funding entry surfaces require and forward the actual date through the existing RPC. No migration,
+schema, permission, money definition or posting path changes.
+
+Release evidence: focused tests 62/62; full Vitest 2,327 passed plus 17 controlled skips; Docker-free pgTAP
+4,986/4,986; TypeScript; full ESLint; 70-page production build; client-boundary, service-role and Recharts
+guards; 390px and 1,440px RTL visual checks with no horizontal overflow or console errors; empty `packages/ui`
+diff; and independent review APPROVE after every P1/P2 finding was fixed.
 
 ### Unified transactions workspace R4e — RELEASED
 
