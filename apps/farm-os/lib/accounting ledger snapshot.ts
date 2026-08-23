@@ -155,13 +155,17 @@ export function parseAccountingLedgerSnapshot(value: unknown, expectedOrgId: str
 
   const recentEntries = payload.recent_entries.map((value, index): AccountingRecentEntry => {
     const row = object(value, `recent entry ${index}`);
+    const status = text(row, "status");
+    if (status !== "posted" && status !== "reversed") {
+      throw new Error("accounting ledger snapshot: entry status is invalid");
+    }
     return {
       id: text(row, "id"),
       entry_date: text(row, "entry_date"),
       source_type: text(row, "source_type"),
       source_id: text(row, "source_id"),
       description: nullableText(row, "description"),
-      status: text(row, "status"),
+      status,
       posted_at: text(row, "posted_at"),
       amount: nullableExactMoney(row, "amount"),
     };
@@ -193,6 +197,10 @@ export function parseAccountingLedgerSnapshot(value: unknown, expectedOrgId: str
   const entryIds = new Set(recentEntries.map((entry) => entry.id));
   if (recentLines.some((line) => !entryIds.has(line.journal_entry_id))) {
     throw new Error("accounting ledger snapshot: line does not belong to a returned entry");
+  }
+  const entryIdsWithLines = new Set(recentLines.map((line) => line.journal_entry_id));
+  if (recentEntries.some((entry) => !entryIdsWithLines.has(entry.id))) {
+    throw new Error("accounting ledger snapshot: entry has no line detail");
   }
 
   if (trialBalance.some((row) => row.org_id !== expectedOrgId)) {

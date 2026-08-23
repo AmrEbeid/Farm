@@ -70,6 +70,7 @@ describe("accounting ledger snapshot", () => {
     { ...valid, trial_balance: [{ ...valid.trial_balance[0], debit: 10 }] },
     { ...valid, trial_balance: [{ ...valid.trial_balance[0], active: "yes" }] },
     { ...valid, recent_entries: [{ ...valid.recent_entries[0], amount: 10 }] },
+    { ...valid, recent_entries: [{ ...valid.recent_entries[0], status: "draft" }] },
     { ...valid, recent_lines: [{ ...valid.recent_lines[0], debit: "bad" }] },
     { ...valid, entry_limit: 0 },
   ])("rejects an invalid or inexact payload %#", (payload) => {
@@ -94,6 +95,11 @@ describe("accounting ledger snapshot", () => {
       ...valid,
       recent_lines: [{ ...valid.recent_lines[0], journal_entry_id: "entry-b" }],
     }, "org-a")).toThrow("line does not belong to a returned entry");
+    expect(() => parseAccountingLedgerSnapshot({
+      ...valid,
+      line_count: 0,
+      recent_lines: [],
+    }, "org-a")).toThrow("entry has no line detail");
   });
 
   it("rejects tenant drift and account-link integrity failures", () => {
@@ -108,14 +114,25 @@ describe("accounting ledger snapshot", () => {
 
   it("binds the accounting page to one exact snapshot and no direct ledger reads", () => {
     const source = readFileSync(join(process.cwd(), "app/(app)/accounting/page.tsx"), "utf8");
+    const view = readFileSync(join(process.cwd(), "app/(app)/accounting/accounting-ledger-view.tsx"), "utf8");
     expect(source.match(/sb\.rpc\("fn_accounting_ledger_snapshot"/g) ?? []).toHaveLength(1);
-    expect(source).toContain("parseAccountingLedgerSnapshot(snapshotRes.data, m.orgId)");
+    expect(source).toContain("parseAccountingLedgerSnapshot(snapshotRes.data, member.orgId)");
     expect(source).not.toMatch(/\.from\("(?:accounts|journal_entries|journal_lines)"\)/);
     expect(source).not.toContain("fn_accounting_trial_balance");
-    expect(source).not.toMatch(/Number\((?:row\.)?(?:debit|credit|net|amount)/);
-    expect(source.match(/kind: "money-preserve-exact"/g) ?? []).toHaveLength(6);
-    expect(source).not.toContain('exportFilename="accounting-journal-entries.csv"');
-    expect(source).not.toContain('exportFilename="accounting-journal-lines.csv"');
-    expect(source).toContain('exportFilename="accounting-trial-balance.csv"');
+    expect(view).not.toMatch(/Number\((?:row\.)?(?:debit|credit|net|amount)/);
+    expect(view.match(/kind: "money-preserve-exact"/g) ?? []).toHaveLength(3);
+    expect(view).not.toContain('exportFilename="accounting-journal-entries.csv"');
+    expect(view).not.toContain('exportFilename="accounting-journal-lines.csv"');
+    expect(view).toContain('exportFilename="accounting-trial-balance.csv"');
+    expect(view).toContain("linesByEntry.get(entry.id) ?? []");
+    expect(view).toContain("أحدث {num(snapshot.entryLimit)} قيدًا كحد أقصى");
+    expect(view).toContain('entry.status === "posted"');
+    expect(view).toContain('expense: "إثبات مصروف"');
+    expect(view).toContain('opening_balance: "رصيد افتتاحي"');
+    expect(view).toContain('`قيد محاسبي (${sourceType})`');
+    expect(view).toContain('<section className="print-only" aria-label="دفتر الأستاذ الكامل للطباعة">');
+    expect(view).toContain("وليست سجل القيود التاريخي الكامل");
+    expect(view.match(/<JournalEntry/g) ?? []).toHaveLength(2);
+    expect(view).toContain("<SimpleTable columns={trialCols} rows={trialRows}");
   });
 });
