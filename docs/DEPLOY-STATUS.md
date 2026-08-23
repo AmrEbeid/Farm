@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — R4e TRANSACTIONS WORKSPACE MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #1053 merged as `9848c88abe4f423ecc67966f5e8546856ce197c8`. Exact-merge CI `32629625581`,
+> db-tests `32629625593`, release `32629625566` and Production deployment `6046253023` succeeded at
+> `farm-giz38lovi-amrabdelglill-7962s-projects.vercel.app`. `/login` returns 200; signed-out `/transactions`
+> and expense detail with a Transactions return path return 307 to `/login`. Local evidence: 75/75 focused,
+> Vitest 2,320 plus 17 skips, TypeScript, full ESLint, 70-page build, guards, zero-vulnerability audit,
+> independent review and 390px/1,440px zero-overflow checks. Migration N/A; no schema, RPC, query-count, access,
+> money-definition or business row changed. Authenticated role and real-record acceptance remain pending.
+
 > **2026-08-23 (latest) — R4d EXPENSES WORKSPACE + EXPENSE 360 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1051 merged as `3d366ee49b10da95a77dc1fb9a1c218c5f79bab0`. Exact-merge CI `32627663641`,
 > db-tests `32627663631`, release `32627663624` and Production deployment `6045931084` succeeded at

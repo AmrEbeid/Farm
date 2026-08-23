@@ -17,7 +17,13 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Unified transactions workspace R4e — RELEASE CANDIDATE
+### Unified transactions workspace R4e — RELEASED
+
+*Released by PR #1053 at `9848c88abe4f423ecc67966f5e8546856ce197c8`. Exact-merge CI
+`32629625581`, db-tests `32629625593`, release `32629625566` and Production deployment `6046253023`
+succeeded. Signed-out Transactions and expense-detail return routes redirect to `/login`; authenticated
+Owner/Accountant and real-record browser acceptance remain open because no production session was used.
+Migration N/A.*
 
 `/transactions` keeps exactly one existing `fn_transactions_snapshot` call, its 400-row-per-source bound,
 exact full-register type counts, current Owner/Accountant role gate, party-integrity checks and decimal-text
@@ -35,6 +41,11 @@ old false revenue-report destination is removed. Expense 360 can carry a strictl
 `q`/`type` return state as well as its existing expense-register context. Collection party identity and a
 collection 360 require a future RPC contract and remain deferred rather than invented. This is UI-only and
 requires no migration.
+
+Release evidence: focused tests 75/75; full Vitest 2,320 passed plus 17 controlled skips; TypeScript; full
+ESLint; 70-page production build; client-boundary, service-role and Recharts guards; dependency audit with zero
+vulnerabilities; 390px and 1,440px RTL visual checks with no horizontal overflow or console errors; empty
+`packages/ui` diff; independent review APPROVE after all three P2 findings were fixed.
 
 ### Expenses workspace and expense 360 R4d — RELEASED
 
