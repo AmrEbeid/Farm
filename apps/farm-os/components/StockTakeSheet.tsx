@@ -1,6 +1,6 @@
 "use client";
 
-// The stock-take count-sheet: one row per item showing the SYSTEM on-hand and an input for the PHYSICAL count,
+// The stock-take count-sheet: one row per item/location showing the SYSTEM on-hand and a PHYSICAL-count input,
 // with a live signed variance. On save it reconciles each COUNTED item via the gated recordStockTake action
 // (blank rows are skipped — "not counted", never assumed 0, #1). Honest result summary; on partial failure it
 // keeps the entered counts so nothing is silently lost.
@@ -14,7 +14,12 @@ export interface StockTakeItem {
   id: string;
   name: string;
   unit: string;
+  location: string;
   onHand: number;
+}
+
+function countKey(item: StockTakeItem): string {
+  return `${item.id}:${item.location}`;
 }
 
 export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
@@ -25,7 +30,7 @@ export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
 
   // `entered` is computed over ALL items (not the filtered view) so counts typed under one search term are
   // never lost when the term changes, and the save button reconciles everything the user counted.
-  const entered = items.filter((it) => (counts[it.id] ?? "").trim() !== "");
+  const entered = items.filter((it) => (counts[countKey(it)] ?? "").trim() !== "");
   const q = query.trim();
   const shown = q ? items.filter((it) => it.name.includes(q)) : items;
 
@@ -36,11 +41,11 @@ export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
     let fail = 0;
     const errors: string[] = [];
     for (const it of entered) {
-      const r = await recordStockTake(it.id, Number(counts[it.id]));
+      const r = await recordStockTake(it.id, it.location, Number(counts[countKey(it)]));
       if (r.ok) ok += 1;
       else {
         fail += 1;
-        errors.push(`${it.name}: ${r.error ?? "خطأ"}`);
+        errors.push(`${it.name} (${it.location}): ${r.error ?? "خطأ"}`);
       }
     }
     setResult({ ok, fail, errors });
@@ -76,19 +81,20 @@ export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
           <div className="text-sm" style={{ color: "var(--ink-muted)" }}>لا صنف يطابق «{q}».</div>
         ) : (
           shown.map((it) => {
-          const raw = counts[it.id] ?? "";
+          const key = countKey(it);
+          const raw = counts[key] ?? "";
           const counted = raw.trim() === "" ? null : Number(raw);
           const variance = counted != null && Number.isFinite(counted) ? counted - it.onHand : null;
           return (
             <div
-              key={it.id}
+              key={key}
               className="flex flex-wrap items-center gap-3 border-b pb-2 last:border-0"
               style={{ borderColor: "var(--line)" }}
             >
               <div className="min-w-0 flex-1">
                 <div className="font-bold" style={{ color: "var(--ink)" }}>{it.name}</div>
                 <div className="text-sm" style={{ color: "var(--ink-muted)" }}>
-                  بالنظام: {num(it.onHand)} {it.unit}
+                  الموقع: {it.location} · بالنظام: {num(it.onHand)} {it.unit}
                 </div>
               </div>
               <div style={{ width: "8rem" }}>
@@ -99,7 +105,7 @@ export function StockTakeSheet({ items }: { items: StockTakeItem[] }) {
                   step="any"
                   placeholder="المعدود"
                   value={raw}
-                  onChange={(e) => setCounts((p) => ({ ...p, [it.id]: e.target.value }))}
+                  onChange={(e) => setCounts((p) => ({ ...p, [key]: e.target.value }))}
                 />
               </div>
               {variance != null && variance !== 0 && (

@@ -184,7 +184,13 @@ export const APP_MODULES: AppModule[] = [
         icon: "📦",
         href: "/inventory/dashboard",
       },
-      { id: "inventory", label: "الأصناف", icon: "📦", href: "/inventory" },
+      {
+        id: "inventory",
+        label: "الأصناف",
+        icon: "📦",
+        href: "/inventory",
+        roles: ["owner", "farm_manager", "agri_engineer", "accountant", "supervisor"],
+      },
       { id: "inventory-movements", label: "حركات المخزون", icon: "📜", href: "/inventory/movements" },
       {
         // SPEC-0030 Phase 4 (#778): reconcile the system on-hand to a physical count. Roles match the

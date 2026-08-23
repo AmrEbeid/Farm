@@ -8,6 +8,7 @@ import { type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { PrintButton } from "@/components/print-button";
+import { redirect } from "next/navigation";
 
 type ItemFilter = "all" | "reorder" | "uncosted";
 
@@ -20,7 +21,8 @@ export default async function InventoryListPage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  await requireMembership();
+  const membership = await requireMembership();
+  if (membership.role === "storekeeper") redirect("/inventory/dashboard");
   const sb = await createClient();
   const filter = parseItemFilter((await searchParams).filter);
 

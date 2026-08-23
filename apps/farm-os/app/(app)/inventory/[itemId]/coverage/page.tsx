@@ -10,6 +10,7 @@ import { PrintButton } from "@/components/print-button";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { num, coverageDays } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
+import { redirect } from "next/navigation";
 
 interface Coverage {
   item_id: string;
@@ -139,6 +140,7 @@ export default async function CoveragePage({
 }) {
   const { itemId } = await params;
   const m = await requireMembership();
+  if (m.role === "storekeeper") redirect("/inventory/dashboard");
   // Only inventory.write roles can create the PR/reserve (the action 42501s otherwise) — don't
   // show the button to accountant/supervisor/agri_engineer as a dead-end affordance.
   const canReserve = ["owner", "farm_manager", "storekeeper"].includes(m.role);

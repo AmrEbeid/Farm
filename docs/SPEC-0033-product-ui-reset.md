@@ -17,6 +17,80 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Storekeeper home R3f candidate
+
+*Local candidate. The migration is a draft until the Owner applies it; nothing here is merged or deployed.*
+
+The Storekeeper branch of `/inventory/dashboard` now uses one storekeeper-only, active-organisation
+snapshot, and the legacy multi-table inventory dashboard — every item, every purchase request, every
+supplier, plus two doughnut charts and a filterable work table — no longer runs for this role. Owner,
+farm manager, accountant and agri_engineer keep that dashboard unchanged. The route requires
+membership exactly once and branches before any Supabase client is created, so the storekeeper's page
+issues one RPC and nothing else.
+
+Four KPIs tell the store day: requests ready to receive, requests past their needed-by date, items
+under their recorded reorder threshold, and today's recorded issues. All four are exact counts of
+RECORDED rows, labelled المسجل; none of them claims the store has been counted or that the shelf
+matches the book. Open receipts reconcile strictly twice — receivable plus blocked equals the open
+total, and overdue plus due-today plus upcoming plus undated equals it too — and the parser rejects
+either drift.
+
+Receivability mirrors the CURRENT shipped receipt path rather than inventing gates. `fn_post_receipt`
+as last re-emitted by `20260701210000` and `fn_post_movement` as last re-emitted by `20260701180000`
+were read directly. That leaves exactly one stored blocker: a line with no quantity, which makes the
+RPC raise 22023 for the WHOLE request because its body is a single transaction. A purchase-request
+line unit that differs from the item's tracked unit *looks* like a second blocker and is deliberately
+not treated as one: since `20260701210000` the RPC passes NULL as the movement unit precisely so
+`fn_post_movement` defaults to the item's own unit, so the mismatch can never fire. The snapshot
+publishes `item_unit` — the unit the receipt is actually recorded in — beside the order-line unit
+instead. Over-receipt and concurrent claims depend on typed input and live state, so they are not
+preflighted and the page states the server may still refuse the receipt. The pgTAP fixture proves
+both directions by really calling the RPC: the mismatched-unit request receives, while requests with
+mixed or only unquantified lines stay visible as blocked work and are refused atomically.
+
+**No completed stock-take is claimed or counted, and this is the point of the slice.**
+`fn_record_stock_take` writes no provenance row of its own, and when the physical count matches the
+book its variance is zero and it posts nothing at all. A perfectly matching count is therefore
+indistinguishable from never having counted, and an adjustment row is indistinguishable from an
+ordinary hand-posted correction. Any "stock-takes done" number would be fabricated in the most
+dangerous direction — it would read as "the store has been verified". So الجرد appears on this
+surface only as an available legal action. That action renders one row per item and physical location
+and sends the exact location to `fn_record_stock_take`; it never adds several bins together and writes
+the result into `main`. Adjustment / loss / expiry rows are exposed strictly as bounded recorded
+MOVEMENT evidence over a published seven-day window, never labelled a stock-take. The missing
+stock-take provenance is recorded as a residual gap below, not fixed here.
+
+Current stock is an honest point-in-time reading, not the coverage engine: the sum of EVERY bin of an
+item (`on_hand - reserved`, all locations) against a POSITIVE `coalesce(reorder_point, min_stock)`.
+An item with no bin row at all stays in its own explicit unknown bucket and is never folded into
+zero; an item with no positive recorded threshold is in neither bucket. Money-bearing inventory list,
+item and coverage pages are server-gated away from Storekeeper and are no longer linked from this home;
+their role-safe list/360 replacement belongs to R4.
+
+The page is Arabic-RTL phone-first: attention and the two primary actions come before the numbers, at
+most four KPIs, no charts, no card wall, no oversized header, no money anywhere, and every control at
+least 44px. Direct actions are the role-safe routes only — `/m/receive`, `/inventory/stock-take` and
+`/inventory/movements`. A receipt row never drills into the
+purchase-request detail route, which renders an estimated spend figure and a per-line money column to
+any member. The record launcher stays receive-only for this role and both storekeeper receive
+back-links stay legal. The reports hub no longer advertises the `/plans/dashboard` card to
+Storekeeper or Supervisor — the route's own `requireRole` denies both, so it was a dead card that also
+advertised a money-bearing page to roles that must never see it.
+
+An active-organisation child whose request, item or movement parent belongs elsewhere fails closed;
+reverse foreign-child relationships cannot enter the active-org snapshot and remain prohibited by the
+database cross-org write invariants. No person and no counterparty identity appears anywhere in the contract. Exact recorded counts
+and driver rows stay visible whatever the inventory authority says, while every completeness or
+all-clear claim stays gated on verified authority.
+
+Residual gaps recorded, not fixed by this slice:
+- **Stock-take provenance is missing.** There is no stored row recording that a physical count
+  happened, who made it, when, or over which items — so a completed stock-take can never be counted,
+  reported or audited. Closing it needs a new audited table plus a change to `fn_record_stock_take`;
+  that is an inventory-integrity migration in its own right and is deliberately not bundled here.
+Not yet done: hosted migration, merge, deployment and authenticated Storekeeper browser acceptance at
+390px. Release-state documents are not updated by this candidate.
+
 ### Supervisor home R3e released
 
 The Supervisor branch of `/m` now uses one supervisor-only, active-organisation snapshot, and the
@@ -447,7 +521,7 @@ R3 owner/accountant slice contract:
 - the accountant finance home starts with actionable finance queues and four daily measures from its existing
   atomic snapshot; the deeper unposted/unpriced/reconciliation/receivables/period comparison contract remains a
   later R3 snapshot extension and is not claimed complete by this slice;
-- manager and agronomist are released; the supervisor home is an unapplied local candidate; the storekeeper role home remains a later R3 release.
+- manager, agronomist and supervisor are released; the storekeeper home is an unapplied local candidate, so no R3 role home remains unstarted.
 
 ### R4 — Lists, workspaces and 360 pages
 
