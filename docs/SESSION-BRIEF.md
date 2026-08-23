@@ -1,5 +1,34 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4h General Ledger live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4i Chart of Accounts live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4i Chart of Accounts — MIGRATED / MERGED / DEPLOYED
+
+`/finance/accounts` now uses one exact `fn_chart_of_accounts_snapshot` call rather than reading
+`v_account_rollup` and summing money in JavaScript. PostgreSQL returns posted-only balances as decimal text,
+binds finance access to the caller's organization membership and fails closed on cross-organization parents or
+journals, cycles/depth above four, and parent/child account classification drift. The parser independently
+reconciles every shape, balance, count, root total and hierarchy. Existing save/archive/merge RPCs and all
+posting paths are byte-unchanged.
+
+The screen is a compact Arabic RTL hierarchy rather than an 860px table. It exposes active/posting counts and
+posted operating, CAPEX and drawings balances, keeps archived accounts available on demand, and renders write
+actions only when the snapshot grants `budget.write`. Hosted migration
+`20260823113659 exact_chart_of_accounts_snapshot` preserved the production baseline of 31 accounts, 10,201
+expenses, 10,365 journal entries and 20,730 journal lines. Its intentional authenticated SECURITY DEFINER read
+warning is covered by explicit tenant, `finance.read`, grant and security-invariant tests.
+
+PR #1061 merged as `3158154cfaae687e230a2aec51d79cd22a0ce6e4`; exact-main CI `32637072052`, db-tests
+`32637072045`, release `32637072041` and Production deployment `6047528426` passed. `/login` is 200 and
+signed-out `/finance/accounts` is 307 to `/login`. Evidence: focused parser 5/5; Vitest 2,335 plus 17 controlled
+skips; Docker-free pgTAP 5,037/5,037; TypeScript; full ESLint; 70-page build; service-role, Recharts,
+client/server, Impeccable and gitleaks guards; zero-vulnerability audit; 390px/1,440px RTL shell probes; and
+independent rereview APPROVE after one P1 and one P2 were fixed.
+
+**Exact resume point:** R4j must audit and rebuild `/finance/reports` plus `/finance/cost-centers/[id]` as the
+cost-center reporting workspace and cost-center 360 without changing posted-money definitions or exact summary
+contracts. Authenticated Owner/Accountant R4i acceptance and the 44-workflow accounting run remain open.
+Accounting remains about 99.5%, not 100%; the 698 human decisions, workbook dual run, exception resolution and
+signatures remain mandatory. Keep package PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R4h General Ledger — MERGED / DEPLOYED
 

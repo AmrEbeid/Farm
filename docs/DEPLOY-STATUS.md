@@ -2,6 +2,19 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — R4i CHART OF ACCOUNTS MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260823113659 exact_chart_of_accounts_snapshot` adds one exact posted-only finance
+> snapshot with tenant, hierarchy, classification and journal-integrity gates. Pre/postflight matched 31
+> accounts, 10,201 expenses, 10,365 journal entries and 20,730 lines. Function metadata is stable,
+> SECURITY DEFINER with empty search path, anonymous execute revoked and authenticated execute granted behind
+> membership plus `finance.read`; definition md5 is `b3eb7cfdb28df5c118fd79c25e46ccd0`. PR #1061 merged as
+> `3158154cfaae687e230a2aec51d79cd22a0ce6e4`. Exact-main CI `32637072052`, db-tests `32637072045`, release
+> `32637072041` and Production deployment `6047528426` succeeded at
+> `farm-r1v7hm2tv-amrabdelglill-7962s-projects.vercel.app`. `/login` returns 200 and signed-out
+> `/finance/accounts` returns 307 to `/login`. Evidence: Vitest 2,335 plus 17 skips, pgTAP 5,037/5,037,
+> TypeScript, full ESLint, 70-page build, repository guards, gitleaks, zero-vulnerability audit, independent
+> rereview APPROVE and 390px/1,440px zero-overflow probes. Authenticated Owner/Accountant acceptance remains open.
+
 > **2026-08-23 (latest) — R4h GENERAL LEDGER WORKSPACE MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1059 merged as `165f751f8dabd4ccc7bdaf4edadacb95ebda6dda`. Exact-main CI `32635498018`,
 > db-tests `32635498006`, release `32635498029` and Production deployment `6047244897` succeeded.

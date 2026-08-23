@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4f Custody live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4i Chart of Accounts live)
+
+> **2026-08-23 — PRODUCT UI RESET R4i CHART OF ACCOUNTS MIGRATED / MERGED / DEPLOYED.**
+> `/finance/accounts` now reads one exact posted-only active-organization snapshot instead of the legacy
+> `v_account_rollup` view and JavaScript floating-point sums. The compact Arabic hierarchy works without a
+> horizontal table, preserves decimal text, hides writes when `budget.write` is absent and fails closed on
+> tenant, journal, hierarchy and account-classification corruption. Existing save/archive/merge and posting
+> paths are unchanged. Hosted migration `20260823113659 exact_chart_of_accounts_snapshot` is live; pre/postflight
+> kept 31 accounts, 10,201 expenses, 10,365 journal entries and 20,730 lines unchanged. PR #1061 merged as
+> `3158154cfaae687e230a2aec51d79cd22a0ce6e4`; exact-main CI `32637072052`, db-tests `32637072045`, release
+> `32637072041` and Production deployment `6047528426` passed. Evidence: Vitest 2,335 plus 17 skips; pgTAP
+> 5,037/5,037; TypeScript, ESLint, 70-page build, guards, gitleaks, zero-vulnerability audit, 390px/1,440px QA
+> and independent rereview APPROVE. Signed-out `/finance/accounts` redirects to `/login`; authenticated
+> Owner/Accountant and real-record acceptance remain open. Accounting remains about 99.5%, not 100%.
+> **Next:** R4j cost-center reports and cost-center 360. Keep package PR #1025 separate.
 
 > **2026-08-23 — PRODUCT UI RESET R4f CUSTODY WORKSPACE + MOVEMENT 360 MERGED / DEPLOYED.**
 > `/custody` now leads with the known owner request, current custody cash, unfinished draft/awaiting work and

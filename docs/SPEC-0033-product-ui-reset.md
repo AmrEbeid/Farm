@@ -17,6 +17,27 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Chart of Accounts workspace R4i — RELEASED
+
+R4i rebuilds `/finance/accounts` around one exact `fn_chart_of_accounts_snapshot` call. The snapshot is
+posted-only, active-organization scoped, exact-decimal text and capability shaped. It fails closed on
+cross-organization account/journal relationships, cycles, depth above four and parent/child account type or
+kind drift. The TypeScript parser independently verifies exact shape, balances, counts, hierarchy and root
+totals. Existing save/archive/merge RPCs and every posting path remain unchanged.
+
+The former 860px-wide table and browser floating-point totals are removed. The page now uses a compact Arabic
+hierarchy that stacks at 390px, keeps archived accounts available through one checkbox and shows edits only to
+callers with `budget.write`. Posted operating, CAPEX and drawings balances remain explicitly separate.
+
+Release evidence: focused parser 5/5; full Vitest 2,335 plus 17 controlled skips; Docker-free pgTAP
+5,037/5,037; TypeScript; full ESLint; 70-page build; service-role, Recharts, client/server, Impeccable and
+gitleaks guards; zero-vulnerability dependency audit; 390px and 1,440px RTL shell checks with no overflow or
+console errors; and independent rereview `APPROVE`. Hosted migration
+`20260823113659 exact_chart_of_accounts_snapshot` preserved 31 accounts, 10,201 expenses, 10,365 journal
+entries and 20,730 lines. PR #1061 merged at `3158154cfaae687e230a2aec51d79cd22a0ce6e4`; exact-main CI
+`32637072052`, db-tests `32637072045`, release `32637072041` and Production deployment `6047528426` passed.
+Signed-out routing is verified; authenticated Owner/Accountant and real-record acceptance remain open.
+
 ### General Ledger workspace R4h — RELEASED
 
 R4h rebuilds `/accounting` as a compact Owner/Accountant daily ledger while preserving exactly one existing
