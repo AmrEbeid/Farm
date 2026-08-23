@@ -1,8 +1,27 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (Product UI reset R4a exact inventory list and item 360 live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (Product UI reset R4b exact payroll workspace and run 360 live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R4b EXACT PAYROLL WORKSPACE + RUN 360: MIGRATED / MERGED / DEPLOYED.**
+`/people/payroll` and `/people/payroll/[runId]` now use exact, bounded, active-organization snapshots with
+`payroll.read` re-checked inside PostgreSQL. Historical amounts and worker names come only from immutable run
+lines; the migration made `person_name_snapshot` mandatory and added a locked-down insert trigger so a later
+rename cannot rewrite a closed report. Both pages use phone-safe record rows, run detail uses the shared 360
+header/tabs, and bounded pages expose no misleading partial-print action. Closing still moves no money and
+posts no journal entry.
+
+Hosted Farm migration `20260823044312 exact_payroll_workspace_and_run_snapshots` passed unchanged-count,
+metadata, grant, trigger, function-definition and close-function-hash postflight. PR #1045 merged as
+`181e761ec35cd089ac669226e26a93ba9f61a847`; exact-merge CI, db-tests, release, gitleaks and Vercel succeeded.
+Signed-out payroll workspace, run and readiness routes redirect to `/login`. Evidence: independent final
+APPROVE; pgTAP 4,832/4,832; Vitest 2,193 plus 17 controlled skips; UI tests 305/305; TypeScript, ESLint,
+70-page build, Storybook, guards and 390px/1,440px zero-overflow fixtures green. Production still has zero
+payroll runs, run lines, compensation rows and labor logs, so authenticated Owner/Accountant workflow and
+real-data acceptance remain open and payroll is not 100%. No new payroll-object advisor issue was observed;
+the pre-existing advisor baseline remains. Next: the next prioritized R4 list/360 workspace; package PR #1025
+remains separate.
 
 **2026-08-23 — PRODUCT UI RESET R4a EXACT INVENTORY LIST + ITEM 360: MIGRATED / MERGED / DEPLOYED.**
 `/inventory` and `/inventory/[itemId]` now use one exact, bounded active-organization snapshot each. Stock is

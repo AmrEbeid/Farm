@@ -2,6 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — Product UI reset R4b payroll workspace + run 360 MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260823044312 exact_payroll_workspace_and_run_snapshots` added exact bounded payroll
+> snapshots plus mandatory frozen worker names and their locked-down insert trigger. Postflight kept payroll
+> run, line, compensation and labor counts at zero; verified grants/metadata, frozen-name reads and unchanged
+> close-function md5 `6054050dedec0fc648c9bfb4a1f20550`. PR #1045 merged as
+> `181e761ec35cd089ac669226e26a93ba9f61a847`; exact-merge CI, db-tests, release, gitleaks and Vercel target
+> `6UxTG2NvkKy8j9or64dpajhHSPpz` succeeded. `ebeidfarm.business` returns 307 to `/login` for signed-out payroll
+> workspace, run and readiness routes; `/login` returns 200. Independent review, pgTAP 4,832/4,832, 2,193
+> Vitest passes plus 17 skips, UI 305/305, TypeScript, ESLint, 70-page build, Storybook, guards and phone/desktop
+> fixtures passed. Authenticated Owner/Accountant and real-data acceptance remain pending; payroll is not 100%.
+> No new payroll-object advisor issue was observed against the pre-existing advisor baseline.
+
 > **2026-08-23 (latest) — Product UI reset R4a inventory list + item 360 MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260823031608 exact_inventory_list_and_item_snapshots` adds exact bounded inventory
 > list and item snapshots. Postflight proved both are invoker/stable/empty-search-path/authenticated-only,

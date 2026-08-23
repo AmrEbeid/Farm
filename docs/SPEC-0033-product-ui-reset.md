@@ -17,11 +17,13 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Payroll workspace and run 360 R4b — CANDIDATE (not released)
+### Payroll workspace and run 360 R4b — RELEASED
 
-*Implemented against local migration `20260823150000_exact_payroll_workspace_and_run_snapshots.sql`
-(not yet applied to any hosted environment). Release evidence, hosted migration id and production
-acceptance are recorded separately once integration, migration and release are complete.*
+*Released by PR #1045 at `181e761ec35cd089ac669226e26a93ba9f61a847`. Source migration
+`20260823150000_exact_payroll_workspace_and_run_snapshots.sql` is live on Farm as hosted migration
+`20260823044312 exact_payroll_workspace_and_run_snapshots`. Signed-out production routing is verified;
+authenticated Owner/Accountant workflow and real-data acceptance remain open because all four payroll source
+tables are empty. Payroll is not 100%.*
 
 **The read path this replaces.** `/people/payroll` and `/people/payroll/[runId]` both read
 `payroll_runs`/`payroll_run_lines` directly via PostgREST (`lib/payroll-report.ts`'s

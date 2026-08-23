@@ -1,5 +1,28 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R4a inventory list/360 live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R4b payroll workspace/run 360 live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4b exact payroll workspace + run 360 — MIGRATED / MERGED / DEPLOYED
+
+`/people/payroll` and `/people/payroll/[runId]` now read exactly one bounded active-organization snapshot each,
+with `payroll.read` re-checked in PostgreSQL. Frozen run lines remain the only money source, and mandatory
+`person_name_snapshot` plus its locked-down insert trigger prevents later worker renames from changing history.
+Both pages use phone-safe stacked rows; run detail uses the shared 360 header and URL tabs. Bounded partial
+printing was removed, while the zero-read readiness checklist stays printable. Closing still freezes reporting
+only: no cash movement and no journal posting.
+
+Farm-only migration `20260823044312 exact_payroll_workspace_and_run_snapshots` is live. Pre/postflight kept
+payroll runs, lines, compensation and labor counts at zero; verified snapshot metadata/grants, the mandatory
+name snapshot and trigger, frozen-name reads and an unchanged close-function md5
+`6054050dedec0fc648c9bfb4a1f20550`. PR #1045 merged as
+`181e761ec35cd089ac669226e26a93ba9f61a847`; merged-SHA CI, db-tests, release, gitleaks and Vercel succeeded.
+Signed-out payroll workspace, run and readiness routes return 307 to `/login`. Evidence: independent final
+APPROVE; pgTAP 4,832/4,832; Vitest 2,193 plus 17 skips; UI 305/305; TypeScript, ESLint, 70-page build,
+Storybook, guards and 390px/1,440px zero-overflow fixtures green.
+
+**Exact resume point:** select and audit the next prioritized R4 list/360 workspace without reopening R4a or
+R4b. Authenticated Owner/Accountant workflow acceptance and all real payroll-data acceptance remain unclaimed;
+payroll is not 100%. The advisor baseline remains open, with no new payroll-object issue observed. Keep package
+PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R4a exact inventory list + item 360 — MIGRATED / MERGED / DEPLOYED
 
