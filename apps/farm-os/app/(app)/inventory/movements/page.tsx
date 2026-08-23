@@ -11,8 +11,7 @@ import { MOVEMENT_TYPE_AR } from "@/lib/labels";
 import { parseMovementGroup, typesForGroup, type MovementGroup } from "@/lib/movements-console";
 
 /**
- * Cross-item movements ledger (INVENTORY-360 gap #6): the owner-verifier's
- * audit view. KPI chips count the last 30 days by group (dedicated aggregate
+ * Cross-item movements ledger (INVENTORY-360 gap #6). KPI chips count the last 30 days by group (dedicated aggregate
  * query — not capped by the table window); the table shows the most recent
  * rows for the selected group, honestly labeled. Read-only; the append-only
  * ledger stays untouched. Actor («بواسطة») deliberately absent: movements
@@ -27,7 +26,8 @@ export default async function InventoryMovementsPage({
 }: {
   searchParams: Promise<{ type?: string }>;
 }) {
-  await requireMembership();
+  const membership = await requireMembership();
+  const operational = membership.role === "storekeeper";
   const sb = await createClient();
   const group = parseMovementGroup((await searchParams).type);
 
@@ -51,15 +51,77 @@ export default async function InventoryMovementsPage({
   ];
 
   // Table window: most recent rows for the selected chip.
-  let query = sb
-    .from("inventory_movements")
-    .select("id, type, qty, unit, location, occurred_at, expiry_date, batch_no, inventory_items(id, name), suppliers(name)")
-    .order("occurred_at", { ascending: false })
-    .limit(TABLE_WINDOW);
   const types = typesForGroup(group);
-  if (types) query = query.in("type", types);
-  const { data: movements, error } = await query;
-  if (error) throw error;
+  const baseSelection = "id, type, qty, unit, location, occurred_at, expiry_date, batch_no, inventory_items(id, name)";
+
+  // Storekeepers receive an operational query shape. Supplier identity is not selected and therefore
+  // cannot appear in the RSC payload or browser network response; other roles keep the existing audit view.
+  let movements: Array<{
+    id: string;
+    type: string;
+    qty: number;
+    unit: string | null;
+    location: string | null;
+    occurredAt: string;
+    expiryDate: string | null;
+    batchNo: string | null;
+    itemId: string | null;
+    itemName: string | null;
+    supplierName: string | null;
+  }>;
+
+  if (operational) {
+    let query = sb
+      .from("inventory_movements")
+      .select(baseSelection)
+      .order("occurred_at", { ascending: false })
+      .limit(TABLE_WINDOW);
+    if (types) query = query.in("type", types);
+    const { data, error } = await query;
+    if (error) throw error;
+    movements = (data ?? []).map((mv) => {
+      const item = Array.isArray(mv.inventory_items) ? mv.inventory_items[0] : mv.inventory_items;
+      return {
+        id: mv.id,
+        type: mv.type,
+        qty: Number(mv.qty),
+        unit: mv.unit,
+        location: mv.location,
+        occurredAt: mv.occurred_at,
+        expiryDate: mv.expiry_date,
+        batchNo: mv.batch_no,
+        itemId: item?.id ?? null,
+        itemName: item?.name ?? null,
+        supplierName: null,
+      };
+    });
+  } else {
+    let query = sb
+      .from("inventory_movements")
+      .select(`${baseSelection}, suppliers(name)`)
+      .order("occurred_at", { ascending: false })
+      .limit(TABLE_WINDOW);
+    if (types) query = query.in("type", types);
+    const { data, error } = await query;
+    if (error) throw error;
+    movements = (data ?? []).map((mv) => {
+      const item = Array.isArray(mv.inventory_items) ? mv.inventory_items[0] : mv.inventory_items;
+      const supplier = Array.isArray(mv.suppliers) ? mv.suppliers[0] : mv.suppliers;
+      return {
+        id: mv.id,
+        type: mv.type,
+        qty: Number(mv.qty),
+        unit: mv.unit,
+        location: mv.location,
+        occurredAt: mv.occurred_at,
+        expiryDate: mv.expiry_date,
+        batchNo: mv.batch_no,
+        itemId: item?.id ?? null,
+        itemName: item?.name ?? null,
+        supplierName: supplier?.name ?? null,
+      };
+    });
+  }
 
   const columns: SimpleColumn[] = [
     { id: "occurred_at", header: "التاريخ" },
@@ -67,28 +129,24 @@ export default async function InventoryMovementsPage({
     { id: "type", header: "النوع", kind: "status" },
     { id: "qty", header: "الكمية", numeric: true },
     { id: "location", header: "الموقع" },
-    { id: "supplier", header: "المورّد" },
+    ...(operational ? [] : [{ id: "supplier", header: "المورّد" } as SimpleColumn]),
     { id: "batch", header: "التشغيلة/الصلاحية" },
   ];
 
-  const rows = (movements ?? []).map((mv) => {
-    const item = (Array.isArray(mv.inventory_items) ? mv.inventory_items[0] : mv.inventory_items) as
-      | { id: string; name: string }
-      | null;
-    const supplier = (Array.isArray(mv.suppliers) ? mv.suppliers[0] : mv.suppliers) as { name: string } | null;
+  const rows = movements.map((mv) => {
     return {
       id: mv.id,
-      occurred_at: fmtDate(mv.occurred_at),
-      item: item?.name ?? "—",
-      item_href: item ? `/inventory/${item.id}` : "",
+      occurred_at: fmtDate(mv.occurredAt),
+      item: mv.itemName ?? "—",
+      item_href: mv.itemId ? `/inventory/${mv.itemId}` : "",
       type: MOVEMENT_TYPE_AR[mv.type] ?? mv.type,
-      qty: `${num(Number(mv.qty))} ${mv.unit ?? ""}`,
+      qty: `${num(mv.qty)} ${mv.unit ?? ""}`,
       location: mv.location ?? "—",
-      supplier: supplier?.name ?? "—",
-      batch: mv.batch_no
-        ? `${mv.batch_no}${mv.expiry_date ? ` — ${fmtDate(mv.expiry_date)}` : ""}`
-        : mv.expiry_date
-          ? fmtDate(mv.expiry_date)
+      ...(operational ? {} : { supplier: mv.supplierName ?? "—" }),
+      batch: mv.batchNo
+        ? `${mv.batchNo}${mv.expiryDate ? ` — ${fmtDate(mv.expiryDate)}` : ""}`
+        : mv.expiryDate
+          ? fmtDate(mv.expiryDate)
           : "—",
     };
   });

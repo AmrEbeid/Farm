@@ -185,11 +185,16 @@ export const APP_MODULES: AppModule[] = [
         href: "/inventory/dashboard",
       },
       {
+        // SPEC-0033 R4a: restored to the storekeeper. The route was hidden from that role only
+        // because its old implementation published unit cost, estimated cost and the preferred
+        // supplier to every member. `/inventory` and `/inventory/[itemId]` now read role-scoped
+        // snapshots whose storekeeper payload contains no money, supplier or counterparty key at
+        // all, so the two pages are safe for the store. `/inventory/[itemId]/coverage` is NOT: it
+        // still renders the money-bearing engine surface and keeps its own server-side redirect.
         id: "inventory",
         label: "الأصناف",
         icon: "📦",
         href: "/inventory",
-        roles: ["owner", "farm_manager", "agri_engineer", "accountant", "supervisor"],
       },
       { id: "inventory-movements", label: "حركات المخزون", icon: "📜", href: "/inventory/movements" },
       {
