@@ -33,7 +33,9 @@ describe("R4d expense workspace surface", () => {
   it("makes the 360 return to the exact validated register state", () => {
     expect(detail).toContain("parseExpenseReturnTo");
     expect(detail).toContain("href={from}");
-    expect(detail).toContain("العودة للمصروفات");
+    expect(detail).toContain('from.startsWith("/transactions?")');
+    expect(detail).toContain('returnedFromTransactions ? "المعاملات" : "المصروفات"');
+    expect(detail).toContain("العودة إلى {returnLabel}");
     expect(detail).toContain('name="return_to" value={from}');
     expect(actions).toContain("expenseActionHref(expenseId");
   });

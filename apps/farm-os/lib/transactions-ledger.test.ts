@@ -19,6 +19,10 @@ const pageSource = readFileSync(
   join(process.cwd(), "app", "(app)", "transactions", "page.tsx"),
   "utf8",
 );
+const viewSource = readFileSync(
+  join(process.cwd(), "app", "(app)", "transactions", "transactions-list-view.tsx"),
+  "utf8",
+);
 
 describe("isVisibleExpensePaymentStatus", () => {
   it("keeps a null (not-yet-routed) expense visible", () => {
@@ -166,51 +170,36 @@ describe("transactions page source", () => {
     expect(pageSource).not.toMatch(/\.from\("(?:expenses|sales|sale_collections|custody_movements)"\)/);
   });
 
-  it("disables CSV export exactly when the list is truncated", () => {
-    expect(pageSource).toContain("exportFilename={isTruncated ? undefined : \"transactions\"}");
+  it("never offers a partial CSV export from the bounded merged sample", () => {
+    expect(viewSource).toContain("ولا يتوفر تصدير جزئي");
+    expect(viewSource).not.toContain("exportFilename");
+    expect(viewSource).not.toContain("FilterableTable");
   });
 
   it("derives chip and «الكل» totals from the exact counts, never from the bounded rows array", () => {
-    expect(pageSource).toContain("const allCount = expenseCount + saleCount + collectionCount + custodyCount;");
-    expect(pageSource).not.toMatch(/count:\s*rows\.length/);
-    expect(pageSource).not.toMatch(/count:\s*rows\.filter/);
+    expect(viewSource).toContain("const allCount = counts.expense + counts.sale + counts.collection + counts.custody;");
+    expect(viewSource).not.toMatch(/count:\s*(?:snapshot\.)?rows\.length/);
+    expect(viewSource).not.toMatch(/count:\s*(?:snapshot\.)?rows\.filter/);
   });
 
-  it("renders and sorts exact decimal money without Number conversion", () => {
-    expect(pageSource).toContain('kind: "money-preserve-exact"');
-    expect(pageSource).toContain("decimal: true");
-    expect(pageSource).not.toMatch(/Number\((?:item\.)?(?:amount|quantity|total|amount_in|amount_out)/);
+  it("renders and sorts exact decimal text without Number conversion", () => {
+    expect(viewSource).toContain("formatDecimalArabic(row.amount");
+    expect(viewSource).toContain("formatDecimalArabic(value");
+    expect(viewSource).toContain("compareTxByDateThenId");
+    expect(viewSource).not.toMatch(/Number\((?:row\.)?(?:amount|quantity|total|amount_in|amount_out)/);
+  });
+
+  it("keeps the list server rendered", () => {
+    expect(viewSource).not.toContain('"use client"');
+    expect(pageSource).toContain("<TransactionsListView snapshot={snapshot} context={context} />");
   });
 });
 
-// Regression guards for P2: the merged «الكل» view must never claim its displayed rows are "the N
-// globally latest" — each of the four sources is capped independently, so that framing is false.
-describe("transactions page truncation notice wording", () => {
-  it("keeps the accurate 'latest N of exact total' framing for a single selected type", () => {
-    const start = pageSource.indexOf("const truncationNotice");
-    expect(start, "truncationNotice not found").toBeGreaterThan(-1);
-    const chunk = pageSource.slice(start, start + 900);
-    expect(chunk).toContain("يظهر أحدث ${num(visible.length)} من إجمالي ${num(activeExactCount)} عملية ${TYPE_AR[active]}");
-  });
-
-  it("never claims the merged «الكل» view shows the N globally latest rows across all sources", () => {
-    const start = pageSource.indexOf("const truncationNotice");
-    const chunk = pageSource.slice(start, start + 1200);
-    // The all-view branch must explicitly disclose the per-type cap and disclaim a global ranking.
-    expect(chunk).toContain("حتى ${num(TX_ROW_LIMIT)} من أحدث كل نوع من العمليات على حدة");
-    expect(chunk).toContain("وليس أحدث ${num(visible.length)} عملية إجمالاً");
-  });
-
-  it("includes both displayed and exact-total counts honestly in the all-view notice", () => {
-    const start = pageSource.indexOf("const truncationNotice");
-    const chunk = pageSource.slice(start, start + 1200);
-    expect(chunk).toContain("المعروض الآن ${num(visible.length)} عملية من إجمالي ${num(activeExactCount)} عملية مطابقة");
-  });
-
-  it("retains the search-scope and CSV-export warnings in both branches", () => {
-    expect(pageSource.match(/\$\{searchExportNote\}/g) ?? []).toHaveLength(2);
-    expect(pageSource).toContain(
-      'const searchExportNote =\n    "البحث أدناه يقتصر على الصفوف المعروضة فقط، وتصدير CSV غير متاح هنا لتفادي ملف يبدو كاملاً بينما هو جزء من السجل.";',
-    );
+describe("transactions bounded-sample disclosure", () => {
+  it("is always present and rejects a global chronology claim", () => {
+    expect(viewSource).toContain("هذه قائمة تشغيل محدودة وليست دفترًا زمنيًا كاملاً");
+    expect(viewSource).toContain("من أحدث كل نوع على حدة");
+    expect(viewSource).toContain("لا تعني أن الصفوف المعروضة هي أحدث المعاملات إجمالاً");
+    expect(viewSource).toContain("البحث داخل الصفوف المعروضة فقط");
   });
 });

@@ -93,9 +93,9 @@ describe("transactions snapshot", () => {
       rows: [collection, custody],
     }, "org-a").rows).toHaveLength(2);
 
-    const source = readFileSync(join(process.cwd(), "app/(app)/transactions/page.tsx"), "utf8");
-    expect(source).toContain('id: `${item.type}-${item.id}`');
-    expect(source).not.toContain("item.type[0]");
+    const source = readFileSync(join(process.cwd(), "app/(app)/transactions/transactions-list-view.tsx"), "utf8");
+    expect(source).toContain('key={`${row.type}-${row.id}`}');
+    expect(source).not.toContain("row.type[0]");
   });
 
   it("binds the page to one exact RPC and no direct source reads or money Number conversion", () => {
@@ -104,6 +104,8 @@ describe("transactions snapshot", () => {
     expect(source).toContain("parseTransactionsSnapshot(snapshotRes.data, m.orgId)");
     expect(source).not.toMatch(/\.from\("(?:expenses|sales|sale_collections|custody_movements)"\)/);
     expect(source).not.toMatch(/Number\((?:row\.)?(?:amount|amount_in|amount_out|total)/);
-    expect(source).toContain('kind: "money-preserve-exact"');
+    const view = readFileSync(join(process.cwd(), "app/(app)/transactions/transactions-list-view.tsx"), "utf8");
+    expect(view).toContain("formatDecimalArabic(row.amount");
+    expect(view).not.toMatch(/Number\((?:row\.)?(?:amount|amount_in|amount_out|total)/);
   });
 });

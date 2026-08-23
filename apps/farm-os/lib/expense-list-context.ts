@@ -1,4 +1,5 @@
 import { parseExpenseFilter, type ExpenseFilter } from "./expense-register-summary";
+import { parseTransactionsReturnTo, TRANSACTIONS_PATH } from "./transactions-list-context";
 
 export const EXPENSES_PATH = "/expenses";
 export const EXPENSE_QUERY_MAX_LENGTH = 60;
@@ -49,7 +50,7 @@ export function expenseListHref(context: Partial<ExpenseListContext> = {}): stri
 
 /** Rebuild one legal register return path. Caller-provided bytes are never echoed. */
 export function parseExpenseReturnTo(raw: string | undefined): string {
-  if (typeof raw !== "string" || raw.length === 0 || raw.length > 300) return EXPENSES_PATH;
+  if (typeof raw !== "string" || raw.length === 0 || raw.length > 1024) return EXPENSES_PATH;
   if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return EXPENSES_PATH;
   if (hasUnsafePathCharacter(raw)) return EXPENSES_PATH;
 
@@ -57,6 +58,7 @@ export function parseExpenseReturnTo(raw: string | undefined): string {
   const withoutHash = hashAt >= 0 ? raw.slice(0, hashAt) : raw;
   const queryAt = withoutHash.indexOf("?");
   const path = queryAt >= 0 ? withoutHash.slice(0, queryAt) : withoutHash;
+  if (path === TRANSACTIONS_PATH) return parseTransactionsReturnTo(raw);
   if (path !== EXPENSES_PATH) return EXPENSES_PATH;
 
   const search = new URLSearchParams(queryAt >= 0 ? withoutHash.slice(queryAt + 1) : "");

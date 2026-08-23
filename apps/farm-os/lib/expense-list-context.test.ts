@@ -39,12 +39,21 @@ describe("expense register url state", () => {
       "https://evil.example/expenses",
       "//evil.example",
       "/\\evil.example",
-      "/transactions",
       "/expenses/not-a-list",
       `/expenses${String.fromCharCode(10)}`,
     ]) {
       expect(parseExpenseReturnTo(raw), String(raw)).toBe(EXPENSES_PATH);
     }
+  });
+
+  it("preserves only a validated transactions list return path", () => {
+    expect(parseExpenseReturnTo("/transactions?type=expense&q=سماد"))
+      .toBe(`/transactions?q=${encodeURIComponent("سماد")}&type=expense`);
+    expect(expenseHref(EXPENSE, "overview", "/transactions?type=expense&q=سماد"))
+      .toContain(`from=${encodeURIComponent(`/transactions?q=${encodeURIComponent("سماد")}&type=expense`)}`);
+    expect(expenseHref(EXPENSE, "overview", "/transactions"))
+      .toBe(`/expenses/${EXPENSE}?from=${encodeURIComponent("/transactions")}`);
+    expect(parseExpenseReturnTo("/transactions/not-a-list?type=expense")).toBe(EXPENSES_PATH);
   });
 
   it("carries the register state into an expense and preserves it across tabs", () => {

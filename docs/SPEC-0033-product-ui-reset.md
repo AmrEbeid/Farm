@@ -17,6 +17,25 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Unified transactions workspace R4e — RELEASE CANDIDATE
+
+`/transactions` keeps exactly one existing `fn_transactions_snapshot` call, its 400-row-per-source bound,
+exact full-register type counts, current Owner/Accountant role gate, party-integrity checks and decimal-text
+money contract. No query, RPC, schema, permission or financial definition changes in this slice. The six-column
+client table becomes compact server-rendered RTL rows with URL-driven type and text state.
+
+The page permanently states that it combines up to 400 latest records from each source separately and is not a
+globally complete chronology. Search therefore covers only the displayed bounded rows, and no partial CSV is
+offered. Every row names one truthful next action. An unknown expense amount says it is unrecorded rather than
+rendering zero; a pending sale price remains pending rather than becoming an amount.
+
+Record targets follow only real routes: expense 360, custody movement detail, and buyer 360 for a sale with a
+valid buyer reference. Collections and sales without a buyer reference explicitly have no detail target; the
+old false revenue-report destination is removed. Expense 360 can carry a strictly rebuilt `/transactions`
+`q`/`type` return state as well as its existing expense-register context. Collection party identity and a
+collection 360 require a future RPC contract and remain deferred rather than invented. This is UI-only and
+requires no migration.
+
 ### Expenses workspace and expense 360 R4d — RELEASED
 
 *Released by PR #1051 at `3d366ee49b10da95a77dc1fb9a1c218c5f79bab0`. Exact-merge CI
