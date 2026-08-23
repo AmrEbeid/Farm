@@ -10,7 +10,10 @@ staged 698-row reconciliation batch: all 698 rows are unreviewed and pending; ze
 executed. `finance_ledger` is `partial` and `budgets` is `blocked`, so authority-gated figures fail closed.
 The protected 44-workflow desktop/phone harness is ready and now has an exact operator runbook, but this clean
 environment has no role credentials and production has no non-finance member for the denial lane. No data,
-access or schema changed during this verification. Accounting remains about 99.5%, not 100%, pending
+access or schema changed during this verification. PR #1049 fixed its role-specific Finance heading and
+Supervisor post-login destination and merged as `ca09309a8c37de1f1b1ad301e0e809ba319e106a`; exact-merge CI,
+db-tests, release and Production deployment `6045691339` passed. Migration N/A. Accounting remains about
+99.5%, not 100%, pending
 authenticated role acceptance, all 698 human decisions, the original-workbook dual run, exception resolution
 and dated Accountant/Owner signatures.
 
