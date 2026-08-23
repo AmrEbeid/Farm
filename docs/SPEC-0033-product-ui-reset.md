@@ -17,6 +17,29 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Expenses workspace and expense 360 R4d — RELEASE CANDIDATE
+
+`/expenses` keeps its released `fn_expense_daily_snapshot` contract: one active-organisation call, exact
+register/filter counts and full-register monthly totals beside at most 200 latest matching rows. No table,
+RPC, role, write or money definition changes in this slice. The seven-column register becomes compact stacked
+rows at phone width. Every row names one next action in this order: missing date, missing account, missing cost
+centre, missing payment route, then review. Exact decimal text remains decimal text through rendering.
+
+The monthly state keeps non-drawing spend (operating plus CAPEX) separate from owner drawings. Farm Manager
+continues to receive no drawing count, amount, filter or row. Search is server-rendered and URL-driven over the
+already bounded rows; when the filter has more than 200 matches, the page explicitly says search is limited to
+the displayed latest records and offers no misleading partial CSV export. Counts and monthly totals remain the
+exact full-register values from PostgreSQL.
+
+Opening `/expenses/[expenseId]` carries a validated `?from=` register state. The return path is restricted to
+`/expenses`, rebuilt from the known `q` and `filter` fields, and preserved through tabs and the missing-date
+server action; no caller-provided destination is echoed. The detail page retains its exact snapshot, role gate,
+payment reversal/correction controls and server-rendered URL tabs unchanged.
+
+Release gates: focused URL/display/surface and existing accounting tests; full Vitest; TypeScript; full ESLint;
+70-page production build; client-boundary, service-role and Recharts guards; dependency audit; 390px and desktop
+RTL visual checks; independent review; empty `packages/ui` diff. This is UI-only and requires no migration.
+
 ### People directory and person 360 R4c — RELEASED
 
 *Released by PR #1047 at `8d782ab7ef00215dbf7aa4b0d5e64dcc16d4fc9e`. Source migration

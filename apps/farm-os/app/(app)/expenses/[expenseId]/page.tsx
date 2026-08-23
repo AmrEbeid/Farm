@@ -13,11 +13,13 @@ import { selectExpensePaymentState } from "@/lib/expense-payment-reversal";
 import { num } from "@/lib/money";
 import { formatDecimalArabic, type DecimalString } from "@/lib/decimal";
 import { parseExpenseDetailSnapshot } from "@/lib/expense-detail-snapshot";
+import { expenseNotice, parseExpenseReturnTo, parseExpenseTab } from "@/lib/expense-list-context";
 import { PaymentReversalControl } from "./payment-reversal-control";
 import { ExpenseCorrectionControl } from "./expense-correction-control";
 import {
   EXPENSE_KIND_AR,
   EXPENSE_STATUS_AR,
+  MOVEMENT_TYPE_AR,
   OP_STATUS_AR,
   PAYMENT_METHOD_AR,
   PAYMENT_STATUS_AR,
@@ -29,9 +31,6 @@ import { setMissingExpenseDate } from "../actions";
 type PlanEmbed = { id?: string; type?: string | null; period_start?: string | null; period_end?: string | null };
 
 type PillStatus = "draft" | "scheduled" | "active" | "done" | "warning" | "blocked";
-
-const TAB_IDS = ["overview", "links", "activity"] as const;
-type ExpenseTab = (typeof TAB_IDS)[number];
 
 // status → pill: paid = settled (done); draft = unposted (draft);
 // posted/approved = recorded but not yet paid (warning); void/cancelled = blocked.
@@ -49,13 +48,14 @@ export default async function Expense360Page({
   searchParams,
 }: {
   params: Promise<{ expenseId: string }>;
-  searchParams: Promise<{ tab?: string; ok?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string; ok?: string; error?: string }>;
 }) {
   const { expenseId } = await params;
-  const { tab: rawTab, ok, error: actionError } = await searchParams;
-  const tab: ExpenseTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
-    ? (rawTab as ExpenseTab)
-    : "overview";
+  const { tab: rawTab, from: rawFrom, ok, error: actionError } = await searchParams;
+  const tab = parseExpenseTab(rawTab);
+  const from = parseExpenseReturnTo(rawFrom);
+  const okNotice = expenseNotice(ok);
+  const errorNotice = expenseNotice(actionError);
   const m = await requireRole(["owner", "accountant", "farm_manager"]);
   const sb = await createClient();
   const canCorrectPayment = m.role === "owner" || m.role === "accountant";
@@ -183,7 +183,7 @@ export default async function Expense360Page({
   const movementRows = custodyMovements.map((movement) => ({
     id: movement.id,
     date: fmtDate(movement.occurred_at),
-    movement: movement.movement_type,
+    movement: `${movement.amount_in !== "0" ? "وارد" : "صادر"} — ${MOVEMENT_TYPE_AR[movement.movement_type] ?? movement.movement_type}`,
     amount: movement.amount_in !== "0" ? movement.amount_in : movement.amount_out,
     link: movement.reversal_of
       ? "عكسٌ لحركة السداد الأصلية"
@@ -208,7 +208,7 @@ export default async function Expense360Page({
       <Breadcrumbs
         ariaLabel="المسار"
         items={[
-          { id: "expenses", label: "المصروفات", href: "/expenses" },
+          { id: "expenses", label: "المصروفات", href: from },
           { id: "expense", label: headerTitle },
         ]}
       />
@@ -220,7 +220,7 @@ export default async function Expense360Page({
         actions={
           <>
             <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
-            <HeaderLink href="/expenses">المصروفات</HeaderLink>
+            <HeaderLink href={from}>العودة للمصروفات</HeaderLink>
           </>
         }
       />
@@ -293,8 +293,8 @@ export default async function Expense360Page({
           />
         ))}
 
-      {ok ? <Alert tone="ok" title="تم" description={ok} /> : null}
-      {actionError ? <Alert tone="danger" title="تعذّر التنفيذ" description={actionError} /> : null}
+      {okNotice ? <Alert tone="ok" title="تم" description={okNotice} /> : null}
+      {errorNotice ? <Alert tone="danger" title="تعذّر التنفيذ" description={errorNotice} /> : null}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="الإجمالي" value={expense.total != null ? exactMoney(expense.total) : "—"} />
@@ -311,6 +311,7 @@ export default async function Expense360Page({
             {!expense.date && canCorrectDate ? (
               <form action={setMissingExpenseDate} className="mb-4 flex flex-wrap items-end gap-3">
                 <input type="hidden" name="expense_id" value={expense.id} />
+                <input type="hidden" name="return_to" value={from} />
                 <label className="flex min-w-52 flex-col gap-1 text-sm font-semibold">
                   تاريخ المصروف
                   <input

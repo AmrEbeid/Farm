@@ -167,6 +167,10 @@ describe("month-close page source contract", () => {
     new URL("../app/(app)/expenses/page.tsx", import.meta.url),
     "utf8",
   );
+  const expenseRegisterView = readFileSync(
+    new URL("../app/(app)/expenses/expense-list-view.tsx", import.meta.url),
+    "utf8",
+  );
   const expenseDetailPage = readFileSync(
     new URL("../app/(app)/expenses/[expenseId]/page.tsx", import.meta.url),
     "utf8",
@@ -289,8 +293,8 @@ describe("month-close page source contract", () => {
 
   it("routes every undated blocker to an exact filter and controlled date correction", () => {
     expect(expenseRegisterPage).toContain('p_filter: effectiveFilter');
-    expect(expenseRegisterPage).toContain('effectiveFilter === "undated"');
-    expect(expenseRegisterPage).toContain("value: matchingCount");
+    expect(expenseRegisterView).toContain('context.filter === "undated"');
+    expect(expenseRegisterView).toContain("count: snapshot.matchingCount");
     expect(expenseRegisterPage).not.toContain('.from("expenses")');
     expect(expenseDetailPage).toContain("setMissingExpenseDate");
     expect(classicExpenseActions).toContain('.rpc("fn_set_missing_expense_date"');

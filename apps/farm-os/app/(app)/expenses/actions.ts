@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership, requireRole } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
+import { expenseActionHref } from "@/lib/expense-list-context";
 import {
   parseExpenseCorrection,
   parseExpensePaymentReversal,
@@ -236,13 +237,14 @@ function revalidateExpenseCorrectionPaths(expenseId: string) {
 }
 
 export async function setMissingExpenseDate(formData: FormData): Promise<void> {
+  const m = await requireRole(["owner", "accountant"]);
   const expenseId = String(formData.get("expense_id") ?? "").trim();
   const date = String(formData.get("date") ?? "").trim();
+  const returnTo = String(formData.get("return_to") ?? "").trim() || undefined;
   if (!expenseId || !DATE_RE.test(date)) {
-    redirect(`/expenses/${encodeURIComponent(expenseId)}?error=${encodeURIComponent("اختر تاريخًا صحيحًا")}`);
+    redirect(expenseActionHref(expenseId, "error", "invalid_date", returnTo));
   }
 
-  const m = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
   const { error } = await sb.rpc("fn_set_missing_expense_date", {
     p_org: m.orgId,
@@ -250,21 +252,12 @@ export async function setMissingExpenseDate(formData: FormData): Promise<void> {
     p_date: date,
   });
   if (error) {
-    redirect(
-      `/expenses/${encodeURIComponent(expenseId)}?error=${encodeURIComponent(
-        toArabicError(
-          error,
-          {
-            "55000": "لا يمكن وضع التاريخ داخل فترة محاسبية مقفلة، أو أن المصروف مؤرّخ بالفعل",
-          },
-          "تعذّر حفظ تاريخ المصروف",
-        ),
-      )}`,
-    );
+    const errorCode = error.code === "55000" ? "locked_or_dated" : "date_save_failed";
+    redirect(expenseActionHref(expenseId, "error", errorCode, returnTo));
   }
 
   revalidatePath("/expenses");
   revalidatePath(`/expenses/${expenseId}`);
   revalidatePath("/finance/close");
-  redirect(`/expenses/${encodeURIComponent(expenseId)}?ok=${encodeURIComponent("تم حفظ تاريخ المصروف")}`);
+  redirect(expenseActionHref(expenseId, "ok", "date_saved", returnTo));
 }

@@ -109,15 +109,17 @@ describe("expense daily snapshot", () => {
 
   it("binds the expense page to one exact snapshot without direct reads or Number money", () => {
     const source = readFileSync(join(process.cwd(), "app/(app)/expenses/page.tsx"), "utf8");
+    const view = readFileSync(join(process.cwd(), "app/(app)/expenses/expense-list-view.tsx"), "utf8");
     expect(source).toContain('sb.rpc("fn_expense_daily_snapshot"');
     expect(source).toContain("parseExpenseDailySnapshot(snapshotRes.data)");
-    expect(source).toContain('kind: "money-preserve-exact"');
     expect(source).toContain("snapshot.rowLimit !== EXPENSE_REGISTER_DISPLAY_CAP");
-    expect(source).toContain("decimal: true");
+    expect(view).toContain("formatDecimalArabic(value, Math.max(2, scale))");
+    expect(view).toContain("type DecimalString");
     expect(source).not.toContain("Promise.all(");
     expect(source).not.toContain('.from("expenses")');
     expect(source).not.toContain('.from("suppliers")');
     expect(source).not.toContain('.from("accounts")');
     expect(source).not.toContain("Number(e.total)");
+    expect(view).not.toContain("Number(row.total)");
   });
 });
