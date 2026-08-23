@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (R4i Chart of Accounts live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (R4j cost-center reports and 360 live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R4j COST-CENTER REPORTS + 360: MERGED / DEPLOYED.**
+PR #1063 merge `a44bd153bbf41cf4b76fa2194cccdd2a62e34832` is live. `/finance/reports` now uses a
+compact decision strip, explicit filters and hierarchical rows while retaining one exact atomic snapshot and
+the complete audit/export views. Cost-center 360 uses the shared 360 shell, separates direct from subtree
+figures and discloses incomplete sales populations. Exact-main CI `32638602429`, db-tests `32638602431`,
+release `32638602419` and Production deployment `6047794501` passed. Focused 22/22, Vitest 2,343 plus 17
+skips, pgTAP 5,037/5,037, TypeScript, ESLint, 70-page build, guards, dependency audit, responsive QA and
+independent rereview passed. Signed-out routing is verified; authenticated Owner/Accountant real-data
+acceptance remains open. Migration N/A. Accounting remains about 99.5%, not 100%. Next: inventory and select
+the highest-value remaining R4 workspace; package PR #1025 remains separate.
 
 **2026-08-23 — PRODUCT UI RESET R4i CHART OF ACCOUNTS: MIGRATED / MERGED / DEPLOYED.**
 Hosted migration `20260823113659 exact_chart_of_accounts_snapshot` and PR #1061 merge

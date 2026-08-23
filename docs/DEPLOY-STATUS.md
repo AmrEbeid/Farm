@@ -2,6 +2,16 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — R4j COST-CENTER REPORTS + 360 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #1063 merged as `a44bd153bbf41cf4b76fa2194cccdd2a62e34832`. Exact-main CI `32638602429`,
+> db-tests `32638602431`, release `32638602419` and Production deployment `6047794501` succeeded at
+> `farm-erf4mdofp-amrabdelglill-7962s-projects.vercel.app`. `/login` returns 200; signed-out
+> `/finance/reports` and `/finance/cost-centers/[id]` return 307 to `/login`. Evidence: focused 22/22,
+> Vitest 2,343 plus 17 skips, Docker-free pgTAP 5,037/5,037, TypeScript, full ESLint, 70-page build,
+> repository guards, zero-vulnerability audit, independent rereview APPROVE and 390px/1,440px zero-overflow
+> probes. Migration N/A; no schema, RPC, permission, query, posting definition or business row changed.
+> Authenticated Owner/Accountant real-data acceptance remains open.
+
 > **2026-08-23 (latest) — R4i CHART OF ACCOUNTS MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260823113659 exact_chart_of_accounts_snapshot` adds one exact posted-only finance
 > snapshot with tenant, hierarchy, classification and journal-integrity gates. Pre/postflight matched 31

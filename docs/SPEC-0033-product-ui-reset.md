@@ -17,7 +17,7 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Cost-center reports and 360 R4j — RELEASE CANDIDATE
+### Cost-center reports and 360 R4j — RELEASED
 
 R4j rebuilds `/finance/reports` and `/finance/cost-centers/[id]` without changing any query, RPC, schema,
 permission, posting path or financial definition. The report retains exactly one atomic
@@ -30,7 +30,13 @@ The full accounting table/export and annual account-by-center matrix remain avai
 The center file adopts the shared 360 header, breadcrumbs and URL-driven tabs, and explicitly separates direct
 operations from subtree posted money so users do not add parent and child rollups together. Both pages keep the
 Owner/Accountant gate, unallocated evidence, archived visibility, print actions and exact existing destinations.
-No migration is required. Release evidence and production identifiers are added only after merge deployment.
+No migration was required. Release evidence: focused 22/22; full Vitest 2,343 plus 17 controlled skips;
+Docker-free pgTAP 5,037/5,037; TypeScript; full ESLint; 70-page build; repository guards; zero-vulnerability
+audit; 390px and 1,440px RTL checks with no overflow or console errors; and independent rereview `APPROVE`
+after two P1 and two P2 findings were fixed. PR #1063 merged at
+`a44bd153bbf41cf4b76fa2194cccdd2a62e34832`; exact-main CI `32638602429`, db-tests `32638602431`, release
+`32638602419` and Production deployment `6047794501` passed. Signed-out routing is verified; authenticated
+Owner/Accountant and real-record acceptance remain open.
 
 ### Chart of Accounts workspace R4i — RELEASED
 
