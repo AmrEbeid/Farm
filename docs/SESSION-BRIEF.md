@@ -1,5 +1,26 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4f Custody live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4g Payment Request live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4g Payment Request 360 — MIGRATED / MERGED / DEPLOYED
+
+Payment-request detail is now a compact decision-led Owner/Accountant workspace with one lifecycle action,
+five decision facts, mobile rows, ordered funding/payment/close steps, required posting dates and complete
+expense/funding movement and journal evidence on screen and in print. The one exact org-scoped snapshot boundary,
+exact decimal text and existing posting RPC bodies remain intact.
+
+Hosted migration `20260823101732 payment_request_completion_guards` locks the request row and blocks confirming
+or closing an underfunded request without depending on a user JWT. Replay, null-auth and genuine two-backend
+concurrency are pinned by pgTAP. Pre/postflight matched: 3 draft requests, 0 lines, 0 fundings, 10,201 expenses,
+1 custody movement, 10,365 journal entries and 20,730 lines; no financial sum changed. PR #1057 merged as
+`9d3c3a495641fe439719ed70dc173143eb988b2c`; exact-main CI `32633375622`, db-tests `32633375636`, release
+`32633375593` and Production deployment `6046885964` passed. `/login` is 200 and signed-out custody/request
+routes return 307 to `/login`. Local evidence: 2,329 Vitest passes plus 17 skips, pgTAP 5,010/5,010, 70-page
+build, guards, desktop/phone QA and independent final APPROVE.
+
+**Exact resume point:** continue the accounting UI reset with the general-ledger workspace, while preserving the
+current exact accounting snapshot and posting contracts. Authenticated Owner/Accountant payment-request acceptance
+and the 44-workflow accounting run remain open. Accounting remains about 99.5%, not 100%; the 698 human decisions,
+workbook dual run, exception resolution and signatures remain mandatory. Keep package PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R4f Custody workspace + movement 360 — MERGED / DEPLOYED
 
@@ -19,13 +40,8 @@ controlled skips; pgTAP 4,986/4,986; TypeScript; full ESLint; 70-page build; rep
 zero-overflow QA; and independent final APPROVE after all P1/P2 findings were fixed. Migration N/A; no schema,
 permission, snapshot, posting definition or business row changed.
 
-**Exact resume point:** audit and implement R4g as the payment-request 360 reset before the wider general-ledger
-workspace. Preserve its single `fn_payment_request_detail_snapshot`, lifecycle permissions, exact decimal totals,
-print contract and settlement RPCs. Replace eight equal summary cards and dense tables with one next-action story,
-compact mobile rows and evidence links; do not change money or approval semantics. Authenticated Owner/Accountant
-acceptance and the 44-workflow accounting run remain open. Accounting remains about 99.5%, not 100%; the 698
-human decisions, workbook dual run, exception resolution and signatures remain mandatory. Keep package PR
-#1025 separate.
+**Historical resume point (completed by R4g above):** the payment-request 360 reset preserved its snapshot,
+lifecycle, exact-money, print and posting contracts while adding compact decision and evidence views.
 
 ## 2026-08-23 — Product UI reset R4e Transactions workspace — MERGED / DEPLOYED
 

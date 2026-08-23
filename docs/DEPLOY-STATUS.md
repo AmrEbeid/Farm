@@ -2,6 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — R4g PAYMENT REQUEST 360 MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260823101732 payment_request_completion_guards` adds actor-independent,
+> request-row-locked settlement guards and funding movement/journal evidence. Pre/postflight matched exactly:
+> 3 draft requests, 0 request lines, 0 fundings, 10,201 expenses, 1 custody movement, 10,365 journal entries
+> and 20,730 journal lines; all recorded financial sums were unchanged. PR #1057 merged as
+> `9d3c3a495641fe439719ed70dc173143eb988b2c`. Exact-main CI `32633375622`, db-tests `32633375636`, release
+> `32633375593` and Production deployment `6046885964` succeeded. Public `/login` returns 200; signed-out
+> `/custody` and payment-request detail return 307 to `/login`. Evidence: focused 13/13, Vitest 2,329 plus
+> 17 skips, replay-enabled pgTAP 5,010/5,010, TypeScript, full ESLint, 70-page build, guards, desktop/phone QA
+> and independent final APPROVE. Authenticated Owner/Accountant and real-record acceptance remain pending.
+
 > **2026-08-23 (latest) — R4f CUSTODY WORKSPACE + MOVEMENT 360 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1055 merged as `926e04932377aebe3d63cb1f58a0915365907874`. Exact-merge CI `32630919330`,
 > db-tests `32630919336`, release `32630919360` and Production deployment `6046477323` succeeded at

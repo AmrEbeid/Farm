@@ -173,7 +173,7 @@ passed. Local evidence: focused 62/62, Vitest 2,327 plus 17 skips, pgTAP 4,986/4
 70-page build, guards, desktop/phone QA and independent final APPROVE. Migration N/A. Authenticated
 Owner/Accountant and real-record acceptance remain open.
 
-### Payment Request 360 reset R4g (2026-08-23, local release candidate)
+### Payment Request 360 reset R4g (2026-08-23, released)
 
 R4g keeps the existing one-call `fn_payment_request_detail_snapshot` boundary, Owner/Accountant route gate,
 exact decimal totals, lifecycle controls, settlement actions, available-expense bound and complete print package.
@@ -195,8 +195,11 @@ definitions and production business rows remain unchanged.
 Local validation: focused 13/13, Vitest 2,329 plus 17 skips, pgTAP 5,010/5,010 including the 22-check settlement
 guard test and 46-check detail-snapshot test, replay-safe migration application, TypeScript, full ESLint, 70-page build, repository guards,
 Impeccable detector and bounded desktop/phone visual QA. Three independent change-request rounds were closed;
-the exact final diff received independent `APPROVE`. PR, migration and release evidence remain pending. The
-migration is drafted locally and has not yet been applied to production.
+the exact final diff received independent `APPROVE`. Hosted migration
+`20260823101732 payment_request_completion_guards` preserved every preflight business count and financial sum.
+PR #1057 merged at `9d3c3a495641fe439719ed70dc173143eb988b2c`; exact-main CI `32633375622`, db-tests
+`32633375636`, release `32633375593` and Production deployment `6046885964` passed. Public signed-out routes
+were verified. Authenticated Owner/Accountant and real-record acceptance remain open.
 
 ## 8. Validation
 
