@@ -1,5 +1,27 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4g Payment Request live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4h General Ledger live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4h General Ledger — MERGED / DEPLOYED
+
+`/accounting` is now a compact Owner/Accountant daily ledger. It retains one exact bounded
+`fn_accounting_ledger_snapshot` call, posted-only trial-balance totals, decimal-text money and the existing role
+gate. Recent journals are grouped with all returned lines, lifecycle/source provenance and real expense/request
+links. The complete trial balance and CSV remain available. Print opens every bounded journal and states that
+the journal section is the latest 20 entries, not the full historical register. Unknown status, missing line
+detail and cross-scope data continue to fail closed. No schema, RPC, permission, posting path or money definition
+changed.
+
+PR #1059 merged as `165f751f8dabd4ccc7bdaf4edadacb95ebda6dda`; exact-main CI `32635498018`, db-tests
+`32635498006`, release `32635498029` and Production deployment `6047244897` passed. `/login` is 200 and
+signed-out `/accounting` returns 307 to `/login`. Local evidence: focused 15/15; Vitest 2,330 plus 17 skips;
+pgTAP 5,010/5,010; TypeScript; full ESLint; 70-page build; repository guards; zero-vulnerability audit;
+desktop/phone RTL QA; and independent final APPROVE after all four P2 findings were fixed. Migration N/A.
+
+**Exact resume point:** audit and implement the Chart of Accounts workspace at `/finance/accounts` as R4i,
+preserving its current authorization, account-tree and posting contracts. Authenticated Owner/Accountant R4h
+acceptance and the 44-workflow accounting run remain open. Accounting remains about 99.5%, not 100%; the 698
+human decisions, workbook dual run, exception resolution and signatures remain mandatory. Keep package PR
+#1025 separate.
 
 ## 2026-08-23 — Product UI reset R4g Payment Request 360 — MIGRATED / MERGED / DEPLOYED
 

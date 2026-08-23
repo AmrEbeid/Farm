@@ -17,6 +17,30 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### General Ledger workspace R4h — RELEASED
+
+R4h rebuilds `/accounting` as a compact Owner/Accountant daily ledger while preserving exactly one existing
+`fn_accounting_ledger_snapshot` call, its 20-entry/500-line fail-closed bound, posted-only trial-balance
+contract, exact decimal-text money and current role gate. No table query, RPC, schema, permission, posting path
+or financial definition changed.
+
+The page now groups every recent journal with all of its returned lines, exposes lifecycle and source
+provenance, links real expense and payment-request evidence, and warns if a returned entry is not balanced.
+Unknown future source types stay distinguishable instead of being collapsed. The complete trial balance and
+its CSV remain available as secondary work. The print packet opens every bounded journal, includes the full
+trial balance and explicitly states that the journal section contains at most the latest 20 entries rather
+than the complete historical register. The parser rejects unknown journal statuses and entries without line
+detail.
+
+Release evidence: focused 15/15; full Vitest 2,330 plus 17 controlled skips; Docker-free pgTAP 5,010/5,010;
+TypeScript; full ESLint; 70-page production build; service-role, Recharts and server/client-boundary guards;
+zero-vulnerability dependency audit; 390px and 1,440px RTL checks with no horizontal overflow; and independent
+final `APPROVE` after four P2 findings were fixed. PR #1059 merged at
+`165f751f8dabd4ccc7bdaf4edadacb95ebda6dda`; exact-main CI `32635498018`, db-tests `32635498006`, release
+`32635498029` and Production deployment `6047244897` passed. `/login` returns 200 and signed-out
+`/accounting` returns 307 to `/login`. Migration N/A. Authenticated Owner/Accountant and real-record acceptance
+remain open.
+
 ### Payment Request 360 R4g — RELEASED
 
 R4g rebuilds `/custody/request/[requestId]` as a compact decision-led finance workspace. It preserves exactly
