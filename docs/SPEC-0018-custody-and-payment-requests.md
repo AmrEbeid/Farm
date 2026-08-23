@@ -173,6 +173,31 @@ passed. Local evidence: focused 62/62, Vitest 2,327 plus 17 skips, pgTAP 4,986/4
 70-page build, guards, desktop/phone QA and independent final APPROVE. Migration N/A. Authenticated
 Owner/Accountant and real-record acceptance remain open.
 
+### Payment Request 360 reset R4g (2026-08-23, local release candidate)
+
+R4g keeps the existing one-call `fn_payment_request_detail_snapshot` boundary, Owner/Accountant route gate,
+exact decimal totals, lifecycle controls, settlement actions, available-expense bound and complete print package.
+The page leads with the request's one next action, reduces the screen summary to decision facts, and removes the
+duplicated on-screen signature package. The print-only package still contains request facts, approvals/signature
+blanks, category totals, every request line and every recorded funding regardless of the open tab.
+
+Request expenses render as compact RTL rows with truthful links to the expense, custody movement and journal
+reference already present in the snapshot; the complete print package carries payer, movement and journal
+identifiers. Funding history is also a compact row list. Settlement follows the real sequence: owner funding
+into custody, confirmation of each expense payment from custody, then close. Funding and payment dates are now
+required in the UI and fail closed in the server action rather than falling through to an RPC date default.
+Migration `20260823170000 payment request completion guards.sql` adds transaction-safe, actor-independent trigger
+guards that lock the request row and prevent confirming a request line or closing a request while an approved
+funding balance remains. The same migration preserves the one-call detail boundary while adding funding movement
+and journal evidence to every snapshot funding row. Existing posting RPC bodies, permission contracts, money
+definitions and production business rows remain unchanged.
+
+Local validation: focused 13/13, Vitest 2,329 plus 17 skips, pgTAP 5,010/5,010 including the 22-check settlement
+guard test and 46-check detail-snapshot test, replay-safe migration application, TypeScript, full ESLint, 70-page build, repository guards,
+Impeccable detector and bounded desktop/phone visual QA. Three independent change-request rounds were closed;
+the exact final diff received independent `APPROVE`. PR, migration and release evidence remain pending. The
+migration is drafted locally and has not yet been applied to production.
+
 ## 8. Validation
 
 Backend:

@@ -112,6 +112,14 @@ select is(current_setting('test.snapshot')::jsonb->'lines'->0->'expense'->>'tota
   '9007199254740993.123456789', 'line expense money remains exact decimal text');
 select is(current_setting('test.snapshot')::jsonb->'fundings'->0->>'amount',
   '0.123456789012345678', 'funding money remains exact decimal text');
+select is(current_setting('test.snapshot')::jsonb->'fundings'->0->>'custody_movement_id',
+  (select custody_movement_id::text from public.payment_request_fundings
+    where id = current_setting('test.funding')::uuid),
+  'funding custody movement evidence is returned');
+select is(current_setting('test.snapshot')::jsonb->'fundings'->0->>'journal_entry_id',
+  (select journal_entry_id::text from public.payment_request_fundings
+    where id = current_setting('test.funding')::uuid),
+  'funding journal evidence is returned');
 select is(jsonb_array_length(current_setting('test.snapshot')::jsonb->'custody_accounts'), 2,
   'active and inactive local custody accounts are complete');
 select ok(current_setting('test.snapshot')::jsonb->'accounts' @>
