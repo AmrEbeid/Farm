@@ -2,6 +2,17 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — Product UI reset R3f exact Storekeeper home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migration `20260823015536 exact_storekeeper_home_snapshot` adds the bounded Storekeeper snapshot.
+> Postflight proved invoker/stable/empty-search-path/authenticated-only metadata, definition md5
+> `57b3e9bd1589bf9690a308fc4bbfcc17`, unchanged sampled data counts, and no advisor finding on the new function.
+> PR #1041 merged as `4f3eaeca40a0fc43636c36e4165c2aafa4a14165`; Vercel target
+> `72kbXSd383EGz5UrVuuT9y1is87z` and all merged-SHA checks succeeded. `ebeidfarm.business` returns 200 for `/`
+> and `/login`, while signed-out inventory dashboard/list/item/coverage/stock-take/movements and `/m/receive`
+> return 307 to `/login`. Independent review, pgTAP 4,608/4,608, 2,084 Vitest passes plus 17 skips, TypeScript,
+> ESLint, 70-page build, Storybook, guards and gitleaks passed. Authenticated Storekeeper acceptance remains
+> pending because production has zero Storekeeper memberships.
+
 > **2026-08-23 (latest) — Product UI reset R3e exact Supervisor home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migrations `20260823004153 exact_supervisor_home_snapshot` and
 > `20260823004159 enforce_dose_signoff_on_execution` add the bounded Supervisor snapshot and database-level

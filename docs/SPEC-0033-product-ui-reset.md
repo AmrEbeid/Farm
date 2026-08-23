@@ -17,9 +17,10 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Storekeeper home R3f candidate
+### Storekeeper home R3f released
 
-*Local candidate. The migration is a draft until the Owner applies it; nothing here is merged or deployed.*
+*Released by PR #1041 at `4f3eaeca40a0fc43636c36e4165c2aafa4a14165`; hosted migration
+`20260823015536 exact_storekeeper_home_snapshot` is live on Farm.*
 
 The Storekeeper branch of `/inventory/dashboard` now uses one storekeeper-only, active-organisation
 snapshot, and the legacy multi-table inventory dashboard — every item, every purchase request, every
@@ -88,8 +89,8 @@ Residual gaps recorded, not fixed by this slice:
   happened, who made it, when, or over which items — so a completed stock-take can never be counted,
   reported or audited. Closing it needs a new audited table plus a change to `fn_record_stock_take`;
   that is an inventory-integrity migration in its own right and is deliberately not bundled here.
-Not yet done: hosted migration, merge, deployment and authenticated Storekeeper browser acceptance at
-390px. Release-state documents are not updated by this candidate.
+Authenticated Storekeeper browser acceptance at 390px remains unclaimed because production has zero
+Storekeeper memberships. Migration, merge, exact-SHA deployment and signed-out route verification are complete.
 
 ### Supervisor home R3e released
 
@@ -521,7 +522,7 @@ R3 owner/accountant slice contract:
 - the accountant finance home starts with actionable finance queues and four daily measures from its existing
   atomic snapshot; the deeper unposted/unpriced/reconciliation/receivables/period comparison contract remains a
   later R3 snapshot extension and is not claimed complete by this slice;
-- manager, agronomist and supervisor are released; the storekeeper home is an unapplied local candidate, so no R3 role home remains unstarted.
+- manager, agronomist, supervisor and storekeeper are released; all six R3 role homes are live.
 
 ### R4 — Lists, workspaces and 360 pages
 
