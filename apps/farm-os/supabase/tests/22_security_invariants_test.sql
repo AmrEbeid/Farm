@@ -80,6 +80,7 @@ select is(
         'fn_payment_request_totals',               -- derived request totals read RPC (SPEC-0018)
         'fn_accounting_trial_balance',             -- standalone accounting read RPC (cash-method custody slice)
         'fn_accounting_ledger_snapshot',           -- exact atomic daily ledger read (migration 20260822141100)
+        'fn_chart_of_accounts_snapshot',           -- exact posted-only Chart of Accounts read (migration 20260823180000)
         'fn_transactions_snapshot',                -- exact atomic unified transactions read (migration 20260822141200)
         'fn_season_dashboard_snapshot',            -- exact atomic season cockpit read (migration 20260822141300)
         'fn_custody_reports_snapshot',             -- exact atomic custody reports read (migration 20260822141400)

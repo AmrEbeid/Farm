@@ -96,7 +96,7 @@ const DAILY_ACCOUNTING_READ_GROUPS = {
   ],
   ledger: [
     { path: "/accounting", heading: "المحاسبة" },
-    { path: "/finance/accounts", heading: "شجرة الحسابات" },
+    { path: "/finance/accounts", heading: "دليل الحسابات" },
     { path: "/finance/periods", heading: "الفترات المحاسبية (الإقفال)" },
   ],
   reports: [
