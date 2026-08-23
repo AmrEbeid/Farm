@@ -1,8 +1,26 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (Product UI reset R3f exact Storekeeper home live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (Product UI reset R4a exact inventory list and item 360 live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R4a EXACT INVENTORY LIST + ITEM 360: MIGRATED / MERGED / DEPLOYED.**
+`/inventory` and `/inventory/[itemId]` now use one exact, bounded active-organization snapshot each. Stock is
+the sum of every physical bin; missing bin state remains unknown rather than zero. The list has deterministic
+server paging/search/filter totals, and item 360 shows every location plus independently bounded movement and
+purchase evidence. PostgreSQL builds Storekeeper payloads without cost, valuation, supplier, person, purchase
+free text or purchase-request identifiers; finance-capable members retain the existing policy. Storekeeper
+movement reads also omit supplier identity, while coverage remains gated because that surface still bears money.
+
+Hosted Farm migration `20260823031608 exact_inventory_list_and_item_snapshots` passed unchanged-count,
+metadata, grants and advisor postflight. The invoker/stable/empty-search-path function md5 values are
+`6801b4b2620ec86ca32b3a20a2d641cc` (list) and `a6204baa3972925cff75bc87600ad3e4` (item). PR #1043 merged as
+`091a3655d80bb3e29cfef4a8313b415b98418242`; exact-merge CI, db-tests, release and Vercel succeeded. Signed-out
+public home/login return 200 and list, item, movements and coverage return 307 to `/login`. Evidence: independent
+final APPROVE; pgTAP 4,751/4,751; Vitest 2,155 plus 17 controlled skips; TypeScript, ESLint, 70-page build,
+Storybook, guards, gitleaks and 390px/1,440px zero-overflow fixtures green. Authenticated Storekeeper acceptance
+remains unclaimed because production has zero Storekeeper memberships. Next: the next prioritized R4 list/360
+workspace; package PR #1025 remains separate.
 
 **2026-08-23 — PRODUCT UI RESET R3f EXACT STOREKEEPER HOME: MIGRATED / MERGED / DEPLOYED.**
 Storekeeper `/inventory/dashboard` now uses one storekeeper-only, active-organization snapshot and shows a

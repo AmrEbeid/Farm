@@ -1,5 +1,27 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3f Storekeeper home live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R4a inventory list/360 live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4a exact inventory list + item 360 — MIGRATED / MERGED / DEPLOYED
+
+`/inventory` and `/inventory/[itemId]` now read one exact, bounded active-org snapshot each. Every stock figure
+sums every bin, missing bin state remains unknown, list totals stay separate from deterministic paging, and the
+item file exposes every location plus independently bounded movement and purchase samples. The database, not
+React, selects the role contract: Storekeeper payloads omit money, valuation, supplier, person, purchase free
+text and purchase-request IDs. `/inventory/movements` also omits supplier identity for Storekeeper, while the
+money-bearing coverage route remains denied.
+
+Farm-only migration `20260823031608 exact_inventory_list_and_item_snapshots` is live. Both functions are
+invoker/stable/empty-search-path/authenticated-only; list md5 is `6801b4b2620ec86ca32b3a20a2d641cc` and item
+md5 is `a6204baa3972925cff75bc87600ad3e4`. Counts stayed at 6 items, 6 bins, 7 movements, 1 purchase request and
+1 line. PR #1043 merged as `091a3655d80bb3e29cfef4a8313b415b98418242`; exact-merge CI, db-tests, release and
+Vercel target `Dkd16fvcEqnLvWHHozsiZvph8kbK` succeeded. Signed-out home/login return 200 and list, item,
+movements and coverage return 307 to `/login`. Local evidence: independent final APPROVE; pgTAP 4,751/4,751;
+Vitest 2,155 plus 17 skips; TypeScript, ESLint, 70-page build, Storybook, guards, gitleaks and phone/desktop
+zero-overflow fixtures green.
+
+**Exact resume point:** audit and implement the next prioritized R4 list/360 workspace without reopening R4a.
+Authenticated Storekeeper acceptance remains unclaimed because production has zero Storekeeper memberships.
+Keep automated package publication PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R3f exact Storekeeper home — MIGRATED / MERGED / DEPLOYED
 
