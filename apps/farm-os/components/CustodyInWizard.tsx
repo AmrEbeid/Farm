@@ -16,6 +16,7 @@ import {
 export function CustodyInWizard({ accounts }: { accounts: { id: string; label: string }[] }) {
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [amount, setAmount] = useState("");
+  const [occurredAt, setOccurredAt] = useState("");
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -31,6 +32,7 @@ export function CustodyInWizard({ accounts }: { accounts: { id: string; label: s
         movementType: "استلام عهدة من المالك",
         amountIn: amount,
         amountOut: "0",
+        occurredAt,
         note: note || null,
       }),
     );
@@ -79,6 +81,9 @@ export function CustodyInWizard({ accounts }: { accounts: { id: string; label: s
             <Field label="المبلغ (ج.م)" id="ci-amt">
               <Input id="ci-amt" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} required />
             </Field>
+            <Field label="تاريخ الاستلام" id="ci-date">
+              <Input id="ci-date" type="date" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} required />
+            </Field>
             <Field label="ملاحظة (اختياري)" id="ci-note">
               <Input id="ci-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
             </Field>
@@ -88,7 +93,7 @@ export function CustodyInWizard({ accounts }: { accounts: { id: string; label: s
               </div>
             )}
             <div>
-              <Button onClick={onSave} disabled={pending || amountValue == null || !accountId}>
+              <Button onClick={onSave} disabled={pending || amountValue == null || !accountId || !occurredAt}>
                 {pending ? "جارٍ الحفظ…" : "احفظ ✓"}
               </Button>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowDownToLine, ArrowLeftRight, FilePlus2, WalletCards } from "lucide-react";
 import { Button, Field, Input, Select, Alert } from "@/components/ui";
 import {
   createCustodyAccount,
@@ -39,6 +40,7 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
   // movement
   const [acct, setAcct] = useState(accounts[0]?.id ?? "");
   const [amount, setAmount] = useState("");
+  const [movementDate, setMovementDate] = useState("");
   const [note, setNote] = useState("");
   // transfer
   const [transferFrom, setTransferFrom] = useState(accounts[0]?.id ?? "");
@@ -70,12 +72,12 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
+    <div className="flex flex-col gap-3 border-y py-3" style={{ borderColor: "var(--line)" }}>
       <div className="flex flex-wrap gap-2">
-        <Button variant="ghost" onClick={() => setOpen(open === "acct" ? null : "acct")}>+ حساب عهدة</Button>
-        <Button variant="ghost" onClick={() => setOpen(open === "move" ? null : "move")}>+ استلام عهدة</Button>
-        <Button variant="ghost" onClick={() => setOpen(open === "transfer" ? null : "transfer")}>+ تحويل عهدة</Button>
-        <Button variant="ghost" onClick={() => setOpen(open === "req" ? null : "req")}>+ طلب صرف</Button>
+        <Button className="min-h-11" variant="ghost" onClick={() => setOpen(open === "acct" ? null : "acct")}><WalletCards size={16} aria-hidden /> حساب عهدة</Button>
+        <Button className="min-h-11" variant="ghost" onClick={() => setOpen(open === "move" ? null : "move")}><ArrowDownToLine size={16} aria-hidden /> استلام عهدة</Button>
+        <Button className="min-h-11" variant="ghost" onClick={() => setOpen(open === "transfer" ? null : "transfer")}><ArrowLeftRight size={16} aria-hidden /> تحويل عهدة</Button>
+        <Button className="min-h-11" variant="ghost" onClick={() => setOpen(open === "req" ? null : "req")}><FilePlus2 size={16} aria-hidden /> طلب صرف</Button>
       </div>
       <div role="alert" aria-live="assertive" aria-atomic="true">
         {msg && <Alert tone={msg.tone} title={msg.text} />}
@@ -106,13 +108,17 @@ export function CustodyForms({ accounts }: { accounts: Acct[] }) {
           <Field label="المبلغ (ج.م)" id="m-amount">
             <Input id="m-amount" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
+          <Field label="تاريخ الاستلام" id="m-date">
+            <Input id="m-date" type="date" value={movementDate} onChange={(e) => setMovementDate(e.target.value)} required />
+          </Field>
           <Field label="ملاحظات" id="m-note">
             <Input id="m-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
           </Field>
           <div>
-            <Button disabled={pending || !acct || !isPositiveCustodyAmount(amount)} onClick={() => run(() => recordCustodyMovement({
+            <Button disabled={pending || !acct || !movementDate || !isPositiveCustodyAmount(amount)} onClick={() => run(() => recordCustodyMovement({
               accountId: acct, movementType: OWNER_FUNDING_MOVEMENT_TYPE,
               amountIn: amount, amountOut: "0",
+              occurredAt: movementDate,
               note: note || null,
             }), "تم تسجيل الاستلام")}>
               {pending ? "جارٍ الحفظ…" : "تسجيل الاستلام"}

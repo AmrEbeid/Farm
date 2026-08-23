@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Alert, Breadcrumbs, Card, DescriptionList } from "@/components/ui";
+import { Alert, Breadcrumbs, Card, DescriptionList, StatusPill } from "@/components/ui";
 import { Entity360Header } from "@/components/Entity360Header";
 import { requireRole } from "@/lib/auth";
 import {
@@ -49,6 +49,23 @@ export default async function CustodyMovementPage({
   if (!movement) notFound();
   const account = normalizeOne(movement.custody_accounts);
   if (!account) notFound();
+  let transferCounterpart: { id: string; holderLabel: string } | null = null;
+  if (movement.transfer_group_id) {
+    const { data: counterpart, error: counterpartError } = await sb
+      .from("custody_movements")
+      .select("id, custody_accounts!inner(holder_label)")
+      .eq("org_id", member.orgId)
+      .eq("custody_accounts.org_id", member.orgId)
+      .eq("transfer_group_id", movement.transfer_group_id)
+      .neq("id", movement.id)
+      .limit(1)
+      .maybeSingle();
+    if (counterpartError) throw counterpartError;
+    const counterpartAccount = normalizeOne(counterpart?.custody_accounts);
+    if (counterpart && counterpartAccount) {
+      transferCounterpart = { id: counterpart.id, holderLabel: counterpartAccount.holder_label };
+    }
+  }
   const { amount, isIncoming, eligible } = custodyMovementDisplayState(movement);
   const status = movement.reversal_of
     ? { label: "حركة عكسية", pill: "warning" as const }
@@ -56,7 +73,7 @@ export default async function CustodyMovementPage({
       ? { label: "تم عكسها", pill: "blocked" as const }
       : { label: "سارية", pill: "active" as const };
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4" data-testid="custody-movement-360">
       <Breadcrumbs
         ariaLabel="المسار"
         items={[
@@ -71,6 +88,12 @@ export default async function CustodyMovementPage({
         actions={<Link href="/custody">العودة إلى العهدة</Link>}
       />
 
+      <section aria-labelledby="movement-money-title" className="border-s-4 px-3 py-2" style={{ borderColor: isIncoming ? "var(--success-fg)" : "var(--warning-fg)", background: "var(--surface)" }}>
+        <p id="movement-money-title" className="text-xs" style={{ color: "var(--ink-muted)" }}>{isIncoming ? "نقد دخل العهدة" : "نقد خرج من العهدة"}</p>
+        <strong className="block text-xl tabular-nums">{custodyMovementAmountEgp(amount)}</strong>
+        <p className="text-xs" style={{ color: "var(--ink-muted)" }}>{account.holder_label} · {movement.movement_type}</p>
+      </section>
+
       <Card title="بيانات الحركة">
         <DescriptionList
           layout="inline"
@@ -81,6 +104,7 @@ export default async function CustodyMovementPage({
             { id: "direction", term: "الاتجاه", description: isIncoming ? "وارد" : "صادر" },
             { id: "amount", term: "المبلغ", description: custodyMovementAmountEgp(amount) },
             { id: "note", term: "الملاحظات", description: movement.note ?? "—" },
+            ...(movement.reversal_reason ? [{ id: "reversal-reason", term: "سبب التصحيح", description: movement.reversal_reason }] : []),
             { id: "created", term: "وقت التسجيل", description: fmtDateTime(movement.created_at) },
           ]}
         />
@@ -105,6 +129,42 @@ export default async function CustodyMovementPage({
         />
       )}
 
+      {(movement.expense_id || movement.payment_request_id || movement.journal_entry_id || movement.transfer_group_id) && (
+        <section aria-labelledby="movement-links-title" className="flex flex-col gap-2">
+          <h2 id="movement-links-title" className="text-sm font-bold">الروابط المالية</h2>
+          <ul className="divide-y" style={{ borderColor: "var(--line)" }}>
+            {movement.expense_id && (
+              <li className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span>المصروف الذي أنشأ الحركة</span>
+                <Link href={`/expenses/${movement.expense_id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>فتح المصروف</Link>
+              </li>
+            )}
+            {movement.payment_request_id && (
+              <li className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span>طلب الصرف المرتبط</span>
+                <Link href={`/custody/request/${movement.payment_request_id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>فتح طلب الصرف</Link>
+              </li>
+            )}
+            {movement.journal_entry_id && (
+              <li className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span>القيد المحاسبي · مرجع <bdi dir="ltr">{movement.journal_entry_id.slice(0, 8)}</bdi></span>
+                <Link href="/accounting" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>فتح دفتر القيود</Link>
+              </li>
+            )}
+            {movement.transfer_group_id && (
+              <li className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span>الطرف المقابل لتحويل العهدة</span>
+                {transferCounterpart ? (
+                  <Link href={`/custody/movements/${transferCounterpart.id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+                    فتح حركة {transferCounterpart.holderLabel}
+                  </Link>
+                ) : <StatusPill status="warning">الرابط المقابل غير متاح</StatusPill>}
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
+
       {eligible ? (
         <Card title="سجّلت استلام التمويل بالخطأ؟">
           <ReverseCustodyMovementForm movementId={movement.id} today={todayInCairo()} />
@@ -116,6 +176,6 @@ export default async function CustodyMovementPage({
           description="حركات المصروفات وطلبات الصرف والتحويلات لها مسارات تصحيح منفصلة لحماية الربط المحاسبي."
         />
       ) : null}
-    </div>
+    </main>
   );
 }

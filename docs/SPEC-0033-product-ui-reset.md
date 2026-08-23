@@ -17,6 +17,18 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Custody workspace and movement 360 R4f — RELEASE CANDIDATE
+
+R4f rebuilds `/custody` as a compact Owner/Accountant daily workspace. It preserves the single exact bounded
+snapshot and all money/permission contracts while placing the known owner request, custody cash, unfinished draft
+plus awaiting requests and incomplete amounts before secondary controls. Active custody targets determine top-up;
+cash in inactive accounts remains visible but cannot be selected for writes. Requests and movements are
+server-rendered mobile rows with truthful bounded-search disclosure and routes to their full report/source.
+
+The movement 360 adds amount/direction hierarchy, reversal reason and the expense/request/journal/transfer links
+already present in its one org-scoped read. Both owner-funding entry surfaces require and forward the actual date
+through the existing RPC. No migration, schema, permission, money definition or posting path changes.
+
 ### Unified transactions workspace R4e — RELEASED
 
 *Released by PR #1053 at `9848c88abe4f423ecc67966f5e8546856ce197c8`. Exact-merge CI

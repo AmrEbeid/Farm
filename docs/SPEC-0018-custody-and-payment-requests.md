@@ -153,6 +153,20 @@ the UUID tie-breaker, and a truncated request list cannot export a misleading pa
 request/movement account links raise before any payload is returned. Migration `20260822141600`, database test
 218 and strict parser tests are release-gated; no write/posting path changed.
 
+### Daily workspace reset R4f (2026-08-23, release candidate)
+
+R4f keeps the exact `fn_custody_daily_snapshot` call, Owner/Accountant boundary, decimal-text money and all
+posting RPCs unchanged. The workspace now leads with the known owner request, current custody cash, draft plus
+awaiting work, and unknown-amount warning; then shows active/inactive holder balances, request work and recent
+movements as compact RTL/mobile rows. Inactive cash remains in total custody truth, but inactive targets do not
+inflate top-up and inactive accounts are excluded from write selectors. Request search is URL-driven over the
+bounded sample, and truncated results cannot imply a full search or export.
+
+Direct owner funding now requires its actual transaction date and forwards it to the existing
+`fn_record_custody_movement(p_occurred_at)` input from both entry surfaces. Movement 360 exposes its already-read
+expense/request links, journal/transfer state and reversal reason. This is an app/UI release: no schema, migration,
+permission, snapshot, journal or posting definition changes.
+
 ## 8. Validation
 
 Backend:
