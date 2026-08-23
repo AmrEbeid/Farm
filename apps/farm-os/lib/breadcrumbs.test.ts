@@ -87,11 +87,12 @@ describe("buildBreadcrumbs", () => {
       { id: "farm-module", label: "المزرعة", href: "/farm/dashboard" },
       { id: "farm", label: "هيكل المزرعة" },
     ]);
-    expect(buildBreadcrumbs("/inventory/id-1/coverage", "storekeeper").map((c) => c.id)).toEqual([
+    expect(buildBreadcrumbs("/inventory/id-1/coverage", "farm_manager").map((c) => c.id)).toEqual([
       "home",
       "inventory-module",
       "inventory",
     ]);
+    expect(buildBreadcrumbs("/inventory/id-1/coverage", "storekeeper")).toEqual([]);
   });
 
   it("omits the module crumb when the page IS the module dashboard", () => {

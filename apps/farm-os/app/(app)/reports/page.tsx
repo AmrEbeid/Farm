@@ -56,7 +56,9 @@ const GROUPS: ReportGroup[] = [
       { href: "/insights", icon: "💡", title: "قصة المزرعة والرؤى", hint: "مسار مترابط للأداء والقطاعات والمقارنة والتوقعات", roles: FIN },
       { href: "/inventory/dashboard", icon: "📦", title: "تغطية المخزون", hint: "الأصناف والنواقص وطلبات الشراء", roles: ["owner", "farm_manager", "storekeeper", "accountant"] },
       { href: "/farm/dashboard", icon: "🌴", title: "لوحة المزرعة", hint: "النخيل والصحة والهيكل", roles: ["owner", "farm_manager", "agri_engineer", "supervisor", "accountant", "storekeeper"] },
-      { href: "/plans/dashboard", icon: "🗓️", title: "لوحة التخطيط", hint: "تقدّم الخطط والعمليات (ومنها تقرير المخطط/الفعلي لكل خطة)", roles: ["owner", "farm_manager", "agri_engineer", "supervisor", "accountant", "storekeeper"] },
+      // SPEC-0033 R3e/R3f: the route is gated to these four roles and renders planning money.
+      // Do not advertise a dead, money-bearing card to Supervisor or Storekeeper.
+      { href: "/plans/dashboard", icon: "🗓️", title: "لوحة التخطيط", hint: "تقدّم الخطط والعمليات (ومنها تقرير المخطط/الفعلي لكل خطة)", roles: ["owner", "farm_manager", "agri_engineer", "accountant"] },
       { href: "/people/dashboard", icon: "👥", title: "لوحة الفريق", hint: "الحضور والعمالة", roles: ["owner", "farm_manager", "agri_engineer", "accountant"] },
       { href: "/weather/dashboard", icon: "🌤️", title: "الطقس والمخاطر", hint: "التوقعات وعتبات التشغيل", roles: ["owner", "farm_manager", "agri_engineer", "supervisor", "accountant", "storekeeper"] },
     ],

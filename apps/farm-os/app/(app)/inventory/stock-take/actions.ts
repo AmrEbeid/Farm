@@ -10,6 +10,7 @@ import { requireRole } from "@/lib/auth";
 // audited, append-only movement are enforced there; this wrapper only carries the caller's session.
 export async function recordStockTake(
   itemId: string,
+  location: string,
   countedQty: number,
 ): Promise<{ ok: boolean; onHand?: number; error?: string }> {
   await requireRole(["owner", "farm_manager", "storekeeper"]);
@@ -18,10 +19,14 @@ export async function recordStockTake(
   if (!Number.isFinite(countedQty) || countedQty < 0) {
     return { ok: false, error: "أدخل كمية مجرودة صحيحة (صفر أو أكثر)." };
   }
+  if (!location.trim()) {
+    return { ok: false, error: "موقع المخزن مطلوب." };
+  }
 
   const { data, error } = await sb.rpc("fn_record_stock_take", {
     p_item: itemId,
     p_counted_qty: countedQty,
+    p_location: location,
   });
   if (error) return { ok: false, error: error.message };
 

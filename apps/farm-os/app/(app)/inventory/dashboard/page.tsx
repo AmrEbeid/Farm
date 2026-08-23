@@ -14,6 +14,7 @@ import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import { PR_STATUS_AR } from "@/lib/labels";
 import { currentInventoryState } from "@/lib/inventory-current-state";
+import { StorekeeperHome } from "./storekeeper-home";
 
 const FILTER_LABEL_AR: Record<string, string> = {
   all: "كل العناصر",
@@ -29,6 +30,11 @@ export default async function InventoryDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const m = await requireMembership();
+  // SPEC-0033 R3f: the Storekeeper gets a dedicated home from ONE bounded, storekeeper-only
+  // snapshot. Branched BEFORE anything else so the legacy multi-table dashboard below — which fans
+  // out over every inventory item, purchase request and supplier and renders charts — is never
+  // executed for this role. Owner, farm manager, accountant and agri_engineer keep it untouched.
+  if (m.role === "storekeeper") return <StorekeeperHome orgId={m.orgId} />;
   const { filter = "all" } = await searchParams;
   const sb = await createClient();
 

@@ -1379,6 +1379,17 @@ type SupervisorHomeFunctions = {
   };
 };
 
+// ── Storekeeper home, migration 20260823130000. Exact, bounded, storekeeper-membership-gated store
+// day: open receipts whose receivability mirrors fn_post_receipt, today's recorded issues, current
+// reorder-threshold and unknown-stock items, and bounded recent movement evidence. Recorded counts
+// only, no finance values, and no completed-stock-take claim. ──
+type StorekeeperHomeFunctions = {
+  fn_storekeeper_home_snapshot: {
+    Args: { p_org: string; p_as_of: string; p_detail_limit?: number };
+    Returns: Json;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2634,6 +2645,7 @@ export type Database = Omit<Generated, "public"> & {
       ManagerHomeFunctions &
       AgronomistHomeFunctions &
       SupervisorHomeFunctions &
+      StorekeeperHomeFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

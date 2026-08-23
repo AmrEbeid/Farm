@@ -11,6 +11,7 @@ import { EntityTabs } from "@/components/EntityTabs";
 import { egp, num } from "@/lib/money";
 import { fmtDate } from "@/lib/dates";
 import { MOVEMENT_TYPE_AR, PR_STATUS_AR } from "@/lib/labels";
+import { redirect } from "next/navigation";
 
 const TAB_IDS = ["overview", "movements", "purchases"] as const;
 type ItemTab = (typeof TAB_IDS)[number];
@@ -27,7 +28,8 @@ export default async function InventoryItemPage({
   const tab: ItemTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
     ? (rawTab as ItemTab)
     : "overview";
-  await requireMembership();
+  const membership = await requireMembership();
+  if (membership.role === "storekeeper") redirect("/inventory/dashboard");
   const sb = await createClient();
 
   const [
