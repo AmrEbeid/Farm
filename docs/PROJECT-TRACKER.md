@@ -1,4 +1,19 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R4a inventory list/360 live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R4b payroll workspace/run 360 live)
+
+> **2026-08-23 — PRODUCT UI RESET R4b EXACT PAYROLL WORKSPACE + RUN 360 MIGRATED / MERGED / DEPLOYED.**
+> Payroll history and run detail now read exact bounded active-org snapshots with `payroll.read` enforced in
+> PostgreSQL. Closed lines freeze both money and worker name; rename-after-close is covered. The phone layout
+> uses stacked rows and the run uses the shared 360 shell. Partial print was removed; readiness alone remains
+> printable. Closing remains reporting-only and does not move money or post a journal.
+>
+> Hosted migration `20260823044312 exact_payroll_workspace_and_run_snapshots` passed data-count, metadata,
+> grant, trigger, definition and unchanged-close-function postflight. PR #1045 merged as
+> `181e761ec35cd089ac669226e26a93ba9f61a847`; exact-merge CI, db-tests, release and Vercel succeeded. Evidence:
+> independent final APPROVE; pgTAP 4,832/4,832; Vitest 2,193 plus 17 skips; UI 305/305; TypeScript, ESLint,
+> 70-page build, Storybook, guards, gitleaks and phone/desktop zero-overflow fixtures green. **Open:** production
+> has zero runs, lines, compensation and labor records, so authenticated Owner/Accountant and real-data
+> acceptance are unclaimed; payroll is not 100%. Next: the next prioritized R4 list/360 workspace. Package PR
+> #1025 remains separate.
 
 > **2026-08-23 — PRODUCT UI RESET R4a EXACT INVENTORY LIST + ITEM 360 MIGRATED / MERGED / DEPLOYED.**
 > Inventory list and item 360 now use exact bounded active-org snapshots, sum every physical bin and preserve
