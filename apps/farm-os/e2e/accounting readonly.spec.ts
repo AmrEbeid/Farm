@@ -1,18 +1,21 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import {
   ACCOUNTING_E2E_BROWSER_RUNTIME_ERROR,
+  ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS,
   accountingE2EBaseUrl,
   accountingE2EAuthOrigin,
   accountingE2EBatchId,
   accountingE2ECredentials,
   accountingE2EDeniedRole,
+  accountingE2ERoleLandingUrlPattern,
   accountingE2EWidthSnapshotFits,
   assertDistinctAccountingE2EAccounts,
   createAccountingE2ERequestPolicy,
   recordAccountingE2EBrowserRuntimeError,
   type AccountingE2EBrowserRuntimeError,
   type AccountingE2ECredentials,
-  type AccountingE2ERole,
+  type AccountingE2EFarmRole,
+  type AccountingE2EFinanceRole,
   type AccountingE2EWidthSnapshot,
 } from "../lib/accounting e2e safety";
 
@@ -20,6 +23,7 @@ const approvedOrigin = accountingE2EBaseUrl(process.env);
 const approvedAuthOrigin = accountingE2EAuthOrigin(process.env);
 const batchId = accountingE2EBatchId(process.env);
 const deniedRole = accountingE2EDeniedRole(process.env);
+const deniedLandingUrl = accountingE2ERoleLandingUrlPattern(approvedOrigin, deniedRole);
 const credentialsByRole = {
   owner: accountingE2ECredentials(process.env, "owner"),
   accountant: accountingE2ECredentials(process.env, "accountant"),
@@ -62,7 +66,19 @@ const roleLabels = {
   storekeeper: "أمين مخزن",
 } as const;
 
-type AccountingReadRoute = { path: string; heading: string };
+// A route's heading is either shared by both finance roles, or role-specific (/finance/dashboard).
+type AccountingReadRoute = {
+  path: string;
+  heading: string | Readonly<Record<AccountingE2EFinanceRole, string>>;
+};
+
+function routeHeading(route: AccountingReadRoute, role: AccountingE2EFinanceRole): string {
+  return typeof route.heading === "string" ? route.heading : route.heading[role];
+}
+
+function routeHeadings(route: AccountingReadRoute): readonly string[] {
+  return typeof route.heading === "string" ? [route.heading] : Object.values(route.heading);
+}
 
 const DAILY_ACCOUNTING_READ_GROUPS = {
   hubs: [
@@ -72,7 +88,7 @@ const DAILY_ACCOUNTING_READ_GROUPS = {
     { path: "/insights", heading: "الرؤى" },
   ],
   money: [
-    { path: "/finance/dashboard", heading: "لوحة المالية" },
+    { path: "/finance/dashboard", heading: ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS },
     { path: "/budgets", heading: "الموازنات" },
     { path: "/expenses", heading: "المصروفات" },
     { path: "/custody", heading: "العهدة وطلبات الصرف" },
@@ -178,14 +194,18 @@ async function gotoReadOnly(page: Page, path: string) {
   await expectPageFitsViewport(page);
 }
 
-async function login(page: Page, credentials: AccountingE2ECredentials) {
+async function login(
+  page: Page,
+  credentials: AccountingE2ECredentials,
+  role: AccountingE2EFarmRole,
+) {
   await installRequestGuard(page);
   await gotoReadOnly(page, "/login");
   expect(new URL(page.url()).origin).toBe(approvedOrigin);
   await page.locator("#email").fill(credentials.email);
   await page.locator("#password").fill(credentials.password);
   await page.getByRole("button", { name: "دخول", exact: true }).click();
-  await page.waitForURL(/\/dashboard(?:[/?#]|$)/, { timeout: 20_000 });
+  await page.waitForURL(accountingE2ERoleLandingUrlPattern(approvedOrigin, role), { timeout: 20_000 });
   expect(new URL(page.url()).origin).toBe(approvedOrigin);
   await expectPageFitsViewport(page);
 }
@@ -241,20 +261,25 @@ async function verifyMonthCloseReadOnly(page: Page) {
   await expectPageFitsViewport(page);
 }
 
-async function verifyAccountingReads(page: Page, routes: readonly AccountingReadRoute[]) {
+async function verifyAccountingReads(
+  page: Page,
+  routes: readonly AccountingReadRoute[],
+  role: AccountingE2EFinanceRole,
+) {
   for (const route of routes) {
     await test.step(`read ${route.path}`, async () => {
+      const heading = routeHeading(route, role);
       await gotoReadOnly(page, route.path);
       expect(new URL(page.url()).origin).toBe(approvedOrigin);
       await expect(page).toHaveURL(new RegExp(`${route.path.replaceAll("/", "\\/")}(?:[/?#]|$)`));
-      await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       await expectPageFitsViewport(page);
     });
   }
 }
 
-async function verifyFinanceRoleIdentity(page: Page, role: Exclude<AccountingE2ERole, "denied">) {
-  await login(page, credentialsByRole[role]);
+async function verifyFinanceRoleIdentity(page: Page, role: AccountingE2EFinanceRole) {
+  await login(page, credentialsByRole[role], role);
   await expectAuthenticatedIdentity(page, credentialsByRole[role], roleLabels[role]);
 }
 
@@ -396,7 +421,7 @@ for (const role of ["owner", "accountant"] as const) {
   for (const [group, routes] of Object.entries(DAILY_ACCOUNTING_READ_GROUPS)) {
     test(`${role} can read the ${group} accounting routes`, async ({ page }) => {
       await verifyFinanceRoleIdentity(page, role);
-      await verifyAccountingReads(page, routes);
+      await verifyAccountingReads(page, routes, role);
     });
   }
   test(`${role} can read both cost-center report modes`, async ({ page }) => {
@@ -419,13 +444,15 @@ for (const role of ["owner", "accountant"] as const) {
 
 for (const [group, routes] of Object.entries(FINANCE_ONLY_READ_GROUPS)) {
   test(`a non-finance role is denied the ${group} accounting routes`, async ({ page }) => {
-    await login(page, credentialsByRole.denied);
+    await login(page, credentialsByRole.denied, deniedRole);
     await expectAuthenticatedIdentity(page, credentialsByRole.denied, roleLabels[deniedRole]);
     for (const route of routes) {
       await test.step(`deny ${route.path}`, async () => {
         await gotoReadOnly(page, route.path);
-        await expect(page).toHaveURL(/\/(?:dashboard\/manager|m|inventory\/dashboard)(?:[/?#]|$)/);
-        await expect(page.getByRole("heading", { name: route.heading, exact: true })).toHaveCount(0);
+        await expect(page).toHaveURL(deniedLandingUrl);
+        for (const heading of routeHeadings(route)) {
+          await expect(page.getByRole("heading", { name: heading, exact: true })).toHaveCount(0);
+        }
         await expectPageFitsViewport(page);
       });
     }
@@ -433,12 +460,12 @@ for (const [group, routes] of Object.entries(FINANCE_ONLY_READ_GROUPS)) {
 }
 
 test("a non-finance role is denied finance-only money-entry forms", async ({ page }) => {
-  await login(page, credentialsByRole.denied);
+  await login(page, credentialsByRole.denied, deniedRole);
   await expectAuthenticatedIdentity(page, credentialsByRole.denied, roleLabels[deniedRole]);
   for (const path of ["/record/expense", "/record/custody-in", "/record/collect", "/record/price"]) {
     await gotoReadOnly(page, path);
     expect(new URL(page.url()).origin).toBe(approvedOrigin);
-    await expect(page).toHaveURL(/\/(?:dashboard\/manager|m|inventory\/dashboard)(?:[/?#]|$)/);
+    await expect(page).toHaveURL(deniedLandingUrl);
     await expectPageFitsViewport(page);
   }
 });

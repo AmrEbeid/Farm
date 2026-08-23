@@ -1,21 +1,20 @@
 # SPEC-0004 — Accounting: expenses / sales / vouchers + cost allocation + P&L (Stage 7)
 
-*Status: **LIVE cash-method custody ledger slice (2026-07-01)** — an operational cash-method accounting kernel shipped
-via PR #568 (`8ffc4ae`), reviewed by CI + CodeRabbit, **prod-applied migrate-first** as
-`20260701220000 accounting_cash_custody_settlement`, and live-route probed. Stage 7 remains
-**High risk** (financial integrity): this cash-method custody ledger is not the full statutory/management P&L, and
-reconciliation against real financials depends on the privacy-reviewed real-data path (Stage M). Mirrors
+*Status: **DEPENDABLE-DAILY SOFTWARE RELEASE LIVE; HUMAN ACCEPTANCE OPEN (2026-08-23)** — PR #1008
+(`046a14e902ab1c0e4f3b3dbfa636937edff88c55`) released the bounded daily ledger, receivables, expenses,
+custody, statements, period close, reconciliation review/reporting and role-safe read-only acceptance harness.
+The software baseline is deployed; the accounting system is not 100% accepted until the 44 authenticated
+desktop/phone workflows pass and the canonical 698 rows are decided, dual-run against the original workbook,
+resolved and signed by the Accountant and Owner. Stage 7 remains **High risk** (financial integrity). Mirrors
 [`SPEC-0001`](SPEC-0001-stock-coverage-engine.md) /
 [`SPEC-0002`](SPEC-0002-authorization-enforcement.md) / [`SPEC-0003`](SPEC-0003-farm-structure-and-palm-registry-import.md).*
 
 *Companion to [`MASTER-PLAN.md`](MASTER-PLAN.md) §4 Stage 7, [`03-architecture-and-data-model.md`](03-architecture-and-data-model.md),
 and the real **7-year Ebeid accounting workbook** (the reconciliation source).*
 
-*2026-08-08 local release-candidate note: the owner-facing report hub and sidebar now have one canonical P&L
-entry backed by the posted double-entry GL. Statement and monthly/annual trend are views of
-`/finance/income-statement`; legacy `/finance/pnl` and `/finance/pnl-trend` URLs remain owner/accountant-gated
-redirects. Invalid, repeated, reversed, or conflicting partial parameters fail safely. This consolidation is
-validated locally and is not released; it does not satisfy the workbook dual-run or human acceptance gates.*
+*2026-08-23 current-state note: the canonical P&L consolidation and the full dependable-daily release are
+deployed. The historical build narrative below is retained as design history; where it says a released capability
+is missing, this status note and the dated release sections later in the document supersede it.*
 
 ---
 
@@ -28,6 +27,15 @@ totals for **one already-closed season** must match the known Excel totals befor
 Define that check first; never weaken it.
 
 ## 2. What exists vs what's missing
+
+**Current truth (2026-08-23):** sales/A-R, posted GL, trial balance, income statement, balance sheet, period
+lock/close, custody/payment settlement and reports, exact accounting/expense/cost-center/finance snapshots,
+reconciliation review/freeze/approval/execution/rollback/reporting, and the protected 44-test browser harness are
+released. Budget authority remains blocked and the finance ledger remains partial in production, so those
+figures continue to fail closed. The remaining 100% gate is operational evidence: authenticated browser
+acceptance, 698 human row decisions, the real workbook dual run, exception resolution and dated signatures.
+
+The following original 2026-07 inventory is retained to explain the stage's build sequence.
 
 **Exists (migration `0007`):**
 - `expenses` — already cost-allocatable: FKs to `farm/sector/hawsha/plan/event` + `supplier`,

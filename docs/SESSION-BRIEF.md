@@ -1,5 +1,32 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R4b payroll workspace/run 360 live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4c People live; accounting acceptance truth refreshed)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — R4c People live; accounting acceptance truth reverified
+
+R4c People shipped through PR #1047, merge `8d782ab7ef00215dbf7aa4b0d5e64dcc16d4fc9e`, and hosted migration
+`20260823070135 exact_people_directory_and_person_snapshots`. `/people` and `/people/[personId]` now use
+exact bounded active-org snapshots with database-enforced role/privacy contracts. Full evidence passed:
+pgTAP 4,986/4,986; Vitest 2,283 plus 17 skips; TypeScript, ESLint, 70-page build, Storybook, guards, desktop/
+phone RTL and independent review. Exact-merge checks and Vercel passed; signed-out routes redirect to `/login`.
+Authenticated Owner/Accountant browser acceptance remains open.
+
+Accounting production was rechecked read-only. The canonical batch remains `staged` with exactly 698 rows:
+698 unreviewed, 0 reviewed, 0 frozen, 0 rejected, 0 included and 698 pending execution. `finance_ledger`
+remains `partial`; `budgets` remains `blocked`. Production memberships are three Owners and one Accountant,
+with no non-finance role available for the denial lane. The clean worktree has none of the harness credentials
+or public target values in its environment. No schema, access or business row changed.
+
+The acceptance runbook now records the exact 44-workflow protected browser invocation and every required input
+category without storing values. SPEC-0004, the historical accounting roadmap, Feature Registry, Status,
+Tracker and Deploy Status were reconciled to the shipped release. The roadmap's unsafe old claim that one
+disputed palm aggregate was canonical was removed.
+
+**Exact resume point:** supply three distinct existing role accounts through the invocation environment and run
+all 44 read-only desktop/phone workflows. Then the Accountant must decide all 698 real rows, complete the
+original-workbook dual run and resolve every exception; the eligible Owner approves/executes separately and
+both sign the final digest-bound package. Do not create or change users merely to bypass the role gate, do not
+auto-decide a financial row, and do not call accounting 100% before the evidence exists. Package publication
+PR #1025 remains separate because merging it publishes `@amrebeid/ui` to npm.
 
 ## 2026-08-23 — Product UI reset R4b exact payroll workspace + run 360 — MIGRATED / MERGED / DEPLOYED
 

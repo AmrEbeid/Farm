@@ -6,6 +6,39 @@
 This runbook does not authorize a migration, deployment, production read, batch decision, execution, rollback, or
 other production write. Each external action remains separately Owner-approved.
 
+## Released software and protected browser acceptance
+
+The dependable-daily accounting software release is live (PR #1008, merge
+`046a14e902ab1c0e4f3b3dbfa636937edff88c55`). Its automated database, application, build and signed-out
+production checks passed. That proves the released software baseline; it does not replace authenticated
+Owner/Accountant use or the financial reconciliation below.
+
+The repository includes a write-blocked browser suite covering the same 22 workflows on desktop and phone
+(44 tests total). It permits one password sign-in per browser context, then allows only local application reads
+and allowlisted Supabase read RPCs. Any other POST, mutation, WebSocket, page error or console error fails the run.
+
+Run it only from `apps/farm-os`, with no Next environment file in that directory, and supply these values through
+the invocation environment:
+
+- Public target: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `FARM_OS_ACCOUNTING_E2E_AUTH_ORIGIN`, and optionally a local
+  `FARM_OS_ACCOUNTING_E2E_BASE_URL` (default `http://127.0.0.1:3100`).
+- Canonical batch: `FARM_OS_E2E_BATCH_ID`.
+- Three distinct existing accounts: Owner, Accountant and one non-finance role, through the matching
+  `FARM_OS_E2E_*_EMAIL` and `FARM_OS_E2E_*_PASSWORD` variables.
+- The non-finance account's exact role in `FARM_OS_E2E_DENIED_ROLE`: `farm_manager`, `agri_engineer`,
+  `supervisor`, or `storekeeper`.
+
+Never put those values in Git, shell history, reports or screenshots. The production run requires the wrapper's
+one-shot acknowledgement and performs reads only:
+
+```bash
+npm run test:e2e:accounting:readonly -- --owner-approved-production-readonly
+```
+
+Stop if any account is shared, impersonated, missing its expected production role, or unavailable. A partial run
+does not satisfy the 44-workflow gate.
+
 ## Roles and separation
 
 | Role | Responsibility | Must not substitute for |
