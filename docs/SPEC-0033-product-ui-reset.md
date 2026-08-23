@@ -17,6 +17,32 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### People directory and person 360 R4c — RELEASE CANDIDATE
+
+*Source migration `20260823160000_exact_people_directory_and_person_snapshots.sql`; not hosted, merged or
+released yet. Candidate evidence: Docker-free pgTAP **4,986/4,986** including test `231` **154/154**;
+focused People Vitest **79/79**; TypeScript, focused ESLint and diff checks green. Production and authenticated
+role acceptance remain release gates.*
+
+`/people` and `/people/[personId]` now read one active-organisation snapshot each instead of unbounded direct
+table reads. The directory publishes exact organisation, search and filter totals separately from one
+deterministic 20-row page. The person file publishes exact work, activity and direct-report totals separately
+from four independently bounded samples. Open work is the nonterminal operation set over the de-duplicated
+union of assignee and legacy responsible-person links, never a capped array length or the literal `planned`
+status.
+
+Both functions re-check the existing owner, farm-manager, agronomist and accountant route roles in PostgreSQL,
+are `SECURITY INVOKER`, expose no contact PII, auth identity, payroll, wage or money key, and return SQL NULL for
+both a missing person and a foreign-organisation person. Active-organisation relationship corruption fails
+closed. Search is bounded before trimming and escapes LIKE metacharacters. The optional onboarding manager list
+is published only in full up to 500 active people; above that it becomes NULL and disables only the form, never
+the readable directory and never as a misleading partial roster.
+
+The pages are server-rendered, Arabic RTL and phone-first. Tables and client-only grouping are replaced by
+stacked rows, exact filter chips, GET search, canonical pagination and URL-driven 360 tabs. The visual pass at
+390px and 1440px found no horizontal overflow; command targets are at least 44px. A hostile review found and the
+candidate fixed the manager-list outage, uppercase UUID canonicalization and the real composite farm-event key.
+
 ### Payroll workspace and run 360 R4b — RELEASED
 
 *Released by PR #1045 at `181e761ec35cd089ac669226e26a93ba9f61a847`. Source migration

@@ -1433,6 +1433,35 @@ type PayrollSnapshotFunctions = {
   };
 };
 
+// ── People directory + person 360, migration 20260823160000. Two exact, bounded, active-org
+// snapshots gated in PostgreSQL to the SAME four roles the routes use (owner/farm_manager/
+// agri_engineer/accountant). `fn_person_snapshot` returns SQL NULL — hence `Json | null` — when the
+// person is outside the active organization or does not exist, so the page can answer "not found"
+// without leaking which. ──
+type PeopleSnapshotFunctions = {
+  fn_people_directory_snapshot: {
+    Args: {
+      p_org: string;
+      p_query?: string | null;
+      p_filter?: string;
+      p_limit?: number;
+      p_offset?: number;
+    };
+    Returns: Json;
+  };
+  fn_person_snapshot: {
+    Args: {
+      p_org: string;
+      p_person: string;
+      p_operation_limit?: number;
+      p_performed_limit?: number;
+      p_assigned_limit?: number;
+      p_report_limit?: number;
+    };
+    Returns: Json | null;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2693,6 +2722,7 @@ export type Database = Omit<Generated, "public"> & {
       StorekeeperHomeFunctions &
       InventorySnapshotFunctions &
       PayrollSnapshotFunctions &
+      PeopleSnapshotFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &

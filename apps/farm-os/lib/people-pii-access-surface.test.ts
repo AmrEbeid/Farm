@@ -253,11 +253,13 @@ describe("payroll run tables are read only through the exact snapshot RPCs", () 
 });
 
 describe("wage figures are never offered as a CSV download", () => {
-  // The people module DOES export CSV — `/people` and `/people/dashboard` each hand a
-  // `exportFilename` to a table. Those tables carry roster columns only (name, position, employment
-  // type, open operations). The two surfaces that render MONEY are deliberately print-only: the
-  // payroll pages use PrintButton, and the dashboard's hourly estimate uses a bare SimpleTable with
-  // no export. That distinction is one prop wide, so it is pinned rather than trusted.
+  // The people module still exports CSV from `/people/dashboard`, whose tables carry roster columns
+  // only (name, position, employment type, open operations). R4c removed the export from `/people`
+  // itself: that list is now server-paginated, so an export filed under «people» would have carried
+  // one bounded page under a name that reads as the whole roster (see lib/people-surface.test.ts).
+  // The surfaces that render MONEY are deliberately print-only: the payroll pages use PrintButton,
+  // and the dashboard's hourly estimate uses a bare SimpleTable with no export. That distinction is
+  // one prop wide, so it is pinned rather than trusted.
   const PAYROLL_DIR = join(APP_ROOT, "app", "(app)", "people", "payroll");
   const DASHBOARD = join(APP_ROOT, "app", "(app)", "people", "dashboard", "page.tsx");
 

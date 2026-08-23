@@ -219,6 +219,21 @@ export const EMP_TYPE_AR: Record<string, string> = {
   contractor: "مقاول",
 };
 
+/**
+ * Recorded activity KIND (`farm_event.type`) → Arabic. The column is free text with no CHECK
+ * constraint; these are the values the schema's own comment enumerates (migration 20260622000004).
+ * An unmapped value falls back to the generic «نشاط» at the call site rather than rendering the raw
+ * English on an Arabic-first surface — the same fallback every other 360 already uses for an
+ * unrecognised subtype.
+ */
+export const EVENT_TYPE_AR: Record<string, string> = {
+  operation: "عملية",
+  issue: "ملاحظة مشكلة",
+  inspection: "تفتيش",
+  note: "ملاحظة",
+  material_movement: "حركة مخزون",
+};
+
 /** RPW-1: pest-trap status (`pest_traps.status`) → Arabic. */
 export const TRAP_STATUS_AR: Record<string, string> = {
   active: "نشطة",
