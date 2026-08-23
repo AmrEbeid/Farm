@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
@@ -51,7 +51,7 @@ export default async function PlanningDashboardPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter = "all" } = await searchParams;
-  const m = await requireMembership();
+  const m = await requireRole(["owner", "accountant", "farm_manager", "agri_engineer"]);
   const sb = await createClient();
   const today = new Date().toISOString().slice(0, 10);
   const canOpenFieldDashboard =

@@ -5,7 +5,7 @@ import { ClonePlanButton } from "@/components/ClonePlanButton";
 import type { ReactNode } from "react";
 import type { PillStatus, TabItem } from "@amrebeid/ui";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembership } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { Alert, Breadcrumbs, Card, KpiCard, LoopStepper, type LoopStep } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
@@ -82,7 +82,7 @@ export default async function MonthlyPlanPage({
   const tab: PlanTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
     ? (rawTab as PlanTab)
     : "overview";
-  const m = await requireMembership();
+  const m = await requireRole(["owner", "accountant", "farm_manager", "agri_engineer"]);
   // Only plan.write roles can add operations / run plan checks (the actions 42501 otherwise) —
   // don't show the edit controls to the other roles as dead-end affordances.
   const canEditPlan = ["owner", "farm_manager"].includes(m.role);
