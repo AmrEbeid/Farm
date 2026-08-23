@@ -1,8 +1,20 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (R4f Custody live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (R4i Chart of Accounts live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R4i CHART OF ACCOUNTS: MIGRATED / MERGED / DEPLOYED.**
+Hosted migration `20260823113659 exact_chart_of_accounts_snapshot` and PR #1061 merge
+`3158154cfaae687e230a2aec51d79cd22a0ce6e4` are live. `/finance/accounts` now uses one exact posted-only,
+org-scoped snapshot with decimal-text money and fail-closed tenant, hierarchy, classification and journal
+integrity checks; existing writes and posting paths are unchanged. The 860px table is replaced by compact
+Arabic RTL rows with capability-shaped actions. Exact-main CI `32637072052`, db-tests `32637072045`, release
+`32637072041` and Production deployment `6047528426` passed. Pre/postflight retained 31 accounts, 10,201
+expenses, 10,365 journal entries and 20,730 lines. Vitest 2,335 plus 17 skips; pgTAP 5,037/5,037; TypeScript,
+ESLint, 70-page build, guards, gitleaks, dependency audit, responsive QA and independent rereview passed.
+Signed-out routing is verified; authenticated real-record acceptance remains open. Accounting remains about
+99.5%, not 100%. Next: R4j cost-center reports and cost-center 360; package PR #1025 remains separate.
 
 **2026-08-23 — PRODUCT UI RESET R4f CUSTODY WORKSPACE + MOVEMENT 360: MERGED / DEPLOYED.**
 PR #1055 merged as `926e04932377aebe3d63cb1f58a0915365907874`. `/custody` now prioritizes the
