@@ -37,7 +37,8 @@ is_replay_safe_migration() {
     20260822140400_cost_center_history_summary.sql | \
     20260822140600_custody_movement_reversal.sql | \
     20260822140900_receivable_workflow_exact_money.sql | \
-    20260822141000_exact_revenue_report_transport.sql) return 0 ;;
+    20260822141000_exact_revenue_report_transport.sql | \
+    "20260823170000 payment request completion guards.sql") return 0 ;;
     *) return 1 ;;
   esac
 }

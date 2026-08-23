@@ -261,14 +261,13 @@ export async function recordPaymentRequestFunding(input: {
   requestId: string;
   custodyAccountId: string;
   amount: string;
-  occurredAt?: string | null;
+  occurredAt: string;
   note?: string | null;
 }): Promise<Result> {
   if (!input.requestId || !input.custodyAccountId) return { ok: false, error: "البيانات ناقصة" };
   const amount = normalizePositivePaymentRequestAmount(input.amount);
   if (amount == null) return { ok: false, error: "المبلغ يجب أن يكون أكبر من صفر" };
-  const occurredAt = validateOptionalDate(input.occurredAt);
-  if (isResult(occurredAt)) return occurredAt;
+  if (!isValidDateOnly(input.occurredAt)) return { ok: false, error: "تاريخ الاستلام غير صالح" };
 
   await requireCustodyFinanceRole();
   const sb = await createClient();
@@ -276,7 +275,7 @@ export async function recordPaymentRequestFunding(input: {
     p_request: input.requestId,
     p_custody_account: input.custodyAccountId,
     p_amount: amount,
-    p_occurred_at: occurredAt ?? undefined,
+    p_occurred_at: input.occurredAt,
     p_note: normalizeOptionalText(input.note),
   });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تسجيل تمويل المالك") };
@@ -289,15 +288,14 @@ export async function confirmRequestExpensePaid(input: {
   requestId: string;
   expenseId: string;
   custodyAccountId: string;
-  occurredAt?: string | null;
+  occurredAt: string;
   paidBy?: string | null;
   note?: string | null;
 }): Promise<Result> {
   if (!input.requestId || !input.expenseId || !input.custodyAccountId) {
     return { ok: false, error: "البيانات ناقصة" };
   }
-  const occurredAt = validateOptionalDate(input.occurredAt);
-  if (isResult(occurredAt)) return occurredAt;
+  if (!isValidDateOnly(input.occurredAt)) return { ok: false, error: "تاريخ السداد غير صالح" };
 
   await requireCustodyFinanceRole();
   const sb = await createClient();
@@ -305,7 +303,7 @@ export async function confirmRequestExpensePaid(input: {
     p_request: input.requestId,
     p_expense: input.expenseId,
     p_custody_account: input.custodyAccountId,
-    p_occurred_at: occurredAt ?? undefined,
+    p_occurred_at: input.occurredAt,
     p_paid_by: normalizeOptionalText(input.paidBy),
     p_note: normalizeOptionalText(input.note),
   });

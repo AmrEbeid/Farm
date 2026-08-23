@@ -300,7 +300,7 @@ export function RecordRequestFunding({
   const [msg, setMsg] = useState<Msg>(null);
 
   async function submit() {
-    if (!custodyAccountId) return;
+    if (!custodyAccountId || !occurredAt) return;
     setPending(true);
     setMsg(null);
     let res: { ok: boolean; error?: string };
@@ -309,7 +309,7 @@ export function RecordRequestFunding({
         requestId,
         custodyAccountId,
         amount,
-        occurredAt: occurredAt || null,
+        occurredAt,
         note: note || null,
       });
     } catch {
@@ -345,13 +345,13 @@ export function RecordRequestFunding({
         <Input id="funding-amount" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} />
       </Field>
       <Field label="تاريخ الاستلام" id="funding-date">
-        <Input id="funding-date" type="date" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+        <Input id="funding-date" type="date" required value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
       </Field>
       <Field label="ملاحظات" id="funding-note">
         <Input id="funding-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
       </Field>
       <div>
-        <Button disabled={pending || !custodyAccountId || !isPositivePaymentRequestAmount(amount)} onClick={submit}>
+        <Button disabled={pending || !custodyAccountId || !occurredAt || !isPositivePaymentRequestAmount(amount)} onClick={submit}>
           {pending ? "جارٍ التسجيل…" : "تسجيل التمويل"}
         </Button>
       </div>
@@ -381,7 +381,7 @@ export function ConfirmRequestExpensePayment({
     : expenses[0]?.id ?? "";
 
   async function submit() {
-    if (!selectedExpenseId || !custodyAccountId) return;
+    if (!selectedExpenseId || !custodyAccountId || !occurredAt) return;
     setPending(true);
     setMsg(null);
     let res: { ok: boolean; error?: string };
@@ -390,7 +390,7 @@ export function ConfirmRequestExpensePayment({
         requestId,
         expenseId: selectedExpenseId,
         custodyAccountId,
-        occurredAt: occurredAt || null,
+        occurredAt,
         paidBy: paidBy || null,
         note: note || null,
       });
@@ -435,7 +435,7 @@ export function ConfirmRequestExpensePayment({
         />
       </Field>
       <Field label="تاريخ السداد" id="pay-date">
-        <Input id="pay-date" type="date" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+        <Input id="pay-date" type="date" required value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
       </Field>
       <Field label="تم الدفع بواسطة" id="pay-by">
         <Input id="pay-by" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} maxLength={80} />
@@ -444,7 +444,7 @@ export function ConfirmRequestExpensePayment({
         <Input id="pay-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
       </Field>
       <div>
-        <Button disabled={pending || !selectedExpenseId || !custodyAccountId} onClick={submit}>
+        <Button disabled={pending || !selectedExpenseId || !custodyAccountId || !occurredAt} onClick={submit}>
           {pending ? "جارٍ التأكيد…" : "تأكيد السداد"}
         </Button>
       </div>

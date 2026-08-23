@@ -7,6 +7,7 @@ import {
   normalizePositivePaymentRequestAmount,
   paymentRequestAmount,
   paymentRequestAmountEgp,
+  paymentRequestSettlementState,
   paymentRequestTotals,
   parsePaymentRequestDetailSnapshot,
   PAYMENT_REQUEST_DETAIL_SNAPSHOT_VERSION,
@@ -48,6 +49,8 @@ const LINKED_EXPENSE = "10000000-0000-4000-8000-000000000006";
 const AVAILABLE_EXPENSE = "10000000-0000-4000-8000-000000000007";
 const FUNDING = "10000000-0000-4000-8000-000000000008";
 const USER = "10000000-0000-4000-8000-000000000009";
+const FUNDING_MOVEMENT = "10000000-0000-4000-8000-00000000000a";
+const FUNDING_JOURNAL = "10000000-0000-4000-8000-00000000000b";
 
 function snapshot() {
   return {
@@ -97,6 +100,8 @@ function snapshot() {
       occurred_at: "2026-08-09",
       amount: "0.123456789012345678",
       custody_account_id: CUSTODY,
+      custody_movement_id: FUNDING_MOVEMENT,
+      journal_entry_id: FUNDING_JOURNAL,
       note: null,
     }],
     custody_accounts: [{ id: CUSTODY, holder_label: "Holder", active: true }],
@@ -156,6 +161,25 @@ describe("payment request detail money", () => {
     expect(normalizePositivePaymentRequestAmount("-1")).toBeNull();
   });
 
+  it("gates the settlement state matrix on both funding and unpaid lines", () => {
+    expect(paymentRequestSettlementState("approved_final", "100", 2)).toEqual({
+      canReceiveFunding: true, canConfirmPayment: false, canClose: false,
+    });
+    expect(paymentRequestSettlementState("paid", "1", 0)).toEqual({
+      canReceiveFunding: true, canConfirmPayment: false, canClose: false,
+    });
+    expect(paymentRequestSettlementState("paid", "0", 2)).toEqual({
+      canReceiveFunding: false, canConfirmPayment: true, canClose: false,
+    });
+    expect(paymentRequestSettlementState("paid", "0", 0)).toEqual({
+      canReceiveFunding: false, canConfirmPayment: true, canClose: true,
+    });
+    expect(paymentRequestSettlementState("closed", "0", 0)).toEqual({
+      canReceiveFunding: false, canConfirmPayment: false, canClose: false,
+    });
+    expect(() => paymentRequestSettlementState("paid", "0", -1)).toThrow("non-negative");
+  });
+
   it("loads the page through exactly one scoped atomic snapshot", () => {
     expect(pageSource.match(/\.rpc\("fn_payment_request_detail_snapshot"/g) ?? []).toHaveLength(1);
     expect(pageSource).toContain("p_org: m.orgId");
@@ -174,14 +198,74 @@ describe("payment request detail money", () => {
     );
     expect(fundingForm).not.toContain("Number(");
     expect(fundingForm).toContain("amount,");
+    expect(fundingForm).toContain('id="funding-date" type="date" required');
+    expect(fundingForm).toContain("!occurredAt");
 
     const fundingAction = actionSource.slice(
       actionSource.indexOf("export async function recordPaymentRequestFunding"),
       actionSource.indexOf("export async function confirmRequestExpensePaid"),
     );
     expect(fundingAction).toContain("normalizePositivePaymentRequestAmount(input.amount)");
+    expect(fundingAction).toContain("isValidDateOnly(input.occurredAt)");
     expect(fundingAction).toContain("p_amount: amount");
+    expect(fundingAction).toContain("p_occurred_at: input.occurredAt");
+    expect(fundingAction).not.toContain("p_occurred_at: occurredAt ?? undefined");
     expect(fundingAction).not.toContain("Number(");
+
+    const paymentForm = formSource.slice(
+      formSource.indexOf("export function ConfirmRequestExpensePayment"),
+      formSource.indexOf("export function ClosePaymentRequestButton"),
+    );
+    expect(paymentForm).toContain('id="pay-date" type="date" required');
+    expect(paymentForm).toContain("!occurredAt");
+
+    const paymentAction = actionSource.slice(
+      actionSource.indexOf("export async function confirmRequestExpensePaid"),
+      actionSource.indexOf("export async function submitPaymentRequest"),
+    );
+    expect(paymentAction).toContain("isValidDateOnly(input.occurredAt)");
+    expect(paymentAction).toContain("p_occurred_at: input.occurredAt");
+    expect(paymentAction).not.toContain("p_occurred_at: occurredAt ?? undefined");
+  });
+
+  it("keeps the payment-request workspace decision-led, traceable, and mobile readable", () => {
+    expect(pageSource).toContain('data-testid="payment-request-now"');
+    expect(pageSource).toContain('data-testid="payment-request-facts"');
+    expect(pageSource).toContain('data-testid="payment-request-expense-list"');
+    expect(pageSource).toContain('data-testid="payment-request-funding-list"');
+    expect(pageSource).toContain('href={`/expenses/${e.id}`}');
+    expect(pageSource).toContain('href={`/custody/movements/${line.custody_movement_id}`}');
+    expect(pageSource).toContain("مرجع القيد");
+    expect(pageSource).toContain("المالك أو المحاسب");
+    expect(pageSource).toContain("التالي: إقفال الطلب");
+    expect(pageSource).toContain('if (s === "closed") return "done"');
+    expect(pageSource).not.toContain('s === "paid" || s === "closed"');
+    expect(pageSource).toContain("${num(150)}");
+    expect(pageSource).toContain('aria-labelledby="request-funding-step"');
+    expect(pageSource).toContain('aria-labelledby="request-payment-step"');
+    expect(pageSource).toContain('aria-labelledby="request-close-step"');
+
+    const expensePanel = pageSource.slice(
+      pageSource.indexOf('{tab === "expenses"'),
+      pageSource.indexOf('{tab === "settlement"'),
+    );
+    const settlementPanel = pageSource.slice(
+      pageSource.indexOf('{tab === "settlement"'),
+      pageSource.indexOf('{tab === "add"'),
+    );
+    expect(expensePanel).not.toContain("<SimpleTable");
+    expect(expensePanel).not.toContain('<Link href="/accounting"');
+    expect(settlementPanel).not.toContain("<SimpleTable");
+
+    const printPackage = pageSource.slice(
+      pageSource.indexOf('<section className="print-only">'),
+      pageSource.indexOf('{tab === "overview"'),
+    );
+    expect(printPackage).toContain('ariaLabel="مسار الاعتماد والتوقيع"');
+    expect(printPackage).toContain('ariaLabel="الملخص حسب الفئة"');
+    expect(printPackage).toContain('ariaLabel="البنود التفصيلية للطباعة"');
+    expect(printPackage).toContain('ariaLabel="التمويلات المسجلة للطباعة"');
+    expect(pageSource).toContain('id: "evidence", header: "أثر السداد"');
   });
 
   it("parses one exact internally consistent atomic detail snapshot", () => {
@@ -191,6 +275,8 @@ describe("payment request detail money", () => {
     expect(parsed.totals?.gross_request).toBe("9007199254740993.123456789");
     expect(parsed.lines[0]?.expense.total).toBe("9007199254740993.123456789");
     expect(parsed.fundings[0]?.amount).toBe("0.123456789012345678");
+    expect(parsed.fundings[0]?.custody_movement_id).toBe(FUNDING_MOVEMENT);
+    expect(parsed.fundings[0]?.journal_entry_id).toBe(FUNDING_JOURNAL);
     expect(parsed.availableExpenseCount).toBe(2);
     expect(parsed.availableExpensesTruncated).toBe(true);
   });

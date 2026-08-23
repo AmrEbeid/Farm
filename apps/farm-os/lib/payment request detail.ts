@@ -54,6 +54,28 @@ export function isPositivePaymentRequestAmount(value: unknown): boolean {
   return amount != null && compareDecimals(amount, "0") > 0;
 }
 
+export type PaymentRequestSettlementState = {
+  canReceiveFunding: boolean;
+  canConfirmPayment: boolean;
+  canClose: boolean;
+};
+
+export function paymentRequestSettlementState(
+  status: string,
+  remainingToFund: DecimalString,
+  pendingLineCount: number,
+): PaymentRequestSettlementState {
+  if (!Number.isSafeInteger(pendingLineCount) || pendingLineCount < 0) {
+    throw new Error("payment request pending line count must be a non-negative safe integer");
+  }
+  const remaining = isPositivePaymentRequestAmount(remainingToFund);
+  return {
+    canReceiveFunding: status === "approved_final" || (status === "paid" && remaining),
+    canConfirmPayment: status === "paid" && !remaining,
+    canClose: status === "paid" && !remaining && pendingLineCount === 0,
+  };
+}
+
 export function normalizePositivePaymentRequestAmount(value: unknown): DecimalString | null {
   const amount = parseDecimal(value);
   return amount != null && compareDecimals(amount, "0") > 0 ? amount : null;
@@ -135,6 +157,8 @@ export type PaymentRequestDetailFunding = {
   occurred_at: string;
   amount: DecimalString;
   custody_account_id: string;
+  custody_movement_id: string;
+  journal_entry_id: string;
   note: string | null;
 };
 
@@ -465,6 +489,8 @@ export function parsePaymentRequestDetailSnapshot(
       occurred_at: snapshotDate(row.occurred_at, `fundings[${index}].occurred_at`),
       amount: paymentRequestAmount(row.amount, `fundings[${index}].amount`),
       custody_account_id: snapshotUuid(row.custody_account_id, `fundings[${index}].custody_account_id`),
+      custody_movement_id: snapshotUuid(row.custody_movement_id, `fundings[${index}].custody_movement_id`),
+      journal_entry_id: snapshotUuid(row.journal_entry_id, `fundings[${index}].journal_entry_id`),
       note: snapshotNullableText(row.note, `fundings[${index}].note`),
     };
     if (!custodyById.has(funding.custody_account_id)) throw new Error("payment request detail snapshot: funding custody account missing");

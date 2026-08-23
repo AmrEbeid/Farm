@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { CircleAlert, FileText, Landmark, ReceiptText, WalletCards } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { EXPENSE_KIND_AR, PAYMENT_STATUS_AR } from "@/lib/labels";
 import type { ApprovalStep, PillStatus, TabItem } from "@amrebeid/ui";
-import { Alert, ApprovalChain, Breadcrumbs, Card, EmptyState } from "@/components/ui";
-import { StoryLine } from "@/components/StoryLine";
+import { Alert, ApprovalChain, Breadcrumbs, Card, EmptyState, StatusPill } from "@/components/ui";
 import { tabId, tabPanelId } from "@/lib/tab-ids";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { Entity360Header } from "@/components/Entity360Header";
@@ -26,6 +26,7 @@ import {
   isPositivePaymentRequestAmount,
   paymentRequestAmount,
   paymentRequestAmountEgp,
+  paymentRequestSettlementState,
   parsePaymentRequestDetailSnapshot,
 } from "@/lib/payment request detail";
 
@@ -38,13 +39,13 @@ const REQ_STATUS_AR: Record<string, string> = {
 };
 
 // Maps the request lifecycle onto the shared 360 pill vocabulary: draft → draft,
-// submitted → scheduled (awaiting action), the two approvals → active (in flight),
-// paid/closed → done, anything rejected/cancelled → blocked.
+// submitted → scheduled (awaiting action), approvals/paid → active (in flight),
+// closed → done, anything rejected/cancelled → blocked.
 function pillStatus(s: string): PillStatus {
   if (s === "draft") return "draft";
   if (s === "submitted") return "scheduled";
-  if (s === "approved_operational" || s === "approved_final") return "active";
-  if (s === "paid" || s === "closed") return "done";
+  if (s === "approved_operational" || s === "approved_final" || s === "paid") return "active";
+  if (s === "closed") return "done";
   if (s === "rejected" || s === "cancelled") return "blocked";
   return "draft";
 }
@@ -153,6 +154,7 @@ export default async function PaymentRequestPage({
     { id: "status", header: "حالة السداد" },
     { id: "paid_from", header: "مصدر العهدة" },
     { id: "paid_at", header: "تاريخ السداد" },
+    { id: "evidence", header: "أثر السداد" },
     { id: "total", header: "الإجمالي", numeric: true },
   ];
   const lineRows = exp.map((e) => ({
@@ -166,6 +168,16 @@ export default async function PaymentRequestPage({
       : PAYMENT_STATUS_AR[e.payment_status ?? ""] ?? "غير محدد",
     paid_from: accountLabelById.get(lineByExpenseId.get(e.id)?.paid_from_custody_account_id ?? "") ?? "—",
     paid_at: lineByExpenseId.get(e.id)?.paid_at ? fmtDate(lineByExpenseId.get(e.id)?.paid_at ?? "") : "—",
+    evidence: (() => {
+      const line = lineByExpenseId.get(e.id);
+      if (!line) return "—";
+      const parts = [
+        line.paid_by ? `الدافع: ${line.paid_by}` : null,
+        line.custody_movement_id ? `حركة العهدة: ${line.custody_movement_id}` : null,
+        line.journal_entry_id ? `القيد: ${line.journal_entry_id}` : null,
+      ].filter(Boolean);
+      return parts.length > 0 ? parts.join(" · ") : "—";
+    })(),
     total: paymentRequestAmountEgp(paymentRequestAmount(e.total, `expense ${e.id} total`)),
   }));
 
@@ -180,14 +192,18 @@ export default async function PaymentRequestPage({
     { id: "date", header: "التاريخ" },
     { id: "account", header: "دخلت في عهدة" },
     { id: "amount", header: "المبلغ", numeric: true },
-    { id: "note", header: "ملاحظات" },
+    { id: "evidence", header: "أثر التمويل" },
   ];
   const fundingRows = detail.fundings.map((funding) => ({
     id: funding.id,
     date: fmtDate(funding.occurred_at),
     account: accountLabelById.get(funding.custody_account_id) ?? "—",
     amount: paymentRequestAmountEgp(paymentRequestAmount(funding.amount, `funding ${funding.id} amount`)),
-    note: funding.note ?? "—",
+    evidence: [
+      `حركة العهدة: ${funding.custody_movement_id}`,
+      `القيد: ${funding.journal_entry_id}`,
+      funding.note ? `ملاحظة: ${funding.note}` : null,
+    ].filter(Boolean).join(" · "),
   }));
 
   const orgName = detail.organizationName;
@@ -218,16 +234,20 @@ export default async function PaymentRequestPage({
     req.status === "draft"
       ? `مسودة بها ${num(lineRows.length)} مصروفًا${grossPositive ? ` بإجمالي ${paymentRequestAmountEgp(gross)}` : ""} — التالي: المحاسب يكمل البنود ويرسل للاعتماد.`
       : req.status === "submitted"
-        ? `أُرسل الطلب (${paymentRequestAmountEgp(gross)}) — التالي: الاعتماد التشغيلي (مدير المزرعة).`
+        ? `أُرسل الطلب (${paymentRequestAmountEgp(gross)}) — التالي: الاعتماد التشغيلي (المالك أو المحاسب).`
         : req.status === "approved_operational"
-          ? `اعتمده المدير — التالي: اعتماد المالك (${paymentRequestAmountEgp(gross)}).`
+          ? `تم الاعتماد التشغيلي — التالي: اعتماد المالك (${paymentRequestAmountEgp(gross)}).`
           : req.status === "approved_final"
             ? `اعتمده المالك — التالي: تسجيل التمويل (المتبقي ${paymentRequestAmountEgp(remainingToFund)}).`
-            : req.status === "paid" && pendingLineCount > 0
-              ? `التمويل مكتمل — التالي: تأكيد سداد ${num(pendingLineCount)} بند من العهدة.`
+            : req.status === "paid" && remainingToFundPositive
+              ? `الطلب يحتاج استكمال التمويل — التالي: تسجيل المتبقي ${paymentRequestAmountEgp(remainingToFund)} قبل أي سداد أو إقفال.`
+              : req.status === "paid" && pendingLineCount > 0
+                ? `التمويل مكتمل — التالي: تأكيد سداد ${num(pendingLineCount)} بند من العهدة.`
               : req.status === "paid"
-                ? "اكتملت الدورة ✓ — كل البنود مموّلة ومسدَّدة ومقيَّدة."
-                : `الحالة: ${REQ_STATUS_AR[req.status ?? ""] ?? req.status ?? "غير معروفة"}.`;
+                ? "اكتمل السداد — التالي: إقفال الطلب (المالك أو المحاسب)."
+                : req.status === "closed"
+                  ? "اكتملت الدورة — الطلب ممول، وكل البنود مسددة، والطلب مقفل."
+                  : `الحالة: ${REQ_STATUS_AR[req.status ?? ""] ?? req.status ?? "غير معروفة"}.`;
   const railNotes: string[] = [];
   if (unclassifiedCount > 0)
     railNotes.push(`⚠ ${num(unclassifiedCount)} مصروف آجل بلا حساب محاسبي — لن يُقبل في الطلب حتى يُصنَّف (من صفحة المصروفات أو معالج «سجّل»).`);
@@ -263,8 +283,8 @@ export default async function PaymentRequestPage({
       id: "approved_op",
       state: req.approved_op_at ? "approved" : req.submitted_at ? "pending" : "requested",
       actor: req.approved_op_at
-        ? `اعتماد تشغيلي (مدير المزرعة) — ${approvedOpByName ?? "—"}`
-        : "اعتماد تشغيلي (مدير المزرعة)",
+        ? `اعتماد تشغيلي (المالك أو المحاسب) — ${approvedOpByName ?? "—"}`
+        : "اعتماد تشغيلي (المالك أو المحاسب)",
       note: req.approved_op_at ? fmtDate(req.approved_op_at) : undefined,
     },
     {
@@ -338,8 +358,17 @@ export default async function PaymentRequestPage({
     { id: "add", label: "إضافة" },
   ];
 
+  const {
+    canReceiveFunding: requestCanReceiveFunding,
+    canConfirmPayment: requestCanConfirmPayment,
+    canClose: requestCanClose,
+  } = paymentRequestSettlementState(req.status, remainingToFund, pendingLineCount);
+
   return (
-    <div className="flex flex-col gap-5 p-6">
+    <main
+      className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-4 md:p-6"
+      style={{ "--ink-muted": "#5f7066" } as CSSProperties}
+    >
       <Breadcrumbs
         ariaLabel="المسار"
         className="no-print"
@@ -348,31 +377,52 @@ export default async function PaymentRequestPage({
           { id: "request", label: `إذن صرف رقم ${num(req.request_no)}` },
         ]}
       />
-      <Link href="/custody" className="text-sm no-print" style={{ color: "var(--ink-muted)" }}>→ العودة للعهدة</Link>
 
       <Entity360Header
         title={`إذن صرف رقم ${num(req.request_no)}`}
         subtitle={subtitleParts.join(" · ")}
         pills={[{ status: pillStatus(req.status), label: REQ_STATUS_AR[req.status] ?? req.status }]}
-        actions={<HeaderLink href="/custody">سجل العهدة</HeaderLink>}
+        actions={(
+          <HeaderLink href="/custody">
+            <WalletCards size={16} aria-hidden /> مساحة العهدة
+          </HeaderLink>
+        )}
       />
 
-      {remainingToFundPositive && (
+      <section
+        data-testid="payment-request-now"
+        aria-labelledby="payment-request-now-title"
+        className="no-print flex flex-col gap-3 border-y py-3"
+        style={{ borderColor: "var(--line)" }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="payment-request-now-title" className="flex items-center gap-2 text-sm font-bold">
+              <CircleAlert size={17} aria-hidden /> القرار الآن
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm font-bold">{railLead}</p>
+          </div>
+          <RequestLifecycle requestId={req.id} status={req.status} role={m.role} />
+        </div>
+        {railNotes.map((note) => (
+          <p key={note} className="text-xs" style={{ color: "var(--ink-muted)" }}>{note}</p>
+        ))}
+      </section>
+
+      {requestCanReceiveFunding && remainingToFundPositive && (
         <Alert
           tone="warning"
           title="تمويل مطلوب من المالك"
           description={`المتبقي تسجيله كعهدة من تمويل المالك: ${paymentRequestAmountEgp(remainingToFund)}.`}
         />
       )}
-      {req.status === "paid" && pendingLineCount > 0 && (
+      {req.status === "paid" && !remainingToFundPositive && pendingLineCount > 0 && (
         <Alert
           tone="warning"
           title="السداد يحتاج تأكيد"
           description={`تم تسجيل تمويل المالك، ويتبقى تأكيد سداد ${num(pendingLineCount)} بند من العهدة.`}
         />
       )}
-
-      <StoryLine lead={railLead} notes={railNotes} />
 
       <div className="no-print">
         <EntityTabs items={tabItems} value={tab} ariaLabel="أقسام طلب الصرف" />
@@ -428,47 +478,31 @@ export default async function PaymentRequestPage({
           tabIndex={0}
           className="flex flex-col gap-5 no-print"
         >
-          <RequestLifecycle requestId={req.id} status={req.status} role={m.role} />
+          <section aria-labelledby="request-facts-title" className="flex flex-col gap-2">
+            <h2 id="request-facts-title" className="text-sm font-bold">أرقام القرار</h2>
+            <div data-testid="payment-request-facts" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <FactItem label="إجمالي الطلب" value={paymentRequestAmountEgp(t.gross_request)} icon={<FileText size={16} aria-hidden />} />
+              <FactItem label="اعتماد المالك" value={paymentRequestAmountEgp(t.approved_net_request)} icon={<ReceiptText size={16} aria-hidden />} />
+              <FactItem label="تمويل مستلم" value={paymentRequestAmountEgp(t.owner_funding_received)} icon={<Landmark size={16} aria-hidden />} />
+              <FactItem label="مدفوع من الطلب" value={paymentRequestAmountEgp(t.request_cash_out)} icon={<WalletCards size={16} aria-hidden />} />
+              <FactItem label="المتبقي تمويله" value={paymentRequestAmountEgp(remainingToFund)} emphasis={remainingToFundPositive} icon={<CircleAlert size={16} aria-hidden />} />
+            </div>
+          </section>
 
-          <Card title="مسار الاعتماد">
+          <section aria-labelledby="request-approval-title" className="flex flex-col gap-2">
+            <h2 id="request-approval-title" className="text-sm font-bold">مسار الاعتماد</h2>
             <ApprovalChain steps={approvalSteps} ariaLabel="مسار اعتماد طلب الصرف" />
-          </Card>
+          </section>
 
-          <Card title="حزمة الطباعة والتوقيع">
-            <div className="grid gap-3 md:grid-cols-5">
-              {proofSummary.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-md border p-3"
-                  style={{ borderColor: "var(--line)", background: "var(--surface)" }}
-                >
-                  <div className="text-xs" style={{ color: "var(--ink-muted)" }}>
-                    {item.label}
-                  </div>
-                  <div className="mt-1 text-sm font-semibold">{item.value}</div>
-                </div>
-              ))}
+          <section aria-labelledby="request-composition-title" className="flex flex-col gap-2">
+            <h2 id="request-composition-title" className="text-sm font-bold">تكوين الطلب</h2>
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              <FactItem label="تشغيلي آجل" value={paymentRequestAmountEgp(t.operating_unpaid)} />
+              <FactItem label="رأسمالي آجل" value={paymentRequestAmountEgp(t.capex_unpaid)} />
+              <FactItem label="مسحوبات آجل" value={paymentRequestAmountEgp(t.drawing_unpaid)} />
+              <FactItem label="تغذية عهدة" value={paymentRequestAmountEgp(t.custody_top_up)} />
             </div>
-            <div className="mt-4">
-              <SimpleTable
-                columns={proofCols}
-                rows={proofRows}
-                ariaLabel="حزمة الطباعة والتوقيع"
-                empty="لا توجد مراحل اعتماد"
-              />
-            </div>
-          </Card>
-
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Card title="تشغيلي آجل"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.operating_unpaid)}</p></Card>
-            <Card title="رأسمالي آجل"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.capex_unpaid)}</p></Card>
-            <Card title="مسحوبات آجل"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.drawing_unpaid)}</p></Card>
-            <Card title="تغذية عهدة مطلوبة"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.custody_top_up)}</p></Card>
-            <Card title="المعتمد من المالك"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.approved_net_request)}</p></Card>
-            <Card title="تمويل مستلم كعهدة"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.owner_funding_received)}</p></Card>
-            <Card title="مدفوع من الطلب"><p className="text-xl font-bold">{paymentRequestAmountEgp(t.request_cash_out)}</p></Card>
-            <Card title="المتبقي تمويله"><p className="text-xl font-bold" style={{ color: "var(--brand)" }}>{paymentRequestAmountEgp(remainingToFund)}</p></Card>
-          </div>
+          </section>
 
           <Card title="الملخص حسب الفئة">
             <SimpleTable columns={catCols} rows={catRows} ariaLabel="الملخص حسب الفئة" empty="لا توجد بنود بعد" />
@@ -477,11 +511,67 @@ export default async function PaymentRequestPage({
       )}
 
       {tab === "expenses" && (
-        <div role="tabpanel" id={tabPanelId("expenses")} aria-labelledby={tabId("expenses")} tabIndex={0} className="no-print">
-          <Card title="البنود التفصيلية">
-            <SimpleTable columns={lineCols} rows={lineRows} ariaLabel="البنود التفصيلية" empty="لم تُضف بنود لهذا الطلب بعد" />
-          </Card>
-        </div>
+        <section
+          role="tabpanel"
+          id={tabPanelId("expenses")}
+          aria-labelledby={tabId("expenses")}
+          tabIndex={0}
+          className="no-print flex flex-col gap-3"
+        >
+          <div>
+            <h2 className="text-sm font-bold">بنود إذن الصرف</h2>
+            <p className="text-xs" style={{ color: "var(--ink-muted)" }}>افتح المصروف أو أثر السداد مباشرة بدل البحث عنه في سجل آخر.</p>
+          </div>
+          {requestLines.length === 0 ? (
+            <EmptyState title="لم تُضف بنود لهذا الطلب بعد" />
+          ) : (
+            <ul data-testid="payment-request-expense-list">
+              {requestLines.map((line) => {
+                const e = line.expense;
+                const paid = Boolean(line.paid_at);
+                return (
+                  <li key={line.id} className="border-b py-3 last:border-b-0" style={{ borderColor: "var(--line)" }}>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <Link href={`/expenses/${e.id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+                          {e.description ?? e.category ?? "مصروف بدون بيان"}
+                        </Link>
+                        <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
+                          {EXPENSE_KIND_AR[e.kind] ?? "غير مصنف"} · {e.category ?? "بدون فئة"} · {e.date ? fmtDate(e.date) : "بدون تاريخ"}
+                        </p>
+                      </div>
+                      <div className="text-end">
+                        <strong className="block tabular-nums">{paymentRequestAmountEgp(paymentRequestAmount(e.total, `expense ${e.id} total`))}</strong>
+                        <StatusPill status={paid ? "done" : "warning"}>{paid ? "تم السداد" : "ينتظر السداد"}</StatusPill>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>
+                      الحساب: {e.account_id ? postingAccountLabelById.get(e.account_id) ?? "حساب غير معروف" : "بدون حساب"}
+                      {line.paid_from_custody_account_id ? ` · من عهدة ${accountLabelById.get(line.paid_from_custody_account_id) ?? "غير معروفة"}` : ""}
+                      {line.paid_at ? ` · ${fmtDate(line.paid_at)}` : ""}
+                      {line.paid_by ? ` · دفع بواسطة ${line.paid_by}` : ""}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                      {line.custody_movement_id && (
+                        <Link href={`/custody/movements/${line.custody_movement_id}`} className="font-semibold underline underline-offset-4" style={{ color: "var(--brand)" }}>
+                          فتح حركة العهدة
+                        </Link>
+                      )}
+                      {line.journal_entry_id && (
+                        <span style={{ color: "var(--ink-muted)" }}>
+                          مرجع القيد <bdi dir="ltr">{line.journal_entry_id}</bdi>
+                        </span>
+                      )}
+                      {!line.custody_movement_id && !line.journal_entry_id && (
+                        <span style={{ color: "var(--ink-muted)" }}>لا يوجد أثر سداد بعد.</span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       )}
 
       {tab === "settlement" && (
@@ -490,41 +580,68 @@ export default async function PaymentRequestPage({
           id={tabPanelId("settlement")}
           aria-labelledby={tabId("settlement")}
           tabIndex={0}
-          className="grid gap-5 lg:grid-cols-2 no-print"
+          className="no-print flex flex-col gap-6"
         >
-          <Card title="تمويل المالك">
-            {req.status === "approved_final" || (req.status === "paid" && remainingToFundPositive) ? (
+          <section aria-labelledby="request-funding-step" className="flex flex-col gap-3 border-b pb-6" style={{ borderColor: "var(--line)" }}>
+            <StepHeading id="request-funding-step" number={1} title="تمويل المالك" detail={`المستلم ${paymentRequestAmountEgp(t.owner_funding_received)} · المتبقي ${paymentRequestAmountEgp(remainingToFund)}`} />
+            {requestCanReceiveFunding ? (
               <RecordRequestFunding requestId={req.id} accounts={accountOptions} remainingToFund={remainingToFund} />
             ) : (
               <p style={{ color: "var(--ink-muted)" }}>
-                يظهر تسجيل التمويل بعد الاعتماد النهائي، ويُسجل كعهدة أولًا قبل السداد.
+                {req.status === "closed" || (req.status === "paid" && !remainingToFundPositive)
+                  ? "اكتمل تمويل الطلب."
+                  : "يبدأ التمويل بعد الاعتماد النهائي، ويُسجل كعهدة أولًا قبل السداد."}
               </p>
             )}
-          </Card>
+            <div>
+              <h3 className="text-xs font-bold">التمويلات المسجلة</h3>
+              {detail.fundings.length === 0 ? (
+                <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>لا توجد تمويلات مسجلة بعد.</p>
+              ) : (
+                <ul data-testid="payment-request-funding-list">
+                  {detail.fundings.map((funding) => (
+                    <li key={funding.id} className="flex flex-wrap items-start justify-between gap-2 border-b py-3 last:border-b-0" style={{ borderColor: "var(--line)" }}>
+                      <div>
+                        <strong>{accountLabelById.get(funding.custody_account_id) ?? "عهدة غير معروفة"}</strong>
+                        <p className="text-xs" style={{ color: "var(--ink-muted)" }}>{fmtDate(funding.occurred_at)}{funding.note ? ` · ${funding.note}` : ""}</p>
+                        <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
+                          <Link href={`/custody/movements/${funding.custody_movement_id}`} className="font-semibold underline underline-offset-2">
+                            حركة العهدة
+                          </Link>
+                          {` · مرجع القيد: ${funding.journal_entry_id}`}
+                        </p>
+                      </div>
+                      <strong className="tabular-nums">{paymentRequestAmountEgp(paymentRequestAmount(funding.amount, `funding ${funding.id} amount`))}</strong>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
 
-          <Card title="تأكيد السداد من العهدة">
-            {req.status === "paid" ? (
+          <section aria-labelledby="request-payment-step" className="flex flex-col gap-3 border-b pb-6" style={{ borderColor: "var(--line)" }}>
+            <StepHeading id="request-payment-step" number={2} title="تأكيد السداد من العهدة" detail={`${num(pendingLineCount)} بند ينتظر التأكيد`} />
+            {requestCanConfirmPayment ? (
               <ConfirmRequestExpensePayment requestId={req.id} expenses={payableExpenseOptions} accounts={accountOptions} />
             ) : (
               <p style={{ color: "var(--ink-muted)" }}>
-                يظهر تأكيد السداد بعد استلام تمويل المالك بالكامل وتسجيله على العهدة.
+                {req.status === "closed"
+                  ? "تم تأكيد سداد كل البنود."
+                  : "يبدأ تأكيد السداد بعد استلام تمويل المالك بالكامل وتسجيله على العهدة."}
               </p>
             )}
-          </Card>
+          </section>
 
-          <Card title="التمويلات المسجلة">
-            <SimpleTable columns={fundingCols} rows={fundingRows} ariaLabel="التمويلات المسجلة" empty="لا توجد تمويلات مسجلة بعد" />
-          </Card>
-
-          <Card title="إقفال الطلب">
-            {req.status === "paid" && pendingLineCount === 0 ? (
+          <section aria-labelledby="request-close-step" className="flex flex-col gap-3">
+            <StepHeading id="request-close-step" number={3} title="إقفال الطلب" detail="آخر خطوة بعد تمويل الطلب وتأكيد كل البنود" />
+            {requestCanClose ? (
               <ClosePaymentRequestButton requestId={req.id} />
             ) : req.status === "closed" ? (
               <p style={{ color: "var(--ink-muted)" }}>الطلب مقفل.</p>
             ) : (
               <p style={{ color: "var(--ink-muted)" }}>يمكن الإقفال بعد تمويل الطلب وتأكيد سداد كل البنود.</p>
             )}
-          </Card>
+          </section>
         </div>
       )}
 
@@ -546,7 +663,7 @@ export default async function PaymentRequestPage({
           {req.status === "draft" && detail.availableExpensesTruncated && (
             <Alert
               tone="warning"
-              title={`${num(hiddenAvailableExpenseCount)} مصروف إضافي جاهز خارج أحدث 150 مصروفًا`}
+              title={`${num(hiddenAvailableExpenseCount)} مصروف إضافي جاهز خارج أحدث ${num(150)} مصروفًا`}
               description="راجع شاشة المصروفات لإضافة الأقدم؛ القائمة هنا لا تدّعي أنها كاملة."
             />
           )}
@@ -559,6 +676,29 @@ export default async function PaymentRequestPage({
           )}
         </div>
       )}
+    </main>
+  );
+}
+
+function FactItem({ label, value, emphasis = false, icon }: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="border-s px-3 py-2" style={{ borderColor: emphasis ? "var(--warning-fg)" : "var(--line)", background: "var(--surface)" }}>
+      <p className="flex items-center gap-1 text-xs" style={{ color: "var(--ink-muted)" }}>{icon}{label}</p>
+      <strong className="block text-base tabular-nums" style={{ color: emphasis ? "var(--warning-fg)" : undefined }}>{value}</strong>
+    </div>
+  );
+}
+
+function StepHeading({ id, number, title, detail }: { id: string; number: number; title: string; detail: string }) {
+  return (
+    <div>
+      <h2 id={id} className="text-sm font-bold">{num(number)}. {title}</h2>
+      <p className="text-xs" style={{ color: "var(--ink-muted)" }}>{detail}</p>
     </div>
   );
 }

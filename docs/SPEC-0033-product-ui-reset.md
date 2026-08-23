@@ -17,6 +17,34 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Payment Request 360 R4g — LOCAL RELEASE CANDIDATE
+
+R4g rebuilds `/custody/request/[requestId]` as a compact decision-led finance workspace. It preserves exactly
+one `fn_payment_request_detail_snapshot` call, the current Owner/Accountant route gate, exact decimal-text
+money, lifecycle permissions and RPCs, the 150-row available-expense bound, and the complete print/signature
+package. Existing posting RPC bodies, permissions, financial definitions and production business rows remain
+unchanged. A narrow migration adds transaction-safe guards against confirming or closing an underfunded request.
+The guard locks the request row and derives the approved funding gap without depending on a user JWT. The same
+one-call snapshot now carries each funding movement and journal reference for screen and print traceability.
+
+The screen now leads with one plain-Arabic next action and the legal lifecycle control. Five decision facts
+replace eight equal KPI cards; approval and request composition remain visible without duplicating the complete
+paper package on screen. Expense and funding tables become compact server-rendered rows for phone use. Every
+request expense links to its real expense file, and settled lines link to their existing custody movement and
+show their exact journal reference without pretending `/accounting` is a direct journal destination. Settlement
+is ordered as owner funding, expense-payment confirmation, then close. Both settlement forms now require their
+actual date and the server action rejects blank or invalid dates instead of allowing an RPC default to post on
+the wrong day. Lifecycle and posting RPCs remain unchanged.
+
+Local evidence: focused 13/13; full Vitest 2,329 plus 17 controlled skips; Docker-free pgTAP 5,010/5,010,
+including the 22-check settlement-completion guard and 46-check detail-snapshot tests; the migration is in the
+replay allowlist and passes immediate second application;
+TypeScript; full ESLint; 70-page production build; service-role, Recharts and server/client-boundary guards;
+Impeccable detector clean; 390px and 1,440px RTL fixture checks with no horizontal overflow, and a clean-browser
+console pass. Three independent change-request rounds were closed and the exact final diff received independent
+`APPROVE`. Migration `20260823170000 payment request completion guards.sql` is locally validated but not yet applied. PR checks,
+merge, deployment and authenticated real-record acceptance also remain open.
+
 ### Custody workspace and movement 360 R4f — RELEASED
 
 *Released by PR #1055 at `926e04932377aebe3d63cb1f58a0915365907874`. Exact-merge CI
