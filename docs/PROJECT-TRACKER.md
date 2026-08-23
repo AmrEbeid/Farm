@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4i Chart of Accounts live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4j cost-center reports and 360 live)
+
+> **2026-08-23 — PRODUCT UI RESET R4j COST-CENTER REPORTS + 360 MERGED / DEPLOYED.**
+> `/finance/reports` now presents one compact decision strip, explicit filters, hierarchical Arabic rows and
+> secondary audit/export detail while preserving the exact atomic `fn_cost_center_reports_snapshot` contract.
+> `/finance/cost-centers/[id]` now uses the shared 360 header and URL tabs, distinguishes direct activity from
+> subtree posted money, and discloses pending-price and finalized-without-posted-journal sales. PR #1063 merged
+> as `a44bd153bbf41cf4b76fa2194cccdd2a62e34832`; exact-main CI `32638602429`, db-tests `32638602431`, release
+> `32638602419` and Production deployment `6047794501` passed. Evidence: focused 22/22; Vitest 2,343 plus 17
+> controlled skips; Docker-free pgTAP 5,037/5,037; TypeScript, ESLint, 70-page build, repository guards,
+> zero-vulnerability audit, responsive RTL QA and independent rereview APPROVE. `/login` returns 200 and both
+> signed-out routes return 307 to `/login`. Migration N/A; no schema, RPC, permission, posting definition or
+> business row changed. Authenticated Owner/Accountant real-data acceptance remains open. Accounting remains
+> about 99.5%, not 100%. **Next:** inventory the remaining R4 list/360 surfaces and take the highest-value
+> bounded workspace. Keep package PR #1025 separate.
 
 > **2026-08-23 — PRODUCT UI RESET R4i CHART OF ACCOUNTS MIGRATED / MERGED / DEPLOYED.**
 > `/finance/accounts` now reads one exact posted-only active-organization snapshot instead of the legacy

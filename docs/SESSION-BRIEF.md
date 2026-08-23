@@ -1,5 +1,27 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4i Chart of Accounts live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4j cost-center reports and 360 live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4j cost-center reports and 360 — MERGED / DEPLOYED
+
+`/finance/reports` now leads with a compact decision strip, explicit filters and hierarchical Arabic rows;
+the complete accounting table, export and annual account-by-center matrix remain secondary audit tools. It
+preserves one exact atomic `fn_cost_center_reports_snapshot` call and exact decimal-text posted money.
+`/finance/cost-centers/[id]` now uses the shared 360 header, breadcrumbs and URL tabs, separates direct
+activity from subtree posted money, and discloses pending-price and finalized sales that lack a posted journal.
+Its complete direct summary and deterministic latest-200 expense/sale evidence bounds are unchanged.
+
+PR #1063 merged as `a44bd153bbf41cf4b76fa2194cccdd2a62e34832`; exact-main CI `32638602429`, db-tests
+`32638602431`, release `32638602419` and Production deployment `6047794501` passed. `/login` is 200 and
+signed-out report and cost-center detail routes are 307 to `/login`. Evidence: focused 22/22; Vitest 2,343 plus
+17 controlled skips; Docker-free pgTAP 5,037/5,037; TypeScript; full ESLint; 70-page build; repository guards;
+zero-vulnerability audit; 390px/1,440px RTL checks with no overflow or console errors; and independent rereview
+`APPROVE` after two P1 and two P2 findings were corrected. Migration N/A; no schema, RPC, permission, query,
+posting definition or business row changed.
+
+**Exact resume point:** inventory the remaining R4 list/workspace/360 surfaces from fresh `origin/main`, then
+take the highest-value bounded workspace without disturbing package PR #1025. Authenticated Owner/Accountant
+R4j acceptance and the protected 44-workflow accounting run remain open. Accounting remains about 99.5%, not
+100%; the 698 human decisions, workbook dual run, exception resolution and dated signatures remain mandatory.
 
 ## 2026-08-23 — Product UI reset R4i Chart of Accounts — MIGRATED / MERGED / DEPLOYED
 
