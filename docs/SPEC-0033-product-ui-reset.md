@@ -17,9 +17,7 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Supervisor home R3e candidate
-
-*Local candidate. The migration is a draft until the Owner applies it; nothing here is merged or deployed.*
+### Supervisor home R3e released
 
 The Supervisor branch of `/m` now uses one supervisor-only, active-organisation snapshot, and the
 legacy unbounded field feed no longer runs for this role. `/m` stays the Supervisor's primary field
@@ -66,8 +64,11 @@ preserved on the Supervisor home. Exact recorded counts and driver rows stay vis
 operations authority says, while every completeness or all-clear claim stays gated on verified
 authority.
 
-Not yet done: hosted migration, merge, deployment and authenticated Supervisor browser acceptance at
-390px. Release-state documents are not updated by this candidate.
+Hosted migrations `20260823004153 exact_supervisor_home_snapshot` and
+`20260823004159 enforce_dose_signoff_on_execution`, PR #1039, merge SHA `53970c2`, exact-SHA Vercel success
+and signed-out production routing are evidenced. Authenticated Supervisor browser acceptance at 390px remains
+open because production has no Supervisor membership or linked person; no account or business data was created
+to manufacture that evidence.
 
 ### Agronomist home R3d released
 

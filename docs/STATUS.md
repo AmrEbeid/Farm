@@ -1,8 +1,29 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (Product UI reset R3d exact Agronomist home live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (Product UI reset R3e exact Supervisor home live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R3e EXACT SUPERVISOR HOME: MIGRATED / MERGED / DEPLOYED.**
+Supervisor `/m` now reads one supervisor-only, active-organization snapshot and shows only work assigned through
+the caller's unique person link. Missing or ambiguous links fail closed; inclusive multi-day, overdue and
+undated work remain distinct; ready plus blocked reconciles exactly to due plus overdue. The page exposes no
+finance values. Dose-bearing work cannot be completed until both agronomy sign-off fields exist, enforced by
+two resulting-row database triggers across insert and every relevant update. Supervisor and Storekeeper are
+also denied the money-bearing planning list, dashboard and detail routes in navigation and on the server.
+
+Hosted Farm migrations `20260823004153 exact_supervisor_home_snapshot` and
+`20260823004159 enforce_dose_signoff_on_execution` passed postflight. The snapshot is `SECURITY INVOKER`,
+`STABLE`, empty-search-path and authenticated-only (definition md5 `c54a8070da62a89cce07cd3becc6c2a7`);
+the trigger function is invoker, has no client execute grant (definition md5
+`ffdc548a060b56055814d2d2f6e9b23c`), both triggers are enabled, completed unsigned doses remain zero and
+the one existing open unsigned dose remains unchanged. PR #1039 merged as
+`53970c2539fa7d7c947035e2548d3705ec8b6f2c`; Vercel reported success for that exact SHA and
+`ebeidfarm.business` redirects signed-out `/m`, `/plans`, `/plans/dashboard` and plan detail to `/login`.
+Evidence: independent APPROVE after two hostile-review rounds; pgTAP 4,524/4,524; Vitest 2,014 plus 17
+controlled skips; TypeScript, ESLint, 70-page build, Storybook, guards, gitleaks and exact-merge CI green. No
+advisor names the new objects. Authenticated Supervisor acceptance remains open because production has no
+Supervisor membership or linked person. Next: Storekeeper home, then prioritized list and 360 redesign.
 
 **2026-08-23 — PRODUCT UI RESET R3d EXACT AGRONOMIST HOME: MIGRATED / MERGED / DEPLOYED.**
 Agronomist /dashboard/manager now reads one agri-engineer-only, active-organization snapshot and leads with
