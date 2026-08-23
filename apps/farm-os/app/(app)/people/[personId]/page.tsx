@@ -1,283 +1,79 @@
-import type { ReactNode } from "react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/auth";
-import type { TabItem } from "@amrebeid/ui";
-import { Alert, Breadcrumbs, Card, DescriptionList, EmptyState, KpiCard } from "@/components/ui";
-import { tabId, tabPanelId } from "@/lib/tab-ids";
-import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
-import { Entity360Header } from "@/components/Entity360Header";
-import { EntityTabs } from "@/components/EntityTabs";
-import { fmtDate } from "@/lib/dates";
-import { num } from "@/lib/money";
-import { EMP_TYPE_AR, OP_STATUS_AR, SUBTYPE_AR, isExecutableOpStatus } from "@/lib/labels";
+// SPEC-0033 R4c — «ملف الزميل 360». ONE exact, bounded, active-organisation snapshot per page view.
+// Nothing on this route reads a table directly any more.
+//
+// WHAT REPLACED WHAT. The old page issued five parallel PostgREST reads and then two more, one of
+// which was the WHOLE `people` table just to resolve a single manager name and the direct reports.
+// It de-duplicated the legacy responsible-person link against the assignee link in JavaScript, and
+// then rendered `array.length` of each capped read as a KPI — «أنشطة مسندة ١٢» on a `.limit(12)`
+// read means "at least 12", never "12". It also selected `est_cost` on every operation, publishing
+// planned money to a surface with no reason to carry it. All of that is now one RPC: the union is
+// de-duplicated in SQL, every exact total is published separately from its own independently
+// bounded sample, and no money key is built at all.
+//
+// NOT FOUND MEANS NOT FOUND. `fn_person_snapshot` returns SQL NULL for a person outside the active
+// organisation — deliberately the SAME answer as an id that does not exist anywhere — so the 404
+// below can never be read as "this person exists, but not for you". A malformed uuid collapses to
+// the same answer.
+//
+// THE RETURN LINK IS REBUILT, NOT ECHOED. `?from=` is parsed, restricted to the people directory
+// path and REBUILT from validated parts before it is ever rendered as a link
+// (lib/people-directory-context) — the caller's bytes never reach an href.
 
-const TAB_IDS = ["overview", "operations", "activities", "team"] as const;
-type PersonTab = (typeof TAB_IDS)[number];
+import { notFound, redirect } from "next/navigation";
+import { requireRole } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import {
+  PERSON_ASSIGNED_EVENT_SAMPLE,
+  PERSON_DIRECT_REPORT_SAMPLE,
+  PERSON_OPERATION_SAMPLE,
+  PERSON_PERFORMED_EVENT_SAMPLE,
+  parsePersonSnapshot,
+} from "@/lib/people-snapshot-reads";
+import { personHref, readPersonRequest } from "@/lib/people-directory-context";
+import { Person360View } from "./person-360-view";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function Person360Page({
   params,
   searchParams,
 }: {
   params: Promise<{ personId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string }>;
 }) {
+  const membership = await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
   const { personId } = await params;
-  const { tab: rawTab } = await searchParams;
-  const tab: PersonTab = (TAB_IDS as readonly string[]).includes(rawTab ?? "")
-    ? (rawTab as PersonTab)
-    : "overview";
-  await requireRole(["owner", "farm_manager", "agri_engineer", "accountant"]);
-  const sb = await createClient();
+  // A route segment that is not a uuid is a 404, not a database error: `p_person uuid` would raise
+  // 22P02 and reach the segment error boundary as a server fault instead of a missing page.
+  if (!UUID.test(personId)) notFound();
 
-  const [
-    { data: person, error: personError },
-    { data: people, error: peopleError },
-    { data: operationAssignments, error: operationAssignmentsError },
-    { data: performedEvents, error: performedError },
-    { data: assignedEvents, error: assignedError },
-  ] = await Promise.all([
-    sb
-      .from("people")
-      .select("id, name, position, employment_type, active, reports_to_person_id")
-      .eq("id", personId)
-      .maybeSingle(),
-    sb
-      .from("people")
-      .select("id, name, position, employment_type, active, reports_to_person_id")
-      .order("name"),
-    sb
-      .from("plan_operation_assignees")
-      .select("plan_op_id, is_lead")
-      .eq("person_id", personId),
-    sb
-      .from("farm_event")
-      .select("id, subtype, status, occurred_at, notes")
-      .eq("performed_by_person_id", personId)
-      .order("occurred_at", { ascending: false })
-      .limit(12),
-    sb
-      .from("farm_event")
-      .select("id, subtype, status, occurred_at, notes")
-      .eq("assigned_to_person_id", personId)
-      .order("occurred_at", { ascending: false })
-      .limit(12),
-  ]);
-  if (personError) throw personError;
-  if (peopleError) throw peopleError;
-  if (operationAssignmentsError) throw operationAssignmentsError;
-  if (performedError) throw performedError;
-  if (assignedError) throw assignedError;
+  const canonicalPersonId = personId.toLowerCase();
+  const { tab, from, redirectTo } = readPersonRequest(canonicalPersonId, await searchParams);
+  if (personId !== canonicalPersonId || redirectTo) {
+    redirect(redirectTo ?? personHref(canonicalPersonId, tab, from));
+  }
 
-  if (!person)
-    return (
-      <div className="p-6">
-        <EmptyState title="الشخص غير موجود." description="قد يكون محذوفًا أو الرابط غير صحيح." icon="🔍" />
-      </div>
-    );
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_person_snapshot", {
+    p_org: membership.orgId,
+    p_person: canonicalPersonId,
+    p_operation_limit: PERSON_OPERATION_SAMPLE,
+    p_performed_limit: PERSON_PERFORMED_EVENT_SAMPLE,
+    p_assigned_limit: PERSON_ASSIGNED_EVENT_SAMPLE,
+    p_report_limit: PERSON_DIRECT_REPORT_SAMPLE,
+  });
+  if (error) throw error;
+  if (data === null) notFound();
 
-  const assignedOperationIds = [...new Set((operationAssignments ?? []).map((row) => row.plan_op_id))];
-  const [
-    { data: assignedOperations, error: assignedOperationsError },
-    { data: legacyOperations, error: legacyOperationsError },
-  ] = await Promise.all([
-    assignedOperationIds.length
-      ? sb
-          .from("plan_operations")
-          .select("id, plan_id, subtype, planned_at, status, est_cost")
-          .in("id", assignedOperationIds)
-          .order("planned_at")
-          .limit(40)
-      : { data: [], error: null },
-    sb
-      .from("plan_operations")
-      .select("id, plan_id, subtype, planned_at, status, est_cost")
-      .eq("responsible_person_id", personId)
-      .order("planned_at")
-      .limit(40),
-  ]);
-  if (assignedOperationsError) throw assignedOperationsError;
-  if (legacyOperationsError) throw legacyOperationsError;
+  const snapshot = parsePersonSnapshot(data, {
+    orgId: membership.orgId,
+    personId: canonicalPersonId,
+    operationLimit: PERSON_OPERATION_SAMPLE,
+    performedLimit: PERSON_PERFORMED_EVENT_SAMPLE,
+    assignedLimit: PERSON_ASSIGNED_EVENT_SAMPLE,
+    reportLimit: PERSON_DIRECT_REPORT_SAMPLE,
+  });
+  if (snapshot === null) notFound();
 
-  const operations = [...(assignedOperations ?? []), ...(legacyOperations ?? [])].filter(
-    (op, index, all) => all.findIndex((candidate) => candidate.id === op.id) === index,
-  );
-
-  const manager = (people ?? []).find((p) => p.id === person.reports_to_person_id);
-  const directReports = (people ?? []).filter((p) => p.reports_to_person_id === person.id);
-  const openOperations = (operations ?? []).filter((op) => isExecutableOpStatus(op.status));
-
-  const operationColumns: SimpleColumn[] = [
-    { id: "subtype", header: "العملية" },
-    { id: "planned_at", header: "التاريخ" },
-    { id: "status", header: "الحالة", kind: "status" },
-  ];
-  const operationRows = (operations ?? []).map((op) => ({
-    id: op.id,
-    href: `/plans/${op.plan_id}`,
-    subtype: SUBTYPE_AR[op.subtype ?? ""] ?? "عملية",
-    planned_at: op.planned_at ? fmtDate(op.planned_at) : "—",
-    status: OP_STATUS_AR[op.status ?? "planned"] ?? "غير معروف",
-  }));
-
-  const eventColumns: SimpleColumn[] = [
-    { id: "subtype", header: "النشاط" },
-    { id: "occurred_at", header: "التاريخ" },
-    { id: "status", header: "الحالة", kind: "status" },
-    { id: "notes", header: "ملاحظات" },
-  ];
-  const performedRows = (performedEvents ?? []).map((event) => ({
-    id: event.id,
-    subtype: SUBTYPE_AR[event.subtype ?? ""] ?? "نشاط",
-    occurred_at: event.occurred_at ? fmtDate(event.occurred_at) : "—",
-    status: OP_STATUS_AR[event.status ?? ""] ?? "غير معروف",
-    notes: event.notes ?? "—",
-  }));
-  const assignedRows = (assignedEvents ?? []).map((event) => ({
-    id: event.id,
-    subtype: SUBTYPE_AR[event.subtype ?? ""] ?? "نشاط",
-    occurred_at: event.occurred_at ? fmtDate(event.occurred_at) : "—",
-    status: OP_STATUS_AR[event.status ?? ""] ?? "غير معروف",
-    notes: event.notes ?? "—",
-  }));
-
-  const reportColumns: SimpleColumn[] = [
-    { id: "name", header: "الاسم" },
-    { id: "position", header: "الوظيفة" },
-    { id: "type", header: "نوع التوظيف" },
-    { id: "active", header: "نشط", kind: "tag-ok" },
-  ];
-  const reportRows = directReports.map((report) => ({
-    id: report.id,
-    href: `/people/${report.id}`,
-    name: report.name,
-    position: report.position ?? "—",
-    type: report.employment_type ? EMP_TYPE_AR[report.employment_type] ?? "غير معروف" : "—",
-    active: report.active ? "نشط" : "",
-  }));
-
-  const typeLabel = person.employment_type ? EMP_TYPE_AR[person.employment_type] ?? "غير معروف" : "—";
-  const tabItems: TabItem[] = [
-    { id: "overview", label: "نظرة عامة" },
-    { id: "operations", label: `العمليات (${num(operationRows.length)})` },
-    { id: "activities", label: `الأنشطة (${num(performedRows.length + assignedRows.length)})` },
-    { id: "team", label: `الفريق (${num(directReports.length)})` },
-  ];
-
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <Breadcrumbs
-        ariaLabel="المسار"
-        items={[
-          { id: "people", label: "دليل الفريق", href: "/people" },
-          { id: "person", label: person.name },
-        ]}
-      />
-
-      <Entity360Header
-        title={person.name}
-        subtitle={`${person.position ?? "عضو فريق"} · ${typeLabel}`}
-        pills={[{ status: person.active ? "active" : "warning", label: person.active ? "نشط" : "غير نشط" }]}
-        actions={
-          <>
-            <HeaderLink href="/people/dashboard">لوحة الفريق</HeaderLink>
-            <HeaderLink href="/people">دليل الفريق</HeaderLink>
-          </>
-        }
-      />
-
-      {!person.active && (
-        <Alert tone="warning" title="هذا العضو غير نشط" description="لا تظهر التكليفات الجديدة لغير النشطين." />
-      )}
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="عمليات مفتوحة" value={num(openOperations.length)} />
-        <KpiCard label="أنشطة مسندة" value={num((assignedEvents ?? []).length)} />
-        <KpiCard label="أنشطة منفّذة" value={num((performedEvents ?? []).length)} />
-        <KpiCard label="مرؤوسون مباشرون" value={num(directReports.length)} />
-      </section>
-
-      <EntityTabs items={tabItems} value={tab} />
-
-      {tab === "overview" && (
-        <div role="tabpanel" id={tabPanelId("overview")} aria-labelledby={tabId("overview")} tabIndex={0}>
-          <Card title="ملف الشخص">
-            <DescriptionList
-              items={[
-                { id: "position", term: "الوظيفة", description: person.position ?? "—" },
-                { id: "employment_type", term: "نوع التوظيف", description: typeLabel },
-                { id: "manager", term: "المدير المباشر", description: manager?.name ?? "—" },
-                { id: "active", term: "الحالة", description: person.active ? "نشط" : "غير نشط" },
-              ]}
-            />
-          </Card>
-        </div>
-      )}
-
-      {tab === "operations" && (
-        <div role="tabpanel" id={tabPanelId("operations")} aria-labelledby={tabId("operations")} tabIndex={0}>
-          <Card title="العمليات المسندة">
-            {operationRows.length === 0 ? (
-              <EmptyState title="لا توجد عمليات مسندة" />
-            ) : (
-              <SimpleTable columns={operationColumns} rows={operationRows} ariaLabel="العمليات المسندة" empty="—" />
-            )}
-          </Card>
-        </div>
-      )}
-
-      {tab === "activities" && (
-        <div
-          role="tabpanel"
-          id={tabPanelId("activities")}
-          aria-labelledby={tabId("activities")}
-          tabIndex={0}
-          className="flex flex-col gap-4"
-        >
-          <Card title="أنشطة منفّذة">
-            {performedRows.length === 0 ? (
-              <EmptyState title="لا توجد أنشطة منفّذة" />
-            ) : (
-              <SimpleTable columns={eventColumns} rows={performedRows} ariaLabel="أنشطة منفّذة" empty="—" />
-            )}
-          </Card>
-          <Card title="أنشطة مسندة">
-            {assignedRows.length === 0 ? (
-              <EmptyState title="لا توجد أنشطة مسندة" />
-            ) : (
-              <SimpleTable columns={eventColumns} rows={assignedRows} ariaLabel="أنشطة مسندة" empty="—" />
-            )}
-          </Card>
-        </div>
-      )}
-
-      {tab === "team" && (
-        <div role="tabpanel" id={tabPanelId("team")} aria-labelledby={tabId("team")} tabIndex={0}>
-          <Card title="المرؤوسون المباشرون">
-            {reportRows.length === 0 ? (
-              <EmptyState title="لا يوجد مرؤوسون مباشرون" />
-            ) : (
-              <SimpleTable columns={reportColumns} rows={reportRows} ariaLabel="المرؤوسون المباشرون" empty="—" />
-            )}
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function HeaderLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
-      style={{
-        color: "var(--brand)",
-        background: "var(--surface)",
-        border: "1px solid var(--line)",
-      }}
-    >
-      {children}
-    </Link>
-  );
+  return <Person360View snapshot={snapshot} tab={tab} returnTo={from} />;
 }

@@ -74,7 +74,12 @@ CSV when needed. *Avoid:* treating pending-price deliveries as revenue or A/R be
 RPC-053, BR-127.
 **`/expenses` — Expenses.** *What:* record costs; separate owner drawings from opex. *Who:* owner/accountant/
 farm_manager. *Avoid:* mixing drawings into opex (BR-111). **`/people` — Team.** *What:* staff directory
-(PII-locked). *Avoid:* expecting to see phone/email/wages (BR-070/071). **`/weather` — Weather.** *What:* forecast +
+(PII-locked), searched/filtered/paginated on the server; exact organisation, search and filter totals are published
+beside the bounded page. *Avoid:* expecting to see phone/email/wages (BR-070/071); reading «عمل مفتوح» as the literal
+`planned` status (it is every NONTERMINAL operation, over both the assignee and legacy responsible-person links,
+de-duplicated); or reading one page as the whole directory — there is deliberately no whole-directory export.
+**`/people/[personId]` — Person 360.** *What:* one colleague's identity, current open workload, recorded activity and
+direct team. *Avoid:* reading a sample length as a total — every list states its own exact total beside it. **`/weather` — Weather.** *What:* forecast +
 advisory operation gates. *Note:* needs the server `WEATHER_API_KEY`. **`/dashboard` (owner/manager).** *What:*
 role overview for owner finance/control and manager active-plan operations. **`/profile`.** *What:* your identity, role, active org
 (read-only). **`/settings`.** *What:* org settings (owner only, BR-... `fn_update_org_settings`).
