@@ -1,5 +1,29 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4d Expenses live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4e Transactions live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4e Transactions workspace — MERGED / DEPLOYED
+
+`/transactions` now renders compact server-side RTL rows while retaining exactly one existing
+`fn_transactions_snapshot` call, its 400-row-per-source bound, exact full-register type counts,
+Owner/Accountant role gate, party-integrity validation and decimal-text money. URL-driven type/search state is
+strictly rebuilt; the page always says it is a per-source sample rather than a global chronology and offers no
+partial CSV. Unknown expense money stays unknown. Each row names one next action. Targets are limited to real
+expense 360, custody movement and valid sale-buyer files; collections and unlinked sales honestly have no
+detail target. Expense 360 returns to either validated Transactions or Expenses state with the correct label.
+
+PR #1053 merged as `9848c88abe4f423ecc67966f5e8546856ce197c8`. Exact-merge CI `32629625581`,
+db-tests `32629625593`, release `32629625566` and Production deployment `6046253023` succeeded. `/login`
+returns 200; signed-out Transactions and expense-detail return routes return 307 to `/login`. Evidence: focused
+75/75; Vitest 2,320 plus 17 controlled skips; TypeScript; full ESLint; 70-page build; repository guards;
+dependency audit with zero vulnerabilities; 390px/1,440px RTL checks with no overflow or console errors; and
+independent final APPROVE after all three P2 findings were fixed. Migration N/A; no schema, RPC, query-count,
+access, money-definition or business-row change.
+
+**Exact resume point:** audit and implement the next highest-impact Finance list/360 workspace without widening
+this Transactions RPC. Collection party identity and a collection 360 require a separate database contract and
+remain deferred. Authenticated Owner/Accountant Transactions acceptance and the 44-workflow accounting run are
+still open. Accounting remains about 99.5%, not 100%; the 698 human decisions, workbook dual run, exception
+resolution and signatures remain mandatory. Keep package PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R4d Expenses workspace + expense 360 — MERGED / DEPLOYED
 

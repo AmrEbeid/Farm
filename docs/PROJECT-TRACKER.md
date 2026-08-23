@@ -1,4 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4d Expenses live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4e Transactions live)
+
+> **2026-08-23 — PRODUCT UI RESET R4e TRANSACTIONS WORKSPACE MERGED / DEPLOYED.**
+> `/transactions` is now a compact server-rendered RTL/mobile workspace while preserving one existing bounded
+> snapshot, exact full-register type counts, Owner/Accountant role gates and decimal-text money. It permanently
+> discloses the per-source bound, offers no partial CSV, names one truthful next action and links only real
+> expense, custody and buyer records. Expense 360 safely returns to validated Transactions state.
+> PR #1053 merged as `9848c88abe4f423ecc67966f5e8546856ce197c8`; exact-merge CI `32629625581`,
+> db-tests `32629625593`, release `32629625566` and Production deployment `6046253023` passed. Evidence:
+> 75/75 focused tests; Vitest 2,320 plus 17 skips; TypeScript, full ESLint, 70-page build, guards, dependency
+> audit, phone/desktop zero-overflow checks and independent final APPROVE. Signed-out routes redirect to
+> `/login`. Migration N/A; no schema, RPC, query-count, access, money-definition or business-row change.
+> Authenticated role and real-record acceptance remain open. Accounting remains about 99.5%, not 100%.
 
 > **2026-08-23 — PRODUCT UI RESET R4d EXPENSES WORKSPACE + EXPENSE 360 MERGED / DEPLOYED.**
 > `/expenses` is now a compact server-rendered RTL/mobile daily-money workspace while preserving its one-call

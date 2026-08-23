@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (R4d Expenses live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (R4e Transactions live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R4e TRANSACTIONS WORKSPACE: MERGED / DEPLOYED.**
+PR #1053 merged as `9848c88abe4f423ecc67966f5e8546856ce197c8`. `/transactions` now uses compact
+server-rendered RTL rows while preserving one existing bounded snapshot, exact full-register type counts,
+Owner/Accountant gates and decimal-text money. The page permanently discloses its per-source sample, does not
+offer partial CSV, names one truthful next action, and links only real expense, custody and buyer destinations.
+Expense 360 safely restores validated Transactions state. Exact-merge CI `32629625581`, db-tests `32629625593`,
+release `32629625566` and Production deployment `6046253023` passed. Evidence: focused 75/75; Vitest 2,320
+plus 17 skips; TypeScript, full ESLint, 70-page build, guards, zero-vulnerability audit, phone/desktop checks
+and independent final APPROVE. Signed-out routes redirect to `/login`. Migration N/A; authenticated role and
+real-record acceptance remain open. This release does not change the accounting acceptance state below.
 
 **2026-08-23 — PRODUCT UI RESET R4d EXPENSES WORKSPACE + EXPENSE 360: MERGED / DEPLOYED.**
 PR #1051 merged as `3d366ee49b10da95a77dc1fb9a1c218c5f79bab0`. `/expenses` now uses compact
