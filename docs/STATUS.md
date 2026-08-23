@@ -1,8 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (R4e Transactions live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (R4f Custody live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — PRODUCT UI RESET R4f CUSTODY WORKSPACE + MOVEMENT 360: MERGED / DEPLOYED.**
+PR #1055 merged as `926e04932377aebe3d63cb1f58a0915365907874`. `/custody` now prioritizes the
+known owner request, current custody cash, draft/awaiting work and incomplete amounts while preserving its one
+exact bounded snapshot, Owner/Accountant gate and decimal-text money. Inactive cash remains visible but inactive
+targets do not drive top-up or writes. Owner funding requires its actual date; movement 360 traces source and
+transfer evidence. Exact-merge CI `32630919330`, db-tests `32630919336`, release `32630919360` and Production
+deployment `6046477323` passed. Evidence: focused 62/62; Vitest 2,327 plus 17 skips; pgTAP 4,986/4,986;
+TypeScript, full ESLint, 70-page build, guards, desktop/phone QA and independent final APPROVE. Signed-out custody
+routes redirect to `/login`. Migration N/A; authenticated role and real-record acceptance remain open. This
+release does not change the accounting acceptance state below.
 
 **2026-08-23 — PRODUCT UI RESET R4e TRANSACTIONS WORKSPACE: MERGED / DEPLOYED.**
 PR #1053 merged as `9848c88abe4f423ecc67966f5e8546856ce197c8`. `/transactions` now uses compact

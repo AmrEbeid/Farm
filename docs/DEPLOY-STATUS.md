@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — R4f CUSTODY WORKSPACE + MOVEMENT 360 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> PR #1055 merged as `926e04932377aebe3d63cb1f58a0915365907874`. Exact-merge CI `32630919330`,
+> db-tests `32630919336`, release `32630919360` and Production deployment `6046477323` succeeded at
+> `farm-7bpim60a4-amrabdelglill-7962s-projects.vercel.app`. `/login` returns 200; signed-out `/custody`,
+> custody movement and payment-request detail routes return 307 to `/login`. Evidence: focused 62/62, Vitest
+> 2,327 plus 17 skips, pgTAP 4,986/4,986, TypeScript, full ESLint, 70-page build, guards, independent final
+> APPROVE and 390px/1,440px zero-overflow checks. Migration N/A; no schema, permission, posting definition or
+> business row changed. Authenticated role and real-record acceptance remain pending.
+
 > **2026-08-23 (latest) — R4e TRANSACTIONS WORKSPACE MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1053 merged as `9848c88abe4f423ecc67966f5e8546856ce197c8`. Exact-merge CI `32629625581`,
 > db-tests `32629625593`, release `32629625566` and Production deployment `6046253023` succeeded at

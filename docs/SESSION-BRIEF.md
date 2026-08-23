@@ -1,5 +1,31 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4e Transactions live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4f Custody live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R4f Custody workspace + movement 360 — MERGED / DEPLOYED
+
+`/custody` now reads as a daily decision workspace while retaining its one exact bounded
+`fn_custody_daily_snapshot` call, Owner/Accountant gate, exact counts and decimal-text money. The top explains
+the known owner request, current custody cash, all unfinished draft/awaiting work and incomplete amounts.
+Inactive-account cash stays in total cash truth, but inactive targets do not inflate top-up and inactive
+accounts cannot enter writes. Request search matches Arabic-visible numbers/dates and states its bounded scope.
+Owner funding requires its actual transaction date in both entry surfaces.
+
+Movement 360 now exposes amount/direction first, reversal reason, expense/request sources, journal reference
+and a bounded org-scoped transfer-counterpart link. PR #1055 merged as
+`926e04932377aebe3d63cb1f58a0915365907874`. Exact-merge CI `32630919330`, db-tests `32630919336`, release
+`32630919360` and Production deployment `6046477323` succeeded. `/login` returns 200; signed-out custody
+workspace, movement and request routes return 307 to `/login`. Evidence: focused 62/62; Vitest 2,327 plus 17
+controlled skips; pgTAP 4,986/4,986; TypeScript; full ESLint; 70-page build; repository guards; desktop/phone
+zero-overflow QA; and independent final APPROVE after all P1/P2 findings were fixed. Migration N/A; no schema,
+permission, snapshot, posting definition or business row changed.
+
+**Exact resume point:** audit and implement R4g as the payment-request 360 reset before the wider general-ledger
+workspace. Preserve its single `fn_payment_request_detail_snapshot`, lifecycle permissions, exact decimal totals,
+print contract and settlement RPCs. Replace eight equal summary cards and dense tables with one next-action story,
+compact mobile rows and evidence links; do not change money or approval semantics. Authenticated Owner/Accountant
+acceptance and the 44-workflow accounting run remain open. Accounting remains about 99.5%, not 100%; the 698
+human decisions, workbook dual run, exception resolution and signatures remain mandatory. Keep package PR
+#1025 separate.
 
 ## 2026-08-23 — Product UI reset R4e Transactions workspace — MERGED / DEPLOYED
 
