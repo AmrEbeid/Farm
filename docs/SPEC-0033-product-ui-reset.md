@@ -17,7 +17,7 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Payment Request 360 R4g — LOCAL RELEASE CANDIDATE
+### Payment Request 360 R4g — RELEASED
 
 R4g rebuilds `/custody/request/[requestId]` as a compact decision-led finance workspace. It preserves exactly
 one `fn_payment_request_detail_snapshot` call, the current Owner/Accountant route gate, exact decimal-text
@@ -42,8 +42,10 @@ replay allowlist and passes immediate second application;
 TypeScript; full ESLint; 70-page production build; service-role, Recharts and server/client-boundary guards;
 Impeccable detector clean; 390px and 1,440px RTL fixture checks with no horizontal overflow, and a clean-browser
 console pass. Three independent change-request rounds were closed and the exact final diff received independent
-`APPROVE`. Migration `20260823170000 payment request completion guards.sql` is locally validated but not yet applied. PR checks,
-merge, deployment and authenticated real-record acceptance also remain open.
+`APPROVE`. Hosted migration `20260823101732 payment_request_completion_guards` preserved all preflight business
+counts and financial sums. PR #1057 merged at `9d3c3a495641fe439719ed70dc173143eb988b2c`; exact-main CI
+`32633375622`, db-tests `32633375636`, release `32633375593` and Production deployment `6046885964` passed.
+Public signed-out routes were verified; authenticated real-record acceptance remains open.
 
 ### Custody workspace and movement 360 R4f — RELEASED
 
