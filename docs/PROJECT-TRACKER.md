@@ -1,4 +1,21 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3d Agronomist home live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R3e Supervisor home live)
+
+> **2026-08-23 — PRODUCT UI RESET R3e EXACT SUPERVISOR HOME MIGRATED / MERGED / DEPLOYED.**
+> Supervisor `/m` is now one compact assigned-work home backed by a single exact active-org snapshot. Assignment
+> is only through the caller's unique `people.user_id` link; missing or ambiguous links return an explicit
+> unavailable state rather than false zeros. Due, overdue, undated, ready and blocked work use inclusive
+> multi-day semantics and reconcile exactly. No money reaches the Supervisor surface or execution payload.
+> Dose-bearing completion now requires both sign-off fields at the database boundary, and money-bearing plan
+> list/dashboard/detail routes are denied to Supervisor and Storekeeper in navigation and server gates.
+>
+> Hosted migrations `20260823004153 exact_supervisor_home_snapshot` and
+> `20260823004159 enforce_dose_signoff_on_execution` passed function, grant, trigger and unchanged-row
+> postflight. PR #1039 merged as `53970c2539fa7d7c947035e2548d3705ec8b6f2c`; Vercel succeeded on that
+> exact SHA and signed-out `/m` plus all three planning route shapes redirect to `/login`. Evidence: independent
+> APPROVE after two correction rounds; pgTAP 4,524/4,524; Vitest 2,014 plus 17 skips; TypeScript, ESLint,
+> 70-page build, Storybook, security/bundle guards, gitleaks and exact-merge checks green. **Open:** production
+> has no Supervisor membership or linked person, so authenticated 390px acceptance is unclaimed. Next:
+> Storekeeper home, then lists and all 360 surfaces. Package PR #1025 remains separate.
 
 > **2026-08-23 — PRODUCT UI RESET R3d EXACT AGRONOMIST HOME MIGRATED / MERGED / DEPLOYED.**
 > Agronomist now gets one compact daily agronomy home from an exact active-org snapshot: incomplete dose/spray

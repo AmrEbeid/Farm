@@ -2,6 +2,18 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — Product UI reset R3e exact Supervisor home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
+> Hosted Farm migrations `20260823004153 exact_supervisor_home_snapshot` and
+> `20260823004159 enforce_dose_signoff_on_execution` add the bounded Supervisor snapshot and database-level
+> complete-dose-sign-off invariant. Postflight proved the snapshot is invoker/stable/empty-search-path and
+> authenticated-only, the trigger function has no client execute grant, both triggers are enabled, and no
+> completed unsigned dose exists. PR #1039 merged as `53970c2539fa7d7c947035e2548d3705ec8b6f2c`.
+> Vercel reported success for that exact SHA; `ebeidfarm.business` returns 307 to `/login` for signed-out `/m`,
+> `/plans`, `/plans/dashboard` and plan detail. Independent review, pgTAP 4,524/4,524, 2,014 Vitest passes plus
+> 17 skips, TypeScript, ESLint, 70-page build, Storybook, guards, gitleaks and exact-merge CI passed.
+> Authenticated Supervisor acceptance remains pending because production has no Supervisor membership or
+> linked person.
+
 > **2026-08-23 (latest) — Product UI reset R3d exact Agronomist home MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration 20260822234537 exact_agronomist_home_snapshot adds one agri-engineer-only,
 > active-organization, bounded SECURITY INVOKER agronomy snapshot with empty search path and no finance

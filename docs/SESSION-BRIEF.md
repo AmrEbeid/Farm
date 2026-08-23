@@ -1,5 +1,29 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3d Agronomist home live)
+# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (Product UI reset R3e Supervisor home live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-23 — Product UI reset R3e exact Supervisor home — MIGRATED / MERGED / DEPLOYED
+
+Supervisor `/m` now exits before the legacy team feed and renders one compact Arabic assigned-work home from
+`fn_supervisor_home_snapshot`. It resolves only the caller's unique person link, bounds every driver and nested
+crew/material list, distinguishes inclusive due/overdue/undated work, and exposes no finance values. Ready and
+blocked work reconcile exactly to due plus overdue. The execution page and action no longer send money to a
+Supervisor browser. Dose-bearing completion now requires both agronomy sign-off fields at the database boundary
+on insert and every relevant update. Supervisor and Storekeeper also fail closed on direct money-bearing plan
+list, dashboard and detail requests.
+
+Farm-only migrations `20260823004153 exact_supervisor_home_snapshot` and
+`20260823004159 enforce_dose_signoff_on_execution` are live. Postflight proved the expected invoker/stable/
+empty-search-path snapshot grant, no client trigger-function grant, two enabled triggers, zero completed unsigned
+doses and one unchanged open unsigned dose. PR #1039 merged as
+`53970c2539fa7d7c947035e2548d3705ec8b6f2c`; Vercel succeeded for that exact SHA and signed-out `/m`,
+`/plans`, `/plans/dashboard` and plan detail return 307 to `/login`. Evidence: independent APPROVE after two
+hostile-review rounds; pgTAP 4,524/4,524; Vitest 2,014 plus 17 controlled skips; TypeScript, ESLint, 70-page
+production build, Storybook, repository guards, gitleaks and exact-merge checks green.
+
+**Exact resume point:** implement the dedicated Storekeeper home without changing Supervisor, agronomy,
+inventory or accounting truth. Then reset prioritized lists and every 360 surface using the shared compact
+hierarchy. Authenticated Supervisor 390px acceptance remains unclaimed because production has no Supervisor
+membership or linked person. Keep automated package publication PR #1025 separate.
 
 ## 2026-08-23 — Product UI reset R3d exact Agronomist home — MIGRATED / MERGED / DEPLOYED
 
