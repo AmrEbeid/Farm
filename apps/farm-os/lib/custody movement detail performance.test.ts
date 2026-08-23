@@ -11,11 +11,14 @@ const PAGE_PATH = "app/(app)/custody/movements/[movementId]/page.tsx";
 const pageSource = readFileSync(join(process.cwd(), PAGE_PATH), "utf8");
 
 describe("custody movement detail read pipeline", () => {
-  it("loads the movement and its custody account in one query", () => {
-    expect(pageSource.match(/await\s+sb/g) ?? []).toHaveLength(1);
+  it("loads the movement in one query and only adds one bounded counterpart query for a transfer", () => {
+    expect(pageSource.match(/await\s+sb/g) ?? []).toHaveLength(2);
     expect(pageSource).toContain("custody_accounts!inner(holder_label)");
     expect(pageSource).toContain("amount_in::text, amount_out::text");
     expect(pageSource).not.toContain('.from("custody_accounts")');
+    expect(pageSource).toContain('.eq("transfer_group_id", movement.transfer_group_id)');
+    expect(pageSource).toContain('.neq("id", movement.id)');
+    expect(pageSource).toContain(".limit(1)");
   });
 
   it("scopes both the movement and embedded account to the active organization", () => {
@@ -28,6 +31,16 @@ describe("custody movement detail read pipeline", () => {
   it("preserves owner/accountant access", () => {
     expect(pageSource).toContain('requireRole(["owner", "accountant"])');
     expect(pageSource).toContain("custodyMovementDisplayState(movement)");
+  });
+
+  it("exposes the already-loaded financial source links and correction reason", () => {
+    expect(pageSource).toContain("`/expenses/${movement.expense_id}`");
+    expect(pageSource).toContain("`/custody/request/${movement.payment_request_id}`");
+    expect(pageSource).toContain("movement.journal_entry_id");
+    expect(pageSource).toContain("movement.transfer_group_id");
+    expect(pageSource).toContain("movement.reversal_reason");
+    expect(pageSource).toContain("`/custody/movements/${transferCounterpart.id}`");
+    expect(pageSource).toContain('href="/accounting"');
   });
 
   it("renders movement money through the fail-closed exact-decimal path", () => {

@@ -89,9 +89,11 @@ export async function recordCustodyMovement(input: {
   movementType: string;
   amountIn: string;
   amountOut: string;
+  occurredAt: string;
   note?: string | null;
 }): Promise<Result> {
   if (!input.accountId || !input.movementType) return { ok: false, error: "البيانات ناقصة" };
+  if (!isValidDateOnly(input.occurredAt)) return { ok: false, error: "تاريخ الاستلام غير صالح" };
   const amountIn = normalizeNonNegativeCustodyAmount(input.amountIn);
   const amountOut = normalizeNonNegativeCustodyAmount(input.amountOut);
   if (amountIn == null || amountOut == null) {
@@ -112,6 +114,7 @@ export async function recordCustodyMovement(input: {
     p_movement_type: input.movementType,
     p_amount_in: amountIn,
     p_amount_out: amountOut,
+    p_occurred_at: input.occurredAt,
     p_note: input.note ?? null,
   });
   if (error) return { ok: false, error: toArabicError(error, PERM, "تعذّر تسجيل الحركة") };

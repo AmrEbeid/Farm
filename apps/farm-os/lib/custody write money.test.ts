@@ -55,6 +55,10 @@ describe("custody write money", () => {
     expect(accountAction).toContain("normalizeNonNegativeCustodyAmount(input.targetFloat)");
     expect(movementAction).toContain("normalizeNonNegativeCustodyAmount(input.amountIn)");
     expect(movementAction).toContain("normalizeNonNegativeCustodyAmount(input.amountOut)");
+    expect(movementAction).toContain("isValidDateOnly(input.occurredAt)");
+    expect(movementAction).toContain("p_occurred_at: input.occurredAt");
+    expect(formsSource).toContain("occurredAt: movementDate");
+    expect(wizardSource).toContain("occurredAt,");
     expect(transferAction).toContain("normalizePositiveCustodyAmount(input.amount)");
     expect(`${accountAction}${movementAction}${transferAction}`).not.toContain("Number(");
   });

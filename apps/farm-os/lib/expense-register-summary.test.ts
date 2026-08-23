@@ -18,6 +18,10 @@ const custodyPageSource = readFileSync(
   join(process.cwd(), "app", "(app)", "custody", "page.tsx"),
   "utf8"
 );
+const custodyViewSource = readFileSync(
+  join(process.cwd(), "app", "(app)", "custody", "custody-workspace-view.tsx"),
+  "utf8"
+);
 const financeDashboardSource = readFileSync(
   join(process.cwd(), "app", "(app)", "finance", "dashboard", "page.tsx"),
   "utf8"
@@ -313,7 +317,7 @@ describe("unpaid-obligation page wiring", () => {
   it("uses the exact summary RPC on both owner/accountant money surfaces", () => {
     expect(custodyPageSource).toContain('sb.rpc("fn_custody_daily_snapshot"');
     expect(custodyPageSource).toContain("parseCustodyDailySnapshot(snapshotRes.data)");
-    expect(custodyPageSource).toContain("assertFinanceUnpaidSummary(");
+    expect(custodyViewSource).toContain("assertFinanceUnpaidSummary(");
     expect(custodyPageSource).toContain(
       "if (snapshotRes.error) throw snapshotRes.error;"
     );
@@ -337,7 +341,7 @@ describe("unpaid-obligation page wiring", () => {
   });
 
   it("discloses unknown amounts and gates partial dashboard export", () => {
-    expect(custodyPageSource).toContain("unpaidUnknown > 0");
+    expect(custodyViewSource).toContain("unpaidUnknown > 0");
     expect(financeDashboardSource).toContain("unpaidUnknown > 0");
     expect(financeDashboardSource).toMatch(
       /exportFilename=\{\s*unpaidRowsTruncated\s*\? undefined\s*: "finance-dashboard-unpaid-obligations"\s*\}/
@@ -349,7 +353,7 @@ describe("unpaid-obligation page wiring", () => {
     expect(custodyPageSource).not.toContain('.from("custody_movements")');
     expect(custodyPageSource).not.toContain('.from("payment_requests")');
     expect(custodyPageSource).not.toContain('.from("custody_accounts")');
-    expect(custodyPageSource).toContain("p_org: m.orgId");
+    expect(custodyPageSource).toContain("p_org: member.orgId");
     expect(custodyPageSource).toContain("p_movement_limit: MOVEMENT_DISPLAY_CAP");
     expect(custodyPageSource).toContain("p_request_limit: REQUEST_DISPLAY_CAP");
 
@@ -366,20 +370,13 @@ describe("unpaid-obligation page wiring", () => {
 
   it("keeps custody request chips exact and the selected list bounded", () => {
     expect(custodyPageSource).toContain("const REQUEST_DISPLAY_CAP = 200;");
-    expect(custodyPageSource).toContain(
-      "const allRequestCount = snapshot.allRequestCount;"
-    );
-    expect(custodyPageSource).toContain(
-      "const awaitingRequestCount = snapshot.awaitingRequestCount;"
-    );
-    expect(custodyPageSource).toContain(
-      "const settledRequestCount = snapshot.settledRequestCount;"
-    );
-    expect(custodyPageSource).toContain("p_request_filter: requestFilter");
+    expect(custodyViewSource).toContain("all: snapshot.allRequestCount");
+    expect(custodyViewSource).toContain("awaiting: awaitingCount");
+    expect(custodyViewSource).toContain("settled: snapshot.settledRequestCount");
+    expect(custodyPageSource).toContain("p_request_filter: context.requestFilter");
     expect(custodyPageSource).toContain("p_request_limit: REQUEST_DISPLAY_CAP");
-    expect(custodyPageSource).toContain(
-      'exportFilename={requestsTruncated ? undefined : "payment-requests"}'
-    );
+    expect(custodyViewSource).toContain("ولا يوجد تصدير جزئي");
+    expect(custodyViewSource).not.toContain("exportFilename=");
   });
 
   it("counts finance payment queues exactly before limiting displayed rows", () => {
