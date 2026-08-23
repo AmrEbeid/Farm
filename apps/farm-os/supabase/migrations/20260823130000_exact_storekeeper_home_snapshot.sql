@@ -20,8 +20,9 @@
 --
 -- RECEIVABILITY MIRRORS fn_post_receipt, IT DOES NOT INVENT GATES.
 -- A purchase request enters this snapshot when its status is one of the two the RPC will claim
--- ('approved', 'partially_received') AND at least one line still has a positive remaining balance
--- (qty - received_qty). `receivable` is true only when the one stored rejection below is absent, and
+-- ('approved', 'partially_received') AND either a line still has a positive remaining balance
+-- (qty - received_qty) or an unquantified line makes the whole request blocked. `receivable` is true
+-- only when the one stored rejection below is absent, and
 -- it was read off the CURRENT shipped receipt path — fn_post_receipt as last re-emitted by
 -- 20260701210000, plus fn_post_movement as last re-emitted by 20260701180000 — not guessed:
 --   * `unquantified_line` — fn_post_receipt loops over EVERY line of the request and raises 22023
@@ -106,7 +107,7 @@ begin
   end if;
 
   -- Active-organisation relationship integrity fails CLOSED: a corrupt child row in this organisation
-  -- summarised into a receivable request or a stock reading. Covers every join this contract makes —
+  -- must never be silently summarised into a receivable request or stock reading. Covers every join —
   -- line-to-request, line-to-item, bin-to-item and movement-to-item. Reverse foreign-child links cannot
   -- enter this active-org snapshot and are prevented by the database's cross-org write invariants.
   -- There is no per-row degradation
@@ -152,8 +153,8 @@ begin
       join public.inventory_items i on i.id = l.item_id and i.org_id = p_org
      where l.org_id = p_org
   ),
-  -- A request is in the store day only while it still owes stock. Its two recorded blockers are the
-  -- literal fn_post_receipt / fn_post_movement rejections documented in the header.
+  -- A request is in the store day while it owes stock or has an unquantified line that blocks the
+  -- whole receipt. Its recorded blocker is the literal fn_post_receipt rejection documented above.
   classified_prs as materialized (
     select pr.id, pr.code, pr.status, pr.needed_by,
            (select pg_catalog.count(*) from pr_lines l where l.pr_id = pr.id and l.is_open)::bigint as open_line_count,
