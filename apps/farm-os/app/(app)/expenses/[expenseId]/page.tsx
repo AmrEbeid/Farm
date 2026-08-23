@@ -196,6 +196,8 @@ export default async function Expense360Page({
     expense.total != null ? ` · ${exactMoney(expense.total)}` : ""
   }`;
   const headerSubtitle = `${expense.date ? fmtDate(expense.date) : "بدون تاريخ"} · ${supplier?.name ?? "بدون مورّد"}`;
+  const returnedFromTransactions = from === "/transactions" || from.startsWith("/transactions?");
+  const returnLabel = returnedFromTransactions ? "المعاملات" : "المصروفات";
 
   const tabItems: TabItem[] = [
     { id: "overview", label: "نظرة عامة" },
@@ -208,7 +210,7 @@ export default async function Expense360Page({
       <Breadcrumbs
         ariaLabel="المسار"
         items={[
-          { id: "expenses", label: "المصروفات", href: from },
+          { id: "expenses", label: returnLabel, href: from },
           { id: "expense", label: headerTitle },
         ]}
       />
@@ -220,7 +222,7 @@ export default async function Expense360Page({
         actions={
           <>
             <HeaderLink href="/finance/dashboard">لوحة المالية</HeaderLink>
-            <HeaderLink href={from}>العودة للمصروفات</HeaderLink>
+            <HeaderLink href={from}>العودة إلى {returnLabel}</HeaderLink>
           </>
         }
       />
