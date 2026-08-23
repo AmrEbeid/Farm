@@ -13,6 +13,11 @@ export interface CostCenterDirectSummary {
   saleCount: number;
 }
 
+export interface CostCenterSaleExclusions {
+  pendingPrice: number;
+  finalizedWithoutPostedJournal: number;
+}
+
 function requireNumber(row: Record<string, unknown>, key: string): number {
   const raw = row[key];
   if (typeof raw !== "number" && typeof raw !== "string") {
@@ -38,7 +43,7 @@ export function parseCostCenterDirectSummary(value: unknown): CostCenterDirectSu
     throw new Error("cost-center summary: RPC returned no object payload");
   }
   const row = value as Record<string, unknown>;
-  return {
+  const summary = {
     directExpenseTotal: requireNumber(row, "direct_expense_total"),
     directExpenseCount: requireCount(row, "direct_expense_count"),
     unknownExpenseCount: requireCount(row, "unknown_expense_count"),
@@ -47,6 +52,19 @@ export function parseCostCenterDirectSummary(value: unknown): CostCenterDirectSu
     finalizedSaleCount: requireCount(row, "finalized_sale_count"),
     pendingSaleCount: requireCount(row, "pending_sale_count"),
     saleCount: requireCount(row, "sale_count"),
+  };
+  costCenterSaleExclusions(summary);
+  return summary;
+}
+
+export function costCenterSaleExclusions(summary: CostCenterDirectSummary): CostCenterSaleExclusions {
+  const finalizedWithoutPostedJournal = summary.saleCount - summary.pendingSaleCount - summary.finalizedSaleCount;
+  if (finalizedWithoutPostedJournal < 0) {
+    throw new Error("cost-center summary: sale populations do not reconcile");
+  }
+  return {
+    pendingPrice: summary.pendingSaleCount,
+    finalizedWithoutPostedJournal,
   };
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DIRECT_DISPLAY_CAP,
+  costCenterSaleExclusions,
   isDirectTableTruncated,
   parseCostCenterDirectSummary,
 } from "./cost-center-summary";
@@ -64,6 +65,24 @@ describe("parseCostCenterDirectSummary", () => {
     for (const bad of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1, "bad"]) {
       expect(() => parseCostCenterDirectSummary({ ...VALID, expense_count: bad })).toThrow();
     }
+  });
+
+  it("separates pending-price sales from finalized sales without a posted journal", () => {
+    expect(costCenterSaleExclusions(parseCostCenterDirectSummary({
+      ...VALID,
+      finalized_sale_count: 2,
+      pending_sale_count: 3,
+      sale_count: 7,
+    }))).toEqual({ pendingPrice: 3, finalizedWithoutPostedJournal: 2 });
+  });
+
+  it("fails closed when sale populations cannot reconcile", () => {
+    expect(() => parseCostCenterDirectSummary({
+      ...VALID,
+      finalized_sale_count: 3,
+      pending_sale_count: 3,
+      sale_count: 5,
+    })).toThrow("sale populations do not reconcile");
   });
 });
 

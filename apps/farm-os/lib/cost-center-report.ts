@@ -101,6 +101,30 @@ export function topmostVisibleCostCenters<T extends CostCenterHierarchyRow>(
   });
 }
 
+export function costCenterHierarchyPresentation(
+  rows: CostCenterHierarchyRow[],
+  costCenterId: string,
+): { depth: number; includesDescendants: boolean } {
+  const rowById = new Map(rows.map((row) => [row.costCenterId, row]));
+  const row = rowById.get(costCenterId);
+  if (!row) throw new Error("cost center report: center is missing from hierarchy");
+  let depth = 0;
+  let parentId = row.parentId;
+  const visited = new Set([costCenterId]);
+  while (parentId) {
+    if (visited.has(parentId)) throw new Error("cost center report: hierarchy contains a cycle");
+    visited.add(parentId);
+    const parent = rowById.get(parentId);
+    if (!parent) throw new Error("cost center report: hierarchy parent is missing");
+    depth += 1;
+    parentId = parent.parentId;
+  }
+  return {
+    depth,
+    includesDescendants: rows.some((candidate) => candidate.parentId === costCenterId),
+  };
+}
+
 export function parseCostCenterTrialBalance(
   value: unknown
 ): CostCenterTrialBalanceRow[] {

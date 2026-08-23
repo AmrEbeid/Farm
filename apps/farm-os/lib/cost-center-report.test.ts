@@ -6,6 +6,7 @@ import { FilterableTable } from "../components/FilterableTable";
 import {
   buildCostCenterYearMatrix,
   buildCostCenterYearTrend,
+  costCenterHierarchyPresentation,
   costCenterDescendantIds,
   parseCostCenterHistorySummary,
   parseCostCenterReportView,
@@ -44,6 +45,26 @@ describe("cost-center report fast overview", () => {
     expect(topmostVisibleCostCenters([child, sibling])).toEqual([child, sibling]);
     expect(topmostVisibleCostCenters([root, child])).toEqual([root]);
     expect(topmostVisibleCostCenters([root, grandchild], [root, child, grandchild])).toEqual([root]);
+  });
+
+  it("marks overlapping parent rollups and preserves hierarchy depth", () => {
+    const rows = [
+      { costCenterId: "root", parentId: null },
+      { costCenterId: "child", parentId: "root" },
+      { costCenterId: "grandchild", parentId: "child" },
+    ];
+    expect(costCenterHierarchyPresentation(rows, "root")).toEqual({ depth: 0, includesDescendants: true });
+    expect(costCenterHierarchyPresentation(rows, "child")).toEqual({ depth: 1, includesDescendants: true });
+    expect(costCenterHierarchyPresentation(rows, "grandchild")).toEqual({ depth: 2, includesDescendants: false });
+  });
+
+  it("fails closed on a disconnected or cyclic display hierarchy", () => {
+    expect(() => costCenterHierarchyPresentation([{ costCenterId: "child", parentId: "missing" }], "child"))
+      .toThrow("parent is missing");
+    expect(() => costCenterHierarchyPresentation([
+      { costCenterId: "a", parentId: "b" },
+      { costCenterId: "b", parentId: "a" },
+    ], "a")).toThrow("contains a cycle");
   });
 
   it("computes exact normal-side totals from the posted-only trial balance", () => {
@@ -273,7 +294,11 @@ describe("cost-center report fast overview", () => {
     expect(REPORT_PAGE).not.toContain(".range(");
     expect(REPORT_PAGE).not.toContain("fn_accounting_trial_balance");
     expect(REPORT_PAGE).not.toContain("fn_cost_center_history_summary");
-    expect(REPORT_PAGE).toContain('</section>\n      )}\n\n      <Card title="إشارات المراجعة">');
+    const chartEnd = REPORT_PAGE.indexOf('</section>\n      )}', REPORT_PAGE.indexOf('aria-labelledby="center-chart-title"'));
+    const flagsStart = REPORT_PAGE.indexOf('{(visibleFlags.length > 0 || focus === "flags")');
+    expect(chartEnd).toBeGreaterThan(-1);
+    expect(flagsStart).toBeGreaterThan(chartEnd);
+    expect(REPORT_PAGE).toContain('aria-labelledby="review-flags-title"');
     expect(REPORT_PAGE).toContain('{ id: "expense", header: "مصروفات"');
     expect(REPORT_PAGE).toContain('{ id: "revenue", header: "إيرادات"');
     expect(REPORT_PAGE).toContain("const visibleIds = new Set(visibleRollup.map");
