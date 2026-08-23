@@ -10,6 +10,11 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > review. Production accounting was read-only rechecked: one staged batch, 698/698 unreviewed and pending,
 > zero frozen/approved/executed; finance authority remains partial and budgets blocked. No schema, access or
 > business row changed in the recheck. Authenticated People and accounting acceptance remain open.
+> PR #1049 then fixed the two deterministic role-aware harness blockers and merged as
+> `ca09309a8c37de1f1b1ad301e0e809ba319e106a`. Exact-merge CI `32626234219`, db-tests
+> `32626234220`, release `32626234225` and Production deployment `6045691339` succeeded.
+> `/login` returns 200; signed-out `/finance/dashboard` and `/finance/reconciliation` return 307 to
+> `/login`. Migration N/A.
 
 > **2026-08-23 (latest) — Product UI reset R4b payroll workspace + run 360 MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260823044312 exact_payroll_workspace_and_run_snapshots` added exact bounded payroll

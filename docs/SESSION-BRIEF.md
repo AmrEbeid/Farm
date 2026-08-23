@@ -21,6 +21,15 @@ category without storing values. SPEC-0004, the historical accounting roadmap, F
 Tracker and Deploy Status were reconciled to the shipped release. The roadmap's unsafe old claim that one
 disputed palm aggregate was canonical was removed.
 
+Claude's read-only audit found two deterministic harness blockers: Accountant was asserted against the Owner
+Finance heading, and an allowed Supervisor denial account could never satisfy the shared `/dashboard` login
+wait. PR #1049 pins exact role-specific headings and post-login destinations with source-contract tests. It
+merged as `ca09309a8c37de1f1b1ad301e0e809ba319e106a`; exact-merge CI `32626234219`, db-tests
+`32626234220`, release `32626234225` and Production deployment `6045691339` succeeded. Local evidence:
+29/29 focused tests, 2,289 full passes plus 17 skips, TypeScript, full ESLint, 70-page build, all repository
+guards, exact 44-test discovery and fail-closed missing configuration. Public `/login` is 200; signed-out
+Finance/reconciliation routes redirect there. No migration, schema, access or business row changed.
+
 **Exact resume point:** supply three distinct existing role accounts through the invocation environment and run
 all 44 read-only desktop/phone workflows. Then the Accountant must decide all 698 real rows, complete the
 original-workbook dual run and resolve every exception; the eligible Owner approves/executes separately and

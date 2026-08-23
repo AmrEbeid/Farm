@@ -5,6 +5,10 @@
 > none are reviewed, frozen, rejected, approved or executed. `finance_ledger` remains `partial` and `budgets`
 > remains `blocked`, so those figures continue to fail closed. The protected 44-workflow desktop/phone harness
 > is released and its exact environment contract and invocation are now recorded in the acceptance runbook.
+> PR #1049 fixed the Accountant heading and Supervisor landing-route blockers and merged as
+> `ca09309a8c37de1f1b1ad301e0e809ba319e106a`. Exact-merge CI, db-tests, release and Production deployment
+> `6045691339` succeeded; `/login` is 200 and signed-out Finance/reconciliation routes redirect there.
+> Migration N/A.
 > No harness credential is available in this clean worktree, and production has no non-finance membership for
 > the denial lane. No database, access or business row changed. Accounting remains about 99.5%, not 100%, until
 > authenticated Owner/Accountant/denied-role acceptance plus the 698 decisions, workbook dual run, exception
