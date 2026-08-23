@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { egp, num } from "@/lib/money";
+import { Archive, Merge, Pencil, Plus } from "lucide-react";
+import { egpExact } from "@/lib/decimal";
+import { num } from "@/lib/money";
 import { Alert, Button, ConfirmDialog, Field, Input, Tag, useToast } from "@/components/ui";
 import { useSubmit } from "@/components/useSubmit";
+import type { ChartOfAccountsNode } from "@/lib/chart-of-accounts-snapshot";
 import {
   archiveAccount,
   mergeAccounts,
@@ -14,21 +17,7 @@ import {
   type NormalBalance,
 } from "@/app/(app)/finance/accounts/actions";
 
-export interface AccountNode {
-  id: string;
-  code: string;
-  nameAr: string;
-  accountType: AccountType;
-  normalBalance: NormalBalance;
-  parentId: string | null;
-  kind: AccountKind | null;
-  isSystem: boolean;
-  sortOrder: number | null;
-  active: boolean;
-  debit: number;
-  credit: number;
-  balance: number;
-}
+export type AccountNode = ChartOfAccountsNode;
 
 type FormState =
   | { mode: "add-root"; parent: null; editing: null }
@@ -64,6 +53,11 @@ const KIND_FOR_TYPE: Record<AccountType, AccountKind[]> = {
 
 const SELECT_CLASS = "w-full rounded-md px-3 py-2 text-sm";
 const SELECT_STYLE = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
+const ARABIC_INTEGER = new Intl.NumberFormat("ar-EG");
+
+function exactCount(value: string): string {
+  return ARABIC_INTEGER.format(BigInt(value));
+}
 
 function sortAccounts(a: AccountNode, b: AccountNode): number {
   return (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999) || a.code.localeCompare(b.code, "ar");
@@ -112,11 +106,15 @@ function isAccountKind(value: string): value is AccountKind {
 
 /** Interactive chart-of-accounts tree. System accounts render rename-only; all
  * structural writes go through the audited database RPCs. */
-export function AccountsTreeManager({ nodes }: { nodes: AccountNode[] }) {
+export function AccountsTreeManager({ nodes, canWrite }: { nodes: AccountNode[]; canWrite: boolean }) {
   const router = useRouter();
   const toast = useToast();
   const children = useMemo(() => buildTree(nodes), [nodes]);
-  const rendered = useMemo(() => flattenTree(children), [children]);
+  const [showArchived, setShowArchived] = useState(false);
+  const rendered = useMemo(
+    () => flattenTree(buildTree(showArchived ? nodes : nodes.filter((node) => node.active))),
+    [nodes, showArchived],
+  );
   const [form, setForm] = useState<FormState | null>(null);
   const [mergeSource, setMergeSource] = useState<AccountNode | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<AccountNode | null>(null);
@@ -146,9 +144,19 @@ export function AccountsTreeManager({ nodes }: { nodes: AccountNode[] }) {
           <span>{num(activeCount)} حساب نشط</span>
           {archivedCount > 0 && <span>{num(archivedCount)} مؤرشف</span>}
         </div>
-        <Button variant="ghost" onClick={() => setForm({ mode: "add-root", parent: null, editing: null })}>
-          + حساب رئيسي
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {archivedCount > 0 && (
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />
+              إظهار المؤرشف
+            </label>
+          )}
+          {canWrite && (
+            <Button variant="ghost" onClick={() => setForm({ mode: "add-root", parent: null, editing: null })}>
+              <Plus size={16} aria-hidden /> حساب رئيسي
+            </Button>
+          )}
+        </div>
       </div>
 
       {archiveError && <Alert tone="danger" title={archiveError} />}
@@ -183,105 +191,61 @@ export function AccountsTreeManager({ nodes }: { nodes: AccountNode[] }) {
         />
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] border-separate border-spacing-0 text-sm">
-          <thead>
-            <tr style={{ color: "var(--ink-muted)" }}>
-              <th className="border-b p-2 text-start" style={{ borderColor: "var(--line)" }}>
-                الحساب
-              </th>
-              <th className="border-b p-2 text-start" style={{ borderColor: "var(--line)" }}>
-                النوع
-              </th>
-              <th className="border-b p-2 text-start" style={{ borderColor: "var(--line)" }}>
-                التصنيف
-              </th>
-              <th className="border-b p-2 text-end" style={{ borderColor: "var(--line)" }}>
-                مدين
-              </th>
-              <th className="border-b p-2 text-end" style={{ borderColor: "var(--line)" }}>
-                دائن
-              </th>
-              <th className="border-b p-2 text-end" style={{ borderColor: "var(--line)" }}>
-                الرصيد
-              </th>
-              <th className="border-b p-2 text-end" style={{ borderColor: "var(--line)" }}>
-                إجراء
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rendered.map(({ node, depth }) => {
-              const leaf = isLeaf(node, children);
-              const canArchive = node.active && !node.isSystem;
-              const canMerge = canArchive && leaf;
-              return (
-                <tr key={node.id} style={{ opacity: node.active ? 1 : 0.55 }}>
-                  <td className="border-b p-2 align-top" style={{ borderColor: "var(--line)" }}>
-                    <div className="flex min-w-0 items-start gap-2" style={{ paddingInlineStart: depth * 18 }}>
-                      <code className="mt-0.5 shrink-0 tabular-nums text-xs" style={{ color: "var(--ink-muted)" }}>
-                        {node.code}
-                      </code>
-                      <div className="min-w-0">
-                        <div className="font-semibold" style={{ color: "var(--ink)" }}>
-                          {node.nameAr}
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {node.isSystem && <Tag tone="ok">نظامي</Tag>}
-                          {!node.active && <Tag tone="danger">مؤرشف</Tag>}
-                          {leaf && node.active && <Tag tone="neutral">فرعي</Tag>}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="border-b p-2 align-top" style={{ borderColor: "var(--line)" }}>
-                    {TYPE_AR[node.accountType]}
-                    <span className="ms-1 text-xs" style={{ color: "var(--ink-muted)" }}>
-                      {BALANCE_AR[node.normalBalance]}
-                    </span>
-                  </td>
-                  <td className="border-b p-2 align-top" style={{ borderColor: "var(--line)" }}>
-                    {node.kind ? <Tag tone="warning">{KIND_AR[node.kind]}</Tag> : "—"}
-                  </td>
-                  <td className="border-b p-2 text-end align-top tabular-nums" style={{ borderColor: "var(--line)" }}>
-                    {egp(node.debit)}
-                  </td>
-                  <td className="border-b p-2 text-end align-top tabular-nums" style={{ borderColor: "var(--line)" }}>
-                    {egp(node.credit)}
-                  </td>
-                  <td className="border-b p-2 text-end align-top font-semibold tabular-nums" style={{ borderColor: "var(--line)" }}>
-                    {egp(node.balance)}
-                  </td>
-                  <td className="border-b p-2 align-top" style={{ borderColor: "var(--line)" }}>
-                    <div className="flex flex-wrap justify-end gap-1">
-                      {node.active && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => setForm({ mode: "add-child", parent: node, editing: null })}
-                        >
-                          + فرع
-                        </Button>
-                      )}
-                      <Button variant="ghost" onClick={() => setForm({ mode: "edit", parent: null, editing: node })}>
-                        تعديل
-                      </Button>
-                      {canMerge && (
-                        <Button variant="ghost" onClick={() => setMergeSource(node)}>
-                          دمج
-                        </Button>
-                      )}
-                      {canArchive && (
-                        <Button variant="ghost" onClick={() => setArchiveTarget(node)}>
-                          أرشفة
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="border-y" style={{ borderColor: "var(--line)" }}>
+        {rendered.map(({ node, depth }) => {
+          const leaf = isLeaf(node, children);
+          const canArchive = canWrite && node.active && !node.isSystem;
+          const canMerge = canArchive && leaf;
+          return (
+            <article key={node.id} className="border-b py-3 last:border-b-0" style={{ borderColor: "var(--line)", opacity: node.active ? 1 : 0.58 }}>
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-3" style={{ paddingInlineStart: Math.min(depth, 3) * 14 }}>
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <code className="shrink-0 tabular-nums text-xs" style={{ color: "var(--ink-muted)" }}>{node.code}</code>
+                    <strong className="min-w-0 break-words">{node.nameAr}</strong>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1 text-xs" style={{ color: "var(--ink-muted)" }}>
+                    <span>{TYPE_AR[node.accountType]} · {BALANCE_AR[node.normalBalance]}</span>
+                    {node.kind && <Tag tone="warning">{KIND_AR[node.kind]}</Tag>}
+                    {node.isSystem && <Tag tone="ok">نظامي</Tag>}
+                    {!node.active && <Tag tone="danger">مؤرشف</Tag>}
+                    {leaf && node.active && <Tag tone="neutral">حساب تسجيل</Tag>}
+                    {node.postingCount !== "0" && <span>{exactCount(node.postingCount)} سطر مرحل</span>}
+                  </div>
+                </div>
+                <strong className="shrink-0 text-sm tabular-nums">{egpExact(node.balance)}</strong>
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:max-w-md" style={{ paddingInlineStart: Math.min(depth, 3) * 14 }}>
+                <span style={{ color: "var(--ink-muted)" }}>مدين <b className="tabular-nums" style={{ color: "var(--ink)" }}>{egpExact(node.debit)}</b></span>
+                <span style={{ color: "var(--ink-muted)" }}>دائن <b className="tabular-nums" style={{ color: "var(--ink)" }}>{egpExact(node.credit)}</b></span>
+              </div>
+
+              {canWrite && (
+                <div className="no-print mt-2 flex flex-wrap justify-end gap-1">
+                  {node.active && (
+                    <Button variant="ghost" onClick={() => setForm({ mode: "add-child", parent: node, editing: null })}>
+                      <Plus size={15} aria-hidden /> فرع
+                    </Button>
+                  )}
+                  <Button variant="ghost" onClick={() => setForm({ mode: "edit", parent: null, editing: node })}>
+                    <Pencil size={15} aria-hidden /> تعديل
+                  </Button>
+                  {canMerge && (
+                    <Button variant="ghost" onClick={() => setMergeSource(node)}>
+                      <Merge size={15} aria-hidden /> دمج
+                    </Button>
+                  )}
+                  {canArchive && (
+                    <Button variant="ghost" onClick={() => setArchiveTarget(node)}>
+                      <Archive size={15} aria-hidden /> أرشفة
+                    </Button>
+                  )}
+                </div>
+              )}
+            </article>
+          );
+        })}
       </div>
 
       <ConfirmDialog

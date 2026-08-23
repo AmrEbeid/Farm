@@ -1,92 +1,69 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { BookOpenCheck, CircleDollarSign, Landmark, ReceiptText } from "lucide-react";
 import { requireRole } from "@/lib/auth";
-import { egp, num } from "@/lib/money";
+import { egpExact } from "@/lib/decimal";
 import { createClient } from "@/lib/supabase/server";
-import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
-import { AccountsTreeManager, type AccountNode } from "@/components/AccountsTreeManager";
+import { Alert, EmptyState } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
+import { AccountsTreeManager } from "@/components/AccountsTreeManager";
+import { parseChartOfAccountsSnapshot } from "@/lib/chart-of-accounts-snapshot";
 
 export const dynamic = "force-dynamic";
 
-const POSTING_KINDS = new Set(["operating", "drawing", "capex"]);
+const ARABIC_INTEGER = new Intl.NumberFormat("ar-EG");
 
-function asNumber(value: number | string | null | undefined): number {
-  const n = Number(value ?? 0);
-  return Number.isFinite(n) ? n : 0;
+function exactCount(value: string): string {
+  return ARABIC_INTEGER.format(BigInt(value));
+}
+
+function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return (
+    <div className="min-w-0 border-b py-3 last:border-b-0 sm:border-b-0 sm:px-4 sm:first:ps-0 sm:[&:not(:first-child)]:border-s" style={{ borderColor: "var(--line)" }}>
+      <div className="flex items-center gap-2 text-xs" style={{ color: "var(--ink-muted)" }}>{icon}{label}</div>
+      <strong className="mt-1 block text-lg tabular-nums">{value}</strong>
+    </div>
+  );
 }
 
 export default async function AccountsPage() {
-  await requireRole(["owner", "accountant"]);
+  const member = await requireRole(["owner", "accountant"]);
   const sb = await createClient();
-
-  const { data, error } = await sb
-    .from("v_account_rollup")
-    .select(
-      "account_id, parent_id, code, name_ar, account_type, normal_balance, kind, active, is_system, sort_order, debit, credit, balance",
-    )
-    .order("sort_order", { ascending: true, nullsFirst: false })
-    .order("code", { ascending: true });
-  if (error) throw error;
-
-  const rows = data ?? [];
-  const activeParentIds = new Set(
-    rows.flatMap((row) => (row.active && row.parent_id ? [row.parent_id] : [])),
-  );
-  const postingLeaves = rows.filter(
-    (row) => row.active && row.kind && POSTING_KINDS.has(row.kind) && !activeParentIds.has(row.account_id),
-  );
-  const operatingBalance = rows
-    .filter((row) => row.parent_id == null && row.kind === "operating")
-    .reduce((sum, row) => sum + asNumber(row.balance), 0);
-  const drawingBalance = rows
-    .filter((row) => row.parent_id == null && row.kind === "drawing")
-    .reduce((sum, row) => sum + asNumber(row.balance), 0);
-  const capexBalance = rows
-    .filter((row) => row.parent_id == null && row.kind === "capex")
-    .reduce((sum, row) => sum + asNumber(row.balance), 0);
-
-  const nodes: AccountNode[] = rows.map((row) => ({
-    id: row.account_id,
-    code: row.code,
-    nameAr: row.name_ar,
-    accountType: row.account_type as AccountNode["accountType"],
-    normalBalance: row.normal_balance as AccountNode["normalBalance"],
-    parentId: row.parent_id,
-    kind: row.kind as AccountNode["kind"],
-    isSystem: row.is_system,
-    sortOrder: row.sort_order,
-    active: row.active,
-    debit: asNumber(row.debit),
-    credit: asNumber(row.credit),
-    balance: asNumber(row.balance),
-  }));
+  const snapshotRes = await sb.rpc("fn_chart_of_accounts_snapshot", { p_org: member.orgId });
+  if (snapshotRes.error) throw snapshotRes.error;
+  const snapshot = parseChartOfAccountsSnapshot(snapshotRes.data, member.orgId);
 
   return (
-    <div className="flex flex-col gap-5 p-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold">شجرة الحسابات</h1>
-        <p style={{ color: "var(--ink-muted)" }}>
-          صنّف المصروفات، مسحوبات المالك، والمصروفات الرأسمالية في شجرة حسابات مستقلة مرتبطة بالقيود.
-        </p>
-      </header>
+    <main className="flex flex-col gap-5 p-4 sm:p-6">
+      <PageHeader
+        title="دليل الحسابات"
+        subtitle="رتّب أين تُسجّل المصروفات والمسحوبات والأصول، وراجع أثر القيود المرحلة فقط."
+        actions={(
+          <nav aria-label="روابط محاسبية" className="no-print flex flex-wrap gap-2">
+            <Link href="/accounting" className="fos-btn fos-btn--secondary fos-btn--md">دفتر الأستاذ</Link>
+            <Link href="/finance/reports" className="fos-btn fos-btn--secondary fos-btn--md">التقارير</Link>
+          </nav>
+        )}
+      />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <KpiCard label="الحسابات النشطة" value={num(nodes.filter((node) => node.active).length)} />
-        <KpiCard label="حسابات ربط المصروفات" value={num(postingLeaves.length)} />
-        <KpiCard label="رصيد التشغيلي" value={egp(operatingBalance)} />
-        <KpiCard label="رأسمالي ومسحوبات" value={egp(capexBalance + drawingBalance)} />
-      </div>
+      <section aria-label="ملخص دليل الحسابات" className="grid border-y sm:grid-cols-2 lg:grid-cols-5" style={{ borderColor: "var(--line)" }}>
+        <Metric label="حسابات نشطة" value={exactCount(snapshot.totals.activeCount)} icon={<BookOpenCheck size={16} aria-hidden />} />
+        <Metric label="حسابات تسجيل" value={exactCount(snapshot.totals.postingLeafCount)} icon={<ReceiptText size={16} aria-hidden />} />
+        <Metric label="تشغيلي مرحل" value={egpExact(snapshot.totals.operatingBalance)} icon={<CircleDollarSign size={16} aria-hidden />} />
+        <Metric label="رأسمالي مرحل" value={egpExact(snapshot.totals.capexBalance)} icon={<Landmark size={16} aria-hidden />} />
+        <Metric label="مسحوبات مرحلة" value={egpExact(snapshot.totals.drawingBalance)} icon={<CircleDollarSign size={16} aria-hidden />} />
+      </section>
 
       <Alert
         tone="info"
-        title="الحسابات النظامية تحمي مسار القيود والعهدة؛ يمكن إعادة تسميتها فقط. الحساب المستخدم في قيود أو مصروفات يُؤرشف أو يُدمج ولا يُحذف."
+        title="الحساب النظامي يمكن إعادة تسميته فقط. الحساب المستخدم يُؤرشف أو يُدمج ولا يُحذف، وتظل قيوده القديمة محفوظة."
       />
 
-      <Card title="شجرة الحسابات">
-        {nodes.length === 0 ? (
-          <EmptyState title="لا توجد حسابات بعد" description="أضف حسابًا رئيسيًا لبدء بناء الشجرة." />
-        ) : (
-          <AccountsTreeManager nodes={nodes} />
-        )}
-      </Card>
-    </div>
+      {snapshot.accounts.length === 0 ? (
+        <EmptyState title="لا توجد حسابات بعد" description="أضف حسابًا رئيسيًا لبدء بناء الدليل." />
+      ) : (
+        <AccountsTreeManager nodes={snapshot.accounts} canWrite={snapshot.canWrite} />
+      )}
+    </main>
   );
 }

@@ -1462,6 +1462,14 @@ type PeopleSnapshotFunctions = {
   };
 };
 
+// SPEC-0033 R4i: one exact, posted-only Chart of Accounts snapshot.
+type ChartOfAccountsSnapshotFunctions = {
+  fn_chart_of_accounts_snapshot: {
+    Args: { p_org: string };
+    Returns: Json;
+  };
+};
+
 // ── Weather thresholds (SPEC-0007 §3), migration 20260701270000 ──
 type WeatherFunctions = {
   fn_update_weather_thresholds: {
@@ -2723,6 +2731,7 @@ export type Database = Omit<Generated, "public"> & {
       InventorySnapshotFunctions &
       PayrollSnapshotFunctions &
       PeopleSnapshotFunctions &
+      ChartOfAccountsSnapshotFunctions &
       CostCenterSummaryFunctions &
       ExpenseRegisterSummaryFunctions &
       MonthCloseSummaryFunctions &
