@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-23 (latest) — R4c PEOPLE MIGRATED / MERGED / DEPLOYED; ACCOUNTING ACCEPTANCE REVERIFIED.**
+> Hosted Farm migration `20260823070135 exact_people_directory_and_person_snapshots` and PR #1047 merge
+> `8d782ab7ef00215dbf7aa4b0d5e64dcc16d4fc9e` are live. Exact-merge CI, db-tests, release and Vercel passed;
+> signed-out People routes redirect to `/login`. Full local evidence includes pgTAP 4,986/4,986, Vitest
+> 2,283 plus 17 skips, TypeScript, ESLint, 70-page build, Storybook, guards, desktop/phone RTL and independent
+> review. Production accounting was read-only rechecked: one staged batch, 698/698 unreviewed and pending,
+> zero frozen/approved/executed; finance authority remains partial and budgets blocked. No schema, access or
+> business row changed in the recheck. Authenticated People and accounting acceptance remain open.
+
 > **2026-08-23 (latest) — Product UI reset R4b payroll workspace + run 360 MIGRATED / MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > Hosted Farm migration `20260823044312 exact_payroll_workspace_and_run_snapshots` added exact bounded payroll
 > snapshots plus mandatory frozen worker names and their locked-down insert trigger. Postflight kept payroll

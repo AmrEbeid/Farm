@@ -1,4 +1,23 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (Product UI reset R4b payroll workspace/run 360 live)
+# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4c People live; accounting acceptance truth refreshed)
+
+> **2026-08-23 — ACCOUNTING ACCEPTANCE STATE REVERIFIED / OPERATOR RUNBOOK READY.**
+> Production remains exactly one staged reconciliation batch with 698 rows: all 698 are unreviewed and pending;
+> none are reviewed, frozen, rejected, approved or executed. `finance_ledger` remains `partial` and `budgets`
+> remains `blocked`, so those figures continue to fail closed. The protected 44-workflow desktop/phone harness
+> is released and its exact environment contract and invocation are now recorded in the acceptance runbook.
+> No harness credential is available in this clean worktree, and production has no non-finance membership for
+> the denial lane. No database, access or business row changed. Accounting remains about 99.5%, not 100%, until
+> authenticated Owner/Accountant/denied-role acceptance plus the 698 decisions, workbook dual run, exception
+> resolution and dated signatures are complete.
+>
+> **2026-08-23 — PRODUCT UI RESET R4c PEOPLE DIRECTORY + PERSON 360 MIGRATED / MERGED / DEPLOYED.**
+> `/people` and `/people/[personId]` now use exact bounded active-org snapshots with role and privacy enforcement
+> in PostgreSQL. PR #1047 merged as `8d782ab7ef00215dbf7aa4b0d5e64dcc16d4fc9e`; hosted migration
+> `20260823070135 exact_people_directory_and_person_snapshots` is live. Full validation passed: pgTAP
+> 4,986/4,986; Vitest 2,283 plus 17 skips; TypeScript, ESLint, 70-page build, Storybook, guards, desktop/phone
+> RTL and independent review. Signed-out routes redirect to `/login`. Authenticated Owner/Accountant browser
+> acceptance remains open; no business row changed.
+
 
 > **2026-08-23 — PRODUCT UI RESET R4b EXACT PAYROLL WORKSPACE + RUN 360 MIGRATED / MERGED / DEPLOYED.**
 > Payroll history and run detail now read exact bounded active-org snapshots with `payroll.read` enforced in

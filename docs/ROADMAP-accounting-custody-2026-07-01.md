@@ -1,8 +1,10 @@
 # ROADMAP — Accounting & Custody: market gap analysis + sequenced build plan (2026-07-01)
 
-*Status: **DRAFT roadmap for Owner review** — not a build authorization. Synthesizes (a) an evidence-based status
-audit of the shipped accounting + custody modules and (b) a verified market gap analysis, into a prioritized,
-gated slice plan. Companion to [`SPEC-0004-accounting-and-pnl.md`](SPEC-0004-accounting-and-pnl.md) (accounting
+*Status: **HISTORICAL ROADMAP; CORE DEPENDABLE-DAILY RELEASE SHIPPED (2026-08-22)**. This document preserves
+the 2026-07 market analysis and original sequence; it is not the current implementation tracker. PR #1008
+(`046a14e902ab1c0e4f3b3dbfa636937edff88c55`) released the daily accounting software described by the later
+spec amendments. The remaining gate is authenticated role acceptance plus the 698-row workbook reconciliation
+and signed dual run, not the historical unbuilt slices below. Companion to [`SPEC-0004-accounting-and-pnl.md`](SPEC-0004-accounting-and-pnl.md) (accounting
 design spec), [`SPEC-0018-custody-and-payment-requests.md`](SPEC-0018-custody-and-payment-requests.md) (custody
 design spec), [`DECISION-0157-budget-enforcement.md`](DECISION-0157-budget-enforcement.md), and the prior
 [`accounting standalone market research.md`](accounting%20standalone%20market%20research.md). Each slice below
@@ -24,7 +26,8 @@ explicit, evidence-backed decision record rather than ad-hoc feature additions.
 
 The non-negotiables from [`docs/CLAUDE.md`](CLAUDE.md) hold throughout and constrain every slice: **(1)** never
 fabricate financial data; **(6)** owner drawings (مسحوبات) stay separated from operating expenses in any P&L;
-Arabic-RTL-first; per-farm (not per-seat) pricing; the palm registry (4,380 برحي / 299 ذكور / 28 حوش) is canonical.
+Arabic-RTL-first; per-farm (not per-seat) pricing; and palm counts remain disputed until an approved corrected
+unit-level registry or fresh field count exists. No historical aggregate is canonical.
 
 ## 2. What is built today (verified against code + live prod DB)
 
@@ -49,8 +52,9 @@ Arabic-RTL-first; per-farm (not per-seat) pricing; the palm registry (4,380 بر
   a partial unique index guaranteeing **one cash-out per expense**; an immutability trigger on routed money;
   claim-first concurrency on every lifecycle transition; audit triggers gated to `finance.read`.
 
-**Live data state:** synthetic/empty (0 real expenses, 0 journal entries, 0 chart-of-accounts rows) — everything
-below is gated behind the privacy-reviewed real-data path (Stage M) before real Ebeid financials are loaded.
+**Historical 2026-07 data state:** the system was then synthetic/empty. This statement is not current. The
+2026-08-22 release postflight recorded 10,201 expenses, 10,365 journal entries, 20,730 journal lines, 162 sales,
+one reconciliation batch and 698 staged rows, without changing a business row.
 
 ## 3. Market gap analysis (summary; full evidence in §8)
 
@@ -79,11 +83,11 @@ what makes the near-term slices cheap.
 | Chart of accounts + balanced journals + trial balance | ✅ all | ✅ **shipped** (#568) | — | Done |
 | Imprest custody float + approval workflow | Zoho/Pluto/Alaan | ✅ **shipped**, textbook-correct | — | Done — ahead of tier |
 | Expense classification (opex/drawings/capex) | partial | ✅ shipped, structurally enforced | — | Done — ahead of tier |
-| **Revenue / sales / A-R** | ✅ statutory tier | 🟡 backend implemented in `20260701500000`; reports/UI pending | Low (reports on new backend + existing kernel) | **Continue — Slice A** |
-| **P&L + balance sheet + period close** | ✅ Wafeq (40+ reports) | ❌ trial-balance only | Low–med (reports over existing `journal_lines`/`accounts` + a period-lock table) | **Build — Slice A** |
+| **Revenue / sales / A-R** | ✅ statutory tier | ✅ released backend, reports and daily workflows | — | Done; human acceptance remains |
+| **P&L + balance sheet + period close** | ✅ Wafeq (40+ reports) | ✅ released over the posted GL | — | Done; workbook dual run remains |
 | **ETA e-invoice + VAT (Egypt mandate)** | ✅ Daftra, Wafeq | ❌ none | High (external integration, e-signature, legal) | ~~Slice C~~ **REMOVED from the plan (Owner, 2026-07-05)** — out of scope unless a VAT obligation arises |
 | **Per-crop / feddan / tree cost accounting** | Qoyod (cost centers); Traction/Conservis (best) | ❌ none | Med (add a dimension to `journal_lines`, which already carries expense/custody/payment dimension FKs) | **Build — Slice B (the wedge)** |
-| Budget-vs-actual tied to the real ledger | ✅ Conservis actuals-vs-plan | ❌ actuals are frozen seed numbers | Low (roll the ledger up by category — Decision-0157) | **Build — folds into Slice A/B** |
+| Budget-vs-actual tied to the real ledger | ✅ Conservis actuals-vs-plan | 🟡 posted-GL report released; production budget authority blocked | Decision-0157 + authoritative budget source | Fail closed until authority is verified |
 | Receipt / proof capture (+ OCR later) | ✅ Alaan/Pemo/Pluto | ❌ no attachment linkage | Low (link `attachments` to custody/expense rows) | **Build — folds into Slice A/B** |
 | A-P / vendor bills + aging | ✅ Wafeq | ❌ none | Med | Slice D |
 | Bank reconciliation / feeds | ✅ statutory tier | ❌ none | Med–high | Slice D (defer) |
@@ -182,9 +186,9 @@ bank feeds — none matter for a single owner-operated date-palm farm.
 - Bearer plants: IFRS "Bearer Plants (Amendments to IAS 16 and IAS 41)", June 2014.
 - Imprest fundamentals: Imprest system (Wikipedia) + spend-tool sources (Alaan, Pluto, Pemo, Expensify).
 
-## 10. Next step
+## 10. Historical next step
 
-This is a roadmap for **Owner review**, not a build order. On approval (and the §7 decisions), the recommended
+This was the roadmap's **Owner review** recommendation in 2026-07, not the current resume point. At that time, the recommended
 first move is **Slice A** authored as a SPEC-0004 revision + implementation plan (revenue + P&L/balance-sheet +
 period close over the existing kernel), followed by the docs-catalog quick win. Nothing here is implemented until
 its slice is separately specced, planned, and Owner-gated.

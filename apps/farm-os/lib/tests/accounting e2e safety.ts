@@ -13,12 +13,17 @@ import { describe, expect, it } from "vitest";
 import {
   ACCOUNTING_E2E_ENV,
   ACCOUNTING_E2E_BROWSER_RUNTIME_ERROR,
+  ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS,
+  ACCOUNTING_E2E_ROLE_LANDING_PATHS,
   accountingE2EAuthOrigin,
   accountingE2EBaseUrl,
   accountingE2EBatchId,
   accountingE2ECredentials,
   accountingE2EDeniedRole,
+  accountingE2EFinanceDashboardHeading,
   accountingE2EGuardedServerFetch,
+  accountingE2ERoleLandingPath,
+  accountingE2ERoleLandingUrlPattern,
   accountingE2ERequestIsReadOnly,
   accountingE2ERequestIsPasswordSignIn,
   accountingE2EServerRequestIsReadOnly,
@@ -226,6 +231,67 @@ describe("accounting read-only E2E safety", () => {
     for (const role of ["owner", "accountant", "", "unknown"]) {
       expect(() => accountingE2EDeniedRole({ [ACCOUNTING_E2E_ENV.deniedRole]: role })).toThrow();
     }
+  });
+
+  it("pins exactly one post-login landing path per Farm role", () => {
+    expect(ACCOUNTING_E2E_ROLE_LANDING_PATHS).toEqual({
+      owner: "/dashboard/owner",
+      accountant: "/finance/dashboard",
+      farm_manager: "/dashboard/manager",
+      agri_engineer: "/dashboard/manager",
+      supervisor: "/m",
+      storekeeper: "/inventory/dashboard",
+    });
+    // Every role the harness may sign in as must resolve, so no run can fall back to /dashboard.
+    for (const role of ["owner", "accountant"] as const) {
+      expect(accountingE2ERoleLandingPath(role)).toBe(ACCOUNTING_E2E_ROLE_LANDING_PATHS[role]);
+    }
+    for (const role of ["farm_manager", "agri_engineer", "supervisor", "storekeeper"] as const) {
+      expect(accountingE2EDeniedRole({ [ACCOUNTING_E2E_ENV.deniedRole]: role })).toBe(role);
+      expect(accountingE2ERoleLandingPath(role)).toBe(ACCOUNTING_E2E_ROLE_LANDING_PATHS[role]);
+    }
+    expect(() => accountingE2ERoleLandingPath("auditor" as never)).toThrow(/landing path is pinned/);
+  });
+
+  it("matches only the exact landing URL of the role under test", () => {
+    const origin = "http://127.0.0.1:3100";
+    const supervisor = accountingE2ERoleLandingUrlPattern(origin, "supervisor");
+    expect(supervisor.test(`${origin}/m`)).toBe(true);
+    expect(supervisor.test(`${origin}/m/`)).toBe(true);
+    expect(supervisor.test(`${origin}/m?tab=today`)).toBe(true);
+    // A supervisor sitting on /dashboard, a deeper page, or a same-prefix route is not a pass.
+    for (const url of [`${origin}/dashboard`, `${origin}/m/receive`, `${origin}/module`]) {
+      expect(supervisor.test(url)).toBe(false);
+    }
+    expect(supervisor.test(`https://evil.test/?next=${origin}/m`)).toBe(false);
+
+    const owner = accountingE2ERoleLandingUrlPattern(origin, "owner");
+    expect(owner.test(`${origin}/dashboard/owner`)).toBe(true);
+    for (const url of [`${origin}/dashboard`, `${origin}/dashboard/manager`, `${origin}/finance/dashboard`]) {
+      expect(owner.test(url)).toBe(false);
+    }
+
+    // The accountant lands on /finance/dashboard, which the old /dashboard suffix wait matched by
+    // accident; storekeeper and manager landings must stay mutually exclusive too.
+    const accountant = accountingE2ERoleLandingUrlPattern(origin, "accountant");
+    expect(accountant.test(`${origin}/finance/dashboard`)).toBe(true);
+    expect(accountant.test(`${origin}/dashboard`)).toBe(false);
+    expect(accountingE2ERoleLandingUrlPattern(origin, "storekeeper").test(`${origin}/inventory/dashboard`)).toBe(true);
+    expect(accountingE2ERoleLandingUrlPattern(origin, "farm_manager").test(`${origin}/dashboard/manager`)).toBe(true);
+    expect(accountingE2ERoleLandingUrlPattern(origin, "agri_engineer").test(`${origin}/m`)).toBe(false);
+  });
+
+  it("pins a distinct exact /finance/dashboard heading for each finance role", () => {
+    expect(ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS).toEqual({
+      owner: "لوحة المالية",
+      accountant: "عمل المحاسب اليوم",
+    });
+    expect(accountingE2EFinanceDashboardHeading("owner")).toBe("لوحة المالية");
+    expect(accountingE2EFinanceDashboardHeading("accountant")).toBe("عمل المحاسب اليوم");
+    expect(ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS.owner).not.toBe(
+      ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS.accountant,
+    );
+    expect(() => accountingE2EFinanceDashboardHeading("supervisor" as never)).toThrow(/heading is pinned/);
   });
 
   it("allows safe methods only to the approved app or auth origins", () => {
@@ -452,7 +518,8 @@ describe("accounting read-only E2E source contract", () => {
     expect(spec).toContain("accountingE2EDeniedRole(process.env)");
     expect(spec).toContain("await expectAuthenticatedIdentity(page, credentialsByRole[role], roleLabels[role])");
     expect(spec).toContain("await expectAuthenticatedIdentity(page, credentialsByRole.denied, roleLabels[deniedRole])");
-    expect(spec).toContain("dashboard\\/manager|m|inventory\\/dashboard");
+    expect(spec).toContain("const deniedLandingUrl = accountingE2ERoleLandingUrlPattern(approvedOrigin, deniedRole)");
+    expect(spec).toContain("await expect(page).toHaveURL(deniedLandingUrl)");
     expect(spec).toContain('await gotoReadOnly(page, "/finance/close")');
     expect(spec).toContain('page.getByRole("heading", { name: "إقفال الشهر" })');
     expect(spec).toContain("async function verifyCostCenterReportModes(page: Page)");
@@ -484,7 +551,7 @@ describe("accounting read-only E2E source contract", () => {
     ]) {
       expect(spec).toMatch(new RegExp(`\\{\\s*path:\\s*"${path.replaceAll("/", "\\/")}",\\s*heading:`));
     }
-    expect(spec).toContain("await verifyAccountingReads(page, routes)");
+    expect(spec).toContain("await verifyAccountingReads(page, routes, role)");
     expect(spec).toContain("await verifyMoneyEntryForms(page)");
     expect(spec).toContain('["/record/scale", "⚖️ الميزان — تسليم حمولة"]');
     expect(spec).toContain("async function verifyStatementDownloads(page: Page)");
@@ -533,7 +600,8 @@ describe("accounting read-only E2E source contract", () => {
       "await expectPageFitsViewport(page)",
     ]);
     expectOrdered(functionBlock("verifyAccountingReads", "verifyFinanceRoleIdentity"), [
-      'name: route.heading, exact: true })).toBeVisible()',
+      "const heading = routeHeading(route, role)",
+      'name: heading, exact: true })).toBeVisible()',
       "await expectPageFitsViewport(page)",
     ]);
     expectOrdered(functionBlock("verifyMoneyEntryForms", "expectPdfDownload"), [
@@ -570,7 +638,8 @@ describe("accounting read-only E2E source contract", () => {
       spec.indexOf('test("a non-finance role is denied finance-only money-entry forms"'),
     );
     expectOrdered(deniedRoutes, [
-      'name: route.heading, exact: true })).toHaveCount(0)',
+      "for (const heading of routeHeadings(route))",
+      'name: heading, exact: true })).toHaveCount(0)',
       "await expectPageFitsViewport(page)",
     ]);
     const deniedForms = spec.slice(
@@ -609,5 +678,59 @@ describe("accounting read-only E2E source contract", () => {
     expect(spec).toContain("await webSocket.close");
     expect(spec).not.toContain("webSocket.url()");
     expect(spec).toContain("await expect(readyButton).toHaveCount(1 - blockedCount)");
+  });
+
+  it("keeps the pinned landing map identical to the app's own role router", () => {
+    const router = readFileSync(join(process.cwd(), "app", "(app)", "dashboard", "page.tsx"), "utf8");
+    const auth = readFileSync(join(process.cwd(), "lib", "auth.ts"), "utf8");
+
+    expect(router).toContain('if (m.role === "owner") redirect("/dashboard/owner")');
+    expect(router).toContain('if (m.role === "accountant") redirect("/finance/dashboard")');
+    expect(router).toContain(
+      'if (m.role === "farm_manager" || m.role === "agri_engineer") redirect("/dashboard/manager")',
+    );
+    expect(router).toContain('if (m.role === "supervisor") redirect("/m")');
+    expect(router).toContain('if (m.role === "storekeeper") redirect("/inventory/dashboard")');
+    for (const [role, path] of Object.entries(ACCOUNTING_E2E_ROLE_LANDING_PATHS)) {
+      expect(router).toContain(`m.role === "${role}"`);
+      expect(router).toContain(`redirect("${path}")`);
+    }
+    // A denied read is bounced through the same router, so it settles on the role's landing path —
+    // which is why waiting on /dashboard could never distinguish an allowed role from a denied one.
+    expect(auth).toContain('if (!roles.includes(m.role)) redirect("/dashboard")');
+  });
+
+  it("keeps both role-specific finance headings identical to their page sources", () => {
+    const financeDashboard = readFileSync(
+      join(process.cwd(), "app", "(app)", "finance", "dashboard", "page.tsx"),
+      "utf8",
+    );
+    const accountantHome = readFileSync(
+      join(process.cwd(), "app", "(app)", "finance", "dashboard", "accountant-home.tsx"),
+      "utf8",
+    );
+    const pageHeader = readFileSync(join(process.cwd(), "components", "PageHeader.tsx"), "utf8");
+
+    expect(financeDashboard).toContain('if (m.role === "accountant") return <AccountantHome');
+    expect(financeDashboard).toContain(`title="${ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS.owner}"`);
+    expect(accountantHome).toContain(`title="${ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS.accountant}"`);
+    // Both titles reach the DOM as the page h1, so the harness may keep asserting an exact heading.
+    expect(pageHeader).toContain('<h1 className="farm-page-header__title"');
+  });
+
+  it("makes the spec consume the shared landing and heading contract", () => {
+    expect(spec).toContain("accountingE2ERoleLandingUrlPattern");
+    expect(spec).toContain("ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS");
+    expect(spec).toContain(
+      "await page.waitForURL(accountingE2ERoleLandingUrlPattern(approvedOrigin, role), { timeout: 20_000 })",
+    );
+    expect(spec).toContain('{ path: "/finance/dashboard", heading: ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS }');
+    expect(spec).toContain("await login(page, credentialsByRole[role], role)");
+    expect(spec).toContain("await login(page, credentialsByRole.denied, deniedRole)");
+    // No inline literal-regex destination may survive: every wait/assert resolves through the
+    // shared contract, so a role's landing path is fixed in one place only.
+    expect(spec).not.toMatch(/waitForURL\(\//);
+    expect(spec).not.toContain("dashboard\\/manager|m|inventory\\/dashboard");
+    expect(spec).not.toContain('heading: "لوحة المالية"');
   });
 });

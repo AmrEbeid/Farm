@@ -1,8 +1,25 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (Product UI reset R4b exact payroll workspace and run 360 live). Owner: Amr Ebeid.*
+*Updated: 2026-08-23 (R4c People live; accounting acceptance truth refreshed). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-23 — CURRENT ACCOUNTING ACCEPTANCE TRUTH.**
+The dependable-daily software release remains live and its automated baseline remains green. Production has one
+staged 698-row reconciliation batch: all 698 rows are unreviewed and pending; zero are frozen, approved or
+executed. `finance_ledger` is `partial` and `budgets` is `blocked`, so authority-gated figures fail closed.
+The protected 44-workflow desktop/phone harness is ready and now has an exact operator runbook, but this clean
+environment has no role credentials and production has no non-finance member for the denial lane. No data,
+access or schema changed during this verification. Accounting remains about 99.5%, not 100%, pending
+authenticated role acceptance, all 698 human decisions, the original-workbook dual run, exception resolution
+and dated Accountant/Owner signatures.
+
+**2026-08-23 — PRODUCT UI RESET R4c PEOPLE DIRECTORY + PERSON 360: MIGRATED / MERGED / DEPLOYED.**
+Hosted migration `20260823070135 exact_people_directory_and_person_snapshots` and PR #1047 merge
+`8d782ab7ef00215dbf7aa4b0d5e64dcc16d4fc9e` are live. The list and 360 use exact bounded active-org snapshots
+with database-enforced role/privacy contracts. pgTAP 4,986/4,986; Vitest 2,283 plus 17 skips; TypeScript, ESLint,
+70-page build, Storybook, guards, RTL desktop/phone checks and independent review passed. Signed-out routes
+redirect to `/login`; authenticated Owner/Accountant browser acceptance remains open.
 
 **2026-08-23 — PRODUCT UI RESET R4b EXACT PAYROLL WORKSPACE + RUN 360: MIGRATED / MERGED / DEPLOYED.**
 `/people/payroll` and `/people/payroll/[runId]` now use exact, bounded, active-organization snapshots with

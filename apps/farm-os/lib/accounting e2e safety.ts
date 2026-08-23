@@ -106,6 +106,68 @@ export type AccountingE2EDeniedRole =
   | "supervisor"
   | "storekeeper";
 
+export type AccountingE2EFinanceRole = Exclude<AccountingE2ERole, "denied">;
+export type AccountingE2EFarmRole =
+  | AccountingE2EFinanceRole
+  | AccountingE2EDeniedRole;
+
+// /login always navigates to /dashboard, and app/(app)/dashboard/page.tsx redirects from there per
+// role; requireRole() bounces a denied role through the same router. /dashboard is therefore a
+// waypoint, never a resting URL — waiting on it lets any role "pass" from anywhere it happens to
+// land. These are the exact paths the browser settles on, so the harness asserts the destination
+// for the role under test instead of a shared prefix or an alternation of allowed landings.
+export const ACCOUNTING_E2E_ROLE_LANDING_PATHS = {
+  owner: "/dashboard/owner",
+  accountant: "/finance/dashboard",
+  farm_manager: "/dashboard/manager",
+  agri_engineer: "/dashboard/manager",
+  supervisor: "/m",
+  storekeeper: "/inventory/dashboard",
+} as const satisfies Record<AccountingE2EFarmRole, string>;
+
+// /finance/dashboard renders a different h1 per role: the owner budget/expense board, and the
+// accountant's bounded work surface (AccountantHome). A single shared heading would have to be
+// weakened to a substring or a regex to cover both, so the harness picks the exact heading the
+// role under test is expected to see.
+export const ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS = {
+  owner: "لوحة المالية",
+  accountant: "عمل المحاسب اليوم",
+} as const satisfies Record<AccountingE2EFinanceRole, string>;
+
+export function accountingE2ERoleLandingPath(role: AccountingE2EFarmRole): string {
+  const path = ACCOUNTING_E2E_ROLE_LANDING_PATHS[role];
+  if (!path)
+    throw new Error(`No post-login landing path is pinned for Farm role ${role}.`);
+  return path;
+}
+
+export function accountingE2EFinanceDashboardHeading(
+  role: AccountingE2EFinanceRole
+): string {
+  const heading = ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS[role];
+  if (!heading)
+    throw new Error(
+      `No /finance/dashboard heading is pinned for Farm role ${role}.`
+    );
+  return heading;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * The one URL `role` may rest on after login, origin included. Only a trailing slash, query or
+ * hash is tolerated: a deeper path under the same prefix (/m/receive for /m) is a different page.
+ */
+export function accountingE2ERoleLandingUrlPattern(
+  appOrigin: string,
+  role: AccountingE2EFarmRole
+): RegExp {
+  const landing = escapeRegExp(appOrigin + accountingE2ERoleLandingPath(role));
+  return new RegExp(`^${landing}/?(?:[?#]|$)`);
+}
+
 export type AccountingE2ECredentials = {
   email: string;
   password: string;
