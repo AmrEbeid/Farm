@@ -17,12 +17,14 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### People directory and person 360 R4c — RELEASE CANDIDATE
+### People directory and person 360 R4c — RELEASED
 
-*Source migration `20260823160000_exact_people_directory_and_person_snapshots.sql`; not hosted, merged or
-released yet. Candidate evidence: Docker-free pgTAP **4,986/4,986** including test `231` **154/154**;
-focused People Vitest **79/79**; TypeScript, focused ESLint and diff checks green. Production and authenticated
-role acceptance remain release gates.*
+*Released by PR #1047 at `8d782ab7ef00215dbf7aa4b0d5e64dcc16d4fc9e`. Source migration
+`20260823160000_exact_people_directory_and_person_snapshots.sql` is live on Farm as hosted migration
+`20260823070135 exact_people_directory_and_person_snapshots`. Docker-free pgTAP **4,986/4,986** including
+test `231` **154/154**, Vitest **2,283** passed, production build **70/70**, post-merge CI/db/release workflows
+and exact-SHA Vercel production deployment are green. Live owner/accountant RPC smoke passed; authenticated
+browser acceptance remains open because no production session was used.*
 
 `/people` and `/people/[personId]` now read one active-organisation snapshot each instead of unbounded direct
 table reads. The directory publishes exact organisation, search and filter totals separately from one
