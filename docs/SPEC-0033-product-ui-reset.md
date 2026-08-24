@@ -17,7 +17,7 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
-### Combined accounting release train — LOCAL RELEASE CANDIDATE
+### Combined accounting release train — PR #1065 / CI GREEN / BLOCKED BEFORE MIGRATION
 
 R4k is now integrated with the separately approved active-person labor-log guard and deferred finance-dashboard
 chart loading on `release/accounting-final-train-20260824`. The ordered migrations are
@@ -39,8 +39,11 @@ pass 189/189. This is a harness contract, not a claim that the credentialed run 
 runbook is
 pinned to this exact two-migration train and its separate release/recovery gates. The finance-dashboard initial
 client union is 13 chunks / 104,368 gzip
-bytes with Recharts absent, 55.0% below exact base. The train is
-uncommitted, unpushed, unmigrated, undeployed and not on `main`.
+bytes with Recharts absent, 55.0% below exact base. Reviewed application bytes are commit
+`693dca33d373b916e853a7721444ffe6178f999f` on PR #1065; CI and Vercel preview checks are green. Production
+preflight matches the expected migration head, aggregate counts, balanced journals and trusted hashes. The train
+is unmigrated, unmerged, undeployed and not on `main`: backup/PITR confirmation and protected three-role
+preview acceptance remain unavailable in this session.
 
 The first combined review found one P3 and no P0-P2 findings: the financial snapshot migration lacked immediate
 replay in the local database harness. The allowlist now replays both candidate migrations, full pgTAP remains

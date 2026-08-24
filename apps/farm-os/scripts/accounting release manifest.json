@@ -65,7 +65,7 @@
     "docs/user-manual/05-reports-and-dashboards.md",
     "package-lock.json"
   ],
-  "candidateDigest": "a8fefa9ec96aed463862022c9e2b0e4e7ca977f0dece280c404619fbca8deee1",
+  "candidateDigest": "a0f78227af33b69748dc1d7c20ecb4ea411123161f888b99a53bcf2c2bbaf802",
   "artifactModesDigest": "26b67faaf55c244d615a01229d60ee0a910491f0bd0f8003c564ca4fa0744797",
   "migrations": [
     {

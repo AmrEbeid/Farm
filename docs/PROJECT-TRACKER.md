@@ -1,6 +1,6 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-24 by Codex (combined accounting release train local)
+# Project Tracker — Farm OS      Last updated: 2026-08-24 by Codex (accounting PR #1065 blocked before migration)
 
-> **2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN LOCAL / UNRELEASED.** Branch
+> **2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN PR OPEN / CI GREEN / BLOCKED BEFORE MIGRATION.** Branch
 > `release/accounting-final-train-20260824` at exact base `811da10` combines the independently approved R4k
 > financial-statement/close candidate, active-person labor-log integrity guard and finance-dashboard deferred
 > chart loading. The ordered migrations are `20260823190000_exact_financial_statement_snapshots.sql` followed
@@ -28,7 +28,12 @@
 > A later release-runbook review found one P2: postflight did not bind deployed SECURITY DEFINER and trigger
 > bodies. Exact normalized function/trigger hashes, trusted owners, wiring and ACL checks are now pinned;
 > independent reconstruction matched all six hashes and final rereview is APPROVE with no P0-P3 findings.
-> No commit, push, PR, migration, merge, deployment, production query or business-row change occurred.
+> Reviewed application bytes were committed as `693dca33d373b916e853a7721444ffe6178f999f`, pushed and opened as
+> PR #1065. GitHub application CI, pgTAP, design-system build, gitleaks and Vercel preview checks are green.
+> The production preflight confirmed the Farm project, exact migration head, aggregate business counts, balanced
+> journal totals and trusted function/trigger hashes. No migration, merge, production deployment or business-row
+> change occurred. Migration is paused until backup/PITR is visibly confirmed; preview/role acceptance is open
+> because Vercel authentication blocks direct smoke and the three protected role accounts are not loaded.
 > Production stays at R4j; the human accounting acceptance gates remain open.
 
 > **2026-08-23 — PRODUCT UI RESET R4j COST-CENTER REPORTS + 360 MERGED / DEPLOYED.**

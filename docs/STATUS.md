@@ -4,7 +4,7 @@
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN: LOCAL / UNRELEASED.** Fresh branch
+**2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN: PR OPEN / CI GREEN / RELEASE BLOCKED.** Branch
 `release/accounting-final-train-20260824` combines three separately reviewed candidates against exact
 `origin/main` `811da103a0d6de3db6ca443bfeeb1f9799232f40`: R4k exact-decimal financial statements, month close,
 period register and Arabic PDF/CSV output; an active-person integrity guard for new labor logs; and deferred
@@ -35,8 +35,14 @@ now replayed, the full pgTAP suite remains 5,099/5,099, and exact-byte rereview 
 The release-runbook review then found a P2 missing deployed-body/trigger attestation. Normalized hashes, trusted
 owners, exact trigger wiring and effective ACL checks are now pinned; independent reconstruction matched all six
 hashes and final rereview is APPROVE with no P0-P3 findings.
-No commit, push, PR, hosted migration, merge, deployment, production query or business-data change has
-occurred. Production remains on R4j and accounting remains about 99.5%, not
+Reviewed application bytes were committed as `693dca33d373b916e853a7721444ffe6178f999f`, pushed and opened as
+PR #1065. GitHub application CI, pgTAP, design-system build, gitleaks and Vercel preview checks are green. The
+Owner-approved production preflight confirmed Farm project `veezkmytervjnpxcrbkw`, the expected migration head,
+the documented aggregate business counts, balanced journal totals and exact trusted function/trigger hashes.
+No hosted migration, merge, production deployment or business-data change has occurred. Migration is paused
+because the connector cannot expose backup/PITR status and the dashboard session is signed out. Preview/runtime
+acceptance is also open because Vercel authentication blocks direct smoke and the three protected role accounts
+are not loaded in this session. Production remains on R4j and accounting remains about 99.5%, not
 100%, pending authenticated role acceptance, all 698 human reconciliation decisions, workbook dual run,
 exception resolution and dated Accountant/Owner signatures.
 
