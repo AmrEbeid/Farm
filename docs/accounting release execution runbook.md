@@ -1,144 +1,242 @@
 # Accounting release execution runbook
 
-**Candidate:** `accounting-release-20260822-current-main`
-**Pinned base:** `253f479fde25e39494550be7445560489458af60`
-**Canonical branch:** `validation/accounting-release-current-main-20260808`
-**Scope:** the manifest-bound accounting application, documentation, tests, and twenty-one pending migrations.
+**Candidate:** `accounting-final-release-train-20260824`
+**Pinned base:** `811da103a0d6de3db6ca443bfeeb1f9799232f40`
+**Canonical branch:** `release/accounting-final-train-20260824`
+**Scope:** 43 candidate files, nine pinned artifacts, four release controls, 56 bound files and two ordered
+migrations.
 
-**Local mobile follow-up:** the locally committed branch `validation/accounting-mobile-acceptance-20260809`
-contains the validated 44-test desktop/mobile role gate. Exact-commit review found and prompted correction of a
-shell-contained overflow false pass; the corrected tip still requires exact-commit rereview. It is not canonical
-or externally usable until approval and canonical-branch fast-forward.
+This runbook is a checklist, not authorization. A commit, push, PR, preview deployment, production read,
+migration, merge, production deployment, credentialed role test and production data change each require
+explicit Owner approval naming that exact action. An approval for one stage does not authorize the next.
 
-This runbook is a checklist, not authorization. Committing, pushing, opening or merging a PR, applying a
-migration, deploying, reading production, running credentialed acceptance, and changing business rows each
-remain separately Owner-approved. Stop when an approval does not name the exact next action.
+## Release contents
+
+1. `20260823190000_exact_financial_statement_snapshots.sql`
+   - Adds exact-decimal, versioned balance-sheet and income-statement read wrappers.
+   - Preserves the existing trusted accounting definitions and performs no business-row write.
+2. `20260824100000_labor_logs_require_active_person.sql`
+   - Rejects new or reassigned labor logs for inactive or cross-organization people.
+   - Preserves correction of historical rows whose person attribution is unchanged and preserves the existing
+     closed-payroll freeze.
+3. Application changes
+   - Rebuild the statement, close and accounting-period surfaces and Arabic PDF/CSV output.
+   - Defer Finance-dashboard Recharts loading while retaining exact server-rendered accessible and print data.
+
+The migrations are additive and backward-compatible with the currently deployed R4j application. That permits
+migrate-first release order but does not make either migration automatic or pre-approved.
 
 ## Release roles
 
 | Role | Responsibility |
 |---|---|
-| Release preparer | Preserve the manifest-bound bytes, collect validation evidence, and stop on drift |
-| Independent reviewer | Review the exact committed candidate and migration order; do not perform the release |
-| Owner | Authorize each external stage and make the final merge, migration, deployment, and production-read decisions |
+| Release preparer | Preserve exact bytes, run local gates, collect evidence and stop on drift |
+| Independent reviewer | Review the exact candidate and release evidence; do not release it |
+| Owner | Approve each external stage and the final production decisions |
+| Accountant | Perform authenticated workflow acceptance and the later workbook dual run |
 
-The actor who prepared the candidate must not silently substitute for the Owner or independent reviewer.
+## Stage 0: preserve the exact local candidate
 
-## Stage 0: establish the exact candidate
-
-1. Work only from the canonical release worktree on
-   `validation/accounting-release-current-main-20260808`; confirm `STATUS.md` names the same branch and base.
-2. Fetch `origin/main`, then stop if it is not the manifest's `baseCommit`.
-3. Run `npm --prefix apps/farm-os run release:accounting:preflight:working-tree` and require `PASS`, 162
-   candidate files, 51 pinned artifacts, four controls, and 217 total bound files.
-4. Require the recorded full gates: pgTAP 4,192/4,192, Vitest 1,777 plus 17 controlled skips, full ESLint,
-   TypeScript, 69/69-page build, `npm audit` with zero vulnerabilities, and `git diff --check` clean.
-5. Confirm no migration timestamp duplicates and no pending migration outside the manifest.
-6. Obtain explicit Owner approval before creating the candidate commit. Do not amend the candidate after review;
-   any byte or mode change requires a new manifest digest and rerun of this stage.
-
-## Stage 1: committed release proof
-
-1. Commit only the manifest-bound candidate. Do not include credentials, generated financial evidence, or an
-   unrelated worktree change.
-2. Require a clean worktree and rerun `npm --prefix apps/farm-os run release:accounting:preflight`.
-3. Require the strict result to bind the committed `HEAD`, the pinned base, all twenty-one migrations, 162 candidate
-   files, 51 pinned artifacts, and 217 total files.
-4. Obtain an independent review of the exact commit and resolve every P1-P4 finding before any external action.
-5. Obtain separate Owner approval before push and PR creation. The PR must target the fetched `main` base and
-   must not be merged yet.
-6. Require every CI check on the exact candidate commit to pass before migration preflight. If a check reruns on
-   different bytes, changes the commit, or is missing, stop and repeat the committed proof and independent review.
-
-## Stage 2: migration preflight
-
-1. Confirm the Farm project identity before any remote command. Never use a Zeal or disposable project by
+1. Work only in the canonical worktree and branch above.
+2. Verify remote `origin/main` still equals the pinned base. Stop on any movement; do not rebase or merge by
    assumption.
-2. Export and retain the current migration-version list and exact aggregate-only preflight evidence approved for
-   this release. Do not include credentials, row identifiers, or financial evidence in Git.
-3. Require the local manifest to show exactly these pending repository versions in this order and no additional
-   migration. Require the remote ledger to contain none of the 21 migration names and to end at the already-applied
-   Marketing workspace before the first apply:
+3. Run the working-tree accounting preflight. Require:
+   - candidate `accounting-final-release-train-20260824`;
+   - base, `HEAD` and cached `origin/main` all equal the pinned base;
+   - two migrations, nine pinned artifacts, 43 candidate files and 56 bound files;
+   - status `PASS`.
+4. Require the recorded candidate evidence:
+   - focused Vitest 88/88 plus attendance-acceptance 76/76, statement-download 30/30 and acceptance-package 189/189;
+   - full Vitest 2,386 passed plus 17 controlled skips;
+   - Docker-free pgTAP 5,099/5,099 with both candidate migrations immediately replayed;
+   - TypeScript, full ESLint, 70-page production build and repository guards;
+   - zero-vulnerability dependency audit and clean `git diff --check`;
+   - exact 46-test browser inventory, including the Owner active-person attendance picker and authenticated
+     Owner/Accountant PDF plus section-CSV downloads;
+   - both PDF traces complete at 71.21 MiB with all Chromium/font assets;
+   - Finance dashboard initial union 13 chunks / 104,368 gzip bytes with Recharts absent;
+   - independent exact-byte and final docs/manifest reviews APPROVE with no P0-P3 findings.
+5. Stop if any file changes after the manifest refresh. Refreshing the manifest is not enough: rerun the
+   proportionate gates and exact-byte review for the changed candidate.
 
-   1. `20260822140000` - exact unpaid obligations
-   2. `20260822140100` - versioned reconciliation review concurrency
-   3. `20260822140200` - canonical ordered reconciliation queue
-   4. `20260822140300` - exact month-close summary
-   5. `20260822140400` - exact annual cost-center history
-   6. `20260822140500` - exact posted-sale cost-center revenue
-   7. `20260822140600` - standalone custody movement reversal
-   8. `20260822140700` - atomic exact custody-dashboard summary
-   9. `20260822140800` - exact payment-request totals
-   10. `20260822140900` - exact receivable workflow money
-   11. `20260822141000` - exact revenue-report transport
-   12. `20260822141100` - exact atomic daily accounting-ledger snapshot
-   13. `20260822141200` - exact atomic unified-transactions snapshot
-   14. `20260822141300` - exact atomic season-dashboard snapshot
-   15. `20260822141400` - exact atomic custody-report snapshot
-   16. `20260822141500` - exact role-aware finance-dashboard snapshot
-   17. `20260822141600` - exact atomic daily custody-workspace snapshot
-   18. `20260822141700` - exact atomic daily expense-workspace snapshot
-   19. `20260822141800` - exact atomic expense-detail snapshot
-   20. `20260822141900` - exact atomic cost-center report snapshot
-   21. `20260822142000` - exact atomic payment-request detail snapshot
+## Stage 1: Owner-gated commit, push and PR
 
-4. Stop if any version is already present unexpectedly, absent from the candidate, reordered, or accompanied by
-   another pending migration.
-5. GitHub issue #903 is separate migration-history maintenance. Do not repair, rewrite, or hand-edit
-   `supabase_migrations.schema_migrations` during this release. If the approved migration mechanism cannot prove
-   the exact pending set because of #903, stop the release and handle that issue under its own Owner approval.
-6. Obtain explicit Owner approval naming the exact twenty-one-version apply before migration.
+1. Obtain explicit Owner approval to create the candidate commit.
+2. Commit only the manifest-bound files. Exclude credentials, generated evidence, `.next`, local database files
+   and unrelated worktree changes.
+3. Require a clean worktree and run the strict committed preflight. It must bind the exact committed `HEAD` and
+   reproduce the Stage 0 counts and digest.
+4. Obtain independent review of the exact commit. Any byte change requires strict preflight and rereview.
+5. Obtain separate Owner approval before push and PR creation. Record whether opening the PR will automatically
+   create a preview deployment; if it will, preview deployment must also be explicitly approved before push.
+6. Target the exact fetched `main`. Do not merge. Require every CI, database, release, secret and preview check
+   on the exact candidate commit to pass.
 
-## Stage 3: migrate first and verify
+## Stage 2: Owner-gated production preflight
 
-1. Apply only the twenty-one committed migration files, in the order above, using the approved Farm migration path.
-2. Stop immediately on an unknown, partial, or failed result. Do not retry until the remote version list and
-   catalog state identify what committed.
-3. Re-read the remote migration list and require all twenty-one migration names exactly once and in order. The
-   hosted ledger versions may be generated at apply time and therefore need not equal repository filename timestamps;
-   record the exact repository-version to hosted-version mapping returned by the approved migration mechanism.
-4. Run the approved catalog, privilege, function-signature, RLS, and aggregate-only postflight checks. Compare
-   protected accounting counts and totals with the retained preflight evidence; explain every difference.
-5. Do not change a business row to make postflight pass. Production database failures are forward-only: prepare
-   an additive reviewed fix-forward under separate Owner approval. Do not reset production, edit historical
-   migrations, or treat the accounting batch's application rollback as a database migration rollback.
+Production preflight is read-only but still requires explicit Owner approval. Use the Farm Supabase project only;
+verify its project reference before every remote command. Do not use a Zeal, test or assumed project.
 
-## Stage 4: role acceptance before merge
+### Migration ledger
 
-1. Use three distinct, approved test accounts: Owner, accountant, and one non-finance role. Use the pinned batch
-   UUID and the exact Farm Supabase origin.
-2. Keep credentials in the invocation environment only. Do not place them in shell history, `.env*`, Git,
-   screenshots, traces, reports, or chat.
-3. For a production read, obtain explicit Owner approval for that invocation and run the read-only wrapper with
-   its production acknowledgement flag. Never bypass its localhost, origin, method, service-worker, WebSocket, or
-   environment guards.
-4. Once the mobile follow-up is integrated into the canonical candidate, require all 44 discovered browser tests to
-   pass: the same 22 workflows on Desktop Chrome and pinned Pixel 7 Chromium. Each workflow must pass its settled
-   final-state page-level horizontal-overflow assertion. Until then, the canonical branch retains its reviewed
-   desktop-only gate. The suite must not stage, decide, freeze, approve, execute, roll back, or otherwise write
-   financial data.
-5. Treat missing credentials, a blocked request, an unexpected redirect, an unreadable statement PDF, or a role
-   mismatch as a failed release gate.
+1. Export the complete remote migration-version list to the restricted release evidence folder outside Git.
+2. The documented production head before this train is hosted migration
+   `20260823113659 exact_chart_of_accounts_snapshot`; later R4j releases had no migration. Treat that as an
+   expectation, not a substitute for a fresh approved read.
+3. Require both candidate migrations to be absent remotely and exactly these two repository files to be pending,
+   in this order:
+   1. `20260823190000_exact_financial_statement_snapshots.sql`
+   2. `20260824100000_labor_logs_require_active_person.sql`
+4. Stop on an unexpected remote version, existing candidate object, duplicate timestamp, extra pending file or
+   inability to map repository files to the hosted ledger. Never hand-edit
+   `supabase_migrations.schema_migrations` as part of this release.
 
-## Stage 5: merge, deploy, and verify
+### Read-only baseline
 
-1. Reconfirm all PR checks are green against the exact reviewed commit and confirm `main` did not move
+Capture one timestamped aggregate result immediately before apply. Record no row identifiers or credentials.
+At minimum capture:
+
+- counts for organization, accounts, expenses, sales, sale collections, journal entries, journal lines,
+  accounting periods, people, labor logs, payroll runs, payroll run lines, reconciliation batches and
+  reconciliation batch rows;
+- total journal debit and credit as decimal text;
+- MD5 definitions of `fn_accounting_balance_sheet(uuid,date)`,
+  `fn_accounting_income_statement(uuid,date,date)` and `fn_guard_labor_log_payroll_freeze()`;
+- presence and metadata of both candidate snapshot functions, the private active-person guard and the two labor
+  triggers.
+
+The last documented finance baseline is 31 accounts, 10,201 expenses, 162 sales, 10,365 journal entries and
+20,730 journal lines; the last payroll release recorded zero labor logs and payroll runs. A fresh approved
+capture is authoritative. Any difference must be explained before apply; do not overwrite or adjust a business
+row to match old documentation.
+
+Confirm a current Supabase backup/PITR position and the last known-good Vercel production deployment are
+identifiable. Do not initiate a restore or rollback during preflight.
+
+### Exact catalog attestations
+
+Set the catalog-check transaction's local `search_path` to `public, pg_catalog`, then normalize definitions with
+`md5(regexp_replace(pg_get_functiondef(oid), '[[:space:]]+', ' ', 'g'))` for functions and
+`md5(regexp_replace(pg_get_triggerdef(oid, true), '[[:space:]]+', ' ', 'g'))` for triggers. A fresh local replay
+of the exact candidate pins these expected hashes:
+
+| Object | Expected normalized MD5 |
+|---|---|
+| `fn_accounting_balance_sheet_snapshot(uuid,date)` | `b656798341542f3c188047bd1a7ad726` |
+| `fn_accounting_income_statement_snapshot(uuid,date,date)` | `c90f05fee1371c4a8fac8e3fac35786f` |
+| `private.fn_guard_labor_log_active_person()` | `e44fdeae92efeda3e14fd61b56e1d548` |
+| trigger `zz_guard_labor_log_active_person` | `76f2dddd2616c8e550225f437a5ea4d6` |
+
+Also capture the production preflight hashes and owners for the existing payroll-freeze function and trigger.
+The local reference hashes are `f6ebb81b1b64eec1780d77f45fb1be78` for
+`fn_guard_labor_log_payroll_freeze()` and `aeb707782c0cf96b1c6fb27ec5137c5e` for trigger
+`guard_labor_log_payroll_freeze`; the fresh production preflight values, not the local references, must remain
+identical after apply because this candidate does not replace either object.
+
+If the hosted PostgreSQL version renders an otherwise identical catalog definition differently, stop and compare
+the normalized text to the committed migration. Do not weaken or bypass the hash gate to continue the release.
+
+## Stage 3: Owner-gated migrate-first apply
+
+1. Obtain explicit Owner approval naming both repository migration files and their order.
+2. Apply only the first committed migration through the approved Farm migration mechanism. Record its hosted
+   version and repository-file mapping.
+3. Re-read the ledger and catalog. If the result is unknown, partial or failed, stop. Because the file is
+   transactional, inspect whether its functions and hosted ledger entry exist before considering any retry.
+4. Apply only the second committed migration and record its hosted mapping.
+5. Re-read the ledger and require each candidate migration exactly once and in order. Never rerun by pasting SQL
+   merely because the client response was interrupted.
+
+If the first migration succeeds and the second fails, leave the first additive migration in place and stop.
+Prepare a reviewed fix-forward for the second under separate Owner approval. Do not delete the first functions,
+rewrite migration history or continue to application merge.
+
+## Stage 4: production postflight before merge
+
+Postflight is a separately approved production read. Require all of the following:
+
+1. The Stage 2 business counts, journal debit/credit totals and three trusted-function hashes are unchanged.
+   If legitimate concurrent activity occurred, stop and recapture only after it is independently explained;
+   never hide drift by editing data.
+2. `fn_accounting_balance_sheet_snapshot(uuid,date)` and
+   `fn_accounting_income_statement_snapshot(uuid,date,date)` both exist, are `STABLE`, `SECURITY DEFINER`, pin
+   `search_path=""`, deny PUBLIC and `anon`, grant `authenticated`, have their documented comments, are owned
+   by a role with `rolsuper` or `rolbypassrls`, and match the exact normalized hashes above.
+3. The private active-person guard exists as `SECURITY DEFINER`, pins an empty search path and grants direct
+   execute to none of PUBLIC, `anon` or `authenticated`. Its owner has `rolsuper` or `rolbypassrls` and its
+   normalized function hash matches the exact candidate value above.
+4. `labor_logs` has exactly one enabled `zz_guard_labor_log_active_person` trigger and retains exactly one enabled
+   `guard_labor_log_payroll_freeze` trigger. The alphabetical trigger order keeps the existing payroll freeze
+   before the active-person guard. The new trigger's normalized definition hash matches the candidate value;
+   its definition names `private.fn_guard_labor_log_active_person()`, fires before insert or update of
+   `person_id, org_id`, and is enabled. The existing freeze function/trigger hashes, owner and effective ACLs
+   exactly match the Stage 2 production preflight.
+5. Under separately approved read-only role sessions:
+   - Owner and Accountant can read same-organization exact statement snapshots;
+   - a non-finance role receives `42501`;
+   - snapshot `version`, organization/date fields and totals are strings and match the trusted source functions.
+
+Do not create a production labor row merely to prove postflight. The active-person rejection and historical
+correction behavior remain covered by the 33-assertion local contract until they are observed in a legitimate
+Owner-approved production workflow. Any synthetic write probe would require its own production-data approval and
+must not be bundled into this read-only postflight.
+
+## Stage 5: exact preview and role acceptance
+
+1. Use only an explicitly approved preview of the exact committed candidate. Verify the preview commit SHA.
+2. Run the protected accounting suite only with three distinct approved accounts: Owner, Accountant and one
+   non-finance role. Credentials remain in the invocation environment only.
+3. A production-backed preview read requires a separate Owner approval and the wrapper's one-shot production
+   acknowledgement. Do not bypass origin, method, service-worker, WebSocket or environment guards.
+4. Require all 46 tests: 23 workflows on desktop Chromium and Pixel 7. Require both statement PDFs to download,
+   parse as nonblank PDFs and remain readable in Arabic. Require every rendered statement-section CSV to have
+   its UTF-8 BOM, exact Arabic header, valid filename and at least one data row without logging financial rows.
+   The income lane is pinned to 2019-01-01 through 2026-08-24 and must produce one unique revenue CSV plus one
+   unique expense CSV with page-date-bound filenames. Balance filenames must bind each unique rendered section
+   to the page's actual `asOf` date. If the approved Stage 2 baseline no longer supports that income prerequisite,
+   stop and update the period, source contract and runbooks together under exact-byte review; never relax the
+   identity checks during execution.
+   The reconciliation workflow must also parse the downloaded annex and require its UTF-8 BOM, exact 73-column
+   header, batch-and-digest-bound filename, report count, all 698 canonical rows and the report's full SHA-256
+   digest repeated in every complete row. Only aggregate pass/fail evidence may enter logs.
+5. Test PDF cold start and two concurrent downloads in the preview runtime. Stop on timeout, missing browser
+   assets, unreadable Arabic, excessive memory, or a response from a different commit.
+6. Missing credentials, unavailable non-finance account, role mismatch or any partial run means this gate is
+   not passed.
+
+## Stage 6: Owner-gated merge and production deployment
+
+1. Reconfirm the PR, exact commit, CI, migration postflight and role acceptance. Stop if `main` moved
    incompatibly.
-2. Obtain explicit Owner approval to merge and a separate explicit Owner approval for the production deployment
-   that the merge will trigger. If production auto-deployment cannot be disabled and deployment approval is
-   absent, do not merge. Merge only after migration postflight and role acceptance pass.
-3. Verify the resulting authorized deployment corresponds to the merge commit and reaches READY.
-4. Perform only the separately approved signed-out and authenticated read-only smoke checks. Confirm the canonical
-   finance routes, reconciliation report/CSV, statements, and role redirects; do not infer success from HTTP 200
-   alone.
-5. Re-run the approved production postflight and record the deployment, commit, migration versions, checks, and
-   evidence location in the canonical project documents.
+2. Obtain explicit Owner approval to merge.
+3. If merge triggers production deployment, obtain explicit deployment approval before merge. Otherwise obtain
+   separate approval for the deployment action.
+4. Verify the production deployment is READY for the exact merge commit and the public alias serves it.
+5. With separate approval, run signed-out routes and the authenticated read-only smoke. Confirm statements,
+   close, periods, dashboard, PDF downloads, labor picker behavior and role denials; HTTP 200 alone is not proof.
+6. Repeat the aggregate/catalog postflight and update `STATUS.md`, `PROJECT-TRACKER.md`, `DEPLOY-STATUS.md` and
+   `SESSION-BRIEF.md` with exact commit, PR, hosted migration mapping, deployment and evidence location.
 
-## Stage 6: human accounting acceptance
+## Recovery and stop rules
 
-After release, follow `accounting reconciliation acceptance runbook.md`. The 698 row decisions, evidence
-exceptions, freeze, approval by an eligible non-creator/non-reviewer Owner, dual run, separately authorized batch
-execution, final digest verification, signatures, and restricted archive are not automated release steps.
+- Both migration files are transactional and contain no business-row DML. An error should roll back that file;
+  an uncertain client response still requires ledger/catalog inspection before retry.
+- Database recovery is forward-only. Prepare an additive reviewed fix under separate Owner approval. Do not edit
+  an applied migration, reset production or delete migration-ledger rows.
+- The previous application remains compatible with both additive migrations. If preview or production application
+  behavior fails, stop or roll back the Vercel deployment to the last known-good exact deployment under explicit
+  Owner approval; leave the database additions in place while a fix-forward is prepared.
+- Do not remove the labor guard as an emergency shortcut. If it rejects a legitimate workflow, preserve the
+  evidence and produce a reviewed corrective migration.
+- A database restore/PITR action is a separate incident decision. It requires explicit Owner approval and evidence
+  of actual data corruption; these no-DML migrations do not by themselves justify a restore.
+- Never change a financial, payroll, reconciliation or identity row to make a release check pass.
 
-Accounting reaches 100% only when both this release runbook and the human acceptance runbook have complete,
-dated evidence. A green local candidate, migration apply, deployment, or browser suite alone is not completion.
+## Human accounting acceptance
+
+After the software release, follow `accounting reconciliation acceptance runbook.md`. Accounting reaches 100%
+only after authenticated role acceptance, all 698 row decisions, exception resolution, freeze and eligible
+Owner approval, original-workbook dual run, separately authorized execution where required, final digest checks,
+dated Accountant/Owner signatures and restricted evidence archive.
+
+A green candidate, migration, deployment or browser suite alone is not 100% completion.

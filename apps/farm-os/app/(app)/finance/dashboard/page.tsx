@@ -9,7 +9,7 @@ import { DashboardKpiLink } from "@/components/DashboardKpiLink";
 import { CurrentFilterCard } from "@/components/CurrentFilterCard";
 import { PageHeader } from "@/components/PageHeader";
 import { PrintButton } from "@/components/print-button";
-import { BudgetDoughnut, VarianceChart } from "@/components/charts";
+import { LazyFinanceDashboardBudgetCharts } from "@/components/LazyFinanceDashboardBudgetCharts";
 import { fmtDate } from "@/lib/dates";
 import { num } from "@/lib/money";
 import {
@@ -104,13 +104,18 @@ export default async function FinanceDashboardPage({
 
   // Variance per budget category (planned = approved, actual = committed + actual).
   const varianceByCategory = snapshot.budgetCategories.flatMap((category) => {
+    const actualExact = sumDecimals([category.committed, category.actual]).total;
     const planned = decimalToSafeNumber(category.approved);
-    const actual = decimalToSafeNumber(
-      sumDecimals([category.committed, category.actual]).total
-    );
+    const actual = decimalToSafeNumber(actualExact);
     return planned === null || actual === null
       ? []
-      : [{ category: category.category, planned, actual }];
+      : [{
+          category: category.category,
+          planned,
+          actual,
+          plannedLabel: egpExact(category.approved),
+          actualLabel: egpExact(actualExact),
+        }];
   });
   const completeVarianceChart =
     varianceByCategory.length === snapshot.budgetCategories.length;
@@ -540,16 +545,13 @@ export default async function FinanceDashboardPage({
         compareDecimals(budgetTotals.approved, "0") > 0 &&
         chartUsed !== null &&
         chartAvailable !== null && (
-          <section className="grid gap-4 lg:grid-cols-2">
-            <Card title="استخدام لقطة الموازنة">
-              <BudgetDoughnut used={chartUsed} available={chartAvailable} />
-            </Card>
-            {completeVarianceChart && varianceByCategory.length > 0 && (
-              <Card title="المعتمد مقابل لقطة الملتزم والفعلي حسب الفئة">
-                <VarianceChart data={varianceByCategory} />
-              </Card>
-            )}
-          </section>
+          <LazyFinanceDashboardBudgetCharts
+            used={chartUsed}
+            available={chartAvailable}
+            usedLabel={egpExact(spentOrCommitted)}
+            availableLabel={egpExact(maxDecimal(available, "0"))}
+            variance={completeVarianceChart ? varianceByCategory : []}
+          />
         )}
 
       <div className="no-print">

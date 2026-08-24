@@ -13,9 +13,20 @@ The dependable-daily accounting software release is live (PR #1008, merge
 production checks passed. That proves the released software baseline; it does not replace authenticated
 Owner/Accountant use or the financial reconciliation below.
 
-The repository includes a write-blocked browser suite covering the same 22 workflows on desktop and phone
-(44 tests total). It permits one password sign-in per browser context, then allows only local application reads
+The repository includes a write-blocked browser suite covering the same 23 workflows on desktop and phone
+(46 tests total). It permits one password sign-in per browser context, then allows only local application reads
 and allowlisted Supabase read RPCs. Any other POST, mutation, WebSocket, page error or console error fails the run.
+The Owner attendance workflow requires at least one active person but keeps option identifiers and labels inside
+the browser evaluation, so a failed shape check emits only aggregate booleans rather than personal identifiers.
+
+The income-statement CSV lane uses the pinned regression period **2019-01-01 through 2026-08-24**. The documented
+Farm ledger has both revenue and expense rows in that period, so the lane requires exactly one uniquely named
+revenue CSV and one uniquely named expense CSV, with filenames bound to the dates rendered in the page inputs.
+The balance-sheet lane binds each unique rendered section identity and filename to the page's actual `asOf` date;
+zero-balance sections may be absent, but duplicate or unknown sections fail. If a fresh approved production
+baseline no longer proves both income sections in the pinned period, or the canonical loaded-history contract
+changes, stop and update the period, source contract and both runbooks together under exact-byte review. Do not
+weaken counts or filename identity merely to make the role run pass.
 
 Run it only from `apps/farm-os`, with no Next environment file in that directory, and supply these values through
 the invocation environment:
@@ -37,7 +48,42 @@ npm run test:e2e:accounting:readonly -- --owner-approved-production-readonly
 ```
 
 Stop if any account is shared, impersonated, missing its expected production role, or unavailable. A partial run
-does not satisfy the 44-workflow gate.
+does not satisfy the 46-test gate.
+
+Before using real credentials, run Playwright's `--list` mode with synthetic local-only environment values and
+confirm it reports exactly **46 tests in 1 file**: 23 logical workflows across desktop Chromium and Pixel 7.
+This inventory check does not authenticate, read production, or satisfy acceptance.
+
+The current R4k candidate updates the protected checks to the exact compact finance UI: **قائمة الدخل**,
+**قائمة المركز المالي**, **الفترات المحاسبية**, **إقفال الشهر**, the ready/blocked close controls, and both
+statement PDF downloads. The browser suite verifies PDF response headers, filename, `%PDF-` header, `%%EOF`
+trailer and nonblank size. It also downloads every rendered statement-section CSV for Owner and Accountant and
+requires a UTF-8 BOM, exact Arabic header, valid statement filename and at least one data row; financial row
+content is reduced to booleans and never enters assertion output. The reconciliation-control lane downloads and
+parses the complete RFC-4180 acceptance annex. For the canonical batch it requires a UTF-8 BOM, the exact
+73-column Arabic schema, a filename carrying the batch ID and first 12 digest characters, a 698-row page count,
+exactly 698 complete data rows, and the same 64-character SHA-256 digest shown on the report in every row. It
+emits only aggregate pass/fail evidence, never annex cells. A missing, partial, malformed, stale-digest or
+differently named annex fails the protected run. The local finance PDF test additionally extracts rendered text
+with Poppler when
+available and proves formal Arabic labels, account codes, literal hostile markup, exact positive money beyond
+JavaScript safe-integer precision, and exact negative money shown in accounting parentheses survive. Visual
+inspection proves connected RTL Arabic, no overlap, one-page A4 balance output and readable signatures. The
+generated PDF is tagged and contains no embedded JavaScript; the renderer disables page JavaScript and external
+network access. The finance CSV integration test runs parser → shared page rows → CSV and proves Arabic headers
+and exact positive/negative decimal bytes round-trip without number conversion. The rebuilt Next traces include
+all four Chromium payloads plus both Noto WOFF files, report zero missing files, and measure 71.21 MiB per PDF
+route. These automated checks do not replace the accountant opening the final production files and tying them
+to the workbook.
+
+The combined working-tree release manifest binds 56 files to exact `origin/main` `811da10`, includes both
+ordered migrations, and passes its dedicated preflight. The strict committed preflight remains intentionally
+unavailable until an Owner-approved commit
+exists; do not substitute the working-tree result for commit, preview, migration or production evidence.
+
+The combined train is not part of this production gate until its reviewed migrations and application bytes are explicitly
+approved, released, and production-verified. Never run the credentialed suite against an unreleased local
+candidate while pointing authentication at Farm production.
 
 ## Roles and separation
 

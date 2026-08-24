@@ -404,7 +404,11 @@ export default async function ReconciliationAcceptancePage({
             قارنها بالبصمة المكتوبة في كل سطر من ملف CSV قبل التوقيع.
           </span>
         </div>
-        <div className="mt-1 break-all font-mono text-sm font-semibold" dir="ltr">
+        <div
+          className="mt-1 break-all font-mono text-sm font-semibold"
+          data-testid="acceptance-package-digest"
+          dir="ltr"
+        >
           {digest}
         </div>
         <p className="mt-1 text-xs" style={mutedStyle}>
@@ -475,7 +479,11 @@ export default async function ReconciliationAcceptancePage({
       </Section>
 
       <Section title="اكتمال القراءة">
-        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div
+          className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4"
+          data-testid="acceptance-completeness"
+          data-row-count={report.rowCount}
+        >
           <Figure label="صفوف قُرئت في هذا التقرير" value={num(report.rowCount)} />
           <Figure
             label="عدد صفوف الدفعة عند التجهيز"

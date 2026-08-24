@@ -1171,7 +1171,15 @@ type CustodyFunctions = {
     Args: { p_org: string; p_as_of?: string | null };
     Returns: Json;
   };
+  fn_accounting_balance_sheet_snapshot: {
+    Args: { p_org: string; p_as_of?: string | null };
+    Returns: Json;
+  };
   fn_accounting_income_statement: {
+    Args: { p_org: string; p_from: string; p_to?: string | null };
+    Returns: Json;
+  };
+  fn_accounting_income_statement_snapshot: {
     Args: { p_org: string; p_from: string; p_to?: string | null };
     Returns: Json;
   };

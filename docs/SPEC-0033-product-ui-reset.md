@@ -17,6 +17,74 @@ The reset preserves route URLs, role gates, RLS/RPC contracts, financial definit
 real-data-only behavior and the existing Readex Pro/Tajawal identity. This is an Operate interface: speed,
 scanability and correct action outrank decoration.
 
+### Combined accounting release train — LOCAL RELEASE CANDIDATE
+
+R4k is now integrated with the separately approved active-person labor-log guard and deferred finance-dashboard
+chart loading on `release/accounting-final-train-20260824`. The ordered migrations are
+`20260823190000_exact_financial_statement_snapshots.sql` then
+`20260824100000_labor_logs_require_active_person.sql`; the performance slice is app-only. Combined evidence is
+Vitest 2,386 plus 17 controlled skips, attendance-acceptance focused tests 76/76, statement-download focused
+tests 30/30, Docker-free pgTAP 5,099/5,099, TypeScript, full/touched ESLint, a 70-page build,
+repository guards, zero-vulnerability audit, exact 46-test browser inventory, complete 71.21 MiB PDF traces and
+a 56-file working-tree manifest PASS. The Owner browser lane opens the active-person attendance picker without
+submitting, while the source contract pins active people in the signed-in organization. The acceptance review's
+one P3 log-privacy finding is fixed by keeping identifiers and labels inside browser evaluation; exact-byte
+rereview is APPROVE with no P0-P3 findings. Owner/Accountant statement workflows now also verify every rendered
+section CSV's BOM, Arabic header, unique page-date-bound filename and nonempty data without logging financial
+rows. The CSV review's P2 identity gap and two P3 contract/documentation gaps are fixed; exact-byte rereview is
+APPROVE with no P0-P3 findings. The protected role workflow now parses the complete reconciliation CSV annex and
+requires its BOM, exact 73-column header, digest-bound filename, report count, all 698 canonical rows and every
+repeated SHA-256 digest to match. Assertions retain aggregate booleans only; focused acceptance-package tests
+pass 189/189. This is a harness contract, not a claim that the credentialed run has passed. The execution
+runbook is
+pinned to this exact two-migration train and its separate release/recovery gates. The finance-dashboard initial
+client union is 13 chunks / 104,368 gzip
+bytes with Recharts absent, 55.0% below exact base. The train is
+uncommitted, unpushed, unmigrated, undeployed and not on `main`.
+
+The first combined review found one P3 and no P0-P2 findings: the financial snapshot migration lacked immediate
+replay in the local database harness. The allowlist now replays both candidate migrations, full pgTAP remains
+5,099/5,099, and exact-byte rereview is APPROVE with no P0-P3 findings.
+
+The release-runbook review later found one P2 in production attestation, not product behavior: object names and
+grants alone did not bind the deployed SECURITY DEFINER or trigger bodies. The runbook now pins normalized
+function/trigger hashes, trusted owners, exact wiring and effective ACL checks. Independent reconstruction
+matched all six hashes and final rereview is APPROVE with no P0-P3 findings; the P2 is closed.
+
+### Financial statements and close R4k — IN COMBINED LOCAL CANDIDATE
+
+R4k rebuilds `/finance/balance-sheet`, `/finance/income-statement`, `/finance/close` and `/finance/periods`
+as one compact Owner/Accountant closing workflow. It does not change posting, period-lock, close-readiness or
+financial definitions. The existing trusted statement RPCs remain the sole source of money truth; two
+versioned read wrappers transport every amount as PostgreSQL decimal text, bind the response to the requested
+organization and dates, and expose array counts for independent reconciliation. The wrappers are
+`finance.read` gated, authenticated-only, organization scoped and fail closed on cross-organization journal
+relationships.
+
+The TypeScript boundary rejects JavaScript numbers, malformed decimals, duplicate accounts, count drift,
+line/total mismatch and broken balance-sheet or income-statement identities. Screen, CSV and PDF paths retain
+exact decimal text beyond the JavaScript safe-integer range. The four pages replace oversized KPI-card grids
+with shared compact headers, one narrative, decision strips and phone-safe rows while preserving date filters,
+print, CSV, individual/combined PDF, inline close, Owner-only reopen and statement-review handoffs.
+
+React PDF is not used: a rendered proof showed corrupted Arabic shaping and ordering. The replacement renders
+escaped HTML through pinned `puppeteer-core` + `@sparticuz/chromium`, embeds the two Noto Arabic WOFF files,
+disables page JavaScript and external network access, and always closes the browser. Local extraction and visual
+proof cover formal Arabic labels, hostile markup as literal text, exact money above the JavaScript safe-integer
+limit, and negative values shown with unambiguous accounting parentheses. Both rebuilt route traces contain all
+four Chromium payloads and both fonts, have zero missing files, and are 71.21 MiB uncompressed versus Vercel's
+[standard 250 MB function limit](https://vercel.com/docs/functions/limitations).
+
+This entry records R4k's standalone validation before integration. It is now carried byte-for-byte in the
+combined local train above. Standalone evidence was PDF 6/6; manifest preflight 7/7; full Vitest 2,379 plus 17
+controlled skips; Docker-free pgTAP 5,066/5,066; TypeScript; full ESLint; clean 70-page production build;
+service-role, Recharts and client/server guards; zero-vulnerability audit; 390px and 1,440px RTL rendering with
+zero horizontal overflow or console errors; exact page-to-CSV integration; and tagged A4 PDF extraction/visual
+inspection. The first review's P1 tenant-integrity hole and two P2
+report-fidelity findings were fixed and pinned by hostile tests before rereview. Authenticated Owner/Accountant
+production file inspection, the protected 46-test run, 698 human reconciliation decisions, workbook dual
+run, exception resolution and dated signatures remain open.
+
 ### Cost-center reports and 360 R4j — RELEASED
 
 R4j rebuilds `/finance/reports` and `/finance/cost-centers/[id]` without changing any query, RPC, schema,

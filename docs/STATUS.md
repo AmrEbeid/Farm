@@ -1,8 +1,44 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-23 (R4j cost-center reports and 360 live). Owner: Amr Ebeid.*
+*Updated: 2026-08-24 (combined accounting release train under local validation). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN: LOCAL / UNRELEASED.** Fresh branch
+`release/accounting-final-train-20260824` combines three separately reviewed candidates against exact
+`origin/main` `811da103a0d6de3db6ca443bfeeb1f9799232f40`: R4k exact-decimal financial statements, month close,
+period register and Arabic PDF/CSV output; an active-person integrity guard for new labor logs; and deferred
+finance-dashboard chart loading that preserves the exact accessible and print tables. Migration order is
+`20260823190000_exact_financial_statement_snapshots.sql` then
+`20260824100000_labor_logs_require_active_person.sql`. Combined evidence is focused Vitest 88/88 plus 76/76
+for the attendance acceptance extension and 30/30 for statement downloads; full Vitest 2,386 plus 17 controlled
+skips; Docker-free pgTAP 5,099/5,099;
+TypeScript; full/touched ESLint; 70-page build; guards;
+zero-vulnerability audit; exact 46-test protected-browser inventory; two complete 71.21 MiB PDF route traces;
+and a 56-file working-tree manifest PASS. The Owner browser lane now opens the active-person attendance picker
+without submitting; its source contract pins the picker to active people in the signed-in organization. The
+acceptance-extension review's one P3 log-privacy finding is fixed: identifiers and labels remain inside the
+browser evaluation, and exact-byte rereview is APPROVE with no P0-P3 findings. The
+existing Owner/Accountant statement-download workflows now also exercise every rendered section CSV, requiring
+UTF-8 BOM, exact Arabic headers, unique page-date-bound filenames and nonempty data without logging financial
+rows. The CSV review's one P2 identity gap and two P3 contract/documentation gaps are fixed; exact-byte rereview
+is APPROVE with no P0-P3 findings. The protected reconciliation workflow now parses the downloaded 73-column
+RFC-4180 annex and fails unless its UTF-8 BOM, exact header, digest-bound filename, report count, all 698 data
+rows and every repeated SHA-256 digest match. It reports aggregate booleans only; focused acceptance-package
+tests pass 189/189. The credentialed production run remains open. The Finance release runbook now names this
+exact two-migration train,
+separate Owner gates and additive recovery rules instead of the superseded 21-migration batch. The
+finance-dashboard initial chunk union is 13 chunks / 104,368
+gzip bytes with Recharts absent, 55.0% below the exact-base 232,120 gzip bytes. Independent exact-byte
+review found one P3: the financial snapshot migration was missing from the immediate-replay allowlist. It is
+now replayed, the full pgTAP suite remains 5,099/5,099, and exact-byte rereview is APPROVE with no P0-P3 findings.
+The release-runbook review then found a P2 missing deployed-body/trigger attestation. Normalized hashes, trusted
+owners, exact trigger wiring and effective ACL checks are now pinned; independent reconstruction matched all six
+hashes and final rereview is APPROVE with no P0-P3 findings.
+No commit, push, PR, hosted migration, merge, deployment, production query or business-data change has
+occurred. Production remains on R4j and accounting remains about 99.5%, not
+100%, pending authenticated role acceptance, all 698 human reconciliation decisions, workbook dual run,
+exception resolution and dated Accountant/Owner signatures.
 
 **2026-08-23 — PRODUCT UI RESET R4j COST-CENTER REPORTS + 360: MERGED / DEPLOYED.**
 PR #1063 merge `a44bd153bbf41cf4b76fa2194cccdd2a62e34832` is live. `/finance/reports` now uses a
@@ -296,8 +332,9 @@ SHA. Live `/` and `/login` return 200; `/accounting`, `/finance/dashboard`, `/tr
 `/custody` and `/finance/reconciliation` redirect signed-out users to `/login`. Release evidence remains:
 committed preflight PASS; pgTAP 4,192/4,192; Farm Vitest 1,777 plus 17 controlled skips; UI Vitest 288/288;
 Farm/UI TypeScript, full Farm ESLint, 69-page Farm build and UI build green; repository guards green; `npm audit`
-0. **Accounting is not accepted as 100% daily-use complete:** the 44-test authenticated owner/accountant/denied
-role suite still needs its credentialed run, and the 698 real reconciliation decisions, workbook dual run,
+0. **Accounting is not accepted as 100% daily-use complete:** the current 46-test authenticated
+Owner/Accountant/denied-role suite still needs its credentialed run, and the 698 real reconciliation decisions,
+workbook dual run,
 exception resolution and dated Owner/accountant sign-off remain open.
 
 **2026-08-09 (historical) — mobile accounting role acceptance: LOCAL / COMMITTED / VALIDATED.** A separate follow-up

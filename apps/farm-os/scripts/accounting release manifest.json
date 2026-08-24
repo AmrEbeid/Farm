@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
-  "candidate": "accounting-release-20260822-current-main",
+  "candidate": "accounting-final-release-train-20260824",
   "scope": "full-accounting-release-candidate",
-  "baseCommit": "253f479fde25e39494550be7445560489458af60",
+  "baseCommit": "811da103a0d6de3db6ca443bfeeb1f9799232f40",
   "releasePrograms": [
     {
       "path": "apps/farm-os/scripts/accounting release preflight core.mjs",
-      "sha256": "c9eabb5d39f7df245aab8dfc61d613e9e4c464f7df9f47ec4ae6c5e8cf3e1505",
+      "sha256": "dba4810ed679e27429f5fae8f1aa3797e02d634508a1ea53f9af2149f63b6fd1",
       "mode": "100644"
     },
     {
@@ -21,379 +21,92 @@
     }
   ],
   "candidatePaths": [
-    "apps/farm-os/app/(app)/accounting/page.tsx",
-    "apps/farm-os/app/(app)/approvals/page.tsx",
-    "apps/farm-os/app/(app)/custody/actions.ts",
-    "apps/farm-os/app/(app)/custody/movements/[movementId]/ReverseCustodyMovementForm.tsx",
-    "apps/farm-os/app/(app)/custody/movements/[movementId]/page.tsx",
-    "apps/farm-os/app/(app)/custody/page.tsx",
-    "apps/farm-os/app/(app)/custody/request/[requestId]/page.tsx",
-    "apps/farm-os/app/(app)/dashboard/owner/page.tsx",
-    "apps/farm-os/app/(app)/expenses/[expenseId]/expense-correction-control.tsx",
-    "apps/farm-os/app/(app)/expenses/[expenseId]/page.tsx",
-    "apps/farm-os/app/(app)/expenses/actions.ts",
-    "apps/farm-os/app/(app)/expenses/page.tsx",
+    "apps/farm-os/app/(app)/finance/balance-sheet/page.tsx",
     "apps/farm-os/app/(app)/finance/close/page.tsx",
-    "apps/farm-os/app/(app)/finance/cost-centers/[id]/page.tsx",
-    "apps/farm-os/app/(app)/finance/custody-reports/page.tsx",
     "apps/farm-os/app/(app)/finance/dashboard/page.tsx",
-    "apps/farm-os/app/(app)/finance/enterprise-scorecard/page.tsx",
     "apps/farm-os/app/(app)/finance/income-statement/page.tsx",
-    "apps/farm-os/app/(app)/finance/insights-summary/page.tsx",
-    "apps/farm-os/app/(app)/finance/insights/page.tsx",
-    "apps/farm-os/app/(app)/finance/periods/actions.ts",
-    "apps/farm-os/app/(app)/finance/pnl-trend/page.tsx",
-    "apps/farm-os/app/(app)/finance/pnl/page.tsx",
+    "apps/farm-os/app/(app)/finance/periods/page.tsx",
     "apps/farm-os/app/(app)/finance/reconciliation/[batchId]/acceptance/page.tsx",
-    "apps/farm-os/app/(app)/finance/reconciliation/[batchId]/controls.tsx",
-    "apps/farm-os/app/(app)/finance/reconciliation/[batchId]/page.tsx",
-    "apps/farm-os/app/(app)/finance/reconciliation/[batchId]/review workspace guard.tsx",
-    "apps/farm-os/app/(app)/finance/reconciliation/actions.ts",
-    "apps/farm-os/app/(app)/finance/reports/page.tsx",
-    "apps/farm-os/app/(app)/finance/revenue-reports/page.tsx",
-    "apps/farm-os/app/(app)/finance/season/page.tsx",
-    "apps/farm-os/app/(app)/finance/sector-scorecard/page.tsx",
-    "apps/farm-os/app/(app)/insights/annual-report/page.tsx",
-    "apps/farm-os/app/(app)/insights/benchmark/page.tsx",
-    "apps/farm-os/app/(app)/insights/page.tsx",
-    "apps/farm-os/app/(app)/record/RecordLauncher.tsx",
-    "apps/farm-os/app/(app)/record/actions.ts",
-    "apps/farm-os/app/(app)/record/collect/page.tsx",
-    "apps/farm-os/app/(app)/record/expense/page.tsx",
-    "apps/farm-os/app/(app)/record/page.tsx",
-    "apps/farm-os/app/(app)/record/price/page.tsx",
-    "apps/farm-os/app/(app)/reports/page.tsx",
-    "apps/farm-os/app/(app)/suppliers/[supplierId]/page.tsx",
-    "apps/farm-os/app/(app)/transactions/page.tsx",
-    "apps/farm-os/components/CollectWizard.tsx",
-    "apps/farm-os/components/CustodyForms.tsx",
-    "apps/farm-os/components/CustodyInWizard.tsx",
-    "apps/farm-os/components/ExpenseWizard.tsx",
-    "apps/farm-os/components/FilterableTable.tsx",
-    "apps/farm-os/components/FinancePnlTrend.tsx",
-    "apps/farm-os/components/PriceWizard.tsx",
-    "apps/farm-os/components/SimpleTableClient.tsx",
+    "apps/farm-os/app/api/finance/balance-sheet.pdf/route.ts",
+    "apps/farm-os/app/api/finance/statements.pdf/route.ts",
+    "apps/farm-os/app/globals.css",
+    "apps/farm-os/components/FinanceDashboardBudgetCharts.tsx",
+    "apps/farm-os/components/LazyFinanceDashboardBudgetCharts.test.tsx",
+    "apps/farm-os/components/LazyFinanceDashboardBudgetCharts.tsx",
     "apps/farm-os/e2e/accounting readonly.spec.ts",
-    "apps/farm-os/lib/accounting e2e launch safety.ts",
     "apps/farm-os/lib/accounting e2e safety.ts",
-    "apps/farm-os/lib/accounting ledger snapshot.test.ts",
-    "apps/farm-os/lib/accounting ledger snapshot.ts",
     "apps/farm-os/lib/accounting release preflight.test.ts",
-    "apps/farm-os/lib/accounting-recent-entries.test.ts",
-    "apps/farm-os/lib/accounting-rollup.test.ts",
-    "apps/farm-os/lib/accounting-rollup.ts",
-    "apps/farm-os/lib/approvals inbox performance.test.ts",
-    "apps/farm-os/lib/cost-center-report.test.ts",
-    "apps/farm-os/lib/cost-center-report.ts",
-    "apps/farm-os/lib/cost-center-reports-snapshot.test.ts",
-    "apps/farm-os/lib/cost-center-reports-snapshot.ts",
-    "apps/farm-os/lib/cost-center-revenue-consumers.test.ts",
-    "apps/farm-os/lib/cost-center-revenue-summary.test.ts",
-    "apps/farm-os/lib/cost-center-revenue-summary.ts",
-    "apps/farm-os/lib/custody movement detail performance.test.ts",
-    "apps/farm-os/lib/custody reports snapshot.test.ts",
-    "apps/farm-os/lib/custody reports snapshot.ts",
-    "apps/farm-os/lib/custody write money.test.ts",
-    "apps/farm-os/lib/custody write money.ts",
-    "apps/farm-os/lib/custody-daily-snapshot.test.ts",
-    "apps/farm-os/lib/custody-daily-snapshot.ts",
-    "apps/farm-os/lib/custody-dashboard-summary.test.ts",
-    "apps/farm-os/lib/custody-dashboard-summary.ts",
-    "apps/farm-os/lib/custody-movement-detail.ts",
+    "apps/farm-os/lib/accounting-periods.test.ts",
+    "apps/farm-os/lib/accounting-periods.ts",
+    "apps/farm-os/lib/attendance-surface.test.ts",
+    "apps/farm-os/lib/balance-sheet.test.ts",
+    "apps/farm-os/lib/balance-sheet.ts",
     "apps/farm-os/lib/data-authority.test.ts",
     "apps/farm-os/lib/database.types.ext.ts",
-    "apps/farm-os/lib/decimal.ts",
-    "apps/farm-os/lib/entity-pnl.test.ts",
-    "apps/farm-os/lib/entity-pnl.ts",
-    "apps/farm-os/lib/errors.test.ts",
-    "apps/farm-os/lib/errors.ts",
-    "apps/farm-os/lib/expense detail performance.test.ts",
-    "apps/farm-os/lib/expense-daily-snapshot.test.ts",
-    "apps/farm-os/lib/expense-daily-snapshot.ts",
-    "apps/farm-os/lib/expense-detail-snapshot.test.ts",
-    "apps/farm-os/lib/expense-detail-snapshot.ts",
-    "apps/farm-os/lib/expense-payment-reversal.test.ts",
-    "apps/farm-os/lib/expense-payment-reversal.ts",
-    "apps/farm-os/lib/expense-register-summary.test.ts",
-    "apps/farm-os/lib/expense-register-summary.ts",
-    "apps/farm-os/lib/finance honest null consumers.test.ts",
-    "apps/farm-os/lib/finance report routing.test.ts",
-    "apps/farm-os/lib/finance report routing.ts",
-    "apps/farm-os/lib/finance-dashboard-reads.test.ts",
-    "apps/farm-os/lib/finance-dashboard-reads.ts",
-    "apps/farm-os/lib/finance-insights.test.ts",
-    "apps/farm-os/lib/finance-insights.ts",
+    "apps/farm-os/lib/finance-dashboard-chart-loading.test.ts",
     "apps/farm-os/lib/finance-statement-pdf.test.ts",
-    "apps/farm-os/lib/month-close-summary.ts",
-    "apps/farm-os/lib/month-close.test.ts",
-    "apps/farm-os/lib/month-close.ts",
-    "apps/farm-os/lib/nav.ts",
-    "apps/farm-os/lib/page-help.ts",
-    "apps/farm-os/lib/payment request detail.test.ts",
-    "apps/farm-os/lib/payment request detail.ts",
-    "apps/farm-os/lib/receivable workflow money.test.ts",
-    "apps/farm-os/lib/receivable workflow money.ts",
-    "apps/farm-os/lib/reconciliation queue data.ts",
-    "apps/farm-os/lib/reconciliation review.ts",
-    "apps/farm-os/lib/reconciliation/tests/cli.ts",
-    "apps/farm-os/lib/reconciliation/tests/provenance scrub equivalence.ts",
-    "apps/farm-os/lib/record-actions.test.ts",
-    "apps/farm-os/lib/record-actions.ts",
-    "apps/farm-os/lib/revenue report exact.test.ts",
-    "apps/farm-os/lib/revenue report exact.ts",
-    "apps/farm-os/lib/season dashboard snapshot.test.ts",
-    "apps/farm-os/lib/season dashboard snapshot.ts",
-    "apps/farm-os/lib/supabase/server.ts",
-    "apps/farm-os/lib/table-sort.test.ts",
-    "apps/farm-os/lib/table-sort.ts",
+    "apps/farm-os/lib/financial-statement-export.test.ts",
+    "apps/farm-os/lib/financial-statement-export.ts",
+    "apps/farm-os/lib/financial-statements-surface.test.ts",
+    "apps/farm-os/lib/income-statement.test.ts",
+    "apps/farm-os/lib/income-statement.ts",
+    "apps/farm-os/lib/labor-entry.test.ts",
+    "apps/farm-os/lib/labor-entry.ts",
     "apps/farm-os/lib/tests/accounting e2e safety.ts",
-    "apps/farm-os/lib/tests/decimal.ts",
-    "apps/farm-os/lib/tests/reconciliation acceptance.ts",
-    "apps/farm-os/lib/tests/reconciliation queue data.test.ts",
-    "apps/farm-os/lib/tests/reconciliation review guard.test.ts",
-    "apps/farm-os/lib/tests/reconciliation review.ts",
-    "apps/farm-os/lib/tests/reconciliation rollback.ts",
-    "apps/farm-os/lib/transactions snapshot.test.ts",
-    "apps/farm-os/lib/transactions snapshot.ts",
-    "apps/farm-os/lib/transactions-ledger.test.ts",
-    "apps/farm-os/lib/transactions-ledger.ts",
-    "apps/farm-os/lib/why.ts",
     "apps/farm-os/package.json",
-    "apps/farm-os/playwright accounting readonly.config.ts",
-    "apps/farm-os/proxy.ts",
-    "apps/farm-os/scripts/benchmark reconciliation queue.sh",
-    "apps/farm-os/scripts/check-recharts-codesplit.mjs",
-    "apps/farm-os/scripts/run accounting readonly e2e.mjs",
-    "docs/BUSINESS-RULES-CATALOG.md",
-    "docs/FEATURE-REGISTRY.md",
+    "docs/PROJECT-TRACKER.md",
     "docs/REPORT-CATALOG.md",
-    "docs/RPC-CATALOG.md",
-    "docs/SPEC-0004-accounting-and-pnl.md",
-    "docs/SPEC-0018-custody-and-payment-requests.md",
-    "docs/SPEC-0025-task-first-ux.md",
+    "docs/SESSION-BRIEF.md",
     "docs/SPEC-0028-corrections.md",
-    "docs/SPEC-0029-insights-revamp.md",
-    "docs/SPEC-0030-navigation-workflow-revamp.md",
-    "docs/STAGE-0-REMEDIATION-RUNBOOK.md",
+    "docs/SPEC-0033-product-ui-reset.md",
     "docs/STATUS.md",
     "docs/accounting reconciliation acceptance runbook.md",
     "docs/accounting release execution runbook.md",
-    "docs/user-manual/01-getting-started.md",
-    "docs/user-manual/03-approvals-and-budget.md",
     "docs/user-manual/05-reports-and-dashboards.md",
-    "package-lock.json",
-    "package.json"
+    "package-lock.json"
   ],
-  "candidateDigest": "56f46aab825957af31af0ad94f1599d58b45512a004d03eeb97b85feb2efe28e",
-  "artifactModesDigest": "3f2be3cdaa3322fd397b1bcd3469bc85c0224e4e32967ef2d4a28f14970b2cd9",
+  "candidateDigest": "a8fefa9ec96aed463862022c9e2b0e4e7ca977f0dece280c404619fbca8deee1",
+  "artifactModesDigest": "26b67faaf55c244d615a01229d60ee0a910491f0bd0f8003c564ca4fa0744797",
   "migrations": [
     {
-      "path": "apps/farm-os/supabase/migrations/20260822140000_expense_unpaid_exact_summary.sql",
-      "sha256": "0a0ed8ed740833e1600be36eaf9f47ea29605d160fb0661d754db14bf46cc842"
+      "path": "apps/farm-os/supabase/migrations/20260823190000_exact_financial_statement_snapshots.sql",
+      "sha256": "f576ff0c0a5c7785cd4a8d932b379d5bd7b3d13d99cb0aac43a35891b6f565ee"
     },
     {
-      "path": "apps/farm-os/supabase/migrations/20260822140100_accounting_reconciliation_review_concurrency.sql",
-      "sha256": "2a57440529ba3c4cd159df90c01c538e53ca36c0186efc1cddcc219e7b316433"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140200_accounting_reconciliation_ordered_queue.sql",
-      "sha256": "036777c7237dff0b8d0ebfd2166f8b6ce0babc438e967ada6bcd49cf99a656ce"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140300_month_close_exact_summary.sql",
-      "sha256": "82cbe767cd0db2bad080e523f055e4f209c9ab306e6dff9f30d99f62e90eff4c"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140400_cost_center_history_summary.sql",
-      "sha256": "a0ec3b7ef62bd7a96b96f631706de9fa5d0b860cc55b6bd5c5c8155c18c67f8c"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140500_cost_center_revenue_summary.sql",
-      "sha256": "9de8e53fbc464b3377a56945fc7b22fd0455640eadc8d20e8486727490e83164"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140600_custody_movement_reversal.sql",
-      "sha256": "d7cba9777a5f9cbb2d5c32772d1f66c491dd55fd206a14193037af811bd698d6"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140700_custody_dashboard_summary.sql",
-      "sha256": "e4ecee0fc8caac50546afea4f9436c4fca07bec947079d06012a95819b659c08"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140800_payment_request_exact_totals.sql",
-      "sha256": "84cece0553dc34ff0ddfc046743169ae5e4b71a6d50685932390b3fccc64a1ae"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822140900_receivable_workflow_exact_money.sql",
-      "sha256": "851be228a667ea480ab4624bd7966d680e8153077b7b0a46a36a448fd8cc3023"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141000_exact_revenue_report_transport.sql",
-      "sha256": "0bc46f7d4315b6a83b4b385504f963de452c6ae79240c72fd86593f776640726"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141100_exact_accounting_ledger_snapshot.sql",
-      "sha256": "0219f20bf3d5ccf6b3fc81260ed2f015cf9d2a9b963c33efcf75da502eaefd28"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141200_exact_transactions_snapshot.sql",
-      "sha256": "6bb33fd92a3be3b38f0137c23ce1db8c99890309fa67bf81bd1a141279f1f483"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141300_exact_season_dashboard_snapshot.sql",
-      "sha256": "d7db26edf9615397f0f17c10b72449ae342f12a51a016aea519e0c37c53b686c"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141400_exact_custody_reports_snapshot.sql",
-      "sha256": "d274c8f654e404f8348101636b63c0fe6a953c3c7ff1fdd944ab89083f21a51b"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141500_exact_finance_dashboard_snapshot.sql",
-      "sha256": "b8fe2bbeccab9b27fb53939d01da56044344ead6f71599c26ce440f9f7f82a87"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141600_exact_custody_daily_snapshot.sql",
-      "sha256": "284ecad237311dd01272100e8435914d1729f0f3933501908daae3fca5ebff9d"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141700_exact_expense_daily_snapshot.sql",
-      "sha256": "40efec09e422647b3d48183eeb1d14d7c903ec0c97ddb6a0364bb29614af769e"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141800_exact_expense_detail_snapshot.sql",
-      "sha256": "f0f7209fc5af51e9893f09f0421c970788821ff80bd3162d5d43d58139ac4625"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822141900_exact_cost_center_reports_snapshot.sql",
-      "sha256": "ec681c2dcc5c3b74ada6f28b67d424822d45ad49c9e0a12459352a1715237411"
-    },
-    {
-      "path": "apps/farm-os/supabase/migrations/20260822142000_exact_payment_request_detail_snapshot.sql",
-      "sha256": "28ad83b90b3b74611d9a2c26948a6818997d94bb0d209118c1a985f7cee00156"
+      "path": "apps/farm-os/supabase/migrations/20260824100000_labor_logs_require_active_person.sql",
+      "sha256": "0cbff6fb028e07a5b290052e7f13d43b5bb89dbdd666bf7b882f7c16da789ca2"
     }
   ],
   "databaseTests": [
     {
-      "path": "apps/farm-os/supabase/tests/132_journal_reversal_test.sql",
-      "sha256": "544f4f65abbcb1f6f5037a1be5dd8e375147e79f4aae238df5b23a13073c9ae2"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/147_expense_unpaid_exact_summary_test.sql",
-      "sha256": "ccbbb086dd2611caa947a635b40ab1a31492bbb093fa4792fab094305b8dcefc"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/148_month_close_exact_summary_test.sql",
-      "sha256": "f49fa41e54ed7cbbf89d65511b6b5f140c8d8a92678e2b6cf1bb267d9407e58d"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/149_cost_center_history_summary_test.sql",
-      "sha256": "5304c56ac2b5a4627edbefe1be81ba352a705b5217b00ec7159258f34cbb501f"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/150_cost_center_revenue_summary_test.sql",
-      "sha256": "6b5727aa6e95507aa7d01f2685e8471cf92f03a57dfd3ea043fc9256d088145d"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/160_accounting_reconciliation_review_concurrency_test.sql",
-      "sha256": "06b3ce04eb95722dddac40c8e1b0b32fe6b604909b37a78dc45c3363a2e32de9"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/161_accounting_reconciliation_ordered_queue_test.sql",
-      "sha256": "9507cfbf37cba8427028649790ecb4e0669a49cb749048a9846996b1401105f5"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/201 accounting reconciliation execute sale batch test.sql",
-      "sha256": "ee4db9af055428a8ca406a7acccf617cbc89be2562552ba5b9ebed5f7ef2571b"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/202 accounting reconciliation rollback batch test.sql",
-      "sha256": "ceac1bc1e52dd900a0dfb18e6fca0b2b06b82445a677c170b1f30db779d31cdc"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/205_expense_payment_reversal_test.sql",
-      "sha256": "2f4e1e7b88c5e79607851ae6f23f7a7207f55384d43d0151c3b09ab946dadc04"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/206_custody_movement_reversal_test.sql",
-      "sha256": "1227736883d96990337970f51c6ef2f4b315d4183c7ffe2b42c81e49f5e610e1"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/207_custody_movement_reversal_concurrency_test.sql",
-      "sha256": "3387d1cf1b591227223c7be56bf9534f83c00153654a5cccf67983d7596909ff"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/208_custody_dashboard_summary_test.sql",
-      "sha256": "99be5e2c3b482e8ae1012e7b1e07f51b337e92b05fec1e042b84f40b1bacf0f1"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/209 payment request exact totals test.sql",
-      "sha256": "914892cdf857c74c74f123a9bd4360ffbefdc7b768109a39a48db8cef6cef663"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/210 exact custody writes test.sql",
-      "sha256": "d5d5fdac86a8d398b2df2c7fc6dbfe59e83112a42903cc93f1e9e72be0ab70b7"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/211 exact receivable workflow test.sql",
-      "sha256": "8ad079e6d35616ba1650994321bdc49f392f7aeeff870e91030c3b1459bca1cf"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/212 exact revenue report transport test.sql",
-      "sha256": "273c5e34a87681b0d636647be3f3c69a09c031fcbffc649e579cdd05ad918934"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/213 exact accounting ledger snapshot test.sql",
-      "sha256": "cde2a79be45b87b627cdd2c45a5d1a8d2ee6283e89731c4067d70fb2b575ca75"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/214 exact transactions snapshot test.sql",
-      "sha256": "7b133b5bf91f2b461a24dbbf999452c93467f21cd8f8f0b897a07f2beb2bb46e"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/215 exact season dashboard snapshot test.sql",
-      "sha256": "e093a8c361f3fc46a5906ce174e06ff720096cf81559dfb2a1cc4cc4f3f903bb"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/216 exact custody reports snapshot test.sql",
-      "sha256": "76eb9972133d06ac557349d029d2ade94ad8b0da03995faeda5334dbe9463fab"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/217 exact finance dashboard snapshot test.sql",
-      "sha256": "0c3029216d7e467251ec7ff3651d21553f9edc76ddd41d402fa4fdfd614cf8cb"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/218 exact custody daily snapshot test.sql",
-      "sha256": "7e380f6d3152807ce847bc3105b09423903ef05b09fba674f069276a14d7112a"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/219 exact expense daily snapshot test.sql",
-      "sha256": "eaa4e5df171bc972580685a2e77427c9ebe16933e5d90f01afb530af873efe22"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/220 exact expense detail snapshot test.sql",
-      "sha256": "1dd5833cd4434a4539c996f9ce360a6d79289ac400aedd3348be350cf5152a95"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/221 exact cost center reports snapshot test.sql",
-      "sha256": "413637df866e4d0572fb5562cbe0fd22ffb3f247e07ac7e297b1b184ec7cee06"
-    },
-    {
-      "path": "apps/farm-os/supabase/tests/222 exact payment request detail snapshot test.sql",
-      "sha256": "66e4aaf8335665082634d14fa868967696115e9bb73a098ba6bd686dda9f487d"
+      "path": "apps/farm-os/supabase/tests/20260729090000_payroll_run_persistence_test.sql",
+      "sha256": "a6d1002ecc754fd841a9a544badfdeba6b85a4fb7e789270c010347b1617d70c"
     },
     {
       "path": "apps/farm-os/supabase/tests/22_security_invariants_test.sql",
-      "sha256": "9ed1748c8ab12481800519b9728d9c17f2f559e73d754f4d6cc693155f476639"
+      "sha256": "7c778f6c12e09c17b39115d53f49aefe44dd7480c6573b74ffca46fc7ddb6d7c"
+    },
+    {
+      "path": "apps/farm-os/supabase/tests/234 exact financial statement snapshots test.sql",
+      "sha256": "cd81ece95e132713b70cb165ca817f06eb5c6de251c22572477a09916a226944"
+    },
+    {
+      "path": "apps/farm-os/supabase/tests/235 labor logs active person guard test.sql",
+      "sha256": "6a033b3ef39e24da1cda39ef8157f2d140809b0a083aba7b410df28862c1e23d"
     }
   ],
   "supportFiles": [
     {
-      "path": "apps/farm-os/lib/reconciliation/pinned hashes.mts",
-      "sha256": "eed06cf70dfa6ee130ad6a94fdc937a28d504894d565f9f9cb6b5082997bf120"
+      "path": "apps/farm-os/lib/finance-statement-pdf.tsx",
+      "sha256": "061dfc14f82945c03619c19dc7c0cd26f2f0d8d55ddd613c77f8a401c911b2b0"
+    },
+    {
+      "path": "apps/farm-os/next.config.ts",
+      "sha256": "e86e74850fd2d51e35c257217a7308d4e04411baa01685151d7d89ba85394178"
     },
     {
       "path": "apps/farm-os/supabase/test-shims/run-pgtap-local.sh",
-      "sha256": "15255efea6a0a37b681d526177389dfdeceaa0b61048798fbfaff9f2683d6589"
+      "sha256": "ce5426a151f39c6f6312199fcb9596bf2c73852b0810a2492cb769f1d21677c9"
     }
   ]
 }

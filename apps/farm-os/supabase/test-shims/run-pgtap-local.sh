@@ -39,7 +39,9 @@ is_replay_safe_migration() {
     20260822140900_receivable_workflow_exact_money.sql | \
     20260822141000_exact_revenue_report_transport.sql | \
     "20260823170000 payment request completion guards.sql" | \
-    20260823180000_exact_chart_of_accounts_snapshot.sql) return 0 ;;
+    20260823180000_exact_chart_of_accounts_snapshot.sql | \
+    20260823190000_exact_financial_statement_snapshots.sql | \
+    20260824100000_labor_logs_require_active_person.sql) return 0 ;;
     *) return 1 ;;
   esac
 }

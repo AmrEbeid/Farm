@@ -289,9 +289,11 @@ select is(
 -- ── fail-closed: cross-org data reference (bypasses the upstream RLS/guard, superuser-inserted) ───────
 -- a person belonging to orgA, deliberately referenced from an orgP labor log — derived from the current
 -- seed rather than hardcoded, so a reseed can never leave this fixture pointing at a nonexistent row.
+set local session_replication_role = replica;
 insert into public.labor_logs (org_id, person_id, work_date, hours, mode)
 select :'orgP', p.id, '2026-06-02', 8, 'hourly'
   from public.people p where p.org_id = :'orgA' limit 1;
+set local session_replication_role = origin;
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('t.owner'), 'role', 'authenticated')::text, true);
 set local role authenticated;

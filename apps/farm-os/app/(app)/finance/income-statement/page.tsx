@@ -1,199 +1,109 @@
-// Income statement / P&L (قائمة الدخل) — read-only owner/accountant statement over the double-entry ledger.
-// Calls fn_accounting_income_statement (SPEC-0004 Slice A): posted-only, period-scoped; net income ties to the
-// balance sheet. Owner drawings are NOT expenses (excluded by construction, #6). Server Component; finance.read.
-
-import { Download } from "lucide-react";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { Download, ReceiptText, Scale, TrendingDown, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { EmptyState, StatusPill } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
-import { egp } from "@/lib/money";
+import { compareDecimals, egpExact } from "@/lib/decimal";
 import { fmtDate } from "@/lib/dates";
 import { parseIncomeStatement, type IncomeStatementLine } from "@/lib/income-statement";
+import { incomeStatementExportRows } from "@/lib/financial-statement-export";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
 import { PrintButton } from "@/components/print-button";
 import { FinanceStatementPrintPacket, type FinanceStatementPrintItem } from "@/components/FinanceStatementPrintPacket";
 import { normalizeFinanceReportDateRange } from "@/lib/finance report routing";
 import { FinancePnlTrend } from "@/components/FinancePnlTrend";
+import { PageHeader } from "@/components/PageHeader";
+import { StoryLine } from "@/components/StoryLine";
 
-const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
-
 const lineColumns: SimpleColumn[] = [
   { id: "code", header: "الحساب", kind: "code" },
   { id: "name_ar", header: "الاسم" },
-  { id: "amount", header: "المبلغ", kind: "money", numeric: true, sortable: true },
+  { id: "amount", header: "المبلغ", kind: "money-exact", numeric: true, decimal: true, sortable: true },
 ];
-
-function toRows(lines: IncomeStatementLine[]): SimpleRow[] {
-  return lines.map((line, i) => ({
-    id: `${line.code}-${i}`,
-    code: line.code,
-    name_ar: line.nameAr,
-    amount: line.amount,
-  }));
-}
 
 export default async function FinanceIncomeStatementPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    start?: string | string[];
-    end?: string | string[];
-    view?: string | string[];
-    grain?: string | string[];
-  }>;
+  searchParams: Promise<{ start?: string | string[]; end?: string | string[]; view?: string | string[]; grain?: string | string[] }>;
 }) {
-  const m = await requireRole(["owner", "accountant"]);
+  const member = await requireRole(["owner", "accountant"]);
   const params = await searchParams;
-  if (params.view === "trend") {
-    return <FinancePnlTrend orgId={m.orgId} grain={params.grain === "year" ? "year" : "month"} />;
-  }
+  if (params.view === "trend") return <FinancePnlTrend orgId={member.orgId} grain={params.grain === "year" ? "year" : "month"} />;
 
-  const sb = await createClient();
   const { start, end } = normalizeFinanceReportDateRange({
     start: params.start,
     end: params.end,
     fallbackStart: firstOfMonth(),
     fallbackEnd: isoDate(new Date()),
   });
-  const generatedOn = isoDate(new Date());
-
-  const res = await sb.rpc("fn_accounting_income_statement", { p_org: m.orgId, p_from: start, p_to: end });
-  if (res.error) throw res.error;
-  const is = parseIncomeStatement(res.data);
-  const periodStart = is.periodStart ?? start;
-  const periodEnd = is.periodEnd ?? end;
+  const sb = await createClient();
+  const result = await sb.rpc("fn_accounting_income_statement_snapshot", { p_org: member.orgId, p_from: start, p_to: end });
+  if (result.error) throw result.error;
+  const statement = parseIncomeStatement(result.data, member.orgId, start, end);
+  const hasActivity = statement.revenue.length > 0 || statement.expenses.length > 0;
+  const profit = compareDecimals(statement.netIncome, "0") >= 0;
+  const today = isoDate(new Date());
   const printItems: FinanceStatementPrintItem[] = [
     { id: "statement", label: "نوع القائمة", value: "قائمة الدخل" },
-    { id: "period", label: "الفترة", value: `${fmtDate(periodStart)} إلى ${fmtDate(periodEnd)}` },
-    { id: "issued", label: "تاريخ الإصدار", value: fmtDate(generatedOn) },
+    { id: "period", label: "الفترة", value: `${fmtDate(start)} إلى ${fmtDate(end)}` },
+    { id: "issued", label: "تاريخ الإصدار", value: fmtDate(today) },
     { id: "source", label: "المصدر", value: "القيود المُرحّلة فقط" },
   ];
-  const hasActivity = is.revenue.length > 0 || is.expenses.length > 0;
+  const lead = !hasActivity
+    ? "لا توجد إيرادات أو مصروفات مُرحّلة في هذه الفترة؛ لا توجد نتيجة مالية للاعتماد بعد."
+    : `حققت الفترة إيرادات ${egpExact(statement.revenueTotal)} مقابل مصروفات ${egpExact(statement.expensesTotal)} — صافي ${profit ? "ربح" : "خسارة"} ${egpExact(statement.netIncome)}.`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-bold">قائمة الدخل (الأرباح والخسائر)</h1>
-          <p style={mutedStyle}>
-            الإيرادات ناقص المصروفات للفترة من {fmtDate(is.periodStart ?? start)} إلى {fmtDate(is.periodEnd ?? end)} —
-            من واقع القيود المُرحّلة. مسحوبات المالك ليست مصروفًا ولا تظهر هنا.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <a
-            href="/finance/income-statement?view=trend&grain=month"
-            className="inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-semibold"
-            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
-          >
-            عرض الاتجاه
-          </a>
-          <a
-            href={`/api/finance/statements.pdf?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&asOf=${encodeURIComponent(end)}`}
-            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
-            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
-          >
-            <Download aria-hidden="true" size={16} />
-            تنزيل حزمة PDF
-          </a>
-          <PrintButton label="طباعة القائمة" />
-        </div>
-      </header>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4" data-testid="income-statement">
+      <PageHeader
+        title="قائمة الدخل"
+        subtitle={`نتيجة الفترة من ${fmtDate(start)} إلى ${fmtDate(end)} من القيود المُرحّلة فقط.`}
+        metadata={<StatusPill status={!hasActivity ? "draft" : profit ? "done" : "blocked"}>{!hasActivity ? "لا توجد حركة" : profit ? "ربح" : "خسارة"}</StatusPill>}
+        actions={<div className="no-print flex flex-wrap gap-2"><Link href="/finance/income-statement?view=trend&grain=month" className="fos-btn fos-btn--secondary fos-btn--md">عرض الاتجاه</Link><a href={`/api/finance/statements.pdf?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&asOf=${encodeURIComponent(end)}`} className="fos-btn fos-btn--secondary fos-btn--md"><Download aria-hidden size={16} /> حزمة PDF</a><PrintButton label="طباعة القائمة" /></div>}
+      />
 
+      <StoryLine lead={lead} notes={["مسحوبات المالك ليست مصروفًا ولا تدخل في هذه القائمة."]} />
       <FinanceStatementPrintPacket title="هوية واعتماد قائمة الدخل" items={printItems} />
 
-      <Card title="الفترة" className="no-print">
-        <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
-          <label className="flex flex-col gap-1 text-sm font-semibold">
-            من تاريخ
-            <input name="start" type="date" defaultValue={start} className="rounded-md px-3 py-2" style={inputStyle} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-semibold">
-            إلى تاريخ
-            <input name="end" type="date" defaultValue={end} className="rounded-md px-3 py-2" style={inputStyle} />
-          </label>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="rounded-md px-4 py-2 font-semibold"
-              style={{ color: "white", background: "var(--brand)" }}
-            >
-              تحديث القائمة
-            </button>
-          </div>
-        </form>
-        <div className="mt-3">
-          <PeriodPresets basePath="/finance/income-statement" />
-        </div>
-      </Card>
-
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="إجمالي الإيرادات" value={egp(hasActivity ? is.revenueTotal : null)} icon="🧾" />
-        <KpiCard label="إجمالي المصروفات" value={egp(hasActivity ? is.expensesTotal : null)} icon="📉" />
-        <KpiCard label="منها مصروفات تشغيلية" value={egp(hasActivity ? is.operatingExpenses : null)} icon="🛠️" />
-        <KpiCard
-          label="صافي الربح / الخسارة"
-          value={egp(hasActivity ? is.netIncome : null)}
-          icon="📈"
-          deltaDirection={hasActivity ? (is.netIncome >= 0 ? "up" : "down") : "none"}
-        />
+      <section aria-label="ملخص قائمة الدخل" className="grid border-y sm:grid-cols-2 lg:grid-cols-4" style={{ borderColor: "var(--line)" }}>
+        <Metric label="الإيرادات" value={hasActivity ? egpExact(statement.revenueTotal) : "—"} icon={<TrendingUp size={16} aria-hidden />} />
+        <Metric label="المصروفات" value={hasActivity ? egpExact(statement.expensesTotal) : "—"} icon={<TrendingDown size={16} aria-hidden />} />
+        <Metric label="منها تشغيلي" value={hasActivity ? egpExact(statement.operatingExpenses) : "—"} icon={<ReceiptText size={16} aria-hidden />} />
+        <Metric label={profit ? "صافي الربح" : "صافي الخسارة"} value={hasActivity ? egpExact(statement.netIncome) : "—"} icon={<Scale size={16} aria-hidden />} />
       </section>
 
-      <Card title={`الإيرادات — ${egp(hasActivity ? is.revenueTotal : null)}`}>
-        {is.revenue.length ? (
-          <FilterableTable
-            columns={lineColumns}
-            rows={toRows(is.revenue)}
-            ariaLabel="الإيرادات"
-            exportFilename={`income-statement-revenue-${start}-to-${end}.csv`}
-          />
-        ) : (
-          <EmptyState title="لا إيرادات مُرحّلة في هذه الفترة" />
-        )}
-      </Card>
+      <section className="no-print border-b pb-4" style={{ borderColor: "var(--line)" }} aria-labelledby="income-period-title">
+        <h2 id="income-period-title" className="mb-2 text-sm font-bold">الفترة</h2>
+        <form className="flex flex-wrap items-end gap-3" method="get">
+          <label className="flex min-w-52 flex-col gap-1 text-sm font-semibold">من تاريخ<input name="start" type="date" defaultValue={start} className="rounded-md px-3 py-2" style={inputStyle} /></label>
+          <label className="flex min-w-52 flex-col gap-1 text-sm font-semibold">إلى تاريخ<input name="end" type="date" defaultValue={end} className="rounded-md px-3 py-2" style={inputStyle} /></label>
+          <button type="submit" className="fos-btn fos-btn--primary fos-btn--md">تحديث</button>
+        </form>
+        <div className="mt-3"><PeriodPresets basePath="/finance/income-statement" /></div>
+      </section>
 
-      <Card title={`المصروفات — ${egp(hasActivity ? is.expensesTotal : null)}`}>
-        {is.expenses.length ? (
-          <FilterableTable
-            columns={lineColumns}
-            rows={toRows(is.expenses)}
-            ariaLabel="المصروفات"
-            exportFilename={`income-statement-expenses-${start}-to-${end}.csv`}
-          />
-        ) : (
-          <EmptyState title="لا مصروفات مُرحّلة في هذه الفترة" />
-        )}
-      </Card>
+      <StatementSection title="الإيرادات" total={statement.revenueTotal} lines={statement.revenue} rows={incomeStatementExportRows(statement.revenue)} empty="لا إيرادات مُرحّلة في هذه الفترة" filename={`income-statement-revenue-${start}-to-${end}.csv`} />
+      <StatementSection title="المصروفات" total={statement.expensesTotal} lines={statement.expenses} rows={incomeStatementExportRows(statement.expenses)} empty="لا مصروفات مُرحّلة في هذه الفترة" filename={`income-statement-expenses-${start}-to-${end}.csv`} />
 
-      <Card title="النتيجة">
-        {hasActivity ? (
-          <p style={mutedStyle}>
-            الإيرادات {egp(is.revenueTotal)} − المصروفات {egp(is.expensesTotal)} = صافي {is.netIncome >= 0 ? "ربح" : "خسارة"}{" "}
-            {egp(is.netIncome)}. يطابق صافي الربح في قائمة المركز المالي لنفس التاريخ.
-          </p>
-        ) : (
-          <p style={mutedStyle}>لا توجد قيود مُرحّلة في هذه الفترة — لا يوجد صافي ربح أو خسارة لعرضه بعد.</p>
-        )}
-      </Card>
-
+      <section className="border-y py-3 text-sm" style={{ borderColor: "var(--line)" }}><strong>النتيجة: </strong>{hasActivity ? `الإيرادات ${egpExact(statement.revenueTotal)} ناقص المصروفات ${egpExact(statement.expensesTotal)} = صافي ${profit ? "ربح" : "خسارة"} ${egpExact(statement.netIncome)}.` : "لا توجد حركة لحساب نتيجة الفترة."}</section>
       <FinanceStatementsNav current="income-statement" />
     </div>
   );
 }
 
-function isoDate(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return <div className="min-w-0 border-b py-3 last:border-b-0 sm:border-b-0 sm:px-4 sm:first:ps-0 sm:[&:not(:first-child)]:border-s" style={{ borderColor: "var(--line)" }}><div className="flex items-center gap-2 text-xs" style={{ color: "var(--ink-muted)" }}>{icon}{label}</div><strong className="mt-1 block text-lg tabular-nums">{value}</strong></div>;
 }
 
-function firstOfMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+function StatementSection({ title, total, lines, rows, empty, filename }: { title: string; total: string; lines: IncomeStatementLine[]; rows: SimpleRow[]; empty: string; filename: string }) {
+  return <section aria-labelledby={`${filename}-title`}><div className="mb-2 flex flex-wrap items-end justify-between gap-2"><h2 id={`${filename}-title`} className="text-base font-bold">{title}</h2><strong className="tabular-nums">{egpExact(total)}</strong></div>{lines.length ? <FilterableTable columns={lineColumns} rows={rows} ariaLabel={title} exportFilename={filename} minRowsForSearch={1} /> : <EmptyState title={empty} />}</section>;
 }
 
-function pad(value: number): string {
-  return String(value).padStart(2, "0");
-}
+function isoDate(date: Date): string { return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`; }
+function firstOfMonth(): string { const date = new Date(); return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-01`; }
+function pad(value: number): string { return String(value).padStart(2, "0"); }

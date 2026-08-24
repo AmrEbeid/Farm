@@ -1,5 +1,56 @@
-# Session Brief — Farm OS      Updated: 2026-08-23 by Codex (R4j cost-center reports and 360 live)
+# Session Brief — Farm OS      Updated: 2026-08-24 by Codex (combined accounting release train local)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-24 — Combined accounting release train — LOCAL / UNRELEASED
+
+Fresh branch `release/accounting-final-train-20260824` combines three separately reviewed candidates from exact
+`origin/main` `811da103a0d6de3db6ca443bfeeb1f9799232f40`: R4k exact-decimal financial statements, month close,
+period register and hardened Arabic PDF/CSV output; database and UI rejection of new labor logs for inactive
+people while preserving valid historical correction; and deferred finance-dashboard Recharts loading with the
+exact server-rendered accessible/print tables retained. Migrations must remain ordered as
+`20260823190000_exact_financial_statement_snapshots.sql` then
+`20260824100000_labor_logs_require_active_person.sql`; the chart slice has no migration.
+
+The combined code applied without conflict. Evidence is focused Vitest 88/88 plus 76/76 for attendance
+acceptance and 30/30 for statement downloads; full Vitest 2,386 plus 17 controlled skips; Docker-free pgTAP
+5,099/5,099; TypeScript; full/touched
+ESLint; clean 70-page production build;
+service-role, Recharts and client/server guards; zero-vulnerability audit; exact 46-test protected-browser
+inventory; and `git diff --check`. Both rebuilt PDF traces contain all four Chromium payloads and both Noto
+fonts with zero missing files and measure 71.21 MiB. The dashboard's exact-base initial client union was 15
+chunks / 798,031 raw / 232,120 gzip bytes; the combined candidate is 13 chunks / 361,405 raw / 104,368 gzip
+bytes with Recharts absent initially, a 55.0% compressed reduction. The Owner browser lane now opens the
+active-person attendance picker without submitting, and the source contract pins active people in the signed-in
+organization. The acceptance-extension review's one P3 log-privacy finding is fixed by keeping identifiers and
+labels inside browser evaluation; exact-byte rereview is APPROVE with no P0-P3 findings. The
+Owner/Accountant statement workflows also download every rendered section CSV and verify its UTF-8 BOM, exact
+Arabic header, unique page-date-bound filename and nonempty data without logging financial rows. The CSV
+review's P2 identity gap and two P3 contract/documentation gaps are fixed; exact-byte rereview is APPROVE with
+no P0-P3 findings. The protected reconciliation workflow also parses the downloaded RFC-4180 annex and requires
+its UTF-8 BOM, exact 73-column header, digest-bound filename, page count, all 698 rows and every row digest to
+match. It asserts aggregate booleans only; focused acceptance-package tests pass 189/189. This strengthens the
+harness but does not claim the still-pending credentialed production run. The refreshed working-tree release
+manifest binds 56 files and passes. The stale August 22
+execution runbook has been replaced with this exact branch/base, two-migration order, separate Owner approvals,
+aggregate pre/postflight, preview/runtime acceptance and
+forward-only database plus last-known-good application recovery rules.
+
+The first integration review found no P0-P2 issue and one P3: unlike the labor migration, the financial snapshot
+migration was not in the harness's immediate-replay allowlist. The allowlist now replays both migrations and the
+complete pgTAP suite remains 5,099/5,099. Exact-byte rereview returned APPROVE with no P0-P3 findings and
+confirmed the replay fix, ordered migrations, complete manifest binding and truthful local/unreleased state.
+
+Release-runbook review found one P2 after the product bytes were approved: postflight checked object names and
+metadata but did not attest the exact deployed SECURITY DEFINER bodies or trigger wiring. A fresh local full
+migration replay now pins normalized hashes for all three new functions and the new trigger; postflight also
+requires trusted owners, exact effective ACLs and unchanged pre/post hashes for the existing payroll-freeze
+function and trigger. Independent reconstruction matched all six hashes, owners, search paths, grants and trigger
+wiring; final rereview is APPROVE with no P0-P3 findings and the P2 is closed.
+
+**Release state:** local and uncommitted only. No push, PR, hosted migration, merge, deployment, production
+query or business-data mutation has occurred. Production remains on R4j. Accounting remains about 99.5%, not
+100%, until authenticated Owner/Accountant/denied-role acceptance, the protected 46-test run, all 698
+human reconciliation decisions, workbook dual run, exception resolution and dated signatures are complete.
 
 ## 2026-08-23 — Product UI reset R4j cost-center reports and 360 — MERGED / DEPLOYED
 

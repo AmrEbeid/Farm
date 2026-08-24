@@ -1,205 +1,142 @@
-// Balance sheet (قائمة المركز المالي) — read-only owner/accountant statement over the double-entry ledger.
-// Calls fn_accounting_balance_sheet (SPEC-0004 Slice A): posted-only, as-of-scoped, self-checking `balanced`.
-// Server Component; role enforced here AND in the RPC (finance.read).
-
-import { Download } from "lucide-react";
+import type { ReactNode } from "react";
+import { Download, Landmark, Scale, TrendingUp, WalletCards } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { EmptyState, StatusPill } from "@/components/ui";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
-import { egp } from "@/lib/money";
+import { egpExact } from "@/lib/decimal";
+import { compareDecimals } from "@/lib/decimal";
 import { fmtDate } from "@/lib/dates";
 import { parseBalanceSheet, type BalanceSheetLine } from "@/lib/balance-sheet";
+import { balanceSheetExportRows } from "@/lib/financial-statement-export";
 import { FinanceStatementsNav } from "@/components/FinanceStatementsNav";
 import { PeriodPresets } from "@/components/PeriodPresets";
 import { PrintButton } from "@/components/print-button";
 import { FinanceStatementPrintPacket, type FinanceStatementPrintItem } from "@/components/FinanceStatementPrintPacket";
+import { PageHeader } from "@/components/PageHeader";
+import { StoryLine } from "@/components/StoryLine";
 
-const mutedStyle = { color: "var(--ink-muted)" } as const;
 const inputStyle = { border: "1px solid var(--line)", background: "var(--surface)" } as const;
 
 const sectionColumns: SimpleColumn[] = [
   { id: "code", header: "الحساب", kind: "code" },
   { id: "name_ar", header: "الاسم" },
-  { id: "balance", header: "الرصيد", kind: "money", numeric: true, sortable: true },
+  { id: "balance", header: "الرصيد", kind: "money-exact", numeric: true, decimal: true, sortable: true },
 ];
-
-function toRows(lines: BalanceSheetLine[]): SimpleRow[] {
-  return lines.map((line, i) => ({
-    id: `${line.code}-${i}`,
-    code: line.code,
-    name_ar: line.nameAr,
-    balance: line.balance,
-  }));
-}
 
 export default async function FinanceBalanceSheetPage({
   searchParams,
 }: {
   searchParams: Promise<{ asOf?: string }>;
 }) {
-  const m = await requireRole(["owner", "accountant"]);
-  const sb = await createClient();
+  const member = await requireRole(["owner", "accountant"]);
   const params = await searchParams;
-  const asOf = parseDateParam(params.asOf, isoDate(new Date()));
-  const generatedOn = isoDate(new Date());
-
-  const res = await sb.rpc("fn_accounting_balance_sheet", { p_org: m.orgId, p_as_of: asOf });
-  if (res.error) throw res.error;
-  const bs = parseBalanceSheet(res.data);
-  const statementAsOf = bs.asOf ?? asOf;
+  const today = isoDate(new Date());
+  const asOf = parseDateParam(params.asOf, today);
+  const sb = await createClient();
+  const result = await sb.rpc("fn_accounting_balance_sheet_snapshot", { p_org: member.orgId, p_as_of: asOf });
+  if (result.error) throw result.error;
+  const statement = parseBalanceSheet(result.data, member.orgId, asOf);
+  const hasData = statement.assets.length > 0 || statement.liabilities.length > 0 || statement.equity.length > 0;
+  const profit = compareDecimals(statement.netIncome, "0") >= 0;
   const printItems: FinanceStatementPrintItem[] = [
     { id: "statement", label: "نوع القائمة", value: "قائمة المركز المالي" },
-    { id: "as-of", label: "تاريخ القائمة", value: fmtDate(statementAsOf) },
-    { id: "issued", label: "تاريخ الإصدار", value: fmtDate(generatedOn) },
+    { id: "as-of", label: "تاريخ القائمة", value: fmtDate(statement.asOf) },
+    { id: "issued", label: "تاريخ الإصدار", value: fmtDate(today) },
     { id: "source", label: "المصدر", value: "القيود المُرحّلة فقط" },
   ];
-
-  // Honest-null (#1): an org with no posted entries makes every total 0, so `balanced` is trivially true
-  // (0 = 0). Showing "0 ج.م" KPIs and a green "متوازنة ✓" would read as a real, reconciled statement. When
-  // there is no data, render "—" and say so plainly instead of a fabricated balanced-at-zero statement.
-  const hasData = bs.assets.length > 0 || bs.liabilities.length > 0 || bs.equity.length > 0;
+  const lead = !hasData
+    ? "لا توجد قيود مُرحّلة حتى هذا التاريخ؛ لا توجد قائمة مالية للاعتماد بعد."
+    : statement.balanced
+      ? `الموارد ${egpExact(statement.assetsTotal)} وتساوي الالتزامات وحقوق المالك؛ القائمة متوازنة حتى ${fmtDate(statement.asOf)}.`
+      : `توقف عن الاعتماد: الموارد ${egpExact(statement.assetsTotal)} لا تساوي الالتزامات وحقوق المالك ${egpExact(statement.liabilitiesPlusEquity)}.`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-bold">قائمة المركز المالي</h1>
-          <p style={mutedStyle}>
-            صورة فعلية من القيود المُرحّلة حتى {fmtDate(bs.asOf ?? asOf)} — الموارد والالتزامات وحقوق المالك.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <a
-            href={`/api/finance/statements.pdf?start=${encodeURIComponent(monthStartFor(asOf))}&end=${encodeURIComponent(asOf)}&asOf=${encodeURIComponent(asOf)}`}
-            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
-            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
-          >
-            <Download aria-hidden="true" size={16} />
-            تنزيل حزمة PDF
-          </a>
-          <a
-            href={`/api/finance/balance-sheet.pdf?asOf=${encodeURIComponent(asOf)}`}
-            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold"
-            style={{ border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
-          >
-            <Download aria-hidden="true" size={16} />
-            تنزيل PDF
-          </a>
-          <PrintButton label="طباعة القائمة" />
-        </div>
-      </header>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4" data-testid="balance-sheet">
+      <PageHeader
+        title="قائمة المركز المالي"
+        subtitle={`الموارد والالتزامات وحقوق المالك من القيود المُرحّلة حتى ${fmtDate(statement.asOf)}.`}
+        metadata={
+          <StatusPill status={!hasData ? "draft" : statement.balanced ? "done" : "blocked"}>
+            {!hasData ? "لا توجد حركة" : statement.balanced ? "متوازنة" : "غير متوازنة"}
+          </StatusPill>
+        }
+        actions={
+          <div className="no-print flex flex-wrap gap-2">
+            <a
+              href={`/api/finance/statements.pdf?start=${encodeURIComponent(monthStartFor(asOf))}&end=${encodeURIComponent(asOf)}&asOf=${encodeURIComponent(asOf)}`}
+              className="fos-btn fos-btn--secondary fos-btn--md"
+            >
+              <Download aria-hidden size={16} /> حزمة القوائم
+            </a>
+            <a
+              href={`/api/finance/balance-sheet.pdf?asOf=${encodeURIComponent(asOf)}`}
+              className="fos-btn fos-btn--secondary fos-btn--md"
+            >
+              <Download aria-hidden size={16} /> PDF
+            </a>
+            <PrintButton label="طباعة القائمة" />
+          </div>
+        }
+      />
+
+      <StoryLine
+        lead={lead}
+        notes={hasData ? [`صافي ${profit ? "الربح" : "الخسارة"} المتراكم ${egpExact(statement.netIncome)}. مسحوبات المالك معروضة داخل حقوق المالك وليست مصروفًا.`] : []}
+      />
 
       <FinanceStatementPrintPacket title="هوية واعتماد قائمة المركز المالي" items={printItems} />
 
-      <Card title="التاريخ" className="no-print">
-        <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" method="get">
-          <label className="flex flex-col gap-1 text-sm font-semibold">
-            تاريخ القائمة
-            <input name="asOf" type="date" defaultValue={asOf} className="rounded-md px-3 py-2" style={inputStyle} />
-          </label>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="rounded-md px-4 py-2 font-semibold"
-              style={{ color: "white", background: "var(--brand)" }}
-            >
-              تحديث القائمة
-            </button>
-          </div>
-        </form>
-        <div className="mt-3">
-          <PeriodPresets basePath="/finance/balance-sheet" mode="asOf" />
-        </div>
-      </Card>
-
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="إجمالي الموارد" value={egp(hasData ? bs.assetsTotal : null)} icon="🏦" />
-        <KpiCard label="إجمالي الالتزامات" value={egp(hasData ? bs.liabilitiesTotal : null)} icon="📉" />
-        <KpiCard label="حقوق المالك (متضمّنة الربح)" value={egp(hasData ? bs.totalEquityInclIncome : null)} icon="👤" />
-        <KpiCard
-          label="صافي الربح المُجمّع حتى التاريخ"
-          value={egp(hasData ? bs.netIncome : null)}
-          icon="📈"
-          deltaDirection={hasData && bs.netIncome >= 0 ? "up" : "down"}
-        />
+      <section aria-label="ملخص قائمة المركز المالي" className="grid border-y sm:grid-cols-2 lg:grid-cols-4" style={{ borderColor: "var(--line)" }}>
+        <Metric label="الموارد" value={hasData ? egpExact(statement.assetsTotal) : "—"} icon={<Landmark size={16} aria-hidden />} />
+        <Metric label="الالتزامات" value={hasData ? egpExact(statement.liabilitiesTotal) : "—"} icon={<WalletCards size={16} aria-hidden />} />
+        <Metric label="حقوق المالك مع الربح" value={hasData ? egpExact(statement.totalEquityInclIncome) : "—"} icon={<Scale size={16} aria-hidden />} />
+        <Metric label={profit ? "صافي الربح" : "صافي الخسارة"} value={hasData ? egpExact(statement.netIncome) : "—"} icon={<TrendingUp size={16} aria-hidden />} />
       </section>
 
-      {!bs.balanced && (
-        <Card title="⚠️ القائمة غير متوازنة">
-          <p className="font-semibold">
-            الموارد ({egp(bs.assetsTotal)}) لا تساوي الالتزامات + حقوق المالك + صافي الربح ({egp(bs.liabilitiesPlusEquity)}).
-            راجع القيود قبل الاعتماد على هذه القائمة.
-          </p>
-        </Card>
-      )}
+      <section className="no-print border-b pb-4" style={{ borderColor: "var(--line)" }} aria-labelledby="balance-date-title">
+        <h2 id="balance-date-title" className="mb-2 text-sm font-bold">تاريخ القائمة</h2>
+        <form className="flex flex-wrap items-end gap-3" method="get">
+          <label className="flex min-w-52 flex-col gap-1 text-sm font-semibold">
+            حتى تاريخ
+            <input name="asOf" type="date" defaultValue={asOf} className="rounded-md px-3 py-2" style={inputStyle} />
+          </label>
+          <button type="submit" className="fos-btn fos-btn--primary fos-btn--md">تحديث</button>
+        </form>
+        <div className="mt-3"><PeriodPresets basePath="/finance/balance-sheet" mode="asOf" /></div>
+      </section>
 
-      <Card title={`الموارد — ${egp(bs.assetsTotal)}`}>
-        {bs.assets.length ? (
-          <FilterableTable
-            columns={sectionColumns}
-            rows={toRows(bs.assets)}
-            ariaLabel="الموارد"
-            exportFilename={`balance-sheet-assets-${asOf}.csv`}
-          />
-        ) : (
-          <EmptyState title="لا موارد بأرصدة حتى هذا التاريخ" />
-        )}
-      </Card>
+      {!statement.balanced && hasData ? (
+        <section className="border-y py-3" style={{ borderColor: "var(--danger, #b23b3b)" }} aria-labelledby="balance-blocker-title">
+          <h2 id="balance-blocker-title" className="font-bold" style={{ color: "var(--danger, #b23b3b)" }}>القائمة غير متوازنة ولا تصلح للاعتماد</h2>
+          <p className="mt-1 text-sm">راجع القيود: الفرق بين الموارد والطرف المقابل يجب أن يكون صفرًا.</p>
+        </section>
+      ) : null}
 
-      <Card title={`الالتزامات — ${egp(bs.liabilitiesTotal)}`}>
-        {bs.liabilities.length ? (
-          <FilterableTable
-            columns={sectionColumns}
-            rows={toRows(bs.liabilities)}
-            ariaLabel="الالتزامات"
-            exportFilename={`balance-sheet-liabilities-${asOf}.csv`}
-          />
-        ) : (
-          <EmptyState title="لا التزامات حتى هذا التاريخ" />
-        )}
-      </Card>
+      <StatementSection title="الموارد" total={statement.assetsTotal} lines={statement.assets} rows={balanceSheetExportRows(statement.assets)} empty="لا موارد بأرصدة حتى هذا التاريخ" filename={`balance-sheet-assets-${asOf}.csv`} />
+      <StatementSection title="الالتزامات" total={statement.liabilitiesTotal} lines={statement.liabilities} rows={balanceSheetExportRows(statement.liabilities)} empty="لا التزامات حتى هذا التاريخ" filename={`balance-sheet-liabilities-${asOf}.csv`} />
+      <StatementSection title="حقوق المالك" total={statement.equityTotal} lines={statement.equity} rows={balanceSheetExportRows(statement.equity)} empty="لا حقوق مالك حتى هذا التاريخ" filename={`balance-sheet-equity-${asOf}.csv`} note={hasData ? `تشمل مسحوبات مالك ${egpExact(statement.drawingsTotal)}، ثم يضاف صافي الفترة ${egpExact(statement.netIncome)}.` : undefined} />
 
-      <Card title={`حقوق المالك — ${egp(bs.equityTotal)}`} subtitle={`منها مسحوبات المالك: ${egp(bs.drawingsTotal)}`}>
-        {bs.equity.length ? (
-          <FilterableTable
-            columns={sectionColumns}
-            rows={toRows(bs.equity)}
-            ariaLabel="حقوق المالك"
-            exportFilename={`balance-sheet-equity-${asOf}.csv`}
-          />
-        ) : (
-          <EmptyState title="لا حقوق مالك حتى هذا التاريخ" />
-        )}
-        {hasData && (
-          <p className="mt-3 text-sm" style={mutedStyle}>
-            حقوق المالك {egp(bs.equityTotal)} + صافي الربح المُجمّع {egp(bs.netIncome)} = {egp(bs.totalEquityInclIncome)}
-          </p>
-        )}
-      </Card>
-
-      <Card title="التحقق المحاسبي">
-        {hasData ? (
-          <p style={mutedStyle}>
-            الموارد {egp(bs.assetsTotal)} = الالتزامات + حقوق المالك + صافي الربح {egp(bs.liabilitiesPlusEquity)} —{" "}
-            {bs.balanced ? "القائمة متوازنة ✓" : "غير متوازنة ✗"}
-          </p>
-        ) : (
-          <p style={mutedStyle}>لا توجد قيود مُرحّلة حتى هذا التاريخ — لا شيء لعرضه بعد.</p>
-        )}
-      </Card>
+      <section className="border-y py-3 text-sm" style={{ borderColor: "var(--line)" }}>
+        <strong>التحقق المحاسبي: </strong>
+        {hasData ? `الموارد ${egpExact(statement.assetsTotal)} = الالتزامات + حقوق المالك + صافي الربح ${egpExact(statement.liabilitiesPlusEquity)}.` : "لا توجد حركة للتحقق منها."}
+      </section>
 
       <FinanceStatementsNav current="balance-sheet" />
     </div>
   );
 }
 
+function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return <div className="min-w-0 border-b py-3 last:border-b-0 sm:border-b-0 sm:px-4 sm:first:ps-0 sm:[&:not(:first-child)]:border-s" style={{ borderColor: "var(--line)" }}><div className="flex items-center gap-2 text-xs" style={{ color: "var(--ink-muted)" }}>{icon}{label}</div><strong className="mt-1 block text-lg tabular-nums">{value}</strong></div>;
+}
+
+function StatementSection({ title, total, lines, rows, empty, filename, note }: { title: string; total: string; lines: BalanceSheetLine[]; rows: SimpleRow[]; empty: string; filename: string; note?: string }) {
+  return <section aria-labelledby={`${filename}-title`}><div className="mb-2 flex flex-wrap items-end justify-between gap-2"><h2 id={`${filename}-title`} className="text-base font-bold">{title}</h2><strong className="tabular-nums">{egpExact(total)}</strong></div>{lines.length ? <FilterableTable columns={sectionColumns} rows={rows} ariaLabel={title} exportFilename={filename} minRowsForSearch={1} /> : <EmptyState title={empty} />}{note ? <p className="mt-2 text-xs" style={{ color: "var(--ink-muted)" }}>{note}</p> : null}</section>;
+}
+
 function parseDateParam(value: string | undefined, fallback: string): string {
-  // `fallback` is today's date and also serves as the upper bound. A well-formed but
-  // FUTURE as-of (e.g. ?asOf=2099-01-01) is clamped to today so a forward-dated posting
-  // can't surface on the balance sheet before its business date (#719-4). Comparison is
-  // safe: both sides are zero-padded YYYY-MM-DD, so lexical order == chronological order.
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return fallback;
   return value > fallback ? fallback : value;
 }

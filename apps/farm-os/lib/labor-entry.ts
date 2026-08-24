@@ -257,6 +257,7 @@ export type LaborWriteErrorCategory =
   | "closed_period"
   | "shape"
   | "missing_person"
+  | "unavailable_person"
   | "general";
 
 export const LABOR_WRITE_MESSAGE_AR: Record<LaborWriteErrorCategory, string> = {
@@ -265,6 +266,7 @@ export const LABOR_WRITE_MESSAGE_AR: Record<LaborWriteErrorCategory, string> = {
     "هذه الفترة أُقفلت في الرواتب نهائيًا، فلا يمكن تسجيل أو تعديل أي ساعات عمل داخلها. اختر تاريخًا خارج الفترة المقفلة.",
   shape: "بيانات طريقة الأجر غير متطابقة. راجع الكمية والوحدة ثم أعد المحاولة.",
   missing_person: "عضو الفريق المختار غير موجود في مؤسستك.",
+  unavailable_person: "عضو الفريق غير نشط أو لم يعد متاحًا. حدّث الصفحة واختر عضوًا نشطًا.",
   general: "تعذّر تسجيل الحضور. حاول مرة أخرى.",
 };
 
@@ -292,6 +294,8 @@ export function classifyLaborWriteError(
       return "shape";
     case "23503":
       return "missing_person";
+    case "P7001":
+      return "unavailable_person";
     default:
       return "general";
   }

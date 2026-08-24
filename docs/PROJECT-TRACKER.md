@@ -1,4 +1,35 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4j cost-center reports and 360 live)
+# Project Tracker — Farm OS      Last updated: 2026-08-24 by Codex (combined accounting release train local)
+
+> **2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN LOCAL / UNRELEASED.** Branch
+> `release/accounting-final-train-20260824` at exact base `811da10` combines the independently approved R4k
+> financial-statement/close candidate, active-person labor-log integrity guard and finance-dashboard deferred
+> chart loading. The ordered migrations are `20260823190000_exact_financial_statement_snapshots.sql` followed
+> by `20260824100000_labor_logs_require_active_person.sql`; the performance slice is application-only. Combined
+> validation is green: focused 88/88 plus 76/76 for attendance acceptance and 30/30 for statement downloads;
+> Vitest 2,386 plus 17 skips;
+> pgTAP 5,099/5,099; TypeScript; full/touched ESLint;
+> 70-page build; repository guards; zero-vulnerability audit; exact 46-test E2E inventory; complete 71.21 MiB
+> PDF traces; and 56-file working-tree manifest PASS. The Owner browser lane opens the active-person attendance
+> picker without submitting, while its source contract pins active, signed-in-organization people. The one P3
+> log-privacy finding is fixed by keeping identifiers/labels inside browser evaluation; exact-byte rereview is
+> APPROVE with no P0-P3 findings. Owner/Accountant statement workflows now also verify every rendered section
+> CSV's BOM, Arabic header, unique page-date-bound filename and nonempty data without logging financial rows. The
+> CSV review's P2 identity gap and two P3 contract/documentation gaps are fixed; exact-byte rereview is APPROVE
+> with no P0-P3 findings. The protected reconciliation workflow now parses the complete 73-column annex and
+> requires its BOM, exact header, digest-bound filename, report count, all 698 rows and every repeated SHA-256
+> digest to agree. Only aggregate pass/fail evidence is asserted; focused acceptance-package tests pass 189/189.
+> The credentialed production run is open. The release
+> execution runbook is now pinned to this exact two-migration train with separate Owner gates, migrate-first stop
+> rules and additive recovery. The dashboard
+> initial client union is 13 chunks / 104,368
+> gzip bytes without Recharts, down 55.0% from the exact-base 232,120 gzip bytes. The first integration review's
+> only finding was a P3 missing immediate replay for the financial snapshot migration; the allowlist now includes
+> it and full pgTAP remains 5,099/5,099. Exact-byte rereview is APPROVE with no P0-P3 findings.
+> A later release-runbook review found one P2: postflight did not bind deployed SECURITY DEFINER and trigger
+> bodies. Exact normalized function/trigger hashes, trusted owners, wiring and ACL checks are now pinned;
+> independent reconstruction matched all six hashes and final rereview is APPROVE with no P0-P3 findings.
+> No commit, push, PR, migration, merge, deployment, production query or business-row change occurred.
+> Production stays at R4j; the human accounting acceptance gates remain open.
 
 > **2026-08-23 — PRODUCT UI RESET R4j COST-CENTER REPORTS + 360 MERGED / DEPLOYED.**
 > `/finance/reports` now presents one compact decision strip, explicit filters, hierarchical Arabic rows and
