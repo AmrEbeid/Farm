@@ -1,6 +1,18 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-23)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-24)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-08-24 (latest) — ACCOUNTING RELEASE + ACTIVE-ORG SESSION REPAIR MERGED / DEPLOYED.** The two release
+> migrations were applied first as hosted versions `20260824093256` and `20260824093359`; aggregate and catalog
+> postflight matched the pre-apply baseline with no business-data drift. Production then reproduced the Owner
+> dashboard failure as `42501: owner home requires the active organization`. The app fix repairs missing or stale
+> active-farm claims through the signed-in user's RLS-visible membership and existing membership-validating RPC,
+> propagates private/no-store auth-cookie headers, and fails closed with a bounded retry. PR #1065 merged as
+> `658ccb3125ebb460773187406786ee22740ee490`; exact-main CI `32715656916`, database tests `32715656940`, release
+> checks `32715656959`, and Vercel production deployment succeeded. Live `/` and `/login` return 200; signed-out
+> protected dashboard routes redirect to login. Full Vitest 2,397 plus 17 controlled skips, 70-page build,
+> dependency audit, 49-file manifest, and independent final review passed. Authenticated Owner confirmation is
+> still required; no approved role credential is stored locally.
 
 > **2026-08-23 (latest) — R4j COST-CENTER REPORTS + 360 MERGED / DEPLOYED / SIGNED-OUT VERIFIED.**
 > PR #1063 merged as `a44bd153bbf41cf4b76fa2194cccdd2a62e34832`. Exact-main CI `32638602429`,
