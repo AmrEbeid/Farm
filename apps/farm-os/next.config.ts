@@ -7,13 +7,23 @@ const nextConfig: NextConfig = {
   // `vercel build` infers the root as apps/farm-os and refuses to compile files outside
   // it → the build fails resolving the library + its styles.css.
   outputFileTracingRoot: path.join(__dirname, "..", ".."),
-  serverExternalPackages: ["@fontsource/noto-naskh-arabic", "@react-pdf/renderer"],
+  serverExternalPackages: ["@fontsource/noto-naskh-arabic", "@sparticuz/chromium", "puppeteer-core"],
   outputFileTracingIncludes: {
     "/api/finance/balance-sheet.pdf": [
       "./node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-400-normal.woff",
       "./node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-700-normal.woff",
       "../../node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-400-normal.woff",
       "../../node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-700-normal.woff",
+      "./node_modules/@sparticuz/chromium/bin/**",
+      "../../node_modules/@sparticuz/chromium/bin/**",
+    ],
+    "/api/finance/statements.pdf": [
+      "./node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-400-normal.woff",
+      "./node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-700-normal.woff",
+      "../../node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-400-normal.woff",
+      "../../node_modules/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-700-normal.woff",
+      "./node_modules/@sparticuz/chromium/bin/**",
+      "../../node_modules/@sparticuz/chromium/bin/**",
     ],
   },
   // @amrebeid/ui statically re-exports Recharts-based chart components, so any

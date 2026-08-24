@@ -73,12 +73,20 @@ function digest(root: string, digestPaths: string[], includeHash: boolean) {
   return hash.digest("hex");
 }
 
-function createFixture() {
+function createFixture({ releaseProgramsInBase = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), "farm-accounting-preflight-"));
   temporaryRepositories.push(root);
 
   write(root, paths.candidate, '{"fixture":"base"}\n');
   write(root, "apps/farm-os/supabase/migrations/20260808000000_base.sql", "select 1;\n");
+  if (releaseProgramsInBase) {
+    for (const path of [paths.core, paths.strict, paths.working]) {
+      const target = join(root, path);
+      mkdirSync(dirname(target), { recursive: true });
+      copyFileSync(join(sourceScripts, basename(path)), target);
+      chmodSync(target, 0o644);
+    }
+  }
   git(root, ["init", "-q"]);
   git(root, ["config", "user.email", "fixture@example.invalid"]);
   git(root, ["config", "user.name", "Fixture"]);
@@ -91,11 +99,13 @@ function createFixture() {
   write(root, paths.migration, "select 2;\n");
   write(root, paths.databaseTest, "select 3;\n");
   write(root, paths.support, "export const fixture = true;\n");
-  for (const path of [paths.core, paths.strict, paths.working]) {
-    const target = join(root, path);
-    mkdirSync(dirname(target), { recursive: true });
-    copyFileSync(join(sourceScripts, basename(path)), target);
-    chmodSync(target, 0o644);
+  if (!releaseProgramsInBase) {
+    for (const path of [paths.core, paths.strict, paths.working]) {
+      const target = join(root, path);
+      mkdirSync(dirname(target), { recursive: true });
+      copyFileSync(join(sourceScripts, basename(path)), target);
+      chmodSync(target, 0o644);
+    }
   }
 
   const releasePrograms = [paths.core, paths.strict, paths.working].map((path) => ({
@@ -177,6 +187,13 @@ describe("accounting release preflight", () => {
       boundFiles: 8,
       requireCommitted: false,
     });
+  });
+
+  it("passes a rebased candidate when the pinned release programs are unchanged from the base", () => {
+    const result = runPreflight(createFixture({ releaseProgramsInBase: true }), paths.working);
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ status: "PASS", requireCommitted: false });
   });
 
   it("does not let a concealed preload switch the strict launcher to working-tree mode", () => {

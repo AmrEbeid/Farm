@@ -1,4 +1,52 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-23 by Codex (R4j cost-center reports and 360 live)
+# Project Tracker — Farm OS      Last updated: 2026-08-24 by Codex (accounting PR #1065 deployment approved)
+
+> **2026-08-24 — OWNER DASHBOARD INCIDENT FIX VALIDATED / DEPLOYMENT APPROVED.** Production logs reproduced
+> the reported generic dashboard failure as `42501: owner home requires the active organization`. The signed-in
+> session lacked the active-organization claim required by the exact role dashboards. PR #1065 now repairs a
+> missing claim in the request proxy using only the signed-in user's RLS-visible membership, the existing
+> membership-validating `fn_set_active_org` RPC and a session refresh before protected rendering. No service
+> role, schema change, new migration or business-data write is introduced. Focused tests 23/23, full Vitest
+> 2,397 plus 17 controlled skips, ESLint, TypeScript, 70-page build, dependency audit and diff checks pass. The
+> Owner approved deployment; merge and live verification are in progress. The new design is not live until the
+> PR merges and Vercel completes the exact-main deployment.
+
+> **2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN PR OPEN / CI GREEN / MIGRATIONS APPLIED.** Branch
+> `release/accounting-final-train-20260824` at exact base `811da10` combines the independently approved R4k
+> financial-statement/close candidate, active-person labor-log integrity guard and finance-dashboard deferred
+> chart loading. The ordered migrations are `20260823190000_exact_financial_statement_snapshots.sql` followed
+> by `20260824100000_labor_logs_require_active_person.sql`; the performance slice is application-only. Combined
+> validation is green: focused 88/88 plus 76/76 for attendance acceptance and 30/30 for statement downloads;
+> Vitest 2,386 plus 17 skips;
+> pgTAP 5,099/5,099; TypeScript; full/touched ESLint;
+> 70-page build; repository guards; zero-vulnerability audit; exact 46-test E2E inventory; complete 71.21 MiB
+> PDF traces; and 56-file working-tree manifest PASS. The Owner browser lane opens the active-person attendance
+> picker without submitting, while its source contract pins active, signed-in-organization people. The one P3
+> log-privacy finding is fixed by keeping identifiers/labels inside browser evaluation; exact-byte rereview is
+> APPROVE with no P0-P3 findings. Owner/Accountant statement workflows now also verify every rendered section
+> CSV's BOM, Arabic header, unique page-date-bound filename and nonempty data without logging financial rows. The
+> CSV review's P2 identity gap and two P3 contract/documentation gaps are fixed; exact-byte rereview is APPROVE
+> with no P0-P3 findings. The protected reconciliation workflow now parses the complete 73-column annex and
+> requires its BOM, exact header, digest-bound filename, report count, all 698 rows and every repeated SHA-256
+> digest to agree. Only aggregate pass/fail evidence is asserted; focused acceptance-package tests pass 189/189.
+> The credentialed production run is open. The release
+> execution runbook is now pinned to this exact two-migration train with separate Owner gates, migrate-first stop
+> rules and additive recovery. The dashboard
+> initial client union is 13 chunks / 104,368
+> gzip bytes without Recharts, down 55.0% from the exact-base 232,120 gzip bytes. The first integration review's
+> only finding was a P3 missing immediate replay for the financial snapshot migration; the allowlist now includes
+> it and full pgTAP remains 5,099/5,099. Exact-byte rereview is APPROVE with no P0-P3 findings.
+> A later release-runbook review found one P2: postflight did not bind deployed SECURITY DEFINER and trigger
+> bodies. Exact normalized function/trigger hashes, trusted owners, wiring and ACL checks are now pinned;
+> independent reconstruction matched all six hashes and final rereview is APPROVE with no P0-P3 findings.
+> Reviewed application bytes were committed as `693dca33d373b916e853a7721444ffe6178f999f`, pushed and opened as
+> PR #1065. GitHub application CI, pgTAP, design-system build, gitleaks and Vercel preview checks are green.
+> The production preflight confirmed the Farm project, exact migration head, aggregate business counts, balanced
+> journal totals and trusted function/trigger hashes. Both approved migrations were later applied to Farm
+> production in order as hosted versions `20260824093256` and `20260824093359`; aggregate and catalog postflight
+> passed with no business-data drift. No merge or production application deployment occurred; role acceptance
+> is open
+> because Vercel authentication blocks direct smoke and the three protected role accounts are not loaded.
+> Production stays at R4j; the human accounting acceptance gates remain open.
 
 > **2026-08-23 — PRODUCT UI RESET R4j COST-CENTER REPORTS + 360 MERGED / DEPLOYED.**
 > `/finance/reports` now presents one compact decision strip, explicit filters, hierarchical Arabic rows and

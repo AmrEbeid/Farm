@@ -1,8 +1,10 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 import {
   ACCOUNTING_E2E_BROWSER_RUNTIME_ERROR,
   ACCOUNTING_E2E_FINANCE_DASHBOARD_HEADINGS,
   accountingE2EBaseUrl,
+  accountingE2EParseCsv,
   accountingE2EAuthOrigin,
   accountingE2EBatchId,
   accountingE2ECredentials,
@@ -18,6 +20,7 @@ import {
   type AccountingE2EFinanceRole,
   type AccountingE2EWidthSnapshot,
 } from "../lib/accounting e2e safety";
+import { ACCEPTANCE_CSV_COLUMNS } from "../lib/reconciliation acceptance";
 
 const approvedOrigin = accountingE2EBaseUrl(process.env);
 const approvedAuthOrigin = accountingE2EAuthOrigin(process.env);
@@ -66,6 +69,10 @@ const roleLabels = {
   storekeeper: "أمين مخزن",
 } as const;
 
+const INCOME_CSV_REGRESSION_START = "2019-01-01";
+const INCOME_CSV_REGRESSION_END = "2026-08-24";
+const RECONCILIATION_ACCEPTANCE_EXPECTED_ROWS = 698;
+
 // A route's heading is either shared by both finance roles, or role-specific (/finance/dashboard).
 type AccountingReadRoute = {
   path: string;
@@ -97,14 +104,14 @@ const DAILY_ACCOUNTING_READ_GROUPS = {
   ledger: [
     { path: "/accounting", heading: "المحاسبة" },
     { path: "/finance/accounts", heading: "دليل الحسابات" },
-    { path: "/finance/periods", heading: "الفترات المحاسبية (الإقفال)" },
+    { path: "/finance/periods", heading: "الفترات المحاسبية" },
   ],
   reports: [
     { path: "/finance/reports", heading: "تقارير مراكز التكلفة" },
     { path: "/finance/revenue-reports", heading: "تقارير الإيرادات والذمم" },
     {
       path: "/finance/income-statement",
-      heading: "قائمة الدخل (الأرباح والخسائر)",
+      heading: "قائمة الدخل",
     },
     { path: "/finance/balance-sheet", heading: "قائمة المركز المالي" },
     { path: "/finance/budget-vs-actual", heading: "الموازنة مقابل الفعلي" },
@@ -230,7 +237,7 @@ async function verifyMonthCloseReadOnly(page: Page) {
   await gotoReadOnly(page, "/finance/close");
   await expect(page).toHaveURL(/\/finance\/close(?:[/?#]|$)/);
   await expect(page.getByRole("heading", { name: "إقفال الشهر" })).toBeVisible();
-  await expect(page.getByText(/لقطة دقيقة من الدفاتر الحية من 2026-07-01 إلى \d{4}-\d{2}-\d{2}/)).toBeVisible();
+  await expect(page.getByText(/الفحص يغطي الدفاتر الحية من .*؛ الأرشيف الأقدم خارج هذه اللقطة\./)).toBeVisible();
   await expect(page.getByText("قفل الفترة المحاسبية", { exact: true })).toBeVisible();
 
   const periodStart = page.locator('input[name="period_start"]');
@@ -241,11 +248,11 @@ async function verifyMonthCloseReadOnly(page: Page) {
   await expect(periodEnd).toHaveValue(/^\d{4}-\d{2}-\d{2}$/);
 
   const readyButton = page.getByRole("button", {
-    name: "إقفال الشهر الآن",
+    name: "إقفال الفترة",
     exact: true,
   });
   const blockedButton = page.getByRole("button", {
-    name: "عالج المعلّقات أولًا",
+    name: "عالج المعلّقات",
     exact: true,
   });
   const blockedCount = await blockedButton.count();
@@ -253,10 +260,10 @@ async function verifyMonthCloseReadOnly(page: Page) {
   await expect(readyButton).toHaveCount(1 - blockedCount);
   if (blockedCount === 1) {
     await expect(blockedButton).toBeDisabled();
-    await expect(page.getByText("مراجعة القوائم قبل القفل", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("راجع قبل القفل", { exact: true })).toHaveCount(0);
   } else {
     await expect(readyButton).toBeEnabled();
-    await expect(page.getByText("مراجعة القوائم قبل القفل", { exact: true })).toBeVisible();
+    await expect(page.getByText("راجع قبل القفل", { exact: true })).toBeVisible();
   }
   await expectPageFitsViewport(page);
 }
@@ -311,6 +318,29 @@ async function verifyMoneyEntryForms(page: Page) {
   }
 }
 
+async function verifyActivePersonAttendancePicker(page: Page) {
+  await gotoReadOnly(page, "/people/attendance");
+  await expect(page).toHaveURL(/\/people\/attendance(?:[/?#]|$)/);
+  await expect(page.getByRole("heading", { name: "تسجيل الحضور", exact: true })).toBeVisible();
+
+  const picker = page.locator("#labor-person");
+  await expect(picker).toBeVisible();
+  await expect(picker.locator("option").first()).toHaveText("اختر عضو فريق");
+  const optionSummary = await picker.locator("option").evaluateAll((nodes) => {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const people = nodes.slice(1);
+    return {
+      count: people.length,
+      validIds: people.every((node) => uuid.test((node as HTMLOptionElement).value)),
+      named: people.every((node) => Boolean(node.textContent?.trim())),
+    };
+  });
+  expect(optionSummary.count).toBeGreaterThan(0);
+  expect(optionSummary.validIds).toBe(true);
+  expect(optionSummary.named).toBe(true);
+  await expectPageFitsViewport(page);
+}
+
 async function expectPdfDownload(page: Page, linkName: string) {
   const link = page.getByRole("link", { name: linkName, exact: true });
   const href = await link.getAttribute("href");
@@ -354,16 +384,97 @@ async function expectPdfDownload(page: Page, linkName: string) {
   expect(totalBytes).toBeGreaterThan(1_000);
 }
 
+async function expectCsvDownloads(
+  page: Page,
+  expectedHeader: string,
+  expectedFilenames: readonly string[],
+) {
+  const buttons = page.getByRole("button", { name: "تصدير CSV", exact: true });
+  const count = await buttons.count();
+  const observedFilenames: string[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      buttons.nth(index).click(),
+    ]);
+    observedFilenames.push(download.suggestedFilename());
+    const stream = await download.createReadStream();
+    expect(stream).not.toBeNull();
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of stream!) chunks.push(chunk as Uint8Array);
+    const bytes = Buffer.concat(chunks);
+    const hasBom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(3));
+    const [header = "", ...rows] = text.split("\r\n");
+    expect({
+      hasBom,
+      headerMatches: header === expectedHeader,
+      hasData: rows.some((row) => row.length > 0),
+    }).toEqual({ hasBom: true, headerMatches: true, hasData: true });
+  }
+
+  expect({
+    countMatches: observedFilenames.length === expectedFilenames.length,
+    uniqueFilenames: new Set(observedFilenames).size === observedFilenames.length,
+    exactFilenames: observedFilenames.every(
+      (filename, index) => filename === expectedFilenames[index],
+    ),
+  }).toEqual({ countMatches: true, uniqueFilenames: true, exactFilenames: true });
+}
+
 async function verifyStatementDownloads(page: Page) {
   await gotoReadOnly(page, "/finance/income-statement");
-  await expect(page.getByRole("link", { name: "تنزيل حزمة PDF", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "حزمة PDF", exact: true })).toBeVisible();
   await expectPageFitsViewport(page);
-  await expectPdfDownload(page, "تنزيل حزمة PDF");
+  await expectPdfDownload(page, "حزمة PDF");
+
+  await gotoReadOnly(
+    page,
+    `/finance/income-statement?start=${INCOME_CSV_REGRESSION_START}&end=${INCOME_CSV_REGRESSION_END}`,
+  );
+  const incomeStart = await page.locator('input[name="start"]').inputValue();
+  const incomeEnd = await page.locator('input[name="end"]').inputValue();
+  expect({
+    startMatches: incomeStart === INCOME_CSV_REGRESSION_START,
+    endMatches: incomeEnd === INCOME_CSV_REGRESSION_END,
+  }).toEqual({ startMatches: true, endMatches: true });
+  await expectCsvDownloads(
+    page,
+    "الحساب,الاسم,المبلغ",
+    [
+      `income-statement-revenue-${incomeStart}-to-${incomeEnd}.csv`,
+      `income-statement-expenses-${incomeStart}-to-${incomeEnd}.csv`,
+    ],
+  );
 
   await gotoReadOnly(page, "/finance/balance-sheet");
-  await expect(page.getByRole("link", { name: "تنزيل PDF", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "PDF", exact: true })).toBeVisible();
   await expectPageFitsViewport(page);
-  await expectPdfDownload(page, "تنزيل PDF");
+  await expectPdfDownload(page, "PDF");
+  const asOf = await page.locator('input[name="asOf"]').inputValue();
+  const balanceButtons = page.getByRole("button", { name: "تصدير CSV", exact: true });
+  const balanceSectionLabels = await balanceButtons.evaluateAll((nodes) =>
+    nodes.map((node) => node.closest("section")?.querySelector("h2")?.textContent?.trim() ?? ""),
+  );
+  const balanceKindByLabel: Readonly<Record<string, string>> = {
+    "الموارد": "assets",
+    "الالتزامات": "liabilities",
+    "حقوق المالك": "equity",
+  };
+  expect({
+    hasSections: balanceSectionLabels.length > 0,
+    uniqueSections: new Set(balanceSectionLabels).size === balanceSectionLabels.length,
+    knownSections: balanceSectionLabels.every((label) => Boolean(balanceKindByLabel[label])),
+    validDate: /^\d{4}-\d{2}-\d{2}$/.test(asOf),
+  }).toEqual({ hasSections: true, uniqueSections: true, knownSections: true, validDate: true });
+  await expectCsvDownloads(
+    page,
+    "الحساب,الاسم,الرصيد",
+    balanceSectionLabels.map(
+      (label) => `balance-sheet-${balanceKindByLabel[label]}-${asOf}.csv`,
+    ),
+  );
 }
 
 async function verifyCostCenterReportModes(page: Page) {
@@ -408,11 +519,52 @@ async function verifyAccountingControls(page: Page) {
   await expect(page.getByRole("heading", { name: /تقرير قبول التسوية/ })).toBeVisible();
   await expectPageFitsViewport(page);
 
+  const reportDigest =
+    (await page.getByTestId("acceptance-package-digest").textContent())?.trim() ?? "";
+  const reportRowCount = Number(
+    await page.getByTestId("acceptance-completeness").getAttribute("data-row-count"),
+  );
+
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.getByRole("link", { name: "تنزيل سجل الصفوف (CSV)" }).click(),
   ]);
-  expect(download.suggestedFilename()).toMatch(/\.csv$/i);
+  const downloadPath = await download.path();
+  if (!downloadPath) throw new Error("Accounting acceptance CSV download has no local path.");
+  const bytes = await readFile(downloadPath);
+  const hasBom =
+    bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  const csv = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(3));
+  const [header = [], ...rows] = accountingE2EParseCsv(csv);
+  const expectedHeaders = ACCEPTANCE_CSV_COLUMNS.map(({ header: label }) => label);
+  const expectedFilename =
+    `reconciliation-acceptance-${batchId}-${reportDigest.slice(0, 12)}.csv`;
+
+  // Assert aggregate evidence only. Annex cells, identifiers and financial values never enter logs.
+  expect({
+    digestShape: /^[0-9a-f]{64}$/.test(reportDigest),
+    filenameMatches: download.suggestedFilename() === expectedFilename,
+    hasBom,
+    headerMatches:
+      header.length === expectedHeaders.length &&
+      header.every((value, index) => value === expectedHeaders[index]),
+    reportRowCountMatchesExpected:
+      reportRowCount === RECONCILIATION_ACCEPTANCE_EXPECTED_ROWS,
+    rowCountMatchesReport: rows.length === reportRowCount,
+    rowCountMatchesExpected: rows.length === RECONCILIATION_ACCEPTANCE_EXPECTED_ROWS,
+    everyRowComplete: rows.every((row) => row.length === expectedHeaders.length),
+    everyRowMatchesDigest: rows.every((row) => row[0] === reportDigest),
+  }).toEqual({
+    digestShape: true,
+    filenameMatches: true,
+    hasBom: true,
+    headerMatches: true,
+    reportRowCountMatchesExpected: true,
+    rowCountMatchesReport: true,
+    rowCountMatchesExpected: true,
+    everyRowComplete: true,
+    everyRowMatchesDigest: true,
+  });
 
   await verifyMonthCloseReadOnly(page);
 }
@@ -436,11 +588,16 @@ for (const role of ["owner", "accountant"] as const) {
     await verifyFinanceRoleIdentity(page, role);
     await verifyAccountingControls(page);
   });
-  test(`${role} can download the statement PDFs`, async ({ page }) => {
+  test(`${role} can download the statement PDF and CSV files`, async ({ page }) => {
     await verifyFinanceRoleIdentity(page, role);
     await verifyStatementDownloads(page);
   });
 }
+
+test("owner can open the active-person attendance picker without submitting", async ({ page }) => {
+  await verifyFinanceRoleIdentity(page, "owner");
+  await verifyActivePersonAttendancePicker(page);
+});
 
 for (const [group, routes] of Object.entries(FINANCE_ONLY_READ_GROUPS)) {
   test(`a non-finance role is denied the ${group} accounting routes`, async ({ page }) => {

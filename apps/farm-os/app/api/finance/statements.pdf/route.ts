@@ -7,6 +7,7 @@ import { renderStatementPackagePdf, statementPackagePdfFilename } from "@/lib/fi
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function isoDate(date: Date): string {
@@ -45,15 +46,15 @@ export async function GET(req: Request): Promise<Response> {
   const sb = await createClient();
 
   const [incomeRes, balanceRes] = await Promise.all([
-    sb.rpc("fn_accounting_income_statement", { p_org: member.orgId, p_from: start, p_to: end }),
-    sb.rpc("fn_accounting_balance_sheet", { p_org: member.orgId, p_as_of: asOf }),
+    sb.rpc("fn_accounting_income_statement_snapshot", { p_org: member.orgId, p_from: start, p_to: end }),
+    sb.rpc("fn_accounting_balance_sheet_snapshot", { p_org: member.orgId, p_as_of: asOf }),
   ]);
   if (incomeRes.error) throw incomeRes.error;
   if (balanceRes.error) throw balanceRes.error;
 
   const pdf = await renderStatementPackagePdf({
-    incomeStatement: parseIncomeStatement(incomeRes.data),
-    balanceSheet: parseBalanceSheet(balanceRes.data),
+    incomeStatement: parseIncomeStatement(incomeRes.data, member.orgId, start, end),
+    balanceSheet: parseBalanceSheet(balanceRes.data, member.orgId, asOf),
     start,
     end,
     asOf,

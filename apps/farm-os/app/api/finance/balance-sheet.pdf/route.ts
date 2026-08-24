@@ -6,6 +6,7 @@ import { balanceSheetPdfFilename, renderBalanceSheetPdf } from "@/lib/finance-st
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function isoDate(date: Date): string {
@@ -35,10 +36,10 @@ export async function GET(req: Request): Promise<Response> {
   const today = isoDate(new Date());
   const asOf = parseDateParam(url.searchParams.get("asOf"), today);
   const sb = await createClient();
-  const res = await sb.rpc("fn_accounting_balance_sheet", { p_org: member.orgId, p_as_of: asOf });
+  const res = await sb.rpc("fn_accounting_balance_sheet_snapshot", { p_org: member.orgId, p_as_of: asOf });
   if (res.error) throw res.error;
 
-  const pdf = await renderBalanceSheetPdf({ bs: parseBalanceSheet(res.data), asOf, generatedOn: today });
+  const pdf = await renderBalanceSheetPdf({ bs: parseBalanceSheet(res.data, member.orgId, asOf), asOf, generatedOn: today });
   return new Response(pdf as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",

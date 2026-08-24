@@ -203,11 +203,19 @@ describe("attendance surface carries no wage data and no contact PII", () => {
     expect(source).toContain('className="flex flex-col gap-4 p-4"');
   });
 
-  it("bounds and org-scopes both of the page's reads", () => {
+  it("bounds and org-scopes both reads and offers only active people for new attendance", () => {
     const source = read(PAGE);
+    const peopleRead = source.slice(source.indexOf('.from("people")'), source.indexOf('.from("labor_logs")'));
+    const logsRead = source.slice(source.indexOf('.from("labor_logs")'));
     expect(source).toContain("ATTENDANCE_PEOPLE_LIMIT");
     expect(source).toContain("ATTENDANCE_LOG_LIMIT");
     expect(source.match(/\.eq\("org_id", m\.orgId\)/g) ?? []).toHaveLength(2);
     expect(source.match(/\.limit\(/g) ?? []).toHaveLength(2);
+    expect(peopleRead).toContain('.eq("org_id", m.orgId)');
+    expect(peopleRead).toContain('.eq("active", true)');
+    expect(peopleRead).toContain(".limit(ATTENDANCE_PEOPLE_LIMIT)");
+    expect(logsRead).toContain('.eq("org_id", m.orgId)');
+    expect(logsRead).toContain(".limit(ATTENDANCE_LOG_LIMIT)");
+    expect(source).toContain("people={(people ?? []).map");
   });
 });

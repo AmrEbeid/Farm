@@ -266,6 +266,7 @@ describe("labor write — field-safe error contract", () => {
     expect(classifyLaborWriteError({ code: "55000" })).toBe("closed_period");
     expect(classifyLaborWriteError({ code: "23514" })).toBe("shape");
     expect(classifyLaborWriteError({ code: "23503" })).toBe("missing_person");
+    expect(classifyLaborWriteError({ code: "P7001" })).toBe("unavailable_person");
     expect(classifyLaborWriteError({ code: "XX000" })).toBe("general");
     expect(classifyLaborWriteError(null)).toBe("general");
     expect(classifyLaborWriteError(undefined)).toBe("general");
@@ -278,6 +279,17 @@ describe("labor write — field-safe error contract", () => {
     // lib/errors.ts' generic 55000 says "افتح الفترة"; a closed payroll run is immutable, so this
     // surface must NOT tell a supervisor to reopen it.
     expect(message).not.toContain("افتح الفترة");
+  });
+
+  it("tells an authorized operator to refresh an archived worker selection", () => {
+    const failure = laborWriteFailure({
+      code: "P7001",
+      message: "labor log person is unavailable: 23500000-0000-0000-0000-000000000001",
+    });
+    expect(failure.category).toBe("unavailable_person");
+    expect(failure.message).toBe(LABOR_WRITE_MESSAGE_AR.unavailable_person);
+    expect(failure.message).toContain("حدّث الصفحة");
+    expect(failure.message).not.toContain("23500000");
   });
 
   it("returns ONLY fixed constants — never the database message", () => {

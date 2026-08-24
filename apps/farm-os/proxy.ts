@@ -4,8 +4,36 @@ import {
   ACCOUNTING_E2E_SERVER_READ_ONLY_ENV,
   accountingE2EGuardedServerFetch,
 } from "@/lib/accounting e2e safety";
+import {
+  activeOrgIdFromAccessToken,
+  activeOrgRepairTarget,
+} from "@/lib/active-org-session";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
+const REPAIR_COOKIE = "farm-active-org-repair";
+const ROLE_HOME_PATHS = new Set([
+  "/dashboard/owner",
+  "/finance/dashboard",
+  "/dashboard/manager",
+  "/m",
+  "/inventory/dashboard",
+]);
+
+function sessionErrorRedirect(request: NextRequest, response: NextResponse): NextResponse {
+  const redirect = NextResponse.redirect(new URL("/login", request.url));
+  for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+  redirect.cookies.set(REPAIR_COOKIE, "1", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: request.nextUrl.protocol === "https:",
+    path: "/",
+    maxAge: 300,
+  });
+  redirect.headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0");
+  redirect.headers.set("Expires", "0");
+  redirect.headers.set("Pragma", "no-cache");
+  return redirect;
+}
 
 /**
  * Refreshes the Supabase auth session on every request and writes refreshed
@@ -26,13 +54,16 @@ export async function proxy(request: NextRequest) {
     const supabase = createServerClient(url, key, {
       cookies: {
         getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet: CookieToSet[]) => {
+        setAll: (cookiesToSet: CookieToSet[], headersToSet: Record<string, string>) => {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
+          );
+          Object.entries(headersToSet).forEach(([name, value]) =>
+            response.headers.set(name, value),
           );
         },
       },
@@ -41,7 +72,53 @@ export async function proxy(request: NextRequest) {
         : {}),
     });
 
-    await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      // The recovery destination must always remain renderable; otherwise a failed hook would
+      // redirect /login back to itself until the cooldown expires.
+      if (request.nextUrl.pathname === "/login") return response;
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const claimedOrgId = activeOrgIdFromAccessToken(session?.access_token);
+      const shouldVerifyMembership = !claimedOrgId || ROLE_HOME_PATHS.has(request.nextUrl.pathname);
+
+      if (shouldVerifyMembership) {
+        const { data: memberships, error: membershipsError } = await supabase
+          .from("organization_member")
+          .select("org_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(100);
+        if (membershipsError) return sessionErrorRedirect(request, response);
+        const membershipOrgIds = (memberships ?? []).map(({ org_id }) => org_id);
+        const repairTarget = activeOrgRepairTarget(claimedOrgId, membershipOrgIds);
+
+        if (repairTarget) {
+          if (request.cookies.get(REPAIR_COOKIE)) {
+            return sessionErrorRedirect(request, response);
+          }
+          const { error: activeOrgError } = await supabase.rpc("fn_set_active_org", {
+            p_org: repairTarget,
+          });
+          if (activeOrgError) return sessionErrorRedirect(request, response);
+
+          const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+          const refreshedOrgId = activeOrgIdFromAccessToken(refreshed.session?.access_token);
+          if (refreshError || refreshedOrgId !== repairTarget) {
+            return sessionErrorRedirect(request, response);
+          }
+        } else if (request.cookies.get(REPAIR_COOKIE)) {
+          request.cookies.delete(REPAIR_COOKIE);
+          response.cookies.delete(REPAIR_COOKIE);
+        }
+      }
+    }
   } catch {
     // session refresh failed — serve the request anyway (auth enforced per-route)
   }

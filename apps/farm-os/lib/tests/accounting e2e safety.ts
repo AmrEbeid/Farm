@@ -22,6 +22,7 @@ import {
   accountingE2EDeniedRole,
   accountingE2EFinanceDashboardHeading,
   accountingE2EGuardedServerFetch,
+  accountingE2EParseCsv,
   accountingE2ERoleLandingPath,
   accountingE2ERoleLandingUrlPattern,
   accountingE2ERequestIsReadOnly,
@@ -42,6 +43,21 @@ import {
 } from "../accounting e2e launch safety";
 
 describe("accounting read-only E2E safety", () => {
+  it("parses the exported RFC-4180 annex without splitting quoted cells", () => {
+    expect(
+      accountingE2EParseCsv(
+        'digest,label,note\r\naaaa,"اسم، عربي","سطر أول\r\nسطر ثان"\r\nbbbb,"قال ""نعم""",plain',
+      ),
+    ).toEqual([
+      ["digest", "label", "note"],
+      ["aaaa", "اسم، عربي", "سطر أول\r\nسطر ثان"],
+      ["bbbb", 'قال "نعم"', "plain"],
+    ]);
+    expect(() => accountingE2EParseCsv('a,b\nc,d')).toThrow(/CRLF/);
+    expect(() => accountingE2EParseCsv('a,"open')).toThrow(/unterminated/);
+    expect(() => accountingE2EParseCsv('a,"closed"tail')).toThrow(/quoted field/);
+  });
+
   it("rejects shell-contained overflow even when the root document fits", () => {
     expect(
       accountingE2EWidthSnapshotFits({
@@ -555,8 +571,32 @@ describe("accounting read-only E2E source contract", () => {
     expect(spec).toContain("await verifyMoneyEntryForms(page)");
     expect(spec).toContain('["/record/scale", "⚖️ الميزان — تسليم حمولة"]');
     expect(spec).toContain("async function verifyStatementDownloads(page: Page)");
-    expect(spec).toContain('await expectPdfDownload(page, "تنزيل حزمة PDF")');
-    expect(spec).toContain('await expectPdfDownload(page, "تنزيل PDF")');
+    expect(spec).toContain('await expectPdfDownload(page, "حزمة PDF")');
+    expect(spec).toContain('await expectPdfDownload(page, "PDF")');
+    expect(spec).toContain("async function expectCsvDownloads(");
+    expect(spec).toContain("accountingE2EParseCsv(csv)");
+    expect(spec).toContain("RECONCILIATION_ACCEPTANCE_EXPECTED_ROWS = 698");
+    expect(spec).toContain('page.getByTestId("acceptance-package-digest")');
+    expect(spec).toContain('page.getByTestId("acceptance-completeness")');
+    expect(spec).toContain("filenameMatches: download.suggestedFilename() === expectedFilename");
+    expect(spec).toContain("everyRowComplete: rows.every");
+    expect(spec).toContain("everyRowMatchesDigest: rows.every");
+    expect(spec).toContain('page.getByRole("button", { name: "تصدير CSV", exact: true })');
+    expect(spec).toContain('"الحساب,الاسم,المبلغ"');
+    expect(spec).toContain('"الحساب,الاسم,الرصيد"');
+    expect(spec).toContain("hasBom: true, headerMatches: true, hasData: true");
+    expect(spec).toContain("new TextDecoder(\"utf-8\", { fatal: true })");
+    expect(spec).toContain('const INCOME_CSV_REGRESSION_START = "2019-01-01"');
+    expect(spec).toContain('const INCOME_CSV_REGRESSION_END = "2026-08-24"');
+    expect(spec).toContain("uniqueFilenames: new Set(observedFilenames).size === observedFilenames.length");
+    expect(spec).toContain("filename === expectedFilenames[index]");
+    expect(spec).toContain("startMatches: incomeStart === INCOME_CSV_REGRESSION_START");
+    expect(spec).toContain("endMatches: incomeEnd === INCOME_CSV_REGRESSION_END");
+    expect(spec).toContain('`income-statement-revenue-${incomeStart}-to-${incomeEnd}.csv`');
+    expect(spec).toContain('`income-statement-expenses-${incomeStart}-to-${incomeEnd}.csv`');
+    expect(spec).toContain("uniqueSections: new Set(balanceSectionLabels).size === balanceSectionLabels.length");
+    expect(spec).toContain("knownSections: balanceSectionLabels.every");
+    expect(spec).toContain('`balance-sheet-${balanceKindByLabel[label]}-${asOf}.csv`');
     expect(spec).toContain("expect(response.status()).toBe(200)");
     expect(spec).toContain('expect(response.headers()["content-type"]).toContain("application/pdf")');
     expect(spec).toContain('expect(response.headers()["content-disposition"]).toMatch(/^attachment;.*\\.pdf/i)');
@@ -596,7 +636,7 @@ describe("accounting read-only E2E source contract", () => {
       "await expectPageFitsViewport(page)",
     ]);
     expectOrdered(functionBlock("verifyMonthCloseReadOnly", "verifyAccountingReads"), [
-      'page.getByText("مراجعة القوائم قبل القفل", { exact: true })',
+      'page.getByText("راجع قبل القفل", { exact: true })',
       "await expectPageFitsViewport(page)",
     ]);
     expectOrdered(functionBlock("verifyAccountingReads", "verifyFinanceRoleIdentity"), [
@@ -610,12 +650,16 @@ describe("accounting read-only E2E source contract", () => {
       "await expectPageFitsViewport(page)",
     ]);
     expectOrdered(functionBlock("verifyStatementDownloads", "verifyCostCenterReportModes"), [
-      'name: "تنزيل حزمة PDF", exact: true })).toBeVisible()',
+      'name: "حزمة PDF", exact: true })).toBeVisible()',
       "await expectPageFitsViewport(page)",
-      'await expectPdfDownload(page, "تنزيل حزمة PDF")',
-      'name: "تنزيل PDF", exact: true })).toBeVisible()',
+      'await expectPdfDownload(page, "حزمة PDF")',
+      "startMatches: incomeStart === INCOME_CSV_REGRESSION_START",
+      "await expectCsvDownloads(",
+      'name: "PDF", exact: true })).toBeVisible()',
       "await expectPageFitsViewport(page)",
-      'await expectPdfDownload(page, "تنزيل PDF")',
+      'await expectPdfDownload(page, "PDF")',
+      "knownSections: balanceSectionLabels.every",
+      "await expectCsvDownloads(",
     ]);
     expectOrdered(functionBlock("verifyCostCenterReportModes", "verifyAccountingControls"), [
       'name: "ملخص سريع", exact: true',

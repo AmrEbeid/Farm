@@ -1,7 +1,6 @@
 # SPEC-0028 — «سجّلت غلط»: the corrections framework (safe reversals)
 
-*Status: **ACTIVE** — C-1 is released in production; C-4 is implemented in the combined local accounting
-release stack but is **NOT RELEASED**; C-2, C-3 and C-5 remain design only. The last missing UX property
+*Status: **ACTIVE** — C-1 and C-4 are released in production; C-2, C-3 and C-5 remain design only. The last missing UX property
 (SPEC-0027 master plan §A property 4):
 every mistake has a guided correction. Principle: **posted money is never edited — it is reversed**,
 with both entries linked, a mandatory reason, and plain-Arabic wizards that state exactly what will
@@ -36,7 +35,7 @@ happen. `journal_entries.reversal_of` exists since the kernel (20260701220000) �
 | C-1 | `fn_reverse_expense_payment` + pgTAP (balance restored, links, double-reversal blocked) + «سجّلت غلط؟» on expense 360 | Released 2026-08-06 |
 | C-2 | pending-cancel + reprice + wizards | Med |
 | C-3 | collection reversal | Low-med |
-| C-4 | custody movement reversal (subsumes the kernel's TODO error text) | Implemented locally; NOT RELEASED — migrate-first + independent review |
+| C-4 | custody movement reversal (subsumes the kernel's TODO error text) | Released 2026-08-22 through PR #1008 |
 | C-5 | Ledger/360 reversal-pair rendering | Low |
 
 *Recommended build trigger: first real mistake of the pilot week (there will be one) — build C-1 that day;
@@ -67,7 +66,7 @@ the spec makes it a 1-session slice.*
 - The expense 360 page shows the original and reversal movements together. It never describes the original as
   deleted, and the guided Arabic control is rendered only to owner/accountant on an eligible custody-paid row.
 
-## 4. C-4 local contract (2026-08-08, NOT RELEASED)
+## 4. C-4 released contract (production since 2026-08-22)
 
 - C-4 applies only to a journaled standalone `استلام عهدة من المالك` cash-in. Expense, payment-request,
   transfer, journal-less and reversal rows fail closed and stay on their dedicated correction paths.
@@ -80,5 +79,7 @@ the spec makes it a 1-session slice.*
   either locked period, a consumed balance, a second reversal or direct use of the generic journal-reversal RPC
   fails closed. The generic route remains available for ordinary journals but cannot bypass C-4 for owner funding.
 - Migration `20260822140600` is append-only/replay-tested; pgTAP `206` covers the contract. Independent money
-  review is APPROVE after lock-order, malformed-link, future-date and damaged-replay fixes. Release still requires
-  Owner approval, migrate-first application, merge/deploy checks and authenticated role smoke.
+  review approved the final lock-order, malformed-link, future-date and damaged-replay fixes. It was applied
+  migrate-first in the 21-migration dependable-accounting production batch, then PR #1008 merged as
+  `046a14e902ab1c0e4f3b3dbfa636937edff88c55` and deployed successfully. Authenticated real-record role smoke
+  remains part of the wider accounting acceptance gate, not a reason to describe C-4 as unreleased.

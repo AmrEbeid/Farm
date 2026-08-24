@@ -7,6 +7,14 @@ const financeDashboardSource = readFileSync(
   join(process.cwd(), "app", "(app)", "finance", "dashboard", "page.tsx"),
   "utf8"
 );
+const lazyFinanceChartsSource = readFileSync(
+  join(process.cwd(), "components", "LazyFinanceDashboardBudgetCharts.tsx"),
+  "utf8"
+);
+const financeChartsSource = readFileSync(
+  join(process.cwd(), "components", "FinanceDashboardBudgetCharts.tsx"),
+  "utf8"
+);
 const occurrences = (source: string, needle: string) =>
   source.split(needle).length - 1;
 
@@ -72,9 +80,13 @@ describe("data authority", () => {
       expect(occurrences(financeDashboardSource, sink), sink).toBe(1);
       expect(budgetKpiGate, sink).toContain(sink);
     }
+    expect(occurrences(financeDashboardSource, "<LazyFinanceDashboardBudgetCharts")).toBe(1);
+    expect(budgetChartGate).toContain("<LazyFinanceDashboardBudgetCharts");
+    expect(lazyFinanceChartsSource).toContain(
+      'import("@/components/FinanceDashboardBudgetCharts")'
+    );
     for (const sink of ["<BudgetDoughnut", "<VarianceChart"]) {
-      expect(occurrences(financeDashboardSource, sink), sink).toBe(1);
-      expect(budgetChartGate, sink).toContain(sink);
+      expect(occurrences(financeChartsSource, sink), sink).toBe(1);
     }
     expect(budgetPressureGate).toContain('title="لا توجد موازنة موثقة"');
     expect(budgetPressureGate).toContain("description={DATA_NOT_VERIFIED_AR}");

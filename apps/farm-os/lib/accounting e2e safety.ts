@@ -37,6 +37,64 @@ export type AccountingE2EWidthSnapshot = {
   shellMain: { client: number; scroll: number } | null;
 };
 
+/** Parse the RFC-4180 bytes emitted by rowsToCsv without exposing annex cells in test output. */
+export function accountingE2EParseCsv(csv: string): string[][] {
+  const records: string[][] = [];
+  let record: string[] = [];
+  let field = "";
+  let quoted = false;
+  let closedQuote = false;
+
+  for (let index = 0; index < csv.length; index += 1) {
+    const character = csv[index];
+    if (quoted) {
+      if (character === '"') {
+        if (csv[index + 1] === '"') {
+          field += '"';
+          index += 1;
+        } else {
+          quoted = false;
+          closedQuote = true;
+        }
+      } else {
+        field += character;
+      }
+      continue;
+    }
+
+    if (closedQuote && character !== "," && character !== "\r") {
+      throw new Error("Malformed accounting acceptance CSV quoted field.");
+    }
+    if (character === '"') {
+      if (field !== "") throw new Error("Malformed accounting acceptance CSV field.");
+      quoted = true;
+    } else if (character === ",") {
+      record.push(field);
+      field = "";
+      closedQuote = false;
+    } else if (character === "\r") {
+      if (csv[index + 1] !== "\n") {
+        throw new Error("Accounting acceptance CSV must use CRLF record separators.");
+      }
+      record.push(field);
+      records.push(record);
+      record = [];
+      field = "";
+      closedQuote = false;
+      index += 1;
+    } else if (character === "\n") {
+      throw new Error("Accounting acceptance CSV must use CRLF record separators.");
+    } else {
+      field += character;
+    }
+  }
+
+  if (quoted) throw new Error("Accounting acceptance CSV contains an unterminated quote.");
+  record.push(field);
+  records.push(record);
+  return records;
+}
+
 export function accountingE2EWidthSnapshotFits(
   widths: AccountingE2EWidthSnapshot,
 ): boolean {
@@ -63,7 +121,9 @@ export function recordAccountingE2EBrowserRuntimeError(
 
 const ACCOUNTING_READ_RPC_NAMES = new Set([
   "fn_accounting_balance_sheet",
+  "fn_accounting_balance_sheet_snapshot",
   "fn_accounting_income_statement",
+  "fn_accounting_income_statement_snapshot",
   "fn_accounting_trial_balance",
   "fn_accounting_ledger_snapshot",
   "fn_accountant_home_snapshot",

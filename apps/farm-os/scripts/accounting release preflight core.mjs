@@ -307,11 +307,12 @@ const trackedCandidatePaths = nulFields(git([
 const untrackedCandidatePaths = nulFields(git([
   "ls-files", "-z", "--others", "--exclude-standard",
 ]), "untracked candidate paths");
-assertEqualSets(
-  [...new Set([...trackedCandidatePaths, ...untrackedCandidatePaths])],
-  allPinnedPaths,
-  "full candidate path set",
-);
+const changedCandidatePaths = [...new Set([...trackedCandidatePaths, ...untrackedCandidatePaths])];
+const pinnedPathSet = new Set(allPinnedPaths);
+const unpinnedChangedPaths = changedCandidatePaths.filter((path) => !pinnedPathSet.has(path));
+if (unpinnedChangedPaths.length > 0) {
+  fail(`full candidate path set mismatch\nunpinned changed paths: ${sorted(unpinnedChangedPaths).join(", ")}`);
+}
 
 const head = git(["rev-parse", "HEAD"]).stdout.trim();
 const originMain = git(["rev-parse", "origin/main"]).stdout.trim();

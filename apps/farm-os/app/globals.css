@@ -347,6 +347,24 @@ body {
     break-inside: avoid;
   }
 
+  /* A lazy finance chart may not have reached the viewport before printing. Its exact-data fallback
+     is already in the server markup for accessibility; expose that table on paper instead of a blank
+     loading canvas. Loaded charts keep their existing SVG print behavior. */
+  .finance-lazy-chart__placeholder .fos-chart__canvas {
+    display: none !important;
+  }
+
+  .finance-lazy-chart__fallback {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    white-space: normal !important;
+    border-collapse: collapse !important;
+  }
+
   /* Wide breakdown tables on a SIGNED report (the acceptance control totals). On screen they scroll
      horizontally inside their wrapper; on paper a horizontal scroll is a CLIPPED column, and a
      clipped column on a signed control total is a wrong figure. So on paper only: the wrapper stops
