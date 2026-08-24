@@ -90,6 +90,23 @@ describe("login page keeps the authentication contract", () => {
   });
 });
 
+describe("active organization session recovery", () => {
+  it("repairs a legacy signed-in session through the guarded RPC before protected pages render", () => {
+    const proxy = readFileSync(join(APP_ROOT, "proxy.ts"), "utf8");
+    expect(proxy).toContain("activeOrgIdFromAccessToken");
+    expect(proxy).toContain('.from("organization_member")');
+    expect(proxy).toContain('.eq("user_id", user.id)');
+    expect(proxy).toContain('.rpc("fn_set_active_org"');
+    expect(proxy).toContain("refreshSession()");
+    expect(proxy).toContain("activeOrgRepairTarget");
+    expect(proxy).toContain("headersToSet");
+    expect(proxy).toContain("private, no-cache, no-store");
+    expect(proxy).toContain("REPAIR_COOKIE");
+    expect(proxy).toContain("refreshedOrgId !== repairTarget");
+    expect(proxy).not.toContain("SERVICE_ROLE");
+  });
+});
+
 describe("demo provisioning surface stays deleted", () => {
   it("has no dev seed-auth API route", () => {
     expect(existsSync(join(APP_ROOT, "app", "api", "dev", "seed-auth"))).toBe(false);

@@ -1,10 +1,19 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-24 (combined accounting release train under local validation). Owner: Amr Ebeid.*
+*Updated: 2026-08-24 (PR #1065 deployment approved; production incident fix validated). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN: PR OPEN / CI GREEN / RELEASE BLOCKED.** Branch
+**2026-08-24 — OWNER DASHBOARD INCIDENT FIX: VALIDATED / DEPLOYMENT APPROVED.** Production logs reproduced the
+reported generic dashboard failure as `42501: owner home requires the active organization`. The valid session
+lacked the `active_org_id` claim required by the exact role dashboards. PR #1065 repairs legacy sessions in the
+request proxy using only the signed-in user's RLS-visible membership, existing `fn_set_active_org`, and a token
+refresh before protected rendering. No service role, schema change, migration or business-data write is added.
+Focused tests 23/23, full Vitest 2,397 plus 17 controlled skips, ESLint, TypeScript, 70-page build, dependency
+audit and diff checks pass. Owner approved deployment; merge and exact-main verification are in progress. The
+redesigned release is not live until that deployment succeeds.
+
+**2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN: PR OPEN / CI GREEN / MIGRATIONS APPLIED.** Branch
 `release/accounting-final-train-20260824` combines three separately reviewed candidates against exact
 `origin/main` `811da103a0d6de3db6ca443bfeeb1f9799232f40`: R4k exact-decimal financial statements, month close,
 period register and Arabic PDF/CSV output; an active-person integrity guard for new labor logs; and deferred
@@ -39,8 +48,9 @@ Reviewed application bytes were committed as `693dca33d373b916e853a7721444ffe617
 PR #1065. GitHub application CI, pgTAP, design-system build, gitleaks and Vercel preview checks are green. The
 Owner-approved production preflight confirmed Farm project `veezkmytervjnpxcrbkw`, the expected migration head,
 the documented aggregate business counts, balanced journal totals and exact trusted function/trigger hashes.
-No hosted migration, merge, production deployment or business-data change has occurred. Migration is paused
-because the connector cannot expose backup/PITR status and the dashboard session is signed out. Preview/runtime
+Both approved migrations are live as hosted versions `20260824093256` and `20260824093359`; aggregate and
+catalog postflight matched the pre-apply baseline with no business-data drift. No merge or production
+application deployment has occurred. Preview/runtime
 acceptance is also open because Vercel authentication blocks direct smoke and the three protected role accounts
 are not loaded in this session. Production remains on R4j and accounting remains about 99.5%, not
 100%, pending authenticated role acceptance, all 698 human reconciliation decisions, workbook dual run,

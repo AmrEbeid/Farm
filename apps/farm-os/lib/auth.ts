@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { activeOrgIdFromAccessToken } from "@/lib/active-org-session";
 
 export type Role =
   | "owner"
@@ -49,23 +50,10 @@ async function readActiveOrgId(
   const {
     data: { session },
   } = await sb.auth.getSession();
-  const token = session?.access_token;
-  if (!token) return null;
-  try {
-    // SECURITY NOTE (security-360 LOW-3): this decodes the JWT payload WITHOUT verifying the
-    // signature — the returned value is UNTRUSTED and must never be used as an authorization input.
-    // It is only a hint for which of the caller's OWN orgs to make active: the result is used solely
-    // to pick among the user's RLS-visible memberships (getActiveMembership), and the DB re-validates
-    // the active_org claim against real membership in user_org_ids()/the access-token hook. A forged
-    // value can at most narrow to an org the user already belongs to — it can never widen access.
-    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const claims = JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as {
-      active_org_id?: string;
-    };
-    return claims.active_org_id ?? null;
-  } catch {
-    return null;
-  }
+  // SECURITY NOTE (security-360 LOW-3): this decodes the JWT payload WITHOUT verifying the
+  // signature. The result is only a selection hint among RLS-visible memberships; PostgreSQL
+  // independently validates the claim and membership before granting access.
+  return activeOrgIdFromAccessToken(session?.access_token);
 }
 
 export const getActiveMembership = cache(

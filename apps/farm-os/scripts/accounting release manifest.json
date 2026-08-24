@@ -38,7 +38,10 @@
     "apps/farm-os/lib/accounting release preflight.test.ts",
     "apps/farm-os/lib/accounting-periods.test.ts",
     "apps/farm-os/lib/accounting-periods.ts",
+    "apps/farm-os/lib/active-org-session.test.ts",
+    "apps/farm-os/lib/active-org-session.ts",
     "apps/farm-os/lib/attendance-surface.test.ts",
+    "apps/farm-os/lib/auth.ts",
     "apps/farm-os/lib/balance-sheet.test.ts",
     "apps/farm-os/lib/balance-sheet.ts",
     "apps/farm-os/lib/data-authority.test.ts",
@@ -52,8 +55,11 @@
     "apps/farm-os/lib/income-statement.ts",
     "apps/farm-os/lib/labor-entry.test.ts",
     "apps/farm-os/lib/labor-entry.ts",
+    "apps/farm-os/lib/login-auth-surface.test.ts",
+    "apps/farm-os/lib/proxy.test.ts",
     "apps/farm-os/lib/tests/accounting e2e safety.ts",
     "apps/farm-os/package.json",
+    "apps/farm-os/proxy.ts",
     "docs/PROJECT-TRACKER.md",
     "docs/REPORT-CATALOG.md",
     "docs/SESSION-BRIEF.md",
@@ -65,7 +71,7 @@
     "docs/user-manual/05-reports-and-dashboards.md",
     "package-lock.json"
   ],
-  "candidateDigest": "a0f78227af33b69748dc1d7c20ecb4ea411123161f888b99a53bcf2c2bbaf802",
+  "candidateDigest": "dac3c2a15e045bed3c70399ef6558abb9509515b1832987c2ca49ee9b7c33b1a",
   "artifactModesDigest": "26b67faaf55c244d615a01229d60ee0a910491f0bd0f8003c564ca4fa0744797",
   "migrations": [
     {

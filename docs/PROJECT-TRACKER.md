@@ -1,6 +1,16 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-24 by Codex (accounting PR #1065 blocked before migration)
+# Project Tracker — Farm OS      Last updated: 2026-08-24 by Codex (accounting PR #1065 deployment approved)
 
-> **2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN PR OPEN / CI GREEN / BLOCKED BEFORE MIGRATION.** Branch
+> **2026-08-24 — OWNER DASHBOARD INCIDENT FIX VALIDATED / DEPLOYMENT APPROVED.** Production logs reproduced
+> the reported generic dashboard failure as `42501: owner home requires the active organization`. The signed-in
+> session lacked the active-organization claim required by the exact role dashboards. PR #1065 now repairs a
+> missing claim in the request proxy using only the signed-in user's RLS-visible membership, the existing
+> membership-validating `fn_set_active_org` RPC and a session refresh before protected rendering. No service
+> role, schema change, new migration or business-data write is introduced. Focused tests 23/23, full Vitest
+> 2,397 plus 17 controlled skips, ESLint, TypeScript, 70-page build, dependency audit and diff checks pass. The
+> Owner approved deployment; merge and live verification are in progress. The new design is not live until the
+> PR merges and Vercel completes the exact-main deployment.
+
+> **2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN PR OPEN / CI GREEN / MIGRATIONS APPLIED.** Branch
 > `release/accounting-final-train-20260824` at exact base `811da10` combines the independently approved R4k
 > financial-statement/close candidate, active-person labor-log integrity guard and finance-dashboard deferred
 > chart loading. The ordered migrations are `20260823190000_exact_financial_statement_snapshots.sql` followed
@@ -31,8 +41,10 @@
 > Reviewed application bytes were committed as `693dca33d373b916e853a7721444ffe6178f999f`, pushed and opened as
 > PR #1065. GitHub application CI, pgTAP, design-system build, gitleaks and Vercel preview checks are green.
 > The production preflight confirmed the Farm project, exact migration head, aggregate business counts, balanced
-> journal totals and trusted function/trigger hashes. No migration, merge, production deployment or business-row
-> change occurred. Migration is paused until backup/PITR is visibly confirmed; preview/role acceptance is open
+> journal totals and trusted function/trigger hashes. Both approved migrations were later applied to Farm
+> production in order as hosted versions `20260824093256` and `20260824093359`; aggregate and catalog postflight
+> passed with no business-data drift. No merge or production application deployment occurred; role acceptance
+> is open
 > because Vercel authentication blocks direct smoke and the three protected role accounts are not loaded.
 > Production stays at R4j; the human accounting acceptance gates remain open.
 

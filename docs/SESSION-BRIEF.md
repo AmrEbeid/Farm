@@ -1,7 +1,23 @@
-# Session Brief — Farm OS      Updated: 2026-08-24 by Codex (PR #1065 blocked before migration)
+# Session Brief — Farm OS      Updated: 2026-08-24 by Codex (PR #1065 deployment approved)
 *Updated LAST, after meaningful work.*
 
-## 2026-08-24 — Combined accounting release train — PR OPEN / CI GREEN / RELEASE BLOCKED
+## 2026-08-24 — Owner dashboard incident — FIX VALIDATED / DEPLOYMENT APPROVED
+
+The Owner supplied a production screenshot showing the generic protected-page error and reported that the new
+design was not visible. Production PostgreSQL logs reproduced the request twice as `42501: owner home requires
+the active organization`. Production still runs the R4j main commit, so the PR #1065 design is not live. The
+valid signed-in session lacked the `active_org_id` claim required by the new exact role dashboards.
+
+The release branch now repairs such legacy sessions in `proxy.ts` before protected rendering: it selects only
+the signed-in user's RLS-visible oldest membership, calls existing `fn_set_active_org` (which independently
+validates membership in PostgreSQL), refreshes the session so the auth hook mints the claim, and propagates the
+new cookies into the same request. JWT decoding remains only a selection hint; it never grants access. No
+service role, database migration, schema change or business-data write is added. Focused tests 23/23, full
+Vitest 2,397 plus 17 controlled skips, ESLint, TypeScript, 70-page build, zero-vulnerability audit and diff
+checks pass. The Owner approved deployment. Independent review, manifest refresh, commit/push, merge, Vercel
+completion and authenticated live verification remain the immediate execution steps.
+
+## 2026-08-24 — Combined accounting release train — PR OPEN / CI GREEN / MIGRATIONS APPLIED
 
 Fresh branch `release/accounting-final-train-20260824` combines three separately reviewed candidates from exact
 `origin/main` `811da103a0d6de3db6ca443bfeeb1f9799232f40`: R4k exact-decimal financial statements, month close,
@@ -50,9 +66,10 @@ wiring; final rereview is APPROVE with no P0-P3 findings and the P2 is closed.
 **Release state:** reviewed application bytes are commit `693dca33d373b916e853a7721444ffe6178f999f` on PR #1065.
 Application CI, pgTAP, design-system build, gitleaks and Vercel preview checks are green. Production preflight
 confirmed Farm project `veezkmytervjnpxcrbkw`, exact migration head `20260823113659`, aggregate counts, balanced
-journal totals and trusted function/trigger hashes. No hosted migration, merge, production deployment or
-business-data mutation has occurred. Migration is blocked on visible backup/PITR confirmation because the
-connector omits it and the dashboard session is signed out. Preview/role acceptance is blocked because the
+journal totals and trusted function/trigger hashes. Both approved migrations are live as hosted versions
+`20260824093256` and `20260824093359`; aggregate and catalog postflight matched the pre-apply baseline and no
+business-data mutation occurred. No merge or production application deployment has occurred. Preview/role
+acceptance is blocked because the
 preview requires Vercel authentication and the three protected accounts are not loaded. Production remains on
 R4j. Accounting remains about 99.5%, not
 100%, until authenticated Owner/Accountant/denied-role acceptance, the protected 46-test run, all 698
