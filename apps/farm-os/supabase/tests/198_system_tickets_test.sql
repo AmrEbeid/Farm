@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(18);
 
 \set org '00000000-0000-0000-0000-000000000001'
 select set_config('test.owner', (select user_id::text from public.organization_member
@@ -16,6 +16,11 @@ begin
   execute 'set local role authenticated';
 end $$;
 
+insert into public.organization(id, name)
+  values ('00000000-0000-0000-0000-000000000099', 'Unrelated test organization');
+insert into public.system_tickets(org_id, created_by, category, title, description)
+  values ('00000000-0000-0000-0000-000000000099', null, 'bug', 'Other org ticket', 'This row must remain isolated');
+
 select has_table('public', 'system_tickets', 'system_tickets exists');
 select is((select relrowsecurity from pg_class where oid = 'public.system_tickets'::regclass), true, 'RLS enabled');
 select is((select relforcerowsecurity from pg_class where oid = 'public.system_tickets'::regclass), true, 'RLS forced');
@@ -30,7 +35,20 @@ select lives_ok(
 select is((select count(*)::int from public.system_tickets), 1, 'submitter reads their own ticket');
 select lives_ok($$ update public.system_tickets set status = 'done' $$, 'non-owner update is safely filtered by RLS');
 select is((select status from public.system_tickets limit 1), 'new', 'submitter cannot change ticket status');
+select throws_ok(
+  $$ insert into public.system_tickets (org_id, category, title, description)
+    values ('00000000-0000-0000-0000-000000000099', 'bug', 'Cross org', 'Must not be accepted') $$,
+  '42501', null, 'member cannot submit into an unrelated organization');
+select is((select count(*)::int from public.system_tickets where org_id = '00000000-0000-0000-0000-000000000099'), 0,
+  'member cannot read an unrelated organization ticket');
+select lives_ok(
+  $$ update public.system_tickets set status = 'done'
+    where org_id = '00000000-0000-0000-0000-000000000099' $$,
+  'cross-organization update is safely filtered by RLS');
 reset role;
+
+select is((select status from public.system_tickets where org_id = '00000000-0000-0000-0000-000000000099'), 'new',
+  'cross-organization update changed no row');
 
 select pg_temp.as_user(current_setting('test.other'));
 select is((select count(*)::int from public.system_tickets), 0, 'another member cannot read the submitter ticket');

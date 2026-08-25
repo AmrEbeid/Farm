@@ -10,6 +10,7 @@ type PublicSiteAction =
   | "contact_phone"
   | "contact_whatsapp"
   | "enquiry_submitted";
+type ContactAction = Exclude<PublicSiteAction, "certificate_opened">;
 
 export function keepPublicHomepageOnly(event: BeforeSendEvent): BeforeSendEvent | null {
   try {
@@ -25,12 +26,17 @@ export function keepPublicHomepageOnly(event: BeforeSendEvent): BeforeSendEvent 
   }
 }
 
+export function trackPublicSiteAction(action: "certificate_opened", language: Lang, properties: { certificate: number }): void;
+export function trackPublicSiteAction(action: ContactAction, language: Lang): void;
 export function trackPublicSiteAction(
   action: PublicSiteAction,
   language: Lang,
-  properties?: Record<string, string | number | boolean>,
-) {
-  track(action, { language, ...properties });
+  properties?: { certificate: number },
+): void {
+  const payload = action === "certificate_opened"
+    ? { language, certificate: properties?.certificate ?? 0 }
+    : { language };
+  track(action, payload);
 }
 
 export function PublicSiteAnalytics() {

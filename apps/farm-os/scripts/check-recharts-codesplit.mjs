@@ -75,6 +75,8 @@ const ALLOWED_CHART_ROUTES = [
   "/weather/dashboard/page",
   // The settings dashboard renders a role-distribution doughnut; same guarantee.
   "/settings/dashboard/page",
+  // Website analytics renders the public-traffic trend; Recharts remains route-local.
+  "/settings/analytics/page",
 ];
 
 function die(msg) {

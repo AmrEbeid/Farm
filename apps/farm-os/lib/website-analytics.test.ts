@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
 import { loadWebsiteAnalytics } from "./website-analytics";
 
 const config = { token: "test-token", projectId: "prj_test", teamId: "team_test" };

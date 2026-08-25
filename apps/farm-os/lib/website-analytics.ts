@@ -1,3 +1,5 @@
+import "server-only";
+
 export type WebsiteAnalyticsPeriod = "7d" | "30d" | "90d";
 
 export interface WebsiteAnalyticsBreakdown {
