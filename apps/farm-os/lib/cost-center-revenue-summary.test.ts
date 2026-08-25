@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COST_CENTER_REVENUE_SUMMARY_VERSION, parseCostCenterRevenueSummary } from "./cost-center-revenue-summary";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
+const LEGACY_FARM_ORG = "00000000-0000-0000-0000-000000000001";
 const A = "00000000-0000-4000-8000-00000000000a";
 const B = "00000000-0000-4000-8000-00000000000b";
 
@@ -23,6 +24,11 @@ describe("parseCostCenterRevenueSummary", () => {
     expect(parsed).toMatchObject({ orgId: ORG, saleCount: 4, totalRevenue: "2300" });
     expect(parsed.rows[0]).toEqual({ costCenterId: null, saleCount: 1, revenue: "200" });
     expect(parsed.salesRevenue).toEqual({ byCenter: { [A]: 1500, [B]: 600 }, total: 2300 });
+  });
+
+  it("accepts the canonical PostgreSQL UUID used by the historical farm organization", () => {
+    const value = { ...valid(), org_id: LEGACY_FARM_ORG };
+    expect(parseCostCenterRevenueSummary(value, LEGACY_FARM_ORG).orgId).toBe(LEGACY_FARM_ORG);
   });
 
   it.each([
