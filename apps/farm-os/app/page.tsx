@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./site.css";
 import { SiteLanding } from "@/components/site/SiteLanding";
+import { PublicSiteAnalytics } from "@/components/site/PublicSiteAnalytics";
 import { loadSiteContent } from "@/lib/site-content-db";
 
 // ISR: statically rendered, re-read from the DB at most every 5 min; the editor's server action
@@ -62,6 +63,7 @@ export default async function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <SiteLanding content={content} />
+      <PublicSiteAnalytics />
     </>
   );
 }
