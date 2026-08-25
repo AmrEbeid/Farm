@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-08-25 by Codex (production login incident closed)
+# Session Brief — Farm OS      Updated: 2026-08-25 by Codex (support attachments live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-25 — Support request attachments — MIGRATED / MERGED / DEPLOYED
+
+The support and development request workspace now accepts JPG/JPEG, PNG, WebP, HEIC/HEIF, PDF, DOC and DOCX
+files when a request is created and from the request detail view. Each selection is limited to five files and
+each file to 25 MiB. A dedicated private bucket is separated from general farm media. Metadata and storage
+policies scope access to the active organization and ticket submitter or Owner; registered objects are
+immutable, unregistered objects cannot be read, server actions verify actual file signatures, and download
+links expire after five minutes. Partial multi-file uploads report the exact result and refresh the request.
+The existing visible status workflow remains `new`, `triaged`, `in_progress`, `done`, `blocked` and `rejected`,
+with Owner-only status changes.
+
+Hosted migrations `20260825100525 system_ticket_attachments` and
+`20260825100530 support_attachments_storage_policies` were applied to Farm production before merge. PR #1073
+merged as `484395fe827331db5008f69e6345515363bfc9b1`; all GitHub checks and Vercel Production deployment passed.
+Validation passed: attachment/storage pgTAP 38/38, full pgTAP 5,155/5,155, focused Vitest 22/22, full Vitest
+2,431 plus 17 controlled skips, TypeScript, ESLint, 72-route production build, zero-vulnerability audit and
+independent exact-diff APPROVE. A fresh authenticated Owner session rendered the live `/support` form, file
+control and status guidance with no horizontal overflow at the tested viewport. No production test request was
+submitted because support requests are intentionally non-deletable; production remained at zero tickets and
+zero attachments.
+
+**Exact resume point:** the requested attachment and visible-status capability is live and complete. For every
+real request Codex starts, move the status to `in_progress`; on completion use `done`, or `blocked` with a clear
+reason when work cannot proceed. Do not leave actively handled requests in `new` or `triaged`.
 
 ## 2026-08-25 — Production login incident — CLOSED / authenticated Owner verified
 

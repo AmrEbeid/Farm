@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-25 by Codex (production login incident closed)
+# Project Tracker — Farm OS      Last updated: 2026-08-25 by Codex (support attachments live)
+
+> **2026-08-25 — SUPPORT REQUEST ATTACHMENTS MIGRATED / MERGED / DEPLOYED.** `/support` now accepts
+> screenshots and documents when a request is created and later from its detail view. The private
+> `support-attachments` bucket and `system_ticket_attachments` metadata use forced RLS, organization/ticket
+> scoped paths, byte-signature validation, immutable registered objects and five-minute signed links. Users
+> can see request status; Owners retain the existing workflow for `new`, `triaged`, `in_progress`, `done`,
+> `blocked` and `rejected`. Hosted Farm migrations `20260825100525 system_ticket_attachments` and
+> `20260825100530 support_attachments_storage_policies` were applied migrate-first. PR #1073 merged as
+> `484395fe827331db5008f69e6345515363bfc9b1`; application CI, pgTAP, gitleaks, Vercel preview and Production
+> deployment passed. Evidence: attachment/storage pgTAP 38/38; full pgTAP 5,155/5,155; focused Vitest 22/22;
+> full Vitest 2,431 plus 17 controlled skips; TypeScript; ESLint; 72-route build; zero-vulnerability audit;
+> independent final APPROVE. Authenticated live Owner verification confirmed the form and file control at
+> `/support`, with no horizontal overflow at the tested viewport. Production remained at zero support tickets
+> and zero attachments because no non-deletable test request was submitted.
 
 > **2026-08-25 — PRODUCTION LOGIN INCIDENT CLOSED / OWNER VERIFIED.** Supabase accepted the Owner password,
 > but the request returned to `/login` because the production custom access-token hook was disabled. The proxy
