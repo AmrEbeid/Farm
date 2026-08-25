@@ -1,20 +1,24 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-24 (PR #1065 merged and deployed). Owner: Amr Ebeid.*
+*Updated: 2026-08-25 (production login incident closed). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-24 — OWNER DASHBOARD INCIDENT FIX: MERGED / DEPLOYED.** Production logs reproduced the
-reported generic dashboard failure as `42501: owner home requires the active organization`. The valid session
-lacked the `active_org_id` claim required by the exact role dashboards. PR #1065 repairs legacy sessions in the
-request proxy using only the signed-in user's RLS-visible membership, existing `fn_set_active_org`, and a token
-refresh before protected rendering. No service role, schema change, migration or business-data write is added.
-Focused tests 23/23, full Vitest 2,397 plus 17 controlled skips, ESLint, TypeScript, 70-page build, dependency
-audit and diff checks pass. Owner approved deployment. PR #1065 merged as
-`658ccb3125ebb460773187406786ee22740ee490`; exact-main CI `32715656916`, database tests `32715656940`, release
-checks `32715656959`, and Vercel production deployment succeeded. Live `/` and `/login` return 200; signed-out
-Owner and finance dashboards redirect to login. The redesigned release is live. Authenticated Owner visual and
-real-data confirmation remains open because approved role credentials are not configured locally.
+**2026-08-25 — PRODUCTION LOGIN INCIDENT: CLOSED / AUTHENTICATED OWNER VERIFIED.** Valid credentials were
+accepted by Supabase but PR #1065's proxy repair redirected the user back to `/login`: production had never
+enabled `custom_access_token_hook`, so token refresh could not mint the `active_org_id` claim required by exact
+role-dashboard RPCs. PR #1067 preserves the documented no-claim membership fallback instead of creating a
+redirect loop, while present-but-stale claims and membership/RPC/refresh failures remain fail-closed. It merged
+as `5067d8fbf0173f1dccddd2512f29714174a3b657`; exact-main CI `32818302491`, database tests `32818302447`,
+release `32818302444`, and Vercel Production deployment `6077983222` passed. The existing production hook was
+then verified for locked grants and correct Farm-org output and enabled through Supabase Auth as
+`pg-functions://postgres/public/custom_access_token_hook`. A fresh password sign-in minted
+`active_org_id=00000000-0000-0000-0000-000000000001`; live `/dashboard/owner` rendered the real Owner dashboard
+with `data-testid=owner-home`, no generic error and zero console errors. Temporary sessions were cleared. No
+schema migration, dependency, service-role path or farm business-data change was made. Full validation: focused
+23/23, Vitest 2,397 plus 17 controlled skips, TypeScript, ESLint, 70-page build, secret scan, pgTAP and independent
+security review APPROVE. Login and Owner dashboard access are now operational; Accountant/non-finance role
+acceptance and the accounting human sign-off gates below remain open.
 
 **2026-08-24 — COMBINED ACCOUNTING RELEASE TRAIN: PR OPEN / CI GREEN / MIGRATIONS APPLIED.** Branch
 `release/accounting-final-train-20260824` combines three separately reviewed candidates against exact
