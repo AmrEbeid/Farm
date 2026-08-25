@@ -1900,6 +1900,39 @@ type SystemTicketsTable = {
   Relationships: [];
 };
 
+type SystemTicketAttachmentsTable = {
+  Row: {
+    id: string;
+    org_id: string;
+    ticket_id: string;
+    created_by: string;
+    storage_path: string;
+    file_name: string;
+    content_type:
+      | "image/jpeg"
+      | "image/png"
+      | "image/webp"
+      | "image/heic"
+      | "image/heif"
+      | "application/pdf"
+      | "application/msword"
+      | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    size_bytes: number;
+    created_at: string;
+  };
+  Insert: {
+    org_id: string;
+    ticket_id: string;
+    created_by?: string;
+    storage_path: string;
+    file_name: string;
+    content_type: SystemTicketAttachmentsTable["Row"]["content_type"];
+    size_bytes: number;
+  };
+  Update: Record<string, never>;
+  Relationships: [];
+};
+
 // SPEC-0024 S-7 — بنك الفسائل. Physical movement ledger; valuation is display-only and finance-read.
 type OffshootMovementsTable = {
   Row: {
@@ -2750,6 +2783,7 @@ export type Database = Omit<Generated, "public"> & {
       site_content: SiteContentTable;
       site_enquiries: SiteEnquiriesTable;
       system_tickets: SystemTicketsTable;
+      system_ticket_attachments: SystemTicketAttachmentsTable;
       offshoot_movements: OffshootMovementsTable;
       offshoot_valuation: OffshootValuationTable;
       data_authority_status: DataAuthorityStatusTable;

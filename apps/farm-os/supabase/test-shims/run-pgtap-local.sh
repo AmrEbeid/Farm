@@ -56,6 +56,7 @@ for f in "$SUPA"/migrations/*.sql; do
     run -f "$f" >/dev/null
   fi
 done
+echo "==> storage policies"; run -f "$SUPA"/support-attachments-storage-policies.sql >/dev/null
 echo "==> seed";        run -f "$SUPA"/seed.sql >/dev/null
 
 echo "==> pgTAP"; tot_ok=0; tot_no=0; tot_bad=0

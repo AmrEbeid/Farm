@@ -52,3 +52,30 @@ as $$ select nullif(current_setting('request.jwt.claims', true)::json ->> 'sub',
 create or replace function auth.role() returns text
   language sql stable
 as $$ select current_setting('request.jwt.claims', true)::json ->> 'role' $$;
+
+-- Minimal Supabase Storage surface for executable storage.objects policy tests. This intentionally
+-- models only the bucket/object columns and foldername() helper used by Farm OS policies.
+create schema if not exists storage;
+grant usage on schema storage to anon, authenticated, service_role;
+
+create table if not exists storage.buckets (
+  id text primary key,
+  name text not null,
+  public boolean not null default false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
+
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text not null references storage.buckets(id),
+  name text not null unique
+);
+
+alter table storage.objects enable row level security;
+grant select, insert, delete on storage.objects to anon, authenticated, service_role;
+grant select on storage.buckets to anon, authenticated, service_role;
+
+create or replace function storage.foldername(name text) returns text[]
+  language sql immutable
+as $$ select string_to_array(name, '/') $$;
