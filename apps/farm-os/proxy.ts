@@ -97,7 +97,13 @@ export async function proxy(request: NextRequest) {
           .limit(100);
         if (membershipsError) return sessionErrorRedirect(request, response);
         const membershipOrgIds = (memberships ?? []).map(({ org_id }) => org_id);
-        const repairTarget = activeOrgRepairTarget(claimedOrgId, membershipOrgIds);
+        // A missing claim is the supported legacy state while the custom access-token hook is
+        // disabled: RLS falls back to the caller's full membership set and auth.ts chooses the
+        // deterministic oldest membership. Only repair a claim that exists but is stale. Treating
+        // an absent optional claim as a repair failure creates a login redirect loop in production.
+        const repairTarget = claimedOrgId
+          ? activeOrgRepairTarget(claimedOrgId, membershipOrgIds)
+          : null;
 
         if (repairTarget) {
           if (request.cookies.get(REPAIR_COOKIE)) {
