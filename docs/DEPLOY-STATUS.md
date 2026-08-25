@@ -1,6 +1,17 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-24)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-25)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-08-25 (latest) — SUPPORT ATTACHMENTS MIGRATED / MERGED / DEPLOYED / OWNER VERIFIED.** Farm hosted
+> migrations `20260825100525 system_ticket_attachments` and
+> `20260825100530 support_attachments_storage_policies` are live. They add a forced-RLS attachment registry
+> and a private 25 MiB-per-object bucket for screenshots, PDFs and Word documents, with submitter/Owner access,
+> exact organization/ticket paths, server-side byte-signature validation and short-lived download links.
+> PR #1073 merged as `484395fe827331db5008f69e6345515363bfc9b1`; all GitHub checks and Vercel Production deployment passed.
+> Full evidence: pgTAP 5,155/5,155, Vitest 2,431 plus 17 controlled skips, TypeScript, ESLint, 72-route build,
+> dependency audit and independent final APPROVE. An authenticated Owner session verified the live `/support`
+> attachment form and status guidance. No disposable ticket was created: production remains at zero tickets
+> and zero attachments.
 
 > **2026-08-24 (latest) — ACCOUNTING RELEASE + ACTIVE-ORG SESSION REPAIR MERGED / DEPLOYED.** The two release
 > migrations were applied first as hosted versions `20260824093256` and `20260824093359`; aggregate and catalog
