@@ -79,8 +79,8 @@ beforeEach(() => {
 });
 
 describe("active organization repair in Proxy", () => {
-  it("repairs a missing claim, propagates the rotated cookie, and disables caching", async () => {
-    const client = clientFor({});
+  it("repairs a stale claim, propagates the rotated cookie, and disables caching", async () => {
+    const client = clientFor({ claim: "removed-org" });
     state.client = client;
 
     const response = await proxy(new NextRequest("https://ebeidfarm.business/dashboard/owner"));
@@ -111,24 +111,18 @@ describe("active organization repair in Proxy", () => {
     expect(client.auth.refreshSession).not.toHaveBeenCalled();
   });
 
-  it("fails closed and rate-limits recovery when the hook still omits the claim", async () => {
-    const firstClient = clientFor({ refreshedClaim: "" });
-    state.client = firstClient;
-    const first = await proxy(new NextRequest("https://ebeidfarm.business/dashboard/owner"));
-
-    expect(first.status).toBe(307);
-    expect(first.headers.get("location")).toBe("https://ebeidfarm.business/login");
-    expect(first.cookies.get("farm-active-org-repair")?.value).toBe("1");
-    expect(first.headers.get("cache-control")).toContain("no-store");
-
-    const secondClient = clientFor({ refreshedClaim: "" });
-    state.client = secondClient;
-    const second = await proxy(new NextRequest("https://ebeidfarm.business/login", {
+  it("allows the documented membership fallback when the hook omits the optional claim", async () => {
+    const client = clientFor({ refreshedClaim: "" });
+    state.client = client;
+    const response = await proxy(new NextRequest("https://ebeidfarm.business/dashboard/owner", {
       headers: { cookie: "farm-active-org-repair=1" },
     }));
-    expect(second.status).toBe(200);
-    expect(secondClient.rpc).not.toHaveBeenCalled();
-    expect(secondClient.auth.refreshSession).not.toHaveBeenCalled();
+
+    expect(response.status).toBe(200);
+    expect(response.cookies.get("farm-active-org-repair")?.value).toBe("");
+    expect(new Date(response.cookies.get("farm-active-org-repair")?.expires ?? 1).getTime()).toBe(0);
+    expect(client.rpc).not.toHaveBeenCalled();
+    expect(client.auth.refreshSession).not.toHaveBeenCalled();
   });
 
   it("fails closed when the caller's membership set cannot be read", async () => {
