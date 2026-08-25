@@ -1,12 +1,11 @@
-# SECURITY-NOTES — accepted findings & residual-risk register   (reconciled 2026-07-13; §5 added, §4.2 updated 2026-07-28)
+# SECURITY-NOTES — accepted findings & residual-risk register   (advisor reconciliation updated 2026-08-25)
 
 Purpose: a durable record of the **known, accepted, low-risk** security findings on Farm OS MVP-0,
 so future Supabase advisor runs and independent reviews have context and do not re-litigate settled
 decisions. Each entry states **what it is**, **why it is accepted / low-risk**, and **the follow-up
 condition** (what would change the verdict, or what is still owed).
 
-Scope: `apps/farm-os` (live Supabase project `veezkmytervjnpxcrbkw`; production ledger head
-`20260712120000` at this reconciliation).
+Scope: `apps/farm-os` (live Supabase project `veezkmytervjnpxcrbkw`).
 This file is a register, not a new review — every item below is grounded in the existing security
 docs and migrations. It does **not** invent new issues. Sources:
 - [`SECURITY-REVIEW-MVP0-2026-06-23.md`](SECURITY-REVIEW-MVP0-2026-06-23.md)
@@ -58,24 +57,29 @@ non-member org. Treat this as a required verification gate, not as a confirmed p
 These are the current dispositions for recurring advisor findings. Accepted design choices and open dashboard
 actions are distinguished below.
 
-### 1.1 `authorize()` and `user_org_ids()` are anon/authenticated-EXECUTABLE — BY DESIGN
-- **What:** the advisor flags these two `public` functions as executable by `anon`/`authenticated`.
-- **Why accepted:** they are the **RLS helper functions** themselves. Both are `SECURITY DEFINER`
-  with a locked `search_path` and return **only the caller's own context** —
-  `user_org_ids()` returns the caller's active-org-narrowed membership set, and `authorize(perm, p_org)` returns whether
-  the *caller's* role grants `perm` (both key on `auth.uid()`; an anon caller has a null `uid` and
-  gets the empty/false result). They must be executable by the roles whose policies call them — that
-  is how tenant RLS policies evaluate. Current definitions: `user_org_ids()` in migration `0085`
-  (`20260622000085_active_org.sql`) and the latest `authorize(perm, p_org)` re-emit in `20260701420000_site_content.sql`.
-- **Follow-up:** none. Revoking these would break RLS itself. Re-confirm that both remain rooted in `auth.uid()` and
-  that `authorize()` constrains its `p_org` argument to the caller's real membership.
+### 1.1 Authenticated-executable `SECURITY DEFINER` functions — intentional allowlist
+- **What:** the 2026-08-25 production advisor reports 133
+  `authenticated_security_definer_function_executable` warnings. The live catalog contains 185 `public`
+  `SECURITY DEFINER` functions: exactly 133 are executable by `authenticated`, while zero are executable by `anon`
+  or `PUBLIC`. The authenticated set exactly matches the deliberate API allowlist enforced by
+  [`22_security_invariants_test.sql`](../apps/farm-os/supabase/tests/22_security_invariants_test.sql) INV-2.
+- **Why accepted:** this advisor rule warns on every authenticated-executable definer function; it does not establish
+  that the function is unsafe. These functions are the intended authenticated RPC and RLS-helper surface. Every live
+  public definer function is owned by `postgres` and pins `search_path` to the empty value. Anonymous execution,
+  unexpected authenticated execution, direct trigger-function execution, and writable-schema name hijacking are
+  blocked by INV-1, INV-2, and INV-5. The complete local migration + pgTAP run passed 5,155/5,155 checks on 2026-08-25.
+- **Follow-up:** treat any authenticated-executable definer function outside the INV-2 allowlist, any anonymous/public
+  grant, or any definer without `search_path = ''` as a release blocker. Reconcile the production catalog to the
+  allowlist whenever an advisor count changes; do not blanket-revoke the intentional API surface. INV-2 currently
+  identifies most approved functions by name; harden it to compare full `regprocedure` identities so an unintended
+  overload of an approved name cannot inherit allowlist treatment.
 
 ### 1.2 Client-callable business RPCs are authenticated-EXECUTABLE — BY DESIGN
-- **What:** `fn_execute_operation` and `fn_stock_coverage` are executable by `authenticated`; the advisor lists
-  them as `SECURITY DEFINER` callable functions. `fn_post_movement` and `fn_bin_rebuild` are internal-only and are
-  **not** executable by `anon` or `authenticated`.
-- **Why accepted:** the client-callable pair are intended write/read entry points. They are `SECURITY DEFINER` with a
-  pinned `search_path` and **gate authorization in the body** against the *caller* (`SECURITY DEFINER`
+- **What:** the functions in the INV-2 allowlist are authenticated entry points. Internal primitives such as
+  `fn_post_movement` and `fn_bin_rebuild`, plus all trigger functions, are **not** executable by `anon` or
+  `authenticated`.
+- **Why accepted:** the client-callable functions are intended write/read entry points. They are `SECURITY DEFINER`
+  with a pinned `search_path` and **gate authorization in the body** against the caller (`SECURITY DEFINER`
   does not change `auth.uid()`, so `authorize()`/the org guard still evaluate the caller):
   - `fn_execute_operation` checks org-scoped `authorize('op.execute', …)` + a cross-org guard at the top, then runs
     the whole execution as one transaction (`0020`).
