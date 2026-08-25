@@ -61,6 +61,40 @@ describe("website analytics read model", () => {
     }
   });
 
+  it("keeps KPI cards consistent when Vercel returns stale or string counts", async () => {
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/visits/count")) {
+        return response({ data: [{ visitors: "0", pageviews: "0" }] });
+      }
+      if (url.searchParams.get("by") === "day") {
+        return response({
+          data: [
+            { timestamp: "2026-08-24T00:00:00.000Z", visitors: "2", pageviews: "2" },
+            { timestamp: "2026-08-25T00:00:00.000Z", visitors: "1", pageviews: "5" },
+          ],
+        });
+      }
+      return response({ data: [] });
+    });
+
+    const snapshot = await loadWebsiteAnalytics("7d", {
+      config,
+      fetcher,
+      now: new Date("2026-08-25T12:00:00Z"),
+    });
+
+    expect(snapshot).toMatchObject({
+      status: "ready",
+      visitors: 3,
+      pageviews: 7,
+      trend: [
+        { date: "2026-08-24", visitors: 2, pageviews: 2 },
+        { date: "2026-08-25", visitors: 1, pageviews: 5 },
+      ],
+    });
+  });
+
   it("fails closed with a friendly empty state when Vercel rejects the request", async () => {
     const fetcher = vi.fn<typeof fetch>(async () => new Response("denied", { status: 403 }));
     const snapshot = await loadWebsiteAnalytics("90d", { config, fetcher });

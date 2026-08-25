@@ -40,13 +40,26 @@ const PERIOD_DAYS: Record<WebsiteAnalyticsPeriod, number> = {
 };
 
 function numberValue(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string" || value.trim() === "") return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
 function rows(value: unknown): AnalyticsRow[] {
   if (!value || typeof value !== "object") return [];
   const data = (value as { data?: unknown }).data;
   return Array.isArray(data) ? data.filter((row): row is AnalyticsRow => !!row && typeof row === "object") : [];
+}
+
+function countRow(value: unknown): AnalyticsRow | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const data = (value as { data?: unknown }).data;
+  if (Array.isArray(data)) {
+    const first = data[0];
+    return first && typeof first === "object" ? first as AnalyticsRow : undefined;
+  }
+  return data && typeof data === "object" ? data as AnalyticsRow : undefined;
 }
 
 function breakdown(value: unknown, dimension: string): WebsiteAnalyticsBreakdown[] {
@@ -148,20 +161,25 @@ export async function loadWebsiteAnalytics(
       query("visits/aggregate", { ...common, by: "browserName", limit: "8" }, config as Required<AnalyticsConfig>, fetcher),
       query("events/aggregate", { ...common, by: "eventName", limit: "20" }, config as Required<AnalyticsConfig>, fetcher),
     ]);
-    const countData = counts && typeof counts === "object" ? (counts as { data?: AnalyticsRow }).data : undefined;
+    const countData = countRow(counts);
+    const trendData = rows(trend).map((row) => ({
+      date: typeof row.timestamp === "string" ? row.timestamp.slice(0, 10) : "",
+      visitors: numberValue(row.visitors),
+      pageviews: numberValue(row.pageviews),
+    }));
+    const trendVisitors = trendData.reduce((total, point) => total + point.visitors, 0);
+    const trendPageviews = trendData.reduce((total, point) => total + point.pageviews, 0);
+    const countVisitors = numberValue(countData?.visitors);
+    const countPageviews = numberValue(countData?.pageviews);
 
     return {
       status: "ready",
       period,
       since,
       until,
-      visitors: numberValue(countData?.visitors),
-      pageviews: numberValue(countData?.pageviews),
-      trend: rows(trend).map((row) => ({
-        date: typeof row.timestamp === "string" ? row.timestamp.slice(0, 10) : "",
-        visitors: numberValue(row.visitors),
-        pageviews: numberValue(row.pageviews),
-      })),
+      visitors: countVisitors > 0 ? countVisitors : trendVisitors,
+      pageviews: countPageviews > 0 ? countPageviews : trendPageviews,
+      trend: trendData,
       countries: breakdown(countries, "country"),
       referrers: breakdown(referrers, "referrerHostname"),
       devices: breakdown(devices, "deviceType"),
