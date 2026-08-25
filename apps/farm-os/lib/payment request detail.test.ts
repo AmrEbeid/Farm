@@ -41,6 +41,7 @@ const totals = Object.fromEntries(
 );
 
 const ORG = "10000000-0000-4000-8000-000000000001";
+const LEGACY_FARM_ORG = "00000000-0000-0000-0000-000000000001";
 const REQUEST = "10000000-0000-4000-8000-000000000002";
 const CUSTODY = "10000000-0000-4000-8000-000000000003";
 const ACCOUNT = "10000000-0000-4000-8000-000000000004";
@@ -279,6 +280,17 @@ describe("payment request detail money", () => {
     expect(parsed.fundings[0]?.journal_entry_id).toBe(FUNDING_JOURNAL);
     expect(parsed.availableExpenseCount).toBe(2);
     expect(parsed.availableExpensesTruncated).toBe(true);
+  });
+
+  it("accepts the canonical PostgreSQL UUID used by the historical farm organization", () => {
+    const base = snapshot();
+    const parsed = parsePaymentRequestDetailSnapshot(
+      { ...base, org_id: LEGACY_FARM_ORG },
+      LEGACY_FARM_ORG,
+      REQUEST,
+    );
+
+    expect(parsed.orgId).toBe(LEGACY_FARM_ORG);
   });
 
   it("accepts only the exact empty shape for a missing request", () => {

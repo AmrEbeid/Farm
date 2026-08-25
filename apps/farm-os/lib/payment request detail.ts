@@ -252,7 +252,11 @@ function snapshotNullableEnum<const T extends readonly string[]>(
 
 function snapshotUuid(value: unknown, label: string): string {
   const parsed = snapshotString(value, label);
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed)) {
+  // PostgreSQL's uuid type accepts the full canonical 8-4-4-4-12 hex shape,
+  // including the farm's historical organization namespace with a zero version
+  // nibble. Identity is still checked exactly below; rejecting valid database
+  // UUID transport here made every payment-request detail page fail at render.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed)) {
     throw new Error(`payment request detail snapshot: ${label} must be a UUID`);
   }
   return parsed;
