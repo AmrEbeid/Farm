@@ -79,8 +79,12 @@ export default async function SettingsDashboardPage({
   ];
   const linkRows = [
     { id: "profile", href: "/profile", page: "الملف الشخصي", scope: "هويتك ودورك والمؤسسة النشطة" },
+    { id: "support", href: "/support", page: "الدعم والتطوير", scope: "إرسال مشكلة أو تعديل أو تطوير ومتابعة حالته" },
     ...(canEditSettings
-      ? [{ id: "settings", href: "/settings", page: "إعدادات المؤسسة", scope: "اسم المؤسسة والعملة والسنة المالية" }]
+      ? [
+          { id: "settings", href: "/settings", page: "إعدادات المؤسسة", scope: "اسم المؤسسة والعملة والسنة المالية" },
+          { id: "analytics", href: "/settings/analytics", page: "زوار الموقع", scope: "الزيارات والمصادر والدول والتفاعل" },
+        ]
       : []),
   ];
 
@@ -95,7 +99,9 @@ export default async function SettingsDashboardPage({
         </div>
         <div className="flex flex-wrap gap-2">
           <HeaderLink href="/profile">الملف الشخصي</HeaderLink>
+          <HeaderLink href="/support">الدعم والتطوير</HeaderLink>
           {canEditSettings && <HeaderLink href="/settings">إعدادات المؤسسة</HeaderLink>}
+          {canEditSettings && <HeaderLink href="/settings/analytics">زوار الموقع</HeaderLink>}
         </div>
       </header>
 

@@ -456,8 +456,10 @@ export const APP_MODULES: AppModule[] = [
     pages: [
       { id: "settings-dashboard", label: "لوحة الإدارة", icon: "⚙️", href: "/settings/dashboard" },
       { id: "profile", label: "الملف الشخصي", icon: "👤", href: "/profile" },
+      { id: "support", label: "الدعم والتطوير", icon: "🛠️", href: "/support" },
       { id: "settings", label: "إعدادات المؤسسة", icon: "⚙️", href: "/settings", roles: ["owner"] },
       { id: "website", label: "الموقع", icon: "🌐", href: "/website", roles: ["owner"] },
+      { id: "website-analytics", label: "زوار الموقع", icon: "📊", href: "/settings/analytics", roles: ["owner"] },
       { id: "enquiries", label: "طلبات العملاء", icon: "📬", href: "/enquiries", roles: ["owner"] },
     ],
   },

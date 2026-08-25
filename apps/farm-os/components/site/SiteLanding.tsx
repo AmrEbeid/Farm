@@ -12,6 +12,7 @@ import { Button } from "@/components/ui";
 import type { Bi, Lang, SiteContent } from "@/lib/site-content";
 import { fmtNum } from "@/components/site/format";
 import { submitEnquiry } from "@/app/enquiry-actions";
+import { trackPublicSiteAction } from "@/components/site/PublicSiteAnalytics";
 
 function waLink(phone: string): string {
   return `https://wa.me/${phone.replace(/[^0-9]/g, "")}`;
@@ -46,7 +47,10 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
     setEnquiryErr("");
     startSend(async () => {
       const res = await submitEnquiry(fd);
-      if (res.ok) setEnquirySent(true);
+      if (res.ok) {
+        trackPublicSiteAction("enquiry_submitted", lang);
+        setEnquirySent(true);
+      }
       else setEnquiryErr(res.error);
     });
   }
@@ -176,6 +180,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                     href={safeHref(cert.verifyUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackPublicSiteAction("certificate_opened", lang, { certificate: i + 1 })}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- static local proof scan, not a signed URL */}
                     <img src={cert.image} alt={t(cert.title)} loading="lazy" />
@@ -188,6 +193,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                       href={safeHref(cert.verifyUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => trackPublicSiteAction("certificate_opened", lang, { certificate: i + 1 })}
                     >
                       {cert.verifyIsRegistry
                         ? lang === "ar" ? "التحقق على السجل" : "Verify on registry"
@@ -250,15 +256,30 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                 {/* Latin values are wrapped in <bdi dir="ltr"> so their "+20 …" phone/email runs
                     keep left-to-right order and the leading "+" stays put inside the RTL layout. */}
                 {primaryPhone && (
-                  <a href={waLink(primaryPhone)} target="_blank" rel="noopener noreferrer" className="site__contact-btn site__contact-btn--wa">
+                  <a
+                    href={waLink(primaryPhone)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="site__contact-btn site__contact-btn--wa"
+                    onClick={() => trackPublicSiteAction("contact_whatsapp", lang)}
+                  >
                     WhatsApp · <bdi dir="ltr">{primaryPhone}</bdi>
                   </a>
                 )}
-                <a href={`mailto:${c.contact.email}`} className="site__contact-btn">
+                <a
+                  href={`mailto:${c.contact.email}`}
+                  className="site__contact-btn"
+                  onClick={() => trackPublicSiteAction("contact_email", lang)}
+                >
                   ✉︎ <bdi dir="ltr">{c.contact.email}</bdi>
                 </a>
                 {c.contact.phones.slice(1).map((p) => (
-                  <a key={p} href={`tel:${p.replace(/[^0-9+]/g, "")}`} className="site__contact-btn site__contact-btn--ghost">
+                  <a
+                    key={p}
+                    href={`tel:${p.replace(/[^0-9+]/g, "")}`}
+                    className="site__contact-btn site__contact-btn--ghost"
+                    onClick={() => trackPublicSiteAction("contact_phone", lang)}
+                  >
                     ☎ <bdi dir="ltr">{p}</bdi>
                   </a>
                 ))}
