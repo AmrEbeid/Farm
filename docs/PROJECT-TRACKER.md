@@ -1,4 +1,17 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-24 by Codex (accounting PR #1065 deployed)
+# Project Tracker — Farm OS      Last updated: 2026-08-25 by Codex (production login incident closed)
+
+> **2026-08-25 — PRODUCTION LOGIN INCIDENT CLOSED / OWNER VERIFIED.** Supabase accepted the Owner password,
+> but the request returned to `/login` because the production custom access-token hook was disabled. The proxy
+> introduced in PR #1065 wrongly treated the absent optional `active_org_id` claim as a repair failure. PR #1067
+> restores the documented no-claim membership fallback without weakening stale-claim or error fail-closed
+> behavior. It merged as `5067d8fbf0173f1dccddd2512f29714174a3b657`; exact-main CI `32818302491`, db-tests
+> `32818302447`, release `32818302444`, and Vercel Production deployment `6077983222` passed. The existing
+> `public.custom_access_token_hook(jsonb)` was then verified to be auth-admin-only, anon/authenticated-denied,
+> search-path pinned, and to return the correct Ebeid Farm org for the Owner. Supabase Auth now enables it at
+> `pg-functions://postgres/public/custom_access_token_hook`. Fresh production sign-in minted the expected claim
+> and rendered `/dashboard/owner` with real data and zero console errors. No migration, dependency, service-role
+> path or business-data change. Owner login is operational; Accountant/non-finance role acceptance and the 698-row
+> human reconciliation/sign-off gates remain open.
 
 > **2026-08-24 — OWNER DASHBOARD INCIDENT FIX MERGED / DEPLOYED.** Production logs reproduced
 > the reported generic dashboard failure as `42501: owner home requires the active organization`. The signed-in

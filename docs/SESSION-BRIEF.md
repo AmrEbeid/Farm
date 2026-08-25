@@ -1,5 +1,33 @@
-# Session Brief — Farm OS      Updated: 2026-08-24 by Codex (PR #1065 deployed)
+# Session Brief — Farm OS      Updated: 2026-08-25 by Codex (production login incident closed)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-25 — Production login incident — CLOSED / authenticated Owner verified
+
+The Owner reported that login did not work. Production reproduction separated two failures. First, Supabase
+accepted the password and returned the confirmed Owner user and readable Ebeid Farm membership, but the browser
+returned to `/login`. PR #1065's new proxy attempted to repair every missing `active_org_id` claim, refreshed
+the token, then rejected the refresh because production had never enabled the custom access-token hook. PR
+#1067 changes only this compatibility branch: a missing claim uses the existing deterministic membership
+fallback, while a present-but-stale claim, unreadable membership, RPC failure, refresh failure or claim mismatch
+still fails closed. Focused auth tests 23/23, full Vitest 2,397 plus 17 controlled skips, ESLint, TypeScript,
+70-page build, pgTAP, gitleaks and independent security review passed. PR #1067 merged as
+`5067d8fbf0173f1dccddd2512f29714174a3b657`; exact-main CI `32818302491`, db-tests `32818302447`, release
+`32818302444`, and Vercel Production deployment `6077983222` succeeded.
+
+Second, after login reached `/dashboard/owner`, the exact Owner snapshot RPC correctly failed with
+`42501: owner home requires the active organization`. The production Auth configuration confirmed
+`hook_custom_access_token_enabled=false`. The already-deployed `public.custom_access_token_hook(jsonb)` was
+read-only verified: empty search path, auth-admin EXECUTE, anon/authenticated denied, and correct Ebeid Farm org
+output for the Owner. Supabase Auth was then configured to enable
+`pg-functions://postgres/public/custom_access_token_hook`. A fresh production password sign-in minted
+`active_org_id=00000000-0000-0000-0000-000000000001`; the live Owner dashboard rendered real attention and
+purchase-request content, exposed `data-testid=owner-home`, showed no generic error and produced zero console
+errors. Temporary local and production browser sessions were cleared. No schema migration, dependency,
+service-role path or business-data change occurred.
+
+**Exact resume point:** Owner login is operational. Run the remaining protected Accountant and non-finance
+acceptance lanes, then complete the 698 human reconciliation decisions, workbook dual run, exception resolution
+and dated Accountant/Owner sign-off. Accounting remains about 99.5%, not 100%, until those gates close.
 
 ## 2026-08-24 — Owner dashboard incident — MERGED / DEPLOYED
 
