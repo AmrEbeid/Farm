@@ -46,10 +46,15 @@ it; and `/dashboard` still redirects to login with `noindex, nofollow, noarchive
 OAI-SearchBot, ChatGPT-User and PerplexityBot test requests to a focused English page all return 200. No migration,
 Supabase change or business-data write was required.
 
-**Exact resume point:** Search Console is open under `amrabdelglill@gmail.com`, with the Domain form populated for
-`ebeidfarm.business`. The next click creates the property and reveals the TXT token; it then needs a Vercel DNS TXT
-record, verification, sitemap submission and indexing requests for `/` and `/en`. These external account/DNS writes
-are waiting for action-time confirmation. Bing submission, external citations and independent photo provenance remain open.
+Google Search Console domain ownership is verified under `amrabdelglill@gmail.com` through a Vercel DNS TXT record
+with 60-second TTL; Google says the record must remain to preserve verification. The sitemap submission succeeded,
+was read immediately and reports 14 discovered pages. URL Inspection showed `/` already indexed; its refresh request
+entered the priority crawl queue. `/en` was `Discovered - currently not indexed`, associated with the submitted
+sitemap, and its indexing request also entered the priority crawl queue. Search Console reports are still processing
+and say to check again in a day or so.
+
+**Exact resume point:** monitor Search Console coverage and `/en` after 24 hours, then weekly. Bing Webmaster Tools,
+external citations and independent photo provenance remain open; no repeated indexing request is useful while queued.
 
 ## 2026-08-26 — Google and AI search baseline — REPORT COMPLETE
 

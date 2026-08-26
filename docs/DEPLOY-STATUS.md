@@ -8,7 +8,8 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > All 14 public URLs return 200 with one H1 and no no-index; the sitemap lists exactly 14 locations and private
 > dashboard responses still redirect with `noindex, nofollow, noarchive`. Googlebot, Bingbot, OAI-SearchBot,
 > ChatGPT-User and PerplexityBot test requests return 200. No migration, Supabase change or business-data write.
-> Search Console domain verification and submissions remain an external-account action.
+> Google Search Console domain ownership is verified through Vercel DNS. The sitemap was accepted with 14 discovered
+> pages. `/` was already indexed and requeued; `/en` was discovered but not indexed and is now in the priority crawl queue.
 
 > **2026-08-26 (latest) — PUBLIC SEO INTERNATIONALIZATION MERGED / DEPLOYED / LIVE VERIFIED.** PR #1080
 > merged as `62ac7c267238792956e6e7b9d127c8dc927d2097`; Vercel Production deployment `6101544881`, exact-main CI

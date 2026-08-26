@@ -295,6 +295,8 @@ production. All 14 public URLs return 200 with one H1 and no no-index; `sitemap.
 and private dashboard responses retain redirect plus no-index protection. Googlebot, Bingbot, OAI-SearchBot,
 ChatGPT-User and PerplexityBot test requests to a focused English page all returned 200. Direct post-release search
 checks still returned the established homepage rather than the new focused URLs, so no new indexing or ranking gain
-is claimed on release day. Search Console domain creation, sitemap submission and indexing requests are prepared but
-not yet submitted; Bing submission and external citations remain open. Production currently renders three
+is claimed on release day. Google Search Console domain ownership was then verified through Vercel DNS. The sitemap
+submission succeeded with 14 discovered pages. `/` was already indexed and its refresh was queued; `/en` was
+`Discovered - currently not indexed` and its indexing request entered the priority crawl queue. Search Console says
+its new-property reports are processing and should be checked again in a day or so. Bing submission and external citations remain open. Production currently renders three
 owner-managed gallery uploads, but this review did not independently establish their source provenance.
