@@ -31,7 +31,9 @@ describe("Owner public-site comments", () => {
     expect(SITE_CONTENT_DEFAULTS.about.body.ar).toContain("7 قطاعات");
     expect(SITE_CONTENT_DEFAULTS.contact.person.ar).toBe("مزرعة عبيد للتمور");
     expect(SITE_CONTENT_DEFAULTS.contact.email).toBe("ebeidfarm@gmail.com");
-    expect(SITE_CONTENT_DEFAULTS.contact.mapUrl).toMatch(/^https:\/\//);
+    expect(SITE_CONTENT_DEFAULTS.contact.mapUrl).toBe(
+      "https://maps.app.goo.gl/G9XhCj1xLHWW3zgu9",
+    );
     expect(SITE_CONTENT_DEFAULTS.specs.rows[5]?.value.ar).toContain("دول شرق آسيا");
   });
 
@@ -42,6 +44,11 @@ describe("Owner public-site comments", () => {
     expect(mergeSiteContent({ contact: legacyContact }).contact.mapUrl).toBe(
       SITE_CONTENT_DEFAULTS.contact.mapUrl,
     );
+  });
+
+  it("preserves an explicitly stored map URL instead of replacing it with the default", () => {
+    const storedMapUrl = "https://maps.example.test/persisted-farm-location";
+    expect(mergeSiteContent({ contact: { mapUrl: storedMapUrl } }).contact.mapUrl).toBe(storedMapUrl);
   });
 
   it("accepts only empty or absolute credential-free HTTPS map links", () => {

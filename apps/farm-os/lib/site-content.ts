@@ -367,7 +367,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       ar: "أبو شلبي، فاقوس، الشرقية، مصر 44641",
       en: "Abou Shalaby, Faqous, El-Sharkia, Egypt 44641",
     },
-    mapUrl: "https://share.google/oLzf6RKeBTz0yuroi",
+    mapUrl: "https://maps.app.goo.gl/G9XhCj1xLHWW3zgu9",
   },
 };
 
