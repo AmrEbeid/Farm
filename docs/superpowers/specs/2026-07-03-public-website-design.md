@@ -182,6 +182,11 @@ true multi-tenant sites.
 
 ## 8. Changelog
 
+- **2026-08-26 — Location destination correction:** replaced the initial map destination with
+  the exact Google Maps link associated with support ticket
+  `0629f281-ca8c-401f-80b6-f1ef29ce6f32`,
+  `https://maps.app.goo.gl/G9XhCj1xLHWW3zgu9`. No content row, schema, access rule or analytics
+  payload changed.
 - **2026-08-26 — Farm location link:** the Owner can maintain a public Google Maps/directions
   URL with the other contact fields. The public contact section shows a bilingual “open farm
   location” action in a new tab. Empty links hide the action; non-empty links are normalized and
