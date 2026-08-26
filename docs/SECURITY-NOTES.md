@@ -257,6 +257,26 @@ Git-history cleanup remains separate hygiene under Stage 0 steps A–C.
 
 ---
 
+## 6. Password recovery domain correction — candidate 2026-08-26
+
+The production Auth Site URL was found pointing at a protected Vercel deployment. Recovery emails generated
+from the default Supabase template therefore sent ordinary Farm users to a Vercel authentication screen, and
+the application had no in-product forgot/reset-password workflow.
+
+SPEC-0035 adds an anonymous, enumeration-resistant request page; a prefetch-safe URL-fragment form that keeps
+the token out of requests, referrers and server logs; server-side verification restricted to one-time `recovery`
+token hashes in the same request that changes the password; a 12-character minimum with confirmation; and
+checked global session revocation with an explicit partial-success warning if revocation fails after the update.
+Recovery paths are excluded from organization-membership repair, while all existing Farm roles and memberships
+remain unchanged. No service role or database migration is involved.
+
+This item remains **candidate, not live**, until the application routes are deployed, Supabase Site URL and
+redirect allowlist use `https://ebeidfarm.business`, the recovery email template points to the app-owned
+token-hash callback, and the anonymous production surfaces are verified. Old emails retain their old links;
+users must request a fresh email after the configuration change.
+
+---
+
 ## How to use this file
 
 When an advisor run or review surfaces something here, check this register first. If it matches an accepted item

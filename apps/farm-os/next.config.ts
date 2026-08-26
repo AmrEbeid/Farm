@@ -85,6 +85,17 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/reset-password",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
+      {
+        source: "/auth/reset-password",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+      },
     ];
   },
 };
