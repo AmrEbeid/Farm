@@ -21,6 +21,6 @@ describe("website analytics settings surface", () => {
   it("labels the visitor KPI as a sum of daily graph values", () => {
     expect(page).toContain('label="مجموع الزوار يوميًا"');
     expect(page).toContain('label="مشاهدات لكل زائر يومي"');
-    expect(analytics).not.toContain('query("visits/count"');
+    expect(analytics).not.toMatch(/visits\/count/);
   });
 });

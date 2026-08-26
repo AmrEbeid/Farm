@@ -145,7 +145,7 @@ export async function loadWebsiteAnalytics(
     const [trend, countries, referrers, devices, browsers, events] = await Promise.all([
       query(
         "visits/aggregate",
-        { ...common, by: "day", limit: String(PERIOD_DAYS[period] + 1) },
+        { ...common, by: "day", limit: String(PERIOD_DAYS[period] + 2) },
         config as Required<AnalyticsConfig>,
         fetcher,
       ),
@@ -155,16 +155,20 @@ export async function loadWebsiteAnalytics(
       query("visits/aggregate", { ...common, by: "browserName", limit: "8" }, config as Required<AnalyticsConfig>, fetcher),
       query("events/aggregate", { ...common, by: "eventName", limit: "20" }, config as Required<AnalyticsConfig>, fetcher),
     ]);
-    const trendData = rows(trend)
-      .flatMap((row) => {
-        if (typeof row.timestamp !== "string" || Number.isNaN(Date.parse(row.timestamp))) return [];
-        return [{
-          date: row.timestamp.slice(0, 10),
-          visitors: numberValue(row.visitors),
-          pageviews: numberValue(row.pageviews),
-        }];
-      })
-      .sort((left, right) => left.date.localeCompare(right.date));
+    const dailyTrend = new Map<string, { date: string; visitors: number; pageviews: number }>();
+    for (const row of rows(trend)) {
+      if (typeof row.timestamp !== "string") continue;
+      const parsedTimestamp = new Date(row.timestamp);
+      if (Number.isNaN(parsedTimestamp.getTime())) continue;
+      const date = parsedTimestamp.toISOString().slice(0, 10);
+      const existing = dailyTrend.get(date);
+      dailyTrend.set(date, {
+        date,
+        visitors: (existing?.visitors ?? 0) + numberValue(row.visitors),
+        pageviews: (existing?.pageviews ?? 0) + numberValue(row.pageviews),
+      });
+    }
+    const trendData = [...dailyTrend.values()].sort((left, right) => left.date.localeCompare(right.date));
     const trendVisitors = trendData.reduce((total, point) => total + point.visitors, 0);
     const trendPageviews = trendData.reduce((total, point) => total + point.pageviews, 0);
 

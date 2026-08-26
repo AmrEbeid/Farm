@@ -92,6 +92,25 @@ describe("website analytics read model", () => {
     });
   });
 
+  it.each([
+    ["7d", "9"],
+    ["30d", "32"],
+    ["90d", "92"],
+  ] as const)("requests enough daily rows for %s plus timezone headroom", async (period, expectedLimit) => {
+    const fetcher = vi.fn<typeof fetch>(async () => response({ data: [] }));
+
+    await loadWebsiteAnalytics(period, {
+      config,
+      fetcher,
+      now: new Date("2026-08-25T12:00:00Z"),
+    });
+
+    const dayRequest = fetcher.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((url) => url.searchParams.get("by") === "day");
+    expect(dayRequest?.searchParams.get("limit")).toBe(expectedLimit);
+  });
+
   it("keeps the cards at zero when the displayed trend has no rows", async () => {
     const fetcher = vi.fn<typeof fetch>(async () => response({ data: [] }));
 
@@ -109,7 +128,7 @@ describe("website analytics read model", () => {
     });
   });
 
-  it("ignores malformed dates and clamps invalid numeric trend values", async () => {
+  it("normalizes valid dates, merges duplicate days, and clamps invalid trend values", async () => {
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const url = new URL(String(input));
       if (url.searchParams.get("by") === "day") {
@@ -118,6 +137,7 @@ describe("website analytics read model", () => {
             { timestamp: "not-a-date", visitors: 99, pageviews: 99 },
             { timestamp: "2026-08-25T00:00:00.000Z", visitors: -3, pageviews: 5 },
             { timestamp: "2026-08-24T00:00:00.000Z", visitors: 2, pageviews: Number.POSITIVE_INFINITY },
+            { timestamp: "Mon, 24 Aug 2026 00:00:00 GMT", visitors: 3, pageviews: 4 },
           ],
         });
       }
@@ -131,10 +151,10 @@ describe("website analytics read model", () => {
     });
 
     expect(snapshot).toMatchObject({
-      visitors: 2,
-      pageviews: 5,
+      visitors: 5,
+      pageviews: 9,
       trend: [
-        { date: "2026-08-24", visitors: 2, pageviews: 0 },
+        { date: "2026-08-24", visitors: 5, pageviews: 4 },
         { date: "2026-08-25", visitors: 0, pageviews: 5 },
       ],
     });
