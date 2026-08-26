@@ -7,7 +7,7 @@ import { requireMembership } from "@/lib/auth";
 import { toArabicError } from "@/lib/errors";
 import { sniffImage, galleryMediaPaths, ALLOWED_IMAGE_TYPES, IMAGE_EXT } from "@/lib/site-media";
 import { validateCertifications } from "@/lib/site-certificates";
-import type { SiteContent } from "@/lib/site-content";
+import { normalizeSiteMapUrl, type SiteContent } from "@/lib/site-content";
 import type { Json } from "@/lib/database.types";
 
 // Save the public-site content. The role gate (site.write = owner) is enforced IN THE DATABASE by
@@ -35,10 +35,17 @@ export async function saveSiteContent(input: {
   if (m.role !== "owner" || input.orgId !== m.orgId) {
     return { ok: false, error: NO_PERM };
   }
-  // CONTENT GATE: validate the owner-editable certificate cards BEFORE anything else touches
-  // storage or the DB. The editor's field limits are client-side convenience; this is the control.
-  // Running it first means a rejected payload deletes no bucket object and writes no row.
-  const certs = validateCertifications(input.content?.certifications);
+  // CONTENT GATES: client input attributes are convenience only. Validate the map URL and
+  // certificates BEFORE anything touches privileged storage or the database.
+  const mapUrl = normalizeSiteMapUrl(input.content?.contact?.mapUrl);
+  if (mapUrl === null) {
+    return { ok: false, error: "رابط موقع المزرعة يجب أن يكون رابط HTTPS صالحًا (أو يُترك فارغًا)" };
+  }
+  const content: SiteContent = {
+    ...input.content,
+    contact: { ...input.content.contact, mapUrl },
+  };
+  const certs = validateCertifications(content.certifications);
   if (!certs.ok) return { ok: false, error: certs.error };
 
   const sb = await createClient();
@@ -63,7 +70,7 @@ export async function saveSiteContent(input: {
       publicBucketPrefix,
       m.orgId,
     );
-    const newPaths = new Set(galleryMediaPaths(input.content, publicBucketPrefix, m.orgId));
+    const newPaths = new Set(galleryMediaPaths(content, publicBucketPrefix, m.orgId));
     removedPaths = oldPaths.filter((path) => !newPaths.has(path));
   } catch {
     // Cleanup discovery is best effort and must not block the content save.
@@ -73,7 +80,7 @@ export async function saveSiteContent(input: {
     p_org: input.orgId,
     // SiteContent is a structural object; Supabase's Json type lacks its index signature, so a
     // narrow boundary cast is required (the rpc name + p_org are now type-checked).
-    p_content: input.content as unknown as Json,
+    p_content: content as unknown as Json,
   });
   if (error) return { ok: false, error: toArabicError(error, { "42501": NO_PERM }) };
 

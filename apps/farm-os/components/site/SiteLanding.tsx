@@ -9,7 +9,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui";
-import type { Bi, Lang, SiteContent } from "@/lib/site-content";
+import { normalizeSiteMapUrl, type Bi, type Lang, type SiteContent } from "@/lib/site-content";
 import { fmtNum } from "@/components/site/format";
 import { submitEnquiry } from "@/app/enquiry-actions";
 import { trackPublicSiteAction } from "@/components/site/PublicSiteAnalytics";
@@ -32,6 +32,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
   const t = (b: Bi) => b[lang];
   const other = lang === "ar" ? "English" : "عربي";
   const primaryPhone = c.contact.phones[0] ?? "";
+  const mapHref = normalizeSiteMapUrl(c.contact.mapUrl) ?? "";
   // Public gallery shows only REAL photos — the shipped dummy placeholders (and empty slots) are
   // hidden on the live site so buyers never see "replace-me" tiles; the owner still sees/edits them
   // in the OS editor. An item goes public once its image is a real upload/URL (not a placeholder).
@@ -283,6 +284,17 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
                     ☎ <bdi dir="ltr">{p}</bdi>
                   </a>
                 ))}
+                {mapHref && (
+                  <a
+                    href={mapHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="site__contact-btn site__contact-btn--ghost"
+                    onClick={() => trackPublicSiteAction("contact_location", lang)}
+                  >
+                    📍 {lang === "ar" ? "افتح موقع المزرعة" : "Open Farm Location"}
+                  </a>
+                )}
               </div>
 
               {enquirySent ? (

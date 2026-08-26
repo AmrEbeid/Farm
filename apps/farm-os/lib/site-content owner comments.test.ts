@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SITE_CONTENT_DEFAULTS, SITE_CONTENT_PUBLIC_READ_FALLBACK } from "./site-content";
+import {
+  SITE_CONTENT_DEFAULTS,
+  SITE_CONTENT_PUBLIC_READ_FALLBACK,
+  mergeSiteContent,
+  normalizeSiteMapUrl,
+} from "./site-content";
 
 const migration = readFileSync(
   join(
@@ -26,7 +31,38 @@ describe("Owner public-site comments", () => {
     expect(SITE_CONTENT_DEFAULTS.about.body.ar).toContain("7 قطاعات");
     expect(SITE_CONTENT_DEFAULTS.contact.person.ar).toBe("مزرعة عبيد للتمور");
     expect(SITE_CONTENT_DEFAULTS.contact.email).toBe("ebeidfarm@gmail.com");
+    expect(SITE_CONTENT_DEFAULTS.contact.mapUrl).toMatch(/^https:\/\//);
     expect(SITE_CONTENT_DEFAULTS.specs.rows[5]?.value.ar).toContain("دول شرق آسيا");
+  });
+
+  it("adds the map URL to site content saved before that field existed", () => {
+    const legacyContact = { ...SITE_CONTENT_DEFAULTS.contact };
+    delete (legacyContact as Partial<typeof legacyContact>).mapUrl;
+
+    expect(mergeSiteContent({ contact: legacyContact }).contact.mapUrl).toBe(
+      SITE_CONTENT_DEFAULTS.contact.mapUrl,
+    );
+  });
+
+  it("accepts only empty or absolute credential-free HTTPS map links", () => {
+    expect(normalizeSiteMapUrl("  ")).toBe("");
+    expect(normalizeSiteMapUrl(SITE_CONTENT_DEFAULTS.contact.mapUrl)).toBe(
+      SITE_CONTENT_DEFAULTS.contact.mapUrl,
+    );
+    for (const invalid of [
+      "http://maps.example.test/farm",
+      "mailto:farm@example.test",
+      "tel:+201000000000",
+      "#contact",
+      "/farm-location",
+      "//maps.example.test/farm",
+      "javascript:alert(1)",
+      "https://user:password@maps.example.test/farm",
+      `https://maps.example.test/${"x".repeat(2048)}`,
+      `https://maps.example.test/${"م".repeat(1000)}`,
+    ]) {
+      expect(normalizeSiteMapUrl(invalid)).toBeNull();
+    }
   });
 
   it("patches the existing editable site row with the same owner copy", () => {

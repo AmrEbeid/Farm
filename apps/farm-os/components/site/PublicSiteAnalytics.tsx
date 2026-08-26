@@ -7,6 +7,7 @@ import type { Lang } from "@/lib/site-content";
 type PublicSiteAction =
   | "certificate_opened"
   | "contact_email"
+  | "contact_location"
   | "contact_phone"
   | "contact_whatsapp"
   | "enquiry_submitted";
