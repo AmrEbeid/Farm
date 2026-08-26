@@ -6,12 +6,13 @@ vi.mock("@vercel/analytics", () => ({ track: vi.fn() }));
 
 import { track } from "@vercel/analytics";
 import {
-  keepPublicHomepageOnly,
+  keepPublicSiteOnly,
   trackPublicSiteAction,
 } from "@/components/site/PublicSiteAnalytics";
 
-const homePage = readFileSync(resolve(__dirname, "../app/page.tsx"), "utf8");
-const rootLayout = readFileSync(resolve(__dirname, "../app/layout.tsx"), "utf8");
+const homePage = readFileSync(resolve(__dirname, "../app/(public-ar)/page.tsx"), "utf8");
+const englishPage = readFileSync(resolve(__dirname, "../app/(public-en)/en/page.tsx"), "utf8");
+const rootDocument = readFileSync(resolve(__dirname, "../app/root-document.tsx"), "utf8");
 const landing = readFileSync(resolve(__dirname, "../components/site/SiteLanding.tsx"), "utf8");
 const analyticsPage = readFileSync(
   resolve(__dirname, "../app/(app)/settings/analytics/page.tsx"),
@@ -19,26 +20,36 @@ const analyticsPage = readFileSync(
 );
 
 describe("public website analytics", () => {
-  it("runs on the public homepage without tracking the authenticated application", () => {
+  it("runs on both public language pages without tracking the authenticated application", () => {
     expect(homePage).toContain("<PublicSiteAnalytics />");
-    expect(rootLayout).not.toContain("PublicSiteAnalytics");
-    expect(rootLayout).not.toContain("@vercel/analytics");
+    expect(englishPage).toContain("<PublicSiteAnalytics />");
+    expect(rootDocument).not.toContain("PublicSiteAnalytics");
+    expect(rootDocument).not.toContain("@vercel/analytics");
   });
 
-  it("drops internal routes and strips query values from the public URL", () => {
+  it("keeps both public routes and drops internal routes, stripping query values", () => {
     vi.stubGlobal("window", { location: { origin: "https://ebeidfarm.business" } });
 
     expect(
-      keepPublicHomepageOnly({
+      keepPublicSiteOnly({
         type: "pageview",
         url: "https://ebeidfarm.business/?email=buyer%40example.com#contact",
       }),
     ).toEqual({ type: "pageview", url: "https://ebeidfarm.business/" });
     expect(
-      keepPublicHomepageOnly({ type: "pageview", url: "https://ebeidfarm.business/dashboard" }),
+      keepPublicSiteOnly({
+        type: "pageview",
+        url: "https://ebeidfarm.business/en?utm_source=buyer#contact",
+      }),
+    ).toEqual({ type: "pageview", url: "https://ebeidfarm.business/en" });
+    expect(
+      keepPublicSiteOnly({ type: "pageview", url: "https://ebeidfarm.business/dashboard" }),
     ).toBeNull();
     expect(
-      keepPublicHomepageOnly({ type: "pageview", url: "https://example.com/" }),
+      keepPublicSiteOnly({ type: "pageview", url: "https://ebeidfarm.business/enquiries" }),
+    ).toBeNull();
+    expect(
+      keepPublicSiteOnly({ type: "pageview", url: "https://example.com/" }),
     ).toBeNull();
 
     vi.unstubAllGlobals();

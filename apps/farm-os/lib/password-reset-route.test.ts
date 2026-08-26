@@ -10,7 +10,7 @@ const createClient = vi.hoisted(() => vi.fn(async () => ({ auth })));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 
-import { POST } from "@/app/auth/reset-password/route";
+import { POST } from "@/app/(auth)/auth/reset-password/route";
 
 const validBody = {
   tokenHash: ["0123456789abcdef", "0123456789abcdef"].join(""),

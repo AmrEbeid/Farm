@@ -61,7 +61,7 @@ function hrefs(source: string): string[] {
 
 describe("people surfaces read one bounded snapshot", () => {
   it("does not leave the unauthenticated visual-review fixture in a production route", () => {
-    expect(existsSync(join(process.cwd(), "app/login/r4c-review-fixture/page.tsx"))).toBe(false);
+    expect(existsSync(join(process.cwd(), "app/(auth)/login/r4c-review-fixture/page.tsx"))).toBe(false);
   });
 
   it("calls exactly one snapshot RPC per page and reads no table directly", () => {

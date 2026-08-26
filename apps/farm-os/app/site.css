@@ -81,8 +81,13 @@
   gap: 0.6rem;
   margin-inline-start: 0.5rem;
 }
+/* The AR⇄EN control is a <Link> (a real crawlable URL), so it needs the anchor resets a
+   <button> got for free. */
 .site__lang {
   background: none;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   border: 1px solid var(--g-line);
   border-radius: 999px;
   padding: 0.35rem 0.8rem;

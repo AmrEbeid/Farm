@@ -24,6 +24,15 @@ const ROLE_HOME_PATHS = new Set([
   "/m",
   "/inventory/dashboard",
 ]);
+const PUBLIC_INDEXABLE_PATHS = new Set(["/", "/en"]);
+const PRIVATE_ROBOTS_VALUE = "noindex, nofollow, noarchive";
+
+function applyRobotsPolicy(response: NextResponse, pathname: string): NextResponse {
+  if (!PUBLIC_INDEXABLE_PATHS.has(pathname)) {
+    response.headers.set("X-Robots-Tag", PRIVATE_ROBOTS_VALUE);
+  }
+  return response;
+}
 
 function sessionErrorRedirect(request: NextRequest, response: NextResponse): NextResponse {
   const redirect = NextResponse.redirect(new URL("/login", request.url));
@@ -38,7 +47,7 @@ function sessionErrorRedirect(request: NextRequest, response: NextResponse): Nex
   redirect.headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0");
   redirect.headers.set("Expires", "0");
   redirect.headers.set("Pragma", "no-cache");
-  return redirect;
+  return applyRobotsPolicy(redirect, request.nextUrl.pathname);
 }
 
 /**
@@ -47,7 +56,7 @@ function sessionErrorRedirect(request: NextRequest, response: NextResponse): Nex
  * session. (Server Components cannot set cookies themselves.)
  */
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  let response = applyRobotsPolicy(NextResponse.next({ request }), request.nextUrl.pathname);
 
   // Resilience: never let a session-refresh hiccup 500 the whole site. If the Supabase
   // env is missing or the auth call throws, fall through and serve the request (pages
@@ -64,7 +73,7 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          response = NextResponse.next({ request });
+          response = applyRobotsPolicy(NextResponse.next({ request }), request.nextUrl.pathname);
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

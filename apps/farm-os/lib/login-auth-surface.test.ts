@@ -15,7 +15,7 @@ import { join, relative } from "node:path";
  */
 
 const APP_ROOT = process.cwd();
-const LOGIN_PAGE = join(APP_ROOT, "app", "login", "page.tsx");
+const LOGIN_PAGE = join(APP_ROOT, "app", "(auth)", "login", "page.tsx");
 
 /** The retired shared demo password. */
 const KNOWN_DEMO_PASSWORD = ["farm", "os", "pilot"].join("-");

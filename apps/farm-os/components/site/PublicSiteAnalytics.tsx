@@ -3,6 +3,7 @@
 import { Analytics, type BeforeSendEvent } from "@vercel/analytics/next";
 import { track } from "@vercel/analytics";
 import type { Lang } from "@/lib/site-content";
+import { SITE_PATH } from "@/lib/site-seo";
 
 type PublicSiteAction =
   | "certificate_opened"
@@ -13,10 +14,15 @@ type PublicSiteAction =
   | "enquiry_submitted";
 type ContactAction = Exclude<PublicSiteAction, "certificate_opened">;
 
-export function keepPublicHomepageOnly(event: BeforeSendEvent): BeforeSendEvent | null {
+// Analytics covers the PUBLIC site only — both language routes (`/` and `/en`), never the
+// auth-gated app. Sourced from SITE_PATH so adding a public route can't silently go untracked
+// (and an app route can't silently become tracked).
+const PUBLIC_SITE_PATHS = new Set<string>(Object.values(SITE_PATH));
+
+export function keepPublicSiteOnly(event: BeforeSendEvent): BeforeSendEvent | null {
   try {
     const url = new URL(event.url, window.location.origin);
-    if (url.origin !== window.location.origin || url.pathname !== "/") return null;
+    if (url.origin !== window.location.origin || !PUBLIC_SITE_PATHS.has(url.pathname)) return null;
 
     // Campaign links may contain personal or commercially sensitive query values.
     url.search = "";
@@ -41,5 +47,5 @@ export function trackPublicSiteAction(
 }
 
 export function PublicSiteAnalytics() {
-  return <Analytics beforeSend={keepPublicHomepageOnly} />;
+  return <Analytics beforeSend={keepPublicSiteOnly} />;
 }

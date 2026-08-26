@@ -1,25 +1,13 @@
 import type { MetadataRoute } from "next";
 
-// The home page `/` is now a PUBLIC export-credibility website we WANT indexed (buyers searching
-// "Egypt Barhi dates exporter"). Everything else is the private, auth-gated Farm OS and must stay
-// out of the index. So: allow the root page + the public assets it needs to render, disallow the
-// rest. `Disallow: /` + `Allow: /$` (exact root, longest-match wins) blocks the app WITHOUT
-// enumerating its route names in robots.txt.
+// Crawlers must be able to request private route URLs in order to observe their
+// `X-Robots-Tag: noindex` response. Authentication protects the data; the sitemap lists only
+// the two public pages that are eligible for indexing.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: [
-        "/$",
-        "/site/",
-        "/icons/",
-        "/icon.png",
-        "/apple-icon.png",
-        "/opengraph-image.png",
-        "/twitter-image.png",
-        "/manifest.webmanifest",
-      ],
-      disallow: "/",
+      allow: "/",
     },
     sitemap: "https://ebeidfarm.business/sitemap.xml",
   };

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   SITE_CONTENT_DEFAULTS,
@@ -17,7 +18,9 @@ import {
 // TYPES: site_content is declared in the database.types.ext.ts augmentation (STRUCT-1), so this
 // query is fully typed.
 
-export async function loadSiteContent(): Promise<SiteContent> {
+// generateMetadata() and the page body read the same content during one render. React cache keeps
+// that to one database request while still letting ISR/revalidatePath refresh a later render.
+export const loadSiteContent = cache(async function loadSiteContent(): Promise<SiteContent> {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
     return SITE_CONTENT_PUBLIC_READ_FALLBACK;
   }
@@ -42,4 +45,4 @@ export async function loadSiteContent(): Promise<SiteContent> {
   } catch {
     return SITE_CONTENT_PUBLIC_READ_FALLBACK;
   }
-}
+});

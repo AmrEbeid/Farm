@@ -1,5 +1,37 @@
-# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (password recovery live)
+# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public SEO candidate)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-26 — Public SEO internationalization — LOCAL CANDIDATE / NOT LIVE
+
+The existing homepage is indexed and its production baseline is healthy: Google returned the public page in
+`site:ebeidfarm.business` search; mobile Lighthouse scored SEO, accessibility and best practices 100; an
+unthrottled production trace observed LCP 475 ms and CLS 0.00. The material gap was international discovery:
+English was only a client-state toggle on `/`, with no crawlable English URL or language alternate.
+
+This branch keeps Arabic at `/` and adds server-rendered English at `/en`. The language switch is a real link;
+both routes publish localized canonical and `ar`/`en`/`x-default` alternates; the sitemap lists only those two
+public pages with reciprocal alternates. Robots permits crawling so search engines can receive the response-level
+no-index policy on private routes. JSON-LD now models one bilingual
+Organization/WebSite plus a localized WebPage, without fabricated Product, Offer, price, availability, review
+or rating data. Owner website saves revalidate both routes, and the same owner-managed content supplies visible
+copy, search metadata, address and contact JSON-LD. Inline JSON-LD safely escapes owner text. Every non-public
+response adds `X-Robots-Tag:
+noindex, nofollow, noarchive`. Password authentication and every protected route remain unchanged.
+
+Local evidence: focused 73/73; full Vitest 2,468 passed plus 17 controlled skips; TypeScript; full ESLint;
+75-route production build; service-role exposure guard; generated HTML/robots/sitemap inspection; and Arabic
+plus English 390 px browser checks with one H1, real URL switching and zero horizontal overflow. Separate root
+layouts make the initial English server document and hydrated root both `lang=en` / `dir=ltr`. Local `/en`
+Lighthouse scored SEO/accessibility 100; its best-practices 96 is solely the expected local Vercel Analytics
+404/MIME error, not present on Vercel production. No migration, Supabase change or business-data write.
+
+**Exact resume point:** independent review found and the branch fixed two P1 blockers (JSON-LD script breakout
+and blocked CSS/JS), two P2 blockers (the initial English root language and an ineffective robots/no-index
+combination), plus stale structured addresses; exact-head rereview is pending. Update PR #1080, merge only after
+that approval and green checks; then verify live `/en`, both
+canonicals/hreflang sets, robots, sitemap, no-index headers, language switching, phone layout,
+Lighthouse and Vercel Analytics. Update STATUS/DEPLOY-STATUS/SESSION-BRIEF from candidate to live only after the
+production SHA is confirmed.
 
 ## 2026-08-26 — Password recovery domain incident — CLOSED / LIVE VERIFIED
 
