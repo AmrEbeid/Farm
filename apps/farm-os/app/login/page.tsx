@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button, Field, Input, Alert, Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -94,6 +95,13 @@ export default function LoginPage() {
                   required
                 />
               </Field>
+              <Link
+                href="/forgot-password"
+                className="w-fit text-sm font-semibold underline underline-offset-4"
+                style={{ color: "var(--brand)" }}
+              >
+                نسيت كلمة المرور؟
+              </Link>
               <Button type="submit" variant="primary" loading={pending}>
                 دخول
               </Button>

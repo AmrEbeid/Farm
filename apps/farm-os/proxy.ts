@@ -11,6 +11,12 @@ import {
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 const REPAIR_COOKIE = "farm-active-org-repair";
+const AUTH_SURFACE_PATHS = new Set([
+  "/login",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/reset-password",
+]);
 const ROLE_HOME_PATHS = new Set([
   "/dashboard/owner",
   "/finance/dashboard",
@@ -77,9 +83,8 @@ export async function proxy(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (user) {
-      // The recovery destination must always remain renderable; otherwise a failed hook would
-      // redirect /login back to itself until the cooldown expires.
-      if (request.nextUrl.pathname === "/login") return response;
+      // Authentication and recovery screens must not depend on organization membership.
+      if (AUTH_SURFACE_PATHS.has(request.nextUrl.pathname)) return response;
 
       const {
         data: { session },
