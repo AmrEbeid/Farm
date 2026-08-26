@@ -30,9 +30,10 @@ app/design CI, pgTAP, gitleaks and Vercel Preview passed. Production deployment 
 200 with one H1 and no no-index, the sitemap lists all 14, and private dashboard responses still redirect with no-index. Mobile
 Lighthouse on the English product page scored accessibility 100 and SEO 100; best practices 96 is only the
 expected local Vercel Analytics 404/MIME condition. Independent review approved the pre-challenge tree; the
-challenge corrections have targeted regression coverage and all full gates are green. Search Console domain-property
-creation, sitemap submission and `/` plus `/en` indexing requests are prepared but await the required external-account/DNS
-action confirmation. No migration or business-data write was required.
+challenge corrections have targeted regression coverage and all full gates are green. Google Search Console domain
+ownership is verified under the Owner's account through a Vercel DNS TXT record. The sitemap submission succeeded and
+Google discovered all 14 URLs. `/` was already indexed and was requeued; `/en` was `Discovered - currently not indexed`
+and was added to Google's priority crawl queue. No migration or business-data write was required.
 
 **2026-08-26 — SEARCH VISIBILITY BASELINE: REPORT COMPLETE / NO PRODUCTION CHANGE.** A direct Google Egypt
 benchmark tested 24 Arabic and English searches. Ebeid Farm ranked first for all four branded searches and in
