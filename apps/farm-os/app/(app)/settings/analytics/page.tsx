@@ -138,9 +138,9 @@ export default async function WebsiteAnalyticsPage({
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <KpiCard label="الزوار" value={num(analytics.visitors)} />
+        <KpiCard label="مجموع الزوار يوميًا" value={num(analytics.visitors)} />
         <KpiCard label="مشاهدات الصفحة" value={num(analytics.pageviews)} />
-        <KpiCard label="مشاهدات لكل زائر" value={num(pagesPerVisitor, 1)} />
+        <KpiCard label="مشاهدات لكل زائر يومي" value={num(pagesPerVisitor, 1)} />
         <KpiCard label="إجراءات التواصل" value={num(actionCount)} />
         <KpiCard label="طلبات السعر المحفوظة" value={num(enquiryCount ?? 0)} />
       </section>
