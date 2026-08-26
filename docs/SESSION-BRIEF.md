@@ -1,9 +1,10 @@
-# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public search pages candidate)
+# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public search pages live)
 *Updated LAST, after meaningful work.*
 
-## 2026-08-26 — Public search pages — LOCAL RELEASE CANDIDATE
+## 2026-08-26 — Public search pages — LIVE / PRODUCTION VERIFIED
 
-The first implementation slice from the search report is built locally but is not committed, merged or live.
+The first implementation slice from the search report shipped in PR #1083, merge
+`68584e78e086f40b5999a8cdd16ba63ce7a182e1`.
 It adds six Arabic buyer pages and exact English pairs for fresh Barhi, supply to export companies, published
 China records, certifications, wholesale specifications and canonical Farm identity. `site-public-pages.ts` is
 the single registry for routes, labels and concise metadata; it also drives homepage internal links, exact
@@ -22,7 +23,8 @@ links, adds no-referrer and wrapping defenses, and defines all five bilingual pa
 Every focused route also carries two bilingual buyer FAQs. Product, export-supply and wholesale pages show the
 owner-managed last published season but explicitly state that it is not live availability. The local Farm archive
 contains no JPG/PNG/HEIC/WebP farm photographs; the existing hero is generated imagery, so no gallery item was
-fabricated and the owner-upload gallery remains empty until genuine farm photos are supplied.
+fabricated in the release. Production content currently displays three owner-managed gallery uploads labelled for
+the 2025 and 2026 seasons; this postflight confirms display, not source provenance.
 
 Claude Fable 5 then challenged the approved candidate and identified two release-quality gaps. A database read
 failure removed certificates but retained other mutable defaults, and the export-supply and wholesale page bodies
@@ -38,10 +40,16 @@ one H1, correct route language/direction/canonical and no horizontal overflow. R
 Lighthouse scored accessibility 100 and SEO 100; local best practices 96 is solely Vercel Analytics' expected
 localhost 404/MIME error. No migration, Supabase change, authentication change or business-data write.
 
-**Exact resume point:** review the complete diff and factual claims, rebuild after the final metadata edit,
-commit, push and open the PR. Merge only after exact-head review and green gates, then verify all 14 live
-routes, response no-index policy, sitemap, certificates from production owner content and production
-Lighthouse. Search Console/Bing submission and external citations remain a separate external-account step.
+Exact-head GitHub app/design CI, pgTAP, gitleaks and Vercel Preview passed. The production deployment succeeded.
+All 14 public URLs return 200 with one H1 and no no-index; the live sitemap has exactly 14 locations; robots references
+it; and `/dashboard` still redirects to login with `noindex, nofollow, noarchive`. Googlebot, Bingbot,
+OAI-SearchBot, ChatGPT-User and PerplexityBot test requests to a focused English page all return 200. No migration,
+Supabase change or business-data write was required.
+
+**Exact resume point:** Search Console is open under `amrabdelglill@gmail.com`, with the Domain form populated for
+`ebeidfarm.business`. The next click creates the property and reveals the TXT token; it then needs a Vercel DNS TXT
+record, verification, sitemap submission and indexing requests for `/` and `/en`. These external account/DNS writes
+are waiting for action-time confirmation. Bing submission, external citations and independent photo provenance remain open.
 
 ## 2026-08-26 — Google and AI search baseline — REPORT COMPLETE
 

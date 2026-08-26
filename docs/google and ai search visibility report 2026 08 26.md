@@ -288,5 +288,13 @@ season with a not-live warning. No genuine gallery photo was found in the local 
 placeholder image was misrepresented as a real farm photo. This note records
 the built candidate only. A final Claude Fable 5 challenge caused two corrections before release: all mutable
 marketing claims now fail closed when the content database cannot be read, and the exporter-supply and wholesale
-pages now answer distinct buyer workflows instead of repeating the same body. Merge, production deployment, live checks, Search Console/Bing submission and
-ranking movement require separate evidence.
+pages now answer distinct buyer workflows instead of repeating the same body.
+
+PR #1083 subsequently merged as `68584e78e086f40b5999a8cdd16ba63ce7a182e1` and deployed successfully to
+production. All 14 public URLs return 200 with one H1 and no no-index; `sitemap.xml` contains exactly those 14 URLs;
+and private dashboard responses retain redirect plus no-index protection. Googlebot, Bingbot, OAI-SearchBot,
+ChatGPT-User and PerplexityBot test requests to a focused English page all returned 200. Direct post-release search
+checks still returned the established homepage rather than the new focused URLs, so no new indexing or ranking gain
+is claimed on release day. Search Console domain creation, sitemap submission and indexing requests are prepared but
+not yet submitted; Bing submission and external citations remain open. Production currently renders three
+owner-managed gallery uploads, but this review did not independently establish their source provenance.

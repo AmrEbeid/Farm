@@ -1,11 +1,11 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-26 (public search pages release candidate). Owner: Amr Ebeid.*
+*Updated: 2026-08-26 (public search pages live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-26 — PUBLIC SEARCH PAGES: LOCAL RELEASE CANDIDATE / NOT MERGED OR LIVE.** The measured SEO gap now
-has an application candidate: six Arabic buyer pages plus exact English pairs for fresh Barhi, supply to export
+**2026-08-26 — PUBLIC SEARCH PAGES: LIVE / PRODUCTION VERIFIED.** PR #1083 merged as
+`68584e78e086f40b5999a8cdd16ba63ce7a182e1`. Six Arabic buyer pages plus exact English pairs for fresh Barhi, supply to export
 companies, published China records, certifications, wholesale specifications and canonical Farm identity. One typed
 registry drives routes, homepage internal links, concise metadata, canonical/hreflang, JSON-LD, sitemap,
 proxy indexability, public-only analytics and website-save revalidation. Every page reuses owner-managed site
@@ -18,18 +18,21 @@ storage assets, invalid verification URLs do not render as links, and all focuse
 bilingual usage contract. Product/Offer/review markup remains prohibited, prices/availability are not assumed,
 and the Farm-facts page excludes disputed palm counts and areas. Every focused page answers two buyer FAQs;
 product/export/wholesale pages show the owner-managed last published season with an explicit not-live warning.
-No real gallery photos exist in the local Farm archive, so the gallery remains empty rather than publishing
-placeholders or the generated hero as evidence. Claude Fable 5's adversarial challenge found two late issues:
+No real gallery photos exist in the local Farm archive, so none was fabricated for this release; production displays
+three owner-managed gallery uploads whose provenance was not independently verified. Claude Fable 5's adversarial challenge found two late issues:
 the database-error fallback could retain stale mutable claims, and the export-company and wholesale pages were
 too similar. The fallback is now a minimal claim-free identity page, and the commercial pages now provide distinct
 export-responsibility and wholesale quote-preparation workflows. Local evidence: focused 77/77; full Vitest
 2,486 plus 17 controlled skips; TypeScript; full and touched ESLint; 87-page build; dependency,
 service-role, Recharts and server/client guards; all 14 public routes return 200 and remain indexable; 28
-mobile/desktop browser probes found one H1, correct language/direction/canonical and zero overflow. Mobile
+mobile/desktop browser probes found one H1, correct language/direction/canonical and zero overflow. Exact-head GitHub
+app/design CI, pgTAP, gitleaks and Vercel Preview passed. Production deployment succeeded; all 14 public URLs return
+200 with one H1 and no no-index, the sitemap lists all 14, and private dashboard responses still redirect with no-index. Mobile
 Lighthouse on the English product page scored accessibility 100 and SEO 100; best practices 96 is only the
 expected local Vercel Analytics 404/MIME condition. Independent review approved the pre-challenge tree; the
-challenge corrections have targeted regression coverage and all full gates are green. Commit, PR, merge and
-production verification remain.
+challenge corrections have targeted regression coverage and all full gates are green. Search Console domain-property
+creation, sitemap submission and `/` plus `/en` indexing requests are prepared but await the required external-account/DNS
+action confirmation. No migration or business-data write was required.
 
 **2026-08-26 — SEARCH VISIBILITY BASELINE: REPORT COMPLETE / NO PRODUCTION CHANGE.** A direct Google Egypt
 benchmark tested 24 Arabic and English searches. Ebeid Farm ranked first for all four branded searches and in

@@ -2,6 +2,14 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-26 (latest) — BILINGUAL BUYER SEARCH PAGES LIVE / PRODUCTION VERIFIED.** PR #1083 merged as
+> `68584e78e086f40b5999a8cdd16ba63ce7a182e1`; exact-head app/design CI, pgTAP, gitleaks and Vercel Preview passed,
+> followed by a successful Vercel Production deployment. Six Arabic buyer pages and exact English pairs are live.
+> All 14 public URLs return 200 with one H1 and no no-index; the sitemap lists exactly 14 locations and private
+> dashboard responses still redirect with `noindex, nofollow, noarchive`. Googlebot, Bingbot, OAI-SearchBot,
+> ChatGPT-User and PerplexityBot test requests return 200. No migration, Supabase change or business-data write.
+> Search Console domain verification and submissions remain an external-account action.
+
 > **2026-08-26 (latest) — PUBLIC SEO INTERNATIONALIZATION MERGED / DEPLOYED / LIVE VERIFIED.** PR #1080
 > merged as `62ac7c267238792956e6e7b9d127c8dc927d2097`; Vercel Production deployment `6101544881`, exact-main CI
 > `32956553763`, release `32956553691` and database tests `32956553665` succeeded. Arabic remains at `/`; the independently crawlable
