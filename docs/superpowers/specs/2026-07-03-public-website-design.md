@@ -179,3 +179,12 @@ true multi-tenant sites.
   this is the public front door + a thin content model, greenlit by the Owner's request).
 - **Storage** — `site-media` bucket public-read is intentional (marketing images); write
   policy owner-only.
+
+## 8. Changelog
+
+- **2026-08-26 — Farm location link:** the Owner can maintain a public Google Maps/directions
+  URL with the other contact fields. The public contact section shows a bilingual “open farm
+  location” action in a new tab. Empty links hide the action; non-empty links are normalized and
+  accepted only as bounded, credential-free absolute HTTPS URLs before save and again at render.
+  Analytics records only the action and language (never the location), and older saved content
+  inherits the approved default URL without a database migration.

@@ -1,6 +1,6 @@
 import { requireMembership } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { SITE_CONTENT_DEFAULTS, type SiteContent } from "@/lib/site-content";
+import { SITE_CONTENT_DEFAULTS, mergeSiteContent, type SiteContent } from "@/lib/site-content";
 import { SiteEditor } from "@/components/site/SiteEditor";
 
 /**
@@ -37,7 +37,7 @@ export default async function WebsiteEditorPage() {
       .maybeSingle();
     if (error) throw error;
     if (data?.content && typeof data.content === "object") {
-      content = { ...SITE_CONTENT_DEFAULTS, ...(data.content as Partial<SiteContent>) };
+      content = mergeSiteContent(data.content as Partial<SiteContent>);
     }
   } catch {
     return (

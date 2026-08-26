@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   SITE_CONTENT_DEFAULTS,
   SITE_CONTENT_PUBLIC_READ_FALLBACK,
+  mergeSiteContent,
   type SiteContent,
 } from "@/lib/site-content";
 
@@ -37,9 +38,7 @@ export async function loadSiteContent(): Promise<SiteContent> {
     if (typeof data.content !== "object") {
       return SITE_CONTENT_PUBLIC_READ_FALLBACK;
     }
-    // The editor always persists the FULL SiteContent, so a shallow top-level merge over defaults
-    // is enough to keep every field defined even if a key is ever missing.
-    return { ...SITE_CONTENT_DEFAULTS, ...(data.content as Partial<SiteContent>) };
+    return mergeSiteContent(data.content as Partial<SiteContent>);
   } catch {
     return SITE_CONTENT_PUBLIC_READ_FALLBACK;
   }

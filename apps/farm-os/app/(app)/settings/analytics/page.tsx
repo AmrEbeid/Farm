@@ -20,6 +20,7 @@ const PERIOD_LABELS: Record<WebsiteAnalyticsPeriod, string> = {
 const EVENT_LABELS: Record<string, string> = {
   certificate_opened: "فتح شهادة",
   contact_email: "ضغط البريد الإلكتروني",
+  contact_location: "فتح موقع المزرعة",
   contact_phone: "ضغط رقم الهاتف",
   contact_whatsapp: "ضغط واتساب",
   enquiry_submitted: "إرسال طلب سعر",

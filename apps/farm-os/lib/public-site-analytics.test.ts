@@ -13,6 +13,10 @@ import {
 const homePage = readFileSync(resolve(__dirname, "../app/page.tsx"), "utf8");
 const rootLayout = readFileSync(resolve(__dirname, "../app/layout.tsx"), "utf8");
 const landing = readFileSync(resolve(__dirname, "../components/site/SiteLanding.tsx"), "utf8");
+const analyticsPage = readFileSync(
+  resolve(__dirname, "../app/(app)/settings/analytics/page.tsx"),
+  "utf8",
+);
 
 describe("public website analytics", () => {
   it("runs on the public homepage without tracking the authenticated application", () => {
@@ -44,6 +48,7 @@ describe("public website analytics", () => {
     for (const action of [
       "certificate_opened",
       "contact_email",
+      "contact_location",
       "contact_phone",
       "contact_whatsapp",
       "enquiry_submitted",
@@ -52,6 +57,7 @@ describe("public website analytics", () => {
     }
     for (const action of [
       "contact_email",
+      "contact_location",
       "contact_phone",
       "contact_whatsapp",
       "enquiry_submitted",
@@ -72,5 +78,9 @@ describe("public website analytics", () => {
       certificate: 2,
     });
     expect(track).toHaveBeenNthCalledWith(2, "enquiry_submitted", { language: "en" });
+  });
+
+  it("shows the location action with an Arabic label in the owner analytics page", () => {
+    expect(analyticsPage).toContain('contact_location: "فتح موقع المزرعة"');
   });
 });

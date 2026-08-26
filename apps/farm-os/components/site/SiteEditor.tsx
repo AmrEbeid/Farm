@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { BadgeCheck, ImageUp, Link2, Plus, Trash2 } from "lucide-react";
 import { Button, Field, Input, Textarea, useToast } from "@/components/ui";
-import type { SiteCert, SiteContent } from "@/lib/site-content";
+import {
+  SITE_MAP_URL_MAX_LENGTH,
+  type SiteCert,
+  type SiteContent,
+} from "@/lib/site-content";
 import { CERT_LIMITS, MAX_CERTIFICATES } from "@/lib/site-certificates";
 import {
   saveSiteContent,
@@ -193,6 +197,16 @@ export function SiteEditor({ orgId, initial }: { orgId: string; initial: SiteCon
             />
           </Field>
         ))}
+        <Field id="map-url" label="رابط موقع المزرعة على الخريطة">
+          <Input
+            id="map-url"
+            dir="ltr"
+            type="url"
+            maxLength={SITE_MAP_URL_MAX_LENGTH}
+            value={content.contact.mapUrl}
+            onChange={(e) => set((d) => { d.contact.mapUrl = e.target.value; })}
+          />
+        </Field>
       </section>
 
       <section className="flex flex-col gap-3">

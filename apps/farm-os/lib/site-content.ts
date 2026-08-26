@@ -112,7 +112,27 @@ export interface SiteContent {
     email: string;
     phones: string[];
     address: Bi;
+    /** Public map/directions URL shown on the marketing website. */
+    mapUrl: string;
   };
+}
+
+export const SITE_MAP_URL_MAX_LENGTH = 2048;
+
+/** Empty hides the map action; non-empty values must be absolute credential-free HTTPS URLs. */
+export function normalizeSiteMapUrl(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > SITE_MAP_URL_MAX_LENGTH) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
+      return null;
+    }
+    return parsed.href.length <= SITE_MAP_URL_MAX_LENGTH ? parsed.href : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -347,8 +367,30 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       ar: "أبو شلبي، فاقوس، الشرقية، مصر 44641",
       en: "Abou Shalaby, Faqous, El-Sharkia, Egypt 44641",
     },
+    mapUrl: "https://share.google/oLzf6RKeBTz0yuroi",
   },
 };
+
+type StoredSiteContent = Omit<Partial<SiteContent>, "contact"> & {
+  contact?: Partial<SiteContent["contact"]>;
+};
+
+/**
+ * Merge persisted content with current defaults. Contact is merged one level deeper so newly
+ * introduced public fields (such as the map URL) also reach organizations whose existing JSON was
+ * saved before the field shipped.
+ */
+export function mergeSiteContent(stored: StoredSiteContent): SiteContent {
+  return {
+    ...SITE_CONTENT_DEFAULTS,
+    ...stored,
+    contact: {
+      ...SITE_CONTENT_DEFAULTS.contact,
+      ...stored.contact,
+    },
+  };
+}
+
 // A public read failure must not republish certificate claims that an owner may have superseded.
 // Keep the rest of the marketing page available, but remove the trust surface until the DB recovers.
 export const SITE_CONTENT_PUBLIC_READ_FALLBACK: SiteContent = {

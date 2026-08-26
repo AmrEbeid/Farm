@@ -13,13 +13,15 @@ const page = readFileSync(
 describe("website server-action safety contract", () => {
   it("authorizes and validates before privileged storage or database work", () => {
     const auth = actions.indexOf('m.role !== "owner" || input.orgId !== m.orgId');
-    const validation = actions.indexOf("validateCertifications(");
-    const admin = actions.indexOf("createAdminClient();", validation);
+    const mapValidation = actions.indexOf("normalizeSiteMapUrl(");
+    const certValidation = actions.indexOf("validateCertifications(");
+    const admin = actions.indexOf("createAdminClient();", certValidation);
     const rpc = actions.indexOf('sb.rpc("fn_save_site_content"');
 
     expect(auth).toBeGreaterThan(-1);
-    expect(validation).toBeGreaterThan(auth);
-    expect(admin).toBeGreaterThan(validation);
+    expect(mapValidation).toBeGreaterThan(auth);
+    expect(certValidation).toBeGreaterThan(mapValidation);
+    expect(admin).toBeGreaterThan(certValidation);
     expect(rpc).toBeGreaterThan(admin);
   });
 
@@ -34,7 +36,7 @@ describe("website server-action safety contract", () => {
   });
 
   it("namespaces uploads and cleanup by the authenticated organization", () => {
-    expect(actions).toContain('galleryMediaPaths(input.content, publicBucketPrefix, m.orgId)');
+    expect(actions).toContain('galleryMediaPaths(content, publicBucketPrefix, m.orgId)');
     expect(actions).toContain('`${m.orgId}/${folder}/${crypto.randomUUID()}.${IMAGE_EXT[type]}`');
   });
 
