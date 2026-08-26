@@ -1,14 +1,14 @@
-# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public SEO candidate)
+# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public SEO live)
 *Updated LAST, after meaningful work.*
 
-## 2026-08-26 — Public SEO internationalization — LOCAL CANDIDATE / NOT LIVE
+## 2026-08-26 — Public SEO internationalization — MERGED / DEPLOYED / LIVE VERIFIED
 
 The existing homepage is indexed and its production baseline is healthy: Google returned the public page in
 `site:ebeidfarm.business` search; mobile Lighthouse scored SEO, accessibility and best practices 100; an
 unthrottled production trace observed LCP 475 ms and CLS 0.00. The material gap was international discovery:
 English was only a client-state toggle on `/`, with no crawlable English URL or language alternate.
 
-This branch keeps Arabic at `/` and adds server-rendered English at `/en`. The language switch is a real link;
+The release keeps Arabic at `/` and adds server-rendered English at `/en`. The language switch is a real link;
 both routes publish localized canonical and `ar`/`en`/`x-default` alternates; the sitemap lists only those two
 public pages with reciprocal alternates. Robots permits crawling so search engines can receive the response-level
 no-index policy on private routes. JSON-LD now models one bilingual
@@ -25,13 +25,14 @@ layouts make the initial English server document and hydrated root both `lang=en
 Lighthouse scored SEO/accessibility 100; its best-practices 96 is solely the expected local Vercel Analytics
 404/MIME error, not present on Vercel production. No migration, Supabase change or business-data write.
 
-**Exact resume point:** independent review found and the branch fixed two P1 blockers (JSON-LD script breakout
-and blocked CSS/JS), two P2 blockers (the initial English root language and an ineffective robots/no-index
-combination), plus stale structured addresses; exact-head rereview is pending. Update PR #1080, merge only after
-that approval and green checks; then verify live `/en`, both
-canonicals/hreflang sets, robots, sitemap, no-index headers, language switching, phone layout,
-Lighthouse and Vercel Analytics. Update STATUS/DEPLOY-STATUS/SESSION-BRIEF from candidate to live only after the
-production SHA is confirmed.
+PR #1080 merged as `62ac7c267238792956e6e7b9d127c8dc927d2097` after independent exact-head APPROVE
+and green application, database, shared UI, secret-scan and preview gates. Exact-main CI `32956553763`,
+database tests `32956553665` and release `32956553691` passed. Vercel Production deployment
+`6101544881` succeeded. Live `/` and `/en` return 200 with correct initial document language/direction,
+canonicals, reciprocal hreflang, one H1 and no horizontal overflow at 390 px. Login, reset, protected, API and
+404 responses carry `noindex, nofollow, noarchive`; protected routes still redirect to login. Live robots and
+sitemap match the intended policy. Production mobile `/en` Lighthouse scored 100 for SEO, accessibility and
+best practices. No migration, Supabase change or business-data write.
 
 ## 2026-08-26 — Password recovery domain incident — CLOSED / LIVE VERIFIED
 

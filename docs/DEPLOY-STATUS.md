@@ -2,6 +2,15 @@
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
+> **2026-08-26 (latest) — PUBLIC SEO INTERNATIONALIZATION MERGED / DEPLOYED / LIVE VERIFIED.** PR #1080
+> merged as `62ac7c267238792956e6e7b9d127c8dc927d2097`; Vercel Production deployment `6101544881`, exact-main CI
+> `32956553763`, release `32956553691` and database tests `32956553665` succeeded. Arabic remains at `/`; the independently crawlable
+> English page is live at `/en`, with correct initial HTML language/direction, canonicals, reciprocal hreflang,
+> owner-managed JSON-LD and a two-URL sitemap. Public pages return 200 without no-index; login/reset/private/API/
+> 404 responses carry `noindex, nofollow, noarchive`, and auth-gated routes still redirect to login. Production
+> mobile `/en` Lighthouse scored 100 for SEO, accessibility and best practices. Independent exact-head review
+> approved with no P0-P2 findings. No migration, authentication or business-data change.
+
 > **2026-08-25 (latest) — SUPPORT ATTACHMENTS MIGRATED / MERGED / DEPLOYED / OWNER VERIFIED.** Farm hosted
 > migrations `20260825100525 system_ticket_attachments` and
 > `20260825100530 support_attachments_storage_policies` are live. They add a forced-RLS attachment registry
