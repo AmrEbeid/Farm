@@ -1,10 +1,11 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-26 (public SEO candidate). Owner: Amr Ebeid.*
+*Updated: 2026-08-26 (public SEO live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
 
-**2026-08-26 — PUBLIC SEO INTERNATIONALIZATION: LOCAL RELEASE CANDIDATE / NOT LIVE YET.** The public Farm
+**2026-08-26 — PUBLIC SEO INTERNATIONALIZATION: LIVE / PRODUCTION VERIFIED.** PR #1080 merged as
+`62ac7c267238792956e6e7b9d127c8dc927d2097`; Vercel Production deployment `6101544881` succeeded. The public Farm
 website now has a server-rendered English route at `/en` instead of hiding English behind client state. `/`
 remains Arabic; both routes carry localized canonical metadata, reciprocal `ar`/`en`/`x-default` alternates,
 one shared Organization/WebSite graph and a localized WebPage node. Robots permits crawling so search engines
@@ -13,9 +14,11 @@ URLs. Owner website edits revalidate both routes and their metadata. Owner text 
 assets stay crawlable, and private responses carry an explicit no-index header. Local evidence: 2,468 Vitest tests passed plus 17 controlled
 skips; TypeScript, touched ESLint, 75-route build and the service-role exposure guard passed; generated HTML,
 robots and sitemap were inspected; Arabic/English 390 px browser checks found one H1 and zero horizontal
-overflow; the initial English server document and hydrated root are both `lang=en` / `dir=ltr`; local `/en` Lighthouse scored
-SEO/accessibility 100. No migration, auth or business-data change.
-Merge, production deployment and live crawl verification remain pending.
+overflow; the initial English server document and hydrated root are both `lang=en` / `dir=ltr`. Live `/` and `/en`
+return 200 with one H1, correct canonicals and no no-index header; login/reset/private/API/404 responses carry
+`noindex, nofollow, noarchive`, and protected routes still redirect to login. Production mobile `/en` Lighthouse
+scored 100 for SEO, accessibility and best practices. Independent exact-head review approved with no P0-P2
+findings. No migration, auth or business-data change.
 
 **2026-08-26 — PASSWORD RECOVERY: LIVE / DOMAIN CORRECTED.** PR #1077 merged as
 `c5ed6c7a78721883ed5740f6eaba3c029955ec6f`; exact-main CI `32950259303`, database tests `32950259395`,
