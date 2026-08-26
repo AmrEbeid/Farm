@@ -1,5 +1,47 @@
-# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (search visibility baseline)
+# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public search pages candidate)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-26 — Public search pages — LOCAL RELEASE CANDIDATE
+
+The first implementation slice from the search report is built locally but is not committed, merged or live.
+It adds six Arabic buyer pages and exact English pairs for fresh Barhi, supply to export companies, published
+China records, certifications, wholesale specifications and canonical Farm identity. `site-public-pages.ts` is
+the single registry for routes, labels and concise metadata; it also drives homepage internal links, exact
+canonical/hreflang pairs, all 14 sitemap entries, proxy indexability, public-only analytics and website-save
+revalidation. Page JSON-LD remains Organization/WebSite/WebPage only; Product, Offer, rating, review, price and
+availability remain prohibited. The pages reuse the existing owner-managed `SiteContent`, correctly describe
+the Farm as a supplier to export companies rather than the direct exporter, and do not repeat disputed palm
+counts or areas on the Farm-facts page. The first independent review correctly blocked release: China still
+inherited general capacity/specification rows, commercial pages could present stale owner text as current,
+certificate media accepted arbitrary HTTPS hosts, the typed page contract was incomplete, invalid verification
+links rendered as `#`, and long certificate text could overflow. The correction removes China specs entirely,
+adds enquiry-only disclosures to product/export/wholesale specs, excludes quantity/China-approval/certified-
+destination rows, removes general partner claims from the focused
+commercial pages, restricts proof images to bundled assets or the exact Farm media bucket, suppresses invalid
+links, adds no-referrer and wrapping defenses, and defines all five bilingual page-contract fields for every route.
+Every focused route also carries two bilingual buyer FAQs. Product, export-supply and wholesale pages show the
+owner-managed last published season but explicitly state that it is not live availability. The local Farm archive
+contains no JPG/PNG/HEIC/WebP farm photographs; the existing hero is generated imagery, so no gallery item was
+fabricated and the owner-upload gallery remains empty until genuine farm photos are supplied.
+
+Claude Fable 5 then challenged the approved candidate and identified two release-quality gaps. A database read
+failure removed certificates but retained other mutable defaults, and the export-supply and wholesale page bodies
+were too similar. The public read fallback is now a minimal identity/contact surface with no statistics, operational
+claims, certifications, specifications, gallery, badges or market-readiness language. Export supply now explains
+the exporter/Farm responsibility-alignment process; wholesale now gives buyers a concrete quote-request checklist.
+Both corrections have regression tests.
+
+Evidence: focused 77/77; full Vitest 2,486 plus 17 controlled skips; TypeScript; full and touched ESLint;
+87-page production build; zero-vulnerability audit; service-role, Recharts and client/server guards; exact
+14-route sitemap; all 14 routes return 200 without no-index; and 28 browser probes at 390 px and 1,440 px with
+one H1, correct route language/direction/canonical and no horizontal overflow. Representative mobile
+Lighthouse scored accessibility 100 and SEO 100; local best practices 96 is solely Vercel Analytics' expected
+localhost 404/MIME error. No migration, Supabase change, authentication change or business-data write.
+
+**Exact resume point:** review the complete diff and factual claims, rebuild after the final metadata edit,
+commit, push and open the PR. Merge only after exact-head review and green gates, then verify all 14 live
+routes, response no-index policy, sitemap, certificates from production owner content and production
+Lighthouse. Search Console/Bing submission and external citations remain a separate external-account step.
 
 ## 2026-08-26 — Google and AI search baseline — REPORT COMPLETE
 

@@ -8,6 +8,7 @@ import {
   activeOrgIdFromAccessToken,
   activeOrgRepairTarget,
 } from "@/lib/active-org-session";
+import { SITE_PUBLIC_PATHS } from "@/lib/site-public-pages";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 const REPAIR_COOKIE = "farm-active-org-repair";
@@ -24,7 +25,7 @@ const ROLE_HOME_PATHS = new Set([
   "/m",
   "/inventory/dashboard",
 ]);
-const PUBLIC_INDEXABLE_PATHS = new Set(["/", "/en"]);
+const PUBLIC_INDEXABLE_PATHS = new Set(SITE_PUBLIC_PATHS);
 const PRIVATE_ROBOTS_VALUE = "noindex, nofollow, noarchive";
 
 function applyRobotsPolicy(response: NextResponse, pathname: string): NextResponse {

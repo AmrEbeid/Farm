@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { SITE_PUBLIC_PATHS } from "@/lib/site-public-pages";
 
 const state = vi.hoisted(() => ({
   client: null as Record<string, unknown> | null,
@@ -79,11 +80,11 @@ beforeEach(() => {
 });
 
 describe("active organization repair in Proxy", () => {
-  it("keeps only the two public pages indexable and marks private responses noindex", async () => {
+  it("keeps only registered public pages indexable and marks private responses noindex", async () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    for (const path of ["/", "/en"]) {
+    for (const path of SITE_PUBLIC_PATHS) {
       const response = await proxy(new NextRequest(`https://ebeidfarm.business${path}`));
       expect(response.headers.get("x-robots-tag"), path).toBeNull();
     }

@@ -3,7 +3,7 @@
 import { Analytics, type BeforeSendEvent } from "@vercel/analytics/next";
 import { track } from "@vercel/analytics";
 import type { Lang } from "@/lib/site-content";
-import { SITE_PATH } from "@/lib/site-seo";
+import { SITE_PUBLIC_PATHS } from "@/lib/site-public-pages";
 
 type PublicSiteAction =
   | "certificate_opened"
@@ -14,10 +14,10 @@ type PublicSiteAction =
   | "enquiry_submitted";
 type ContactAction = Exclude<PublicSiteAction, "certificate_opened">;
 
-// Analytics covers the PUBLIC site only — both language routes (`/` and `/en`), never the
-// auth-gated app. Sourced from SITE_PATH so adding a public route can't silently go untracked
+// Analytics covers the PUBLIC site only, never the auth-gated app. Sourced from the shared public
+// route registry so adding a public route can't silently go untracked
 // (and an app route can't silently become tracked).
-const PUBLIC_SITE_PATHS = new Set<string>(Object.values(SITE_PATH));
+const PUBLIC_SITE_PATHS = new Set<string>(SITE_PUBLIC_PATHS);
 
 export function keepPublicSiteOnly(event: BeforeSendEvent): BeforeSendEvent | null {
   try {

@@ -121,12 +121,18 @@ export const SITE_MAP_URL_MAX_LENGTH = 2048;
 
 /** Empty hides the map action; non-empty values must be absolute credential-free HTTPS URLs. */
 export function normalizeSiteMapUrl(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > SITE_MAP_URL_MAX_LENGTH) return null;
+  if (typeof value !== "string" || value.length > SITE_MAP_URL_MAX_LENGTH)
+    return null;
   const trimmed = value.trim();
   if (!trimmed) return "";
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
+    if (
+      parsed.protocol !== "https:" ||
+      !parsed.hostname ||
+      parsed.username ||
+      parsed.password
+    ) {
       return null;
     }
     return parsed.href.length <= SITE_MAP_URL_MAX_LENGTH ? parsed.href : null;
@@ -174,8 +180,15 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
   },
   stats: [
     { value: 120, approx: true, label: { ar: "فدان", en: "Feddans" } },
-    { value: 5000, approx: true, label: { ar: "نخلة برحي", en: "Barhi Palms" } },
-    { value: 202, label: { ar: "طن معتمد للصين", en: "Tons Approved (China)" } },
+    {
+      value: 5000,
+      approx: true,
+      label: { ar: "نخلة برحي", en: "Barhi Palms" },
+    },
+    {
+      value: 202,
+      label: { ar: "طن معتمد للصين", en: "Tons Approved (China)" },
+    },
     { value: 7, label: { ar: "قطاعات إنتاجية", en: "Production Blocks" } },
   ],
   about: {
@@ -221,11 +234,41 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       en: "Phased planting (2010–2025) means a steadily growing, reliable supply — ideal for long-term import contracts.",
     },
     rows: [
-      { name: { ar: "الـ 22 فدان", en: "Al-22 Feddan" }, areaFeddans: 22, hawshat: 7, barhiPalms: 948, years: "2018 / 2019" },
-      { name: { ar: "الحصوة", en: "Al-Haswa" }, areaFeddans: 30, hawshat: 8, barhiPalms: 1165, years: "2022 / 2025" },
-      { name: { ar: "حوض البابور", en: "Hawd Al-Babour" }, areaFeddans: 30.5, hawshat: 5, barhiPalms: 1485, years: "2023 / 2025" },
-      { name: { ar: "الشفعة", en: "Al-Shafaa" }, areaFeddans: 9.5, hawshat: 4, barhiPalms: 269, years: "2023" },
-      { name: { ar: "الخطارة", en: "Al-Khattara" }, areaFeddans: 23, hawshat: 4, barhiPalms: 513, years: "2010–2024" },
+      {
+        name: { ar: "الـ 22 فدان", en: "Al-22 Feddan" },
+        areaFeddans: 22,
+        hawshat: 7,
+        barhiPalms: 948,
+        years: "2018 / 2019",
+      },
+      {
+        name: { ar: "الحصوة", en: "Al-Haswa" },
+        areaFeddans: 30,
+        hawshat: 8,
+        barhiPalms: 1165,
+        years: "2022 / 2025",
+      },
+      {
+        name: { ar: "حوض البابور", en: "Hawd Al-Babour" },
+        areaFeddans: 30.5,
+        hawshat: 5,
+        barhiPalms: 1485,
+        years: "2023 / 2025",
+      },
+      {
+        name: { ar: "الشفعة", en: "Al-Shafaa" },
+        areaFeddans: 9.5,
+        hawshat: 4,
+        barhiPalms: 269,
+        years: "2023",
+      },
+      {
+        name: { ar: "الخطارة", en: "Al-Khattara" },
+        areaFeddans: 23,
+        hawshat: 4,
+        barhiPalms: 513,
+        years: "2010–2024",
+      },
     ],
     totalLabel: { ar: "الإجمالي", en: "Total" },
     total: { areaFeddans: 115, hawshat: 28, barhiPalms: 4380 },
@@ -255,7 +298,8 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
           en: "Obaid Company for Dates · Reg. QEGY1425102400002 · Code 55.09.30.03.DAF",
         },
         image: "/site/proofs/china-gacc-record.jpeg",
-        verifyUrl: "https://scintl.chinaport.gov.cn/aprwebserver/pages/apr/public/html/companyList.html",
+        verifyUrl:
+          "https://scintl.chinaport.gov.cn/aprwebserver/pages/apr/public/html/companyList.html",
         verifyLabel: "chinaport.gov.cn",
         verifyIsRegistry: true,
       },
@@ -271,7 +315,10 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         verifyIsRegistry: false,
       },
       {
-        title: { ar: "اعتماد المزرعة (CAPQ) 2025", en: "CAPQ Farm Approval 2025" },
+        title: {
+          ar: "اعتماد المزرعة (CAPQ) 2025",
+          en: "CAPQ Farm Approval 2025",
+        },
         detail: {
           ar: "الحجر الزراعي المصري · برحي · ٢٠٢ طن معتمدة للصين",
           en: "Egyptian Plant Quarantine · Barhi · 202 tons approved for China",
@@ -291,7 +338,10 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         value: { ar: "برحي طازج (خلال أصفر)", en: "Fresh Barhi (Khalal)" },
       },
       {
-        label: { ar: "الكمية المعتمدة للصين (2025)", en: "Approved Quantity (China, 2025)" },
+        label: {
+          ar: "الكمية المعتمدة للصين (2025)",
+          en: "Approved Quantity (China, 2025)",
+        },
         value: { ar: "٢٠٢ طن (CAPQ)", en: "202 tons (CAPQ)" },
       },
       {
@@ -307,7 +357,10 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
       },
       {
         label: { ar: "الشحن", en: "Shipping" },
-        value: { ar: "جوي مبرّد / بحري بسلسلة تبريد", en: "Air & reefer sea freight" },
+        value: {
+          ar: "جوي مبرّد / بحري بسلسلة تبريد",
+          en: "Air & reefer sea freight",
+        },
       },
       {
         label: { ar: "الوجهات المعتمدة", en: "Certified Destinations" },
@@ -323,10 +376,25 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
     // Dummy placeholders — the owner replaces each image (paste a real URL) + caption from
     // the OS editor («الموقع» → معرض الصور). The gallery is hidden on the site when it has no items.
     items: [
-      { image: "/site/gallery/placeholder-1.svg", caption: { ar: "بستان البرحي", en: "Barhi orchard" } },
-      { image: "/site/gallery/placeholder-2.svg", caption: { ar: "عناقيد في مرحلة الخلال", en: "Clusters at Khalal stage" } },
-      { image: "/site/gallery/placeholder-3.svg", caption: { ar: "الحصاد والفرز", en: "Harvest & sorting" } },
-      { image: "/site/gallery/placeholder-4.svg", caption: { ar: "التعبئة للتصدير", en: "Export packing" } },
+      {
+        image: "/site/gallery/placeholder-1.svg",
+        caption: { ar: "بستان البرحي", en: "Barhi orchard" },
+      },
+      {
+        image: "/site/gallery/placeholder-2.svg",
+        caption: {
+          ar: "عناقيد في مرحلة الخلال",
+          en: "Clusters at Khalal stage",
+        },
+      },
+      {
+        image: "/site/gallery/placeholder-3.svg",
+        caption: { ar: "الحصاد والفرز", en: "Harvest & sorting" },
+      },
+      {
+        image: "/site/gallery/placeholder-4.svg",
+        caption: { ar: "التعبئة للتصدير", en: "Export packing" },
+      },
     ],
   },
   whyPartner: {
@@ -391,12 +459,52 @@ export function mergeSiteContent(stored: StoredSiteContent): SiteContent {
   };
 }
 
-// A public read failure must not republish certificate claims that an owner may have superseded.
-// Keep the rest of the marketing page available, but remove the trust surface until the DB recovers.
+// A public read failure must not republish mutable claims that an owner may have superseded.
+// Keep a minimal identity/contact page available, but remove quantities, operational claims,
+// certificates, supply specifications and market-readiness language until the DB recovers.
 export const SITE_CONTENT_PUBLIC_READ_FALLBACK: SiteContent = {
   ...SITE_CONTENT_DEFAULTS,
+  brand: {
+    ...SITE_CONTENT_DEFAULTS.brand,
+    tagline: {
+      ar: "تمور برحي من الشرقية",
+      en: "Barhi dates from El-Sharkia",
+    },
+    season: { ar: "يُحدّث من سجل المزرعة", en: "Updated from the Farm record" },
+  },
+  hero: {
+    ...SITE_CONTENT_DEFAULTS.hero,
+    headline: {
+      ar: "مزرعة عُبيد للتمور",
+      en: "Ebeid Farm for Dates",
+    },
+    subhead: {
+      ar: "بيانات المنتج والتوريد غير متاحة مؤقتًا. تواصل مع المزرعة لتأكيد التفاصيل الحالية.",
+      en: "Product and supply information is temporarily unavailable. Contact the Farm to confirm current details.",
+    },
+    badges: [],
+    ctaSecondary: { ar: "تواصل معنا", en: "Contact Us" },
+  },
+  stats: [],
+  about: {
+    ...SITE_CONTENT_DEFAULTS.about,
+    body: {
+      ar: "مزرعة عُبيد للتمور في أبو شلبي، فاقوس، الشرقية. تواصل مع المزرعة للحصول على أحدث المعلومات المنشورة.",
+      en: "Ebeid Farm for Dates is in Abou Shalaby, Faqous, El-Sharkia. Contact the Farm for the latest published information.",
+    },
+  },
+  whyBarhi: { ...SITE_CONTENT_DEFAULTS.whyBarhi, features: [] },
+  blocks: {
+    ...SITE_CONTENT_DEFAULTS.blocks,
+    note: { ar: "", en: "" },
+    rows: [],
+    total: { areaFeddans: 0, hawshat: 0, barhiPalms: 0 },
+  },
   certifications: {
     ...SITE_CONTENT_DEFAULTS.certifications,
     items: [],
   },
+  specs: { ...SITE_CONTENT_DEFAULTS.specs, rows: [] },
+  gallery: { ...SITE_CONTENT_DEFAULTS.gallery, items: [] },
+  whyPartner: { ...SITE_CONTENT_DEFAULTS.whyPartner, bullets: [] },
 };

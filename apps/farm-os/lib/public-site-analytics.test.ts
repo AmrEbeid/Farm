@@ -9,14 +9,27 @@ import {
   keepPublicSiteOnly,
   trackPublicSiteAction,
 } from "@/components/site/PublicSiteAnalytics";
+import { SITE_PUBLIC_PATHS } from "@/lib/site-public-pages";
 
-const homePage = readFileSync(resolve(__dirname, "../app/(public-ar)/page.tsx"), "utf8");
-const englishPage = readFileSync(resolve(__dirname, "../app/(public-en)/en/page.tsx"), "utf8");
-const rootDocument = readFileSync(resolve(__dirname, "../app/root-document.tsx"), "utf8");
-const landing = readFileSync(resolve(__dirname, "../components/site/SiteLanding.tsx"), "utf8");
+const homePage = readFileSync(
+  resolve(__dirname, "../app/(public-ar)/page.tsx"),
+  "utf8"
+);
+const englishPage = readFileSync(
+  resolve(__dirname, "../app/(public-en)/en/page.tsx"),
+  "utf8"
+);
+const rootDocument = readFileSync(
+  resolve(__dirname, "../app/root-document.tsx"),
+  "utf8"
+);
+const landing = readFileSync(
+  resolve(__dirname, "../components/site/SiteLanding.tsx"),
+  "utf8"
+);
 const analyticsPage = readFileSync(
   resolve(__dirname, "../app/(app)/settings/analytics/page.tsx"),
-  "utf8",
+  "utf8"
 );
 
 describe("public website analytics", () => {
@@ -27,29 +40,45 @@ describe("public website analytics", () => {
     expect(rootDocument).not.toContain("@vercel/analytics");
   });
 
-  it("keeps both public routes and drops internal routes, stripping query values", () => {
-    vi.stubGlobal("window", { location: { origin: "https://ebeidfarm.business" } });
+  it("keeps every registered public route and drops internal routes, stripping query values", () => {
+    vi.stubGlobal("window", {
+      location: { origin: "https://ebeidfarm.business" },
+    });
 
     expect(
       keepPublicSiteOnly({
         type: "pageview",
         url: "https://ebeidfarm.business/?email=buyer%40example.com#contact",
-      }),
+      })
     ).toEqual({ type: "pageview", url: "https://ebeidfarm.business/" });
     expect(
       keepPublicSiteOnly({
         type: "pageview",
         url: "https://ebeidfarm.business/en?utm_source=buyer#contact",
-      }),
+      })
     ).toEqual({ type: "pageview", url: "https://ebeidfarm.business/en" });
+    for (const path of SITE_PUBLIC_PATHS) {
+      expect(
+        keepPublicSiteOnly({
+          type: "pageview",
+          url: `https://ebeidfarm.business${path}?buyer=private#proof`,
+        })
+      ).toEqual({ type: "pageview", url: `https://ebeidfarm.business${path}` });
+    }
     expect(
-      keepPublicSiteOnly({ type: "pageview", url: "https://ebeidfarm.business/dashboard" }),
+      keepPublicSiteOnly({
+        type: "pageview",
+        url: "https://ebeidfarm.business/dashboard",
+      })
     ).toBeNull();
     expect(
-      keepPublicSiteOnly({ type: "pageview", url: "https://ebeidfarm.business/enquiries" }),
+      keepPublicSiteOnly({
+        type: "pageview",
+        url: "https://ebeidfarm.business/enquiries",
+      })
     ).toBeNull();
     expect(
-      keepPublicSiteOnly({ type: "pageview", url: "https://example.com/" }),
+      keepPublicSiteOnly({ type: "pageview", url: "https://example.com/" })
     ).toBeNull();
 
     vi.unstubAllGlobals();
@@ -64,7 +93,9 @@ describe("public website analytics", () => {
       "contact_whatsapp",
       "enquiry_submitted",
     ]) {
-      expect(landing).toContain(`trackPublicSiteAction(\"${action}\"`);
+      expect(landing).toMatch(
+        new RegExp(`trackPublicSiteAction\\(\\s*\"${action}\"`)
+      );
     }
     for (const action of [
       "contact_email",
@@ -73,10 +104,14 @@ describe("public website analytics", () => {
       "contact_whatsapp",
       "enquiry_submitted",
     ]) {
-      expect(landing).not.toContain(`trackPublicSiteAction(\"${action}\", lang,`);
+      expect(landing).not.toMatch(
+        new RegExp(
+          `trackPublicSiteAction\\(\\s*\"${action}\"\\s*,\\s*lang\\s*,`
+        )
+      );
     }
-    expect(landing).toContain(
-      'trackPublicSiteAction("certificate_opened", lang, { certificate: i + 1 })',
+    expect(landing).toMatch(
+      /trackPublicSiteAction\(\s*"certificate_opened"\s*,\s*lang\s*,\s*{\s*certificate:\s*i \+ 1,?\s*}\s*\)/
     );
   });
 
@@ -88,7 +123,9 @@ describe("public website analytics", () => {
       language: "ar",
       certificate: 2,
     });
-    expect(track).toHaveBeenNthCalledWith(2, "enquiry_submitted", { language: "en" });
+    expect(track).toHaveBeenNthCalledWith(2, "enquiry_submitted", {
+      language: "en",
+    });
   });
 
   it("shows the location action with an Arabic label in the owner analytics page", () => {
