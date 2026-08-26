@@ -1,15 +1,21 @@
 "use client";
 
-// Public export-credibility website for Ebeid Farm, rendered at `/`. Server-rendered for SEO
-// (Next SSRs client components for first paint); the only client state is the AR⇄EN language
-// toggle, which also flips text direction. Content comes in as a prop (Phase 1: the typed
-// defaults; Phase 2: the DB via fn_get_site_content) so this component never fabricates data.
+// Public export-credibility website for Ebeid Farm. Rendered by BOTH public routes: the Arabic
+// canonical home `/` and the crawlable English page `/en`. Server-rendered for SEO (Next SSRs
+// client components for first paint).
+//
+// `lang` is a PROP, not client state: the language a visitor sees is decided by the URL, so each
+// language has its own crawlable, linkable, indexable page. An in-component `useState` toggle would
+// leave the English copy invisible to a crawler that only ever fetches `/`. The AR⇄EN control is a
+// real <Link> between the two routes. Content comes in as a prop (the DB via fn_get_site_content,
+// falling back to the typed defaults) so this component never fabricates data.
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui";
 import { normalizeSiteMapUrl, type Bi, type Lang, type SiteContent } from "@/lib/site-content";
+import { SITE_DIR, SITE_PATH, otherLang } from "@/lib/site-seo";
 import { fmtNum } from "@/components/site/format";
 import { submitEnquiry } from "@/app/enquiry-actions";
 import { trackPublicSiteAction } from "@/components/site/PublicSiteAnalytics";
@@ -26,11 +32,11 @@ function safeHref(url: string | undefined | null): string {
   return "#";
 }
 
-export function SiteLanding({ content: c }: { content: SiteContent }) {
-  const [lang, setLang] = useState<Lang>("ar");
-  const dir = lang === "ar" ? "rtl" : "ltr";
+export function SiteLanding({ content: c, lang }: { content: SiteContent; lang: Lang }) {
+  const dir = SITE_DIR[lang];
   const t = (b: Bi) => b[lang];
   const other = lang === "ar" ? "English" : "عربي";
+  const otherHref = SITE_PATH[otherLang(lang)];
   const primaryPhone = c.contact.phones[0] ?? "";
   const mapHref = normalizeSiteMapUrl(c.contact.mapUrl) ?? "";
   // Public gallery shows only REAL photos — the shipped dummy placeholders (and empty slots) are
@@ -42,6 +48,7 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
   const [enquirySent, setEnquirySent] = useState(false);
   const [enquiryErr, setEnquiryErr] = useState("");
   const [sending, startSend] = useTransition();
+
   function onEnquiry(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -97,14 +104,17 @@ export function SiteLanding({ content: c }: { content: SiteContent }) {
             </nav>
           </details>
           <div className="site__actions">
-            <button
-              type="button"
+            {/* Crawlable language switch: a real link between `/` and `/en`, with hreflang so
+                the relationship is machine-readable from the page itself (not only from <head>). */}
+            <Link
+              href={otherHref}
               className="site__lang"
-              onClick={() => setLang((l) => (l === "ar" ? "en" : "ar"))}
+              hrefLang={otherLang(lang)}
+              lang={otherLang(lang)}
               aria-label={lang === "ar" ? "Switch to English" : "التحويل إلى العربية"}
             >
               {other}
-            </button>
+            </Link>
             <Link href="/login">
               <Button variant="primary">{lang === "ar" ? "تسجيل الدخول" : "Login"}</Button>
             </Link>

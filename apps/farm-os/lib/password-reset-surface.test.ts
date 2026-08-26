@@ -7,11 +7,11 @@ const readAppFile = (...parts: string[]) => readFileSync(join(APP_ROOT, ...parts
 
 describe("password recovery security contract", () => {
   it("offers recovery from the login page", () => {
-    expect(readAppFile("app", "login", "page.tsx")).toContain('href="/forgot-password"');
+    expect(readAppFile("app", "(auth)", "login", "page.tsx")).toContain('href="/forgot-password"');
   });
 
   it("requests a same-origin reset and does not reveal account existence", () => {
-    const source = readAppFile("app", "forgot-password", "page.tsx");
+    const source = readAppFile("app", "(auth)", "forgot-password", "page.tsx");
     expect(source).toContain("resetPasswordForEmail");
     expect(source).toContain('`${window.location.origin}/reset-password`');
     expect(source).toContain("إذا كان البريد مسجلًا");
@@ -22,9 +22,9 @@ describe("password recovery security contract", () => {
   });
 
   it("consumes only recovery tokens when the user submits the new password", () => {
-    const page = readAppFile("app", "reset-password", "page.tsx");
-    const form = readAppFile("app", "reset-password", "reset-password-form.tsx");
-    const route = readAppFile("app", "auth", "reset-password", "route.ts");
+    const page = readAppFile("app", "(auth)", "reset-password", "page.tsx");
+    const form = readAppFile("app", "(auth)", "reset-password", "reset-password-form.tsx");
+    const route = readAppFile("app", "(auth)", "auth", "reset-password", "route.ts");
     expect(form).toContain('type === "recovery"');
     expect(form).toContain("window.location.hash.slice(1)");
     expect(form).toContain('fetch("/auth/reset-password"');
@@ -38,21 +38,21 @@ describe("password recovery security contract", () => {
   });
 
   it("does not let an ordinary signed-in session bypass the one-time token", () => {
-    const source = readAppFile("app", "auth", "reset-password", "route.ts");
+    const source = readAppFile("app", "(auth)", "auth", "reset-password", "route.ts");
     expect(source).toContain("verifyOtp");
     expect(source.indexOf("verifyOtp")).toBeLessThan(source.indexOf("updateUser"));
     expect(source).not.toContain("getUser");
   });
 
   it("requires matching strong passwords and revokes sessions on all devices", () => {
-    const source = readAppFile("app", "reset-password", "reset-password-form.tsx");
+    const source = readAppFile("app", "(auth)", "reset-password", "reset-password-form.tsx");
     expect(source).toContain("MIN_PASSWORD_LENGTH = 12");
     expect(source).toContain("password !== confirmation");
     expect(source).not.toContain("error.message");
-    expect(readAppFile("app", "auth", "reset-password", "route.ts")).toContain(
+    expect(readAppFile("app", "(auth)", "auth", "reset-password", "route.ts")).toContain(
       'signOut({ scope: "global" })',
     );
-    expect(readAppFile("app", "auth", "reset-password", "route.ts")).toContain(
+    expect(readAppFile("app", "(auth)", "auth", "reset-password", "route.ts")).toContain(
       "passwordChanged: true",
     );
   });

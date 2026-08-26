@@ -182,6 +182,20 @@ true multi-tenant sites.
 
 ## 8. Changelog
 
+- **2026-08-26 — crawlable Arabic and English routes:** Arabic remains at `/`; English now has
+  its own server-rendered `/en` URL. Both pages publish reciprocal `hreflang` links (`ar`, `en`,
+  `x-default`), localized canonical metadata, one shared Organization/WebSite entity and a
+  language-specific WebPage entity. Separate root layouts set the initial Arabic and English HTML
+  language/direction correctly before hydration. The sitemap lists only the two public URLs; robots
+  permits crawling so non-public responses can enforce no-index without exposing authenticated data. The header language
+  control is a normal link instead of client-only state. Saving website content revalidates both
+  public routes, including their owner-managed search titles, descriptions and contact JSON-LD.
+  Owner text is escaped before inline JSON-LD insertion; structured addresses come from the same
+  owner-managed content as the visible page. Non-public responses carry `X-Robots-Tag: noindex,
+  nofollow, noarchive`; authentication remains the access boundary and those routes are absent from
+  the sitemap. No schema or authentication change is
+  involved.
+
 - **2026-08-26 — Location destination correction:** replaced the initial map destination with
   the exact Google Maps link associated with support ticket
   `0629f281-ca8c-401f-80b6-f1ef29ce6f32`,

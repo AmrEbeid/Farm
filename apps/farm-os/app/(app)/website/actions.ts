@@ -91,7 +91,9 @@ export async function saveSiteContent(input: {
       // A cleanup failure leaves an orphan but never breaks an already-successful content save.
     }
   }
+  // Both public language routes render the same saved content — revalidate each.
   revalidatePath("/");
+  revalidatePath("/en");
   revalidatePath("/website");
   return { ok: true };
 }

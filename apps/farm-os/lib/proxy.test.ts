@@ -79,6 +79,20 @@ beforeEach(() => {
 });
 
 describe("active organization repair in Proxy", () => {
+  it("keeps only the two public pages indexable and marks private responses noindex", async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    for (const path of ["/", "/en"]) {
+      const response = await proxy(new NextRequest(`https://ebeidfarm.business${path}`));
+      expect(response.headers.get("x-robots-tag"), path).toBeNull();
+    }
+    for (const path of ["/login", "/dashboard", "/settings/analytics", "/api/import"]) {
+      const response = await proxy(new NextRequest(`https://ebeidfarm.business${path}`));
+      expect(response.headers.get("x-robots-tag"), path).toBe("noindex, nofollow, noarchive");
+    }
+  });
+
   it("repairs a stale claim, propagates the rotated cookie, and disables caching", async () => {
     const client = clientFor({ claim: "removed-org" });
     state.client = client;

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    globalNotFound: true,
+  },
   // Monorepo: pin Turbopack's workspace root to the repo root so it compiles the
   // workspace `@amrebeid/ui` package (outside apps/farm-os). Without this, Vercel's
   // `vercel build` infers the root as apps/farm-os and refuses to compile files outside
