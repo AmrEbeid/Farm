@@ -11,20 +11,24 @@ import {
 const migration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260807220000_owner_public_site_comments.sql",
+    "supabase/migrations/20260807220000_owner_public_site_comments.sql"
   ),
-  "utf8",
+  "utf8"
 );
 const landing = readFileSync(
   join(process.cwd(), "components/site/SiteLanding.tsx"),
-  "utf8",
+  "utf8"
 );
 
 describe("Owner public-site comments", () => {
   it("keeps the default public content aligned with every requested edit", () => {
-    expect(SITE_CONTENT_DEFAULTS.stats.map(({ value }) => value)).toEqual([120, 5000, 202, 7]);
+    expect(SITE_CONTENT_DEFAULTS.stats.map(({ value }) => value)).toEqual([
+      120, 5000, 202, 7,
+    ]);
     expect(SITE_CONTENT_DEFAULTS.about.heading.ar).toBe("من نحن");
-    expect(SITE_CONTENT_DEFAULTS.about.body.ar).toContain("تأسست المزرعة منذ 10 سنوات");
+    expect(SITE_CONTENT_DEFAULTS.about.body.ar).toContain(
+      "تأسست المزرعة منذ 10 سنوات"
+    );
     expect(SITE_CONTENT_DEFAULTS.about.body.ar).toContain("شركة ساباد");
     expect(SITE_CONTENT_DEFAULTS.about.body.ar).toContain("120 فداناً");
     expect(SITE_CONTENT_DEFAULTS.about.body.ar).toContain("5,000 نخلة بارحي");
@@ -32,9 +36,11 @@ describe("Owner public-site comments", () => {
     expect(SITE_CONTENT_DEFAULTS.contact.person.ar).toBe("مزرعة عبيد للتمور");
     expect(SITE_CONTENT_DEFAULTS.contact.email).toBe("ebeidfarm@gmail.com");
     expect(SITE_CONTENT_DEFAULTS.contact.mapUrl).toBe(
-      "https://maps.app.goo.gl/G9XhCj1xLHWW3zgu9",
+      "https://maps.app.goo.gl/G9XhCj1xLHWW3zgu9"
     );
-    expect(SITE_CONTENT_DEFAULTS.specs.rows[5]?.value.ar).toContain("دول شرق آسيا");
+    expect(SITE_CONTENT_DEFAULTS.specs.rows[5]?.value.ar).toContain(
+      "دول شرق آسيا"
+    );
   });
 
   it("adds the map URL to site content saved before that field existed", () => {
@@ -42,19 +48,21 @@ describe("Owner public-site comments", () => {
     delete (legacyContact as Partial<typeof legacyContact>).mapUrl;
 
     expect(mergeSiteContent({ contact: legacyContact }).contact.mapUrl).toBe(
-      SITE_CONTENT_DEFAULTS.contact.mapUrl,
+      SITE_CONTENT_DEFAULTS.contact.mapUrl
     );
   });
 
   it("preserves an explicitly stored map URL instead of replacing it with the default", () => {
     const storedMapUrl = "https://maps.example.test/persisted-farm-location";
-    expect(mergeSiteContent({ contact: { mapUrl: storedMapUrl } }).contact.mapUrl).toBe(storedMapUrl);
+    expect(
+      mergeSiteContent({ contact: { mapUrl: storedMapUrl } }).contact.mapUrl
+    ).toBe(storedMapUrl);
   });
 
   it("accepts only empty or absolute credential-free HTTPS map links", () => {
     expect(normalizeSiteMapUrl("  ")).toBe("");
     expect(normalizeSiteMapUrl(SITE_CONTENT_DEFAULTS.contact.mapUrl)).toBe(
-      SITE_CONTENT_DEFAULTS.contact.mapUrl,
+      SITE_CONTENT_DEFAULTS.contact.mapUrl
     );
     for (const invalid of [
       "http://maps.example.test/farm",
@@ -95,10 +103,22 @@ describe("Owner public-site comments", () => {
     expect(landing).not.toContain("c.contact.phones.map((p)");
   });
 
-  it("fails closed on certificate claims while keeping the public page content available", () => {
+  it("fails closed on mutable public claims while keeping a minimal identity page available", () => {
     expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.certifications.items).toEqual([]);
-    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.hero).toEqual(SITE_CONTENT_DEFAULTS.hero);
-    expect(landing).toContain("const hasCertifications = c.certifications.items.length > 0");
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.stats).toEqual([]);
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.blocks.rows).toEqual([]);
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.specs.rows).toEqual([]);
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.whyPartner.bullets).toEqual([]);
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.hero.badges).toEqual([]);
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.hero.subhead.en).toContain(
+      "temporarily unavailable"
+    );
+    expect(SITE_CONTENT_PUBLIC_READ_FALLBACK.hero.subhead.en).not.toContain(
+      "Certified"
+    );
+    expect(landing).toContain(
+      "const hasCertifications = c.certifications.items.length > 0"
+    );
     expect(landing).toContain("{hasCertifications && (");
   });
 });

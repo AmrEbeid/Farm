@@ -5,15 +5,28 @@ import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { SITE_CONTENT_DEFAULTS, type Lang } from "@/lib/site-content";
 import {
+  PUBLIC_SITE_PAGES,
+  PUBLIC_SITE_PAGE_KEYS,
+  SITE_PUBLIC_PATHS,
+} from "@/lib/site-public-pages";
+import {
   SITE_ORIGIN,
   SITE_PATH,
   serializeJsonLd,
   siteJsonLd,
   siteMetadata,
+  sitePageJsonLd,
+  sitePageMetadata,
 } from "@/lib/site-seo";
 
-const homePage = readFileSync(resolve(__dirname, "../app/(public-ar)/page.tsx"), "utf8");
-const englishPage = readFileSync(resolve(__dirname, "../app/(public-en)/en/page.tsx"), "utf8");
+const homePage = readFileSync(
+  resolve(__dirname, "../app/(public-ar)/page.tsx"),
+  "utf8"
+);
+const englishPage = readFileSync(
+  resolve(__dirname, "../app/(public-en)/en/page.tsx"),
+  "utf8"
+);
 const seoHelper = readFileSync(resolve(__dirname, "./site-seo.ts"), "utf8");
 
 /**
@@ -62,24 +75,86 @@ describe("public site SEO signals", () => {
     const en = siteMetadata("en");
 
     expect(ar.title).toEqual({
-      absolute: `${SITE_CONTENT_DEFAULTS.brand.name.ar} · ${SITE_CONTENT_DEFAULTS.hero.headline.ar}`,
+      absolute: "مزرعة عبيد | تمور برحي طازجة من الشرقية",
     });
-    expect(ar.description).toBe(SITE_CONTENT_DEFAULTS.hero.subhead.ar);
-    expect(ar.openGraph).toMatchObject({ locale: "ar_EG", alternateLocale: "en_US", url: "/" });
+    expect(ar.description).toBe(
+      "تمور برحي طازجة من مزرعة عبيد بالشرقية، مع معلومات المنتج ومواصفات التوريد ووسائل التواصل التي تديرها المزرعة من داخل نظامها."
+    );
+    expect(ar.openGraph).toMatchObject({
+      locale: "ar_EG",
+      alternateLocale: "en_US",
+      url: "/",
+    });
 
     expect(en.title).toEqual({
-      absolute: `${SITE_CONTENT_DEFAULTS.brand.name.en} · ${SITE_CONTENT_DEFAULTS.hero.headline.en}`,
+      absolute: "Ebeid Farm | Fresh Barhi Dates from Egypt",
     });
-    expect(en.description).toBe(SITE_CONTENT_DEFAULTS.hero.subhead.en);
-    expect(en.openGraph).toMatchObject({ locale: "en_US", alternateLocale: "ar_EG", url: "/en" });
+    expect(en.description).toBe(
+      "Fresh Barhi dates from Ebeid Farm in El-Sharkia, Egypt, with owner-managed product information, supply specifications and contact details."
+    );
+    expect(en.openGraph).toMatchObject({
+      locale: "en_US",
+      alternateLocale: "ar_EG",
+      url: "/en",
+    });
 
     // Arabic metadata must not be Latin-only boilerplate, and vice versa.
     expect(String(ar.description)).toMatch(/[؀-ۿ]/);
     expect(String(en.description)).not.toMatch(/[؀-ۿ]/);
+    expect(
+      String((ar.title as { absolute: string }).absolute).length
+    ).toBeLessThanOrEqual(60);
+    expect(
+      String((en.title as { absolute: string }).absolute).length
+    ).toBeLessThanOrEqual(60);
+    expect(String(ar.description).length).toBeLessThanOrEqual(170);
+    expect(String(en.description).length).toBeLessThanOrEqual(170);
+  });
+
+  it("gives every focused page concise localized metadata and exact reciprocal alternates", () => {
+    for (const page of PUBLIC_SITE_PAGE_KEYS) {
+      const definition = PUBLIC_SITE_PAGES[page];
+      for (const lang of ["ar", "en"] as Lang[]) {
+        const metadata = sitePageMetadata(lang, page);
+        expect(metadata.title).toEqual({ absolute: definition.title[lang] });
+        expect(metadata.description).toBe(definition.description[lang]);
+        expect(metadata.alternates).toEqual({
+          canonical: definition.path[lang],
+          languages: {
+            ar: definition.path.ar,
+            en: definition.path.en,
+            "x-default": definition.path.ar,
+          },
+        });
+        expect(definition.title[lang].length).toBeLessThanOrEqual(65);
+        expect(definition.description[lang].length).toBeLessThanOrEqual(180);
+      }
+    }
+  });
+
+  it("defines the required public page contract for every focused buyer intent", () => {
+    for (const page of PUBLIC_SITE_PAGE_KEYS) {
+      const pageMeta = PUBLIC_SITE_PAGES[page].pageMeta;
+      for (const field of [
+        "what",
+        "why",
+        "when",
+        "how",
+        "commonMistakes",
+      ] as const) {
+        expect(pageMeta[field].ar.trim().length).toBeGreaterThan(0);
+        expect(pageMeta[field].en.trim().length).toBeGreaterThan(0);
+      }
+      expect(pageMeta.permissions).toEqual(["public"]);
+      expect(pageMeta.spec).toBe(
+        "docs/superpowers/specs/2026-07-03-public-website-design.md"
+      );
+    }
   });
 
   it("emits one shared Organization and WebSite plus a per-language WebPage entity", () => {
-    const graphOf = (lang: Lang) => siteJsonLd(lang, SITE_CONTENT_DEFAULTS)["@graph"];
+    const graphOf = (lang: Lang) =>
+      siteJsonLd(lang, SITE_CONTENT_DEFAULTS)["@graph"];
     const [arOrg, arSite, arPage] = graphOf("ar");
     const [enOrg, enSite, enPage] = graphOf("en");
 
@@ -90,14 +165,14 @@ describe("public site SEO signals", () => {
       name: SITE_CONTENT_DEFAULTS.brand.name.ar,
       alternateName: SITE_CONTENT_DEFAULTS.brand.name.en,
       legalName: SITE_CONTENT_DEFAULTS.brand.registeredName.ar,
-      description: SITE_CONTENT_DEFAULTS.hero.subhead.ar,
+      description: siteMetadata("ar").description,
       email: SITE_CONTENT_DEFAULTS.contact.email,
       telephone: "+201002174773",
     });
     expect(enOrg).toMatchObject({
       name: SITE_CONTENT_DEFAULTS.brand.name.en,
       alternateName: SITE_CONTENT_DEFAULTS.brand.name.ar,
-      description: SITE_CONTENT_DEFAULTS.hero.subhead.en,
+      description: siteMetadata("en").description,
     });
 
     expect(arSite).toEqual(enSite);
@@ -126,11 +201,72 @@ describe("public site SEO signals", () => {
     // none, so no Product/Offer/rating entity may appear in the JSON-LD or the helper.
     for (const lang of ["ar", "en"] as Lang[]) {
       const json = JSON.stringify(siteJsonLd(lang, SITE_CONTENT_DEFAULTS));
-      for (const banned of ["Product", "Offer", "AggregateRating", "Review", "price"]) {
+      for (const banned of [
+        "Product",
+        "Offer",
+        "AggregateRating",
+        "Review",
+        "price",
+      ]) {
         expect(json).not.toContain(banned);
       }
+      for (const page of PUBLIC_SITE_PAGE_KEYS) {
+        const detailJson = JSON.stringify(
+          sitePageJsonLd(lang, page, SITE_CONTENT_DEFAULTS)
+        );
+        for (const banned of [
+          "Product",
+          "Offer",
+          "AggregateRating",
+          "Review",
+          "price",
+        ]) {
+          expect(detailJson).not.toContain(banned);
+        }
+      }
     }
-    expect(seoHelper).not.toMatch(/"@type":\s*"(Product|Offer|AggregateRating|Review)"/);
+    expect(seoHelper).not.toMatch(
+      /"@type":\s*"(Product|Offer|AggregateRating|Review)"/
+    );
+  });
+
+  it("emits a localized WebPage entity for every focused route", () => {
+    for (const page of PUBLIC_SITE_PAGE_KEYS) {
+      for (const lang of ["ar", "en"] as Lang[]) {
+        const graph = sitePageJsonLd(lang, page, SITE_CONTENT_DEFAULTS)[
+          "@graph"
+        ];
+        const webpage = graph[2];
+        expect(webpage).toMatchObject({
+          "@type": "WebPage",
+          url: `${SITE_ORIGIN}${PUBLIC_SITE_PAGES[page].path[lang]}`,
+          name: PUBLIC_SITE_PAGES[page].heading[lang],
+          description: PUBLIC_SITE_PAGES[page].description[lang],
+          inLanguage: lang,
+        });
+      }
+    }
+  });
+
+  it("fails closed in visible metadata and JSON-LD when no certificate proof is published", () => {
+    const withoutProofs = {
+      ...SITE_CONTENT_DEFAULTS,
+      certifications: { ...SITE_CONTENT_DEFAULTS.certifications, items: [] },
+    };
+    for (const page of ["chinaSupply", "certifications"] as const) {
+      const metadata = sitePageMetadata("en", page, withoutProofs);
+      const webpage = sitePageJsonLd("en", page, withoutProofs)["@graph"][2];
+      expect(
+        String((metadata.title as { absolute: string }).absolute)
+      ).not.toContain("Eligible");
+      expect(String(metadata.description)).toContain(
+        "No certificate is currently published"
+      );
+      expect(webpage.name).not.toContain("Eligible");
+      expect(webpage.description).toContain(
+        "No certificate is currently published"
+      );
+    }
   });
 
   it("takes its JSON-LD contact values from owner-managed content, not hardcoded copies", () => {
@@ -169,17 +305,21 @@ describe("public site SEO signals", () => {
     expect(serialized).not.toContain("\u2028");
     expect(serialized).not.toContain("\u2029");
     expect(JSON.parse(serialized)).toEqual(value);
-    expect(homePage).toContain("serializeJsonLd(siteJsonLd(\"ar\", content))");
-    expect(englishPage).toContain("serializeJsonLd(siteJsonLd(\"en\", content))");
+    expect(homePage).toContain('serializeJsonLd(siteJsonLd("ar", content))');
+    expect(englishPage).toContain('serializeJsonLd(siteJsonLd("en", content))');
   });
 
   it("wires both pages to the shared helper with their own language", () => {
     expect(homePage).toContain('siteMetadata("ar", await loadSiteContent())');
     expect(homePage).toContain('siteJsonLd("ar", content)');
     expect(homePage).toContain('<SiteLanding content={content} lang="ar" />');
-    expect(englishPage).toContain('siteMetadata("en", await loadSiteContent())');
+    expect(englishPage).toContain(
+      'siteMetadata("en", await loadSiteContent())'
+    );
     expect(englishPage).toContain('siteJsonLd("en", content)');
-    expect(englishPage).toContain('<SiteLanding content={content} lang="en" />');
+    expect(englishPage).toContain(
+      '<SiteLanding content={content} lang="en" />'
+    );
     // Neither page may re-declare metadata or JSON-LD locally.
     expect(homePage).not.toContain('"@context"');
     expect(englishPage).not.toContain('"@context"');
@@ -224,21 +364,37 @@ describe("robots and noindex compatibility", () => {
 });
 
 describe("sitemap coverage", () => {
-  it("lists both public routes with matching language alternates", () => {
+  it("lists every public route once with the matching language pair", () => {
     const entries = sitemap();
-    expect(entries.map((e) => e.url)).toEqual([`${SITE_ORIGIN}/`, `${SITE_ORIGIN}/en`]);
-    for (const entry of entries) {
-      expect(entry.alternates?.languages).toEqual({
-        ar: `${SITE_ORIGIN}/`,
-        en: `${SITE_ORIGIN}/en`,
-        "x-default": `${SITE_ORIGIN}/`,
-      });
+    expect(entries.map((entry) => new URL(entry.url).pathname)).toEqual(
+      SITE_PUBLIC_PATHS
+    );
+    expect(new Set(entries.map((entry) => entry.url)).size).toBe(
+      SITE_PUBLIC_PATHS.length
+    );
+
+    for (const page of PUBLIC_SITE_PAGE_KEYS) {
+      const definition = PUBLIC_SITE_PAGES[page];
+      const expectedLanguages = {
+        ar: `${SITE_ORIGIN}${definition.path.ar}`,
+        en: `${SITE_ORIGIN}${definition.path.en}`,
+        "x-default": `${SITE_ORIGIN}${definition.path.ar}`,
+      };
+      for (const path of [definition.path.ar, definition.path.en]) {
+        const entry = entries.find(
+          (candidate) => new URL(candidate.url).pathname === path
+        );
+        expect(entry?.alternates?.languages).toEqual(expectedLanguages);
+      }
     }
   });
 
   it("lists no private route", () => {
     for (const entry of sitemap()) {
-      expect(["/", "/en"]).toContain(new URL(entry.url).pathname);
+      expect(SITE_PUBLIC_PATHS).toContain(new URL(entry.url).pathname);
+      expect(new URL(entry.url).pathname).not.toMatch(
+        /^\/(dashboard|finance|settings|api|login)/
+      );
     }
   });
 });

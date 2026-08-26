@@ -6,7 +6,11 @@ import {
   isHttpsUrl,
   validateCertifications,
 } from "./site-certificates";
-import { SITE_CONTENT_DEFAULTS, type SiteCert, type SiteContent } from "./site-content";
+import {
+  SITE_CONTENT_DEFAULTS,
+  type SiteCert,
+  type SiteContent,
+} from "./site-content";
 
 /** A valid card; each test overrides only the field under test. */
 const cert = (over: Partial<SiteCert> = {}): SiteCert => ({
@@ -27,7 +31,9 @@ const section = (items: SiteCert[]): SiteContent["certifications"] => ({
 
 describe("validateCertifications — the shipped defaults", () => {
   it("accepts the four Owner-approved certificates unchanged", () => {
-    expect(validateCertifications(SITE_CONTENT_DEFAULTS.certifications)).toEqual({ ok: true });
+    expect(
+      validateCertifications(SITE_CONTENT_DEFAULTS.certifications)
+    ).toEqual({ ok: true });
   });
   it("rejects an empty list so the homepage never renders an empty trust band", () => {
     expect(validateCertifications(section([])).ok).toBe(false);
@@ -47,21 +53,34 @@ describe("validateCertifications — count and section text", () => {
     expect(validateCertifications(null).ok).toBe(false);
     expect(validateCertifications(undefined).ok).toBe(false);
     const s = section([]);
-    expect(validateCertifications({ ...s, heading: { ar: "", en: "C" } }).ok).toBe(false);
-    expect(validateCertifications({ ...s, intro: { ar: "م", en: "   " } }).ok).toBe(false);
+    expect(
+      validateCertifications({ ...s, heading: { ar: "", en: "C" } }).ok
+    ).toBe(false);
+    expect(
+      validateCertifications({ ...s, intro: { ar: "م", en: "   " } }).ok
+    ).toBe(false);
   });
   it("rejects an over-long heading / intro", () => {
     const s = section([]);
     expect(
-      validateCertifications({ ...s, heading: { ar: "ش".repeat(CERT_LIMITS.heading + 1), en: "C" } }).ok,
+      validateCertifications({
+        ...s,
+        heading: { ar: "ش".repeat(CERT_LIMITS.heading + 1), en: "C" },
+      }).ok
     ).toBe(false);
     expect(
-      validateCertifications({ ...s, intro: { ar: "م", en: "x".repeat(CERT_LIMITS.intro + 1) } }).ok,
+      validateCertifications({
+        ...s,
+        intro: { ar: "م", en: "x".repeat(CERT_LIMITS.intro + 1) },
+      }).ok
     ).toBe(false);
   });
   it("rejects a non-array items field", () => {
     expect(
-      validateCertifications({ ...section([]), items: "nope" } as unknown as SiteContent["certifications"]).ok,
+      validateCertifications({
+        ...section([]),
+        items: "nope",
+      } as unknown as SiteContent["certifications"]).ok
     ).toBe(false);
   });
 });
@@ -86,7 +105,9 @@ describe("validateCertifications — per-card required, bounded fields", () => {
     rejects({ verifyIsRegistry: undefined as unknown as boolean });
   });
   it("names the offending row so the owner can find it", () => {
-    const res = validateCertifications(section([cert(), cert({ verifyUrl: "javascript:alert(1)" })]));
+    const res = validateCertifications(
+      section([cert(), cert({ verifyUrl: "javascript:alert(1)" })])
+    );
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toContain("2");
   });
@@ -98,10 +119,38 @@ describe("validateCertifications — image and verify URL schemes", () => {
   const accepts = (over: Partial<SiteCert>) =>
     expect(validateCertifications(section([cert(over)])).ok).toBe(true);
 
-  it("accepts a bundled /site/ path, an uploaded site-media URL and an https URL", () => {
+  it("accepts bundled assets and this Farm's uploaded site-media URLs only", () => {
     accepts({ image: "/site/proofs/capq-farm-approval.jpeg" });
-    accepts({ image: "https://x.supabase.co/storage/v1/object/public/site-media/certificates/a.png" });
+    accepts({
+      image:
+        "https://veezkmytervjnpxcrbkw.supabase.co/storage/v1/object/public/site-media/certificates/a.png",
+    });
+    rejects({
+      image:
+        "https://x.supabase.co/storage/v1/object/public/site-media/certificates/a.png",
+    });
+    rejects({ image: "https://example.com/a.png" });
     rejects({ image: "http://example.com/a.png" });
+  });
+  it("rejects credentials, query strings and fragments on certificate images", () => {
+    rejects({
+      image:
+        "https://user:secret@veezkmytervjnpxcrbkw.supabase.co/storage/v1/object/public/site-media/a.png",
+    });
+    rejects({
+      image:
+        "https://veezkmytervjnpxcrbkw.supabase.co/storage/v1/object/public/site-media/a.png?track=1",
+    });
+    rejects({
+      image:
+        "https://veezkmytervjnpxcrbkw.supabase.co/storage/v1/object/public/site-media/a.png#fragment",
+    });
+    rejects({
+      image:
+        "https://veezkmytervjnpxcrbkw.supabase.co:444/storage/v1/object/public/site-media/a.png",
+    });
+    rejects({ image: "/site/proofs/a.png?track=1" });
+    rejects({ image: "/site/proofs/a.png#fragment" });
   });
   it("rejects javascript:, data:, scheme-relative, traversal and other local paths", () => {
     rejects({ image: "javascript:alert(1)" });
@@ -140,5 +189,6 @@ describe("URL helpers", () => {
     expect(isAllowedCertImage("/site/")).toBe(false);
     expect(isAllowedCertImage("/sitemap.xml")).toBe(false);
     expect(isAllowedCertImage("C:\\temp\\a.png")).toBe(false);
+    expect(isAllowedCertImage("https://example.com/a.png")).toBe(false);
   });
 });

@@ -45,4 +45,14 @@ describe("website server-action safety contract", () => {
     expect(page).toContain("if (error) throw error");
     expect(page).toContain("لم يتم فتح المحرر لحماية بيانات الموقع");
   });
+
+  it("revalidates every public route from the shared registry after a successful save", () => {
+    const errorReturn = actions.indexOf("if (error) return");
+    const revalidation = actions.indexOf(
+      "for (const path of SITE_PUBLIC_PATHS) revalidatePath(path);",
+    );
+
+    expect(actions).toContain('import { SITE_PUBLIC_PATHS } from "@/lib/site-public-pages";');
+    expect(revalidation).toBeGreaterThan(errorReturn);
+  });
 });

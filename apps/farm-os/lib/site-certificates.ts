@@ -29,6 +29,9 @@ export type CertValidation = { ok: true } | { ok: false; error: string };
 const ok: CertValidation = { ok: true };
 const fail = (error: string): CertValidation => ({ ok: false, error });
 
+const SITE_MEDIA_HOST = "veezkmytervjnpxcrbkw.supabase.co";
+const SITE_MEDIA_PREFIX = "/storage/v1/object/public/site-media/";
+
 /** HTTPS only — parsed, not regex-matched, so `javascript:`/`data:`/`//host` can't slip through. */
 export function isHttpsUrl(value: string): boolean {
   let u: URL;
@@ -37,19 +40,42 @@ export function isHttpsUrl(value: string): boolean {
   } catch {
     return false;
   }
-  return u.protocol === "https:";
+  return u.protocol === "https:" && !u.username && !u.password;
 }
 
 /**
- * A certificate image must be either a bundled site path (`/site/…`) or an HTTPS URL.
- * Rejects scheme-relative `//host`, traversal, backslashes, and every non-http scheme.
+ * A certificate image must be either a bundled site path (`/site/…`) or an object in this Farm's
+ * public `site-media` bucket. Query strings, fragments and credentials are rejected so the public
+ * site cannot be turned into a third-party tracking or credential-disclosure surface.
  */
 export function isAllowedCertImage(value: string): boolean {
   const v = value.trim();
   if (!v) return false;
-  if (v.includes("\\") || v.includes("..")) return false;
+  if (
+    v.includes("\\") ||
+    v.includes("..") ||
+    v.includes("?") ||
+    v.includes("#")
+  )
+    return false;
   if (v.startsWith("/site/")) return v.length > "/site/".length;
-  return isHttpsUrl(v);
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return false;
+  }
+  return (
+    u.protocol === "https:" &&
+    !u.username &&
+    !u.password &&
+    !u.port &&
+    !u.search &&
+    !u.hash &&
+    u.hostname === SITE_MEDIA_HOST &&
+    u.pathname.startsWith(SITE_MEDIA_PREFIX) &&
+    u.pathname.length > SITE_MEDIA_PREFIX.length
+  );
 }
 
 /** Non-empty after trimming and within `max` characters. */
@@ -65,9 +91,10 @@ function boundedText(value: unknown, max: number): boolean {
  * The four shipped defaults must pass unchanged.
  */
 export function validateCertifications(
-  section: SiteContent["certifications"] | null | undefined,
+  section: SiteContent["certifications"] | null | undefined
 ): CertValidation {
-  if (!section || typeof section !== "object") return fail("قسم الشهادات مفقود");
+  if (!section || typeof section !== "object")
+    return fail("قسم الشهادات مفقود");
 
   if (!boundedText(section.heading?.ar, CERT_LIMITS.heading))
     return fail("عنوان قسم الشهادات (عربي) مطلوب وبحد أقصى 120 حرفًا");
@@ -87,21 +114,34 @@ export function validateCertifications(
   for (let i = 0; i < items.length; i++) {
     const c = items[i];
     const n = i + 1;
-    if (!c || typeof c !== "object") return fail(`الشهادة ${n}: بيانات غير صالحة`);
+    if (!c || typeof c !== "object")
+      return fail(`الشهادة ${n}: بيانات غير صالحة`);
     if (!boundedText(c.title?.ar, CERT_LIMITS.title))
-      return fail(`الشهادة ${n}: الاسم (عربي) مطلوب وبحد أقصى ${CERT_LIMITS.title} حرفًا`);
+      return fail(
+        `الشهادة ${n}: الاسم (عربي) مطلوب وبحد أقصى ${CERT_LIMITS.title} حرفًا`
+      );
     if (!boundedText(c.title?.en, CERT_LIMITS.title))
-      return fail(`الشهادة ${n}: الاسم (إنجليزي) مطلوب وبحد أقصى ${CERT_LIMITS.title} حرفًا`);
+      return fail(
+        `الشهادة ${n}: الاسم (إنجليزي) مطلوب وبحد أقصى ${CERT_LIMITS.title} حرفًا`
+      );
     if (!boundedText(c.detail?.ar, CERT_LIMITS.detail))
-      return fail(`الشهادة ${n}: التفاصيل (عربي) مطلوبة وبحد أقصى ${CERT_LIMITS.detail} حرف`);
+      return fail(
+        `الشهادة ${n}: التفاصيل (عربي) مطلوبة وبحد أقصى ${CERT_LIMITS.detail} حرف`
+      );
     if (!boundedText(c.detail?.en, CERT_LIMITS.detail))
-      return fail(`الشهادة ${n}: التفاصيل (إنجليزي) مطلوبة وبحد أقصى ${CERT_LIMITS.detail} حرف`);
+      return fail(
+        `الشهادة ${n}: التفاصيل (إنجليزي) مطلوبة وبحد أقصى ${CERT_LIMITS.detail} حرف`
+      );
     if (!boundedText(c.image, CERT_LIMITS.url) || !isAllowedCertImage(c.image))
-      return fail(`الشهادة ${n}: رابط الصورة يجب أن يبدأ بـ /site/ أو https://`);
+      return fail(
+        `الشهادة ${n}: الصورة يجب أن تكون ملفًا مرفقًا بالموقع أو مرفوعة في مخزن صور المزرعة`
+      );
     if (!boundedText(c.verifyUrl, CERT_LIMITS.url) || !isHttpsUrl(c.verifyUrl))
       return fail(`الشهادة ${n}: رابط التحقق يجب أن يبدأ بـ https://`);
     if (!boundedText(c.verifyLabel, CERT_LIMITS.verifyLabel))
-      return fail(`الشهادة ${n}: اسم جهة التحقق مطلوب وبحد أقصى ${CERT_LIMITS.verifyLabel} حرفًا`);
+      return fail(
+        `الشهادة ${n}: اسم جهة التحقق مطلوب وبحد أقصى ${CERT_LIMITS.verifyLabel} حرفًا`
+      );
     if (typeof c.verifyIsRegistry !== "boolean")
       return fail(`الشهادة ${n}: نوع رابط التحقق غير محدد`);
   }

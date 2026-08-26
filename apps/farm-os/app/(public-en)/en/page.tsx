@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import "../../site.css";
 import { SiteLanding } from "@/components/site/SiteLanding";
 import { PublicSiteAnalytics } from "@/components/site/PublicSiteAnalytics";
 import { serializeJsonLd, siteJsonLd, siteMetadata } from "@/lib/site-seo";

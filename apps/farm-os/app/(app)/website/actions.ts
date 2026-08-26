@@ -8,6 +8,7 @@ import { toArabicError } from "@/lib/errors";
 import { sniffImage, galleryMediaPaths, ALLOWED_IMAGE_TYPES, IMAGE_EXT } from "@/lib/site-media";
 import { validateCertifications } from "@/lib/site-certificates";
 import { normalizeSiteMapUrl, type SiteContent } from "@/lib/site-content";
+import { SITE_PUBLIC_PATHS } from "@/lib/site-public-pages";
 import type { Json } from "@/lib/database.types";
 
 // Save the public-site content. The role gate (site.write = owner) is enforced IN THE DATABASE by
@@ -91,9 +92,8 @@ export async function saveSiteContent(input: {
       // A cleanup failure leaves an orphan but never breaks an already-successful content save.
     }
   }
-  // Both public language routes render the same saved content — revalidate each.
-  revalidatePath("/");
-  revalidatePath("/en");
+  // Every public route renders the same saved content — revalidate the registry, never a hand list.
+  for (const path of SITE_PUBLIC_PATHS) revalidatePath(path);
   revalidatePath("/website");
   return { ok: true };
 }

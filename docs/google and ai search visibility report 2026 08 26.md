@@ -22,7 +22,7 @@ The Farm now has a strong technical search foundation, but not yet enough search
 - Both live pages are crawlable, responsive, fast, and structurally correct. The main limitation is that one page per language is trying to answer every product, export, certification, wholesale, and location query.
 - AI-search crawlers tested successfully at the public homepage, including Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User, and PerplexityBot. Eligibility is present, but citation is never guaranteed.
 
-The highest-value next move is not another technical rewrite. It is to publish a small set of focused, bilingual, evidence-backed pages for Barhi dates, export supply, China eligibility, certifications and traceability, wholesale specifications, and the farm's verified facts. Those pages should be supported by consistent third-party profiles and official or industry citations.
+The highest-value next move is not another technical rewrite. It is to publish a small set of focused, bilingual, evidence-backed pages for Barhi dates, export supply, published China records, certifications and traceability, wholesale specifications, and the farm's verified facts. Those pages should be supported by consistent third-party profiles and official or industry citations.
 
 ## How the test was run
 
@@ -54,7 +54,7 @@ No paid keyword-volume or difficulty platform was connected. The opportunity and
 | مورد تمور برحي مصر | Supplier selection | Not in top 10 | qotofelkhier.com | High | Arabic supplier page |
 | شركة تصدير تمور مصر | Export company | Not in top 10 | oasisgoldco.com | Medium, broad | Export capability page with truthful business role |
 | تمور طازجة للتصدير | Export buyer | Not in top 10 | oasisgoldco.com | High | Fresh Barhi export page |
-| تمور مصرية للصين | China market | **6** | agri.ahram.org.eg | **Highest quick win** | China eligibility page |
+| تمور مصرية للصين | China market | **6** | agri.ahram.org.eg | **Highest quick win** | Published China records page |
 | تمور برحي معتمدة جلوبال جاب | Certification | Not in top 10 | hadhim.co | High, differentiated | GLOBALG.A.P. evidence page |
 | شراء تمور برحي بالجملة مصر | Wholesale buyer | Not in top 10 | facebook.com | High | Wholesale specifications page |
 | مزارع تمور الشرقية | Location discovery | Not in top 10 | jeeltoday.com | Medium | Farm and location page |
@@ -72,10 +72,10 @@ No paid keyword-volume or difficulty platform was connected. The opportunity and
 | Egyptian dates exporter | Export buyer | Not in top 10 | nifirtiti.com | Medium, broad | Export capability page |
 | certified date farm Egypt | Trust and certification | Not in top 10 | biahmo.com | High | Certifications and farm facts pages |
 | GLOBALG.A.P. Barhi dates Egypt | Certification | Not in top 10 | facebook.com | High, differentiated | GLOBALG.A.P. evidence page |
-| GACC approved dates Egypt | China eligibility | Not in top 10 | gacc.app | High | China eligibility page |
+| GACC approved dates Egypt | China evidence | Not in top 10 | gacc.app | High | Published China records page |
 | fresh dates supplier Egypt | Supplier selection | Not in top 10 | palmhillsdates.com | Medium, broad | Supplier and capacity page |
 | Barhi dates farm Egypt | Farm and product | Not in top 10 | linahfarms.com | High | Farm and Barhi pages |
-| Egypt dates supplier China | China buyer | Not in top 10 | nifirtiti.com | High | China eligibility and supply page |
+| Egypt dates supplier China | China buyer | Not in top 10 | nifirtiti.com | High | Published China records and supply page |
 
 ## Competitor picture
 
@@ -232,7 +232,7 @@ A custom `llms.txt` file is not required for Google, ChatGPT, Perplexity, or Bin
 
 ### First content release: 1 to 2 weeks
 
-1. Publish the China eligibility page in Arabic and English.
+1. Publish the China records page in Arabic and English, showing only matching owner-published proof and never inferring eligibility.
 2. Publish the fresh Barhi dates product page in Arabic and English.
 3. Publish the export-supply page in Arabic and English.
 4. Publish the certifications and traceability page in Arabic and English.
@@ -276,3 +276,17 @@ These targets are operating targets, not ranking guarantees. Search engines and 
 ## Conclusion
 
 The Farm is technically eligible for normal and AI search, and its brand is already discoverable. The current weakness is non-branded commercial discovery. The next release should convert the verified operational and certification evidence already held by the Farm into focused bilingual pages that answer buyer questions directly. Indexation, consistent external profiles, and authoritative citations should then be monitored as one measurable search-acquisition process.
+
+## Implementation update
+
+On 26 August 2026, the first content release described in this report was built as a local release candidate:
+six Arabic buyer pages with exact English equivalents, driven by one typed public-route registry and the
+existing owner-managed website content. It also shortens homepage metadata and extends internal links,
+canonical/hreflang, JSON-LD, sitemap, indexability, analytics and website-save revalidation. Each focused route
+adds two visible bilingual buyer FAQs. Product/export/wholesale pages expose the owner-editable last published
+season with a not-live warning. No genuine gallery photo was found in the local Farm archive, so no generated or
+placeholder image was misrepresented as a real farm photo. This note records
+the built candidate only. A final Claude Fable 5 challenge caused two corrections before release: all mutable
+marketing claims now fail closed when the content database cannot be read, and the exporter-supply and wholesale
+pages now answer distinct buyer workflows instead of repeating the same body. Merge, production deployment, live checks, Search Console/Bing submission and
+ranking movement require separate evidence.

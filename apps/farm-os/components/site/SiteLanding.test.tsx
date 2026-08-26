@@ -8,10 +8,22 @@ vi.mock("@vercel/analytics", () => ({ track: vi.fn() }));
 
 import { SiteLanding } from "./SiteLanding";
 import { SITE_CONTENT_DEFAULTS } from "@/lib/site-content";
+import {
+  PUBLIC_SITE_PAGES,
+  PUBLIC_SITE_PAGE_KEYS,
+  publicSitePagePath,
+} from "@/lib/site-public-pages";
 
 const source = readFileSync(resolve(__dirname, "./SiteLanding.tsx"), "utf8");
-const arabicLayout = readFileSync(resolve(__dirname, "../../app/(public-ar)/layout.tsx"), "utf8");
-const englishLayout = readFileSync(resolve(__dirname, "../../app/(public-en)/layout.tsx"), "utf8");
+const siteCss = readFileSync(resolve(__dirname, "../../app/site.css"), "utf8");
+const arabicLayout = readFileSync(
+  resolve(__dirname, "../../app/(public-ar)/layout.tsx"),
+  "utf8"
+);
+const englishLayout = readFileSync(
+  resolve(__dirname, "../../app/(public-en)/layout.tsx"),
+  "utf8"
+);
 const c = SITE_CONTENT_DEFAULTS;
 const render = (lang: "ar" | "en") =>
   renderToStaticMarkup(<SiteLanding content={c} lang={lang} />);
@@ -67,15 +79,77 @@ describe("public site language routing", () => {
     // No in-memory language toggle may come back: language is a prop derived from the URL.
     expect(source).not.toMatch(/useState<Lang>/);
     expect(source).not.toMatch(/setLang/);
-    expect(source).toContain("lang }: { content: SiteContent; lang: Lang }");
+    expect(source).toMatch(
+      /export function SiteLanding\([\s\S]*content:\s*SiteContent;[\s\S]*lang:\s*Lang;/
+    );
   });
 
   it("keeps every tracked action labelled with the rendered route's language", () => {
     // `lang` is now the route's language, so the analytics label follows the URL on both pages.
-    const tracked = [...source.matchAll(/trackPublicSiteAction\("([a-z_]+)",\s*([a-zA-Z]+)/g)];
+    const tracked = [
+      ...source.matchAll(/trackPublicSiteAction\("([a-z_]+)",\s*([a-zA-Z]+)/g),
+    ];
     expect(tracked.length).toBeGreaterThanOrEqual(6);
     for (const [, action, languageArg] of tracked) {
       expect(languageArg, action).toBe("lang");
     }
+  });
+
+  it("server-renders crawlable internal links to every focused page in the route language", () => {
+    for (const lang of ["ar", "en"] as const) {
+      const html = render(lang);
+      for (const page of PUBLIC_SITE_PAGE_KEYS) {
+        expect(html).toContain(`href="${publicSitePagePath(lang, page)}"`);
+      }
+    }
+  });
+
+  it("fails closed on homepage certificate claims when no proof is published", () => {
+    const withoutProofs = {
+      ...c,
+      certifications: { ...c.certifications, items: [] },
+    };
+    const html = renderToStaticMarkup(
+      <SiteLanding content={withoutProofs} lang="en" />
+    );
+
+    expect(html).not.toContain(c.hero.subhead.en);
+    expect(html).not.toContain(c.hero.badges[0].en);
+    expect(html).not.toContain(c.brand.tagline.en);
+    expect(html).not.toContain(PUBLIC_SITE_PAGES.chinaSupply.description.en);
+    expect(html).not.toContain(PUBLIC_SITE_PAGES.certifications.description.en);
+    expect(html).toContain("Contact the Farm for supply specifications");
+    expect(html).toContain("No certificate is currently published");
+    expect(html).toContain("Fresh Barhi dates from El-Sharkia");
+  });
+
+  it("suppresses unsafe certificate links and images on the homepage", () => {
+    const hostile = {
+      ...c,
+      certifications: {
+        ...c.certifications,
+        items: c.certifications.items.map((item, index) =>
+          index === 0
+            ? {
+                ...item,
+                verifyUrl: "javascript:alert(1)",
+                image: "https://tracker.example/pixel.png?visitor=1",
+              }
+            : item
+        ),
+      },
+    };
+    const html = renderToStaticMarkup(
+      <SiteLanding content={hostile} lang="en" />
+    );
+
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("tracker.example");
+    expect(html).not.toContain('href="#"');
+    expect(html).toContain("Verification link unavailable");
+    expect(html).toContain("site__cert-image-unavailable");
+    expect(siteCss).toMatch(
+      /\.site__cert-body h3,[\s\S]*?\.site__cert-host[\s\S]*?overflow-wrap:\s*anywhere;/
+    );
   });
 });
