@@ -1,5 +1,18 @@
-# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public SEO live)
+# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (search visibility baseline)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-26 — Google and AI search baseline — REPORT COMPLETE
+
+A direct Google Egypt benchmark tested 24 Arabic and English searches with personalization disabled. The Farm
+ranked number 1 for all four branded searches and appeared in five top-10 result sets overall, but only one of
+20 non-branded commercial searches: `تمور مصرية للصين` at number 6. The direct index check returned the Arabic
+homepage but not the new English `/en` page. Both live routes remain technically healthy; normal homepage
+requests using Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User and PerplexityBot user agents returned 200. The
+main acquisition gap is content and authority, not another technical rewrite: one homepage per language is
+trying to serve product, export, supplier, China, certification, wholesale and location intents. The complete
+results, competitor sample, AI-search requirements, six-page bilingual content architecture, 90-day targets
+and phased plan are in `docs/google and ai search visibility report 2026 08 26.md`. No application, database,
+production, authentication or business data changed.
 
 ## 2026-08-26 — Public SEO internationalization — MERGED / DEPLOYED / LIVE VERIFIED
 

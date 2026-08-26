@@ -1,8 +1,18 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-26 (public SEO live). Owner: Amr Ebeid.*
+*Updated: 2026-08-26 (search visibility baseline). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-26 — SEARCH VISIBILITY BASELINE: REPORT COMPLETE / NO PRODUCTION CHANGE.** A direct Google Egypt
+benchmark tested 24 Arabic and English searches. Ebeid Farm ranked first for all four branded searches and in
+five top-10 result sets overall, but only one of 20 non-branded commercial searches: `تمور مصرية للصين` at
+number 6. The Arabic homepage was returned by the direct site index check; `/en` was not yet returned. Live
+technical SEO remains healthy and normal homepage requests from Googlebot, Bingbot, OAI-SearchBot,
+ChatGPT-User and PerplexityBot user agents returned 200. The primary gap is focused bilingual commercial
+content and external authority. Full evidence and the Google plus AI-search plan are in
+`docs/google and ai search visibility report 2026 08 26.md`. No application, migration, production or data
+change.
 
 **2026-08-26 — PUBLIC SEO INTERNATIONALIZATION: LIVE / PRODUCTION VERIFIED.** PR #1080 merged as
 `62ac7c267238792956e6e7b9d127c8dc927d2097`; Vercel Production deployment `6101544881` succeeded. The public Farm
