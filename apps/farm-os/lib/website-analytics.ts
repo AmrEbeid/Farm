@@ -40,7 +40,7 @@ const PERIOD_DAYS: Record<WebsiteAnalyticsPeriod, number> = {
 };
 
 function numberValue(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "number") return Number.isFinite(value) && value >= 0 ? value : 0;
   if (typeof value !== "string" || value.trim() === "") return 0;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
@@ -50,16 +50,6 @@ function rows(value: unknown): AnalyticsRow[] {
   if (!value || typeof value !== "object") return [];
   const data = (value as { data?: unknown }).data;
   return Array.isArray(data) ? data.filter((row): row is AnalyticsRow => !!row && typeof row === "object") : [];
-}
-
-function countRow(value: unknown): AnalyticsRow | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const data = (value as { data?: unknown }).data;
-  if (Array.isArray(data)) {
-    const first = data[0];
-    return first && typeof first === "object" ? first as AnalyticsRow : undefined;
-  }
-  return data && typeof data === "object" ? data as AnalyticsRow : undefined;
 }
 
 function breakdown(value: unknown, dimension: string): WebsiteAnalyticsBreakdown[] {
@@ -152,33 +142,43 @@ export async function loadWebsiteAnalytics(
   const common = { since, until, filter: "requestPath eq '/'" };
   const fetcher = options.fetcher ?? fetch;
   try {
-    const [counts, trend, countries, referrers, devices, browsers, events] = await Promise.all([
-      query("visits/count", common, config as Required<AnalyticsConfig>, fetcher),
-      query("visits/aggregate", { ...common, by: "day", limit: "100" }, config as Required<AnalyticsConfig>, fetcher),
+    const [trend, countries, referrers, devices, browsers, events] = await Promise.all([
+      query(
+        "visits/aggregate",
+        { ...common, by: "day", limit: String(PERIOD_DAYS[period] + 2) },
+        config as Required<AnalyticsConfig>,
+        fetcher,
+      ),
       query("visits/aggregate", { ...common, by: "country", limit: "8" }, config as Required<AnalyticsConfig>, fetcher),
       query("visits/aggregate", { ...common, by: "referrerHostname", limit: "8" }, config as Required<AnalyticsConfig>, fetcher),
       query("visits/aggregate", { ...common, by: "deviceType", limit: "8" }, config as Required<AnalyticsConfig>, fetcher),
       query("visits/aggregate", { ...common, by: "browserName", limit: "8" }, config as Required<AnalyticsConfig>, fetcher),
       query("events/aggregate", { ...common, by: "eventName", limit: "20" }, config as Required<AnalyticsConfig>, fetcher),
     ]);
-    const countData = countRow(counts);
-    const trendData = rows(trend).map((row) => ({
-      date: typeof row.timestamp === "string" ? row.timestamp.slice(0, 10) : "",
-      visitors: numberValue(row.visitors),
-      pageviews: numberValue(row.pageviews),
-    }));
+    const dailyTrend = new Map<string, { date: string; visitors: number; pageviews: number }>();
+    for (const row of rows(trend)) {
+      if (typeof row.timestamp !== "string") continue;
+      const parsedTimestamp = new Date(row.timestamp);
+      if (Number.isNaN(parsedTimestamp.getTime())) continue;
+      const date = parsedTimestamp.toISOString().slice(0, 10);
+      const existing = dailyTrend.get(date);
+      dailyTrend.set(date, {
+        date,
+        visitors: (existing?.visitors ?? 0) + numberValue(row.visitors),
+        pageviews: (existing?.pageviews ?? 0) + numberValue(row.pageviews),
+      });
+    }
+    const trendData = [...dailyTrend.values()].sort((left, right) => left.date.localeCompare(right.date));
     const trendVisitors = trendData.reduce((total, point) => total + point.visitors, 0);
     const trendPageviews = trendData.reduce((total, point) => total + point.pageviews, 0);
-    const countVisitors = numberValue(countData?.visitors);
-    const countPageviews = numberValue(countData?.pageviews);
 
     return {
       status: "ready",
       period,
       since,
       until,
-      visitors: countVisitors > 0 ? countVisitors : trendVisitors,
-      pageviews: countPageviews > 0 ? countPageviews : trendPageviews,
+      visitors: trendVisitors,
+      pageviews: trendPageviews,
       trend: trendData,
       countries: breakdown(countries, "country"),
       referrers: breakdown(referrers, "referrerHostname"),

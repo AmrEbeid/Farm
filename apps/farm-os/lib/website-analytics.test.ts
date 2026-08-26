@@ -26,7 +26,6 @@ describe("website analytics read model", () => {
   it("queries only the public homepage and maps aggregated analytics", async () => {
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const url = new URL(String(input));
-      if (url.pathname.endsWith("/visits/count")) return response({ data: { visitors: 12, pageviews: 18 } });
       if (url.searchParams.get("by") === "day") {
         return response({ data: [{ timestamp: "2026-08-24T00:00:00.000Z", visitors: 4, pageviews: 6 }] });
       }
@@ -45,14 +44,15 @@ describe("website analytics read model", () => {
 
     expect(snapshot).toMatchObject({
       status: "ready",
-      visitors: 12,
-      pageviews: 18,
+      visitors: 4,
+      pageviews: 6,
       trend: [{ date: "2026-08-24", visitors: 4, pageviews: 6 }],
       events: [{ label: "contact_whatsapp", visitors: 2, pageviews: 0, count: 3 }],
     });
-    expect(fetcher).toHaveBeenCalledTimes(7);
+    expect(fetcher).toHaveBeenCalledTimes(6);
     for (const [input, init] of fetcher.mock.calls) {
       const url = new URL(String(input));
+      expect(url.pathname).not.toMatch(/\/visits\/count$/);
       expect(url.searchParams.get("filter")).toBe("requestPath eq '/'");
       expect(url.searchParams.get("projectId")).toBe("prj_test");
       expect(url.searchParams.get("teamId")).toBe("team_test");
@@ -61,12 +61,9 @@ describe("website analytics read model", () => {
     }
   });
 
-  it("keeps KPI cards consistent when Vercel returns stale or string counts", async () => {
+  it("keeps KPI cards equal to the sum of the displayed daily graph rows", async () => {
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const url = new URL(String(input));
-      if (url.pathname.endsWith("/visits/count")) {
-        return response({ data: [{ visitors: "0", pageviews: "0" }] });
-      }
       if (url.searchParams.get("by") === "day") {
         return response({
           data: [
@@ -91,6 +88,74 @@ describe("website analytics read model", () => {
       trend: [
         { date: "2026-08-24", visitors: 2, pageviews: 2 },
         { date: "2026-08-25", visitors: 1, pageviews: 5 },
+      ],
+    });
+  });
+
+  it.each([
+    ["7d", "9"],
+    ["30d", "32"],
+    ["90d", "92"],
+  ] as const)("requests enough daily rows for %s plus timezone headroom", async (period, expectedLimit) => {
+    const fetcher = vi.fn<typeof fetch>(async () => response({ data: [] }));
+
+    await loadWebsiteAnalytics(period, {
+      config,
+      fetcher,
+      now: new Date("2026-08-25T12:00:00Z"),
+    });
+
+    const dayRequest = fetcher.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((url) => url.searchParams.get("by") === "day");
+    expect(dayRequest?.searchParams.get("limit")).toBe(expectedLimit);
+  });
+
+  it("keeps the cards at zero when the displayed trend has no rows", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => response({ data: [] }));
+
+    const snapshot = await loadWebsiteAnalytics("7d", {
+      config,
+      fetcher,
+      now: new Date("2026-08-25T12:00:00Z"),
+    });
+
+    expect(snapshot).toMatchObject({
+      status: "ready",
+      visitors: 0,
+      pageviews: 0,
+      trend: [],
+    });
+  });
+
+  it("normalizes valid dates, merges duplicate days, and clamps invalid trend values", async () => {
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = new URL(String(input));
+      if (url.searchParams.get("by") === "day") {
+        return response({
+          data: [
+            { timestamp: "not-a-date", visitors: 99, pageviews: 99 },
+            { timestamp: "2026-08-25T00:00:00.000Z", visitors: -3, pageviews: 5 },
+            { timestamp: "2026-08-24T00:00:00.000Z", visitors: 2, pageviews: Number.POSITIVE_INFINITY },
+            { timestamp: "Mon, 24 Aug 2026 00:00:00 GMT", visitors: 3, pageviews: 4 },
+          ],
+        });
+      }
+      return response({ data: [] });
+    });
+
+    const snapshot = await loadWebsiteAnalytics("7d", {
+      config,
+      fetcher,
+      now: new Date("2026-08-25T12:00:00Z"),
+    });
+
+    expect(snapshot).toMatchObject({
+      visitors: 5,
+      pageviews: 9,
+      trend: [
+        { date: "2026-08-24", visitors: 5, pageviews: 4 },
+        { date: "2026-08-25", visitors: 0, pageviews: 5 },
       ],
     });
   });

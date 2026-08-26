@@ -17,4 +17,10 @@ describe("website analytics settings surface", () => {
     expect(analytics).toContain('filter: "requestPath eq \'/\'"');
     expect(page).not.toContain("VERCEL_ANALYTICS_TOKEN");
   });
+
+  it("labels the visitor KPI as a sum of daily graph values", () => {
+    expect(page).toContain('label="مجموع الزوار يوميًا"');
+    expect(page).toContain('label="مشاهدات لكل زائر يومي"');
+    expect(analytics).not.toMatch(/visits\/count/);
+  });
 });
