@@ -1,4 +1,4 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-25)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-26)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
 
@@ -12,6 +12,13 @@ First cloud deploy of the MVP-0 app. **No secrets in this file**.
 > dependency audit and independent final APPROVE. An authenticated Owner session verified the live `/support`
 > attachment form and status guidance. No disposable ticket was created: production remains at zero tickets
 > and zero attachments.
+
+> **2026-08-26 (latest) — PASSWORD RECOVERY MERGED / DEPLOYED / LIVE VERIFIED.** PR #1077 merged as
+> `c5ed6c7a78721883ed5740f6eaba3c029955ec6f`; exact-main CI `32950259303`, database tests `32950259395`,
+> release `32950259279`, and Vercel Production passed. Supabase Site URL and redirect allowlist now use
+> `ebeidfarm.business`; the Arabic recovery template uses a fragment token that is not sent to servers or
+> referrers. Live request and reset pages return 200, the reset surface is no-store/no-referrer, the fragment
+> is removed immediately, and no console error was observed. No database migration or business-data write.
 
 > **2026-08-24 (latest) — ACCOUNTING RELEASE + ACTIVE-ORG SESSION REPAIR MERGED / DEPLOYED.** The two release
 > migrations were applied first as hosted versions `20260824093256` and `20260824093359`; aggregate and catalog

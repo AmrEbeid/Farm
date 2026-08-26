@@ -1,8 +1,21 @@
 # STATUS — Farm OS single source of truth
 *The ONLY doc that claims currency. Everything else (TRACKER, SESSION-BRIEF) is an append-only archive.*
-*Updated: 2026-08-25 (production login incident closed). Owner: Amr Ebeid.*
+*Updated: 2026-08-26 (password recovery live). Owner: Amr Ebeid.*
 
 **Rule:** update this file whenever repo/prod state changes materially; keep it under ~100 lines. If this file and any other doc disagree, this file wins — then fix the other doc.
+
+**2026-08-26 — PASSWORD RECOVERY: LIVE / DOMAIN CORRECTED.** PR #1077 merged as
+`c5ed6c7a78721883ed5740f6eaba3c029955ec6f`; exact-main CI `32950259303`, database tests `32950259395`,
+release `32950259279`, and Vercel Production passed. Supabase Auth now uses `https://ebeidfarm.business` as
+Site URL, allows `https://ebeidfarm.business/**`, and sends an Arabic recovery email to a prefetch-safe Farm
+URL fragment instead of the protected Vercel deployment. Live `/forgot-password` and `/reset-password` return
+200; the latter is `no-store` / `no-referrer`, renders the reset form, and removes the token fragment from the
+address immediately. Recovery verifies the one-time token only on explicit save, changes the password in the
+same server request, and attempts global session revocation with a visible partial-failure state. Evidence:
+Vitest 2,444 plus 17 controlled skips, TypeScript, ESLint, 74-page build, zero-vulnerability audit, gitleaks,
+pgTAP, installed Supabase SSR cookie/session contract, mobile browser checks, and independent APPROVE with no
+P0-P3 findings. No migration or business-data change. Old reset emails retain their old destination; users must
+request a fresh link.
 
 **2026-08-25 — PRODUCTION LOGIN INCIDENT: CLOSED / AUTHENTICATED OWNER VERIFIED.** Valid credentials were
 accepted by Supabase but PR #1065's proxy repair redirected the user back to `/login`: production had never

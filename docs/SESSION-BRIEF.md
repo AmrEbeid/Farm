@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-08-25 by Codex (support attachments live)
+# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (password recovery live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-26 — Password recovery domain incident — CLOSED / LIVE VERIFIED
+
+Supabase Auth had used a protected Vercel deployment as Site URL, so reset emails opened a Vercel login that
+ordinary Farm users could not use. The application also had no complete in-product recovery flow. PR #1077
+adds Arabic request and new-password pages, a recovery-only server endpoint, fixed same-origin routing, generic
+enumeration-resistant request responses, 12-character matching passwords, and session revocation. The final
+design is prefetch-safe: the email places the token in a URL fragment, `/reset-password` is no-store/no-referrer,
+the fragment is removed immediately, and the token is verified only when the user explicitly saves the new
+password. A normal signed-in session cannot bypass it. Revocation failure after a successful password change is
+reported as a partial result rather than false success.
+
+PR #1077 merged as `c5ed6c7a78721883ed5740f6eaba3c029955ec6f`; exact-main CI `32950259303`,
+database tests `32950259395`, release `32950259279`, and Vercel Production passed. Supabase Site URL is now
+`https://ebeidfarm.business`, `https://ebeidfarm.business/**` is allowlisted, and the persisted Arabic reset
+template links to `{{ .SiteURL }}/reset-password#token_hash={{ .TokenHash }}&type=recovery`. Live request and
+reset pages rendered, headers were correct, the fragment disappeared immediately, and no console error was
+observed. Full evidence: Vitest 2,444 plus 17 controlled skips, TypeScript, ESLint, 74-page build, zero-audit,
+gitleaks, pgTAP, installed Supabase SSR cookie/session contract, and independent APPROVE with no P0-P3 findings.
+No migration or business-data change occurred. No real email or password change was submitted during postflight.
+
+**Exact resume point:** Abdelrhman must request a fresh reset email from the Farm login page; the already-sent
+Vercel link cannot be changed retroactively. CAPTCHA remains a separate coordinated Auth hardening release:
+create an Owner-controlled Turnstile/hCaptcha site first, update every affected Auth form with a token, then
+enable Supabase enforcement. Do not enable it in the dashboard first or legitimate Auth requests will fail.
 
 ## 2026-08-25 — Support request attachments — MIGRATED / MERGED / DEPLOYED
 

@@ -1,6 +1,6 @@
 # SPEC-0035 — Password Recovery
 
-Status: Implemented candidate, pending production configuration and live verification  
+Status: Implemented, deployed, configured, and live-verified 2026-08-26
 Owner: Amr Ebeid  
 Surfaces: `/login`, `/forgot-password`, `/reset-password`, `/auth/reset-password`
 
@@ -32,12 +32,12 @@ Surfaces: `/login`, `/forgot-password`, `/reset-password`, `/auth/reset-password
 
 ## Production configuration
 
-1. Deploy these routes before changing email links.
-2. Set the Supabase Auth Site URL to `https://ebeidfarm.business`.
-3. Allow `https://ebeidfarm.business/**` as an Auth redirect URL.
-4. Point the recovery email to
+1. The routes are deployed before the email link change.
+2. Supabase Auth Site URL is `https://ebeidfarm.business`.
+3. `https://ebeidfarm.business/**` is an allowed Auth redirect URL.
+4. The recovery email points to
    `{{ .SiteURL }}/reset-password#token_hash={{ .TokenHash }}&type=recovery`.
-5. Send a new recovery email. Previously sent links retain their old destination.
+5. Users request a new recovery email. Previously sent links retain their old destination.
 
 ## Verification
 
@@ -55,3 +55,4 @@ deployed together, or legitimate login and recovery requests will fail.
 ## Changelog
 
 - 2026-08-26: Added the complete Arabic Farm-owned password recovery candidate and production configuration contract.
+- 2026-08-26: PR #1077 merged and deployed; Auth domain, redirect allowlist, and Arabic template configured; anonymous live surfaces verified.
