@@ -171,14 +171,15 @@ export async function loadWebsiteAnalytics(
     const trendPageviews = trendData.reduce((total, point) => total + point.pageviews, 0);
     const countVisitors = numberValue(countData?.visitors);
     const countPageviews = numberValue(countData?.pageviews);
+    const hasTrend = trendData.length > 0;
 
     return {
       status: "ready",
       period,
       since,
       until,
-      visitors: countVisitors > 0 ? countVisitors : trendVisitors,
-      pageviews: countPageviews > 0 ? countPageviews : trendPageviews,
+      visitors: hasTrend ? trendVisitors : countVisitors,
+      pageviews: hasTrend ? trendPageviews : countPageviews,
       trend: trendData,
       countries: breakdown(countries, "country"),
       referrers: breakdown(referrers, "referrerHostname"),

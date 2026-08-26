@@ -45,8 +45,8 @@ describe("website analytics read model", () => {
 
     expect(snapshot).toMatchObject({
       status: "ready",
-      visitors: 12,
-      pageviews: 18,
+      visitors: 4,
+      pageviews: 6,
       trend: [{ date: "2026-08-24", visitors: 4, pageviews: 6 }],
       events: [{ label: "contact_whatsapp", visitors: 2, pageviews: 0, count: 3 }],
     });
@@ -65,7 +65,7 @@ describe("website analytics read model", () => {
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const url = new URL(String(input));
       if (url.pathname.endsWith("/visits/count")) {
-        return response({ data: [{ visitors: "0", pageviews: "0" }] });
+        return response({ data: [{ visitors: "1", pageviews: "2" }] });
       }
       if (url.searchParams.get("by") === "day") {
         return response({
@@ -92,6 +92,29 @@ describe("website analytics read model", () => {
         { date: "2026-08-24", visitors: 2, pageviews: 2 },
         { date: "2026-08-25", visitors: 1, pageviews: 5 },
       ],
+    });
+  });
+
+  it("uses the count endpoint when no daily trend rows are available", async () => {
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/visits/count")) {
+        return response({ data: { visitors: 12, pageviews: 18 } });
+      }
+      return response({ data: [] });
+    });
+
+    const snapshot = await loadWebsiteAnalytics("7d", {
+      config,
+      fetcher,
+      now: new Date("2026-08-25T12:00:00Z"),
+    });
+
+    expect(snapshot).toMatchObject({
+      status: "ready",
+      visitors: 12,
+      pageviews: 18,
+      trend: [],
     });
   });
 
