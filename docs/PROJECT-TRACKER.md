@@ -1,4 +1,17 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-25 by Codex (support attachments live)
+# Project Tracker — Farm OS      Last updated: 2026-08-27 by Codex (public SEO performance live)
+
+> **2026-08-27 — PUBLIC SEO PERFORMANCE MERGED / DEPLOYED / VERIFIED.** PR #1094 merged as
+> `0f94b3d7a0cbe7044813f22f1deea95e25a5fc1b`. The public root is now independent from authenticated Farm OS
+> providers and global Tailwind CSS; public fonts use swap without eager preload. Homepage and focused-page hero
+> photos are responsive Next images, discoverable in initial HTML with `fetchpriority=high`, and the logo is also
+> responsive. Production mobile `/en` Lighthouse is performance 97, accessibility 100, best practices 100 and
+> SEO 100, with LCP 2.52 s, TBT 30 ms and CLS 0.021; the prior live baseline was performance 76 / LCP 6.13 s.
+> All 14 public routes return 200 with one H1, self canonical, no no-index and the hero preload. Arabic, English
+> and focused-route phone/desktop probes show no horizontal overflow. Full Vitest 2,496 plus 17 controlled skips,
+> TypeScript, full ESLint, 87-page build, application/design CI, pgTAP, gitleaks, Vercel Preview, Production and
+> independent review passed. Migration N/A; no database, authentication or business-data change. Search Console
+> has accepted the 14-page sitemap; `/` and `/en` are indexed, while the sampled focused English page remains
+> `Discovered - currently not indexed` and aggregate coverage is still processing.
 
 > **2026-08-25 — SUPPORT REQUEST ATTACHMENTS MIGRATED / MERGED / DEPLOYED.** `/support` now accepts
 > screenshots and documents when a request is created and later from its detail view. The private
