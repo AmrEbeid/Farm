@@ -31,7 +31,7 @@ right side of that line: it **records and checks**, it does not auto-file with a
 
 ## 2. The real reference (de-identified — model, not values)
 The Owner's 2025 certificates demonstrate the three record shapes (sensitive fields redacted):
-- **GACC/CIFER (China registration)** — enterprise "Obaid Company for Dates", product *Dates / Barhi*,
+- **GACC/CIFER (China registration)** — enterprise "Ebeid Company for Dates", product *Dates / Barhi*,
   status *Normal*, valid from 2025‑10‑24. *(Registration number + contact person = identifiers/PII — not stored in this doc.)*
 - **CAPQ farm-export accreditation (season 2025)** — farm code `55.09.30.03.DAF`, crop *Barhi (البلح)*,
   ~18 feddan, ~202 t approved, destination *China*, per-season validity. *(Responsible-person national ID + phone = PII — out of scope.)*

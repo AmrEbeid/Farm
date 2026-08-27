@@ -149,7 +149,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
     name: { ar: "مزرعة عُبيد للتمور", en: "Ebeid Farm" },
     registeredName: {
       ar: "شركة عُبيد للتمور",
-      en: "Obaid Company for Dates",
+      en: "Ebeid Company for Dates",
     },
     tagline: {
       ar: "تمور البرحي الطازجة — جودة تصديرية معتمدة",
@@ -295,7 +295,7 @@ export const SITE_CONTENT_DEFAULTS: SiteContent = {
         title: { ar: "تكويد الصين (GACC)", en: "China GACC Coding" },
         detail: {
           ar: "شركة عُبيد للتمور · تسجيل QEGY1425102400002 · كود 55.09.30.03.DAF",
-          en: "Obaid Company for Dates · Reg. QEGY1425102400002 · Code 55.09.30.03.DAF",
+          en: "Ebeid Company for Dates · Reg. QEGY1425102400002 · Code 55.09.30.03.DAF",
         },
         image: "/site/proofs/china-gacc-record.jpeg",
         verifyUrl:
