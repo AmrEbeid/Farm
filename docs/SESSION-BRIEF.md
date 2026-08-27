@@ -1,14 +1,14 @@
 # Session Brief — Farm OS      Updated: 2026-08-27 by Codex (authenticated visual compaction candidate)
 *Updated LAST, after meaningful work.*
 
-## 2026-08-27 — Authenticated visual compaction — LOCAL CANDIDATE / NOT DEPLOYED
+## 2026-08-27 — Authenticated visual compaction — PR #1096 OPEN / NOT DEPLOYED
 
 Kimi completed a read-only review of the live public site and authenticated frontend source. The decisive finding
 was design stratification: the released role homes follow SPEC-0033's compact, task-first direction, while several
 module dashboards and launcher hubs retain inconsistent headers, dominant KPI tiles and brochure-like emoji cards.
 The public homepage was explicitly excluded from implementation.
 
-Branch `ux/kimi-visual-compaction` implements the first bounded authenticated-only slice. Finance, Farm,
+PR #1096 on branch `ux/kimi-visual-compaction` implements the first bounded authenticated-only slice. Finance, Farm,
 Inventory, People, Planning, Weather, Marketing, Reports and Insights use the shared compact `PageHeader`, whose
 title is now 20 px. KPI compaction is scoped beneath `.fos-appshell` so public pages cannot inherit it: 12 px
 padding, 22 px maximum values and no decorative icon chip. Record, Reports and Insights preserve links, groups,
@@ -23,8 +23,8 @@ build; clean diff checks; protected public paths absent from the diff. No migrat
 worktree has no approved role credential, so authenticated 390 px/1,440 px visual confirmation remains required
 before merge/deploy.
 
-**Exact resume point:** review the exact branch diff, open the PR, let application/design CI and Vercel Preview
-complete, then perform authenticated phone/desktop visual acceptance. Do not merge or deploy before that evidence.
+**Exact resume point:** let application/design CI and Vercel Preview complete, review the exact PR diff, then
+perform authenticated phone/desktop visual acceptance. Do not merge or deploy before that evidence.
 
 ## 2026-08-27 — Public SEO performance — LIVE / PRODUCTION VERIFIED
 
