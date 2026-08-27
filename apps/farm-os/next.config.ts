@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
+  images: {
+    qualities: [55, 75],
+  },
   experimental: {
     globalNotFound: true,
   },

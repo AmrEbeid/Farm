@@ -1,6 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui";
 import { PublicSiteAnalytics } from "@/components/site/PublicSiteAnalytics";
 import { isAllowedCertImage, isHttpsUrl } from "@/lib/site-certificates";
 import type { Bi, Lang, SiteCert, SiteContent } from "@/lib/site-content";
@@ -376,8 +376,13 @@ export function SiteDetailPage({
       <header className="site-detail__header">
         <div className="site-detail__bar">
           <Link href={SITE_HOME_PATH[lang]} className="site-detail__brand">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static brand logo */}
-            <img src="/site/ebeid-logo.png" alt={content.brand.name[lang]} />
+            <Image
+              src="/site/ebeid-logo.png"
+              alt={content.brand.name[lang]}
+              width={160}
+              height={50}
+              sizes="(max-width: 760px) 109px, 128px"
+            />
           </Link>
           <nav aria-label={lang === "ar" ? "روابط الصفحة" : "Page links"}>
             <Link href={SITE_HOME_PATH[lang]}>
@@ -399,10 +404,8 @@ export function SiteDetailPage({
             >
               {lang === "ar" ? "English" : "عربي"}
             </Link>
-            <Link href="/login">
-              <Button variant="primary">
-                {lang === "ar" ? "دخول" : "Login"}
-              </Button>
+            <Link href="/login" className="site__button site__button--primary">
+              {lang === "ar" ? "دخول" : "Login"}
             </Link>
           </div>
         </div>
@@ -410,6 +413,16 @@ export function SiteDetailPage({
 
       <main>
         <section className="site-detail__hero">
+          <Image
+            className="site-detail__hero-image"
+            src="/site/hero-orchard.jpg"
+            alt=""
+            fill
+            preload
+            fetchPriority="high"
+            sizes="100vw"
+            quality={55}
+          />
           <div>
             <nav
               className="site-detail__breadcrumb"
@@ -425,10 +438,11 @@ export function SiteDetailPage({
             <h1>{copy.heading}</h1>
             <p>{copy.intro}</p>
             <div className="site-detail__hero-actions">
-              <Link href={`${SITE_HOME_PATH[lang]}#contact`}>
-                <Button variant="primary">
-                  {lang === "ar" ? "اطلب عرض سعر" : "Request a Quote"}
-                </Button>
+              <Link
+                href={`${SITE_HOME_PATH[lang]}#contact`}
+                className="site__button site__button--primary"
+              >
+                {lang === "ar" ? "اطلب عرض سعر" : "Request a Quote"}
               </Link>
               <Link
                 href={`${SITE_HOME_PATH[lang]}#supply`}
@@ -469,10 +483,11 @@ export function SiteDetailPage({
             <h2>{content.contact.heading[lang]}</h2>
             <span>{content.contact.address[lang]}</span>
           </div>
-          <Link href={`${SITE_HOME_PATH[lang]}#contact`}>
-            <Button variant="primary">
-              {lang === "ar" ? "تواصل مع المزرعة" : "Contact the Farm"}
-            </Button>
+          <Link
+            href={`${SITE_HOME_PATH[lang]}#contact`}
+            className="site__button site__button--primary"
+          >
+            {lang === "ar" ? "تواصل مع المزرعة" : "Contact the Farm"}
           </Link>
         </section>
       </main>

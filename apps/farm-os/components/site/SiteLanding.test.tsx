@@ -24,6 +24,10 @@ const englishLayout = readFileSync(
   resolve(__dirname, "../../app/(public-en)/layout.tsx"),
   "utf8"
 );
+const publicRoot = readFileSync(
+  resolve(__dirname, "../../app/public-root-document.tsx"),
+  "utf8"
+);
 const c = SITE_CONTENT_DEFAULTS;
 const render = (lang: "ar" | "en") =>
   renderToStaticMarkup(<SiteLanding content={c} lang={lang} />);
@@ -58,9 +62,33 @@ describe("public site language routing", () => {
     expect(render("en")).toContain('class="site" dir="ltr" lang="en"');
     // Each public route owns a root document, so the initial server response is correct before
     // JavaScript runs and not merely corrected by a nested wrapper after hydration.
-    expect(arabicLayout).toContain('<RootDocument lang="ar" dir="rtl">');
-    expect(englishLayout).toContain('<RootDocument lang="en" dir="ltr">');
+    expect(arabicLayout).toContain('<PublicRootDocument lang="ar" dir="rtl">');
+    expect(englishLayout).toContain('<PublicRootDocument lang="en" dir="ltr">');
+    expect(arabicLayout).toContain('from "@/app/root-config"');
+    expect(englishLayout).toContain('from "@/app/root-config"');
+    expect(arabicLayout).not.toContain('from "@/app/root-document"');
+    expect(englishLayout).not.toContain('from "@/app/root-document"');
     expect(source).not.toContain("document.documentElement");
+  });
+
+  it("prioritizes a responsive hero image without loading the internal app UI shell", () => {
+    const html = render("en");
+
+    expect(source).toContain('import Image from "next/image"');
+    expect(source).toContain('src="/site/hero-orchard.jpg"');
+    expect(source).toContain("preload");
+    expect(source).toContain('fetchPriority="high"');
+    expect(source).toContain('sizes="100vw"');
+    expect(source).toContain("quality={55}");
+    expect(source).not.toContain('from "@/components/ui"');
+    expect(publicRoot).not.toContain('from "@/components/ui"');
+    expect(publicRoot).not.toContain('import "./globals.css"');
+    expect(publicRoot).toContain("preload: false");
+    expect(publicRoot).toContain('className="public-body"');
+    expect(siteCss).not.toContain('url("/site/hero-orchard.jpg")');
+    expect(html).toContain('rel="preload" as="image"');
+    expect(html).toContain("%2Fsite%2Fhero-orchard.jpg");
+    expect(html).toContain('imageSizes="100vw"');
   });
 
   it("switches language through a crawlable link, not React state", () => {

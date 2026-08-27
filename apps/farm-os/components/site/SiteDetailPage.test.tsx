@@ -1,4 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@vercel/analytics/next", () => ({ Analytics: () => null }));
@@ -13,7 +15,19 @@ import {
   publicSitePagePath,
 } from "@/lib/site-public-pages";
 
+const source = readFileSync(resolve(__dirname, "./SiteDetailPage.tsx"), "utf8");
+
 describe("focused public search pages", () => {
+  it("prioritizes the responsive hero image on every focused route", () => {
+    expect(source).toContain('import Image from "next/image"');
+    expect(source).toContain('src="/site/hero-orchard.jpg"');
+    expect(source).toContain("preload");
+    expect(source).toContain('fetchPriority="high"');
+    expect(source).toContain('sizes="100vw"');
+    expect(source).toContain("quality={55}");
+    expect(source).not.toContain('from "@/components/ui"');
+  });
+
   it("renders every page in Arabic and English with one focused H1 and reciprocal language link", () => {
     for (const page of PUBLIC_SITE_PAGE_KEYS) {
       for (const lang of ["ar", "en"] as const) {
