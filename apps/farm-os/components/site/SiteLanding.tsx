@@ -11,9 +11,9 @@
 // with a claim-free fallback on read failure) so this component never fabricates data.
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Menu } from "lucide-react";
-import { Button } from "@/components/ui";
 import {
   normalizeSiteMapUrl,
   type Bi,
@@ -112,11 +112,13 @@ export function SiteLanding({
       <header className="site__header">
         <div className="site__bar">
           <a href="#top" className="site__brand" aria-label={t(c.brand.name)}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- small static brand logo */}
-            <img
+            <Image
               className="site__brand-logo"
               src="/site/ebeid-logo.png"
               alt={t(c.brand.name)}
+              width={160}
+              height={50}
+              sizes="(max-width: 719px) 109px, 128px"
             />
           </a>
           <nav
@@ -168,10 +170,8 @@ export function SiteLanding({
             >
               {other}
             </Link>
-            <Link href="/login">
-              <Button variant="primary">
-                {lang === "ar" ? "تسجيل الدخول" : "Login"}
-              </Button>
+            <Link href="/login" className="site__button site__button--primary">
+              {lang === "ar" ? "تسجيل الدخول" : "Login"}
             </Link>
           </div>
         </div>
@@ -180,6 +180,16 @@ export function SiteLanding({
       <main id="top">
         {/* ---- Hero ---- */}
         <section className="site__hero">
+          <Image
+            className="site__hero-image"
+            src="/site/hero-orchard.jpg"
+            alt=""
+            fill
+            preload
+            fetchPriority="high"
+            sizes="100vw"
+            quality={55}
+          />
           <div className="site__hero-inner">
             <p className="site__eyebrow">{brandTagline}</p>
             <h1 className="site__title">{t(c.hero.headline)}</h1>
@@ -194,12 +204,12 @@ export function SiteLanding({
               </ul>
             )}
             <div className="site__cta">
-              <a href="#contact">
-                <Button variant="primary">{t(c.hero.ctaPrimary)}</Button>
+              <a href="#contact" className="site__button site__button--primary">
+                {t(c.hero.ctaPrimary)}
               </a>
               {hasCertifications && (
-                <a href="#certifications">
-                  <Button variant="ghost">{t(c.hero.ctaSecondary)}</Button>
+                <a href="#certifications" className="site__button site__button--ghost">
+                  {t(c.hero.ctaSecondary)}
                 </a>
               )}
             </div>
