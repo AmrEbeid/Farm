@@ -1,5 +1,12 @@
 # @amrebeid/ui
 
+## 1.4.0
+
+### Minor Changes
+
+- 2d21f26: Add consumer-owned sidebar and menu-icon slots to AppShell, with a compact accessible mobile drawer.
+- 542ebe0: Add skip-link and mobile-navigation slots to AppShell, keep modal background controls inert, prevent mobile overflow, and give desktop navigation viewport-bound scrolling.
+
 ## 1.3.1
 
 ### Patch Changes
