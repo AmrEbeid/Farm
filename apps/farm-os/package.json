@@ -37,11 +37,11 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^10.8.1",
-    "eslint-config-next": "16.3.1",
+    "eslint": "^10.9.0",
+    "eslint-config-next": "16.3.2",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "comment-optionalDependencies": "Pin Tailwind v4's Linux native binaries so Vercel's Linux build installs them. The macOS-generated lockfile listed but didn't install these (npm/cli#4828), so the build crashed processing globals.css with 'Cannot find native binding' (@tailwindcss/oxide). As os/cpu-gated optionals they're skipped on other platforms. Keep versions in sync with @tailwindcss/oxide + lightningcss.",
   "optionalDependencies": {
