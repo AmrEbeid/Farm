@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -244,20 +245,18 @@ export default async function FarmDashboardPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">لوحة المزرعة</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            مؤشرات الهيكل والنخيل والحوش والعمليات من السجلات الفعلية.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <PrintButton label="طباعة لوحة المزرعة" />
-          <HeaderLink href="/farm">هيكل المزرعة</HeaderLink>
-          {canSeeOffshoots && <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>}
-          <HeaderLink href="/farm/croquis">الكروكي</HeaderLink>
-        </div>
-      </header>
+      <PageHeader
+        title="لوحة المزرعة"
+        subtitle="مؤشرات الهيكل والنخيل والحوش والعمليات من السجلات الفعلية."
+        actions={
+          <div className="no-print flex flex-wrap gap-2">
+            <PrintButton label="طباعة لوحة المزرعة" />
+            <HeaderLink href="/farm">هيكل المزرعة</HeaderLink>
+            {canSeeOffshoots && <HeaderLink href="/farm/offshoots">بنك الفسائل</HeaderLink>}
+            <HeaderLink href="/farm/croquis">الكروكي</HeaderLink>
+          </div>
+        }
+      />
 
       {/* First-run guidance: no palms registered yet on this page's own tally
           (totalBarhi, already computed above) — disappears once real data exists. */}

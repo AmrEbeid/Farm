@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { SimpleTable, type SimpleColumn } from "@/components/SimpleTable";
 import { FilterableTable } from "@/components/FilterableTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -232,22 +233,20 @@ export default async function PeopleDashboardPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">لوحة الفريق</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            متابعة الفريق والتكليفات المفتوحة دون عرض بيانات اتصال أو أجور.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <PrintButton label="طباعة لوحة الفريق" />
-          <HeaderLink href="/people">دليل الفريق</HeaderLink>
-          <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
-          {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
-          {canOpenWagePages && <HeaderLink href="/people/payroll/compensation">أجور الفريق</HeaderLink>}
-          {canOpenWagePages && <HeaderLink href="/people/payroll">إقفال الرواتب</HeaderLink>}
-        </div>
-      </header>
+      <PageHeader
+        title="لوحة الفريق"
+        subtitle="متابعة الفريق والتكليفات المفتوحة دون عرض بيانات اتصال أو أجور."
+        actions={
+          <div className="no-print flex flex-wrap gap-2">
+            <PrintButton label="طباعة لوحة الفريق" />
+            <HeaderLink href="/people">دليل الفريق</HeaderLink>
+            <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
+            {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
+            {canOpenWagePages && <HeaderLink href="/people/payroll/compensation">أجور الفريق</HeaderLink>}
+            {canOpenWagePages && <HeaderLink href="/people/payroll">إقفال الرواتب</HeaderLink>}
+          </div>
+        }
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiLink href="/people/dashboard?filter=directory" active={filter === "directory"}>

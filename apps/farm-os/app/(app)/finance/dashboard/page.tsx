@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Alert, Card, EmptyState, KpiCard } from "@/components/ui";
@@ -393,18 +394,29 @@ export default async function FinanceDashboardPage({
       />
 
       {budgetsVerified && (
-        <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">
-          «الملتزم» و«الفعلي» و«المتاح» أدناه أرقام موازنة موثقة المصدر، لكنها
-          لا تتحدّث تلقائيًا من الاعتمادات والمصروفات. لا تعتمد عليها كرقابة صرف
-          حية. راجع{" "}
-          <Link
-            href="/finance/budget-vs-actual"
-            className="font-semibold underline underline-offset-4"
-          >
-            الموازنة مقابل الفعلي من القيود المُرحّلة
-          </Link>
-          .
-        </Alert>
+        <p className="flex items-start gap-2 text-sm" style={{ color: "var(--ink-muted)" }}>
+          <AlertTriangle
+            size={16}
+            className="mt-0.5 shrink-0"
+            style={{ color: "var(--warning-fg)" }}
+            aria-hidden
+          />
+          <span>
+            <strong className="font-semibold" style={{ color: "var(--ink)" }}>
+              أرقام الموازنة لقطة — ليست رقابة حية.
+            </strong>{" "}
+            «الملتزم» و«الفعلي» و«المتاح» أدناه أرقام موازنة موثقة المصدر، لكنها
+            لا تتحدّث تلقائيًا من الاعتمادات والمصروفات. لا تعتمد عليها كرقابة صرف
+            حية. راجع{" "}
+            <Link
+              href="/finance/budget-vs-actual"
+              className="font-semibold underline underline-offset-4"
+            >
+              الموازنة مقابل الفعلي من القيود المُرحّلة
+            </Link>
+            .
+          </span>
+        </p>
       )}
 
       {(budgetsVerified || canSeeAccounting) && (

@@ -186,13 +186,6 @@ export default async function OwnerDashboard() {
         </div>
       </section>
 
-      <section aria-labelledby="owner-change-title" className="border-y py-4" style={{ borderColor: "var(--line)" }}>
-        <h2 id="owner-change-title" className="text-base font-bold">ما الذي تغير؟</h2>
-        <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
-          المقارنة بفترة سابقة غير متاحة في هذه اللقطة بعد؛ لن نعرض اتجاها أو نسبة تغيير غير موثقة.
-        </p>
-      </section>
-
       <section aria-labelledby="owner-drivers-title" className="space-y-3">
         <div>
           <h2 id="owner-drivers-title" className="text-base font-bold">لماذا تحتاج هذه البنود للمتابعة؟</h2>

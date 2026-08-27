@@ -69,8 +69,9 @@ describe("data authority", () => {
       "const budgetsVerified = isAuthoritative(snapshot.budgetAuthority);"
     );
     expect(financeDashboardSource).toContain(
-      '{budgetsVerified && (\n        <Alert tone="warning" title="أرقام الموازنة لقطة — ليست رقابة حية">'
+      '{budgetsVerified && (\n        <p className="flex items-start gap-2 text-sm" style={{ color: "var(--ink-muted)" }}>'
     );
+    expect(financeDashboardSource).toContain("أرقام الموازنة لقطة — ليست رقابة حية");
     expect(budgetKpiGate).toContain("{budgetsVerified && (");
     for (const sink of [
       'label="المعتمد (لقطة)"',

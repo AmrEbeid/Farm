@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireMembership } from "@/lib/auth";
 import { Card, KpiCard } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -32,17 +33,13 @@ export default async function InventoryDashboardPage({
   const m = await requireMembership();
   // SPEC-0033 R3f: the Storekeeper gets a dedicated home from ONE bounded, storekeeper-only
   // snapshot. Branched BEFORE anything else so the legacy multi-table dashboard below — which fans
-  // out over every inventory item, purchase request and supplier and renders charts — is never
+  // out over every inventory item and purchase request and renders charts — is never
   // executed for this role. Owner, farm manager, accountant and agri_engineer keep it untouched.
   if (m.role === "storekeeper") return <StorekeeperHome orgId={m.orgId} />;
   const { filter = "all" } = await searchParams;
   const sb = await createClient();
 
-  const [
-    { data: items, error: itemsError },
-    { data: prs, error: prsError },
-    { data: suppliers, error: suppliersError },
-  ] = await Promise.all([
+  const [{ data: items, error: itemsError }, { data: prs, error: prsError }] = await Promise.all([
     sb
       .from("inventory_items")
       .select("id, name, category, unit, min_stock, reorder_point, inventory_bin(on_hand, reserved)")
@@ -51,14 +48,9 @@ export default async function InventoryDashboardPage({
       .from("purchase_requests")
       .select("id, code, status, reason, needed_by")
       .order("code", { ascending: false }),
-    sb
-      .from("suppliers")
-      .select("id, name, lead_time_days")
-      .order("name"),
   ]);
   if (itemsError) throw itemsError;
   if (prsError) throw prsError;
-  if (suppliersError) throw suppliersError;
 
   const itemRows = (items ?? []).map((it) => {
     const bins = (Array.isArray(it.inventory_bin) ? it.inventory_bin : it.inventory_bin ? [it.inventory_bin] : []) as
@@ -170,19 +162,17 @@ export default async function InventoryDashboardPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">لوحة المخزون والمشتريات</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            مؤشرات قابلة للتصفية؛ اضغط على البطاقة لتصفية جدول العمل.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <PrintButton label="طباعة لوحة المخزون" />
-          <HeaderLink href="/inventory">الأصناف</HeaderLink>
-          <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
-        </div>
-      </header>
+      <PageHeader
+        title="لوحة المخزون والمشتريات"
+        subtitle="مؤشرات قابلة للتصفية؛ اضغط على البطاقة لتصفية جدول العمل."
+        actions={
+          <div className="no-print flex flex-wrap gap-2">
+            <PrintButton label="طباعة لوحة المخزون" />
+            <HeaderLink href="/inventory">الأصناف</HeaderLink>
+            <HeaderLink href="/purchase-requests">طلبات الشراء</HeaderLink>
+          </div>
+        }
+      />
 
       {/* First-run guidance: no inventory items registered yet (already-fetched
           `items`, no new query) — disappears once the org has real stock. */}
@@ -244,34 +234,13 @@ export default async function InventoryDashboardPage({
         </section>
       )}
 
-      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card title="ملخص الموردين">
-          <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-            {num(suppliers?.length ?? 0)} مورّد مسجّل. تُستخدم مدد التوريد في توصيات التغطية عندما تكون متاحة.
-          </p>
-          <div className="no-print">
-            <Link
-              href="/suppliers"
-              className="mt-3 inline-block font-medium underline underline-offset-4"
-              style={{ color: "var(--brand)" }}
-            >
-              فتح الموردين
-            </Link>
-          </div>
-        </Card>
-        <Card title="نطاق هذه اللوحة">
-          <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-            هذه قراءة تشغيلية من المخزون وطلبات الشراء فقط. توقعات النقص التفصيلية تبقى داخل صفحة تغطية كل صنف.
-          </p>
-        </Card>
-        <div className="no-print">
-          <CurrentFilterCard
-            label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
-            clearHref="/inventory/dashboard"
-            showClear={filter !== "all"}
-          />
-        </div>
-      </section>
+      <div className="no-print">
+        <CurrentFilterCard
+          label={FILTER_LABEL_AR[filter] ?? "فلتر غير معروف"}
+          clearHref="/inventory/dashboard"
+          showClear={filter !== "all"}
+        />
+      </div>
 
       <section>
         <div className="mb-3 flex items-center justify-between">

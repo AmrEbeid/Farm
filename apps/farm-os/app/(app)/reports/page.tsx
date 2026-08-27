@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireMembership } from "@/lib/auth";
 import { Card } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
+import { NavIcon } from "@/components/NavIcon";
 
 // SPEC-0025 U-4 — «التقارير»: ONE hub where every report in the system is a card, grouped by the
 // QUESTION it answers (not by the module that owns it). Role-aware: you see what you may open.
@@ -73,14 +75,8 @@ export default async function ReportsHubPage() {
 
   return (
     <div className="flex flex-col gap-5 p-6">
-      <header>
-        <h1 className="text-xl font-bold" style={{ color: "var(--ink)" }}>
-          التقارير
-        </h1>
-        <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-          كل تقارير النظام في مكان واحد — مرتّبة حسب السؤال الذي تجيب عنه.
-        </p>
-      </header>
+      <PageHeader title="التقارير" subtitle="كل تقارير النظام في مكان واحد — مرتّبة حسب السؤال الذي تجيب عنه." />
+
       {groups.map((g) => (
         <section key={g.question} className="flex flex-col gap-2">
           <h2 className="text-base font-bold" style={{ color: "var(--ink)" }}>
@@ -91,8 +87,8 @@ export default async function ReportsHubPage() {
               <Link key={c.href + c.title} href={c.href} className="block">
                 <Card>
                   <div className="flex items-start gap-3 p-1">
-                    <span className="text-2xl" aria-hidden>
-                      {c.icon}
+                    <span aria-hidden style={{ color: "var(--ink-muted)" }}>
+                      <NavIcon name={c.icon} size={20} />
                     </span>
                     <div>
                       <div className="font-bold" style={{ color: "var(--ink)" }}>

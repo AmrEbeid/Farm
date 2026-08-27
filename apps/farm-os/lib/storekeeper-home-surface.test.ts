@@ -41,9 +41,10 @@ describe("storekeeper home surface", () => {
     expect(branch).toBeGreaterThan(gate);
     // No legacy read, and no Supabase client at all, runs for this role before the branch.
     expect(dashboardPage.indexOf("await createClient()")).toBeGreaterThan(branch);
-    for (const legacy of ['.from("inventory_items")', '.from("purchase_requests")', '.from("suppliers")']) {
+    for (const legacy of ['.from("inventory_items")', '.from("purchase_requests")']) {
       expect(dashboardPage.indexOf(legacy)).toBeGreaterThan(branch);
     }
+    expect(dashboardPage).not.toContain('.from("suppliers")');
     expect(dashboardPage.indexOf("Promise.all([")).toBeGreaterThan(branch);
   });
 

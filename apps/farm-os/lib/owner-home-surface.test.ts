@@ -22,7 +22,10 @@ describe("owner home surface", () => {
     expect(source).toContain("isAuthoritative(snapshot.authority.budgets)");
     expect(source).toContain("attention.pendingPaymentApprovals");
     expect(source).toContain("attention.pendingAgronomySignoffs");
-    expect(source).toContain("ما الذي تغير؟");
+    // SPEC-0033 visual compaction: the full-width "ما الذي تغير؟" section carried no real
+    // comparison data (its only content was "not available yet") and is removed rather than
+    // occupying a full-width slot for an honest-null message with nothing to drill into.
+    expect(source).not.toContain("ما الذي تغير؟");
     expect(source).toContain("لماذا تحتاج هذه البنود للمتابعة؟");
     expect(source).not.toContain("QuickNav");
     expect(source).not.toContain("DashboardTabs");
