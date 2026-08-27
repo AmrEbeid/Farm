@@ -1,5 +1,35 @@
-# Session Brief — Farm OS      Updated: 2026-08-26 by Codex (public search pages live)
+# Session Brief — Farm OS      Updated: 2026-08-27 by Codex (public SEO performance live)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-27 — Public SEO performance — LIVE / PRODUCTION VERIFIED
+
+PR #1094 merged as `0f94b3d7a0cbe7044813f22f1deea95e25a5fc1b` after independent APPROVE and green
+application/design CI, pgTAP, gitleaks and Vercel Preview. Vercel Production is live. The public Arabic and
+English roots no longer import the authenticated Farm OS theme/toast providers, generated app UI CSS or global
+Tailwind stylesheet; metadata and viewport constants moved to a side-effect-free shared module. Public fonts
+retain the existing Readex Pro/Tajawal design but use swap without eager preloads. The homepage and all focused
+buyer pages now render the orchard hero as a responsive optimized Next image that is present in initial HTML,
+preloaded at high priority and served at quality 55. The header logo is responsive too. Public-only button and
+reset rules preserve the existing design without the app UI dependency.
+
+Production mobile `/en` Lighthouse improved from the measured live baseline of performance 76 and LCP 6.13 s
+to performance 97 and LCP 2.52 s. Accessibility, best practices and SEO are 100; TBT is 30 ms and CLS is 0.021.
+All 14 public URLs return 200 with one H1, the expected self canonical, no no-index and the responsive hero
+preload. Live Arabic, English and focused-detail phone probes plus English desktop show no horizontal overflow,
+and the browser selects a 640 px image on the tested phone and 1,920 px on desktop. Full Vitest passed 2,496
+tests with 17 controlled skips; TypeScript, full ESLint and the 87-page production build passed. No migration,
+Supabase change, authentication change or business-data write was required.
+
+Search Console remains verified under the Owner account. The sitemap is successful with 14 discovered pages;
+`/` and `/en` are indexed. The sampled `/en/fresh-barhi-dates` URL is discovered through the sitemap but remains
+`Discovered - currently not indexed`; aggregate performance/indexing reports are still processing. Manual
+indexing requests for focused pages are the remaining external action, followed by authority work: real farm
+updates, buyer-useful links and credible third-party citations. Do not claim AI-search citations until they are
+observed in an actual answer.
+
+**Exact resume point:** request indexing for the focused routes when the Owner confirms the grouped Search Console
+submission, then recheck coverage after Google processes it. Continue backlink and farm-update work separately;
+the technical release is complete.
 
 ## 2026-08-26 — Public search pages — LIVE / PRODUCTION VERIFIED
 

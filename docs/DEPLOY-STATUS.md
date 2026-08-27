@@ -1,6 +1,17 @@
-# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-26)
+# Deploy Status — Farm OS MVP-0 (pilot)   (2026-06-25; current-state note 2026-08-27)
 
 First cloud deploy of the MVP-0 app. **No secrets in this file**.
+
+> **2026-08-27 (latest) — PUBLIC SEO PERFORMANCE RELEASE LIVE / PRODUCTION VERIFIED.** PR #1094 merged as
+> `0f94b3d7a0cbe7044813f22f1deea95e25a5fc1b`; application/design CI, pgTAP, gitleaks, Vercel Preview and
+> Production passed after independent APPROVE. The homepage and 12 focused buyer pages now discover the orchard
+> hero from initial HTML, request the responsive image at high priority and serve the mobile candidate at quality
+> 55. Public layouts no longer load the authenticated app providers, global Tailwind stylesheet or eight eager
+> font preloads. Production mobile `/en` Lighthouse improved from performance 76 / LCP 6.13 s to performance
+> 97 / LCP 2.52 s; accessibility, best practices and SEO are 100, TBT is 30 ms and CLS is 0.021. All 14 public
+> routes return 200 with one H1, a self canonical, no no-index and the responsive hero preload; Arabic, English
+> and focused-page phone/desktop probes have zero horizontal overflow. No migration, Supabase change,
+> authentication change or business-data write.
 
 > **2026-08-26 (latest) — BILINGUAL BUYER SEARCH PAGES LIVE / PRODUCTION VERIFIED.** PR #1083 merged as
 > `68584e78e086f40b5999a8cdd16ba63ce7a182e1`; exact-head app/design CI, pgTAP, gitleaks and Vercel Preview passed,
