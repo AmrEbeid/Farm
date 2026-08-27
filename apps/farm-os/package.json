@@ -24,7 +24,7 @@
     "@vercel/analytics": "^2.0.1",
     "exceljs": "^4.4.0",
     "lucide-react": "^1.22.0",
-    "next": "16.3.0",
+    "next": "16.3.2",
     "puppeteer-core": "25.1.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
