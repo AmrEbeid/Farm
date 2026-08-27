@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireMembership } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn, type SimpleRow } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -98,22 +99,20 @@ export default async function WeatherDashboardPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">لوحة الطقس والمخاطر</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            تلخيص تنبيهات الطقس الاسترشادية قبل التخطيط والتنفيذ الميداني.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <PrintButton label="طباعة لوحة الطقس" />
-          <HeaderLink href="/weather">التوقعات التفصيلية</HeaderLink>
-          <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
-          {(m.role === "owner" || m.role === "farm_manager") && (
-            <HeaderLink href="/weather/thresholds">تعديل العتبات</HeaderLink>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        title="لوحة الطقس والمخاطر"
+        subtitle="تلخيص تنبيهات الطقس الاسترشادية قبل التخطيط والتنفيذ الميداني."
+        actions={
+          <div className="no-print flex flex-wrap gap-2">
+            <PrintButton label="طباعة لوحة الطقس" />
+            <HeaderLink href="/weather">التوقعات التفصيلية</HeaderLink>
+            <HeaderLink href="/plans/dashboard">لوحة التخطيط</HeaderLink>
+            {(m.role === "owner" || m.role === "farm_manager") && (
+              <HeaderLink href="/weather/thresholds">تعديل العتبات</HeaderLink>
+            )}
+          </div>
+        }
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <DashboardKpiLink href="/weather/dashboard?filter=forecast" active={filter === "forecast"}>

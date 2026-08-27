@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireMembership } from "@/lib/auth";
 import { EmptyState, KpiCard } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { MarketingAreaNav } from "@/components/marketing/MarketingAreaNav";
 import { SourceStagingPreview } from "@/components/marketing/SourceStagingPreview";
 import { canAccessMarketing, loadMarketingDashboardSnapshot } from "@/lib/marketing/queries";
@@ -55,10 +56,9 @@ export default async function MarketingOverviewPage() {
 
   return (
     <main className="flex flex-col gap-5 p-4 sm:p-6">
-      <header id="overview">
-        <h1 className="text-xl font-bold">التسويق</h1>
-        <p style={{ color: "var(--ink-muted)" }}>من جاهزية المنتج إلى السوق، ثم العميل والمتابعة.</p>
-      </header>
+      <div id="overview">
+        <PageHeader title="التسويق" subtitle="من جاهزية المنتج إلى السوق، ثم العميل والمتابعة." />
+      </div>
 
       <MarketingAreaNav />
 

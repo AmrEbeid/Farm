@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { Card, EmptyState, KpiCard } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { FilterableTable } from "@/components/FilterableTable";
 import { type SimpleColumn } from "@/components/SimpleTable";
 import { DashboardKpiLink } from "@/components/DashboardKpiLink";
@@ -288,19 +289,17 @@ export default async function PlanningDashboardPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">لوحة التخطيط والعمليات</h1>
-          <p style={{ color: "var(--ink-muted)" }}>
-            متابعة الخطط النشطة والعمليات القادمة والفحوص المحظورة من السجلات الفعلية.
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap gap-2">
-          <PrintButton label="طباعة لوحة التخطيط" />
-          <HeaderLink href="/plans">كل الخطط</HeaderLink>
-          {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
-        </div>
-      </header>
+      <PageHeader
+        title="لوحة التخطيط والعمليات"
+        subtitle="متابعة الخطط النشطة والعمليات القادمة والفحوص المحظورة من السجلات الفعلية."
+        actions={
+          <div className="no-print flex flex-wrap gap-2">
+            <PrintButton label="طباعة لوحة التخطيط" />
+            <HeaderLink href="/plans">كل الخطط</HeaderLink>
+            {canOpenFieldDashboard && <HeaderLink href="/m">الميدان</HeaderLink>}
+          </div>
+        }
+      />
 
       {/* First-run guidance: no plans exist yet (already-fetched `plans`, no new
           query) — disappears once the org has a real plan. */}

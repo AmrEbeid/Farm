@@ -1,4 +1,18 @@
-# Project Tracker — Farm OS      Last updated: 2026-08-27 by Codex (public SEO performance live)
+# Project Tracker — Farm OS      Last updated: 2026-08-27 by Codex (authenticated visual compaction candidate)
+
+> **2026-08-27 — AUTHENTICATED VISUAL COMPACTION CANDIDATE VALIDATED LOCALLY.** Branch
+> `ux/kimi-visual-compaction` applies the first bounded follow-up from Kimi's read-only product review without
+> touching the public website homepage or any public route, site component, site stylesheet, SEO content or
+> website data. Nine authenticated dashboards/hubs now share the compact `PageHeader`; operational titles are
+> 20 px; KPI presentation is scoped to the authenticated app shell with 12 px padding, a 22 px maximum value and
+> no decorative icon chip. `/record`, `/reports` and `/insights` keep every route, role gate and Arabic label but
+> replace large emoji anchors with the existing Lucide mapping. The empty Owner comparison band and Inventory's
+> two explanatory cards are removed; the now-unused unbounded supplier read is removed too. Finance keeps its
+> budget-snapshot warning as compact inline guidance. Validation: focused 62/62, full Vitest 2,497 plus 17
+> controlled skips, full ESLint, TypeScript, 87-page production build and `git diff --check` pass. Migration N/A;
+> no schema, RPC, permission, finance logic or business-data change. Authenticated phone/desktop visual evidence
+> remains the release gate because this clean worktree has no approved role credential. Candidate is not merged
+> or deployed.
 
 > **2026-08-27 — PUBLIC SEO PERFORMANCE MERGED / DEPLOYED / VERIFIED.** PR #1094 merged as
 > `0f94b3d7a0cbe7044813f22f1deea95e25a5fc1b`. The public root is now independent from authenticated Farm OS

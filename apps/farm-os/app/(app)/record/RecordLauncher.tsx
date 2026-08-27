@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Role } from "@/lib/auth";
 import { Card } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
+import { NavIcon } from "@/components/NavIcon";
 import { groupVisibleActions } from "@/lib/record-actions";
 
 export function RecordLauncher({ role }: { role: Role }) {
@@ -8,14 +10,7 @@ export function RecordLauncher({ role }: { role: Role }) {
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
-      <header>
-        <h1 className="text-xl font-bold" style={{ color: "var(--ink)" }}>
-          ماذا تريد أن تسجّل؟
-        </h1>
-        <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-          احكِ ما حدث — والنظام يتولى الدفاتر والتصنيف والتوجيه.
-        </p>
-      </header>
+      <PageHeader title="ماذا تريد أن تسجّل؟" subtitle="احكِ ما حدث — والنظام يتولى الدفاتر والتصنيف والتوجيه." />
       <div className="flex flex-col gap-6">
         {visibleGroups.map((group) => (
           <section key={group.id} aria-labelledby={`record-group-${group.id}`}>
@@ -32,8 +27,8 @@ export function RecordLauncher({ role }: { role: Role }) {
                 <Link key={action.title} href={action.href} className="block h-full">
                   <Card className="h-full">
                     <div className="flex items-start gap-3 p-1">
-                      <span className="text-2xl" aria-hidden>
-                        {action.icon}
+                      <span aria-hidden style={{ color: "var(--ink-muted)" }}>
+                        <NavIcon name={action.icon} size={20} />
                       </span>
                       <div className="min-w-0">
                         <div className="font-bold" style={{ color: "var(--ink)" }}>

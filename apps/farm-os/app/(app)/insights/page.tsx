@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
+import { NavIcon } from "@/components/NavIcon";
 
 // SPEC-0029 / SPEC-0031 — «الرؤى»: the insight arc. One destination that walks the owner through the
 // farm's story as an ordered set of chapters, each answering a single question (never a page to hunt for).
@@ -39,8 +41,8 @@ function ChapterCard({ chapter }: { chapter: Chapter }) {
   const inner = (
     <Card>
       <div className="flex items-start gap-3 p-1">
-        <span className="text-2xl" aria-hidden>
-          {chapter.icon}
+        <span aria-hidden style={{ color: "var(--ink-muted)" }}>
+          <NavIcon name={chapter.icon} size={20} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -79,14 +81,10 @@ export default async function InsightsHubPage() {
 
   return (
     <div className="flex flex-col gap-5 p-6">
-      <header>
-        <h1 className="text-xl font-bold" style={{ color: "var(--ink)" }}>
-          الرؤى
-        </h1>
-        <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-          قصة المزرعة في فصول مرتّبة — كل فصل يجيب عن سؤال واحد. كل الأرقام من القيود الفعلية.
-        </p>
-      </header>
+      <PageHeader
+        title="الرؤى"
+        subtitle="قصة المزرعة في فصول مرتّبة — كل فصل يجيب عن سؤال واحد. كل الأرقام من القيود الفعلية."
+      />
 
       <section className="flex flex-col gap-2">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -105,8 +103,8 @@ export default async function InsightsHubPage() {
             <Link key={c.href} href={c.href} className="block">
               <Card>
                 <div className="flex items-start gap-3 p-1">
-                  <span className="text-2xl" aria-hidden>
-                    {c.icon}
+                  <span aria-hidden style={{ color: "var(--ink-muted)" }}>
+                    <NavIcon name={c.icon} size={20} />
                   </span>
                   <div>
                     <div className="font-bold" style={{ color: "var(--ink)" }}>

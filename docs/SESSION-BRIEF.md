@@ -1,5 +1,30 @@
-# Session Brief — Farm OS      Updated: 2026-08-27 by Codex (public SEO performance live)
+# Session Brief — Farm OS      Updated: 2026-08-27 by Codex (authenticated visual compaction candidate)
 *Updated LAST, after meaningful work.*
+
+## 2026-08-27 — Authenticated visual compaction — LOCAL CANDIDATE / NOT DEPLOYED
+
+Kimi completed a read-only review of the live public site and authenticated frontend source. The decisive finding
+was design stratification: the released role homes follow SPEC-0033's compact, task-first direction, while several
+module dashboards and launcher hubs retain inconsistent headers, dominant KPI tiles and brochure-like emoji cards.
+The public homepage was explicitly excluded from implementation.
+
+Branch `ux/kimi-visual-compaction` implements the first bounded authenticated-only slice. Finance, Farm,
+Inventory, People, Planning, Weather, Marketing, Reports and Insights use the shared compact `PageHeader`, whose
+title is now 20 px. KPI compaction is scoped beneath `.fos-appshell` so public pages cannot inherit it: 12 px
+padding, 22 px maximum values and no decorative icon chip. Record, Reports and Insights preserve links, groups,
+role gates and text while rendering existing Lucide mappings instead of large emoji. The empty Owner comparison
+band and Inventory's supplier/scope commentary cards are removed. Because the supplier card was the only consumer,
+the unused all-supplier dashboard read and its irrelevant failure path are removed. Finance's budget-snapshot
+warning remains visible as compact inline guidance. No navigation, filter behavior, query result, accounting
+definition, write path, permission or public website content changed.
+
+Evidence: focused 62/62; full Vitest 2,497 plus 17 controlled skips; full ESLint; TypeScript; 87-page production
+build; clean diff checks; protected public paths absent from the diff. No migration or database action. The clean
+worktree has no approved role credential, so authenticated 390 px/1,440 px visual confirmation remains required
+before merge/deploy.
+
+**Exact resume point:** review the exact branch diff, open the PR, let application/design CI and Vercel Preview
+complete, then perform authenticated phone/desktop visual acceptance. Do not merge or deploy before that evidence.
 
 ## 2026-08-27 — Public SEO performance — LIVE / PRODUCTION VERIFIED
 
