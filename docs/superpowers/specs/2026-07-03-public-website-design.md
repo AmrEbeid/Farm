@@ -33,7 +33,7 @@ fabricated — non-negotiable #1).
 Every figure/claim comes from owner-provided documents, not invented:
 
 - **Brand:** مزرعة عُبيد للتمور / **Ebeid Farm** — Premium Fresh Barhi Dates. Registered
-  export name on the official registries: **"Obaid Company for Dates" / شركة عبيد للتمور**
+  export name on the official registries: **"Ebeid Company for Dates" / شركة عبيد للتمور**
   (shown on the proofs so a buyer cross-checking the registry finds the match).
 - **Location:** Abou Shalaby (سوادة/أبو شلبي), Faqous, El-Sharkia, Egypt 44641.
 - **Disputed legacy stats:** the original source recorded ~115 feddans, ~4,380 Barhi palms, 5 blocks and
@@ -50,7 +50,7 @@ Every figure/claim comes from owner-provided documents, not invented:
 | Proof                       | Detail                                                                                                                    | Live verification                          |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | **GlobalGAP**               | GGN 4059883915303 · Cert 00151VPHHN0003 · HEIACert · IFA v6 SMART · valid → 2026-10-06 · 9.24 ha · ARE/CHN/EGY/EU/KWT/SAU | database.globalgap.org/search              |
-| **China GACC**              | Obaid Company for Dates · Reg QEGY1425102400002 · overseas code 55.09.30.03.DAF · Fresh fruits/Dates · valid → 2999       | scintl.chinaport.gov.cn (APR company list) |
+| **China GACC**              | Ebeid Company for Dates · Reg QEGY1425102400002 · overseas code 55.09.30.03.DAF · Fresh fruits/Dates · valid → 2999       | scintl.chinaport.gov.cn (APR company list) |
 | **QCAP residue**            | Cert Dokki-182904 · Barhi · EN 15662:2018 · clean (Hexythiazox 0.01 mg/kg)                                                | Ministry of Agriculture Central Lab        |
 | **CAPQ farm approval 2025** | Code 55.09.30.03.DAF · Barhi · 202 t · destination China · issued 2025-08-27                                              | Egyptian Plant Quarantine                  |
 
