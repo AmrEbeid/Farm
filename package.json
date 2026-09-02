@@ -13,7 +13,7 @@
     "release": "changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.0",
+    "@changesets/cli": "^3.0.1",
     "@storybook/react-vite": "^10.5.8",
     "jsdom": "^29.1.1",
     "react": "19.2.7",
