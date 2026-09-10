@@ -31,14 +31,14 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.1.0",
-    "@playwright/test": "^1.62.1",
+    "@eslint/compat": "^2.1.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^10.8.1",
-    "eslint-config-next": "16.3.1",
+    "eslint": "^10.10.0",
+    "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
     "typescript": "^6",
     "vitest": "^4.1.9"
