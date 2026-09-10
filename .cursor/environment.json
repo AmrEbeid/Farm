@@ -1,0 +1,22 @@
+{
+  "name": "Farm OS",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "user": "node",
+  "install": "npm ci && npm run build --workspace @amrebeid/ui",
+  "terminals": [
+    {
+      "name": "app-dev",
+      "command": "npm run dev --workspace farm-os"
+    },
+    {
+      "name": "storybook",
+      "command": "npm run storybook --workspace @amrebeid/ui"
+    }
+  ],
+  "ports": [
+    { "name": "app-dev", "port": 3000 },
+    { "name": "storybook", "port": 6006 }
+  ]
+}
